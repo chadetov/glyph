@@ -481,18 +481,18 @@ deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
         <div class="code">
           <span class="tag-bad">TypeScript: the hatches exist</span>
           <span class="cap">handler.ts</span>
-<pre>const user = body as unknown as User;
+<pre><span class="k">const</span> user = body <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">User</span>;
 <span class="cm">// @ts-ignore</span>
 doThing(user.mispelled);
 <span class="cm">// eslint-disable-next-line</span>
-return anything as any;</pre>
+<span class="k">return</span> anything <span class="k">as</span> <span class="t">any</span>;</pre>
         </div>
         <div class="code">
           <span class="tag-good">Glyph: nothing to disable</span>
           <span class="cap">handler.glyph</span>
-<pre>return match User.parse(body) {
-  Ok(user) =&gt; use(user),
-  Err(_) =&gt; fallback(),
+<pre><span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(body) {
+  <span class="t">Ok</span>(user) <span class="op">=&gt;</span> use(user),
+  <span class="t">Err</span>(_) <span class="op">=&gt;</span> fallback(),
 }
 <span class="cm">// no `as`, no ignore pragma,</span>
 <span class="cm">// no lint to switch off.</span></pre>
@@ -545,8 +545,8 @@ return anything as any;</pre>
         </div>
         <div class="code">
           <span class="tag-good">Glyph</span>
-<pre class="wraps"><span class="del">[E0200] non-exhaustive match on
-`Feed`: missing variant `Archived`</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on
+<span class="q">`Feed`</span>: missing variant <span class="q">`Archived`</span></span>
 <span class="cm">// every unhandled match, everywhere,</span>
 <span class="cm">// fails the build. No opt-in, no</span>
 <span class="cm">// escape, no forgotten default.</span></pre>

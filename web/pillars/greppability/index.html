@@ -454,7 +454,7 @@
 
       <div class="code">
         <span class="cap">the import tells you exactly where to look</span>
-<pre>import myapp/users { parseUser }
+<pre><span class="k">import</span> myapp/users { parseUser }
 <span class="cm">//     ^^^^^^^^^^^ the file is src/myapp/users.glyph.</span>
 <span class="cm">//     not a re-export of a re-export of a barrel.</span></pre>
       </div>
@@ -481,7 +481,7 @@
 
       <div class="code">
         <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
-<pre class="wraps"><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(fn(cur) { ... })
+<pre class="wraps"><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(<span class="k">fn</span>(cur) { ... })
 <span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
 <span class="cm"># every place the task list can change, enumerated.</span>
 <span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>

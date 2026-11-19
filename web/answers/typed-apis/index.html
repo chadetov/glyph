@@ -523,9 +523,9 @@
       </p>
       <div class="code">
         <span class="cap">api.glyph: the value leaves the match typed</span>
-<pre>let task = match NewTask.parse(req.body) {
-  Ok(t) =&gt; t,
-  Err(issues) =&gt; { return bad_request(issues) },
+<pre><span class="k">let</span> task = <span class="k">match</span> <span class="t">NewTask</span>.parse(req.body) {
+  <span class="t">Ok</span>(t) <span class="op">=&gt;</span> t,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> { <span class="k">return</span> bad_request(issues) },
 }
 task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; did you mean `title`?</span></pre>
       </div>

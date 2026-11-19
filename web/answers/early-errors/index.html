@@ -467,23 +467,23 @@
 
       <div class="code">
         <span class="cap">status.glyph: an arm that yields nothing, in a position that needs a value</span>
-<pre>fn label(s: Status) -&gt; string {
-  let text = match s {
-<span class="del">    Loading =&gt; {},          // an empty block: the arm produces no value</span>
-    Ready =&gt; "done",
-    Failed(msg) =&gt; msg,
+<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">let</span> text = <span class="k">match</span> s {
+<span class="del">    <span class="t">Loading</span> <span class="op">=&gt;</span> {},          <span class="c">// an empty block: the arm produces no value</span></span>
+    <span class="t">Ready</span> <span class="op">=&gt;</span> <span class="s">"done"</span>,
+    <span class="t">Failed</span>(msg) <span class="op">=&gt;</span> msg,
   }
-  return text
+  <span class="k">return</span> text
 }</pre>
       </div>
 
       <div class="code">
         <span class="cap">glyph build</span>
-<pre class="wraps"><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
-   ╰─ End the arm with an expression, or `return` from it. `X =&gt; {}` is a no-op
-      only where the `match` is a statement.
-   note: A value-position arm lowers to `case X: { break; }` when it yields
-         nothing, so the value would be `undefined` at run time.</pre>
+<pre class="wraps"><span class="del"><span class="e">[E0223]</span> this <span class="q">`match`</span> arm produces no value, but the <span class="q">`match`</span> is used as a value</span>
+   <span class="bx">╰─</span> End the arm with an expression, or <span class="q">`return`</span> from it. <span class="q">`X =&gt; {}`</span> is a no-op
+      only where the <span class="q">`match`</span> is a statement.
+   <span class="f">note:</span> A value-position arm lowers to <span class="q">`case X: { break; }`</span> when it yields
+         nothing, so the value would be <span class="q">`undefined`</span> at run time.</pre>
       </div>
 
       <div class="detail">
@@ -509,11 +509,11 @@
 
       <div class="code">
         <span class="cap">glyph build, on `fn total() -&gt; number { return await fetch_count() }`</span>
-<pre class="wraps"><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
-   ╰─ Mark the enclosing function `async fn`, or call a non-async function here.
+<pre class="wraps"><span class="del"><span class="e">[E0222]</span> <span class="q">`await`</span> is only valid inside an <span class="q">`async fn`</span></span>
+   <span class="bx">╰─</span> Mark the enclosing function <span class="q">`async fn`</span>, or call a non-async function here.
 
 <span class="cm">// before: no Glyph diagnostic, then</span>
-<span class="dim">dist/main.ts:14:18 - error TS1308: 'await' expressions are only allowed
+<span class="dim"><span class="lc">dist/main.ts:14:18</span> - <span class="e">error</span> <span class="e">TS1308</span>: 'await' expressions are only allowed
 within async functions and at the top levels of modules.</span></pre>
       </div>
 
@@ -561,16 +561,16 @@ within async functions and at the top levels of modules.</span></pre>
 
       <div class="code">
         <span class="cap">glyph build, on a union with an `Error` variant</span>
-<pre class="wraps"><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
-        references the JavaScript global `Error`, and this declaration would
+<pre class="wraps"><span class="del"><span class="e">[E0110]</span> <span class="q">`Error`</span> cannot name a type, variant, or function: the emitted module
+        references the JavaScript global <span class="q">`Error`</span>, and this declaration would
         shadow it</span>
- 5 │   | Error(string)
-   │     ──────┬─────
-   ╰─ Rename it (e.g. `Error` -&gt; `Failure`). The name is legal TypeScript, so
+ 5 <span class="bx">│</span>   | <span class="e">Error</span>(string)
+   <span class="bx">│</span>     <span class="bx">──────┬─────</span>
+   <span class="bx">╰─</span> Rename it (e.g. <span class="q">`Error`</span> -&gt; <span class="q">`Failure`</span>). The name is legal TypeScript, so
       nothing downstream catches the rebinding.
 
 <span class="cm">// before: no Glyph diagnostic, then, twenty lines later</span>
-<span class="dim">dist/main.ts:31:12 - error TS2345: Argument of type 'string' is not
+<span class="dim"><span class="lc">dist/main.ts:31:12</span> - <span class="e">error</span> <span class="e">TS2345</span>: Argument of type 'string' is not
 assignable to parameter of type ...</span></pre>
       </div>
 
@@ -625,16 +625,16 @@ assignable to parameter of type ...</span></pre>
 
       <div class="code">
         <span class="cap">glyph build, before: fifteen of these, none of them near the cause</span>
-<pre class="wraps"><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
+<pre class="wraps"><span class="dim"><span class="lc">dist/corpus/infer_output.ts:52:9</span> - <span class="e">error</span> <span class="e">TS2353</span>: Object literal may only
 specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
       </div>
 
       <div class="code">
         <span class="cap">glyph build, now</span>
-<pre class="wraps"><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
-        references the Glyph prelude global `Issue`, and this declaration
+<pre class="wraps"><span class="del"><span class="e">[E0110]</span> <span class="q">`Issue`</span> cannot name a type, variant, or function: the emitted module
+        references the Glyph prelude global <span class="q">`Issue`</span>, and this declaration
         would shadow it</span>
-   ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
+   <span class="bx">╰─</span> Rename it. The name is legal TypeScript, so nothing downstream catches
       the rebinding.</pre>
       </div>
 
@@ -664,15 +664,15 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <div class="code">
         <span class="cap">glyph build examples/apps, on `import catalog` inside csvql/</span>
-<pre class="wraps"><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
-        root `examples/apps`. There is a `csvql/catalog.glyph` under the
+<pre class="wraps"><span class="del"><span class="e">[E0104]</span> unresolved import <span class="q">`catalog`</span>: no module <span class="q">`catalog`</span> under the build
+        root <span class="q">`examples/apps`</span>. There is a <span class="q">`csvql/catalog.glyph`</span> under the
         root; a local import path is resolved from the build root, not from
         the importing file's directory (D15)</span>
-   ╰─ Build that module's own directory as the root, or spell the import path
+   <span class="bx">╰─</span> Build that module's own directory as the root, or spell the import path
       as it reads from the root.
 
 <span class="cm">// before: no import diagnostic, then</span>
-<span class="dim">[E0218] non-exhaustive match on string   // on a match over all four values</span></pre>
+<span class="dim"><span class="e">[E0218]</span> non-exhaustive match on string   // on a match over all four values</span></pre>
       </div>
 
       <div class="detail">
@@ -713,12 +713,12 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <div class="code">
         <span class="cap">glyph check, before and now</span>
-<pre class="wraps"><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
-   ╰─ Add the expected token.</span>
+<pre class="wraps"><span class="dim"><span class="e">[E0002]</span> parse: expected <span class="q">`)`</span> after variant payload, found Comma
+   <span class="bx">╰─</span> Add the expected token.</span>
 
-<span class="del">[E0010] a union variant carries one payload, but `Node` lists 6 positional
+<span class="del"><span class="e">[E0010]</span> a union variant carries one payload, but <span class="q">`Node`</span> lists 6 positional
         fields</span>
-   ╰─ Glyph has no tuple payload. Put the fields in one record and name them:
+   <span class="bx">╰─</span> Glyph has no tuple payload. Put the fields in one record and name them:
       `Node({ /* name */: Color, /* name */: Tree&lt;K, V&gt;, /* name */: K,
               /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
       and destructure it by those names in a match arm.</pre>
@@ -772,10 +772,10 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <div class="code">
         <span class="cap">glyph check, on a record built the TypeScript way</span>
-<pre class="wraps"><span class="del">[E0013] a statement cannot begin on the line where
-        `return Order` ends</span>
-   ╰─ Glyph has no `TypeName { ... }` construction form. Write the literal
-      alone and put the type on the annotation: `let o: Order = { id: "a" }`.
+<pre class="wraps"><span class="del"><span class="e">[E0013]</span> a statement cannot begin on the line where
+        <span class="q">`return Order`</span> ends</span>
+   <span class="bx">╰─</span> Glyph has no <span class="q">`TypeName { ... }`</span> construction form. Write the literal
+      alone and put the type on the annotation: <span class="q">`let o: Order = { id: "a" }`</span>.
 
 <span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
 <span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
@@ -874,10 +874,10 @@ let b: Mode = "rw"
 let c: Mode = takes_mode(true)
 let d: Mode = { x: 1 }
 <span class="cm">// before: four unused-variable warnings, exit 0</span>
-<span class="del">[E0204] type mismatch: expected `Mode`, found `number`
-[E0204] type mismatch: expected `Mode`, found `"rw"`
-[E0211] argument type mismatch: expected `Mode`, found `bool`
-[E0204] type mismatch: expected `Mode`, found `record`</span></pre>
+<span class="del"><span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`number`</span>
+<span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`"rw"`</span>
+<span class="e">[E0211]</span> argument type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`bool`</span>
+<span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`record`</span></span></pre>
       </div>
 
       <div class="detail">
@@ -931,11 +931,11 @@ let d: Mode = { x: 1 }
 <pre>type Mode = "read" | "write"
 type Cfg = { mode: Mode }
 
-fn ok() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
+fn <span class="o">ok</span>() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
 fn bad() -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }
 fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <span class="cm">// 0.1.122: nothing, on all three</span>
-<span class="del">[E0204] type mismatch: expected `Mode`, found `"nope"`   (twice)</span></pre>
+<span class="del"><span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`"nope"`</span>   (twice)</span></pre>
       </div>
 
       <div class="detail">
@@ -978,11 +978,11 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         <span class="cap">glyph check --no-tsc, on src/io.glyph declaring `module std/io`</span>
 <pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
 
-<span class="del">[E0113] `std/io` declares a module under `std/`, a prefix reserved for the
+<span class="del"><span class="e">[E0113]</span> <span class="q">`std/io`</span> declares a module under <span class="q">`std/`</span>, a prefix reserved for the
         modules the compiler carries (D15)</span>
- 1 &#9474; module std/io
-   &#9474; &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
-   &#9584;&#9472; Rename the module to a path of your own (`io`, `app/io`).</pre>
+ 1 <span class="bx">│</span> module std/io
+   <span class="bx">│</span> <span class="bx">──────┬──────</span>
+   <span class="bx">╰─</span> Rename the module to a path of your own (<span class="q">`io`</span>, <span class="q">`app/io`</span>).</pre>
       </div>
 
       <div class="detail">
@@ -998,9 +998,9 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <pre><span class="cm">// before: thread 'main' has overflowed its stack
 //         fatal runtime error: stack overflow, aborting   (exit 134)</span>
 
-<span class="del">[E0011] this array literal nests deeper than the parser's limit of 64 levels</span>
-   &#9584;&#9472; Name the inner levels: pull them out into `let` bindings, or into a
-      `fn` that returns one of them, so no single expression, type or
+<span class="del"><span class="e">[E0011]</span> this array literal nests deeper than the parser's limit of 64 levels</span>
+   <span class="bx">╰─</span> Name the inner levels: pull them out into <span class="q">`let`</span> bindings, or into a
+      <span class="q">`fn`</span> that returns one of them, so no single expression, type or
       pattern is more than 64 levels deep.</pre>
       </div>
 
@@ -1036,16 +1036,16 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 
       <div class="code">
         <span class="cap">poll.glyph, and what tsc said about it before 0.1.89</span>
-<pre>fn classify() -&gt; int {
-  let done = false
-  match done {
-    true =&gt; { return 1 },
-    false =&gt; { return 0 },
+<pre><span class="k">fn</span> classify() <span class="op">-&gt;</span> <span class="t">int</span> {
+  <span class="k">let</span> done = <span class="k">false</span>
+  <span class="k">match</span> done {
+    <span class="k">true</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="n">1</span> },
+    <span class="k">false</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="n">0</span> },
   }
 }
 
 <span class="cm">// no Glyph diagnostic, then</span>
-<span class="del">[TS2678] Type 'true' is not comparable to type 'false'.</span></pre>
+<span class="del">[<span class="t">TS2678</span>] <span class="t">Type</span> <span class="s">'true'</span> <span class="k">is</span> not comparable to <span class="k">type</span> <span class="s">'false'</span>.</span></pre>
       </div>
 
       <div class="detail">
@@ -1096,14 +1096,14 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
       <div class="code">
         <span class="cap">the named import, always an E0105</span>
 <pre>import std/string { repeeat }
-<span class="del">[E0105] import: `repeeat` is not exported by `std/string`</span></pre>
+<span class="del"><span class="e">[E0105]</span> import: <span class="q">`repeeat`</span> is not exported by <span class="q">`std/string`</span></span></pre>
       </div>
 
       <div class="code">
         <span class="cap">the namespace read, before 0.1.72</span>
-<pre>import std/string
-string.repeeat(s, 2)
-<span class="del">[TS2551] Property 'repeeat' does not exist on type ... Did you mean 'repeat'?</span></pre>
+<pre><span class="k">import</span> std/<span class="t">string</span>
+<span class="t">string</span>.repeeat(s, <span class="n">2</span>)
+<span class="del">[<span class="t">TS2551</span>] <span class="t">Property</span> <span class="s">'repeeat'</span> does not exist on <span class="k">type</span> ... <span class="t">Did</span> you mean <span class="s">'repeat'</span><span class="op">?</span></span></pre>
       </div>
 
       <div class="detail">

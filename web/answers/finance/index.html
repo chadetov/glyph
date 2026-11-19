@@ -456,11 +456,11 @@
       <div class="two-up stack">
         <div class="code">
           <span class="cap">std/decimal</span>
-<pre>let price = decimal("10.50")?
-let tax   = decimal("0.84")?
+<pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
+<span class="k">let</span> tax   = decimal(<span class="s">"0.84"</span>)<span class="op">?</span>
 price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
 
-decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from zero</span></pre>
+decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>)   <span class="cm"># "0.67", half away from zero</span></pre>
         </div>
         <div class="code">
           <span class="cap">the bug it removes</span>
@@ -498,12 +498,12 @@ decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from 
 
       <div class="code">
         <span class="cap">refinements.glyph</span>
-<pre>type Amount = int where value &gt;= 0
-type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+<pre><span class="k">type</span> <span class="t">Amount</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
+<span class="k">type</span> <span class="t">Rating</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">1</span> &amp;&amp; value &lt;= <span class="n">5</span>
 
-Amount.parse(-1)   <span class="cm"># Err  (not just "is a number")</span>
-Rating.parse(6)    <span class="cm"># Err</span>
-Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
+<span class="t">Amount</span>.parse(-<span class="n">1</span>)   <span class="cm"># Err  (not just "is a number")</span>
+<span class="t">Rating</span>.parse(<span class="n">6</span>)    <span class="cm"># Err</span>
+<span class="t">Amount</span>.parse(<span class="n">3.5</span>)  <span class="cm"># Err  (int check too)</span></pre>
       </div>
 
       <div class="detail">
@@ -522,9 +522,9 @@ Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">the safe path compiles</span>
-<pre>fn run_query(sql: Trusted&lt;string&gt;) -&gt; void { ... }
+<pre><span class="k">fn</span> run_query(sql: <span class="t">Trusted</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="k">void</span> { ... }
 
-let input: Tainted&lt;string&gt; = taint(req.body)
+<span class="k">let</span> input: <span class="t">Tainted</span>&lt;<span class="t">string</span>&gt; = taint(req.body)
 run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
         </div>
         <div class="code">

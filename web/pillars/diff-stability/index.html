@@ -439,10 +439,10 @@
         <div class="code">
           <span class="tag-good">Glyph: one change, one added line</span>
           <span class="cap">git diff (canonical)</span>
-<pre>  type User = {
-    id: number,
-    name: string,
-<span class="add">+   email: string,</span>
+<pre>  <span class="k">type</span> <span class="t">User</span> = {
+    id: <span class="t">number</span>,
+    name: <span class="t">string</span>,
+<span class="add">+   email: <span class="t">string</span>,</span>
   }</pre>
         </div>
       </div>
@@ -482,10 +482,10 @@
 
       <div class="code">
         <span class="cap">a field added to the spec &rarr; the regenerated diff</span>
-<pre>  type Task = {
-    id: number,
-    title: string,
-<span class="add">+   done: bool,</span>
+<pre>  <span class="k">type</span> <span class="t">Task</span> = {
+    id: <span class="t">number</span>,
+    title: <span class="t">string</span>,
+<span class="add">+   done: <span class="t">bool</span>,</span>
   }
 <span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
       </div>

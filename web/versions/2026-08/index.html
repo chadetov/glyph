@@ -434,11 +434,11 @@
             <p>A <code>let</code> whose annotation disagreed with its value drew nothing from Glyph. TypeScript caught it at the end of the build and reported it against generated code, and the language server never runs TypeScript, so nothing said anything while you typed.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>let x: string = 42
+<pre><span class="k">let</span> x: <span class="t">string</span> = <span class="n">42</span>
 
-<span class="del">// 0.1.98: nothing in the editor.
-//         [TS2322] at build time, about the generated .ts</span>
-<span class="add">// 0.1.99: [E0204] type mismatch: expected `string`, found `number`</span></pre>
+<span class="del"><span class="c">// 0.1.98: nothing in the editor.</span>
+<span class="c">//         [TS2322] at build time, about the generated .ts</span></span>
+<span class="add"><span class="c">// 0.1.99: [E0204] type mismatch: expected `string`, found `number`</span></span></pre>
             </div>
             <p>The error is Glyph's now, at the span you wrote, and the editor shows it as you type. Checked against every application in the repository: all 31 still build with no new diagnostics.</p>
             <ul class="rel-list">
@@ -462,20 +462,20 @@
             <p>Adding an index to a <code>for</code> used to cost you a compiler check, and the compiler suggested the thing that threw the check away.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>type Cmd = { op: "set" | "clear" }
+<pre><span class="k">type</span> <span class="t">Cmd</span> = { op: <span class="s">"set"</span> | <span class="s">"clear"</span> }
 
-fn run(xs: Array&lt;Cmd&gt;) -&gt; number {
-  for i, c in xs {
-    match c.op {
-      "set" =&gt; io.println("set"),
+<span class="k">fn</span> run(xs: <span class="t">Array</span>&lt;<span class="t">Cmd</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">for</span> i, c <span class="k">in</span> xs {
+    <span class="k">match</span> c.op {
+      <span class="s">"set"</span> <span class="op">=&gt;</span> io.println(<span class="s">"set"</span>),
     }
   }
-  return 0
+  <span class="k">return</span> <span class="n">0</span>
 }
 
-<span class="del">// 0.1.97: [E0218] non-exhaustive match on `string`
-//         Help: Add an `else` arm.  ...which forfeits the guarantee.</span>
-<span class="add">// 0.1.98: [E0200] non-exhaustive match on `Cmd.op`: missing `"clear"`</span></pre>
+<span class="del"><span class="c">// 0.1.97: [E0218] non-exhaustive match on `string`</span>
+<span class="c">//         Help: Add an `else` arm.  ...which forfeits the guarantee.</span></span>
+<span class="add"><span class="c">// 0.1.98: [E0200] non-exhaustive match on `Cmd.op`: missing `"clear"`</span></span></pre>
             </div>
             <p>The loop element had no type in the two-binding form, so a string-literal union read through it decayed to plain <code>string</code>. Writing <code>for c in xs</code> instead was checked correctly; adding the index was not. Each loop name carries its own span now, and <code>examples/apps/sheet</code> dropped the annotation it had been carrying for this.</p>
             <ul class="rel-list">
@@ -498,17 +498,17 @@ fn run(xs: Array&lt;Cmd&gt;) -&gt; number {
             <p>Calling a <code>pub fn</code> in another module gave back a value Glyph knew nothing about, so the answer came from TypeScript instead, about code you did not write.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>import lib { make }
+<pre><span class="k">import</span> lib { make }
 
-fn main(argv: Array&lt;string&gt;) -&gt; number {
-  let u = make("a")
+<span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> u = make(<span class="s">"a"</span>)
   io.println(u.naem)
-  return 0
+  <span class="k">return</span> <span class="n">0</span>
 }
 
-<span class="del">// 0.1.96: [TS2339] Property 'naem' does not exist on type 'User'.
-//         "This is a TypeScript back-end error mapped to your Glyph source."</span>
-<span class="add">// 0.1.97: [E0210] type `User` has no field `naem`</span></pre>
+<span class="del"><span class="c">// 0.1.96: [TS2339] Property 'naem' does not exist on type 'User'.</span>
+<span class="c">//         "This is a TypeScript back-end error mapped to your Glyph source."</span></span>
+<span class="add"><span class="c">// 0.1.97: [E0210] type `User` has no field `naem`</span></span></pre>
             </div>
             <p>The compiler could already reach across a module for a type, a union and a string-literal union. A function had no equivalent, so every cross-module call answered "unknown" and every inference downstream of it stopped. TypeScript caught this particular typo at the end of the build and reported it against generated output; what changes is that Glyph answers it, at the span you wrote, naming the type.</p>
             <ul class="rel-list">
@@ -531,21 +531,21 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
             <p>A <code>match</code> over an array whose arm named a variant returned the wrong arm&rsquo;s value. It built clean and passed <code>tsc --strict</code>, which is the class of bug this language exists to remove.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>type Colour =
-  | Black
-  | White
+<pre><span class="k">type</span> <span class="t">Colour</span> =
+  | <span class="t">Black</span>
+  | <span class="t">White</span>
 
-fn f(xs: Array&lt;Colour&gt;) -&gt; string {
-  return match xs {
-    [] =&gt; "empty",
-    [Black] =&gt; "one-black",
-    else =&gt; "other",
+<span class="k">fn</span> f(xs: <span class="t">Array</span>&lt;<span class="t">Colour</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> xs {
+    [] <span class="op">=&gt;</span> <span class="s">"empty"</span>,
+    [<span class="t">Black</span>] <span class="op">=&gt;</span> <span class="s">"one-black"</span>,
+    <span class="k">else</span> <span class="op">=&gt;</span> <span class="s">"other"</span>,
   }
 }
 
-<span class="del">// 0.1.95: f([White]) returned "one-black". The arm emitted
-//         const Black = __m0[0], an unconditional binding.</span>
-<span class="add">// 0.1.96: f([White]) returns "other".</span></pre>
+<span class="del"><span class="c">// 0.1.95: f([White]) returned "one-black". The arm emitted</span>
+<span class="c">//         const Black = __m0[0], an unconditional binding.</span></span>
+<span class="add"><span class="c">// 0.1.96: f([White]) returns "other".</span></span></pre>
             </div>
             <p>A top-level array pattern reached the emitter&rsquo;s array path before the check that decides whether an element tests or binds, and that path treats every identifier element as a binding whatever its case. The pattern now routes through the same machinery an object field&rsquo;s <code>{ color: Black }</code> already used.</p>
             <ul class="rel-list">
@@ -582,16 +582,16 @@ fn f(xs: Array&lt;Colour&gt;) -&gt; string {
             </div>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre data-check="needs-deps">module main
+<pre data-check="needs-deps"><span class="k">module</span> main
 
-import tree { Tree, Leaf, Node }
+<span class="k">import</span> tree { <span class="t">Tree</span>, <span class="t">Leaf</span>, <span class="t">Node</span> }
 
-<span class="del">// 0.1.94: built, passed tsc --strict, threw "non-exhaustive match" on a Leaf.
-// 0.1.95: [E0200] non-exhaustive match on `Tree`: missing variants `Leaf`</span>
-pub fn label(t: Tree&lt;string&gt;) -&gt; string {
-  return match t {
-    Node({ left: l, key: k, right: r }) =&gt; k,
-<span class="add">    Leaf =&gt; "leaf",</span>
+<span class="del"><span class="c">// 0.1.94: built, passed tsc --strict, threw "non-exhaustive match" on a Leaf.</span>
+<span class="c">// 0.1.95: [E0200] non-exhaustive match on `Tree`: missing variants `Leaf`</span></span>
+<span class="k">pub</span> <span class="k">fn</span> label(t: <span class="t">Tree</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> t {
+    <span class="t">Node</span>({ left: l, key: k, right: r }) <span class="op">=&gt;</span> k,
+<span class="add">    <span class="t">Leaf</span> <span class="op">=&gt;</span> <span class="s">"leaf"</span>,</span>
   }
 }</pre>
             </div>
@@ -620,29 +620,29 @@ pub fn label(t: Tree&lt;string&gt;) -&gt; string {
             <p>The app is a speedrun leaderboard over an append-only JSON log. Every command re-reads the log and folds it into the tree, then answers by walking down it: a player&rsquo;s rank, the top N, how many submissions fall inside a score range. Each node carries its subtree size, which is what makes those O(log n) instead of a pass over every entry, and a submitted score is refined at the point it leaves plain text, so <code>-3</code> is rejected as <code>expected Score (int where value &gt;= 0)</code> and <code>2.5</code> as <code>expected Score (int)</code>.</p>
             <div class="code">
               <span class="cap">tree.glyph</span>
-<pre>module tree
+<pre><span class="k">module</span> tree
 
-pub type Color =
-  | Red
-  | Black
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Color</span> =
+  | <span class="t">Red</span>
+  | <span class="t">Black</span>
 
-<span class="add">pub type Tree&lt;K, V&gt; =
-  | Leaf
-  | Node({ color: Color, left: Tree&lt;K, V&gt;, key: K, value: V, right: Tree&lt;K, V&gt; })</span>
+<span class="add"><span class="k">pub</span> <span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; =
+  | <span class="t">Leaf</span>
+  | <span class="t">Node</span>({ color: <span class="t">Color</span>, left: <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt;, key: <span class="t">K</span>, value: <span class="t">V</span>, right: <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; })</span>
 
-// The left-left rotation: a Black node whose Red child has a Red child.
-pub fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
-  return match t {
-    <span class="add">Node({ color: Black, left: Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b }), key: yk, value: yv, right: c }), key: zk, value: zv, right: d })</span> =&gt; Node(
+<span class="c">// The left-left rotation: a Black node whose Red child has a Red child.</span>
+<span class="k">pub</span> <span class="k">fn</span> balance&lt;<span class="t">K</span>, <span class="t">V</span>&gt;(t: <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt;) <span class="op">-&gt;</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> t {
+    <span class="add">Node({ color: Black, left: Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b }), key: yk, value: yv, right: c }), key: zk, value: zv, right: d })</span> <span class="op">=&gt;</span> <span class="t">Node</span>(
       {
-        color: Red,
-        left: Node({ color: Black, left: a, key: xk, value: xv, right: b }),
+        color: <span class="t">Red</span>,
+        left: <span class="t">Node</span>({ color: <span class="t">Black</span>, left: a, key: xk, value: xv, right: b }),
         key: yk,
         value: yv,
-        right: Node({ color: Black, left: c, key: zk, value: zv, right: d }),
+        right: <span class="t">Node</span>({ color: <span class="t">Black</span>, left: c, key: zk, value: zv, right: d }),
       },
     ),
-    other =&gt; other,
+    other <span class="op">=&gt;</span> other,
   }
 }</pre>
             </div>
@@ -668,27 +668,27 @@ pub fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
             <p><code>Err(Blank)</code> beside <code>Err(e)</code> reads as &ldquo;skip a blank line, report every other parse error&rdquo;. It compiled to two <code>case "Err":</code> labels on the outer tag, and the first one bound the whole payload under the name <code>Blank</code>. Every error took the first arm and the second was dead code the compiler still wrote out. Nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> has nothing to say about a duplicate case label, so the build was green and the wrong arm answered. The typechecker had the right reading the whole time. Delete the second arm and it reports a non-exhaustive match on the payload union, which means the checker read <code>Blank</code> as a variant while the emitter read it as a new binding. The arm dispatches on the payload&rsquo;s own tag now, under any outer variant.</p>
             <div class="code">
               <span class="cap">repl.glyph</span>
-<pre>module repl
+<pre><span class="k">module</span> repl
 
-import std/result { Result, Ok, Err }
+<span class="k">import</span> std/result { <span class="t">Result</span>, <span class="t">Ok</span>, <span class="t">Err</span> }
 
-pub type ParseError =
-  | Blank
-  | BadWord({ word: string })
+<span class="k">pub</span> <span class="k">type</span> <span class="t">ParseError</span> =
+  | <span class="t">Blank</span>
+  | <span class="t">BadWord</span>({ word: <span class="t">string</span> })
 
-pub fn parse_command(line: string) -&gt; Result&lt;string, ParseError&gt; {
-  return match line {
-    "" =&gt; Err(Blank),
-    "quit" =&gt; Ok("quit"),
-    else =&gt; Err(BadWord({ word: line })),
+<span class="k">pub</span> <span class="k">fn</span> parse_command(line: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">string</span>, <span class="t">ParseError</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> line {
+    <span class="s">""</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">Blank</span>),
+    <span class="s">"quit"</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(<span class="s">"quit"</span>),
+    <span class="k">else</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadWord</span>({ word: line })),
   }
 }
 
-pub fn step(line: string) -&gt; string {
-  return match parse_command(line) {
-    <span class="add">Err(Blank) =&gt; "",                 // a blank line: nothing to report
-    Err(e) =&gt; "unknown command",      // every other parse error</span>
-    Ok(cmd) =&gt; cmd,
+<span class="k">pub</span> <span class="k">fn</span> step(line: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> parse_command(line) {
+    <span class="add"><span class="t">Err</span>(<span class="t">Blank</span>) <span class="op">=&gt;</span> <span class="s">""</span>,                 <span class="c">// a blank line: nothing to report</span>
+    <span class="t">Err</span>(e) <span class="op">=&gt;</span> <span class="s">"unknown command"</span>,      <span class="c">// every other parse error</span></span>
+    <span class="t">Ok</span>(cmd) <span class="op">=&gt;</span> cmd,
   }
 }</pre>
             </div>
@@ -715,36 +715,36 @@ pub fn step(line: string) -&gt; string {
             <p>When a combinator&rsquo;s return type is derived from the argument you passed it, as <code>Schema&lt;infer_output&lt;Shape&gt;&gt;</code> is, the compiler inserts one cast at the return, because the body assembles a value the type system cannot prove carries the shape-derived type. The cast lived in one place, and two ways of writing a return went around it. A <code>match</code> in return position becomes a <code>switch</code> whose arms carry their own <code>return</code>, and a tail <code>E?</code> returns the unwrapped payload directly. Either one dropped the cast, so a function that compiled as <code>return { name: "object", parse: ... }</code> stopped compiling the moment a <code>match</code> sat between the <code>return</code> and the value. What you saw was a <code>TS2322</code> against the generated TypeScript, on well-formed Glyph the compiler had already accepted. Both sites go through the same return now.</p>
             <div class="code">
               <span class="cap">schema.glyph</span>
-<pre>module schema
+<pre><span class="k">module</span> schema
 
-import std/result { Result, Ok, Err }
+<span class="k">import</span> std/result { <span class="t">Result</span>, <span class="t">Ok</span>, <span class="t">Err</span> }
 
-type Schema&lt;T&gt; = {
-  name: string,
-  parse: fn(input: unknown) -&gt; Result&lt;T, string&gt;,
+<span class="k">type</span> <span class="t">Schema</span>&lt;<span class="t">T</span>&gt; = {
+  name: <span class="t">string</span>,
+  parse: <span class="k">fn</span>(input: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">T</span>, <span class="t">string</span>&gt;,
 }
 
-fn number_schema() -&gt; Schema&lt;number&gt; {
-  return { name: "number", parse: fn(input) {
-    match input {
-      is number =&gt; Ok(input),
-      else =&gt; Err("expected number"),
+<span class="k">fn</span> number_schema() <span class="op">-&gt;</span> <span class="t">Schema</span>&lt;<span class="t">number</span>&gt; {
+  <span class="k">return</span> { name: <span class="s">"number"</span>, parse: <span class="k">fn</span>(input) {
+    <span class="k">match</span> input {
+      <span class="k">is</span> <span class="t">number</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(input),
+      <span class="k">else</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="s">"expected number"</span>),
     }
   } }
 }
 
-fn object_schema&lt;Shape: Record&lt;string, Schema&lt;unknown&gt;&gt;&gt;(shape: Shape, strict: bool) -&gt; Schema&lt;infer_output&lt;Shape&gt;&gt; {
-  <span class="add">return match strict {
-    else =&gt; { name: "object", parse: fn(input) { Err("unimplemented") } },
+<span class="k">fn</span> object_schema&lt;<span class="t">Shape</span>: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">Schema</span>&lt;<span class="t">unknown</span>&gt;&gt;&gt;(shape: <span class="t">Shape</span>, strict: <span class="t">bool</span>) <span class="op">-&gt;</span> <span class="t">Schema</span>&lt;infer_output&lt;<span class="t">Shape</span>&gt;&gt; {
+  <span class="add"><span class="k">return</span> <span class="k">match</span> strict {
+    <span class="k">else</span> <span class="op">=&gt;</span> { name: <span class="s">"object"</span>, parse: <span class="k">fn</span>(input) { <span class="t">Err</span>(<span class="s">"unimplemented"</span>) } },
   }</span>
 }
 
-type Point = {
-  x: number,
-  y: number,
+<span class="k">type</span> <span class="t">Point</span> = {
+  x: <span class="t">number</span>,
+  y: <span class="t">number</span>,
 }
 
-pub const point_schema: Schema&lt;Point&gt; = object_schema({ x: number_schema(), y: number_schema() }, true)</pre>
+<span class="k">pub</span> <span class="k">const</span> point_schema: <span class="t">Schema</span>&lt;<span class="t">Point</span>&gt; = object_schema({ x: number_schema(), y: number_schema() }, <span class="k">true</span>)</pre>
             </div>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <strong>A <code>match</code> in return position keeps the derived-type cast.</strong> The program above built clean and then failed <code>tsc</code> with a <code>TS2322</code>: the value the arm returned was not assignable to the shape-derived type the signature declares. Delete the <code>match</code>, return the same object directly, and it compiled. That is the tell. The cast was attached to one spelling of <code>return</code> rather than to returning, and every <code>return</code> a <code>switch</code> arm emits carries it now.</li>
@@ -767,16 +767,16 @@ pub const point_schema: Schema&lt;Point&gt; = object_schema({ x: number_schema()
             <p>Add a <code>&lt;K&gt;</code> to a union and two things stopped working, both quietly. A nested pattern under one of its payloads was refused with <code>E0300</code>, so the rebalance arm 0.1.90 made writable had no spelling over a tree that carries a key type. And a <code>match</code> on that union was not checked for exhaustiveness at all: omit a variant and the program built, passed <code>tsc --strict</code>, and threw at run time, where the same program on <code>Tree</code> is <code>E0200</code>. One function answered both questions and it only looked at the bare form of the type, never the applied one. It unwraps the application now, so a union's arity stops being something an arm can feel.</p>
             <div class="code">
               <span class="cap">Nesting through a generic union's payload</span>
-<pre>module tree
+<pre><span class="k">module</span> tree
 
-type Tree&lt;K&gt; =
-  | Leaf
-  | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })
+<span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>&gt; =
+  | <span class="t">Leaf</span>
+  | <span class="t">Node</span>({ left: <span class="t">Tree</span>&lt;<span class="t">K</span>&gt;, key: <span class="t">K</span>, right: <span class="t">Tree</span>&lt;<span class="t">K</span>&gt; })
 
-pub fn shape(t: Tree&lt;string&gt;) -&gt; string {
-  return match t {
-    Node({ <span class="add">left: Node({ key: lk })</span>, key: k, right: r }) =&gt; "deep:" + lk + "/" + k,
-    other =&gt; "leaf",
+<span class="k">pub</span> <span class="k">fn</span> shape(t: <span class="t">Tree</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> t {
+    <span class="t">Node</span>({ <span class="add">left: Node({ key: lk })</span>, key: k, right: r }) <span class="op">=&gt;</span> <span class="s">"deep:"</span> + lk + <span class="s">"/"</span> + k,
+    other <span class="op">=&gt;</span> <span class="s">"leaf"</span>,
   }
 }</pre>
             </div>
@@ -784,16 +784,16 @@ pub fn shape(t: Tree&lt;string&gt;) -&gt; string {
               <li><span class="tag fixed">Fixed</span> <strong>A nested pattern under a generic union's payload.</strong> The arm above was <code>E0300</code>, "cannot determine how this payload is stored". Nothing under the payload got a recorded type, because the lookup wanted a bare <code>Tree</code> and was handed <code>Tree&lt;string&gt;</code>, so the emitter had nothing to read back when it came to decide flat-versus-boxed. It refused rather than guessing, which was the right instinct and the wrong answer. The declaration's parameters are substituted into the payload now, the way a record's field types already were.</li>
               <li><span class="tag changed">Changed</span> <strong>A match on a generic union is checked, and some that built now fail.</strong> Through 0.1.90 a <code>match</code> on a union your own module declares was checked for missing variants only when the union took no parameters. Add a parameter and the check was skipped entirely, so this built clean and threw <code>non-exhaustive match</code> on the first <code>Leaf</code>. It is <code>E0200</code> now. Add the arm:
                 <div class="code">
-<pre>module depth
+<pre><span class="k">module</span> depth
 
-type Tree&lt;K&gt; =
-  | Leaf
-  | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })
+<span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>&gt; =
+  | <span class="t">Leaf</span>
+  | <span class="t">Node</span>({ left: <span class="t">Tree</span>&lt;<span class="t">K</span>&gt;, key: <span class="t">K</span>, right: <span class="t">Tree</span>&lt;<span class="t">K</span>&gt; })
 
-pub fn depth(t: Tree&lt;string&gt;) -&gt; int {
-  return match t {
-    <span class="add">Leaf =&gt; 0,</span>
-    Node({ left: l, key: k, right: r }) =&gt; 1 + depth(l),
+<span class="k">pub</span> <span class="k">fn</span> depth(t: <span class="t">Tree</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">int</span> {
+  <span class="k">return</span> <span class="k">match</span> t {
+    <span class="add"><span class="t">Leaf</span> <span class="op">=&gt;</span> <span class="n">0</span>,</span>
+    <span class="t">Node</span>({ left: l, key: k, right: r }) <span class="op">=&gt;</span> <span class="n">1</span> + depth(l),
   }
 }</pre>
                 </div>
@@ -817,21 +817,21 @@ pub fn depth(t: Tree&lt;string&gt;) -&gt; int {
             <p>A variant with several fields carries a record, so an arm that wants to recognise a shape has to look through the record's fields. That position took a name and nothing else: you could rename a field, and that was all. A variant tag there was <code>E0009</code>, and a nested constructor fell off the parser. The Okasaki red-black rebalance is four rotation cases each named by a two-level shape, and it had no spelling in Glyph at all. A field holds a pattern now.</p>
             <div class="code">
               <span class="cap">One rotation case, as one arm</span>
-<pre>module tree
+<pre><span class="k">module</span> tree
 
-type Color =
-  | Red
-  | Black
+<span class="k">type</span> <span class="t">Color</span> =
+  | <span class="t">Red</span>
+  | <span class="t">Black</span>
 
-type Tree =
-  | Leaf
-  | Node({ color: Color, left: Tree, value: int, right: Tree })
+<span class="k">type</span> <span class="t">Tree</span> =
+  | <span class="t">Leaf</span>
+  | <span class="t">Node</span>({ color: <span class="t">Color</span>, left: <span class="t">Tree</span>, value: <span class="t">int</span>, right: <span class="t">Tree</span> })
 
-pub fn rotate(t: Tree) -&gt; Tree {
-  return match t {
-    Node({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) =&gt;
-      Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b, }), value: y, right: c, }),
-    other =&gt; other,
+<span class="k">pub</span> <span class="k">fn</span> rotate(t: <span class="t">Tree</span>) <span class="op">-&gt;</span> <span class="t">Tree</span> {
+  <span class="k">return</span> <span class="k">match</span> t {
+    <span class="t">Node</span>({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) <span class="op">=&gt;</span>
+      <span class="t">Node</span>({ color: <span class="t">Red</span>, left: <span class="t">Node</span>({ color: <span class="t">Black</span>, left: a, value: x, right: b, }), value: y, right: c, }),
+    other <span class="op">=&gt;</span> other,
   }
 }</pre>
             </div>
@@ -916,10 +916,10 @@ pub fn rotate(t: Tree) -&gt; Tree {
               <span class="cap">What the arm emitted, before and after</span>
 <pre><span class="cm">// before: the shape was looked up by name in the consuming module,</span>
 <span class="cm">// so a flat payload was read as if it were wrapped</span>
-const f = __m0.value;   <span class="cm">// .value never exists on a record payload</span>
+<span class="k">const</span> f = __m0.value;   <span class="cm">// .value never exists on a record payload</span>
 
 <span class="cm">// after: the shape comes from the module that declared the variant</span>
-const f = __m0;</pre>
+<span class="k">const</span> f = __m0;</pre>
             </div>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <strong>The variant's shape is read from the scrutinee's own module.</strong> This is the rule G75 settled, applied one layer deeper: a type's identity comes from where it is declared, never from how you happened to spell the import. The precise lookup runs ahead of the older by-name heuristic, because behind it the heuristic still won whenever two modules declare the same variant name with different payloads.</li>
@@ -978,24 +978,24 @@ const f = __m0;</pre>
             <p>A pattern that names a variant inside a record field looked like it tested that variant and did not. It bound the field to a new name that shadowed the constructor, so the arm fired for every value, the arms below it became unreachable, and both <code>glyph check</code> and <code>tsc --strict</code> reported nothing.</p>
             <div class="code">
               <span class="cap">What the arm used to mean</span>
-<pre>module boxes
+<pre><span class="k">module</span> boxes
 
-import std/io
+<span class="k">import</span> std/io
 
-type Color = | Red | Black
-type Box = | Full({ color: Color, label: string }) | Empty
+<span class="k">type</span> <span class="t">Color</span> = | <span class="t">Red</span> | <span class="t">Black</span>
+<span class="k">type</span> <span class="t">Box</span> = | <span class="t">Full</span>({ color: <span class="t">Color</span>, label: <span class="t">string</span> }) | <span class="t">Empty</span>
 
 <span class="cm">// the form that works. the one that used to compile and</span>
 <span class="cm">// silently take the wrong arm was:</span>
 <span class="cm">//   Full({ color: Black, label: l }) =&gt; "black box"</span>
 <span class="cm">// it bound `Black` to the field, so a Red box printed "black box"</span>
-pub fn describe(b: Box) -&gt; string {
-  match b {
-    Full(f) =&gt; match f.color {
-      Black =&gt; "black box",
-      Red =&gt; "red box",
+<span class="k">pub</span> <span class="k">fn</span> describe(b: <span class="t">Box</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">match</span> b {
+    <span class="t">Full</span>(f) <span class="op">=&gt;</span> <span class="k">match</span> f.color {
+      <span class="t">Black</span> <span class="op">=&gt;</span> <span class="s">"black box"</span>,
+      <span class="t">Red</span> <span class="op">=&gt;</span> <span class="s">"red box"</span>,
     },
-    Empty =&gt; "empty",
+    <span class="t">Empty</span> <span class="op">=&gt;</span> <span class="s">"empty"</span>,
   }
 }</pre>
             </div>
@@ -1021,19 +1021,19 @@ pub fn describe(b: Box) -&gt; string {
             <p>An uptime monitor is the first program that cares what happens when a host accepts your connection and then says nothing. <code>tls.connect</code> had no deadline, so one unresponsive endpoint held the whole run open with no handle to close. It now takes one as a plain argument rather than an options field, so nothing can default it away, and refuses a deadline it cannot actually hold.</p>
             <div class="code">
               <span class="cap">A dial that cannot outlive its budget</span>
-<pre>module probe
+<pre><span class="k">module</span> probe
 
-import std/tls
-import std/io
+<span class="k">import</span> std/tls
+<span class="k">import</span> std/io
 
 <span class="cm">// the deadline is an argument, not an options field:</span>
 <span class="cm">// nothing downstream can default it away</span>
-pub async fn reachable(host: string) -&gt; bool {
-  match await tls.connect(host, 443, 3000) {
-    Ok(conn) =&gt; true,
-    Err(e) =&gt; {
-      io.println("${host}: ${e}")
-      false
+<span class="k">pub</span> <span class="k">async</span> <span class="k">fn</span> reachable(host: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">bool</span> {
+  <span class="k">match</span> <span class="k">await</span> tls.connect(host, <span class="n">443</span>, <span class="n">3000</span>) {
+    <span class="t">Ok</span>(conn) <span class="op">=&gt;</span> <span class="k">true</span>,
+    <span class="t">Err</span>(e) <span class="op">=&gt;</span> {
+      io.println(<span class="s">"</span><span class="ip">${</span>host<span class="ip">}</span><span class="s">: </span><span class="ip">${</span>e<span class="ip">}</span><span class="s">"</span>)
+      <span class="k">false</span>
     },
   }
 }
@@ -1064,13 +1064,13 @@ pub async fn reachable(host: string) -&gt; bool {
             <p>Node builtins have worked out of the box for a while, but <code>child_process</code> only offered the blocking calls: run the command, wait, get everything at once. A tool that reports a long build's progress needs the other one, and writing it meant installing <code>@types/node</code> first.</p>
             <div class="code">
               <span class="cap">Streaming a child's output as it arrives</span>
-<pre>let child = spawn("git", ["status", "--short"])
+<pre><span class="k">let</span> child = spawn(<span class="s">"git"</span>, [<span class="s">"status"</span>, <span class="s">"--short"</span>])
 
 <span class="cm">// ask for text and node decodes for you, holding back a</span>
 <span class="cm">// character whose bytes straddle two chunks</span>
-child.stdout.setEncoding("utf8")
-child.stdout.on("data", fn(chunk) { io.print("${chunk}") })
-child.on("close", fn(code) { io.println("git exited ${code}") })</pre>
+child.stdout.setEncoding(<span class="s">"utf8"</span>)
+child.stdout.on(<span class="s">"data"</span>, <span class="k">fn</span>(chunk) { io.print(<span class="s">"</span><span class="ip">${</span>chunk<span class="ip">}</span><span class="s">"</span>) })
+child.on(<span class="s">"close"</span>, <span class="k">fn</span>(code) { io.println(<span class="s">"git exited </span><span class="ip">${</span>code<span class="ip">}</span><span class="s">"</span>) })</pre>
             </div>
             <ul class="changelist">
               <li><span class="tag added">Added</span> <strong><code>spawn</code>, with the pipes typed the way node types them.</strong> Four overloads matching <code>@types/node</code>, a <code>stream</code> module carrying the <code>Readable</code> and <code>Writable</code> subset, and <code>ChildProcess</code> with nullable pipes beside <code>ChildProcessWithoutNullStreams</code> for the plain call. The pipes sit on the base interface, so a value does not change its guarantee depending on whether you bound it to a local or passed it to a function.</li>
@@ -1152,10 +1152,10 @@ std/process.ts(41,3): Type 'string | number' is not assignable to type 'number'<
               <span class="cap">Emitted imports, before and after</span>
 <pre><span class="cm">// before: resolved only under the generated tsconfig's paths map,</span>
 <span class="cm">// which your app's tsc and bundler never read</span>
-import { schema } from "std/schema";
+<span class="k">import</span> { schema } <span class="k">from</span> <span class="s">"std/schema"</span>;
 
 <span class="cm">// after: resolves anywhere, no configuration</span>
-import { schema } from "./.glyph-runtime/std/schema";</pre>
+<span class="k">import</span> { schema } <span class="k">from</span> <span class="s">"./.glyph-runtime/std/schema"</span>;</pre>
             </div>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <strong>Compiled modules import into a host project with zero config.</strong> Every <code>std/*</code> specifier in emitted code is relative to the bundled runtime, the same rule the bootstrap import has always used. Verified against the Kanban app's own modules: a stock Vite scaffold's <code>tsc --strict</code>, a real <code>vite build</code>, esbuild, and <code>tsx</code> all take the output untouched.</li>
@@ -1180,19 +1180,19 @@ import { schema } from "./.glyph-runtime/std/schema";</pre>
             <div class="code">
               <span class="cap">Before, and after</span>
 <pre><span class="cm">// before: resolved only when the server closed, and nothing could close one</span>
-match await http.serve(8080, handler) {
-  Ok(_) =&gt; 0,        <span class="cm">// this arm could never run, and you had to write it</span>
-  Err(m) =&gt; 1,
+<span class="k">match</span> <span class="k">await</span> http.serve(<span class="n">8080</span>, handler) {
+  <span class="t">Ok</span>(_) <span class="op">=&gt;</span> <span class="n">0</span>,        <span class="cm">// this arm could never run, and you had to write it</span>
+  <span class="t">Err</span>(m) <span class="op">=&gt;</span> <span class="n">1</span>,
 }
 
 <span class="cm">// after: resolves when the port is bound, and hands back the server</span>
-match await http.listen("127.0.0.1", 8080, handler) {
-  Ok(server) =&gt; io.println("on ${number.to_string(net.port(server))}"),
-  Err(e) =&gt; match e.kind {
-    "in_use" =&gt; retry_elsewhere(),
-    "denied" =&gt; give_up(),
-    "unavailable" =&gt; io.eprintln("no such address"),
-    "other" =&gt; io.eprintln(e.message),
+<span class="k">match</span> <span class="k">await</span> http.listen(<span class="s">"127.0.0.1"</span>, <span class="n">8080</span>, handler) {
+  <span class="t">Ok</span>(server) <span class="op">=&gt;</span> io.println(<span class="s">"on </span><span class="ip">${</span><span class="t">number</span>.to_string(net.port(server))<span class="ip">}</span><span class="s">"</span>),
+  <span class="t">Err</span>(e) <span class="op">=&gt;</span> <span class="k">match</span> e.kind {
+    <span class="s">"in_use"</span> <span class="op">=&gt;</span> retry_elsewhere(),
+    <span class="s">"denied"</span> <span class="op">=&gt;</span> give_up(),
+    <span class="s">"unavailable"</span> <span class="op">=&gt;</span> io.eprintln(<span class="s">"no such address"</span>),
+    <span class="s">"other"</span> <span class="op">=&gt;</span> io.eprintln(e.message),
   },
 }</pre>
             </div>
@@ -1221,11 +1221,11 @@ match await http.listen("127.0.0.1", 8080, handler) {
             <p>Four modules for the calls a program used to make raw, and the first application in the tree built on a real npm package.</p>
             <div class="code">
               <span class="cap">The last raw host call, wrapped</span>
-<pre>match await net.serve(4000, fn(sock: Socket) {
-  net.on_text(sock, fn(line) { net.send(sock, greet(line)) })
+<pre><span class="k">match</span> <span class="k">await</span> net.serve(<span class="n">4000</span>, <span class="k">fn</span>(sock: <span class="t">Socket</span>) {
+  net.on_text(sock, <span class="k">fn</span>(line) { net.send(sock, greet(line)) })
 }) {
-  Ok(_) =&gt; io.println("stopped"),
-  Err(why) =&gt; io.eprintln("cannot listen: ${why}"),   <span class="cm">// a used port is a value</span>
+  <span class="t">Ok</span>(_) <span class="op">=&gt;</span> io.println(<span class="s">"stopped"</span>),
+  <span class="t">Err</span>(why) <span class="op">=&gt;</span> io.eprintln(<span class="s">"cannot listen: </span><span class="ip">${</span>why<span class="ip">}</span><span class="s">"</span>),   <span class="cm">// a used port is a value</span>
 }</pre>
             </div>
             <ul class="changelist">
@@ -1254,12 +1254,12 @@ match await http.listen("127.0.0.1", 8080, handler) {
             <p>Two applications written independently, one a PNG reader and one an authenticator, stopped on the same sentence: Glyph had no bytes. Every boundary in the standard library was string-in, string-out, so a file whose first byte is <code>0x89</code> could not be read and an HMAC could not be given a real key.</p>
             <div class="code">
               <span class="cap">Now writable</span>
-<pre>let key = bytes.from_base32(secret)?
-let mac = crypto.hmac_sha1_bytes(key, counter)
-let png = fs.read_bytes(path)?
-match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10 26 10</span>
-  true =&gt; read_chunks(png),
-  false =&gt; Err("not a PNG"),
+<pre><span class="k">let</span> key = bytes.from_base32(secret)<span class="op">?</span>
+<span class="k">let</span> mac = crypto.hmac_sha1_bytes(key, counter)
+<span class="k">let</span> png = fs.read_bytes(path)<span class="op">?</span>
+<span class="k">match</span> bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10 26 10</span>
+  <span class="k">true</span> <span class="op">=&gt;</span> read_chunks(png),
+  <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="s">"not a PNG"</span>),
 }</pre>
             </div>
             <ul class="changelist">
@@ -1287,10 +1287,10 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
             <p>Two of these running at once both read <code>0</code>, both write <code>1</code>, and you get <code>1</code> instead of <code>2</code> &mdash; from a build reporting no diagnostics and a clean <code>tsc --strict</code>.</p>
             <div class="code">
               <span class="cap">Rejected as of 0.1.77 (D43, E0225)</span>
-<pre>async fn bump(c: Counter) -&gt; number {
-  let before = c.n
-  await timers.sleep(1)     <span class="cm">// another task can run here</span>
-  mut c.n = before + 1      <span class="cm">// and its write is silently discarded</span>
+<pre><span class="k">async</span> <span class="k">fn</span> bump(c: <span class="t">Counter</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> before = c.n
+  <span class="k">await</span> timers.sleep(<span class="n">1</span>)     <span class="cm">// another task can run here</span>
+  <span class="k">mut</span> c.n = before + <span class="n">1</span>      <span class="cm">// and its write is silently discarded</span>
 }</pre>
             </div>
             <ul class="changelist">

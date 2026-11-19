@@ -5,9 +5,10 @@ other expansion, English and translated alike. Each `<pre>` that carries no
 token markup yet is given some: its language is read from a `data-lang`
 attribute, else from the file name its caption starts with (`main.glyph`,
 `form.ts`), else from the content, and a block that looks like none of them
-(prose, a diagram) is left as it is. A block that already has `<span class=`
-markup was coloured by hand, usually to say something (a diff, the line a
-diagnostic is about), and is never touched.
+(prose, a diagram) is left as it is. A block coloured by hand word by word
+(`k`, `s`, `t` spans) is never touched. A block marked by hand line by line
+(an added or removed line, a dimmed one, an error) keeps every span it has
+and gets token colours inside them; a comment span stays as it is.
 
 scripts/site_catches.py calls `highlight()` directly for its code excerpts, so
 /catches/ and the rest of the site colour code the same way.
@@ -330,6 +331,7 @@ def out_tokens(text: str, base: int = 0) -> Tokens:
             for m in OUT_TOKEN.finditer(text)]
 
 
+ENV_ASSIGN = re.compile(r"[A-Z_][A-Z0-9_]*=")
 SHELL_WORD = re.compile(
     r"(?P<s>\"(?:\\.|[^\"\\\n])*\"|'[^'\n]*')"
     r"|(?P<c>(?<!\S)#[^\n]*)"
@@ -352,14 +354,23 @@ def _command_line(text: str, start: int, end: int, out: Tokens, first: bool) -> 
         elif kind == "fl":
             out.append((m.start(), m.end(), "fl"))
             first = False
+        elif first and ENV_ASSIGN.match(m.group(0)):
+            pass
         elif first:
             out.append((m.start(), m.end(), "f"))
             first = False
 
 
+def _command_word(line: str) -> str:
+    """The command a line runs, past any `NAME=value` prefixes."""
+    words = [w for w in line.split() if not ENV_ASSIGN.match(w)]
+    return words[0] if words else ""
+
+
 def shell_tokens(text: str) -> Tokens:
     """Lines with a `$ ` prompt are commands and the rest are their output.
-    A block with no prompt at all is a list of commands."""
+    In a block with no prompt, a line that starts with a known command is a
+    command and any other line is output."""
     out: Tokens = []
     prompted = bool(re.search(r"^\s*\$ ", text, re.M))
     pos = 0
@@ -371,7 +382,7 @@ def shell_tokens(text: str) -> Tokens:
             out.append((pos + m.end(1), pos + m.end(1) + 1, "pr"))
             _command_line(text, pos + m.end(), end, out, first=True)
             continued = line.rstrip().endswith("\\")
-        elif continued or not prompted:
+        elif continued or (not prompted and _command_word(line) in SHELL_COMMANDS):
             _command_line(text, pos, end, out, first=not continued)
             continued = line.rstrip().endswith("\\")
         else:
@@ -414,32 +425,94 @@ def tokens(text: str, lang: str) -> Tokens:
 
 def highlight(code: str, lang: str) -> str:
     """Plain source text to escaped, highlighted HTML."""
-    return _render([(code, False)], tokens(code, lang))
+    return _render([(code, False, False)], tokens(code, lang))
 
 
 TAG = re.compile(r"<[^>]+>")
 
 
-def _segments(inner: str) -> list[tuple[str, bool]]:
-    """An HTML fragment as [(text or tag, is_tag)], text unescaped."""
-    out, pos = [], 0
+# Hand-made markup inside a block. A token-level span (a keyword, a string)
+# means the block was coloured by hand, word by word, and it is left alone. A
+# line-level span (an added or removed line, a dimmed one, an error message)
+# keeps its meaning and gets the block's token colours inside it. Text in an
+# opaque span is already what it should be (a comment, a caption inside the
+# block, a gutter) and is not coloured again. A line mark used on a few words
+# in the middle of a line (`pub fn` in green, to point at it) is emphasis, and
+# its colour is the point, so it is opaque too.
+TOKEN_LEVEL = frozenset({"k", "t", "s", "c", "f"})
+OPAQUE = frozenset({"cm", "cap", "p", "ln-no", "hl"})
+LINE_MARKS = frozenset({"add", "del", "dim", "e", "o", "w", "h"})
+VOID = frozenset({"br", "wbr", "img"})
+SPAN_CLASSES = re.compile(r'<span class="([^"]*)"')
+
+
+def _whole_lines(plain: str, start: int, end: int) -> bool:
+    """Whether plain[start:end] runs from the start of a line (after its
+    indentation) to the end of one."""
+    before = plain[:start].rsplit("\n", 1)[-1]
+    return not before.strip() and (end == len(plain) or plain[end] == "\n"
+                                   or plain[start:end].endswith("\n"))
+
+
+def _segments(inner: str) -> list[tuple[str, bool, bool]]:
+    """An HTML fragment as [(text or tag, is_tag, opaque)], text unescaped.
+    `opaque` is true for text inside an opaque span (see OPAQUE)."""
+    parts: list[list] = []  # [text or tag, is_tag, element id or None]
+    pos = 0
     for m in TAG.finditer(inner):
         if m.start() > pos:
-            out.append((html.unescape(inner[pos:m.start()]), False))
-        out.append((m.group(0), True))
+            parts.append([html.unescape(inner[pos:m.start()]), False])
+        parts.append([m.group(0), True])
         pos = m.end()
     if pos < len(inner):
-        out.append((html.unescape(inner[pos:]), False))
+        parts.append([html.unescape(inner[pos:]), False])
+    plain = "".join(t for t, is_tag in parts if not is_tag)
+
+    # Pair each opening tag with its closing one, by the text they enclose.
+    opaque_ranges = []
+    stack: list[tuple[set[str], int]] = []
+    off = 0
+    for text, is_tag in parts:
+        if not is_tag:
+            off += len(text)
+            continue
+        name = re.match(r"</?([A-Za-z0-9]+)", text)
+        if text.startswith("</"):
+            if stack:
+                classes, start = stack.pop()
+                if classes & OPAQUE or (classes & LINE_MARKS and not _whole_lines(plain, start, off)):
+                    opaque_ranges.append((start, off))
+        elif name and name.group(1).lower() not in VOID and not text.endswith("/>"):
+            cls = re.search(r'class="([^"]*)"', text)
+            stack.append((set(cls.group(1).split()) if cls else set(), off))
+
+    out = []
+    off = 0
+    for text, is_tag in parts:
+        if is_tag:
+            out.append((text, True, False))
+            continue
+        opaque = any(a <= off and off + len(text) <= b for a, b in opaque_ranges)
+        out.append((text, False, opaque))
+        off += len(text)
     return out
 
 
-def _render(segments: list[tuple[str, bool]], toks: Tokens) -> str:
+def _masked(segments: list[tuple[str, bool, bool]]) -> str:
+    """The plain text with opaque text blanked to spaces, so a quote in a
+    comment span cannot open a string that runs on past it. Offsets and line
+    breaks are kept."""
+    return "".join(re.sub(r"[^\n]", " ", seg) if opaque else seg
+                   for seg, is_tag, opaque in segments if not is_tag)
+
+
+def _render(segments: list[tuple[str, bool, bool]], toks: Tokens) -> str:
     """Wrap each token's text in a span. Tags stay where they were; a token
     that runs across one is closed before it and reopened after."""
     out = []
     pos = 0  # offset into the plain text
     k = 0
-    for seg, is_tag in segments:
+    for seg, is_tag, opaque in segments:
         if is_tag:
             out.append(seg)
             continue
@@ -448,7 +521,7 @@ def _render(segments: list[tuple[str, bool]], toks: Tokens) -> str:
         while cur < seg_end:
             while k < len(toks) and toks[k][1] <= cur:
                 k += 1
-            if k < len(toks) and toks[k][0] < seg_end:
+            if not opaque and k < len(toks) and toks[k][0] < seg_end:
                 s, e, cls = toks[k]
                 if s > cur:
                     out.append(html.escape(text_slice(seg, pos, cur, s), quote=False))
@@ -489,7 +562,7 @@ def caption_lang(caption: str) -> str | None:
 
 
 GLYPH_SIGNS = [
-    r"^\s*module [\w/]+\s*$", r"^\s*(pub )?fn \w", r"\bfn\s*\(", r"\bmatch\b[^\n]*\{\s*$", r"->",
+    r"^\s*module [\w/]+\s*$", r"^\s*(pub )?fn \w", r"\bfn\s*\(", r"\bmatch\b[^\n]*\{\s*$", r"\bmatch \w[^\n]*=>", r"->",
     r"^\s*import [\w/@.-]+( \{|\s*$)", r"^\s*(pub )?type \w+(<[^>]*>)? *=", r"^\s*(pub )?component \w",
     r"\b(Ok|Err|Some|None)\(", r"\bOption<|\bResult<", r"^\s*let \w+(: [^=]+)? = ", r"^\s*@example\b",
     r"=> [^\n]*,\s*$",
@@ -525,8 +598,8 @@ def _is_json(text: str) -> bool:
     # Strings may wrap across lines in a block trimmed for the page.
     for line in re.sub(r'"(?:\\.|[^"\\])*"', '""', text).split("\n"):
         line = line.strip()
-        if not line or line in ("...", "…"):
-            continue
+        if not line or line in ("...", "…") or line.startswith("//"):
+            continue  # a comment line on an excerpt is the page's, not JSON's
         if re.search(r"(^|[{,\[]\s*)[A-Za-z_]\w*\s*:", line) or "=>" in line or "//" in line:
             return False
     return bool(re.search(r'"[^"\n]*"\s*:', text))
@@ -551,8 +624,7 @@ def _is_shell(text: str) -> bool:
         return True
     continued = False
     for line in lines:
-        word = line.split()[0]
-        if not continued and word not in SHELL_COMMANDS:
+        if not continued and _command_word(line) not in SHELL_COMMANDS:
             return False
         continued = line.rstrip().endswith("\\")
     return True
@@ -573,6 +645,8 @@ def detect(text: str, caption: str = "", data_lang: str | None = None) -> str | 
         if data_lang not in LANGS:
             raise HighlightError(f"data-lang={data_lang!r} is not one of {', '.join(LANGS)}")
         return data_lang
+    if html.unescape(caption).strip().lower() == "terminal":
+        return "shell"
     by_caption = caption_lang(caption) if caption else None
     if by_caption:
         return by_caption
@@ -613,31 +687,38 @@ def caption_before(body: str, start: int) -> str:
 
 
 def highlight_pres(body: str, where: str = "", log: list | None = None) -> str:
-    """Highlight every `<pre>` in a page body that has no token markup yet.
-    `log`, when given, collects (where, language or None, reason) per block."""
+    """Highlight every `<pre>` in a page body that was not coloured word by
+    word already. `log`, when given, collects (where, language or None,
+    reason) per block."""
     out, pos = [], 0
     for m in PRE.finditer(body):
         attrs, inner = m.group(1) or "", m.group(2)
         out.append(body[pos:m.start()])
         pos = m.end()
-        if "<span class=" in inner:
+        classes = {c for found in SPAN_CLASSES.findall(inner) for c in found.split()}
+        # A catches output block is coloured by what the run did, from
+        # observed.json; its text is output, not code, and stays as written.
+        if classes & TOKEN_LEVEL or "c-out" in attrs:
             out.append(m.group(0))
             if log is not None:
-                log.append((where, None, "marked"))
+                log.append((where, None, "token-marked" if classes & TOKEN_LEVEL else "catches-output"))
             continue
+        marked = "marked" if classes else "unmarked"
         dl = DATA_LANG.search(attrs)
         text = text_of(inner)
-        lang = detect(text, caption_before(body, m.start()), dl.group(1) if dl else None)
+        segments = _segments(inner)
+        masked = _masked(segments)
+        lang = detect(masked, caption_before(body, m.start()), dl.group(1) if dl else None)
         if lang is None:
             out.append(m.group(0))
             if log is not None:
-                log.append((where, None, "plain"))
+                log.append((where, None, f"{marked}-plain"))
             continue
-        new = _render(_segments(inner), tokens(text, lang))
+        new = _render(segments, tokens(masked, lang))
         if text_of(new) != text:
             raise HighlightError(f"{where}: highlighting changed the text of a <pre> ({lang})")
         out.append(f"<pre{attrs}>{new}</pre>")
         if log is not None:
-            log.append((where, lang, "highlighted"))
+            log.append((where, lang, marked))
     out.append(body[pos:])
     return "".join(out)

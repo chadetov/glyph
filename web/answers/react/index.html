@@ -457,22 +457,22 @@
 
       <div class="code">
         <span class="cap">counter.glyph, against react@18 and its types</span>
-<pre>import react { useReducer }
+<pre><span class="k">import</span> react { useReducer }
 
-type Action = Inc | Dec | Reset
+<span class="k">type</span> <span class="t">Action</span> = <span class="t">Inc</span> | <span class="t">Dec</span> | <span class="t">Reset</span>
 
-fn reducer(n: number, a: Action) -&gt; number {
-  return match a {
-    Inc =&gt; n + 1,
-    Dec =&gt; n - 1,
-    Reset =&gt; 0,
-<span class="add">    // add an Action variant and this match is E0200</span>
+<span class="k">fn</span> reducer(n: <span class="t">number</span>, a: <span class="t">Action</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> <span class="k">match</span> a {
+    <span class="t">Inc</span> <span class="op">=&gt;</span> n + <span class="n">1</span>,
+    <span class="t">Dec</span> <span class="op">=&gt;</span> n - <span class="n">1</span>,
+    <span class="t">Reset</span> <span class="op">=&gt;</span> <span class="n">0</span>,
+<span class="add">    <span class="c">// add an Action variant and this match is E0200</span></span>
   }
 }
 
-pub component Counter() {
-  let [count, dispatch] = useReducer(reducer, 0)
-  return &lt;button on_click={fn() { dispatch(Inc) }}&gt;{count}&lt;/button&gt;
+<span class="k">pub</span> <span class="k">component</span> <span class="t">Counter</span>() {
+  <span class="k">let</span> [count, dispatch] = useReducer(reducer, <span class="n">0</span>)
+  <span class="k">return</span> &lt;<span class="t">button</span> on_click={<span class="k">fn</span>() { dispatch(<span class="t">Inc</span>) }}&gt;<span class="ip">{</span>count<span class="ip">}</span>&lt;/<span class="t">button</span>&gt;
 }</pre>
       </div>
 
@@ -512,18 +512,18 @@ pub component Counter() {
 
       <div class="code">
         <span class="cap">main.glyph, with <code>Card</code> declared in <code>ui.glyph</code></span>
-<pre>import ui
+<pre><span class="k">import</span> ui
 
-pub component App() {
-  return &lt;div&gt;
-    &lt;ui.Card title="Q3" /&gt;
-    &lt;ui.Card title="Q4" cout={2} /&gt;
-  &lt;/div&gt;
+<span class="k">pub</span> <span class="k">component</span> <span class="t">App</span>() {
+  <span class="k">return</span> &lt;<span class="t">div</span>&gt;
+    &lt;<span class="t">ui.Card</span> title=<span class="s">"Q3"</span> /&gt;
+    &lt;<span class="t">ui.Card</span> title=<span class="s">"Q4"</span> cout={<span class="n">2</span>} /&gt;
+  &lt;/<span class="t">div</span>&gt;
 }
 
-<span class="add">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`
-// E0210 type `CardProps` has no field `cout`; did you mean `count`?
-// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
+<span class="add"><span class="c">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span>
+<span class="c">// E0210 type `CardProps` has no field `cout`; did you mean `count`?</span>
+<span class="c">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></span></pre>
       </div>
 
       <div class="detail">
@@ -551,20 +551,20 @@ pub component App() {
 
       <div class="code">
         <span class="cap">results.glyph</span>
-<pre>type Page =
-  | Loading
-  | Loaded({ users: Array&lt;User&gt;, total: number })
-  | Failed(string)
+<pre><span class="k">type</span> <span class="t">Page</span> =
+  | <span class="t">Loading</span>
+  | <span class="t">Loaded</span>({ users: <span class="t">Array</span>&lt;<span class="t">User</span>&gt;, total: <span class="t">number</span> })
+  | <span class="t">Failed</span>(<span class="t">string</span>)
 
-component Results(props: { page: Page }) {
-  return &lt;match value={props.page}&gt;
-    &lt;case Loading&gt;&lt;p&gt;Loading...&lt;/p&gt;&lt;/case&gt;
-    &lt;case Loaded({ users, totl })&gt;&lt;p&gt;{users.length} of {totl}&lt;/p&gt;&lt;/case&gt;
-    &lt;case Failed(message)&gt;&lt;p&gt;{message}&lt;/p&gt;&lt;/case&gt;
-  &lt;/match&gt;
+<span class="k">component</span> <span class="t">Results</span>(props: { page: <span class="t">Page</span> }) {
+  <span class="k">return</span> &lt;<span class="t">match</span> value={props.page}&gt;
+    &lt;<span class="t">case</span> <span class="t">Loading</span>&gt;&lt;<span class="t">p</span>&gt;Loading...&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;<span class="t">case</span> <span class="t">Loaded</span>({ users, totl })&gt;&lt;<span class="t">p</span>&gt;<span class="ip">{</span>users.length<span class="ip">}</span> of <span class="ip">{</span>totl<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;<span class="t">case</span> <span class="t">Failed</span>(message)&gt;&lt;<span class="t">p</span>&gt;<span class="ip">{</span>message<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+  &lt;/<span class="t">match</span>&gt;
 }
 
-<span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></pre>
+<span class="add"><span class="c">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></span></pre>
       </div>
 
       <div class="detail">

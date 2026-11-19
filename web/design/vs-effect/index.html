@@ -411,23 +411,23 @@
 
       <div class="code">
         <span class="cap">eff.ts: tsc --strict exits 0; running it prints "Failure undefined"</span>
-<pre>import { Effect } from "effect"
+<pre><span class="k">import</span> { <span class="t">Effect</span> } <span class="k">from</span> <span class="s">"effect"</span>
 
-class NotFound {
-  readonly _tag = "NotFound"
+<span class="k">class</span> <span class="t">NotFound</span> {
+  <span class="k">readonly</span> _tag = <span class="s">"NotFound"</span>
 }
 
-const find = (id: string): Effect.Effect&lt;number, NotFound&gt; =&gt;
-  id === "1" ? Effect.succeed(1) : Effect.fail(new NotFound())
+<span class="k">const</span> find = (id: <span class="t">string</span>): <span class="t">Effect</span>.<span class="t">Effect</span>&lt;<span class="t">number</span>, <span class="t">NotFound</span>&gt; <span class="op">=&gt;</span>
+  id === <span class="s">"1"</span> <span class="op">?</span> <span class="t">Effect</span>.succeed(<span class="n">1</span>) : <span class="t">Effect</span>.fail(<span class="k">new</span> <span class="t">NotFound</span>())
 
 <span class="cm">// The error channel says NotFound can happen. A cast erases it.</span>
-const quiet = find("2") as unknown as Effect.Effect&lt;number, never&gt;
+<span class="k">const</span> quiet = find(<span class="s">"2"</span>) <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">Effect</span>.<span class="t">Effect</span>&lt;<span class="t">number</span>, <span class="t">never</span>&gt;
 
 <span class="cm">// And a parsed body still takes any type you name.</span>
-type User = { email: string }
-const user = JSON.parse("{}") as User
+<span class="k">type</span> <span class="t">User</span> = { email: <span class="t">string</span> }
+<span class="k">const</span> user = <span class="t">JSON</span>.parse(<span class="s">"{}"</span>) <span class="k">as</span> <span class="t">User</span>
 
-console.log(Effect.runSyncExit(quiet)._tag, user.email)</pre>
+console.log(<span class="t">Effect</span>.runSyncExit(quiet)._tag, user.email)</pre>
       </div>
 
       <div class="detail">

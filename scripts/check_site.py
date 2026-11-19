@@ -99,8 +99,9 @@ def check_answers_subnav():
         if not os.path.isfile(idx):
             continue
         text = open(idx).read()
-        m = re.search(r'<div class="subnav">(.*?)</div>', text, re.DOTALL)
+        m = re.search(r'<div class="subnav[^"]*">(.*?)</div>', text, re.DOTALL)
         if not m:
+            errors.append(f"answers/{d}: no sub-nav listing the answers")
             continue
         listed = set(slug_re.findall(m.group(1)))
         missing = dirs - listed

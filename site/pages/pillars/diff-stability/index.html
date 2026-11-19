@@ -19,7 +19,7 @@ sitemap: 2026-08-06 weekly 0.9
       </p>
 
       <div class="detail">
-        <p class="block-label">Review is reading diffs</p>
+        <h2 class="block-label">Review is reading diffs</h2>
         <p class="lede">
           Almost everything we trust about a change (the review, the blame, the revert, the
           bisect) is built on the diff. So the diff's signal-to-noise ratio is the real
@@ -35,7 +35,7 @@ sitemap: 2026-08-06 weekly 0.9
           gives the model nothing to churn.
         </p>
 
-        <p class="block-label"><span class="ex-label">01</span> One canonical layout, no choices</p>
+        <h2 class="block-label"><span class="ex-label">01</span> One canonical layout, no choices</h2>
         <p>
           <code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a
           trailing comma on every multi-line list, and a list that stays on one line while it fits
@@ -79,7 +79,7 @@ sitemap: 2026-08-06 weekly 0.9
           adding a sibling <strong>never edits the line above it.</strong> One insertion, one line.
         </p>
 
-        <p class="block-label"><span class="ex-label">02</span> Order is stable, so history is legible</p>
+        <h2 class="block-label"><span class="ex-label">02</span> Order is stable, so history is legible</h2>
         <p>
           One element per line means reordering, inserting, or removing an item touches only that
           item's lines, never its neighbours. <code>git blame</code> stays meaningful:
@@ -87,7 +87,7 @@ sitemap: 2026-08-06 weekly 0.9
           not the formatting pass that happened to repack the row it shared.
         </p>
 
-        <p class="block-label"><span class="ex-label">03</span> No barrel files: no import churn</p>
+        <h2 class="block-label"><span class="ex-label">03</span> No barrel files: no import churn</h2>
         <p>
           Because imports never re-export and there are no <code>index.ts</code> aggregation layers
           (<code>E0102</code>), adding or moving a symbol doesn't ripple through a barrel that every
@@ -95,7 +95,7 @@ sitemap: 2026-08-06 weekly 0.9
           import graph doesn't move.
         </p>
 
-        <p class="block-label"><span class="ex-label">04</span> Generation is idempotent, not a blob</p>
+        <h2 class="block-label"><span class="ex-label">04</span> Generation is idempotent, not a blob</h2>
         <p>
           The same discipline extends to generated code. <code>glyph gen</code> and
           <code>glyph regen</code> reprint their output through the canonical formatter, so
@@ -117,7 +117,7 @@ sitemap: 2026-08-06 weekly 0.9
       </div>
 
       <div class="detail">
-        <p class="block-label"><span class="ex-label">05</span> "TypeScript can do this with Prettier"</p>
+        <h2 class="block-label"><span class="ex-label">05</span> "TypeScript can do this with Prettier"</h2>
         <p>
           For a lot of the formatting, it can. Prettier with <code>trailingComma: "all"</code> puts a
           comma on the last element and prints long lists one per line, and that gets you most of
@@ -157,7 +157,7 @@ sitemap: 2026-08-06 weekly 0.9
           cheap.
         </p>
 
-        <p class="block-label">The benchmark: coming</p>
+        <h2 class="block-label">The benchmark: coming</h2>
         <p>
           The number that captures this is diff size per logical change: how many lines move when you
           make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical

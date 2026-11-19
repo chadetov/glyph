@@ -16,7 +16,7 @@ sitemap: 2026-11-19 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">The fixtures</p>
+        <h2 class="block-label">The fixtures</h2>
         <p>
           Each directory under <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>
           holds <code>ts.ts</code>, <code>glyph.glyph</code> and a <code>case.toml</code> saying
@@ -51,7 +51,7 @@ sitemap: 2026-11-19 weekly 0.8
           <code>any</code>.
         </p>
 
-        <p class="block-label">The TypeScript it is compared against</p>
+        <h2 class="block-label">The TypeScript it is compared against</h2>
         <p>
           Each case also says whether a fully configured TypeScript project would have caught the
           mistake, which is where the "would TypeScript catch it" tag comes from. "Fully
@@ -101,7 +101,7 @@ noPropertyAccessFromIndexSignature: true</pre>
           that rule on, and the page says so.
         </p>
 
-        <p class="block-label">Reproduce one case</p>
+        <h2 class="block-label">Reproduce one case</h2>
         <p>
           Run the gate on a single case from a clone of the repository, or do it by hand. Both
           halves of <code>non-exhaustive-match</code>, as they ran for this page:
@@ -139,7 +139,7 @@ glyph check: 1 error(s) across 1 module(s)</pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">The snippets on this site compile</p>
+        <h2 class="block-label">The snippets on this site compile</h2>
         <p>
           <code>scripts/check_docs_compile.py</code> runs in CI and compiles every Glyph snippet on
           the site that stands on its own (it opens with <code>module</code> and declares
@@ -150,7 +150,7 @@ glyph check: 1 error(s) across 1 module(s)</pre>
           visible.
         </p>
 
-        <p class="block-label">What it does not catch yet</p>
+        <h2 class="block-label">What it does not catch yet</h2>
         <p>
           The 11 <code>gap</code> cases are on <a href="/catches/#not-yet">the catches page</a>,
           each with its gap number. Every gap found by building real apps is in the ledger,
@@ -161,7 +161,7 @@ glyph check: 1 error(s) across 1 module(s)</pre>
           than five releases ago.
         </p>
 
-        <p class="block-label">How a release is marked Breaking</p>
+        <h2 class="block-label">How a release is marked Breaking</h2>
         <p>
           A release is marked Breaking when it rejects a program the previous version accepted.
           That is decided by writing the smallest affected program and running it under the
@@ -171,7 +171,7 @@ glyph check: 1 error(s) across 1 module(s)</pre>
           <a href="/versions/">the versions page</a>.
         </p>
 
-        <p class="block-label">The rest of the record</p>
+        <h2 class="block-label">The rest of the record</h2>
       </div>
 
       <div class="ans-cards">

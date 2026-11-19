@@ -21,7 +21,7 @@ sitemap: 2026-08-23 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">See it</p>
+        <h2 class="block-label">See it</h2>
         <p>
           Declare the store once at module scope. Every function in the module shares it. No
           <code>let</code> threaded through <code>main</code>, no capturing closures:
@@ -70,7 +70,7 @@ src/tasks.glyph:16:  tasks.update(fn(cur...
       </div>
 
       <div class="detail">
-        <p class="block-label">Why a store, and not a mutable global</p>
+        <h2 class="block-label">Why a store, and not a mutable global</h2>
         <p>
           This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local
           assignments and module bindings <code>const</code>, because a scattered set of writable
@@ -88,7 +88,7 @@ src/tasks.glyph:16:  tasks.update(fn(cur...
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

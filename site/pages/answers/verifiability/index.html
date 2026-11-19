@@ -17,7 +17,7 @@ sitemap: 2026-08-27 weekly 0.9
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label">Why it matters</h2>
         <p>
           Agents don't usually break code loudly. They break it <strong>confidently</strong>:
           they add a state, drop a branch, or rename a field, everything still type-checks,
@@ -32,7 +32,7 @@ sitemap: 2026-08-27 weekly 0.9
           descriptor, so data crossing a boundary is checked against its shape.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label">See it</h2>
         <p>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update:</p>
       </div>
 
@@ -389,7 +389,7 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
       </div>
 
       <div class="detail">
-        <p class="block-label">Four more, found by building with it</p>
+        <h2 class="block-label">Four more, found by building with it</h2>
         <p>
           Each of these compiled clean and passed <code>tsc --strict</code>, and
           each was found by writing an application rather than by reading the
@@ -512,7 +512,7 @@ Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the mes
       </div>
 
       <div class="detail">
-        <p class="block-label">A signature change, invisible at the call site: closed in 0.1.116</p>
+        <h2 class="block-label">A signature change, invisible at the call site: closed in 0.1.116</h2>
         <p>
           A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to
           accept a value of a declared union or record with no complaint at all, even though the
@@ -603,7 +603,7 @@ pub fn origin() -&gt; Point {
 }</pre>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

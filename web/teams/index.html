@@ -270,7 +270,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">What it guarantees</p>
+        <h2 class="block-label" id="what-it-guarantees">What it guarantees<a class="h-anchor" href="#what-it-guarantees" aria-label="Link to this section">#</a></h2>
         <p>
           Every claim about what Glyph catches is a case in the repository's <code>catches/</code>
           directory: the same program in TypeScript and in Glyph, both run by a CI gate. Of the 53
@@ -302,7 +302,7 @@
           have caught.
         </p>
 
-        <p class="block-label">Where it stops</p>
+        <h2 class="block-label" id="where-it-stops">Where it stops<a class="h-anchor" href="#where-it-stops" aria-label="Link to this section">#</a></h2>
         <p>
           The guarantees cover code written in Glyph. An exception thrown inside an npm dependency
           still bypasses <code>Result</code>, and a type imported from a package's
@@ -313,7 +313,7 @@
           that setup is still ahead, see <a href="/answers/vs-tooled-ts/">why not tooled TypeScript</a>.
         </p>
 
-        <p class="block-label">Adopting it inside an existing app</p>
+        <h2 class="block-label" id="adopting-it-inside-an-existing-app">Adopting it inside an existing app<a class="h-anchor" href="#adopting-it-inside-an-existing-app" aria-label="Link to this section">#</a></h2>
         <p>
           There is no rewrite. You write the part you can't afford to get wrong (models,
           permissions, state transitions, money) in Glyph, and the rest of the app stays
@@ -321,7 +321,7 @@
           stock Vite scaffold: <a href="/answers/embedding/">Can I adopt Glyph inside my existing app?</a>
         </p>
 
-        <p class="block-label">The exit story</p>
+        <h2 class="block-label" id="the-exit-story">The exit story<a class="h-anchor" href="#the-exit-story" aria-label="Link to this section">#</a></h2>
         <p>
           <code>glyph build</code> writes plain TypeScript, one file per module, that passes
           <code>tsc --strict</code>. If you stop using Glyph, you commit that output and keep
@@ -330,7 +330,7 @@
           its emitted file.
         </p>
 
-        <p class="block-label">Pinning and upgrades</p>
+        <h2 class="block-label" id="pinning-and-upgrades">Pinning and upgrades<a class="h-anchor" href="#pinning-and-upgrades" aria-label="Link to this section">#</a></h2>
         <p>
           <code>glyph init</code> pins the compiler to an exact version in
           <code>package.json</code>, with no <code>^</code>, so no release reaches your build by
@@ -350,7 +350,7 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
           Details in <a href="/answers/upgrades/">Will a new Glyph release break my build?</a>
         </p>
 
-        <p class="block-label">Release cadence and the Breaking marker</p>
+        <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Release cadence and the Breaking marker<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Link to this section">#</a></h2>
         <p>
           The <a href="/versions/">versions page</a> has an entry for every release from 0.1.0
           to 0.1.149, 148 in all, and 22 of them shipped in November 2026 up to the 19th. A
@@ -361,7 +361,7 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
           untested rather than safe.
         </p>
 
-        <p class="block-label">Status</p>
+        <h2 class="block-label" id="status">Status<a class="h-anchor" href="#status" aria-label="Link to this section">#</a></h2>
         <p>
           Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted
           TypeScript may change, and a release may reject code that compiled before.
@@ -373,7 +373,7 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
       </div>
 
       <div class="detail">
-        <p class="block-label">Objections, answered</p>
+        <h2 class="block-label" id="objections-answered">Objections, answered<a class="h-anchor" href="#objections-answered" aria-label="Link to this section">#</a></h2>
       </div>
 
       <div class="ans-cards">

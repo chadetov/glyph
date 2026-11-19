@@ -20,7 +20,7 @@ sitemap: 2026-08-23 weekly 0.9
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label">Why it matters</h2>
         <p>
           This is the difference between a language that can run a script and one that can
           run a service. A server, a file watcher, a bot holding a gateway connection, a
@@ -35,7 +35,7 @@ sitemap: 2026-08-23 weekly 0.9
           and no reason to think anything failed.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label">See it</h2>
         <p>
           A TCP server in full. <code>main</code> returns immediately; the callbacks run
           for as long as the process lives:
@@ -87,7 +87,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
           drains its event loop and exits 0, reporting success.
         </p>
 
-        <p class="block-label">A real one</p>
+        <h2 class="block-label">A real one</h2>
         <p>
           <code>examples/apps/chat</code> is a chat server holding several TCP clients at
           once. The parts that do not touch the network stay separate and testable: line
@@ -127,7 +127,7 @@ pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">The other direction: a long-running client</p>
+        <h2 class="block-label">The other direction: a long-running client</h2>
         <p>
           A bot is the same shape pointed outward. <code>examples/apps/discord</code>
           is a Discord gateway client: it connects over a WebSocket, identifies,
@@ -166,7 +166,7 @@ pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</p
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

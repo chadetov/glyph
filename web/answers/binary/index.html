@@ -303,7 +303,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
         <p>
           A PNG's first byte is <code>0x89</code>, which is not valid UTF-8 on its own.
           Read that file as text and every byte the decoder cannot make sense of becomes
@@ -318,7 +318,7 @@
           worked around inside the language.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
         <p>
           An RFC 6238 authenticator, which needs bytes on both sides of the HMAC. The
           secret arrives base32-encoded, the message is an eight-byte counter that is
@@ -368,7 +368,7 @@ pub fn code(secret: string, counter: number) -&gt; Result&lt;number, bytes.Bytes
           <code>index_of</code>, <code>starts_with</code>. Nothing mutates its argument.
         </p>
 
-        <p class="block-label">Every decode can refuse, and says where</p>
+        <h2 class="block-label" id="every-decode-can-refuse-and-says-where">Every decode can refuse, and says where<a class="h-anchor" href="#every-decode-can-refuse-and-says-where" aria-label="Link to this section">#</a></h2>
         <p>
           This is the part that cost the most to build and is the reason to use it. Node's
           <code>Buffer</code> accepts malformed input and reports success:
@@ -411,7 +411,7 @@ buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
           only <code>std/bytes</code> still runs in a Web Worker.
         </p>
 
-        <p class="block-label">Which HMAC you pick changes the answer</p>
+        <h2 class="block-label" id="which-hmac-you-pick-changes-the-answer">Which HMAC you pick changes the answer<a class="h-anchor" href="#which-hmac-you-pick-changes-the-answer" aria-label="Link to this section">#</a></h2>
         <p>
           <code>std/crypto</code> now has both forms of every algorithm. The plain name
           takes a string and returns hex, which is what hashing a password wants. The
@@ -428,7 +428,7 @@ buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

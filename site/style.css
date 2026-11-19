@@ -1145,24 +1145,47 @@ section {
   font-weight: 600;
   color: var(--ink);
 }
+/* Section headings: the <h2> that opens each section of an article. An
+   optional <span class="ex-label">01</span> inside it becomes a small accent
+   eyebrow above the heading text, and scripts/build_site.py adds the id and
+   the "#" link. */
 .block-label,
 .detail .block-label {
-  font-family: var(--mono);
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: var(--s7) 0 var(--s4);
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
+  font-family: var(--sans);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-transform: none;
+  color: var(--ink);
+  margin: var(--s8) 0 var(--s4);
+  scroll-margin-top: var(--s5);
 }
-.block-label::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--line);
+.block-label .ex-label {
+  display: block;
+  margin: 0 0 var(--s2);
+  font: 600 var(--fs-xs) / 1.2 var(--mono);
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+.h-anchor {
+  margin-left: 0.35em;
+  color: var(--muted);
+  font-weight: 400;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.block-label:hover .h-anchor,
+.h-anchor:focus-visible {
+  opacity: 1;
+  text-decoration: none;
+}
+@media (max-width: 640px) {
+  .block-label,
+  .detail .block-label {
+    font-size: 1.375rem;
+    margin-top: var(--s7);
+  }
 }
 .detail p,
 .detail li {
@@ -1698,12 +1721,9 @@ div.card {
 }
 .catches-table th {
   text-align: left;
-  font-family: var(--mono);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink);
   padding: var(--s2) var(--s3);
   border-bottom: 2px solid var(--line-2);
 }
@@ -1733,24 +1753,6 @@ div.card {
 /* ============ answers index ============ */
 .ans-group {
   margin: 0;
-}
-.ans-group > h2 {
-  font-family: var(--mono);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: var(--s6) 0 var(--s3);
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
-}
-.ans-group > h2::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--line);
 }
 .ans-cards {
   display: grid;
@@ -2533,12 +2535,9 @@ h4 code,
 }
 .ref-table th {
   text-align: left;
-  font-family: var(--mono);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink);
   padding: var(--s2) var(--s3);
   border-bottom: 2px solid var(--line-2);
 }

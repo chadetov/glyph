@@ -19,7 +19,7 @@ sitemap: 2026-08-27 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label">Why it matters</h2>
         <p>
           In most TypeScript stacks every payload is described <em>twice</em>: once as a
           <code>type</code> for the compiler, and again as a hand-written validator so the value is
@@ -28,7 +28,7 @@ sitemap: 2026-08-27 weekly 0.8
           validator, so they cannot disagree.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label">See it</h2>
         <p>
           Declare the DTO once. Its descriptor gives you <code>.parse</code> (validate an untrusted
           value into the type) and <code>.is</code> (a type guard) for free:
@@ -87,7 +87,7 @@ const NewTask = z.object({
       </div>
 
       <div class="detail">
-        <p class="block-label">The parse result is an ordinary <code>Result</code></p>
+        <h2 class="block-label">The parse result is an ordinary <code>Result</code></h2>
         <p>
           A validator that gives you back a value in its own private shape is only half
           useful, because the rest of your error handling can't touch it. In Glyph
@@ -157,7 +157,7 @@ match NewTask.parse(body) {
       </div>
 
       <div class="detail">
-        <p class="block-label">Composing your own: the output type is derived, not trusted</p>
+        <h2 class="block-label">Composing your own: the output type is derived, not trusted</h2>
         <p>
           Sometimes you want a <code>zod</code>-style combinator: build a validator by composing
           smaller ones. The trap in TypeScript is that the combinator's <em>output type</em> and the
@@ -224,7 +224,7 @@ type User = { name: string; age: number };
           already decoded as an <code>unknown</code>, so there you reach for
           <code>T.parse(value)</code> instead: same guarantee, no cast.
         </p>
-        <p class="block-label">Does a map keyed by an enum check its keys?</p>
+        <h2 class="block-label">Does a map keyed by an enum check its keys?</h2>
         <p>
           Yes, since 0.1.148. A <code>Record&lt;Tier, int&gt;</code> with
           <code>type Tier = "free" | "pro"</code> parses only an object whose keys are exactly
@@ -245,7 +245,7 @@ type User = { name: string; age: number };
           compile. Absent input can't be read as if it were present.
         </p>
 
-        <p class="block-label">If I parse a date, do I get a real date?</p>
+        <h2 class="block-label">If I parse a date, do I get a real date?</h2>
         <p>
           Yes, and the interesting part is what you get back for input that isn't one.
           <code>time.parse_iso</code> returns <code>Option&lt;number&gt;</code>, and it is
@@ -338,7 +338,7 @@ fn parse_date(line: int, value: string)
           report byte for byte.
         </p>
 
-        <p class="block-label">You don't even have to write the types</p>
+        <h2 class="block-label">You don't even have to write the types</h2>
         <p>
           If the shape already exists in an OpenAPI spec or a TypeScript declaration file, generate
           the Glyph types from it: real, committed, greppable <code>type</code> declarations,
@@ -431,7 +431,7 @@ match Customer.parse(webhook_body) {
       </div>
 
       <div class="detail">
-        <p class="block-label">The database is a boundary too</p>
+        <h2 class="block-label">The database is a boundary too</h2>
         <p>
           A row read out of a database is untrusted in exactly the way a request body is: the
           database schema and your code's idea of the row can disagree, and a cast
@@ -492,7 +492,7 @@ if (row.done === true) { ... }   // never runs
       </div>
 
       <div class="detail">
-        <p class="block-label">A signed webhook is a boundary too</p>
+        <h2 class="block-label">A signed webhook is a boundary too</h2>
         <p>
           Verifying a webhook signature needs the exact bytes the sender signed, not a
           re-serialized copy (re-stringifying a parsed body changes whitespace and key order, so the
@@ -517,7 +517,7 @@ if (row.done === true) { ... }   // never runs
       </div>
 
       <div class="detail">
-        <p class="block-label">A type can validate its invariants, not just its shape</p>
+        <h2 class="block-label">A type can validate its invariants, not just its shape</h2>
         <p>
           A shape check tells you a field is a number. It does not tell you the
           amount is non-negative or the rating is between 1 and 5. A
@@ -555,7 +555,7 @@ if (amount &lt; 0) throw new Error(...);
         </div>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

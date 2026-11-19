@@ -302,7 +302,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
         <p>
           Glyph compiles to TypeScript and then type-checks the output with
           <code>tsc --strict</code>, so a mistake Glyph doesn't model isn't lost. It comes
@@ -320,7 +320,7 @@
           the decision behind it, and shows the before and after.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
         <p>
           The arm case is the one that used to escape entirely. <code>{}</code> in arm
           position is an empty <em>block</em>, not an empty record, so the arm ran and
@@ -402,7 +402,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">The worse case: when tsc is happy too</p>
+        <h2 class="block-label" id="the-worse-case-when-tsc-is-happy-too">The worse case: when tsc is happy too<a class="h-anchor" href="#the-worse-case-when-tsc-is-happy-too" aria-label="Link to this section">#</a></h2>
         <p>
           A <code>tsc</code> error in the wrong place is annoying. A clean build on a
           program that means something else is the real problem, and Glyph had one. Every
@@ -472,7 +472,7 @@ assignable to parameter of type ...</span></pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">A wrong message is worse than no message</p>
+        <h2 class="block-label" id="a-wrong-message-is-worse-than-no-message">A wrong message is worse than no message<a class="h-anchor" href="#a-wrong-message-is-worse-than-no-message" aria-label="Link to this section">#</a></h2>
         <p>
           The shadow list started with names the emitter writes as <em>values</em>. It
           was missing the ones it writes as <em>types</em>, and that produced the sharpest
@@ -561,7 +561,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
-        <p class="block-label">Naming the rule, not the token</p>
+        <h2 class="block-label" id="naming-the-rule-not-the-token">Naming the rule, not the token<a class="h-anchor" href="#naming-the-rule-not-the-token" aria-label="Link to this section">#</a></h2>
         <p>
           The quieter version of the same problem is an error that is correct and
           still tells you nothing. An agent writing a red-black tree reached for the
@@ -606,7 +606,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
-        <p class="block-label">Two more the checker took over in 0.1.121</p>
+        <h2 class="block-label" id="two-more-the-checker-took-over-in-0-1-121">Two more the checker took over in 0.1.121<a class="h-anchor" href="#two-more-the-checker-took-over-in-0-1-121" aria-label="Link to this section">#</a></h2>
         <p>
           <code>Order { id: "a", total: 1 }</code> is what someone coming from TypeScript
           writes to build a record, and Glyph has no such form: a value is written on its
@@ -684,7 +684,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
-        <p class="block-label">And three more, since 0.1.133</p>
+        <h2 class="block-label" id="and-three-more-since-0-1-133">And three more, since 0.1.133<a class="h-anchor" href="#and-three-more-since-0-1-133" aria-label="Link to this section">#</a></h2>
         <p>
           <code>let up = s.toUpperCase</code> type-checks in TypeScript and throws when
           <code>up()</code> runs, because the read drops the string it belongs to. Glyph refuses
@@ -715,7 +715,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
-        <p class="block-label">And two more in 0.1.122</p>
+        <h2 class="block-label" id="and-two-more-in-0-1-122">And two more in 0.1.122<a class="h-anchor" href="#and-two-more-in-0-1-122" aria-label="Link to this section">#</a></h2>
         <p>
           <code>type Mode = "read" | "write"</code> declares a finite set of strings, and the
           Glyph checker compared a value against it by nothing at all. A number, a
@@ -769,7 +769,7 @@ let d: Mode = { x: 1 }
       </div>
 
       <div class="detail">
-        <p class="block-label">0.1.123: the literal a value is, not the <code>string</code> it emits to</p>
+        <h2 class="block-label" id="0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">0.1.123: the literal a value is, not the <code>string</code> it emits to<a class="h-anchor" href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to" aria-label="Link to this section">#</a></h2>
         <p>
           <code>type Mode = "read" | "write"</code> put the set on the declaration and nothing on
           the value, so <code>"read"</code> was a <code>string</code> and
@@ -825,7 +825,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
       </div>
 
       <div class="detail">
-        <p class="block-label">A module under <code>std/</code> was dead code with no diagnostic</p>
+        <h2 class="block-label" id="a-module-under-std-was-dead-code-with-no-diagnostic">A module under <code>std/</code> was dead code with no diagnostic<a class="h-anchor" href="#a-module-under-std-was-dead-code-with-no-diagnostic" aria-label="Link to this section">#</a></h2>
         <p>
           <code>std/</code> and <code>extern/</code> name modules the compiler carries, and the
           resolver reserved them for imports. Nothing stopped a project file from
@@ -881,7 +881,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         </p>
       </div>
 
-      <p class="block-label">When neither compiler is wrong</p>
+      <h2 class="block-label" id="when-neither-compiler-is-wrong">When neither compiler is wrong<a class="h-anchor" href="#when-neither-compiler-is-wrong" aria-label="Link to this section">#</a></h2>
       <div class="detail">
         <p>
           There is a third shape, and it is the one that reads worst. Glyph reports
@@ -947,7 +947,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         </p>
       </div>
 
-      <p class="block-label">The same typo, two answers</p>
+      <h2 class="block-label" id="the-same-typo-two-answers">The same typo, two answers<a class="h-anchor" href="#the-same-typo-two-answers" aria-label="Link to this section">#</a></h2>
       <div class="detail">
         <p>
           A misspelled standard-library function used to get a different answer depending
@@ -989,7 +989,7 @@ string.repeeat(s, 2)
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

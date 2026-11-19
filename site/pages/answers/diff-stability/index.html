@@ -18,7 +18,7 @@ sitemap: 2026-08-23 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label">Why it matters</h2>
         <p>
           When an agent opens a pull request, the diff <em>is</em> the review. If a genuine
           one-line fix arrives as a 200-line reformat, nobody can see what actually changed,
@@ -27,7 +27,7 @@ sitemap: 2026-08-23 weekly 0.8
         </p>
         <p>Two rules do most of the work. Here's each, shown as the diff you'd review.</p>
 
-        <p class="block-label">Example 1: trailing commas, one item per line</p>
+        <h2 class="block-label">Example 1: trailing commas, one item per line</h2>
         <p>Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change:</p>
       </div>
 
@@ -62,7 +62,7 @@ sitemap: 2026-08-23 weekly 0.8
           call past 100 columns expands the whole argument list to one per line.
         </p>
 
-        <p class="block-label">Example 2: one canonical layout</p>
+        <h2 class="block-label">Example 2: one canonical layout</h2>
         <p>
           There is exactly one correct formatting, produced by <code>glyph fmt</code>. Whitespace,
           wrapping, and alignment aren't choices an agent can &ldquo;tidy,&rdquo; so a semantic
@@ -88,7 +88,7 @@ sitemap: 2026-08-23 weekly 0.8
           commit that actually changed a line, not the one that reformatted it.
         </p>
 
-        <p class="block-label">One canonical layout, so does the formatter move my comments?</p>
+        <h2 class="block-label">One canonical layout, so does the formatter move my comments?</h2>
         <p>
           It used to, and that was a bug worth naming. Glyph has no block comments and no
           doc-comment syntax, so a <code>//</code> line is the only way to explain a record field,
@@ -155,7 +155,7 @@ type Cell = {
           formatter rather than the type system.
         </p>
 
-        <p class="block-label">Can <code>glyph fmt</code> break a program that builds?</p>
+        <h2 class="block-label">Can <code>glyph fmt</code> break a program that builds?</h2>
         <p>
           It could, and one case is still open. The fixed one first. An arm meaning &ldquo;the empty
           record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place
@@ -189,7 +189,7 @@ type Cell = {
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

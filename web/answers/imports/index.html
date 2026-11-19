@@ -302,7 +302,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
         <p>
           Nobody rewrites a codebase to try a language. Because Glyph's output <em>is</em>
           TypeScript, a <code>.glyph</code> file drops into the corner of an existing TS/React/Node
@@ -311,7 +311,7 @@
           runtime.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
         <p>You import packages by name (including hyphenated and npm-scoped ones) and Glyph emits the import you'd expect:</p>
       </div>
 
@@ -403,7 +403,7 @@ pub fn main() -&gt; number {
       </div>
 
       <div class="detail">
-        <p class="block-label">When you need whole hand-written TypeScript</p>
+        <h2 class="block-label" id="when-you-need-whole-hand-written-typescript">When you need whole hand-written TypeScript<a class="h-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="Link to this section">#</a></h2>
         <p>
           Sometimes the escape hatch isn't a type or an expression but real runtime code: a
           node-stream loop, a <code>new Promise</code>, a worker thread. Put the <code>.ts</code>
@@ -425,7 +425,7 @@ import extern/raw_server { serve_raw }   // typed from the .ts; a wrong arg is a
           shim with nothing installed.
         </p>
 
-        <p class="block-label">Watching a subprocess, with nothing installed</p>
+        <h2 class="block-label" id="watching-a-subprocess-with-nothing-installed">Watching a subprocess, with nothing installed<a class="h-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="Link to this section">#</a></h2>
         <p>
           The bundled node declarations carry the async half of
           <code>child_process</code>, not just the blocking one, so a tool that reports a long
@@ -469,7 +469,7 @@ pub fn main() -&gt; void {
   child.stdout.setEncoding(&quot;utf8&quot;)
 }</pre>
 
-        <p class="block-label">Edit the shim, and the next run is the shim you edited</p>
+        <h2 class="block-label" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">Edit the shim, and the next run is the shim you edited<a class="h-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="Link to this section">#</a></h2>
         <p>
           A shim is a file you iterate on, so it has to count as a source. <code>glyph run</code>
           caches a build under a fingerprint of your sources, and that fingerprint covers every
@@ -520,7 +520,7 @@ exist in type 'WebResponse'.
       </div>
 
       <div class="detail">
-        <p class="block-label">Class-based clients: the database and messaging ones</p>
+        <h2 class="block-label" id="class-based-clients-the-database-and-messaging-ones">Class-based clients: the database and messaging ones<a class="h-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="Link to this section">#</a></h2>
         <p>
           Most database and messaging clients are class-based: you write
           <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>,
@@ -557,7 +557,7 @@ await client.set("k", "v")</pre>
         </div>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

@@ -305,7 +305,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">1 &middot; The generated TypeScript is yours to read</p>
+        <h2 class="block-label" id="1-the-generated-typescript-is-yours-to-read">1 &middot; The generated TypeScript is yours to read<a class="h-anchor" href="#1-the-generated-typescript-is-yours-to-read" aria-label="Link to this section">#</a></h2>
         <p>
           Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you
           commit and deploy like any other TS. So the worst case (an on-call engineer who
@@ -313,7 +313,7 @@
           no black box between your source and production.
         </p>
 
-        <p class="block-label">2 &middot; Source maps back to <code>.glyph</code></p>
+        <h2 class="block-label" id="2-source-maps-back-to-glyph">2 &middot; Source maps back to <code>.glyph</code><a class="h-anchor" href="#2-source-maps-back-to-glyph" aria-label="Link to this section">#</a></h2>
         <p>
           Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to
           it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded
@@ -329,7 +329,7 @@
       </div>
 
       <div class="detail">
-        <p class="block-label">3 &middot; Build and type errors already point at Glyph</p>
+        <h2 class="block-label" id="3-build-and-type-errors-already-point-at-glyph">3 &middot; Build and type errors already point at Glyph<a class="h-anchor" href="#3-build-and-type-errors-already-point-at-glyph" aria-label="Link to this section">#</a></h2>
         <p>
           You rarely get to production with a type error, because <code>glyph build</code> runs
           <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your
@@ -341,7 +341,7 @@
           file, 1-based line/col, help) for your CI or tooling to act on.
         </p>
 
-        <p class="block-label">4 &middot; <code>glyph run</code> tells you the same things</p>
+        <h2 class="block-label" id="4-glyph-run-tells-you-the-same-things">4 &middot; <code>glyph run</code> tells you the same things<a class="h-anchor" href="#4-glyph-run-tells-you-the-same-things" aria-label="Link to this section">#</a></h2>
         <p>
           The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter
           than the build. It compiled the whole directory, took the list of emitted files out of the
@@ -369,7 +369,7 @@ glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">Two current limitations</p>
+        <h2 class="block-label" id="two-current-limitations">Two current limitations<a class="h-anchor" href="#two-current-limitations" aria-label="Link to this section">#</a></h2>
         <p>
           <strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line
           numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code>
@@ -390,7 +390,7 @@ glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

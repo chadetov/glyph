@@ -278,7 +278,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">Why "where is this defined?" is hard</p>
+        <h2 class="block-label" id="why-where-is-this-defined-is-hard">Why "where is this defined?" is hard<a class="h-anchor" href="#why-where-is-this-defined-is-hard" aria-label="Link to this section">#</a></h2>
         <p class="lede">
           In a mature TypeScript codebase, the simplest question, <em>where does this name come
           from?</em>, is often the hardest. The language offers half a dozen ways to spread one
@@ -295,7 +295,7 @@
           reliable primitive, not a heuristic.
         </p>
 
-        <p class="block-label"><span class="ex-label">01</span> One declaration, one form</p>
+        <h2 class="block-label" id="one-declaration-one-form"><span class="ex-label">01</span> One declaration, one form<a class="h-anchor" href="#one-declaration-one-form" aria-label="Link to this section">#</a></h2>
         <p>
           A function, type, or component is declared exactly once, with one syntax. There are no
           overloads to split a signature and no way to redeclare a name: two top-level things
@@ -329,7 +329,7 @@
           <strong>defined</strong>.
         </p>
 
-        <p class="block-label"><span class="ex-label">02</span> No barrel files: the import path is the location</p>
+        <h2 class="block-label" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> No barrel files: the import path is the location<a class="h-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="Link to this section">#</a></h2>
         <p>
           Glyph imports never re-export, and a module whose only contents are imports is rejected
           (<code>E0102</code>). There is no <code>index.ts</code> laundering layer. So an import names
@@ -345,7 +345,7 @@
       </div>
 
       <div class="detail">
-        <p class="block-label"><span class="ex-label">03</span> No hidden ways to attach behavior</p>
+        <h2 class="block-label" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> No hidden ways to attach behavior<a class="h-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="Link to this section">#</a></h2>
         <p>
           There are no decorators wrapping a function in an unseen layer, no <code>namespace</code>
           merging pooling members from across the tree, no <code>declare module</code> augmenting a
@@ -354,7 +354,7 @@
           shapes it is visible at that declaration.
         </p>
 
-        <p class="block-label"><span class="ex-label">04</span> Even mutation is greppable</p>
+        <h2 class="block-label" id="even-mutation-is-greppable"><span class="ex-label">04</span> Even mutation is greppable<a class="h-anchor" href="#even-mutation-is-greppable" aria-label="Link to this section">#</a></h2>
         <p>
           Greppability isn't only about finding definitions, it's about finding
           <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a
@@ -379,7 +379,7 @@
           so that a search returns the answer, not a lead.
         </p>
 
-        <p class="block-label">The benchmark: coming</p>
+        <h2 class="block-label" id="the-benchmark-coming">The benchmark: coming<a class="h-anchor" href="#the-benchmark-coming" aria-label="Link to this section">#</a></h2>
         <p>
           The measurable version of this claim is precision: for a given symbol, what fraction of a
           plain grep's hits are the thing you were actually looking for, and how many steps does it
@@ -415,7 +415,7 @@
       </div>
 
       <div class="detail">
-        <p class="block-label">"A lint rule can ban overloads and decorators"</p>
+        <h2 class="block-label" id="a-lint-rule-can-ban-overloads-and-decorators">"A lint rule can ban overloads and decorators"<a class="h-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="Link to this section">#</a></h2>
         <p>
           In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to
           overload. The language still allows all of it, so the guarantee lasts as long as the config

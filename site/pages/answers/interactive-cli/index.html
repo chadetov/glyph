@@ -19,7 +19,7 @@ sitemap: 2026-08-23 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label">Why it matters</h2>
         <p>
           A line reader that only returns at end of input is a file reader wearing a line
           reader's name. Piping a file through it works perfectly, which is why nothing
@@ -35,7 +35,7 @@ sitemap: 2026-08-23 weekly 0.8
           you hung up.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label">See it</h2>
         <p>The whole live-session loop of the chat app. Read, apply, print, repeat:</p>
       </div>
 
@@ -88,7 +88,7 @@ sitemap: 2026-08-23 weekly 0.8
           around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.
         </p>
 
-        <p class="block-label">The parts that bite in practice</p>
+        <h2 class="block-label">The parts that bite in practice</h2>
         <p>
           A trailing <code>\r</code> is stripped, so a CRLF file and an LF file give you the
           same lines and you are not debugging an invisible character on Windows input.
@@ -112,7 +112,7 @@ sitemap: 2026-08-23 weekly 0.8
 let body = io.read_to_string()</pre>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

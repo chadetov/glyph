@@ -19,7 +19,7 @@ sitemap: 2026-07-23 weekly 0.9
       </p>
 
       <div class="detail">
-        <p class="block-label">Why "where is this defined?" is hard</p>
+        <h2 class="block-label">Why "where is this defined?" is hard</h2>
         <p class="lede">
           In a mature TypeScript codebase, the simplest question, <em>where does this name come
           from?</em>, is often the hardest. The language offers half a dozen ways to spread one
@@ -36,7 +36,7 @@ sitemap: 2026-07-23 weekly 0.9
           reliable primitive, not a heuristic.
         </p>
 
-        <p class="block-label"><span class="ex-label">01</span> One declaration, one form</p>
+        <h2 class="block-label"><span class="ex-label">01</span> One declaration, one form</h2>
         <p>
           A function, type, or component is declared exactly once, with one syntax. There are no
           overloads to split a signature and no way to redeclare a name: two top-level things
@@ -70,7 +70,7 @@ sitemap: 2026-07-23 weekly 0.9
           <strong>defined</strong>.
         </p>
 
-        <p class="block-label"><span class="ex-label">02</span> No barrel files: the import path is the location</p>
+        <h2 class="block-label"><span class="ex-label">02</span> No barrel files: the import path is the location</h2>
         <p>
           Glyph imports never re-export, and a module whose only contents are imports is rejected
           (<code>E0102</code>). There is no <code>index.ts</code> laundering layer. So an import names
@@ -86,7 +86,7 @@ sitemap: 2026-07-23 weekly 0.9
       </div>
 
       <div class="detail">
-        <p class="block-label"><span class="ex-label">03</span> No hidden ways to attach behavior</p>
+        <h2 class="block-label"><span class="ex-label">03</span> No hidden ways to attach behavior</h2>
         <p>
           There are no decorators wrapping a function in an unseen layer, no <code>namespace</code>
           merging pooling members from across the tree, no <code>declare module</code> augmenting a
@@ -95,7 +95,7 @@ sitemap: 2026-07-23 weekly 0.9
           shapes it is visible at that declaration.
         </p>
 
-        <p class="block-label"><span class="ex-label">04</span> Even mutation is greppable</p>
+        <h2 class="block-label"><span class="ex-label">04</span> Even mutation is greppable</h2>
         <p>
           Greppability isn't only about finding definitions, it's about finding
           <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a
@@ -120,7 +120,7 @@ sitemap: 2026-07-23 weekly 0.9
           so that a search returns the answer, not a lead.
         </p>
 
-        <p class="block-label">The benchmark: coming</p>
+        <h2 class="block-label">The benchmark: coming</h2>
         <p>
           The measurable version of this claim is precision: for a given symbol, what fraction of a
           plain grep's hits are the thing you were actually looking for, and how many steps does it
@@ -156,7 +156,7 @@ sitemap: 2026-07-23 weekly 0.9
       </div>
 
       <div class="detail">
-        <p class="block-label">"A lint rule can ban overloads and decorators"</p>
+        <h2 class="block-label">"A lint rule can ban overloads and decorators"</h2>
         <p>
           In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to
           overload. The language still allows all of it, so the guarantee lasts as long as the config

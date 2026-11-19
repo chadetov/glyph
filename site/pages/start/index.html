@@ -17,7 +17,7 @@ sitemap: 2026-08-09 weekly 0.9
       </p>
 
       <div class="detail">
-        <p class="block-label">1 &middot; Install</p>
+        <h2 class="block-label">1 &middot; Install</h2>
         <p>
           Glyph ships as a single prebuilt binary. You also need Node with <code>tsx</code> and
           <code>typescript</code>, which Glyph uses to run and type-check.
@@ -31,7 +31,7 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
       </div>
 
       <div class="detail">
-        <p class="block-label">2 &middot; Scaffold a project</p>
+        <h2 class="block-label">2 &middot; Scaffold a project</h2>
         <p><code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a <code>package.json</code>, a <code>.gitignore</code>, and two files coding agents read on their own: <code>AGENTS.md</code>, which points at <code>glyph llms</code> for the full language reference, and <code>.mcp.json</code>, which registers <code>glyph mcp</code> so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, <code>glyph agents</code> writes those two. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.</p>
       </div>
       <div class="code">
@@ -60,7 +60,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
           forcing the process to stop, so a program that starts a server keeps serving.
         </p>
 
-        <p class="block-label">3 &middot; Run it</p>
+        <h2 class="block-label">3 &middot; Run it</h2>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
@@ -73,7 +73,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
           the whole loop.
         </p>
 
-        <p class="block-label">4 &middot; Add something real</p>
+        <h2 class="block-label">4 &middot; Add something real</h2>
         <p>
           Now replace the body with a tiny bit of logic: a task status and a function that
           labels it. This introduces the two things you'll use constantly: a <em>tagged union</em>
@@ -106,7 +106,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
       </div>
 
       <div class="detail">
-        <p class="block-label">5 &middot; Break it on purpose</p>
+        <h2 class="block-label">5 &middot; Break it on purpose</h2>
         <p>
           Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm
           from the <code>match</code> (the kind of thing an agent does when it adds a case
@@ -143,7 +143,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
           <code>glyph --explain E0200</code> any time you want the long version.
         </p>
 
-        <p class="block-label">6 &middot; Fix it</p>
+        <h2 class="block-label">6 &middot; Fix it</h2>
         <p>Put the arm back (or add an <code>else</code>), and it runs again.</p>
       </div>
       <div class="code">

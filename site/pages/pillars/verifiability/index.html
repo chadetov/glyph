@@ -21,7 +21,7 @@ sitemap: 2026-07-23 weekly 0.9
       </p>
 
       <div class="detail">
-        <p class="block-label">The lie a type can tell</p>
+        <h2 class="block-label">The lie a type can tell</h2>
         <p class="lede">
           In TypeScript a type is a compile-time promise that evaporates before your code runs. A
           <code>User</code> annotation is erased to nothing; the object you actually get from a
@@ -36,7 +36,7 @@ sitemap: 2026-07-23 weekly 0.9
           one guarantee at a time.
         </p>
 
-        <p class="block-label"><span class="ex-label">01</span> There is no <code>any</code></p>
+        <h2 class="block-label"><span class="ex-label">01</span> There is no <code>any</code></h2>
         <p>
           <code>any</code> is the single most expensive keyword in TypeScript: it switches off the
           type system for a value <em>and everything that value touches</em>. One <code>any</code> at
@@ -75,7 +75,7 @@ sitemap: 2026-07-23 weekly 0.9
           syntax for skipping it.
         </p>
 
-        <p class="block-label"><span class="ex-label">02</span> Types are real at runtime</p>
+        <h2 class="block-label"><span class="ex-label">02</span> Types are real at runtime</h2>
         <p>
           How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a
           <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a
@@ -121,7 +121,7 @@ fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
           implying a guarantee it can't make.
         </p>
 
-        <p class="block-label"><span class="ex-label">03</span> Every case, or it doesn't compile</p>
+        <h2 class="block-label"><span class="ex-label">03</span> Every case, or it doesn't compile</h2>
         <p>
           A <code>match</code> over a sealed union must handle every variant. Add a variant later and
           <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>).
@@ -158,7 +158,7 @@ fn label(s: Status) -&gt; string {
       </div>
 
       <div class="detail">
-        <p class="block-label"><span class="ex-label">04</span> Errors are values, not surprises</p>
+        <h2 class="block-label"><span class="ex-label">04</span> Errors are values, not surprises</h2>
         <p>
           A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with
           <code>match</code>, or propagate it with the <code>?</code> operator, and the error
@@ -184,7 +184,7 @@ fn main() -&gt; number {
       </div>
 
       <div class="detail">
-        <p class="block-label"><span class="ex-label">05</span> Even PII is type-level</p>
+        <h2 class="block-label"><span class="ex-label">05</span> Even PII is type-level</h2>
         <p>
           The same "make it the compiler's job, not a convention" instinct reaches all the way to
           sensitive data. Put <code>@redact</code> on a type and its descriptor gains a
@@ -215,7 +215,7 @@ type Patient = {
           <strong>the compiler refuses to pretend.</strong>
         </p>
 
-        <p class="block-label">How it's enforced, and where the guarantee stops</p>
+        <h2 class="block-label">How it's enforced, and where the guarantee stops</h2>
         <p>
           Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect
           over <code>tsc</code></strong>, not an independent verifier. Some things it proves itself:
@@ -244,7 +244,7 @@ type Patient = {
           validation) and materializing it closes it.
         </p>
 
-        <p class="block-label">The benchmark: coming</p>
+        <h2 class="block-label">The benchmark: coming</h2>
         <p>
           This claim is empirical, so we intend to measure it honestly: take a corpus of real
           agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and
@@ -281,7 +281,7 @@ type Patient = {
       </div>
 
       <div class="detail">
-        <p class="block-label">"Strict TypeScript and a lint config do this"</p>
+        <h2 class="block-label">"Strict TypeScript and a lint config do this"</h2>
         <p>
           Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code>
           and a rule against explicit <code>any</code> catch most of what an agent would otherwise

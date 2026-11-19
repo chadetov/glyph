@@ -303,7 +303,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
         <p>
           A validator that says "this payload is bad" has done half the job. The handler
           still has to decide: is this a client that forgot a field, or a client that sent
@@ -317,7 +317,7 @@
           absent and too-short produced the same string.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
         <p>One type, one constraint:</p>
       </div>
 
@@ -368,7 +368,7 @@ type        []            expected Signup (an object), got an array</pre>
           field, none of them mentioning that you had sent a list.
         </p>
 
-        <p class="block-label">Nested types answer for themselves</p>
+        <h2 class="block-label" id="nested-types-answer-for-themselves">Nested types answer for themselves<a class="h-anchor" href="#nested-types-answer-for-themselves" aria-label="Link to this section">#</a></h2>
         <p>
           A field whose type has its own descriptor is validated by that type's
           <code>parse</code>, and its issues come back with the field name on the front of
@@ -377,7 +377,7 @@ type        []            expected Signup (an object), got an array</pre>
           location and the reason from the same issue, without re-running anything.
         </p>
 
-        <p class="block-label">The code, not the string</p>
+        <h2 class="block-label" id="the-code-not-the-string">The code, not the string<a class="h-anchor" href="#the-code-not-the-string" aria-label="Link to this section">#</a></h2>
         <p>
           <code>Issue</code> carries an optional <code>code</code>:
           <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>, or
@@ -405,7 +405,7 @@ type        []            expected Signup (an object), got an array</pre>
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

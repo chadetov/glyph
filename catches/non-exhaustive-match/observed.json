@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "finished\narchived logged nothing"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0200] Error: typecheck: non-exhaustive match on `\"todo\" | \"doing\" | \"done\" | \"archived\"`: missing variants \"archived\"\nHelp: Add an arm for each missing variant."
+  }
+}

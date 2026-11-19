@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "nobody at undefined"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0230] Error: typecheck: the length of `Array<string>` is not known, so a name in the pattern could hold `undefined`\nHelp: Its length is known only at run time, so match on it with a fallback arm: `match xs { [a, b] => ..., else => ... }`."
+  }
+}

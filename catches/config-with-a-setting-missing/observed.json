@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "NaN"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "rejected: [{\"path\":[],\"message\":\"expected Record<Plan, int>\"}]"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "TypeError: Cannot read properties of undefined (reading 'name')"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0210] Error: typecheck: type `Option<User>` has no field `name`: an `Option` has no members\nHelp: Open it with `match array.find(...) { Some(u) => u.name, None => <default> }`. If the absence is a JSON `null` from the wire, declare the type `Nullable<User>` (D45)."
+  }
+}

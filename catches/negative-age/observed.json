@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "-5"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "rejected: [{\"path\":[\"age\"],\"message\":\"expected Age (int where value >= 0)\",\"code\":\"refinement\"}]"
+  }
+}

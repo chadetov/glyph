@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "undefined"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0204] Error: typecheck: type mismatch: expected `User`, found `Result<unknown, Array<Issue>>`\nHelp: Change the value, or the declared type, so the two agree."
+  }
+}

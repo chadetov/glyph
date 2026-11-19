@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "1.5"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "rejected: [{\"path\":[\"qty\"],\"message\":\"field `qty` must be int\",\"code\":\"type\"}]"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "invoice for the undefined plan"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "rejected: [{\"path\":[\"plan\"],\"message\":\"field `plan` is required\",\"code\":\"missing\"}]"
+  }
+}

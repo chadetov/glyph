@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "admin"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0008] Error: parse: assignment requires `mut`\nHelp: Glyph marks every mutation (D5): write `mut x = ...` to reassign an existing binding, or `let x = ...` to introduce a new one."
+  }
+}

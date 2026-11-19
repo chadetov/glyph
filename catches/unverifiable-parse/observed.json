@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "{ id: 1, sock: 'not a socket' }"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0304] Error: emit: cannot validate `Conn`: field `sock` has type `Socket`, which has no runtime check\nHelp: Split the wire type from the domain type: parse a record whose fields are all checkable, then build this one from it."
+  }
+}

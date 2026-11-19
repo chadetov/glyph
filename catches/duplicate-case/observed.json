@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "true"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0305] Error: emit: this match arm can never run: an earlier arm already matches `\"paid\"`\nHelp: Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values."
+  }
+}

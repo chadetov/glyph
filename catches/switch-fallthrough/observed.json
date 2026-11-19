@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "pro discount 20"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "pro discount 10"
+  }
+}

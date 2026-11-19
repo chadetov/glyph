@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "[ <3 empty items> ]"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0228] Error: typecheck: `Array` is a type, not a value; a value is an array literal such as `[a, b]`\nHelp: Write the value in its own form and move the type's name to the annotation on the `let`, the parameter, or the return type."
+  }
+}

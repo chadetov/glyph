@@ -43,6 +43,7 @@ Run them:
 ```sh
 python3 scripts/check_catches.py            # every case
 python3 scripts/check_catches.py duplicate-case invalid-date   # some of them
+python3 scripts/check_catches.py --write    # refresh every observed.json
 ```
 
 The script installs TypeScript, eslint with typescript-eslint, `tsx` and the
@@ -112,9 +113,16 @@ quotes or HTML, because `glyph llms --negative` prints it as it is.
 
 The lines the page shows are marked in the sources with `// show` and
 `// end show` on lines of their own, in both `ts.ts` and `glyph.glyph`, so the
-excerpt on the page is code this check ran. The diagnostic the page shows under
-a refused case is taken from the compiler's real output when the page is
-generated, so no case stores it.
+excerpt on the page is code this check ran.
+
+`observed.json` holds the output the page shows under each excerpt: the Glyph
+diagnostic's first line and its `Help:` line, or the lines of the Glyph run
+that carry `glyph_output`, and the lines of the TypeScript run that carry
+`ts_output`. The check writes it with temporary paths stripped and fails when
+what it observes differs from the committed file, so the site, which is
+generated without running anything, cannot quote output the tools stopped
+printing. Refresh it after a deliberate change with
+`python3 scripts/check_catches.py --write [case ...]`.
 
 Extra `*.glyph` files in the directory are built alongside, and extra `*.ts`
 files are checked and linted with `ts.ts`.

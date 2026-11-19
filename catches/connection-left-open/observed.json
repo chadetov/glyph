@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "rejected 1 still open"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0206] Error: typecheck: `owned` resource `c` is not consumed on every path before the function returns\nHelp: Consume the handle on every path (move it into an `owned` parameter) before the function returns."
+  }
+}

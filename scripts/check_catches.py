@@ -60,14 +60,25 @@ than a skip: a skipped case reads exactly like a verified one in a CI log.
 This is the evidence base for the pillars, so a case that cannot be demonstrated
 should be deleted rather than softened.
 
-Hard-fails (exit 1) when anything stops behaving as its case claims.
+What the page shows of each run is committed next to the case, in
+`observed.json`: the Glyph diagnostic (its first line and its `Help:` line) or
+the lines of the Glyph run that carry `glyph_output`, and the lines of the
+TypeScript run that carry `ts_output`. Temporary paths are normalised away, so
+the file is the same on every machine. The site is generated from it without
+running anything, and this check fails when what it observes no longer matches
+the committed file, so the page cannot quote output the tools stopped printing.
+`--write` refreshes the files after a deliberate change.
 
-Usage: python3 scripts/check_catches.py [case ...]
+Hard-fails (exit 1) when anything stops behaving as its case claims, or when an
+`observed.json` is missing or out of date.
+
+Usage: python3 scripts/check_catches.py [--write] [case ...]
 """
 
 from __future__ import annotations
 
 import concurrent.futures
+import difflib
 import json
 import os
 import pathlib
@@ -287,7 +298,14 @@ def first_diagnostic(out: str) -> str:
     return out.splitlines()[0] if out else "(no output)"
 
 
-def check_glyph(compiler: pathlib.Path, d: pathlib.Path, meta: dict) -> list[str]:
+def check_glyph(compiler: pathlib.Path, d: pathlib.Path, meta: dict) -> tuple[list[str], dict]:
+    """The problems with the Glyph half, and what the page shows of its run."""
+    seen: dict = {}
+    problems = _check_glyph(compiler, d, meta, seen)
+    return problems, seen
+
+
+def _check_glyph(compiler: pathlib.Path, d: pathlib.Path, meta: dict, seen: dict) -> list[str]:
     name = d.name
     kind = kind_of(meta)
     code = meta.get("code", "")
@@ -307,6 +325,8 @@ def check_glyph(compiler: pathlib.Path, d: pathlib.Path, meta: dict) -> list[str
                 ]
 
         rc, out = glyph(compiler, p, "build", "src", "--out", str(p / "out"))
+        if code:
+            seen.update(diagnostic(out, code, tmp))
 
         if kind == "refused":
             if rc == 0:
@@ -347,6 +367,7 @@ def check_glyph(compiler: pathlib.Path, d: pathlib.Path, meta: dict) -> list[str
 
         rc, run_out = glyph(compiler, p, "run", "--no-tsc", "src/glyph.glyph")
         missing = [e for e in expect if e not in run_out]
+        seen.update({"command": "glyph run", "output": excerpt(run_out, expect, tmp)})
         if kind == "boundary":
             if rc != 0 or missing:
                 return [
@@ -367,6 +388,89 @@ def check_glyph(compiler: pathlib.Path, d: pathlib.Path, meta: dict) -> list[str
                     f"close {gap_id} in docs/dogfooding-gaps.md.\n{indent(run_out)}"
                 ]
     return []
+
+
+# ---------------------------------------------------------------- observed output
+
+
+OBSERVED = "observed.json"
+TEMP_PATH = re.compile(r"(?:/private)?/(?:var/folders|tmp)/[^\s:)'\"]+")
+HELP_LINE = re.compile(r"^[\s│]*(Help: .*?)\s*$")
+
+
+def normalise(text: str, tmp: str | None = None) -> str:
+    """Strip what differs between machines: temp directories and trailing space."""
+    if tmp:
+        for t in {tmp, str(pathlib.Path(tmp).resolve())}:
+            text = text.replace(t + "/", "").replace(t, "")
+    text = TEMP_PATH.sub("<tmp>", text)
+    return "\n".join(line.rstrip() for line in text.splitlines())
+
+
+def diagnostic(out: str, code: str, tmp: str) -> dict:
+    """The first `[code]` diagnostic's headline and its `Help:` line."""
+    lines = out.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith(f"[{code}] "):
+            shown = [line]
+            for later in lines[i + 1:]:
+                if re.match(r"\[(E|TS)\d+\] ", later) or later.startswith("──"):
+                    break
+                m = HELP_LINE.match(later)
+                if m:
+                    shown.append(m.group(1))
+                    break
+            return {"command": "glyph build", "output": normalise("\n".join(shown), tmp)}
+    return {}
+
+
+def excerpt(out: str, expect: list[str], tmp: str | None = None) -> str:
+    """The whole lines of `out` that carry each expected string, in output order."""
+    out = normalise(out, tmp)
+    spans: list[tuple[int, int]] = []
+    for e in expect:
+        i = out.find(e)
+        if i < 0:
+            continue
+        start = out.rfind("\n", 0, i) + 1
+        end = out.find("\n", i + len(e))
+        spans.append((start, len(out) if end < 0 else end))
+    return "\n".join(out[a:b] for a, b in sorted(set(spans)))
+
+
+def observed(meta: dict, glyph_seen: dict, ran: str | None) -> dict:
+    obs: dict = {}
+    expect = as_list(meta.get("ts_output"))
+    if expect and ran is not None:
+        obs["ts"] = {"command": "tsx ts.ts", "output": excerpt(ran, expect)}
+    if glyph_seen:
+        obs["glyph"] = glyph_seen
+    return obs
+
+
+def render_observed(obs: dict) -> str:
+    return json.dumps(obs, indent=2, ensure_ascii=False) + "\n"
+
+
+def check_observed(d: pathlib.Path, obs: dict, write: bool) -> list[str]:
+    path = d / OBSERVED
+    want = render_observed(obs)
+    have = path.read_text() if path.exists() else None
+    if have == want:
+        return []
+    if write:
+        path.write_text(want)
+        print(f"wrote catches/{d.name}/{OBSERVED}")
+        return []
+    if have is None:
+        return [f"{d.name}: no {OBSERVED}. Run `python3 scripts/check_catches.py --write {d.name}`."]
+    diff = "\n".join(difflib.unified_diff(
+        have.splitlines(), want.splitlines(), f"committed/{OBSERVED}", f"observed/{OBSERVED}", lineterm=""))
+    return [
+        f"{d.name}: {OBSERVED} is not what the tools print now. The page quotes this file, "
+        f"so it would show output nobody can reproduce. If the change is expected, run "
+        f"`python3 scripts/check_catches.py --write {d.name}`.\n{indent(diff)}"
+    ]
 
 
 # ---------------------------------------------------------------- case.toml
@@ -570,7 +674,9 @@ def main() -> int:
     compiler = glyph_bin.resolve()
 
     dirs = sorted(p for p in CASES.iterdir() if p.is_dir())
-    only = set(sys.argv[1:])
+    args = sys.argv[1:]
+    write = "--write" in args
+    only = {a for a in args if a != "--write"}
     if only:
         unknown = only - {d.name for d in dirs}
         if unknown:
@@ -583,11 +689,15 @@ def main() -> int:
         if versions is None:
             print(why)
             return 1
-        return check(compiler, dirs, root, versions)
+        return check(compiler, dirs, root, versions, write)
 
 
 def check(
-    compiler: pathlib.Path, dirs: list[pathlib.Path], root: pathlib.Path, versions: dict[str, str]
+    compiler: pathlib.Path,
+    dirs: list[pathlib.Path],
+    root: pathlib.Path,
+    versions: dict[str, str],
+    write: bool = False,
 ) -> int:
     started = time.monotonic()
     metas: dict[str, dict] = {}
@@ -626,7 +736,13 @@ def check(
         for d in good:
             ran = ran_f[d.name].result() if d.name in ran_f else None
             problems[d.name] += check_ts(d, metas[d.name], strict, strict_out, flags, full, lint, ran)
-            problems[d.name] += glyph_f[d.name].result()
+            glyph_problems, glyph_seen = glyph_f[d.name].result()
+            problems[d.name] += glyph_problems
+            # Only a case that holds its claims has output worth committing;
+            # a broken one already fails above, with the output in the message.
+            if not problems[d.name]:
+                obs = observed(metas[d.name], glyph_seen, ran)
+                problems[d.name] += check_observed(d, obs, write)
 
     failed = [n for n in problems if problems[n]]
     for n in failed:

@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "[ 10, NaN, NaN ]"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0103] Error: resolve: unresolved name `parseInt`\nHelp: Declare it, import it, or fix the spelling."
+  }
+}

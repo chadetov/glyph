@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "ada ada ada"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0002] Error: parse: expected `}`, found As\nHelp: Add the expected token. Glyph is deliberately stricter than TypeScript (e.g. trailing commas required, no `if`/`else`)."
+  }
+}

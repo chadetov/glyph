@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "retries 3"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "retries 3"
+  }
+}

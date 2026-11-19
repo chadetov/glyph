@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "\"  Ada@Example.COM \""
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0107] Warning: lint: unused variable `cleaned`\nHelp: Remove the binding, or prefix its name with `_` if it is intentionally unused."
+  }
+}

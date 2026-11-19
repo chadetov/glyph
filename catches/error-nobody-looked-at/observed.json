@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "done"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored\nHelp: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional."
+  }
+}

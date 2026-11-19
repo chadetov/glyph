@@ -1,0 +1,224 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "agents/index.html",
+  "locale": "tr",
+  "source_hash": "74db8e3bf226ba57",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "For agents and tool builders · Glyph",
+      "tr": "Ajanlar ve araç geliştiriciler için · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How an agent works with Glyph: an MCP server with eleven tools, the same queries on the command line, and glyph check --agent for repairing a red build.",
+      "tr": "Bir ajan Glyph ile nasıl çalışır: on bir araçlı bir MCP sunucusu, komut satırında aynı sorgular ve kırmızı bir build'i onarmak için glyph check --agent."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Each piece in depth",
+      "tr": "Her parça ayrıntılı olarak"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Start here",
+      "tr": "Buradan başlayın"
+    },
+    {
+      "id": "ns./mcp/.title",
+      "kind": "ns.title",
+      "en": "The MCP server",
+      "tr": "MCP sunucusu"
+    },
+    {
+      "id": "ns./mcp/.desc",
+      "kind": "ns.desc",
+      "en": "Setup, the eleven tools with their arguments, the <code>glyph query</code> verbs, and what the server doesn't do yet.",
+      "tr": "Kurulum, argümanlarıyla birlikte on bir araç, <code>glyph query</code> fiilleri ve sunucunun henüz yapmadıkları."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Set up the server",
+      "tr": "Sunucuyu kurun"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.title",
+      "kind": "ns.title",
+      "en": "Can my agent ask the compiler what a symbol is?",
+      "tr": "Ajanım derleyiciye bir sembolün ne olduğunu sorabilir mi?"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.desc",
+      "kind": "ns.desc",
+      "en": "<code>glyph_symbol</code>: a union's cases with the syntax that constructs each.",
+      "tr": "<code>glyph_symbol</code>: bir union'ın durumları ve her birini oluşturan sözdizimi."
+    },
+    {
+      "id": "ns./answers/impact/.title",
+      "kind": "ns.title",
+      "en": "Can the compiler say what a change breaks first?",
+      "tr": "Derleyici bir değişikliğin neyi bozacağını önceden söyleyebilir mi?"
+    },
+    {
+      "id": "ns./answers/impact/.desc",
+      "kind": "ns.desc",
+      "en": "Six change kinds, one verdict per site, and the csvql run above in full.",
+      "tr": "Altı değişiklik türü, her yer için tek bir hüküm ve yukarıdaki csvql çalıştırmasının tamamı."
+    },
+    {
+      "id": "ns./answers/repair-protocol/.title",
+      "kind": "ns.title",
+      "en": "Does a failed build tell my agent how to fix it?",
+      "tr": "Başarısız bir build ajanıma nasıl düzelteceğini söylüyor mu?"
+    },
+    {
+      "id": "ns./answers/repair-protocol/.desc",
+      "kind": "ns.desc",
+      "en": "<code>check --agent</code>, <code>glyph fix</code>, and a walkthrough with real output.",
+      "tr": "<code>check --agent</code>, <code>glyph fix</code> ve gerçek çıktılarla adım adım bir anlatım."
+    },
+    {
+      "id": "ns./answers/generated-docs/.title",
+      "kind": "ns.title",
+      "en": "Is the agent's documentation generated?",
+      "tr": "Ajanın dokümantasyonu üretiliyor mu?"
+    },
+    {
+      "id": "ns./answers/generated-docs/.desc",
+      "kind": "ns.desc",
+      "en": "What <code>glyph llms</code> emits, where each number comes from, and what is still missing.",
+      "tr": "<code>glyph llms</code>'in ne ürettiği, her sayının nereden geldiği ve hâlâ neyin eksik olduğu."
+    },
+    {
+      "id": "ns./answers/ai-authoring/.title",
+      "kind": "ns.title",
+      "en": "Can an AI write a language it has barely seen?",
+      "tr": "Bir yapay zekâ neredeyse hiç görmediği bir dili yazabilir mi?"
+    },
+    {
+      "id": "ns./answers/ai-authoring/.desc",
+      "kind": "ns.desc",
+      "en": "What carries over from TypeScript, and how the compiler covers the rest.",
+      "tr": "TypeScript'ten neyin aynen geçtiği ve gerisini derleyicinin nasıl karşıladığı."
+    },
+    {
+      "id": "h-753824bb",
+      "kind": "html",
+      "en": "For agents and tool builders",
+      "tr": "Ajanlar ve araç geliştiriciler için"
+    },
+    {
+      "id": "h-035437e3",
+      "kind": "html",
+      "en": "The compiler's interface for agents",
+      "tr": "Derleyicinin ajanlara yönelik arayüzü"
+    },
+    {
+      "id": "h-59e0f1f6",
+      "kind": "html",
+      "en": "An agent can ask Glyph's compiler what a symbol is, what an edit will break, and why a build failed, and get JSON back. <code>glyph mcp</code> serves eleven tools over stdio, each one also a <code>glyph query</code> verb, and <code>glyph llms</code> prints the language reference offline.",
+      "tr": "Bir ajan Glyph derleyicisine bir sembolün ne olduğunu, bir düzenlemenin neyi bozacağını ve bir build'in neden başarısız olduğunu sorabilir ve JSON olarak yanıt alır. <code>glyph mcp</code>, stdio üzerinden on bir araç sunar; her biri aynı zamanda bir <code>glyph query</code> fiilidir. <code>glyph llms</code> ise dil referansını çevrimdışı yazdırır."
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "Kurulum"
+    },
+    {
+      "id": "h-f72d5056",
+      "kind": "html",
+      "en": "<code>glyph init</code> writes this <code>.mcp.json</code> into a new project, and <code>glyph agents</code> writes it (with an <code>AGENTS.md</code> pointing at <code>glyph llms</code>) into an existing one. Any MCP client that reads the file launches the server; there is no port and no daemon.",
+      "tr": "<code>glyph init</code> bu <code>.mcp.json</code> dosyasını yeni bir projeye yazar; <code>glyph agents</code> ise onu (<code>glyph llms</code>'i gösteren bir <code>AGENTS.md</code> ile birlikte) mevcut bir projeye yazar. Dosyayı okuyan herhangi bir MCP istemcisi sunucuyu başlatır; port da daemon da yoktur."
+    },
+    {
+      "id": "h-95651357",
+      "kind": "html",
+      "en": ".mcp.json, as glyph init writes it",
+      "tr": ".mcp.json, glyph init'in yazdığı hâliyle"
+    },
+    {
+      "id": "h-bef1632c",
+      "kind": "html",
+      "en": "One call, with its real answer",
+      "tr": "Tek bir çağrı ve gerçek yanıtı"
+    },
+    {
+      "id": "h-d90f4a66",
+      "kind": "html",
+      "en": "A file reads a field that its record doesn't declare (<code>u.naem</code>). The agent calls <code>glyph_diagnostics</code> and gets the compiler's own diagnostic, with the fields the record does declare and the record that owns them. This is the tool's output on 0.1.149, trimmed only where marked.",
+      "tr": "Bir dosya, record'unun tanımlamadığı bir alanı okuyor (<code>u.naem</code>). Ajan <code>glyph_diagnostics</code>'i çağırır ve derleyicinin kendi diagnostic'ini, record'un tanımladığı alanlar ve bu alanların ait olduğu record ile birlikte alır. Bu, aracın 0.1.149'daki çıktısıdır; yalnızca işaretli yerlerde kırpıldı."
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "istek"
+    },
+    {
+      "id": "h-f6a214f7",
+      "kind": "html",
+      "en": "result",
+      "tr": "sonuç"
+    },
+    {
+      "id": "h-7039cad1",
+      "kind": "html",
+      "en": "<code>not_run</code> names what this check did not cover, so an empty <code>diagnostics</code> list can't be mistaken for a full build. Without an MCP client, <code>glyph query diagnostics --path src/user.glyph</code> prints the same JSON. The full tool list, with every verb, is on <a href=\"/mcp/\">the MCP page</a>.",
+      "tr": "<code>not_run</code>, bu kontrolün neyi kapsamadığını söyler; böylece boş bir <code>diagnostics</code> listesi tam bir build ile karıştırılamaz. MCP istemcisi olmadan <code>glyph query diagnostics --path src/user.glyph</code> aynı JSON'u yazdırır. Tüm fiilleriyle birlikte tam araç listesi <a href=\"/mcp/\">MCP sayfasında</a>."
+    },
+    {
+      "id": "h-1fb11ce5",
+      "kind": "html",
+      "en": "Before an edit: what will it break?",
+      "tr": "Düzenlemeden önce: neyi bozacak?"
+    },
+    {
+      "id": "h-ada15b5d",
+      "kind": "html",
+      "en": "<code>examples/apps/csvql</code> is an eleven-file CSV query engine with a four-case union, <code>Value</code>. Asked what adding a fifth case does, <code>glyph_impact</code> lists 10 <code>match</code> sites in 4 files: 8 <code>WILL_FAIL</code> and 2 <code>ABSORBS</code>, where a catch-all arm will swallow the new case and keep compiling. Adding the case for real gives exactly 8 <code>E0200</code> errors, at those 8 sites. The 2 absorbing sites stay silent, which is why the answer names them.",
+      "tr": "<code>examples/apps/csvql</code>, dört durumlu bir union'a (<code>Value</code>) sahip, on bir dosyalık bir CSV sorgu motorudur. Beşinci bir durum eklemenin ne yapacağı sorulduğunda <code>glyph_impact</code>, 4 dosyada 10 <code>match</code> yeri listeler: 8 <code>WILL_FAIL</code> ve 2 <code>ABSORBS</code>; ikincisi, bir catch-all arm'ın yeni durumu yutacağı ve derlenmeye devam edeceği yerlerdir. Durumu gerçekten eklemek, tam olarak o 8 yerde 8 <code>E0200</code> hatası verir. Yutan 2 yer sessiz kalır; yanıtın onları adıyla belirtmesinin nedeni budur."
+    },
+    {
+      "id": "h-1b4a94d5",
+      "kind": "html",
+      "en": "the same question on the command line",
+      "tr": "aynı soru komut satırında"
+    },
+    {
+      "id": "h-e02ae173",
+      "kind": "html",
+      "en": "After a red build: what does the fix have to keep?",
+      "tr": "Kırmızı bir build'den sonra: düzeltme neyi korumalı?"
+    },
+    {
+      "id": "h-fd59d326",
+      "kind": "html",
+      "en": "<code>glyph check --agent</code> prints <code>check --json</code>'s diagnostics with two more keys on each. <code>constraints</code> lists what a repairing edit must not break; for the typo above it reads \"the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others\". <code>symbols</code> carries the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. Where the fix is fully determined, <code>glyph fix</code> writes it.",
+      "tr": "<code>glyph check --agent</code>, <code>check --json</code>'un diagnostic'lerini her birine iki anahtar daha ekleyerek yazdırır. <code>constraints</code>, onarıcı bir düzenlemenin bozmaması gerekenleri listeler; yukarıdaki yazım hatası için \"the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others\" der. <code>symbols</code>, diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtını taşır, böylece sonraki düzenleme ikinci bir çağrıya ihtiyaç duymaz. Düzeltmenin tamamen belirli olduğu yerlerde <code>glyph fix</code> onu yazar."
+    },
+    {
+      "id": "h-b85dc276",
+      "kind": "html",
+      "en": "Reading the language offline",
+      "tr": "Dili çevrimdışı okumak"
+    },
+    {
+      "id": "h-1f29991a",
+      "kind": "html",
+      "en": "<code>glyph llms</code> prints the language reference, and <code>/llms.txt</code> on this site is the same document. <code>glyph llms --json</code> is that knowledge as data, read from the compiler's own tables: 77 diagnostic codes, 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions, and the eleven tools. <code>glyph llms --negative</code> returns 117 wrong programs in 0.1.149 (139 from the next release) with the code each one draws, compiled when you ask. <code>scripts/check_llms_sync.py</code> fails when the diagnostic and reserved-word tables in the reference drift from the compiler's own.",
+      "tr": "<code>glyph llms</code> dil referansını yazdırır; bu sitedeki <code>/llms.txt</code> de aynı belgedir. <code>glyph llms --json</code>, derleyicinin kendi tablolarından okunan aynı bilgiyi veri olarak verir: 77 diagnostic kodu, 24 prelude ismi, 340 export içeren 40 stdlib modülü, 49 dil kararı ve on bir araç. <code>glyph llms --negative</code>, 0.1.149'da 117 hatalı program (sonraki sürümden itibaren 139) ve her birinin tetiklediği kodu döndürür; programlar siz istediğinizde derlenir. <code>scripts/check_llms_sync.py</code>, referanstaki diagnostic ve ayrılmış kelime tabloları derleyicinin kendi tablolarından saptığında başarısız olur."
+    },
+    {
+      "id": "h-d7b19eb8",
+      "kind": "html",
+      "en": "offline entry points",
+      "tr": "çevrimdışı giriş noktaları"
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+---
+title: Glyph ve Effect · bir kütüphane ile bir dilin karşılaştırması · Glyph
+description: Effect, tipli hataları ve geniş bir ekosistemi olan bir TypeScript kütüphanesi; Glyph ise TypeScript'e derlenen bir dil. Her birinin neyi daha iyi yaptığı, kodla.
+source_hash: f62ac4a8fc9859e6
+next_steps: |
+  Buradan sonra nereye
+  Önerilen | /catches/ | catches | Glyph'in reddettikleri | Her vaka, <code>tsc --strict</code> altında ve Glyph altında kontrol edildi. | Yakaladıklarını görün
+  /design/ | design | Tasarıma geri dön | Dört temel ilke, spesifikasyon ve diğer karşılaştırmalar.
+---
+      <p class="q-eyebrow">Tasarım &middot; Karşılaştırma</p>
+      <h1 class="q-title">Glyph ve Effect</h1>
+
+      <p class="short-answer">
+        İkisi de insanların ve ajanların güvenebileceği TypeScript'i hedefliyor. Effect bir kütüphane: TypeScript yazmaya devam edersiniz ve tipli hatalar, takip edilen bağımlılıklar ve geniş bir araç kutusu elde edersiniz. Glyph ise TypeScript'e derlenen bir dil; bu yüzden TypeScript'in izin verdiklerini, bir kütüphanenin garantilerini geri alan cast'ler dahil, reddedebilir. Effect çok daha olgun.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Effect kendini nasıl tanımlıyor</h2>
+        <p>
+          Effect'in ana sayfası "Reliable TypeScript for the AI era" ile açılıyor ve "declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code" diyor (<a href="https://effect.website">effect.website</a>). Dokümanları onu "an ecosystem of tools that help you build better applications and libraries" olarak tanımlıyor; bir hesaplamanın ne döndürdüğünü, nasıl başarısız olabileceğini ve neye ihtiyaç duyduğunu kaydeden bir <code>Effect&lt;Success, Error, Requirements&gt;</code> tipi etrafında kurulu (<a href="https://effect.website/docs/getting-started/why-effect/">Why Effect</a>). <code>strict</code> açık olarak TypeScript 5.4 ya da daha yenisini istiyor (<a href="https://effect.website/docs/getting-started/installation/">Installation</a>). Bu alıntılar 2026-11-19'da okundu.
+        </p>
+
+        <h2 class="block-label">Kütüphane ile dil farkından doğan sonuç</h2>
+        <p>
+          Effect'in tiplerini <code>tsc</code> kontrol eder; bu yüzden <code>tsc</code>'nin izin verdiği her şeye onların yanında da izin verilir. Bu kod effect 4.1.4 ve TypeScript 6 ile <code>tsc --strict</code> altında derlenir. Cast, <code>NotFound</code>'u hata kanalından çıkarır ve program, başarısız olamayacak şekilde tiplenmiş bir effect'ten bir başarısızlık bildirir.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">eff.ts: tsc --strict 0 ile çıkar; çalıştırıldığında "Failure undefined" yazdırır</span>
+<pre>import { Effect } from "effect"
+
+class NotFound {
+  readonly _tag = "NotFound"
+}
+
+const find = (id: string): Effect.Effect&lt;number, NotFound&gt; =&gt;
+  id === "1" ? Effect.succeed(1) : Effect.fail(new NotFound())
+
+<span class="cm">// The error channel says NotFound can happen. A cast erases it.</span>
+const quiet = find("2") as unknown as Effect.Effect&lt;number, never&gt;
+
+<span class="cm">// And a parsed body still takes any type you name.</span>
+type User = { email: string }
+const user = JSON.parse("{}") as User
+
+console.log(Effect.runSyncExit(quiet)._tag, user.email)</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph'teki aynı fonksiyon bir <code>Result</code> döndürür ve yazılacak bir cast yoktur. İkinci modül, herhangi bir TypeScript üretilmeden reddedilir.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">find.glyph: build edilir, tsc --strict'ten geçer</span>
+<pre>module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">bir cast eklemek: reddedilir</span>
+<pre data-check="expect-error E0013">module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}
+
+pub fn quiet() -&gt; number {
+  let n = find("2") as number
+  return n
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>E0013</code>'ün yardım metni şöyle: "Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>." Bir ekip Effect kullanan bir kod tabanında lint kurallarıyla buna yaklaşabilir; birinin kapatabileceği bir kuralın neden farklı bir garanti olduğunu <a href="/answers/vs-tooled-ts/">o karşılaştırma</a> anlatıyor.
+        </p>
+
+        <h2 class="block-label">Effect'in daha iyi yaptıkları</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Alan</th><th>Effect</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">Olgunluk</td><td data-label="Effect">Production'da kullanılıyor; ana sayfası Cloudflare'i kullanan şirketler arasında sayıyor</td><td data-label="Glyph">Erken önizleme, 1.0 öncesi, ağırlıklı olarak tek bir kişi tarafından geliştiriliyor</td></tr>
+            <tr><td data-label="Area">Ekosistem</td><td data-label="Effect">HTTP API'leri, workflow'lar, clustering, schema, zamanlama, tracing ve dependency injection, hepsi tek bir projeden</td><td data-label="Glyph">40 modüllük bir standart kütüphane; geri kalan her şey npm'den gelir</td></tr>
+            <tr><td data-label="Area">Tipteki bağımlılıklar</td><td data-label="Effect"><code>Requirements</code> parametresi bir hesaplamanın neye ihtiyaç duyduğunu takip eder</td><td data-label="Glyph">Karşılığı yok; bir fonksiyonun imzası yalnızca sonucunu ve hatasını kaydeder</td></tr>
+            <tr><td data-label="Area">Benimseme</td><td data-label="Effect">Bir npm paketi; mevcut kodu sarar ve yukarı doğru refactor edersiniz, yeni bir derleyici yok</td><td data-label="Glyph">Build'de ikinci bir derleyici, modül modül benimsenir</td></tr>
+            <tr><td data-label="Area">Eşzamanlılık</td><td data-label="Effect">Yapılandırılmış eşzamanlılık, retry ve zamanlama yerleşik</td><td data-label="Glyph"><code>par</code> ve <code>std/task</code> yardımcıları, çok daha küçük</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Glyph'in yapıp bir kütüphanenin yapamadıkları</h2>
+        <p>
+          Neyin yazılabileceğine dil karar verir. Glyph'te <code>any</code>, cast, non-null assertion ya da bir hatayı susturan yorum yoktur ve bir union üzerindeki her <code>match</code> her durumu kapsamak zorundadır. Record'lar ve union'lar, tanımdan üretilen bir çalışma zamanı kontrolü taşır; bu yüzden <code>json.parse&lt;User&gt;(body)</code> doğrulama yapar. Effect'in Schema'sı da tipi tek bir tanımdan türetir (<a href="https://effect.website/docs/schema/introduction/">giriş sayfasındaki</a> <code>Schema.Schema.Type&lt;typeof Person&gt;</code>), yani orada da tip ve validator birbirinden sapmaz; fark şu ki TypeScript'te hiçbir şey bir kod tabanını onu kullanmaya zorlamaz. Derleyici ayrıca bir ajan için bir program hakkındaki soruları da yanıtlar, örneğin bir değişikliğin neyi bozacağını, <a href="/agents/">MCP ya da komut satırı üzerinden</a>.
+        </p>
+        <p>
+          Bu sayfa Effect'i bir Glyph modülünün içinden kullanmayı test etmedi, bu yüzden ikisini birleştirmek hakkında bir iddiada bulunmuyor.
+        </p>
+      </div>

@@ -1,0 +1,132 @@
+---
+title: Bir sunucu yazabilir miyim, yoksa süreç hemen çıkıyor mu? · Glyph
+description: Bir Glyph programı uzun süre çalışan bir sunucu olabilir. main kurulumu yapar ve döner; süreç, bekleyen socket'ler ve timer'lar olduğu sürece ayakta kalır, tıpkı Node'da olduğu gibi.
+source_hash: babc2c3ac5bb52bc
+prev: /answers/interactive-cli/ | &larr; Önceki | Birinin içine yazı yazdığı bir program yazabilir miyim?
+next: /answers/binary/ | Sonraki &rarr; | Binary veriyle çalışabilir miyim, yoksa her şey string mi?
+---
+      <p class="q-eyebrow">19 &middot; Sunucular ve daemon'lar</p>
+      <h1 class="q-title">Bir sunucu yazabilir miyim, yoksa süreç hemen çıkıyor mu?</h1>
+
+      <p class="short-answer">
+        Bir sunucu yazabilirsiniz. <code>main</code> kurulumu yapar ve döner; süreç <strong>bekleyen socket'ler ve timer'lar olduğu sürece ayakta kalır</strong>, Node'un kullandığı kuralın aynısı. 0.1.63'e kadar böyle değildi: çalıştırıcı <code>main</code> döndüğü anda süreci sonlandırıyordu, bu yüzden bir sunucu port'unu bağlıyor ve aynı tick içinde ölüyordu.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Bir script çalıştırabilen bir dil ile bir servis çalıştırabilen bir dil arasındaki fark budur. Bir sunucu, bir dosya izleyici, bir gateway bağlantısı tutan bir bot, bir iş çalıştırıcı: hiçbiri <code>main</code> içinde bitmez. Handler'ları kurar ve süreci event'lere bırakırlar.
+        </p>
+        <p>
+          Eski davranış mümkün olan en kötü şekilde, sessizce başarısız oluyordu. <code>glyph run app.glyph --serve 4100</code> hiçbir şey yazdırmıyordu, <code>listen</code> callback'i içindeki satırı bile, ve 0 ile çıkıyordu. Kaynakta hiçbir şey yanlış görünmüyordu ve tip kontrolünden geçiyordu. Buna takılan bir ajanın bildirecek bir hatası ve bir şeyin başarısız olduğunu düşünmesi için bir nedeni yoktur.
+        </p>
+
+        <h2 class="block-label">Görün</h2>
+        <p>
+          Eksiksiz bir TCP sunucusu. <code>main</code> hemen döner; callback'ler süreç yaşadığı sürece çalışır:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Baştan sona bir sunucu</span>
+<pre>module main
+
+import std/io
+import std/process
+import net { createServer }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let server = createServer(fn(socket) {
+    mut socket.write("hello\n")
+    mut socket.end()
+  })
+
+  mut server.on("error", fn(err) {
+    io.eprintln("cannot listen: ${err.message}")
+    process.exit(1)
+  })
+
+  mut server.listen(4000, fn() {
+    io.println("listening on 4000")
+  })
+  return 0
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>net</code> bir Node builtin'i, yani sıradan bir import; ama derleyicinin ortam tiplerini birlikte getirdiği altı modülden biri değil (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Ya <code>@types/node</code>'u kurarsınız ve build onu tercih eder, ya da kaynağınızın yanına <code>.types/net.d.ts</code> içine bir tanım koyarsınız; chat uygulaması hiç bağımlılığa ihtiyaç duymamak için bunu yapar.
+        </p>
+        <p>
+          Bilinmesi gereken iki şey var. <code>return 0</code>, ilk istemci bağlanmadan önce çalışır: sürecin sonunda çıkacağı koddur, ne zaman çıkacağına dair bir ifade değildir. Ayrıca <code>main</code> döndükten <em>sonra</em> başarısız olan her şey kendi çıkış kodunu ayarlamak zorundadır, çünkü <code>main</code>'in dönüş değeri zaten kullanılmıştır. <code>error</code> handler'ı bunun içindir. O olmadan, port'unu bağlayamayan bir sunucu event loop'unu boşaltır ve başarı bildirerek 0 ile çıkar.
+        </p>
+
+        <h2 class="block-label">Gerçek bir örnek</h2>
+        <p>
+          <code>examples/apps/chat</code>, aynı anda birden fazla TCP istemcisini tutan bir chat sunucusudur. Ağa dokunmayan kısımlar ayrı ve test edilebilir kalır: satır birleştirme, yönlendirme ve oda motoru <code>@example</code> ile kontrol edilen saf fonksiyonlardır ve yalnızca bir dosya socket'lerle konuşur.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Aynı anda bağlı üç istemci</span>
+<pre><span class="cm">alice&gt;</span> /join #general
+<span class="cm">bob&gt;</span>   /join #general
+<span class="cm">carol&gt;</span> /join #random
+<span class="cm">alice&gt;</span> hello everyone
+
+alice sees:  1  #general &lt;alice&gt; hello everyone
+bob sees:    1  #general &lt;alice&gt; hello everyone
+carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          TCP mesaj iletmez, bayt iletir; bu yüzden bir parçanın sonu genellikle yarım bir satırdır. Bu birleştirme, zor durumları bir socket üzerinden tetiklemek yerine örnek olarak yazılmış saf bir fonksiyondur:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/chat/framing.glyph</span>
+<pre>@example feed("", "hel").lines == []
+@example feed("hel", "lo\n").lines == ["hello"]
+@example feed("", "a\nb\nc\n").lines == ["a", "b", "c"]
+@example feed("", "a\nb").rest == "b"
+@example feed("", "hi\r\n").lines == ["hi"]
+pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Diğer yön: uzun süre çalışan bir istemci</h2>
+        <p>
+          Bir bot da dışarıya dönük aynı yapıdadır. <code>examples/apps/discord</code> bir Discord gateway istemcisidir: bir WebSocket üzerinden bağlanır, kendini tanıtır, sunucunun belirlediği aralıkta heartbeat gönderir, kopan bir bağlantının baştan başlamak yerine kaldığı yerden devam etmesi için bir sıra numarası tutar, bağlantının açık ama ölü olduğunu fark eder ve yeniden bağlanmalar arasında bekleme süresini artırır.
+        </p>
+        <p>
+          Kopyalamaya değer kısım, mantığın nerede durduğu. Bir <code>RECONNECT</code>, kaçırılmış bir heartbeat ya da reddedilmiş bir token hakkında ne yapılacağına karar vermek, bir oturum ve bir event'ten yeni bir oturuma ve bir action listesine giden saf bir fonksiyondur. Bu action'ları gerçek bir socket üzerinde tek bir modül yürütür. Doğru yapılması zor olan kısım olan yeniden bağlanma mantığının bir ağ kablosunu çekerek değil de <code>@example</code> ile kontrol edilmesinin nedeni budur:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/discord/session.glyph</span>
+<pre>@example a_close_while_a_reconnect_is_pending_is_ignored()
+@example a_failed_attempt_schedules_another()
+@example a_rejected_token_stops_rather_than_retrying()
+pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Bu üç örneğin her biri önce kodda bulunan bir hataydı. Sahte bir gateway yazıp botu ona yönlendirmek bunlardan birini yakaladı. Diğer ikisi, istemciden değil Discord'un dokümantasyonundan yazılmış ikinci bir sahte gateway tarafından yakalandı; o, iş birliği yapan bir sahte gateway'in asla göndermediği şeyleri gönderir: istenmeden gelen bir heartbeat isteği ve "token'ın yanlış, sormayı bırak" anlamına gelen bir kapanış kodu. İstemcinin yazarı tarafından yazılmış bir sahte sunucu, protokolün yalnızca yazarın okuduğu kısımlarını test eder.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p><code>main</code>'den dönmek süreci durdurmadan çıkış kodunu ayarlar, böylece sunucular, izleyiciler ve event loop'lar çalışır. Yalnızca hesaplama yapan bir program hâlâ <code>main</code> döndüğü anda aynı kodla çıkar, yani kısa programlarla ilgili hiçbir şey değişmedi. <code>net</code> gibi Node builtin'leri sıradan import'lardır ve kurulum sırasında hata fırlatan bir program yine sonlanır; artık diagnostic'i, çıkış tarafından kesilme ihtimali olmadan yönlendirilmiş bir stderr'e ulaştıktan sonra. <code>std/timers</code> iş zamanlar (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) ve <code>std/websocket</code> bir bağlantı açar; ikisi de elle yazılmış bir tanıma ihtiyaç duymaz.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Daha da keskinleşiyor</h3>
+          <p><code>main</code> döndükten sonra bağlanamayan bir listener, program aksini söylemedikçe 0 ile çıkar: <code>process.set_exit_code(1)</code> hâlâ süren işi sonlandırmadan hatayı kaydeder, <code>process.exit(1)</code> ise hemen durdurur. Derleyici bunu unuttuğunuz konusunda henüz uyaramıyor. Ayrıca bir fonksiyonun hiç dönmediğini yazmanın hâlâ bir yolu yok, bu yüzden bir sunucunun <code>main</code>'i hiçbir zaman ulaşılmayan bir <code>return 0</code> taşır.</p>
+        </div>
+      </div>

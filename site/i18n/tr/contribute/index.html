@@ -1,0 +1,94 @@
+---
+title: Katkıda bulunun · derleyici nasıl yapıldı, nasıl yardım edebilirsiniz · Glyph
+description: Glyph derleyicisinin nasıl yapıldığı (bir Rust workspace'i: lex, parse, resolve, typecheck, emit), nasıl build edilip test edildiği ve issue'ların ve pull request'lerin nasıl işlediği.
+source_hash: 98fd22506cb2f943
+next_steps: |
+  Buradan sonra nereye
+  Buradan başlayın | https://github.com/chadetov/glyph | github | Repo | Kaynak kod, issue'lar, tartışmalar ve release'ler. | GitHub'da açın
+  /design/ | design | Tasarım | Dört temel ilke ve her değişikliğin değerlendirildiği karar kaydı.
+---
+      <p class="q-eyebrow">Katkıda bulunun</p>
+      <h1 class="q-title">Derleyici nasıl yapıldı ve nasıl yardım edebilirsiniz</h1>
+
+      <p class="short-answer">
+        Derleyici, tek bir açık repoda bulunan, MIT veya Apache-2.0 lisanslı, on iki crate'ten oluşan bir Rust workspace'idir. Bugün en çok işe yarayan, küçük bir reprodüksiyon içeren bug raporlarıdır. Dilde bir değişiklik bir issue olarak başlar, çünkü her kural numaralı bir tasarım kararına dayanır.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Pipeline</h2>
+        <p>
+          <code>glyph build</code> lex ve parse eder, isimleri çözümler, tip kontrolü yapar ve TypeScript üretir; ardından yazdığı şey üzerinde <code>tsc --strict</code> çalıştırır. Ortadaki aşamalar <a href="https://github.com/salsa-rs/salsa">salsa</a> üzerinde artımlı sorgular olarak çalışır; böylece yeniden kontrol, bir düzenlemenin geçersiz kılmadığı sonuçları yeniden kullanır.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">tek bir .glyph dosyası, crate'ler boyunca</span>
+<pre>glyph-lexer → glyph-parser → glyph-resolver → glyph-typechecker → glyph-emit → tsc --strict
+                (glyph-ast)        └──────── glyph-db (salsa) ────────┘</pre>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Crate</th><th>Ne yapar</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Crate"><code>glyph-lexer</code></td><td data-label="What it does">Token'lar, anahtar kelimeler, anlamlı satır sonları, template literal'lar</td></tr>
+            <tr><td data-label="Crate"><code>glyph-ast</code></td><td data-label="What it does">Her düğümde bir kaynak span'i olan sözdizimi ağacı tipleri</td></tr>
+            <tr><td data-label="Crate"><code>glyph-parser</code></td><td data-label="What it does">JSX dahil, spesifikasyondaki her karar için Pratt parser</td></tr>
+            <tr><td data-label="Crate"><code>glyph-resolver</code></td><td data-label="What it does">İsim çözümleme, modül grafiği, modüller arası import kontrolleri, prelude</td></tr>
+            <tr><td data-label="Crate"><code>glyph-db</code></td><td data-label="What it does">Salsa sorgu pipeline'ı ve dosyalar arası geçersiz kılma</td></tr>
+            <tr><td data-label="Crate"><code>glyph-typechecker</code></td><td data-label="What it does">Kapsam kontrolü, <code>?</code>, generic'ler, <code>owned</code>, çalışma zamanı tanımlayıcıları, stdlib modeli</td></tr>
+            <tr><td data-label="Crate"><code>glyph-emit</code></td><td data-label="What it does">TypeScript yazıcısı, tanımlayıcı üretimi, ifade düzeyinde source map'ler</td></tr>
+            <tr><td data-label="Crate"><code>glyph-formatter</code></td><td data-label="What it does"><code>glyph fmt</code>: tek düzen, yorumları koruyan, idempotent</td></tr>
+            <tr><td data-label="Crate"><code>glyph-lsp</code></td><td data-label="What it does">Tek bir analiz katmanını paylaşan dil sunucusu ve MCP sunucusu</td></tr>
+            <tr><td data-label="Crate"><code>glyph-cli</code></td><td data-label="What it does"><code>glyph</code> binary'si ve tüm alt komutları</td></tr>
+            <tr><td data-label="Crate"><code>glyph-wasm</code></td><td data-label="What it does">Playground'u çalıştıran, WebAssembly'deki derleyici</td></tr>
+            <tr><td data-label="Crate"><code>glyph-runtime</code></td><td data-label="What it does">Bir taslak; testler bunun yerine emitter ve <code>tsx</code> üzerinden çalışır</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          Crate notlarının tamamı ve güncel test sayısı <a href="https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md">glyph-compiler/README.md</a>'de.
+        </p>
+
+        <h2 class="block-label">Build ve test</h2>
+        <p>
+          Rust 1.95, <code>rust-toolchain.toml</code> içinde sabitlenmiştir. Bazı testler <code>tsc</code> ve <code>tsx</code>'i çağırır, onları da kurun. CI, uyarıları hata sayarak clippy çalıştırır; ne <code>cargo build</code> ne de <code>cargo test</code> onu çalıştırır, bu yüzden push etmeden önce script'i çalıştırın.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">bir klondan</span>
+<pre>npm install -g tsx typescript
+cd glyph-compiler
+cargo build --release -p glyph-cli      <span class="cm"># target/release/glyph</span>
+cargo test --workspace
+cd .. &amp;&amp; python3 scripts/check_clippy.py  <span class="cm"># the exact clippy command CI runs</span>
+
+<span class="cm"># after an intentional syntax-tree change</span>
+INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Yeni bir diagnostic, <code>tests/negative/</code> altında o kodla başarısız olması gereken bir programla birlikte gelir. Glyph'in TypeScript'in kaçırdığı bir şeyi yakaladığına dair bir iddia, <a href="/evidence/">bir kontrolün iki yarıyı da çalıştırdığı</a> <code>catches/</code> dizinine girer.
+        </p>
+
+        <h2 class="block-label">Neler planlandı, neler bozuk</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">docs/roadmap/releases.md</a> sürüm yol haritasıdır: yayımlanan her sürümün ne yaptığı ve sonrakilerin ne için olduğu. <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> ise gap kayıt defteridir: gerçek uygulamalar geliştirirken bulunan her sınırlama, her biri numaralı (<code>G</code> artı bir sayı) ve bir durum işaretiyle. Reprodüksiyonu olan açık bir gap, başlamak için iyi bir yerdir.
+        </p>
+
+        <h2 class="block-label">Issue'lar ve pull request'ler</h2>
+        <p>
+          Araç zinciri düzeltmeleri, diagnostic'ler, dokümanlar ve örnekler doğrudan bir pull request olarak gelebilir. Sözdizimi ya da semantikte bir değişiklik bir issue ile başlar, büyük olanlar <code>docs/rfcs/</code> içindeki RFC sürecinden geçer; bir kuralı "yardımcı olmak için" gevşeten bir PR büyük ihtimalle reddedilir, çünkü asıl nokta kısıtlamanın kendisidir. Bir pull request'i tek bir gap ile sınırlı tutun, genellikle bir ile üç commit; her commit'i imzalayın (<code>git commit -s</code>). <code>main</code> korumalıdır ve merge'ler yalnızca rebase ile yapılır. Kuralların tamamı <a href="https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md">CONTRIBUTING.md</a>'de; <a href="https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">good first issue</a> etiketli issue'lar ilk değişiklik için uygun kapsamdadır.
+        </p>
+
+        <h2 class="block-label">Lisans</h2>
+        <p>
+          Tercihinize göre MIT veya Apache-2.0 (<a href="https://github.com/chadetov/glyph/blob/main/LICENSE-MIT">LICENSE-MIT</a>, <a href="https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE">LICENSE-APACHE</a>). Katkılar, sign-off satırıyla onaylanarak aynı ikili lisans altında kabul edilir.
+        </p>
+      </div>

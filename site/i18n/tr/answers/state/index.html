@@ -1,0 +1,83 @@
+---
+title: Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım? · Glyph
+description: Glyph'te değiştirilebilir global değişken yoktur. Paylaşılan durum bir std/store'da yaşar: get, set ve update'i tek yazma yolları olan, modül düzeyinde bir const; hepsi tek bir aramayla bulunur.
+source_hash: 59f9695c32448ee8
+prev: /answers/react/ | &larr; Önceki | React ile çalışıyor mu: component'ler, hook'lar ve Context?
+next: /answers/language/ | Sonraki &rarr; | Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?
+---
+      <p class="q-eyebrow">14 &middot; Paylaşılan durum</p>
+      <h1 class="q-title">Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım?</h1>
+
+      <p class="short-answer">
+        Bir <strong>store</strong> ile. Glyph'te değiştirilebilir global değişken yoktur. Modül bağlamaları <code>const</code>'tur. Paylaşılan durum bir <code>std/store</code>'da yaşar: <code>get()</code> ile okuduğunuz ve <code>set()</code>/<code>update()</code> ile değiştirdiğiniz bir değeri tutan, modül düzeyinde bir <code>const</code>. Bağlamanın kendisi asla değişmez; yalnızca içindeki değer bir metot çağrısıyla değişir, yani her yazma işlemi grep'leyebileceğiniz düz bir <code>.set(</code> ya da <code>.update(</code> metnidir.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Görün</h2>
+        <p>
+          Store'u modül kapsamında bir kez tanımlayın. Modüldeki her fonksiyon onu paylaşır. <code>main</code> boyunca taşınan bir <code>let</code> yok, değer yakalayan closure'lar yok:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>import std/store { create }
+import std/array
+
+type Task = {
+  id: number,
+  title: string,
+}
+
+const tasks = create&lt;Array&lt;Task&gt;&gt;([])
+const next_id = create(0)
+
+fn add(title: string) -&gt; Task {
+  next_id.update(fn(n: number) -&gt; number {
+    return n + 1
+  })
+  let task = { id: next_id.get(), title: title }
+  tasks.update(fn(cur: Array&lt;Task&gt;) -&gt; Array&lt;Task&gt; {
+    return array.push(cur, task)
+  })
+  return task
+}
+
+fn all() -&gt; Array&lt;Task&gt; {
+  return tasks.get()
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">tüm yazma yüzeyi, tek bir grep ile</span>
+<pre>$ grep -rn 'tasks\.\(set\|update\)' src/
+src/tasks.glyph:16:  tasks.update(fn(cur...
+
+# every place the task list can change,
+# enumerated. nothing hides in an
+# ordinary `x = ...` assignment
+# somewhere else in the file.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Neden değiştirilebilir bir global değil de bir store</h2>
+        <p>
+          Bu bilinçli bir tasarım tercihi. Glyph, <code>mut</code>'u yerel atamalarla sınırlı ve modül bağlamalarını <code>const</code> tutar, çünkü dağınık bir yazılabilir global kümesi, durumu anlamayı ve <em>bulmayı</em> zorlaştıran şeyin ta kendisidir. Bir store bu kuralların hiçbirinin gevşetilmesini gerektirmez: <code>const s</code> bağlaması değiştirilemez ve içindeki değer yalnızca <code>set</code>/<code>update</code> üzerinden değişir. Böylece paylaşılan durum <strong>yeni bir sözdizimi olarak değil, bir kütüphane olarak</strong> gelir (linear tipler yok, gevşetilmiş değiştirme kuralları yok) ve değiştirme işlemi programınıza dağılmak yerine denetlenmiş tek bir yerde yaşar.
+        </p>
+        <p>
+          TypeScript ile ortak bir pürüz: boş bir koleksiyon eleman tipini çıkaramaz, bu yüzden onu açık bir tip argümanıyla başlatın: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Skaler bir store (<code>create(0)</code>) tipini sorunsuz çıkarır.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p><code>create</code>, <code>get</code>, <code>set</code> ve <code>update</code> içeren <code>std/store</code>: paylaşılan değiştirilebilir durum için tek ve grep'lenebilir yer.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Yolda olanlar</h3>
+          <p>Aynı temel yapı üzerinde kolaylıklar (türetilmiş/hesaplanmış store'lar, abonelikler), dili değiştirmeden üstüne eklenecek.</p>
+        </div>
+      </div>

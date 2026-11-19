@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "mcp/index.html",
+  "locale": "tr",
+  "source_hash": "9b8dc9db4173cc83",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Wire your agent into Glyph over MCP · Glyph",
+      "tr": "Ajanınızı MCP üzerinden Glyph'e bağlayın · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph mcp runs an MCP server with eleven tools: what a symbol is, what a change breaks, diagnostics, references and more. Each is also a glyph query verb.",
+      "tr": "glyph mcp, on bir araçlı bir MCP sunucusu çalıştırır: bir sembolün ne olduğu, bir değişikliğin neyi bozacağı, diagnostic'ler, referanslar ve daha fazlası. Her biri aynı zamanda bir glyph query fiilidir."
+    },
+    {
+      "id": "h-3e836396",
+      "kind": "html",
+      "en": "For agents &middot; Model Context Protocol",
+      "tr": "Ajanlar için &middot; Model Context Protocol"
+    },
+    {
+      "id": "h-09d8dc95",
+      "kind": "html",
+      "en": "Wire your agent into Glyph's compiler",
+      "tr": "Ajanınızı Glyph derleyicisine bağlayın"
+    },
+    {
+      "id": "h-06f85893",
+      "kind": "html",
+      "en": "<code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> with eleven tools over your project: what a symbol is, what breaks if you change it, whether a value of one type can go where another is declared, what a declaration depends on, what a module exports, diagnostics checked inside the project, the type at a cursor, where a name is defined, every reference to it, every <code>match</code> site over a union, and symbol search. Each one is also a <code>glyph query</code> verb, so an agent with no MCP client asks the same questions and gets the same bytes.",
+      "tr": "<code>glyph mcp</code>, projeniz üzerinde on bir araçlı bir <strong>Model Context Protocol sunucusu</strong> çalıştırır: bir sembolün ne olduğu, onu değiştirirseniz neyin bozulacağı, bir tipteki bir değerin başka bir tipin tanımlandığı yere girip giremeyeceği, bir tanımın neye bağlı olduğu, bir modülün neleri export ettiği, proje içinde kontrol edilen diagnostic'ler, imlecin bulunduğu yerdeki tip, bir ismin nerede tanımlandığı, ona yapılan her referans, bir union üzerindeki her <code>match</code> yeri ve sembol araması. Her biri aynı zamanda bir <code>glyph query</code> fiilidir; böylece MCP istemcisi olmayan bir ajan aynı soruları sorar ve aynı baytları alır."
+    },
+    {
+      "id": "h-77095b90",
+      "kind": "html",
+      "en": "Why an agent wants this",
+      "tr": "Bir ajan bunu neden ister"
+    },
+    {
+      "id": "h-5041d57e",
+      "kind": "html",
+      "en": "An agent editing a codebase usually works blind. It reads files, guesses at types, and finds out whether it broke something only after a build. Glyph already answers those questions for an editor. <code>glyph mcp</code> gives an agent the same answers straight from the compiler, without scraping build output or reading every file to find who calls what. Two of the tools answer questions an editor never asks: <code>glyph_symbol</code> returns a union's variants with the syntax that constructs each, which is what an agent needs before it writes the <code>match</code>, and <code>glyph_impact</code> answers what an edit breaks before the edit exists.",
+      "tr": "Bir kod tabanını düzenleyen ajan genellikle körlemesine çalışır. Dosyaları okur, tipleri tahmin eder ve bir şeyi bozup bozmadığını ancak build'den sonra öğrenir. Glyph bu soruları bir editör için zaten yanıtlıyor. <code>glyph mcp</code>, build çıktısını kazımadan ya da kimin neyi çağırdığını bulmak için her dosyayı okumadan, bir ajana aynı yanıtları doğrudan derleyiciden verir. Araçlardan ikisi bir editörün hiç sormadığı soruları yanıtlar: <code>glyph_symbol</code>, bir union'ın variant'larını her birini oluşturan sözdizimiyle birlikte döndürür (bir ajanın <code>match</code>'i yazmadan önce ihtiyaç duyduğu tam olarak budur), <code>glyph_impact</code> ise bir düzenlemenin neyi bozacağını düzenleme daha yapılmadan yanıtlar."
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "Kurulum"
+    },
+    {
+      "id": "h-7418b107",
+      "kind": "html",
+      "en": "Any MCP client can launch it. Point the client at the <code>glyph</code> binary with the <code>mcp</code> subcommand, and pass your project root as an argument or run it from the project directory. It speaks MCP over stdio, so there's no port and no daemon.",
+      "tr": "Herhangi bir MCP istemcisi onu başlatabilir. İstemciyi <code>mcp</code> alt komutuyla <code>glyph</code> binary'sine yönlendirin ve proje kök dizininizi argüman olarak geçin ya da sunucuyu proje dizininden çalıştırın. MCP'yi stdio üzerinden konuşur, yani port da daemon da yoktur."
+    },
+    {
+      "id": "h-1c9558ae",
+      "kind": "html",
+      "en": "mcp client config (generic)",
+      "tr": "mcp istemci yapılandırması (genel)"
+    },
+    {
+      "id": "h-14f598ae",
+      "kind": "html",
+      "en": "On first connect the client calls <code>initialize</code> and <code>tools/list</code>; the server reports the eleven tools below. Positions you send follow the LSP convention: a 0-based <code>line</code> and a 0-based <code>character</code> in UTF-16 code units. Diagnostic ranges come back the way <code>glyph check --json</code> prints them, with a 1-based <code>line</code> and <code>col</code> plus the byte <code>offset</code>.",
+      "tr": "İlk bağlantıda istemci <code>initialize</code> ve <code>tools/list</code>'i çağırır; sunucu aşağıdaki on bir aracı bildirir. Gönderdiğiniz konumlar LSP kuralını izler: 0 tabanlı bir <code>line</code> ve UTF-16 kod birimleri cinsinden 0 tabanlı bir <code>character</code>. Diagnostic aralıkları, <code>glyph check --json</code>'un yazdırdığı şekilde, 1 tabanlı <code>line</code> ve <code>col</code> artı bayt cinsinden <code>offset</code> ile döner."
+    },
+    {
+      "id": "h-d2740b17",
+      "kind": "html",
+      "en": "Each tool's description carries the contract you need at the moment of the call, and the full manual lives in <code>glyph llms --json</code> under <code>tools</code>, keyed by tool name, with each tool's <code>glyph query</code> verb beside it. That reply used to carry every manual: eleven tools, 31,446 bytes of description in a 45,509-byte reply. It is 8,627 in a 20,386-byte reply now, and nothing was deleted. Every session pays for <code>tools/list</code> on connect and pays for the manual only when it asks. <a href=\"/answers/generated-docs/\">That document</a> is generated from the compiler's own tables, and a test fails the build if it names a tool this server does not serve.",
+      "tr": "Her aracın açıklaması, çağrı anında ihtiyaç duyduğunuz sözleşmeyi taşır; tam kılavuz ise <code>glyph llms --json</code> içinde <code>tools</code> altında, araç adına göre anahtarlanmış ve her aracın <code>glyph query</code> fiili yanında olacak şekilde durur. Bu yanıt eskiden tüm kılavuzları taşırdı: on bir araç, 45.509 baytlık bir yanıtta 31.446 bayt açıklama. Şimdi 20.386 baytlık bir yanıtta 8.627 bayt ve hiçbir şey silinmedi. Her oturum bağlanırken <code>tools/list</code>'in bedelini öder, kılavuzun bedelini ise yalnızca istediğinde. <a href=\"/answers/generated-docs/\">O belge</a> derleyicinin kendi tablolarından üretilir ve bu sunucunun sunmadığı bir aracı adıyla anarsa bir test build'i başarısız kılar."
+    },
+    {
+      "id": "h-1323cb30",
+      "kind": "html",
+      "en": "The eleven tools",
+      "tr": "On bir araç"
+    },
+    {
+      "id": "h-65beb4ac",
+      "kind": "html",
+      "en": "tools exposed by glyph mcp",
+      "tr": "glyph mcp'nin sunduğu araçlar"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Görün"
+    },
+    {
+      "id": "h-a75b63e1",
+      "kind": "html",
+      "en": "A <code>tools/call</code> for <code>glyph_diagnostics</code> on a file with a field typo returns the compiler's own diagnostic, the same Rust type <code>glyph check --json</code> serializes, inside an envelope that also says what the check did not cover.",
+      "tr": "Alan adında yazım hatası olan bir dosya için <code>glyph_diagnostics</code>'e yapılan bir <code>tools/call</code>, derleyicinin kendi diagnostic'ini döndürür. Bu, <code>glyph check --json</code>'un serileştirdiği Rust tipinin aynısıdır ve kontrolün neyi kapsamadığını da söyleyen bir zarfın içinde gelir."
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "istek"
+    },
+    {
+      "id": "h-3841873d",
+      "kind": "html",
+      "en": "result (the tool's JSON content)",
+      "tr": "sonuç (aracın JSON içeriği)"
+    },
+    {
+      "id": "h-a4f1eb83",
+      "kind": "html",
+      "en": "The file is checked inside its project, so a wrong field on an imported record and a <code>match</code> missing arms over an imported union are reported here the way <code>glyph check</code> reports them. What the tool could not cover is on the answer rather than left for you to assume: <code>member</code> says whether the project walk reaches the file, <code>unindexed</code> names project files that don't parse, and <code>not_run</code> names the three checks <code>glyph check</code> makes and this one doesn't: <code>tsc</code>, <code>E0104</code> for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which is decided by running the emitted project. A test runs both surfaces on six projects and compares the JSON key for key, so the two can't drift.",
+      "tr": "Dosya kendi projesi içinde kontrol edilir; bu yüzden import edilmiş bir record'daki yanlış bir alan ve import edilmiş bir union üzerinde arm'ları eksik bir <code>match</code>, burada <code>glyph check</code>'in bildirdiği şekilde bildirilir. Aracın kapsayamadığı şeyler size varsaymanız için bırakılmaz, yanıtta yer alır: <code>member</code>, proje taramasının dosyaya ulaşıp ulaşmadığını söyler; <code>unindexed</code>, parse edilemeyen proje dosyalarını adıyla belirtir; <code>not_run</code> ise <code>glyph check</code>'in yapıp bu aracın yapmadığı üç kontrolü adıyla belirtir: <code>tsc</code>; build'in <code>node_modules</code> görünümünü gerektiren, hiçbir modülü işaret etmeyen bir import için <code>E0104</code>; ve üretilen proje çalıştırılarak karar verilen, başarısız bir <code>@example</code> için <code>E0400</code>. Bir test iki yüzeyi de altı proje üzerinde çalıştırır ve JSON'u anahtar anahtar karşılaştırır, böylece ikisi birbirinden sapamaz."
+    },
+    {
+      "id": "h-26714f00",
+      "kind": "html",
+      "en": "<code>glyph_references</code> is workspace-wide: ask about a symbol and you get its declaration, every use, and each importing module's <code>import</code> binding, across every file. It uses the same cross-file identity the editor's rename does, so the answer covers the whole project, not just the file you asked from.",
+      "tr": "<code>glyph_references</code> tüm çalışma alanını kapsar: bir sembol hakkında sorduğunuzda onun tanımını, her kullanımını ve onu import eden her modülün <code>import</code> bağlamasını, tüm dosyalar boyunca alırsınız. Editörün yeniden adlandırma işleminin kullandığı dosyalar arası kimliğin aynısını kullanır; bu yüzden yanıt yalnızca sorduğunuz dosyayı değil, tüm projeyi kapsar."
+    },
+    {
+      "id": "h-9d3b62a6",
+      "kind": "html",
+      "en": "No MCP client? Same questions on the command line",
+      "tr": "MCP istemciniz yok mu? Aynı sorular komut satırında"
+    },
+    {
+      "id": "h-132d1fdb",
+      "kind": "html",
+      "en": "Every tool has a <code>glyph query</code> verb taking the tool's own arguments as flags and printing the tool's JSON on stdout. An answered question exits 0; a refused one writes the reason to stderr and exits 2. The verbs route through the same entry point an MCP client reaches, and an integration test asks both surfaces the same question and compares the answers as text, so a verb that reformatted or summarized would fail it.",
+      "tr": "Her aracın, aracın kendi argümanlarını flag olarak alan ve aracın JSON'unu stdout'a yazdıran bir <code>glyph query</code> fiili vardır. Yanıtlanan bir soru 0 ile çıkar; reddedilen bir soru nedenini stderr'e yazar ve 2 ile çıkar. Fiiller, bir MCP istemcisinin ulaştığı giriş noktasının aynısından geçer ve bir entegrasyon testi iki yüzeye de aynı soruyu sorup yanıtları metin olarak karşılaştırır; yani yeniden biçimlendiren ya da özetleyen bir fiil bu testi geçemez."
+    },
+    {
+      "id": "h-33fc2c51",
+      "kind": "html",
+      "en": "the same eleven questions, without a client",
+      "tr": "istemci olmadan aynı on bir soru"
+    },
+    {
+      "id": "h-4090bfff",
+      "kind": "html",
+      "en": "When the build is already red",
+      "tr": "Build zaten kırmızıysa"
+    },
+    {
+      "id": "h-fababe9f",
+      "kind": "html",
+      "en": "The tools answer questions asked before an edit. After one, the thing to read is <code>glyph check --agent</code>, which prints <code>check --json</code>'s diagnostics with two more keys on each: <code>constraints</code>, the invariants a repairing edit has to keep, and <code>symbols</code>, the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. On a <code>match</code> missing arms that means the union's variants with their payloads arrive with the error that asked for them, along with the sentence saying an <code>else</code> arm would forfeit the guarantee the diagnostic exists to protect. Where the repair is fully determined, <code>glyph fix</code> writes it and says what it declined. There is a <a href=\"/answers/repair-protocol/\">walkthrough of the whole loop</a> with real output.",
+      "tr": "Araçlar bir düzenlemeden önce sorulan soruları yanıtlar. Düzenlemeden sonra okunacak şey <code>glyph check --agent</code>'tır; <code>check --json</code>'un diagnostic'lerini her birine iki anahtar daha ekleyerek yazdırır: onarıcı bir düzenlemenin koruması gereken değişmezler olan <code>constraints</code> ve diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtı olan <code>symbols</code>; böylece sonraki düzenleme ikinci bir çağrıya ihtiyaç duymaz. Arm'ları eksik bir <code>match</code>'te bu, union'ın variant'larının payload'larıyla birlikte, onları isteyen hatayla aynı anda gelmesi demektir; yanında da bir <code>else</code> arm'ının diagnostic'in korumak için var olduğu garantiden vazgeçmek anlamına geldiğini söyleyen cümle bulunur. Onarımın tamamen belirli olduğu yerlerde <code>glyph fix</code> onu yazar ve neyi yapmayı reddettiğini söyler. Gerçek çıktılarla <a href=\"/answers/repair-protocol/\">tüm döngünün adım adım anlatımı</a> var."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Bugün yayında"
+    },
+    {
+      "id": "h-4fbc90ec",
+      "kind": "html",
+      "en": "A <code>glyph mcp [root]</code> server over stdio with eleven tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why. Hover answers at a name declared in another module, so an imported function at its call site and a field read off an imported record both have a type. An entity identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph_symbol</code> on it answers with <code>Ok(T)</code> and <code>Err(E)</code> and <code>glyph_exports</code> on <code>std/result</code> lists the surface. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.",
+      "tr": "stdio üzerinden on bir araçlı bir <code>glyph mcp [root]</code> sunucusu: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (tüm çalışma alanı), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> ve <code>glyph_exports</code>. Her birinin aynı JSON'u yazdıran bir <code>glyph query</code> fiili var. Yanıtlar derleyicinin kendi sorgularından gelir ve bir aracın elinde olmayan her bilgi, nedenini söyleyen bir <code>&lt;key&gt;_absent</code> cümlesinin yanında null olarak döner. Hover, başka bir modülde tanımlanmış bir isimde de yanıt verir; böylece çağrı yerindeki import edilmiş bir fonksiyonun da, import edilmiş bir record'dan okunan bir alanın da tipi olur. Varlık kimliği stdlib'e kadar uzanır: prelude'daki <code>Result</code>, <code>std/result::Result</code>'tır; bu, resolver'ın onu kaydettiği ve emitter'ın import'u yazdığı modüldür. Bu yüzden onun üzerinde <code>glyph_symbol</code>, <code>Ok(T)</code> ve <code>Err(E)</code> ile yanıt verir, <code>std/result</code> üzerinde <code>glyph_exports</code> da yüzeyi listeler. Arkasında Glyph kaynak kodu olmadığı için <code>path</code> ve <code>range</code> eksik değil, bu nedenle birlikte null döner."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "Yolda olanlar"
+    },
+    {
+      "id": "h-16a6d6db",
+      "kind": "html",
+      "en": "The tools only read: you can't rename or apply an edit through MCP. The write side lives on the command line instead, as <code>glyph fix</code>. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse. The <code>tools/list</code> reply is 20,386 bytes, down from 45,509, and that is still context every session pays for on connect.",
+      "tr": "Araçlar yalnızca okur: MCP üzerinden yeniden adlandırma yapamaz ya da bir düzenleme uygulayamazsınız. Yazma tarafı bunun yerine komut satırında, <code>glyph fix</code> olarak yaşar. Sunucu önbelleğe alınmış bir indeks tutmak yerine her çağrıda projeyi yeniden tarar ve parse edilemeyen dosyaları atlar. <code>tools/list</code> yanıtı 45.509 bayttan 20.386 bayta indi; bu yine de her oturumun bağlanırken ödediği bir bağlam maliyeti."
+    },
+    {
+      "id": "h-51177984",
+      "kind": "html",
+      "en": "Beside the tools, an agent can read the language and the diagnostic surface offline: <a href=\"/llms.txt\">llms.txt</a> is the prose, <code>glyph llms --json</code> the same knowledge as data out of the compiler's own tables, and <code>glyph build --json</code> the batch path for coded diagnostics across a whole tree.",
+      "tr": "Araçların yanı sıra bir ajan, dili ve diagnostic yüzeyini çevrimdışı okuyabilir: <a href=\"/llms.txt\">llms.txt</a> düz metin hâli, <code>glyph llms --json</code> derleyicinin kendi tablolarından çıkan aynı bilginin veri hâli, <code>glyph build --json</code> ise tüm bir ağaç boyunca kodlu diagnostic'ler için toplu yol."
+    }
+  ]
+}

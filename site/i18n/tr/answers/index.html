@@ -1,0 +1,86 @@
+---
+title: Yanıtlar · mühendislerin Glyph hakkında sordukları · Glyph
+description: Mühendislerin Glyph hakkında sorduklarına somut yanıtlar: sessiz bozulmaları ne engelliyor, React ve npm, neden araçlarla donatılmış TypeScript değil ve production'da debug.
+source_hash: f574b9ebcd22635e
+---
+      <header class="page-hero">
+        <p class="eyebrow">Yanıtlar</p>
+        <h1>Mühendislerin <span class="accent">Glyph hakkında sordukları</span>.</h1>
+        <p class="lede">
+          Her yanıt çalışan bir örnek gösterir ve henüz neyin çalışmadığıyla biter. Şüpheniz nerede ise oradan başlayın. Glyph'te yeni misiniz? İlk çalıştırma için en hızlı yol <a href="/start/">10 dakikalık başlangıç rehberi</a>.
+        </p>
+      </header>
+
+      <div class="ans-group">
+        <h2 class="block-label">Çözdüğü problem</h2>
+        <p class="ans-group-sub">Bir ajanın düzenlemesinin kimse fark etmeden neleri bozabileceği ve Glyph'in her biri için ne yaptığı.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/verifiability/"><span class="n">01</span><span class="q">Bir ajanın kodumu sessizce bozmasını ne engelliyor?</span><p><code>any</code> yok, cast yok, kapsamı tam <code>match</code>, çalışma zamanında kontrol edilen tipler ve her build'de çalışan, kodun yanındaki testler.</p></a>
+          <a class="a-card" href="/answers/diff-stability/"><span class="n">02</span><span class="q">Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?</span><p>Tek satırlık bir değişiklik tek satırlık bir diff'tir. Tek bir kanonik düzen, hiçbir şey yeniden paketlenmez.</p></a>
+          <a class="a-card" href="/answers/greppability/"><span class="n">03</span><span class="q">Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi?</span><p>Tek isim, tek tanım biçimi. <code>grep</code> her zaman onu bulur.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">Benimseyip benimsememeye karar vermek</h2>
+        <p class="ans-group-sub">Neden daha fazla araç değil de bir dil ve onu benimsemenin maliyeti ne.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/why-typescript/"><span class="n">04</span><span class="q">Neden TypeScript, neden Go ya da yeni bir dil değil?</span><p>Çünkü ekosisteminiz orada ve benimsemenin dosya dosya yapılabilmesinin nedeni bu.</p></a>
+          <a class="a-card" href="/answers/vs-tooled-ts/"><span class="n">05</span><span class="q">Neden sadece strict TypeScript + zod + eslint + ts-pattern değil?</span><p>İsteğe bağlı olmamak: ajanın yapılandırmayla kapatamayacağı bir dil.</p></a>
+          <a class="a-card" href="/answers/human-value/"><span class="n">06</span><span class="q">Yapay zekâ kullanmıyorsam Glyph'e değer mi?</span><p>Evet: garantiler, bir insanın doğrudan faydalandığı düz mühendislik kazanımlarıdır.</p></a>
+          <a class="a-card" href="/answers/ai-authoring/"><span class="n">07</span><span class="q">Bir yapay zekâ neredeyse hiç görmediği bir dili güvenilir şekilde yazabilir mi?</span><p>Bir modelin TypeScript hakkında bildiklerinin çoğu aynen geçerlidir; geçerli olmadığı yerleri derleyici adıyla söyler.</p></a>
+          <a class="a-card" href="/answers/upgrades/"><span class="n">08</span><span class="q">Yeni bir Glyph sürümü build'imi bozar mı?</span><p>Projeler derleyiciyi tam sürüme sabitler, böylece hiçbir sürüm kazara gelmez. <code>glyph doctor</code> yeni bir sürüm olduğunu söyler; <code>glyph upgrade</code> onu alır.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">Kendi stack'inizle kullanmak</h2>
+        <p class="ans-group-sub">npm paketleri, mevcut bir uygulama, API sınırları, React.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/imports/"><span class="n">09</span><span class="q">Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?</span><p>Evet: herhangi bir npm paketini import edin, gerektiği yerde elle yazılmış bir <code>.ts</code> shim'i tutun ve Glyph'i <code>.ts</code>'ye geri import edin.</p></a>
+          <a class="a-card" href="/answers/embedding/"><span class="n">10</span><span class="q">Glyph'i mevcut uygulamamın içinde benimseyebilir miyim, yoksa ya hep ya hiç mi?</span><p>Yeniden yazmak yok: domain çekirdeği Glyph'te, geri kalanı TypeScript'te. Üretilen TypeScript, standart bir Vite uygulaması tarafından diğer modüller gibi import edilir.</p></a>
+          <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">Her API için elle validator yazmam gerekiyor mu?</span><p>Hayır. Bir tip tanımlamak onun validator'ını üretir.</p></a>
+          <a class="a-card" href="/answers/codegen/"><span class="n">12</span><span class="q">API spesifikasyonumdan tipli bir istemci ve sunucu üretebilir miyim?</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: commit edilen, grep'lenebilen kod.</p></a>
+          <a class="a-card" href="/answers/react/"><span class="n">13</span><span class="q">React ile çalışıyor mu: component'ler, hook'lar ve Context?</span><p>Birinci sınıf JSX, hook'lar ve kapsamı tam reducer action'ları.</p></a>
+          <a class="a-card" href="/answers/state/"><span class="n">14</span><span class="q">Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım?</span><p>Bir store: <code>.set</code>/<code>.update</code> metotları yazma yüzeyi olan bir <code>const</code>.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">Onunla neler yapabilirsiniz</h2>
+        <p class="ans-group-sub">Program türüne göre dil ve standart kütüphane.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/language/"><span class="n">15</span><span class="q">Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?</span><p>Modül görünürlüğü, interface sınırları, defer, herhangi bir değer gibi çalışan ve tipini taşıyan bir <code>match</code> ve <code>slice</code>, <code>pad_start</code> ve <code>fold</code> içeren bir standart kütüphane.</p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">16</span><span class="q">Ona parayla ve kontrol etmediğim girdilerle güvenebilir miyim?</span><p>Kesin ondalık sayılar ve id'ler, tip olarak değişmezler, derleme hatası olarak injection.</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">Bir web sayfası sunabilir miyim, yoksa yalnızca JSON API mi?</span><p>Elle yazılmış bir sunucu olmadan HTML, yönlendirmeler, yanıt header'ları ve form gönderimleri.</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">18</span><span class="q">Birinin içine yazı yazdığı bir program yazabilir miyim?</span><p><code>io.read_line</code>, stdin'in kapanmasını beklemek yerine her satıra geldiği anda yanıt verir; böylece bir REPL ya da oyun döngüsü çalışır.</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">19</span><span class="q">Bir sunucu yazabilir miyim, yoksa süreç hemen çıkıyor mu?</span><p><code>main</code> kurulumu yapar ve döner; süreç, bekleyen socket'ler ve timer'lar olduğu sürece ayakta kalır, Node'un kullandığı kuralın aynısı.</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">20</span><span class="q">Binary veriyle çalışabilir miyim, yoksa her şey string mi?</span><p><code>std/bytes</code> bir oktet dizisidir; bozuk girdiyi atlamak yerine reddeden codec'leri ve gerçek bir anahtar alan HMAC'leri vardır.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">Bir ajanla çalışmak</h2>
+        <p class="ans-group-sub">Bir ajanın bir düzenlemeden önce ve sonra derleyiciye sorduğu sorular.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/impact/"><span class="n">21</span><span class="q">Derleyici bir değişikliğin neyi bozacağını ben yapmadan önce söyleyebilir mi?</span><p><code>glyph_impact</code>: dosyaya dokunmadan önce, kapalı bir listeden, gerekçesiyle birlikte her yer için tek bir hüküm.</p></a>
+          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">Ajanım kod yazmadan önce derleyiciye bir sembolün ne olduğunu sorabilir mi?</span><p><code>glyph_symbol</code>: bir union'ın variant'ları, her birini oluşturan sözdizimiyle, tek çağrıda. On bir araç, her biri bir <code>glyph query</code> fiiliyle.</p></a>
+          <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">Build başarısız olduğunda derleyici ajanıma nasıl düzelteceğini söylüyor mu?</span><p>Diagnostic, hatalı sembolü, geçerli alternatifleri ve onarıcı bir düzenlemenin bozmaması gerekenleri taşır. Derleyicinin kendi başına karara bağladıklarını <code>glyph fix</code> yazar.</p></a>
+          <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?</span><p><code>glyph llms --json</code>, diagnostic'leri, prelude'u, stdlib imzalarını ve araç kılavuzunu derleyicinin kendi tablolarından üretir; elle yazılmış bir kopya uyuşmadığında bir kontrol başarısız olur.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">Hatalar, editörler ve production</h2>
+        <p class="ans-group-sub">Bir şey yanlış olduğunda editörden nöbetçiye kadar ne gördüğünüz.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">Editör, debug ve hata deneyimi nasıl?</span><p>Her LSP editörü için bir dil sunucusu ve düzeltmeyi adıyla söyleyen, kararlı kodlu hatalar.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor?</span><p><code>await</code> bağlamı, değeri olmayan bir <code>match</code> arm'ı ve eksik bir <code>mut</code>, üretilen TypeScript'e göre değil kendi kaynak kodunuza göre bildirilir.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum?</span><p>Hangi alan, hangi kuralı ihlal ettiği, ihlal ettiği <code>where</code> koşulu ve üzerinde dallanabileceğiniz bir <code>code</code>.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">Gece 3'te production'da bozulduğunda nöbetçi ne görüyor?</span><p>Sahibi olduğunuz okunabilir TS, <code>.glyph</code> dosyanıza geri götüren source map'ler ve <code>build</code>'in bildirdiğini bildiren bir <code>run</code>.</p></a>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 44px;">
+        <a class="btn primary" href="/answers/verifiability/">Sırayla okuyun &rarr;</a>
+      </div>

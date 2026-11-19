@@ -1,0 +1,172 @@
+---
+title: Ajanımın okuduğu dokümantasyon üretiliyor mu? · Glyph
+description: glyph llms --json, diagnostic'leri, prelude'u, stdlib imzalarını ve dil kararlarını derleyicinin kendi tablolarından üretir; bu yüzden gerçeklikten sapamazlar.
+source_hash: 31b76a81a51f0211
+prev: /answers/repair-protocol/ | &larr; Önceki | Build başarısız olduğunda derleyici ajanıma nasıl düzelteceğini söylüyor mu?
+next: /answers/tooling/ | Sonraki &rarr; | Editör, debug ve hata deneyimi nasıl?
+---
+      <p class="q-eyebrow">24 &middot; Sapamayan dokümanlar</p>
+      <h1 class="q-title">Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?</h1>
+
+      <p class="short-answer">
+        Üretiliyor. <code>glyph llms --json</code>, diagnostic kataloğunu, prelude'u, stdlib imzalarını, dil kararlarını ve araç kılavuzunu derleyicinin kendi tablolarından üretir; elle yazılmış bir kopya uyuşmadığında bir kontrol build'i başarısız kılar. Bir ajanın başlangıç bilgisini aldığı dokümandaki her Glyph örneği derlenir, yanlış olanlar dahil.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Bu soru retorik değil, çünkü dürüst yanıt eskiden "elle yazılmış ve evet" idi. Ajanın başlangıç dokümanı MCP sunucusunun "beş araç sunduğunu" söylüyor ve beş tane listeliyordu. Sunucu yedi araç sunuyordu. Sunucunun kendi talimatlarının bir ajana ilk önce kullanmasını söylediği iki araç dokümanda sıfır kez geçiyordu. 58 hata kodu elle bakımı yapılan üç kopyada duruyordu ve yalnızca kod dizesinin var olup olmadığı kontrol ediliyordu. O dokümandaki 19 Glyph örneğinden 2'si derleniyor, 17'si parça olarak atlanıyordu.
+        </p>
+        <p>
+          Bunların her biri aynı kusur. Bir derleyici hakkında, derleyicinin yanında, iyi niyetli insanlar tarafından tutulan bir doküman. Onu okuyan bir ajan hangi cümlelerin hâlâ doğru olduğunu ayırt edemez, biz de edemiyorduk.
+        </p>
+
+        <h2 class="block-label">Görün</h2>
+        <p>
+          Her biri derleyicinin zaten sahip olduğu bir tablodan okunan yedi bölüm. Bir diagnostic kaydı katalog cümlesini, tek satırlık düzeltmeyi, uzun açıklamayı ve derleyicinin ürettiği bir diagnostic'ten alınan help ve note'u taşır. 77 kodun 51'i ayrıca o kodu tetikleyen yanlış bir program taşır ve bu program siz sorduğunuz anda derlenir; diğer 26'sı derlemde onun için bir durum olmadığını söyler.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --json, E0200 kaydı (kısaltılmış)</span>
+<pre>{
+  "code": "E0200",
+  "phase": "typechecker",
+  "meaning": "Non-exhaustive `match` on a tagged union (yours, a prelude
+    `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a
+    string-literal union (`\"free\" | \"pro\"`, D30) missing a literal ...",
+  "fix": "Add an arm for each missing variant",
+  "help": "Add an arm for each missing variant.",
+  "note": "Tagged unions are sealed (D9): adding a variant forces every
+           match to be updated. A `_`/`else` catch-all is allowed but
+           forfeits that guarantee.",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "files": [ { "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+      "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+      "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a
+      case: an entry is a wrong program and the code it draws. A fix
+      invented here would compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          77 kod derleyicideki tek bir tablodan çıkar; <code>docs/error-codes.md</code> ve ajan başlangıç dokümanındaki katalog tablosu, sapma olduğunda başarısız olan bir script tarafından ondan yazılır. Eskiden var olan üç kopyayı birleştirmek, açıklaması olup listede yeri olmayan bir kodu ve escape edilmiş dikey çizgisi içinde bulunduğu tabloyu sessizce bozmuş bir satırı ortaya çıkardı.
+        </p>
+
+        <h2 class="block-label">Prelude, stdlib ve kararlar</h2>
+        <p>
+          Prelude, resolver'ın çözümleme yaptığı 24 isimden ve her birinin ne olduğundan oluşur. Stdlib 40 modül ve 340 export'tur; her imza checker'ın kendi tablolarından okunur ve bir diagnostic'in kullandığı tip yazıcısıyla yazdırılır, yani dokümandaki imza checker'ın sizi bağlı tutacağı imzanın ta kendisidir. Export'lar üçe ayrılır, asla ikiye değil: 129 imza her konumda modellenmiştir, 46'sı bir parametre tipinin olması gereken yerde <code>?</code> taşır ve kaç konum kaldığını söyleyen bir satırla <code>partially_modeled</code> olarak sayılır, 165'inin ise hiç imzası yoktur. Bir <code>?</code>, yazdırılmış bir <code>unknown</code>'dır, bu yüzden hiçbir zaman tam bir imza olarak yayımlanmaz.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">"stdlib"</span>
+<pre>{ "path": "std/array", "exports": [
+  { "name": "filter",
+    "signature":
+      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;" },
+  { "name": "find",
+    "signature":
+      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;" },
+  { "name": "fold",
+    "signature":
+      "fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U" } ] }
+
+"modeled": 129, "partially_modeled": 46,
+"unmodeled": 165</pre>
+        </div>
+        <div class="code">
+          <span class="cap">"prelude" ve "decisions"</span>
+<pre>"prelude": { "count": 24, "names": [
+  { "name": "int", "role": "type" },
+  { "name": "Ok",  "role": "value" },
+  { "name": "par", "role": "namespace" }, ... ] }
+
+"decisions": { "count": 49,
+  "duplicate_numbers": [],
+  "decisions": [
+    { "id": "D9",
+      "section": "Control flow &amp; expressions",
+      "title": "`else` is a catch-all arm; `_` is a
+        position-level wildcard; a PascalCase arm
+        head is a variant reference ..." }, ... ] }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>duplicate_numbers</code> orada, çünkü üretici spesifikasyonun kendi listesini okur ve ilk çalıştığında ikisi de D43 numaralı iki farklı karar buldu ve <code>"duplicate_numbers": [43]</code> yazdırdı. Çakışmayı tekilleştirmek yerine bildirir; bunu fark etmemizin yolu da buydu. Derleyicide hiçbir şey bir D numarasına bağlı değildir, yani hiçbir program etkilenmedi; bir atfı takip eden okuyucu etkilendi. Bu düzeltildi: D43 <code>await</code> boyunca <code>mut</code> kuralı, <code>never</code> ise D47; böylece liste boş döner. Bugün D1'den D49'a kadar 49 karar var.
+        </p>
+
+        <h2 class="block-label">Yanlış programlar da okunabilir</h2>
+        <p>
+          Derleyicinin negatif derlemi, her birinin tetiklemesi gereken kodla birlikte, başarısız olması gereken programlardan oluşan bir kümedir. Eskiden yalnızca <code>cargo test</code> onu görebiliyordu. Bir kuralın neyi reddettiğini öğrenen bir ajan, tam da onun yazıldığı okuyucudur; bu yüzden artık yanıt veriyor ve her durum siz sorduğunuzda derleniyor, böylece yanındaki diagnostic bu derleyicinin diagnostic'i oluyor.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --negative E0008</span>
+<pre>{
+  "code": "E0008",
+  "meaning": "Assignment without `mut` (`x = e` should be `mut x = e`, or
+              `let x = e` for a new binding; D5)",
+  "fix": "Write `mut x = e`, or `let x = e` for a new binding",
+  "negative": [ {
+    "name": "bare_assignment_without_mut",
+    "files": [ { "path": "bare_assignment_without_mut.glyph",
+      "source": "module neg\n\nfn count() -&gt; number {\n  let total = 0\n
+                 total = total + 1\n  return total\n}\n" } ],
+    "diagnostic": { "code": "E0008", "stage": "parse",
+      "message": "assignment requires `mut`",
+      "help": "Glyph marks every mutation (D5): write `mut x = ...` to
+               reassign an existing binding, or `let x = ...` to
+               introduce a new one.",
+      "range": { "start": { "line": 5, "col": 3, "offset": 53 }, ... } } } ],
+  "catches": [],
+  "catches_absent": "`catches/` pairs no TypeScript-accepted program with E0008"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Kod verilmezse 0.1.149'da 77 kodun 53'ü üzerinde 117 durum listeler ve kapsamı dönenlere bakıp çıkarmanızı beklemek yerine hiç durumu olmayan 24 kodu adıyla söyler. İkinci bir derlem olan <code>catches/</code>, <code>tsc --strict</code>'in kabul ettiği bir programı onu reddeden Glyph ile eşleştirir; var oldukları yerde bunlar da aynı yanıtta gelir. İkisi de doğrudan dizinlerin kendisinden gömülür, yani herhangi birine eklenen bir durum, hatırlanması gereken ikinci bir düzenleme olmadan yanıtta yer alır.
+        </p>
+
+        <h2 class="block-label">Her örnek derlenir, yanlış olanlar dahil</h2>
+        <p>
+          Referansı üretmek işin yarısı. Diğer yarısı, bir ajanın başlangıç bilgisini aldığı düz yazı; buradaki örnekler ajanın kopyaladığı kısımdır. O dokümandaki her Glyph kod bloğu ya derlenen tam bir programdır ya da satırlarının içinde yer alması gereken adlandırılmış tam bir örneğin parçası olarak işaretlenmiştir. Eskiden 19 bloktan 2'si derleniyordu; şimdi 24 bloktan 20'si derleniyor, 4'ü işaretli ve hiçbiri atlanmıyor. Stdlib referansı 8'de 4'ten 8'de 8'e çıktı.
+        </p>
+        <p>
+          Bir kod bloğu, tetiklediği kodu belirterek başarısız olması gereken bir program olarak da işaretlenebilir; doküman sizi uyardığı beş yanlış biçimi böyle taşır: <code>E0228</code>'i tetikleyen, <code>E0008</code>'i tetikleyen ve üç tane daha. Diagnostic'le eşleştirilmiş bir uyarı kontrol edilebilir. Düz yazıyla yazılmış bir uyarı ise bir sözdür.
+        </p>
+        <p>
+          Dokümanları derlemek, onları okumanın asla bulamayacağı iki şey buldu. Satır içi üçlü bir backtick bir kod bloğu açılışı olarak okunmuştu, bu yüzden 250 satır tek bir parça sayılmış ve içlerindeki hiçbir şey kontrol edilmemişti. Ayrıca stdlib referansındaki çalışan bir sunucu örneği, <code>std/http</code>'nin export etmediği <code>http.serve</code>'ü çağırıyordu. Fonksiyonun adı <code>listen</code>.
+        </p>
+
+        <h2 class="block-label">Teslim etmenin maliyeti ve artık neye mal olmadığı</h2>
+        <p>
+          On bir MCP aracı eskiden tüm kılavuzlarını <code>tools/list</code> yanıtında taşıyordu ve her oturum bağlanırken bunun bedelini öder: 45.509 baytlık bir yanıtta 31.446 bayt açıklama. Aynı on bir araç artık 20.386 baytlık bir yanıtta 8.627 bayt taşıyor. Hiçbir şey silinmedi. Önceki metin araç adına göre anahtarlanmış olarak birebir saklanır ve <code>glyph llms --json</code> içinde yayımlanır; böylece çağrı anında ihtiyaç duyduğunuz sözleşme açıklamada, geri kalanı ise her oturumun ilk yanıtında değil bir komut uzaklıkta. Bir test araç listesini ve dokümanı birlikte okur; böylece sunucunun sunmadığı bir aracı adlandıran bir doküman ya da listeyle uyuşmayan bir sayı build'i başarısız kılar. "Beş araç sunar" cümlesinin ihtiyaç duyduğu kontrol buydu.
+        </p>
+        <p>
+          Bunların hepsi çevrimdışı ve yereldir. <code>glyph llms</code> düz yazıyı, <code>glyph llms --json</code> veriyi, <code>glyph llms --negative</code> yanlış programları yazdırır. Aynı düz yazı, ağ erişimi olup binary'si olmayan bir ajan için <a href="/llms.txt">llms.txt</a> adresinde sunulur. Bir ajanın dil hakkında değil de <em>sizin</em> kodunuz hakkında sorduğu şeyler için <a href="/answers/ask-the-compiler/">sorgu araçları</a> var.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p><code>glyph llms --json</code>, derleyiciden yedi bölüm üretir: 51'i derlenmiş bir karşı örnekle gelen 77 diagnostic kodu, 32 ayrılmış kelime, 24 prelude ismi, 340 export'lu 40 stdlib modülü, spesifikasyondan parse edilen 49 dil kararı ve <code>glyph query</code> fiilleri ile tam kılavuzlarıyla on bir araç. <code>docs/error-codes.md</code> ve başlangıç dokümanının diagnostic tablosu, derleyicinin kendi kod tablosundan, sapma olduğunda başarısız olan ve <code>llms.txt</code>'yi de onunla birlikte yeniden yansıtan bir script tarafından yazılır. Bir test araç kataloğunu sunucunun sunduklarına bağlı tutar. Başlangıç dokümanındaki ve stdlib referansındaki her Glyph kod bloğu ya derlenir ya da derlenen bir bloğun işaretli bir parçasıdır; beş yanlış biçim, her birinin tetiklediği kodla eşleştirilmiş programlardır. <code>glyph llms --negative</code>, <code>cargo test</code>'in çalıştırdığı derlemlerin aynısından yanıt verir.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Nerede duruyor</h3>
+          <p>Bu dokümanda yanlış programların iki ayrı sayısı geçiyor ve farklı şeyleri sayıyorlar: 77 kodun 51'i <code>tests/negative/</code>'den bir karşı örnek taşır; <code>glyph llms --negative</code> ise <code>catches/</code>'taki retleri de okuduğu için 0.1.149'da 53 kod üzerinde 117 durum listeler. Sonraki sürüm, o zamandan beri <code>catches/</code>'a eklenen 22 reddi de ekleyerek 55 kod üzerinde 139 duruma çıkarır. 0.1.149'da 24 kodun iki derlemde de yanlış bir programı yoktur ve yanıt bir tane uydurmak yerine onları adıyla söyler. 340 stdlib export'unun 165'i imzasız gelir: gerçekleştirim <code>tsc</code>'nin kontrol ettiği TypeScript'tir ve derleyicinin kendi tabloları onun için hiçbir şey modellemez; bu yüzden <code>std/result::all</code> ya da <code>std/io::println</code> üzerinde <code>glyph_symbol</code>, bu gerekçeyle <code>kind: null</code> bildirir. İmzası olan 175 export'tan 46'sı bir parametre tipinin olması gereken yerde hâlâ <code>?</code> taşır. Ayrıca doküman bir servis değil, indirdiğiniz bir anlık görüntüdür: üzerinde bir retrieval katmanı, embedding'ler ya da bir sohbet arayüzü yoktur.</p>
+        </div>
+      </div>

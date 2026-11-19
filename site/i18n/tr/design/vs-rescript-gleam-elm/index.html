@@ -1,0 +1,146 @@
+---
+title: Neden ReScript, Gleam ya da Elm değil? · Glyph
+description: JavaScript'e derlenen, Glyph'ten daha eski ve kendini daha çok kanıtlamış üç tipli dil. Her birinin önde olduğu yerler ve Glyph'in farklı yaptığı dört şey.
+source_hash: c1473253c170e78d
+next_steps: |
+  Buradan sonra nereye
+  Önerilen | /catches/ | catches | Glyph'in reddettikleri | Her vaka, <code>tsc --strict</code> altında ve Glyph altında kontrol edildi. | Yakaladıklarını görün
+  /design/vs-effect/ | compare | Glyph ve Effect | Bir TypeScript kütüphanesi ile bir dilin karşılaştırması.
+  /design/ | design | Tasarıma geri dön | Dört temel ilke, spesifikasyon ve diğer karşılaştırmalar.
+---
+      <p class="q-eyebrow">Tasarım &middot; Karşılaştırma</p>
+      <h1 class="q-title">Neden ReScript, Gleam ya da Elm değil?</h1>
+
+      <p class="short-answer">
+        Üçü de JavaScript'e derlenen tipli diller ve üçü de Glyph'ten daha eski, daha yaygın kullanılan ve daha oturmuş. Yeni bir kod tabanı için dil seçiyorsanız ve TypeScript'e yakın kalmanız gerekmiyorsa, önce onlara bakmaya değer. Glyph'in farkları daha dar: JavaScript yerine TypeScript kaynak kodu üretir, npm paketlerini kendi <code>.d.ts</code>'lerinden gelen tiplerle import eder, tiplerinizden çalışma zamanı validator'ları üretir ve derleyicisi bir ajan için etki sorgularını yanıtlar.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Her biri kendini nasıl tanımlıyor</h2>
+        <p>
+          ReScript'in ana sayfası "JavaScript Made Simple for Humans and AI" ve "Types &gt; Vibes" ile açılıyor ve dilin "compiles to clean, efficient JavaScript" olduğunu, "No <code>any</code>, no magic types, no surprise <code>undefined</code>." sunduğunu söylüyor. "automatically generate TypeScript types" seçeneği de sunuyor (<a href="https://rescript-lang.org/">rescript-lang.org</a>).
+        </p>
+        <p>
+          Gleam'in ana sayfası onu "a friendly language for building type-safe systems that scale" olarak, "No null values, no exceptions, clear error messages" ile tanımlıyor. Erlang VM üzerinde çalışıyor, "can additionally compile to JavaScript" ve "also generates TypeScript definitions" (<a href="https://gleam.run/">gleam.run</a>).
+        </p>
+        <p>
+          Elm'in ana sayfası "reliable web applications" için "A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions" tanımını yapıyor ve Elm'in "detects all API changes automatically" ederek "guarantee that every single Elm package follows semantic versioning" sağladığını söylüyor (<a href="https://elm-lang.org/">elm-lang.org</a>).
+        </p>
+        <p>Bu alıntılar 2026-11-19'da okundu.</p>
+
+        <h2 class="block-label">Önde oldukları yerler</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Alan</th><th>ReScript, Gleam, Elm</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">Olgunluk</td><td data-label="ReScript, Gleam, Elm">Yıllarca production'da kullanım. ReScript'in ana sayfası bir şirket logoları duvarı gösteriyor; Elm'inki 300 bin+ satırla ve production'da kafa karıştırıcı tek bir çalışma zamanı exception'ı olmadan NoRedInk'i örnek veriyor</td><td data-label="Glyph">Erken önizleme, 1.0 öncesi, ağırlıklı olarak tek bir kişi tarafından geliştiriliyor ve birçok sürüm Breaking</td></tr>
+            <tr><td data-label="Area">Garantiler</td><td data-label="ReScript, Gleam, Elm">Elm çalışma zamanı exception'ı olmadığını iddia ediyor; Gleam null değer ve exception olmadığını; ReScript <code>any</code> ve sürpriz <code>undefined</code> olmadığını</td><td data-label="Glyph"><code>any</code> ve cast yok, ama bilinen {{catches:gap-cases}} açık <a href="/catches/#not-yet">listelenmiş</a> durumda ve bir npm paketinin içinde fırlatılan bir exception yine <code>Result</code>'ı atlıyor</td></tr>
+            <tr><td data-label="Area">Hata mesajları</td><td data-label="ReScript, Gleam, Elm">Elm'in ana sayfası "friendly error messages" ile açılıyor, Gleam'inki "clear error messages" vaat ediyor; ikisinin de arkasında yılların kullanıcısı var</td><td data-label="Glyph">Her hatanın kararlı bir kodu ve bir yardım satırı var, ama çok daha az kullanıldılar</td></tr>
+            <tr><td data-label="Area">Araçlar ve ekosistem</td><td data-label="ReScript, Gleam, Elm">Gleam "compiler, build tool, formatter, editor integrations, and package manager all built in" ile geliyor; Elm paketlerinde semantic versioning'i zorunlu tutuyor</td><td data-label="Glyph">Paketler için npm; VS Code eklentisi kaynak koddan build ediliyor</td></tr>
+            <tr><td data-label="Area">Hedefler</td><td data-label="ReScript, Gleam, Elm">Gleam ayrıca Erlang VM üzerinde de çalışıyor</td><td data-label="Glyph">Yalnızca TypeScript, Node ve tarayıcı için</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Glyph'in farklı yaptıkları</h2>
+        <p>
+          Bunların her biri bu sayfa için Glyph 0.1.149 üzerinde çalıştırıldı.
+        </p>
+
+        <h3>TypeScript kaynak kodu üretir</h3>
+        <p>
+          <code>glyph build</code>, modül başına bir <code>.ts</code> dosyası yazar; bu dosyayı ardından <code>tsc --strict</code> kontrol eder ve Glyph'i kullanmayı bırakırsanız elinizde kalır. ReScript ve Gleam JavaScript üretir ve yanına tip tanımları oluşturur. <a href="/from-typescript/#what-the-emitted-typescript-looks-like">Üretilen TypeScript</a> TypeScript sayfasında gösteriliyor.
+        </p>
+
+        <h3>npm paketlerini kendi tanımlarından gelen tiplerle import eder</h3>
+        <p>
+          Bir modül bir paketi adıyla import eder ve paketin <code>.d.ts</code>'i her kullanımı tipler. Önce yazılması gereken bir binding yoktur. ReScript'te "<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values" (<a href="https://rescript-lang.org/docs/manual/external">external</a>) ve tipler ReScript tarafında tanımlanır. Gleam'in external'ları tip anotasyonu gerektirir ve derleyici "cannot verify that the function implemented in the other language returns the specified types" (<a href="https://gleam.run/documentation/externals/">externals</a>). Elm, JavaScript ile flag'ler, port'lar ve custom element'ler üzerinden konuşur (<a href="https://guide.elm-lang.org/interop/">interop</a>). <code>pg</code> ve <code>@types/pg</code> kuruluyken şu reddedilir:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-npm expect-error TS2322">module main
+
+import pg { Pool }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let _pool = new Pool({ max: "two", })
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ glyph check (trimmed)</span>
+<pre><span class="del">[TS2322] Error: tsc: Type 'string' is not assignable to type 'number'.</span>
+   ╭─[ main:6:24 ]
+   │
+ 6 │   let _pool = new Pool({ max: "two", })
+   │                        ───────┬───────
+   │                               ╰───────── Type 'string' is not assignable to type 'number'.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Kod <code>TS2322</code>'dir, çünkü bir kütüphanenin değerlerini kontrol eden <code>tsc</code>'dir ve sonuç Glyph satırına geri eşlenir. Glyph'in kendi checker'ı bunları görmez; bu yüzden <code>glyph check --no-tsc</code>, editör ve MCP araçları bu hatayı kaçırır (G257). Bir <code>.d.ts</code>'ten import edilen tipin çalışma zamanı kontrolü de yoktur.
+        </p>
+
+        <h3>Validator'ı tipten üretir</h3>
+        <p>
+          Her record ve union, tanımından üretilen bir çalışma zamanı kontrolü taşır; bu yüzden veri eşleşmediğinde <code>json.parse&lt;User&gt;</code> <code>Err</code> döndürür. Elm'de her yapı için bir decoder yazarsınız ve rehberi "the decoders people write end up working as a validation phase" diye not düşer (<a href="https://guide.elm-lang.org/effects/json.html">JSON</a>).
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph: JSON'da email olmadığı için "refused" yazdırır</span>
+<pre>module main
+
+import std/io
+import std/json
+
+type User = {
+  id: number,
+  email: string,
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  return match json.parse&lt;User&gt;("{\"id\": 1}") {
+    Ok(u) =&gt; {
+      io.println(u.email)
+      return 0
+    },
+    Err(_) =&gt; {
+      io.println("refused")
+      return 1
+    },
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h3>Derleyicisi bir değişikliğin neyi bozacağını yanıtlar</h3>
+        <p>
+          Bir düzenlemeden önce bir ajan, bir değişikliğin hangi yerlere ulaştığını MCP üzerinden (<code>glyph_impact</code>) ya da <code>glyph query impact</code> ile sorabilir. Biri kapsamı tam bir <code>match</code>, diğeri <code>else</code> ile biten iki eşleşme içeren bir <code>Plan = Free | Pro | Team</code> union'ında, yeni bir variant hakkında sormak her yer için ayrı yanıt verir:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">$ glyph query impact --entity main::Plan --change add_variant --variant Enterprise (three fields of each site)</span>
+<pre>{"entity": "main::seats", "verdict": "ABSORBS", "diagnostic": null}
+{"entity": "main::label", "verdict": "WILL_FAIL", "diagnostic": "E0200"}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          İkinci yer değişiklikten sonra derlenemez; değişiklik yapıldığında bu derleyicilerin herhangi biri de bunu söylerdi. Birincisi derlenmeye devam eder ve yeni durumu kendi <code>else</code>'ine gönderir; onu adıyla belirten şey sorgudur. Diğer araçlar <a href="/agents/">Ajan geliştirenler için</a> sayfasında listeleniyor.
+        </p>
+
+        <h2 class="block-label">Bu sayfanın iddia etmedikleri</h2>
+        <p>
+          Hata mesajlarını, derleme hızını ya da çalışma zamanı performansını karşılaştırmadı ve üçünden herhangi birini Glyph'ten ya da tersi yönde çağırmayı denemedi. Alıntılar her projeyi kendi sözleriyle anlatıyor; her birinin bunlara ne kadar uyduğunu kontrol etmek size kalıyor, tıpkı Glyph'in <a href="/evidence/">kanıtlar sayfasındaki</a> kendi iddiaları için olduğu gibi.
+        </p>
+      </div>

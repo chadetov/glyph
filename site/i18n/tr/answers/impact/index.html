@@ -1,0 +1,110 @@
+---
+title: Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi? · Glyph
+description: glyph_impact, değiştirmek üzere olduğunuz tanımı ve düzenlemeyi alır; dosyaya dokunmadan önce her yer için bir hüküm ve bir gerekçeyle yanıt verir.
+source_hash: 42e24af1156f67f1
+prev: /answers/binary/ | &larr; Önceki | Binary veriyle çalışabilir miyim, yoksa her şey string mi?
+next: /answers/ask-the-compiler/ | Sonraki &rarr; | Ajanım kod yazmadan önce derleyiciye bir sembolün ne olduğunu sorabilir mi?
+---
+      <p class="q-eyebrow">21 &middot; Düzenlemeden önce</p>
+      <h1 class="q-title">Derleyici bir değişikliğin neyi bozacağını ben yapmadan önce söyleyebilir mi?</h1>
+
+      <p class="short-answer">
+        Altı düzenleme türü için evet. <code>glyph_impact</code>, değiştirmek üzere olduğunuz tanımı ve değişikliğin kendisini (yeniden adlandırma, bir variant'ı kaldırma, bir parametrenin tipini değiştirme, arity'sini değiştirme, silme) alır ve kapalı bir listeden <strong>her yer için tek bir hükümle</strong> yanıt verir; her birinin yanında neden başka bir hüküm değil de o hüküm olduğunun gerekçesi bulunur.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Bir fonksiyonu yeniden adlandırırken, bir union'ı genişletirken ya da bir parametrenin kabul ettiği şeyi değiştirirken ya eski ismi grep'leyip her çağrıyı bulduğunuzu umarsınız ya da düzenlemeyi yapıp derleyicinin sonrasında söylediklerini okursunuz. İki yaklaşım da hangi yerlerin derlenmeye devam edip sessizce yanlış hâle geleceğini söylemez: catch-all arm'ı olan bir <code>match</code>, bir variant eklediğinizde başarısız olmaz, sadece yeni durumu kimsenin seçmediği bir yere yönlendirmeye başlar. O yer hiçbir build'de görünmez. <code>glyph_impact</code>, derleyicinin çalıştırdığı analizin aynısı üzerinden, düzenlemeden önce yanıt verir.
+        </p>
+
+        <h2 class="block-label">Ne döner</h2>
+        <p>
+          İstek, bir varlığı <code>module::name</code> kimliğiyle ve kapalı bir listeden bir değişiklikle adlandırır: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Değişiklik zorunludur, çünkü bir hüküm bir düzenleme hakkında bir olgudur; hiçbir düzenleme belirtilmezse her yer bir sonuç olarak değil, çıplak bir referans olarak dönerdi. Yanıt varlığı, değişikliği ve bir <code>impact</code> listesini belirtir: her yer için bir kayıt; her birinde içinde bulunduğu tanım, bir <code>relation</code>, bir <code>verdict</code>, bir <code>because</code> ve tam olarak bir tane olduğunda derleyicinin üreteceği diagnostic kodu. Hükümler kapalıdır ve her biri tek bir şey anlamına gelir: <code>WILL_FAIL</code> (derleyici yerin derlenmeyi bırakacağını kanıtlayabilir), <code>ABSORBS</code> (değişikliğin burada sessizce kabul edileceğini kanıtlayabilir), <code>SAFE</code> (yerin doğru kalacağını kanıtlayabilir), <code>UNDETERMINED</code> (bu yere baktı ve sonucu belirleyemiyor) ve <code>NOT_INDEXED</code> (bu biçimdeki bir yer için soru hiç sorulamıyor).
+        </p>
+
+        <h2 class="block-label">Görün</h2>
+        <p>
+          Bir modül <code>label(s: string) -&gt; number</code> tanımlar. Ona üç çağıran ulaşır: biri bir string literal geçirir, biri tipi başka bir modülden import edilmiş bir <code>string</code> alias'ı olan bir değer geçirir ve biri <code>label</code>'ı bir değer olarak okur ve hiç çağırmaz. <code>change_signature_type</code>'ın her birine ne yaptığını sormak üç farklı hüküm getirir, çünkü bunlar üç farklı iddiadır:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">istek</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_impact",
+    "arguments": {
+      "entity": "lib::label",
+      "change": { "kind": "change_signature_type" }
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">sonuç, üç yere kısaltılmış</span>
+<pre>{
+  "entity": "lib::label",
+  "impact": [
+    {
+      "entity": "literal::probe",
+      "verdict": "WILL_FAIL",
+      "diagnostic": "E0211",
+      "because": "every argument at this site is paired with
+        a parameter the relation reads in full, so a
+        replacement parameter type any of those pairings does
+        not accept is E0211 here. The pairings: argument 1
+        (`\"x\"`, `\"x\"`) against parameter `s: string`: ..."
+    },
+    {
+      "entity": "imported::probe",
+      "verdict": "UNDETERMINED",
+      "diagnostic": null,
+      "because": "argument 1 (`c`, `Cell`) against parameter
+        `s: string`: `Cell` is declared in another module as
+        an alias for a primitive, and the checker compares an
+        imported declaration only when the declaration at the
+        end of its chain of names is a tagged union or a
+        record (G215, G226), so a replacement is compared
+        against nothing here and only `tsc` on a full `glyph
+        build` would see a mismatch"
+    },
+    {
+      "entity": "reader::sizer",
+      "verdict": "NOT_INDEXED",
+      "diagnostic": null,
+      "because": "this site reads the name rather than
+        applying it, so no argument is paired with a
+        parameter here, and Glyph does not compare a
+        function value's parameter types against the type
+        its use context expects"
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Aynı düzenleme, üç yer, üç hüküm ve her birindeki <code>because</code>, bir kategori etiketi değil, derleyicinin ürettiği cümlenin ta kendisidir. Bu, derleyicinin bu değişiklik için kendi testini yansıtır (<code>glyph-cli/tests/agent_loop.rs</code> içindeki <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>): test düzenlemeyi sonradan yapar ve E0211'in tam olarak <code>WILL_FAIL</code>'in söylediği yerde ortaya çıktığını ve derleyicinin diğer ikisinde sessiz kaldığını kontrol eder.
+        </p>
+
+        <h2 class="block-label">Gerçek bir uygulamada</h2>
+        <p>
+          Bu depodaki on bir dosyalı bir CSV sorgu motoru olan <code>examples/apps/csvql</code>'in bugün dört variant'lı tek bir tagged union'ı var: <code>Value</code>. <code>glyph_impact</code>'e beşinci bir variant (<code>Blob</code>) eklemenin ne yapacağını sormak, 4 dosyada 10 match yeri bulur: 8'i derlemede başarısız olacak, 2'si ise yeni variant'ı sessizce kabul edecek bir catch-all arm'ı içeriyor. Variant gerçekten eklendiğinde derleyici tam olarak 8 <code>E0200</code> hatası bildirir, tam olarak tahmin edilen 8 yerde, ve 2 <code>ABSORBS</code> yerinde önce de sonra da hiçbir şey söylemez. Aynı uygulamada catch-all arm'lar için bir metin araması, yani araç olmadan yapacağınız şey, aynı 2 gerçek yeri 20 sonuç arasına gömülü olarak bulur (precision 0.10) ve başarısız olan 8 yer hakkında hiçbir şey söylemez, çünkü bir <code>match</code>'in hangi tipi incelediğine dair hiçbir fikri yoktur.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>Altı kapalı değişiklik türü (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) ve beş kapalı hüküm; etkilenen her yer için gerekçesi ve diagnostic koduyla bir kayıt. <code>change_signature_type</code>, checker'ın kendi karşılaştırma kurallarına göre çağrı argümanı başına belirlenir ve bir yer, argümanlarının en zayıfı kadardır. Bir JSX elemanı indirgendiği çağrı olarak belirlenir: <code>&lt;Card title="x" /&gt;</code>, <code>Card</code>'a geçirilen tek bir props record'udur ve her attribute, kontrol edildiği alana karşı, aynı tipteki bir çağrı argümanının alacağı hükümle listelenir. Kapsam (bir aramanın neyi okuyup neyi okuyamadığı) tüm yanıt için bir kez değil, arama başına belirtilir ve her düğüm Glyph kaynağından mı, bir <code>extern_ts</code> kaçışından mı yoksa opak bir <code>.d.ts</code>'ten mi geldiğini taşır.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Nerede duruyor</h3>
+          <p>Derinlik bir adımda kesin, ötesinde boştur: Glyph bir tanımın tipini asla gövdesinden çıkarmaz, bu yüzden çağrılan bir fonksiyonun tipi çağıranın imzasına ulaşamaz ve X'teki bir değişiklik yalnızca X'i adlandıran ifadeleri geçersiz kılabilir. Derinlik 2 isterseniz yanıt, bunun yerine tam soruyu adlandıran bir <code>next_query</code> ile döner, çünkü ikinci bir adımın ihtiyaç duyduğu şey birinin ilk yere yapacağı onarımdır ve o onarım henüz yoktur. <code>UNDETERMINED</code> ve <code>NOT_INDEXED</code> farklı iddialardır: checker'ın tipini bilmediği bir argüman ya da hiçbir kuralın okumadığı bir alanla eşleşen bir record <code>UNDETERMINED</code>'dır (baktı ve karar veremedi); çağrılmak yerine bir değer olarak okunan bir fonksiyon <code>NOT_INDEXED</code>'dır (soru orada hiç sorulamazdı). Dikkat edilmesi gereken <code>ABSORBS</code>'tur: yer derlenmeye devam eder ve yine de yanlış olduğu kanıtlanır; yeşil bir build bunu size asla göstermez.</p>
+        </div>
+      </div>

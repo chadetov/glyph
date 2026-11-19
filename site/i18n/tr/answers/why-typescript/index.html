@@ -1,0 +1,50 @@
+---
+title: Neden TypeScript, neden Go ya da yeni bir dil değil? · Glyph
+description: TypeScript, ajanların zaten en çok kod yazdığı ve npm, React ile Node'un bulunduğu yer. Glyph'in dosya dosya benimsenebilmesinin tek nedeni hedefinin TS olması.
+source_hash: 9f7bf2e8baaad5d9
+prev: /answers/greppability/ | &larr; Önceki | Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi?
+next: /answers/vs-tooled-ts/ | Sonraki &rarr; | Neden sadece strict TypeScript + zod + eslint + ts-pattern değil?
+---
+      <p class="q-eyebrow">04 &middot; Konumlandırma</p>
+      <h1 class="q-title">Neden TypeScript, neden Go ya da yeni bir dil değil?</h1>
+
+      <p class="short-answer">
+        Çünkü TypeScript, ajanların zaten en çok kod yazdığı ve ekosisteminizin (npm, React, Node) bulunduğu yer. Glyph'in dosya dosya benimsenebilmesinin <strong>tek nedeni hedefinin TS olması</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Yeni bir dilin kaderi, sıfırdan yayına çıkmaya nasıl gittiğinize bağlıdır. TypeScript'e derlemek, kod tabanınızdan, bundler'ınızdan, test çalıştırıcınızdan ya da deploy sürecinizden hiç ayrılmamanız demektir. Glyph, zaten sahip olduğunuz <code>.ts</code> dosyalarının yanına yerleşir ve import'lar iki yönde de sorunsuz çalışır:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">aynı proje: .glyph ve .ts yan yana</span>
+<pre><span class="cm">// cart.glyph: new, written in Glyph</span>
+import { formatPrice } from "./format.ts"
+
+<span class="cm">// checkout.ts: existing, untouched</span>
+import { total } from "./cart.glyph"</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Go'yu bir TypeScript kod tabanına dosya dosya ekleyemezsiniz: farklı bir çalışma zamanı, farklı bir modül sistemi, farklı bir ekosistem. Hedefin TS olmasının nedeni bu tek gerçektir.
+        </p>
+        <p>
+          <strong>Go hakkında haklı bir nokta:</strong> küçük ve kararlı anahtar kelime yüzeyi, bir ajana yanılmak için daha az yol bırakır. Katılıyoruz: Glyph'in her şeyi yapmanın tek bir yolu olan, bilerek küçük tutulmuş bir çekirdeği korumasının nedeni de tam olarak bu. Go, doğrudan bir karşılaştırma için yoğunluk <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmark'ımızda</a> yer alıyor.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>Temiz TypeScript çıktısı, mevcut <code>.ts</code> dosyalarınızla iki yönlü import'lar ve Node'un ya da bir tarayıcı bundle'ının çalıştığı her yerde çalışan küçük bir çekirdek.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Ölçülüyor</h3>
+          <p>Diller arası benchmark (Glyph, TS, Go, Python, Rust) derlem büyüdükçe büyüyor; böylece &ldquo;küçük yüzey&rdquo; iddiası bir iddia olarak kalmıyor, bir rakam oluyor.</p>
+        </div>
+      </div>

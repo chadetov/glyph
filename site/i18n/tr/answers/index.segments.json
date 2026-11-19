@@ -1,0 +1,452 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/index.html",
+  "locale": "tr",
+  "source_hash": "f574b9ebcd22635e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Answers · what engineers ask about Glyph · Glyph",
+      "tr": "Yanıtlar · mühendislerin Glyph hakkında sordukları · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Specific answers to what engineers ask about Glyph: what stops silent breakage, React and npm, why not tooled TypeScript, and debugging in production.",
+      "tr": "Mühendislerin Glyph hakkında sorduklarına somut yanıtlar: sessiz bozulmaları ne engelliyor, React ve npm, neden araçlarla donatılmış TypeScript değil ve production'da debug."
+    },
+    {
+      "id": "h-4ad0a0a6",
+      "kind": "html",
+      "en": "Answers",
+      "tr": "Yanıtlar"
+    },
+    {
+      "id": "h-b8cc598e",
+      "kind": "html",
+      "en": "What engineers <span class=\"accent\">ask about Glyph</span>.",
+      "tr": "Mühendislerin <span class=\"accent\">Glyph hakkında sordukları</span>."
+    },
+    {
+      "id": "h-18cc597f",
+      "kind": "html",
+      "en": "Each answer shows a worked example and ends with what does not work yet. Start wherever your doubt is. New to Glyph? The <a href=\"/start/\">10-minute Start Here</a> is the fastest first run.",
+      "tr": "Her yanıt çalışan bir örnek gösterir ve henüz neyin çalışmadığıyla biter. Şüpheniz nerede ise oradan başlayın. Glyph'te yeni misiniz? İlk çalıştırma için en hızlı yol <a href=\"/start/\">10 dakikalık başlangıç rehberi</a>."
+    },
+    {
+      "id": "h-041d266f",
+      "kind": "html",
+      "en": "The problem it solves",
+      "tr": "Çözdüğü problem"
+    },
+    {
+      "id": "h-7289e459",
+      "kind": "html",
+      "en": "What an agent's edit can break without anyone noticing, and what Glyph does about each.",
+      "tr": "Bir ajanın düzenlemesinin kimse fark etmeden neleri bozabileceği ve Glyph'in her biri için ne yaptığı."
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "Bir ajanın kodumu sessizce bozmasını ne engelliyor?"
+    },
+    {
+      "id": "h-bdd8080c",
+      "kind": "html",
+      "en": "No <code>any</code>, no casts, exhaustive <code>match</code>, runtime-checked types, and colocated tests that run on every build.",
+      "tr": "<code>any</code> yok, cast yok, kapsamı tam <code>match</code>, çalışma zamanında kontrol edilen tipler ve her build'de çalışan, kodun yanındaki testler."
+    },
+    {
+      "id": "h-b91718bd",
+      "kind": "html",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?"
+    },
+    {
+      "id": "h-e84f06e7",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout, nothing repacked.",
+      "tr": "Tek satırlık bir değişiklik tek satırlık bir diff'tir. Tek bir kanonik düzen, hiçbir şey yeniden paketlenmez."
+    },
+    {
+      "id": "h-546a7b11",
+      "kind": "html",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi?"
+    },
+    {
+      "id": "h-9cc9e5b6",
+      "kind": "html",
+      "en": "One name, one declaration form. <code>grep</code> always lands on it.",
+      "tr": "Tek isim, tek tanım biçimi. <code>grep</code> her zaman onu bulur."
+    },
+    {
+      "id": "h-c6330c11",
+      "kind": "html",
+      "en": "Deciding whether to adopt it",
+      "tr": "Benimseyip benimsememeye karar vermek"
+    },
+    {
+      "id": "h-22146028",
+      "kind": "html",
+      "en": "Why a language rather than more tooling, and what taking it on costs.",
+      "tr": "Neden daha fazla araç değil de bir dil ve onu benimsemenin maliyeti ne."
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "Neden TypeScript, neden Go ya da yeni bir dil değil?"
+    },
+    {
+      "id": "h-851a58c8",
+      "kind": "html",
+      "en": "Because that's where your ecosystem is, and it's why adoption is per-file.",
+      "tr": "Çünkü ekosisteminiz orada ve benimsemenin dosya dosya yapılabilmesinin nedeni bu."
+    },
+    {
+      "id": "h-32fb06b2",
+      "kind": "html",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "Neden sadece strict TypeScript + zod + eslint + ts-pattern değil?"
+    },
+    {
+      "id": "h-23c639b0",
+      "kind": "html",
+      "en": "Non-optionality: the language the agent can't config-disable.",
+      "tr": "İsteğe bağlı olmamak: ajanın yapılandırmayla kapatamayacağı bir dil."
+    },
+    {
+      "id": "h-e2f8d2d6",
+      "kind": "html",
+      "en": "Is Glyph worth it if I'm not using AI?",
+      "tr": "Yapay zekâ kullanmıyorsam Glyph'e değer mi?"
+    },
+    {
+      "id": "h-9d32c00a",
+      "kind": "html",
+      "en": "Yes: the guarantees are plain engineering wins a human gets directly.",
+      "tr": "Evet: garantiler, bir insanın doğrudan faydalandığı düz mühendislik kazanımlarıdır."
+    },
+    {
+      "id": "h-e92baf62",
+      "kind": "html",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "Bir yapay zekâ neredeyse hiç görmediği bir dili güvenilir şekilde yazabilir mi?"
+    },
+    {
+      "id": "h-d8728111",
+      "kind": "html",
+      "en": "Most of what a model knows about TypeScript carries over, and the compiler names the places it doesn't.",
+      "tr": "Bir modelin TypeScript hakkında bildiklerinin çoğu aynen geçerlidir; geçerli olmadığı yerleri derleyici adıyla söyler."
+    },
+    {
+      "id": "h-7af5847c",
+      "kind": "html",
+      "en": "Will a new Glyph release break my build?",
+      "tr": "Yeni bir Glyph sürümü build'imi bozar mı?"
+    },
+    {
+      "id": "h-722022d5",
+      "kind": "html",
+      "en": "Projects pin the compiler exactly, so no release arrives by accident. <code>glyph doctor</code> says one exists; <code>glyph upgrade</code> takes it.",
+      "tr": "Projeler derleyiciyi tam sürüme sabitler, böylece hiçbir sürüm kazara gelmez. <code>glyph doctor</code> yeni bir sürüm olduğunu söyler; <code>glyph upgrade</code> onu alır."
+    },
+    {
+      "id": "h-3c3ebd0a",
+      "kind": "html",
+      "en": "Using it with your stack",
+      "tr": "Kendi stack'inizle kullanmak"
+    },
+    {
+      "id": "h-ec9e0bd8",
+      "kind": "html",
+      "en": "npm packages, an existing app, API boundaries, React.",
+      "tr": "npm paketleri, mevcut bir uygulama, API sınırları, React."
+    },
+    {
+      "id": "h-e9a25225",
+      "kind": "html",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?"
+    },
+    {
+      "id": "h-3731bc81",
+      "kind": "html",
+      "en": "Yes: import any npm package, keep a hand-written <code>.ts</code> shim where you need one, and import Glyph back into <code>.ts</code>.",
+      "tr": "Evet: herhangi bir npm paketini import edin, gerektiği yerde elle yazılmış bir <code>.ts</code> shim'i tutun ve Glyph'i <code>.ts</code>'ye geri import edin."
+    },
+    {
+      "id": "h-68c07ce1",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "Glyph'i mevcut uygulamamın içinde benimseyebilir miyim, yoksa ya hep ya hiç mi?"
+    },
+    {
+      "id": "h-40d4518d",
+      "kind": "html",
+      "en": "No rewrite: the domain core in Glyph, the rest in TypeScript. The emitted TypeScript is imported by a stock Vite app like any other module.",
+      "tr": "Yeniden yazmak yok: domain çekirdeği Glyph'te, geri kalanı TypeScript'te. Üretilen TypeScript, standart bir Vite uygulaması tarafından diğer modüller gibi import edilir."
+    },
+    {
+      "id": "h-01f55cfa",
+      "kind": "html",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "Her API için elle validator yazmam gerekiyor mu?"
+    },
+    {
+      "id": "h-aa1959d8",
+      "kind": "html",
+      "en": "No. Declaring a type generates its validator.",
+      "tr": "Hayır. Bir tip tanımlamak onun validator'ını üretir."
+    },
+    {
+      "id": "h-aacedd15",
+      "kind": "html",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "API spesifikasyonumdan tipli bir istemci ve sunucu üretebilir miyim?"
+    },
+    {
+      "id": "h-56e357b7",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: committed, greppable code.",
+      "tr": "<code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: commit edilen, grep'lenebilen kod."
+    },
+    {
+      "id": "h-03457be7",
+      "kind": "html",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "React ile çalışıyor mu: component'ler, hook'lar ve Context?"
+    },
+    {
+      "id": "h-83e1d236",
+      "kind": "html",
+      "en": "First-class JSX, hooks, and exhaustive reducer actions.",
+      "tr": "Birinci sınıf JSX, hook'lar ve kapsamı tam reducer action'ları."
+    },
+    {
+      "id": "h-d14ef0f9",
+      "kind": "html",
+      "en": "How do I share mutable state between functions?",
+      "tr": "Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım?"
+    },
+    {
+      "id": "h-9a4c4436",
+      "kind": "html",
+      "en": "A store: a <code>const</code> whose <code>.set</code>/<code>.update</code> are the write-surface.",
+      "tr": "Bir store: <code>.set</code>/<code>.update</code> metotları yazma yüzeyi olan bir <code>const</code>."
+    },
+    {
+      "id": "h-450a537d",
+      "kind": "html",
+      "en": "What you can build with it",
+      "tr": "Onunla neler yapabilirsiniz"
+    },
+    {
+      "id": "h-a57d1773",
+      "kind": "html",
+      "en": "The language and standard library, by the kind of program.",
+      "tr": "Program türüne göre dil ve standart kütüphane."
+    },
+    {
+      "id": "h-49ee7f98",
+      "kind": "html",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?"
+    },
+    {
+      "id": "h-6f5d2044",
+      "kind": "html",
+      "en": "Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.",
+      "tr": "Modül görünürlüğü, interface sınırları, defer, herhangi bir değer gibi çalışan ve tipini taşıyan bir <code>match</code> ve <code>slice</code>, <code>pad_start</code> ve <code>fold</code> içeren bir standart kütüphane."
+    },
+    {
+      "id": "h-a3ec390e",
+      "kind": "html",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "Ona parayla ve kontrol etmediğim girdilerle güvenebilir miyim?"
+    },
+    {
+      "id": "h-bc5ff3de",
+      "kind": "html",
+      "en": "Exact decimals and ids, invariants as types, injection as a compile error.",
+      "tr": "Kesin ondalık sayılar ve id'ler, tip olarak değişmezler, derleme hatası olarak injection."
+    },
+    {
+      "id": "h-97be9762",
+      "kind": "html",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "Bir web sayfası sunabilir miyim, yoksa yalnızca JSON API mi?"
+    },
+    {
+      "id": "h-a3e56df8",
+      "kind": "html",
+      "en": "HTML, redirects, response headers, and form posts, without a hand-written server.",
+      "tr": "Elle yazılmış bir sunucu olmadan HTML, yönlendirmeler, yanıt header'ları ve form gönderimleri."
+    },
+    {
+      "id": "h-e3bd5d73",
+      "kind": "html",
+      "en": "Can I write a program someone types into?",
+      "tr": "Birinin içine yazı yazdığı bir program yazabilir miyim?"
+    },
+    {
+      "id": "h-b04febf4",
+      "kind": "html",
+      "en": "<code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.",
+      "tr": "<code>io.read_line</code>, stdin'in kapanmasını beklemek yerine her satıra geldiği anda yanıt verir; böylece bir REPL ya da oyun döngüsü çalışır."
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "Bir sunucu yazabilir miyim, yoksa süreç hemen çıkıyor mu?"
+    },
+    {
+      "id": "h-d69c3e64",
+      "kind": "html",
+      "en": "<code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.",
+      "tr": "<code>main</code> kurulumu yapar ve döner; süreç, bekleyen socket'ler ve timer'lar olduğu sürece ayakta kalır, Node'un kullandığı kuralın aynısı."
+    },
+    {
+      "id": "h-0a58139d",
+      "kind": "html",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "Binary veriyle çalışabilir miyim, yoksa her şey string mi?"
+    },
+    {
+      "id": "h-56281a97",
+      "kind": "html",
+      "en": "<code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.",
+      "tr": "<code>std/bytes</code> bir oktet dizisidir; bozuk girdiyi atlamak yerine reddeden codec'leri ve gerçek bir anahtar alan HMAC'leri vardır."
+    },
+    {
+      "id": "h-966247fe",
+      "kind": "html",
+      "en": "Working with an agent",
+      "tr": "Bir ajanla çalışmak"
+    },
+    {
+      "id": "h-7495dd12",
+      "kind": "html",
+      "en": "Questions an agent asks the compiler before and after an edit.",
+      "tr": "Bir ajanın bir düzenlemeden önce ve sonra derleyiciye sorduğu sorular."
+    },
+    {
+      "id": "h-f56d1cc7",
+      "kind": "html",
+      "en": "Can the compiler tell me what a change will break before I make it?",
+      "tr": "Derleyici bir değişikliğin neyi bozacağını ben yapmadan önce söyleyebilir mi?"
+    },
+    {
+      "id": "h-6e99d2f9",
+      "kind": "html",
+      "en": "<code>glyph_impact</code>: one verdict per site, from a closed list, with the reason, before you touch the file.",
+      "tr": "<code>glyph_impact</code>: dosyaya dokunmadan önce, kapalı bir listeden, gerekçesiyle birlikte her yer için tek bir hüküm."
+    },
+    {
+      "id": "h-d339a2b7",
+      "kind": "html",
+      "en": "Can my agent ask the compiler what a symbol is before it writes code?",
+      "tr": "Ajanım kod yazmadan önce derleyiciye bir sembolün ne olduğunu sorabilir mi?"
+    },
+    {
+      "id": "h-e85a7e3e",
+      "kind": "html",
+      "en": "<code>glyph_symbol</code>: a union's variants with the syntax that constructs each, in one call. Eleven tools, each with a <code>glyph query</code> verb.",
+      "tr": "<code>glyph_symbol</code>: bir union'ın variant'ları, her birini oluşturan sözdizimiyle, tek çağrıda. On bir araç, her biri bir <code>glyph query</code> fiiliyle."
+    },
+    {
+      "id": "h-e2d1e436",
+      "kind": "html",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "Build başarısız olduğunda derleyici ajanıma nasıl düzelteceğini söylüyor mu?"
+    },
+    {
+      "id": "h-9f5626a6",
+      "kind": "html",
+      "en": "The diagnostic carries the symbol at fault, the legal alternatives, and what a repairing edit must not break. <code>glyph fix</code> writes the ones the compiler settles on its own.",
+      "tr": "Diagnostic, hatalı sembolü, geçerli alternatifleri ve onarıcı bir düzenlemenin bozmaması gerekenleri taşır. Derleyicinin kendi başına karara bağladıklarını <code>glyph fix</code> yazar."
+    },
+    {
+      "id": "h-bbccff1f",
+      "kind": "html",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?"
+    },
+    {
+      "id": "h-f3a7c0f2",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits the diagnostics, the prelude, the stdlib signatures and the tool manual out of the compiler's own tables, and a gate fails when a hand-written copy disagrees.",
+      "tr": "<code>glyph llms --json</code>, diagnostic'leri, prelude'u, stdlib imzalarını ve araç kılavuzunu derleyicinin kendi tablolarından üretir; elle yazılmış bir kopya uyuşmadığında bir kontrol başarısız olur."
+    },
+    {
+      "id": "h-8479d742",
+      "kind": "html",
+      "en": "Errors, editors and production",
+      "tr": "Hatalar, editörler ve production"
+    },
+    {
+      "id": "h-2c63defe",
+      "kind": "html",
+      "en": "What you see when something is wrong, from the editor to on-call.",
+      "tr": "Bir şey yanlış olduğunda editörden nöbetçiye kadar ne gördüğünüz."
+    },
+    {
+      "id": "h-173622d8",
+      "kind": "html",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "Editör, debug ve hata deneyimi nasıl?"
+    },
+    {
+      "id": "h-dae86273",
+      "kind": "html",
+      "en": "A language server for any LSP editor, and errors with a stable code that name the fix.",
+      "tr": "Her LSP editörü için bir dil sunucusu ve düzeltmeyi adıyla söyleyen, kararlı kodlu hatalar."
+    },
+    {
+      "id": "h-d7091fd1",
+      "kind": "html",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor?"
+    },
+    {
+      "id": "h-81b11c93",
+      "kind": "html",
+      "en": "<code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.",
+      "tr": "<code>await</code> bağlamı, değeri olmayan bir <code>match</code> arm'ı ve eksik bir <code>mut</code>, üretilen TypeScript'e göre değil kendi kaynak kodunuza göre bildirilir."
+    },
+    {
+      "id": "h-f32168df",
+      "kind": "html",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum?"
+    },
+    {
+      "id": "h-b7a930d1",
+      "kind": "html",
+      "en": "Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.",
+      "tr": "Hangi alan, hangi kuralı ihlal ettiği, ihlal ettiği <code>where</code> koşulu ve üzerinde dallanabileceğiniz bir <code>code</code>."
+    },
+    {
+      "id": "h-2a9e070d",
+      "kind": "html",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "Gece 3'te production'da bozulduğunda nöbetçi ne görüyor?"
+    },
+    {
+      "id": "h-ba5d5c26",
+      "kind": "html",
+      "en": "Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.",
+      "tr": "Sahibi olduğunuz okunabilir TS, <code>.glyph</code> dosyanıza geri götüren source map'ler ve <code>build</code>'in bildirdiğini bildiren bir <code>run</code>."
+    },
+    {
+      "id": "h-366d0e89",
+      "kind": "html",
+      "en": "Read them in order &rarr;",
+      "tr": "Sırayla okuyun &rarr;"
+    }
+  ]
+}

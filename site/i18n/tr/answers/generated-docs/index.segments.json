@@ -1,0 +1,230 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/generated-docs/index.html",
+  "locale": "tr",
+  "source_hash": "31b76a81a51f0211",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Is the documentation my agent reads generated? · Glyph",
+      "tr": "Ajanımın okuduğu dokümantasyon üretiliyor mu? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph llms --json emits the diagnostics, the prelude, the stdlib signatures and the language decisions from the compiler's own tables, so they cannot drift.",
+      "tr": "glyph llms --json, diagnostic'leri, prelude'u, stdlib imzalarını ve dil kararlarını derleyicinin kendi tablolarından üretir; bu yüzden gerçeklikten sapamazlar."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Önceki"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "Build başarısız olduğunda derleyici ajanıma nasıl düzelteceğini söylüyor mu?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "Editör, debug ve hata deneyimi nasıl?"
+    },
+    {
+      "id": "h-594c6826",
+      "kind": "html",
+      "en": "24 &middot; Docs that can't drift",
+      "tr": "24 &middot; Sapamayan dokümanlar"
+    },
+    {
+      "id": "h-bbccff1f",
+      "kind": "html",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?"
+    },
+    {
+      "id": "h-c50aeece",
+      "kind": "html",
+      "en": "Generated. <code>glyph llms --json</code> emits the diagnostic catalogue, the prelude, the stdlib signatures, the language decisions and the tool manual out of the compiler's own tables, and a gate fails the build when a hand-written copy disagrees. Every Glyph example in the document an agent bootstraps from is compiled, including the wrong ones.",
+      "tr": "Üretiliyor. <code>glyph llms --json</code>, diagnostic kataloğunu, prelude'u, stdlib imzalarını, dil kararlarını ve araç kılavuzunu derleyicinin kendi tablolarından üretir; elle yazılmış bir kopya uyuşmadığında bir kontrol build'i başarısız kılar. Bir ajanın başlangıç bilgisini aldığı dokümandaki her Glyph örneği derlenir, yanlış olanlar dahil."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "h-c74ff5a4",
+      "kind": "html",
+      "en": "The question is not rhetorical, because the honest answer used to be \"written by hand, and yes.\" The agent bootstrap said the MCP server \"exposes five tools\" and listed five. The server served seven. The two the server's own instructions tell an agent to reach for first appeared in it zero times. The 58 error codes lived in three hand-maintained copies, checked only for whether the code string was present. Of 19 Glyph examples in that document, 2 were compiled and 17 were skipped as fragments.",
+      "tr": "Bu soru retorik değil, çünkü dürüst yanıt eskiden \"elle yazılmış ve evet\" idi. Ajanın başlangıç dokümanı MCP sunucusunun \"beş araç sunduğunu\" söylüyor ve beş tane listeliyordu. Sunucu yedi araç sunuyordu. Sunucunun kendi talimatlarının bir ajana ilk önce kullanmasını söylediği iki araç dokümanda sıfır kez geçiyordu. 58 hata kodu elle bakımı yapılan üç kopyada duruyordu ve yalnızca kod dizesinin var olup olmadığı kontrol ediliyordu. O dokümandaki 19 Glyph örneğinden 2'si derleniyor, 17'si parça olarak atlanıyordu."
+    },
+    {
+      "id": "h-b65fc913",
+      "kind": "html",
+      "en": "Every one of those is the same defect. A document about a compiler, maintained beside the compiler, by people who meant well. An agent that reads it cannot tell which sentences are still true, and neither could we.",
+      "tr": "Bunların her biri aynı kusur. Bir derleyici hakkında, derleyicinin yanında, iyi niyetli insanlar tarafından tutulan bir doküman. Onu okuyan bir ajan hangi cümlelerin hâlâ doğru olduğunu ayırt edemez, biz de edemiyorduk."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Görün"
+    },
+    {
+      "id": "h-b81e3a56",
+      "kind": "html",
+      "en": "Seven sections, each read off a table the compiler already has. A diagnostic entry carries the catalogue sentence, the one-line fix, the long explanation, and the help and note taken from a diagnostic the compiler drew. 51 of the 77 codes also carry a wrong program that draws the code, compiled at the moment you ask; the other 26 say the corpus has no case for it.",
+      "tr": "Her biri derleyicinin zaten sahip olduğu bir tablodan okunan yedi bölüm. Bir diagnostic kaydı katalog cümlesini, tek satırlık düzeltmeyi, uzun açıklamayı ve derleyicinin ürettiği bir diagnostic'ten alınan help ve note'u taşır. 77 kodun 51'i ayrıca o kodu tetikleyen yanlış bir program taşır ve bu program siz sorduğunuz anda derlenir; diğer 26'sı derlemde onun için bir durum olmadığını söyler."
+    },
+    {
+      "id": "h-25ad2c9c",
+      "kind": "html",
+      "en": "glyph llms --json, the E0200 entry (trimmed)",
+      "tr": "glyph llms --json, E0200 kaydı (kısaltılmış)"
+    },
+    {
+      "id": "h-3b207613",
+      "kind": "html",
+      "en": "77 codes come out of one table in the compiler, and <code>docs/error-codes.md</code> and the catalogue table in the agent bootstrap are written from it by a script that fails on drift. Merging the three copies that used to exist turned up a code with an explanation and no place in the list, and a row whose escaped pipe had quietly broken the table it sat in.",
+      "tr": "77 kod derleyicideki tek bir tablodan çıkar; <code>docs/error-codes.md</code> ve ajan başlangıç dokümanındaki katalog tablosu, sapma olduğunda başarısız olan bir script tarafından ondan yazılır. Eskiden var olan üç kopyayı birleştirmek, açıklaması olup listede yeri olmayan bir kodu ve escape edilmiş dikey çizgisi içinde bulunduğu tabloyu sessizce bozmuş bir satırı ortaya çıkardı."
+    },
+    {
+      "id": "h-7e62b4b3",
+      "kind": "html",
+      "en": "The prelude, the stdlib, and the decisions",
+      "tr": "Prelude, stdlib ve kararlar"
+    },
+    {
+      "id": "h-527db667",
+      "kind": "html",
+      "en": "The prelude is the 24 names the resolver resolves against, with what each one is. The stdlib is 40 modules and 340 exports, and each signature is read out of the checker's own tables and printed by the same type printer a diagnostic uses, so the signature in the document is the signature the checker will hold you to. The exports split three ways and never two: 129 signatures are modeled in every position, 46 carry a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code> with a line saying how many positions are left, and 165 have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is never published as a complete signature.",
+      "tr": "Prelude, resolver'ın çözümleme yaptığı 24 isimden ve her birinin ne olduğundan oluşur. Stdlib 40 modül ve 340 export'tur; her imza checker'ın kendi tablolarından okunur ve bir diagnostic'in kullandığı tip yazıcısıyla yazdırılır, yani dokümandaki imza checker'ın sizi bağlı tutacağı imzanın ta kendisidir. Export'lar üçe ayrılır, asla ikiye değil: 129 imza her konumda modellenmiştir, 46'sı bir parametre tipinin olması gereken yerde <code>?</code> taşır ve kaç konum kaldığını söyleyen bir satırla <code>partially_modeled</code> olarak sayılır, 165'inin ise hiç imzası yoktur. Bir <code>?</code>, yazdırılmış bir <code>unknown</code>'dır, bu yüzden hiçbir zaman tam bir imza olarak yayımlanmaz."
+    },
+    {
+      "id": "h-1016682f",
+      "kind": "html",
+      "en": "\"stdlib\"",
+      "tr": "\"stdlib\""
+    },
+    {
+      "id": "h-7b998f67",
+      "kind": "html",
+      "en": "\"prelude\" and \"decisions\"",
+      "tr": "\"prelude\" ve \"decisions\""
+    },
+    {
+      "id": "h-d02a769f",
+      "kind": "html",
+      "en": "<code>duplicate_numbers</code> is there because the generator reads the spec's own list, and the first time it ran it found two different decisions both numbered D43 and printed <code>\"duplicate_numbers\": [43]</code>. It reports a collision rather than deduplicating it, which is how anyone found out. Nothing in the compiler keys on a D number, so no program was affected; a reader following a citation was. That one is fixed: D43 is the <code>mut</code>-across-<code>await</code> rule and <code>never</code> is D47, so the list comes back empty. There are 49 decisions today, D1 to D49.",
+      "tr": "<code>duplicate_numbers</code> orada, çünkü üretici spesifikasyonun kendi listesini okur ve ilk çalıştığında ikisi de D43 numaralı iki farklı karar buldu ve <code>\"duplicate_numbers\": [43]</code> yazdırdı. Çakışmayı tekilleştirmek yerine bildirir; bunu fark etmemizin yolu da buydu. Derleyicide hiçbir şey bir D numarasına bağlı değildir, yani hiçbir program etkilenmedi; bir atfı takip eden okuyucu etkilendi. Bu düzeltildi: D43 <code>await</code> boyunca <code>mut</code> kuralı, <code>never</code> ise D47; böylece liste boş döner. Bugün D1'den D49'a kadar 49 karar var."
+    },
+    {
+      "id": "h-8539cac7",
+      "kind": "html",
+      "en": "The wrong programs are readable too",
+      "tr": "Yanlış programlar da okunabilir"
+    },
+    {
+      "id": "h-b2d0bb7d",
+      "kind": "html",
+      "en": "The compiler's negative corpus is a set of programs that must fail, with the code each one must draw. It used to be visible only to <code>cargo test</code>. An agent learning what a rule refuses is exactly the reader it was written for, so it answers now, and each case is compiled when you ask so the diagnostic beside it is this compiler's.",
+      "tr": "Derleyicinin negatif derlemi, her birinin tetiklemesi gereken kodla birlikte, başarısız olması gereken programlardan oluşan bir kümedir. Eskiden yalnızca <code>cargo test</code> onu görebiliyordu. Bir kuralın neyi reddettiğini öğrenen bir ajan, tam da onun yazıldığı okuyucudur; bu yüzden artık yanıt veriyor ve her durum siz sorduğunuzda derleniyor, böylece yanındaki diagnostic bu derleyicinin diagnostic'i oluyor."
+    },
+    {
+      "id": "h-eb5a2b6c",
+      "kind": "html",
+      "en": "glyph llms --negative E0008",
+      "tr": "glyph llms --negative E0008"
+    },
+    {
+      "id": "h-0eeb8564",
+      "kind": "html",
+      "en": "With no code it lists 117 cases over 53 of the 77 codes in 0.1.149, and names the 24 that have none rather than leaving you to infer coverage from what came back. A second corpus, <code>catches/</code>, pairs a program <code>tsc --strict</code> accepts with the Glyph that refuses it, and those come back on the same answer where they exist. Both are embedded from the directories themselves, so a case added to either is in the answer with no second edit to remember.",
+      "tr": "Kod verilmezse 0.1.149'da 77 kodun 53'ü üzerinde 117 durum listeler ve kapsamı dönenlere bakıp çıkarmanızı beklemek yerine hiç durumu olmayan 24 kodu adıyla söyler. İkinci bir derlem olan <code>catches/</code>, <code>tsc --strict</code>'in kabul ettiği bir programı onu reddeden Glyph ile eşleştirir; var oldukları yerde bunlar da aynı yanıtta gelir. İkisi de doğrudan dizinlerin kendisinden gömülür, yani herhangi birine eklenen bir durum, hatırlanması gereken ikinci bir düzenleme olmadan yanıtta yer alır."
+    },
+    {
+      "id": "h-94746f75",
+      "kind": "html",
+      "en": "Every example compiles, including the wrong ones",
+      "tr": "Her örnek derlenir, yanlış olanlar dahil"
+    },
+    {
+      "id": "h-31753a2c",
+      "kind": "html",
+      "en": "Generating the reference is half of it. The other half is the prose an agent bootstraps from, where the examples are the part it copies. Every Glyph fence in that document is either a complete program that compiles, or is marked as a fragment of a named complete example whose lines it has to appear in. It was 19 fences with 2 compiled; it is 24 with 20 compiled and 4 marked, and none skipped. The stdlib reference went from 4 of 8 to 8 of 8.",
+      "tr": "Referansı üretmek işin yarısı. Diğer yarısı, bir ajanın başlangıç bilgisini aldığı düz yazı; buradaki örnekler ajanın kopyaladığı kısımdır. O dokümandaki her Glyph kod bloğu ya derlenen tam bir programdır ya da satırlarının içinde yer alması gereken adlandırılmış tam bir örneğin parçası olarak işaretlenmiştir. Eskiden 19 bloktan 2'si derleniyordu; şimdi 24 bloktan 20'si derleniyor, 4'ü işaretli ve hiçbiri atlanmıyor. Stdlib referansı 8'de 4'ten 8'de 8'e çıktı."
+    },
+    {
+      "id": "h-d4615d6d",
+      "kind": "html",
+      "en": "A fence can also be marked as a program that must fail, naming the code it draws, which is how the document carries the five wrong forms it warns you about: the one that draws <code>E0228</code>, the one that draws <code>E0008</code>, and three more. A warning paired with the diagnostic is checkable. A warning written in prose is a promise.",
+      "tr": "Bir kod bloğu, tetiklediği kodu belirterek başarısız olması gereken bir program olarak da işaretlenebilir; doküman sizi uyardığı beş yanlış biçimi böyle taşır: <code>E0228</code>'i tetikleyen, <code>E0008</code>'i tetikleyen ve üç tane daha. Diagnostic'le eşleştirilmiş bir uyarı kontrol edilebilir. Düz yazıyla yazılmış bir uyarı ise bir sözdür."
+    },
+    {
+      "id": "h-10fd6248",
+      "kind": "html",
+      "en": "Compiling the documents found two things reading them was never going to find. An inline triple backtick had read as a fence opener, so 250 lines counted as one snippet and nothing inside them was checked. And a worked server in the stdlib reference called <code>http.serve</code>, which <code>std/http</code> does not export. The function is <code>listen</code>.",
+      "tr": "Dokümanları derlemek, onları okumanın asla bulamayacağı iki şey buldu. Satır içi üçlü bir backtick bir kod bloğu açılışı olarak okunmuştu, bu yüzden 250 satır tek bir parça sayılmış ve içlerindeki hiçbir şey kontrol edilmemişti. Ayrıca stdlib referansındaki çalışan bir sunucu örneği, <code>std/http</code>'nin export etmediği <code>http.serve</code>'ü çağırıyordu. Fonksiyonun adı <code>listen</code>."
+    },
+    {
+      "id": "h-f2abc397",
+      "kind": "html",
+      "en": "What it costs to hand over, and what it stopped costing",
+      "tr": "Teslim etmenin maliyeti ve artık neye mal olmadığı"
+    },
+    {
+      "id": "h-2dc5770c",
+      "kind": "html",
+      "en": "The eleven MCP tools used to carry their whole manual in the <code>tools/list</code> reply, which every session pays for on connect: 31,446 bytes of description in a 45,509-byte reply. The same eleven tools carry 8,627 in a 20,386-byte reply now. Nothing was deleted. The previous text is held verbatim, keyed by tool name, and published inside <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away instead of in every session's first reply. A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a count that disagrees with the list, fails the build. That is the check \"exposes five tools\" needed.",
+      "tr": "On bir MCP aracı eskiden tüm kılavuzlarını <code>tools/list</code> yanıtında taşıyordu ve her oturum bağlanırken bunun bedelini öder: 45.509 baytlık bir yanıtta 31.446 bayt açıklama. Aynı on bir araç artık 20.386 baytlık bir yanıtta 8.627 bayt taşıyor. Hiçbir şey silinmedi. Önceki metin araç adına göre anahtarlanmış olarak birebir saklanır ve <code>glyph llms --json</code> içinde yayımlanır; böylece çağrı anında ihtiyaç duyduğunuz sözleşme açıklamada, geri kalanı ise her oturumun ilk yanıtında değil bir komut uzaklıkta. Bir test araç listesini ve dokümanı birlikte okur; böylece sunucunun sunmadığı bir aracı adlandıran bir doküman ya da listeyle uyuşmayan bir sayı build'i başarısız kılar. \"Beş araç sunar\" cümlesinin ihtiyaç duyduğu kontrol buydu."
+    },
+    {
+      "id": "h-ebc0730a",
+      "kind": "html",
+      "en": "All of this is offline and local. <code>glyph llms</code> prints the prose, <code>glyph llms --json</code> the data, <code>glyph llms --negative</code> the wrong programs. The same prose is served at <a href=\"/llms.txt\">llms.txt</a> for an agent with a network and no binary. What an agent asks about <em>your</em> code, rather than about the language, is the <a href=\"/answers/ask-the-compiler/\">query tools</a>.",
+      "tr": "Bunların hepsi çevrimdışı ve yereldir. <code>glyph llms</code> düz yazıyı, <code>glyph llms --json</code> veriyi, <code>glyph llms --negative</code> yanlış programları yazdırır. Aynı düz yazı, ağ erişimi olup binary'si olmayan bir ajan için <a href=\"/llms.txt\">llms.txt</a> adresinde sunulur. Bir ajanın dil hakkında değil de <em>sizin</em> kodunuz hakkında sorduğu şeyler için <a href=\"/answers/ask-the-compiler/\">sorgu araçları</a> var."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Bugün yayında"
+    },
+    {
+      "id": "h-ef7b0c9f",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler: 77 diagnostic codes, 51 of them with a compiled counter-example, the 32 reserved words, the 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.",
+      "tr": "<code>glyph llms --json</code>, derleyiciden yedi bölüm üretir: 51'i derlenmiş bir karşı örnekle gelen 77 diagnostic kodu, 32 ayrılmış kelime, 24 prelude ismi, 340 export'lu 40 stdlib modülü, spesifikasyondan parse edilen 49 dil kararı ve <code>glyph query</code> fiilleri ile tam kılavuzlarıyla on bir araç. <code>docs/error-codes.md</code> ve başlangıç dokümanının diagnostic tablosu, derleyicinin kendi kod tablosundan, sapma olduğunda başarısız olan ve <code>llms.txt</code>'yi de onunla birlikte yeniden yansıtan bir script tarafından yazılır. Bir test araç kataloğunu sunucunun sunduklarına bağlı tutar. Başlangıç dokümanındaki ve stdlib referansındaki her Glyph kod bloğu ya derlenir ya da derlenen bir bloğun işaretli bir parçasıdır; beş yanlış biçim, her birinin tetiklediği kodla eşleştirilmiş programlardır. <code>glyph llms --negative</code>, <code>cargo test</code>'in çalıştırdığı derlemlerin aynısından yanıt verir."
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "Nerede duruyor"
+    },
+    {
+      "id": "h-5c7219d3",
+      "kind": "html",
+      "en": "Two counts of the wrong programs appear in this document and they count different things: 51 of the 77 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 117 cases over 53 codes in 0.1.149 because it reads the refusals in <code>catches/</code> as well; the next release adds the 22 refusals added to <code>catches/</code> since, for 139 cases over 55 codes. In 0.1.149, 24 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 165 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 175 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.",
+      "tr": "Bu dokümanda yanlış programların iki ayrı sayısı geçiyor ve farklı şeyleri sayıyorlar: 77 kodun 51'i <code>tests/negative/</code>'den bir karşı örnek taşır; <code>glyph llms --negative</code> ise <code>catches/</code>'taki retleri de okuduğu için 0.1.149'da 53 kod üzerinde 117 durum listeler. Sonraki sürüm, o zamandan beri <code>catches/</code>'a eklenen 22 reddi de ekleyerek 55 kod üzerinde 139 duruma çıkarır. 0.1.149'da 24 kodun iki derlemde de yanlış bir programı yoktur ve yanıt bir tane uydurmak yerine onları adıyla söyler. 340 stdlib export'unun 165'i imzasız gelir: gerçekleştirim <code>tsc</code>'nin kontrol ettiği TypeScript'tir ve derleyicinin kendi tabloları onun için hiçbir şey modellemez; bu yüzden <code>std/result::all</code> ya da <code>std/io::println</code> üzerinde <code>glyph_symbol</code>, bu gerekçeyle <code>kind: null</code> bildirir. İmzası olan 175 export'tan 46'sı bir parametre tipinin olması gereken yerde hâlâ <code>?</code> taşır. Ayrıca doküman bir servis değil, indirdiğiniz bir anlık görüntüdür: üzerinde bir retrieval katmanı, embedding'ler ya da bir sohbet arayüzü yoktur."
+    }
+  ]
+}

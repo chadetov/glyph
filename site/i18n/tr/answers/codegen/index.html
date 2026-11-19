@@ -1,0 +1,123 @@
+---
+title: API spesifikasyonumdan tipli bir istemci üretebilir miyim? · Glyph
+description: Evet. glyph gen openapi bir spesifikasyonu tipli bir HTTP istemcisine ya da router'lı sunucu taslaklarına dönüştürür; gen zod da zod şemalarından çalışır. Çıktı düz Glyph'tir.
+source_hash: 6bd6413e23269b0f
+prev: /answers/typed-apis/ | &larr; Önceki | Her API için elle validator yazmam gerekiyor mu?
+next: /answers/react/ | Sonraki &rarr; | React ile çalışıyor mu: component'ler, hook'lar ve Context?
+---
+      <p class="q-eyebrow">12 &middot; Spesifikasyonunuzdan</p>
+      <h1 class="q-title">API spesifikasyonumdan tipli bir istemci ve sunucu üretebilir miyim?</h1>
+
+      <p class="short-answer">
+        Evet. <code>glyph gen openapi</code>'yi bir OpenAPI spesifikasyonuna yönlendirin: <code>--client</code>, her işlem için bir fonksiyon olacak şekilde tipli bir HTTP istemcisi üretir; <code>--handlers</code> ise sunucu taslakları ve çalışan bir <code>route</code> dağıtıcısı üretir. Doğruluk kaynağınız bir <code>zod</code> şemasıysa, <code>glyph gen zod</code> aynısını yapar. Her şey, gizli bir kod üretim adımı olarak değil, sahibi olduğunuz ve düzenlediğiniz <strong>commit edilmiş, grep'lenebilen Glyph</strong> olarak çıkar.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Elle yazılmış API istemcileri ve DTO'ları spesifikasyondan sapar ve bu sapma kimsenin sevmediği bir bug sınıfıdır. Glyph <em>gerçek</em> kod (tipli fonksiyonlar, çalışma zamanı tanımlayıcıları olan gerçek <code>type</code> tanımları) ürettiği için doğruluk kaynağı spesifikasyon olarak kalır ve yeniden üretim bir kara kutu değil, idempotent ve incelenebilir bir diff'tir.
+        </p>
+
+        <h2 class="block-label">Görün: istemci</h2>
+        <p>
+          Her işlem, tipli path parametreleri ve tipli bir istek gövdesi alan ve HTTP <code>Response</code>'u döndüren bir <code>async fn</code> olur:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
+<pre>async fn createTask(
+  base: string,
+  body: NewTask,
+) -&gt; Result&lt;Response, HttpError&gt; {
+  return await post(
+    "${base}/tasks",
+    body,
+  )
+}
+
+async fn getTask(base: string, id: number)
+  -&gt; Result&lt;Response, HttpError&gt; {
+  return await get("${base}/tasks/${id}")
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
+<pre>fn route(req: Request)
+  -&gt; Result&lt;Response, string&gt; {
+  return match req.method {
+    "GET" =&gt; match segments(req) {
+      ["tasks"] =&gt; listTasks(req),
+      // id captured from the path:
+      ["tasks", id] =&gt; getTask(req, id),
+      else =&gt; Ok(json(404, {
+        error: "not found",
+      })),
+    },
+    else =&gt; Ok(json(405, {
+      error: "method not allowed",
+    })),
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>--handlers</code> router'ı path'i dizi pattern'leriyle eşleştirir; böylece <code>/tasks/{id}</code>, <code>["tasks", id]</code> olur ve parametreyi sizin için bağlar. Her taslak, gövde parse işlemini gösteren bir yorumla <code>501</code> olarak başlar; onları doldurur ve <code>await serve(PORT, route)</code> ile bağlarsınız.
+        </p>
+        <h2 class="block-label">Bunun yerine bir zod şemasından</h2>
+        <p>
+          Ekibiniz yapıları zaten <code>zod</code> ile tanımlıyorsa, doğrudan onlardan üretin. Şema, kendi tanımlayıcısı olan birinci sınıf bir Glyph tipine dönüşür:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">schemas.ts</span>
+<pre>export const Task = z.object({
+  id: z.number(),
+  title: z.string(),
+  done: z.boolean(),
+})</pre>
+        </div>
+        <div class="code">
+          <span class="cap">$ glyph gen zod schemas.ts --out src/</span>
+<pre>type Task = {
+  id: number,
+  title: string,
+  done: bool,
+}
+// + a runtime descriptor, so
+// Task.parse(value) validates.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Polimorfik bir <strong>discriminated union</strong> (bir OpenAPI <code>discriminator</code>'ı), gerçek bir Glyph tagged union'ı artı discriminator özelliğini okuyup doğru variant'a doğrulayan, üretilmiş bir <code>parse_&lt;Name&gt;</code> olarak çıkar. Glyph keyfi bir özellikle değil constructor adıyla etiketlediği için, üretilen dağıtıcı wire nesnesi ile union arasındaki köprüyü sizin için kurar.
+        </p>
+        <p>
+          Yetersiz kaldığı yerler: üretim wire formatına sadıktır, bu yüzden yaygın %80'i eşler: nesneler, ilkel tipler, diziler, referanslar, isteğe bağlı ve nullable alanlar ve discriminated union'lar. Tam olarak temsil edemediği şeyleri (bir string enum, discriminator'ı <em>olmayan</em> bir union), gerçek veriyi reddedecek bir validator yerine yazdırılan bir notla daraltır. Daha zengin enum'lar sırada. Araçların da gerçek bağımlılıkları var: <code>gen dts</code>/<code>gen zod</code>, Node artı <code>typescript</code>/<code>zod</code> gerektirir. <code>gen dts</code> herhangi bir TypeScript ile (5, 6 ya da 7.x native port) çalışır, önce projenizden çözümlenir ve eksikse tam olarak neyi kurmanız gerektiğini söylerler.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Senkron tutmak</h2>
+        <p>
+          Üretilen her dosya, kendisini üreten komutu başlığına kaydeder. Bir spesifikasyon değiştiğinde hangi komutları yeniden çalıştıracağınızı aramazsınız: <code>glyph regen</code> bu başlıkları tarar ve her birini yeniden çalıştırarak çıktıyı yeniden yazar. İdempotenttir, yani spesifikasyon değişmeden yapılan bir regen hiçbir şeye dokunmaz; commit edilmiş kod spesifikasyondan saptığında başarısız olan bir pre-commit hook'una ya da bir CI kontrolüne sorunsuzca eklenir.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p><code>glyph gen openapi</code> (tipler, <code>--client</code>, gerçek bir router ile <code>--handlers</code>), <code>glyph gen dts</code>, <code>glyph gen zod</code> ve hepsini kaynaktan yenilemek için <code>glyph regen</code>: her komut commit edilen, tanımlayıcı taşıyan, idempotent şekilde yeniden üretilen Glyph üretir.</p>
+         Tek bir Glyph adı altında yazılacak iki tip, derlenemeyecek bir dosya üretmek yerine üreticiyi durdurur: çakışan her kaynağı adıyla belirtir, hiçbir şey yazmaz ve <code>--rename Source=GlyphName</code> bunu çözer. Bu seçim üretilen başlığa kaydedilir, böylece <code>glyph regen</code> onu yeniden uygular.</div>
+        <div class="status-card next">
+          <h3 class="h">Yolda olanlar</h3>
+          <p>Daha zengin enum eşlemesi ve daha geniş OpenAPI kapsamı; her biri aynı "wire formatına sadık kal, daraltınca not düş" kuralıyla gelecek. Bir paketin kendi <code>.d.ts</code>'inden üretim, onun <code>interface</code> ve <code>type</code> tanımlarını okur; bu yüzden API'si class'lardan oluşan ya da alanlarında <code>Omit</code> gibi hesaplanmış tipler kullanan bir kütüphane, üreticinin bir notta adını verdiği ve <code>glyph build</code>'in çözümlenemedi olarak bildirdiği referanslar bırakır. Böyle bir class'ı import edip <code>new</code> ile oluşturmak üretim gerektirmez ve <code>tsc</code> tarafından kontrol edilir; yani o yol etkilenmez.</p>
+        </div>
+      </div>

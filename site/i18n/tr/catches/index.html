@@ -1,0 +1,43 @@
+---
+title: TypeScript'in geçirdikleri ve Glyph'in yakaladıkları · Glyph
+description: Yapay zekâ ajanlarının yazdığı ve tsc --strict'ten geçen kodlar, her biri Glyph'teki aynı programın yanında, gerçek derleyici çıktısıyla. Bir build kontrolü her vakayı yeniden çalıştırır.
+source_hash: 09d8897c06eb2254
+---
+      <header class="page-hero">
+        <p class="eyebrow">TypeScript'in geçirdiği vakalar</p>
+        <h1>Yayına çıkmadan yakalanır</h1>
+        <p class="lede">{{catches:breakdown}}</p>
+        <p class="lede">{{catches:measured}}</p>
+        <p class="lede">
+          Her girdi <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> içindeki iki programdan oluşur; her birinin altındaki çıktı, araçların yazdırdığı çıktının kendisidir. Bir build kontrolü, <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>, her vakayı yeniden çalıştırır ve iki taraftan biri sayfanın söylediğini yapmayı bırakırsa başarısız olur. Karşılaştırmada kullanılan TypeScript yapılandırmasının tamamı bu script'in içindedir.
+        </p>
+      </header>
+
+      <section class="c-cases" id="cases">
+        <h2 class="group-head">{{catches:count}} TypeScript hatası</h2>
+{{catches:legend}}
+{{catches:filters}}
+{{catches:mistakes}}
+      </section>
+      <section class="c-section" id="traps">
+        <h2 class="group-head">Glyph'te var olmayan {{catches:trap-count}} JavaScript tuzağı</h2>
+        <p class="group-sub">
+          Ajanların hâlâ ara sıra düştüğü eski tuzaklar. Glyph bu programların her birini reddeder, ama hatayı fark ettiği için değil: arkasındaki özellik dilde yoktur ve yerine ne kullanılacağı söylenir.
+        </p>
+{{catches:traps}}
+      </section>
+
+      <section class="c-section" id="not-yet">
+        <h2 class="group-head">Glyph'in henüz yakalamadıkları</h2>
+        <p class="group-sub">
+          Glyph'in henüz kapatmadığı {{catches:gap-cases}} açık. Bunların her biri bugün Glyph'te derlenir ve TypeScript'teki aynı yanlış şeyi yapar. Her birinin <code>catches/</code> içinde bir reprodüksiyonu ve açık bir gap numarası vardır; bir düzeltme geldiğinde kontrol başarısız olur, böylece girdi açıktan daha uzun yaşayamaz.
+        </p>
+{{catches:gaps}}
+        <p class="group-sub c-after">
+          Ajanların yazdığı kod üzerine yapılan her çalışmada en büyük sınıf mantık hatalarıdır ve hiçbir tip denetleyicisi onları görmez: yanlış bir formül ya da yanlış anlaşılmış bir görev, TypeScript'te olduğu gibi Glyph'te de derlenir.
+        </p>
+        <p class="group-sub">
+          Glyph'in, ifade edemediği TypeScript için tek bir kaçış yolu vardır: <code>extern_ts</code>. Sabit bir anahtar kelime olduğu için <code>grep extern_ts</code>, kuralların askıya alındığı her yeri listeler.
+        </p>
+      </section>
+{{catches:script}}

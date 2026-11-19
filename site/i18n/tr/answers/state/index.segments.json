@@ -1,0 +1,128 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/state/index.html",
+  "locale": "tr",
+  "source_hash": "59f9695c32448ee8",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "How do I share mutable state between functions? · Glyph",
+      "tr": "Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph has no mutable globals. Shared state lives in a std/store: a module-level const whose get, set and update are the only writes, found in one search.",
+      "tr": "Glyph'te değiştirilebilir global değişken yoktur. Paylaşılan durum bir std/store'da yaşar: get, set ve update'i tek yazma yolları olan, modül düzeyinde bir const; hepsi tek bir aramayla bulunur."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Önceki"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "React ile çalışıyor mu: component'ler, hook'lar ve Context?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?"
+    },
+    {
+      "id": "h-3cfc3cc8",
+      "kind": "html",
+      "en": "14 &middot; Shared state",
+      "tr": "14 &middot; Paylaşılan durum"
+    },
+    {
+      "id": "h-d14ef0f9",
+      "kind": "html",
+      "en": "How do I share mutable state between functions?",
+      "tr": "Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım?"
+    },
+    {
+      "id": "h-ed0c2fbf",
+      "kind": "html",
+      "en": "With a <strong>store</strong>. Glyph has no mutable global variables. Module bindings are <code>const</code>. Shared state lives in a <code>std/store</code>: a module-level <code>const</code> holding a value you read with <code>get()</code> and change with <code>set()</code>/<code>update()</code>. The binding never moves; only the value inside it does, through a method call, so every write is a literal <code>.set(</code> or <code>.update(</code> you can grep for.",
+      "tr": "Bir <strong>store</strong> ile. Glyph'te değiştirilebilir global değişken yoktur. Modül bağlamaları <code>const</code>'tur. Paylaşılan durum bir <code>std/store</code>'da yaşar: <code>get()</code> ile okuduğunuz ve <code>set()</code>/<code>update()</code> ile değiştirdiğiniz bir değeri tutan, modül düzeyinde bir <code>const</code>. Bağlamanın kendisi asla değişmez; yalnızca içindeki değer bir metot çağrısıyla değişir, yani her yazma işlemi grep'leyebileceğiniz düz bir <code>.set(</code> ya da <code>.update(</code> metnidir."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Görün"
+    },
+    {
+      "id": "h-3ba2ac81",
+      "kind": "html",
+      "en": "Declare the store once at module scope. Every function in the module shares it. No <code>let</code> threaded through <code>main</code>, no capturing closures:",
+      "tr": "Store'u modül kapsamında bir kez tanımlayın. Modüldeki her fonksiyon onu paylaşır. <code>main</code> boyunca taşınan bir <code>let</code> yok, değer yakalayan closure'lar yok:"
+    },
+    {
+      "id": "h-333b6247",
+      "kind": "html",
+      "en": "the whole write-surface, in one grep",
+      "tr": "tüm yazma yüzeyi, tek bir grep ile"
+    },
+    {
+      "id": "h-d1af17c7",
+      "kind": "html",
+      "en": "Why a store, and not a mutable global",
+      "tr": "Neden değiştirilebilir bir global değil de bir store"
+    },
+    {
+      "id": "h-3b512acb",
+      "kind": "html",
+      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>. A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>. So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
+      "tr": "Bu bilinçli bir tasarım tercihi. Glyph, <code>mut</code>'u yerel atamalarla sınırlı ve modül bağlamalarını <code>const</code> tutar, çünkü dağınık bir yazılabilir global kümesi, durumu anlamayı ve <em>bulmayı</em> zorlaştıran şeyin ta kendisidir. Bir store bu kuralların hiçbirinin gevşetilmesini gerektirmez: <code>const s</code> bağlaması değiştirilemez ve içindeki değer yalnızca <code>set</code>/<code>update</code> üzerinden değişir. Böylece paylaşılan durum <strong>yeni bir sözdizimi olarak değil, bir kütüphane olarak</strong> gelir (linear tipler yok, gevşetilmiş değiştirme kuralları yok) ve değiştirme işlemi programınıza dağılmak yerine denetlenmiş tek bir yerde yaşar."
+    },
+    {
+      "id": "h-90f9eefd",
+      "kind": "html",
+      "en": "One sharp edge, shared with TypeScript: an empty collection can't infer its element type, so seed it with an explicit type argument: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. A scalar store (<code>create(0)</code>) infers fine.",
+      "tr": "TypeScript ile ortak bir pürüz: boş bir koleksiyon eleman tipini çıkaramaz, bu yüzden onu açık bir tip argümanıyla başlatın: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Skaler bir store (<code>create(0)</code>) tipini sorunsuz çıkarır."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Bugün yayında"
+    },
+    {
+      "id": "h-fe78aabc",
+      "kind": "html",
+      "en": "<code>std/store</code> with <code>create</code>, <code>get</code>, <code>set</code>, and <code>update</code>: the single, greppable home for shared mutable state.",
+      "tr": "<code>create</code>, <code>get</code>, <code>set</code> ve <code>update</code> içeren <code>std/store</code>: paylaşılan değiştirilebilir durum için tek ve grep'lenebilir yer."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "Yolda olanlar"
+    },
+    {
+      "id": "h-e4b5e189",
+      "kind": "html",
+      "en": "Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.",
+      "tr": "Aynı temel yapı üzerinde kolaylıklar (türetilmiş/hesaplanmış store'lar, abonelikler), dili değiştirmeden üstüne eklenecek."
+    }
+  ]
+}

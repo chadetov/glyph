@@ -1,0 +1,219 @@
+---
+title: Doğrulanabilirlik · any yok, kapsamı tam match · Glyph
+description: Glyph'in ilk temel ilkesi: any ya da as yok, kapsamı tam match ve tanımladığınız tipler için çalışma zamanı validator'ları; tsc'nin üzerinde katı bir katman, sınırları açıkça belirtilmiş.
+source_hash: b8ae04a4b3228182
+prev: / | &larr; Ana sayfa | Glyph neden kazanıyor
+next: /pillars/greppability/ | Sonraki ilke &rarr; | Aranabilirlik: tek isim, tek yer
+---
+      <p class="q-eyebrow">İlke 01 &middot; <span class="wedge">Asıl mesele</span></p>
+      <h1 class="q-title">Doğrulanabilirlik</h1>
+
+      <p class="short-answer">
+        Glyph, bir ajanın içine düştüğü açıkları kapatır: <strong>yazabileceğiniz bir <code>any</code> ya da <code>as</code> yoktur</strong>, <code>match</code>'in <strong>kapsamının tam olduğu kanıtlanabilir</strong> ve tanımladığınız tipler <strong>katı çalışma zamanı validator'ları</strong> alır; bunların hepsi <code>tsc</code>'nin üzerinde katı bir katman olarak uygulanır. Her şeyi kendisi doğrulamaz ve garantinin tam olarak nerede bittiğini aşağıda açıkça söyler.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Bir tipin söyleyebileceği yalan</h2>
+        <p class="lede">
+          TypeScript'te bir tip, kodunuz çalışmadan önce buharlaşan bir derleme zamanı sözüdür. Bir <code>User</code> tip bildirimi silinip hiçbir şeye dönüşür; bir ağ çağrısından, bir JSON parse işleminden ya da bir form alanından gerçekte aldığınız nesne herhangi bir biçimde olabilir. Daha kötüsü, dil size bu konuda checker'a yalan söylemenin üç geçerli yolunu verir: <code>any</code>, bir <code>as</code> cast'i ve non-null <code>!</code>. Hızlı çalışan bir ajan üçüne de başvurur ve hata production'a giderken <code>tsc --strict</code> yeşil kalır.
+        </p>
+        <p class="lede">
+          Glyph'in ilk işi bu açıkları kapatmaktır. Daha fazla tip bildirimiyle değil, kaçış kapılarını kaldırarak ve her tipin kanıtını çalışma zamanına taşımasını sağlayarak. Bunun ne anlama geldiğini her seferinde bir garanti olmak üzere aşağıda görebilirsiniz.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> <code>any</code> yok</h2>
+        <p>
+          <code>any</code>, TypeScript'teki en pahalı anahtar kelimedir: bir değer <em>ve o değerin dokunduğu her şey</em> için tip sistemini kapatır. Bir sınırdaki tek bir <code>any</code>, aşağı akıştaki çağrı grafiğini sessizce zehirler. Glyph'te o yoktur. En üst tip <code>unknown</code>'dır ve <code>unknown</code> etkisizdir: ne olduğunu <em>kanıtlayana</em> kadar onu çağıramaz, indeksleyemez ya da tipli herhangi bir yere geçiremezsiniz.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: derlenir, sonra çöker</span>
+          <span class="cap">handler.ts</span>
+<pre>function handle(body: any) {
+  <span class="cm">// tsc --strict: fine.</span>
+  <span class="cm">// runtime: throws on {}.</span>
+  return body.user.name.toUpperCase();
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: daraltmanın kendisi kanıttır</span>
+          <span class="cap">handler.glyph</span>
+<pre>fn handle(body: unknown) -&gt; string {
+  return match User.parse(body) {
+    Ok(u) =&gt; string.upper(u.name),
+    Err(_) =&gt; "unknown",
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          Derleyicinin görebileceği bir kontrol olmadan <code>unknown</code>'dan tipli bir değer çıkaramazsınız. Glyph'te daraltma, çalışma zamanı kanıtının <strong>kendisidir</strong>. Onu atlamak için bir sözdizimi yoktur.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> Tipler çalışma zamanında gerçektir</h2>
+        <p>
+          <code>User.parse</code> nasıl var oluyor? Çünkü her record tipi ve generic olmayan her tagged union, yanında bir <strong>çalışma zamanı tanımlayıcısı</strong> üretir: bir <code>is</code> guard'ı, bir <code>unknown</code>'u doğrulayıp <code>Result</code>'a çeviren bir <code>parse</code> ve birleştirilebilir bir <code>schema</code>. Record'un biçimi varsayılmaz, çalışma zamanında gerçekten incelenir; bu yüzden bir <code>is User</code> kontrolü silinmiş bir no-op değil, gerçek bir kontroldür.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">yazdığınız tip ve ondan üretilen tanımlayıcı</span>
+<pre>type User = {
+  id: number,
+  name: string,
+  email: string,
+}
+
+<span class="cm">// generated: User.is(v), User.parse(v) -&gt; Result&lt;User, ...&gt;, User.schema</span>
+
+fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match User.parse(req.body) {   <span class="cm">// untrusted input, validated</span>
+    Ok(user) =&gt; Ok(json(201, user)),
+    Err(issues) =&gt; Ok(json(400, issues)),
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          "Her API elle yazılmış bir validator ister" sorununun yanıtı budur. Tipin kendisi validator'dır. Bir sınır (bir istek gövdesi, bir yapılandırma dosyası, üçüncü taraf bir yanıt), ancak kötü veriyi gerçekten reddedebilen bir kontrolden geçerek tipli hale gelir.
+        </p>
+        <p>
+          Bunun bittiği yer: bir record'un tanımlayıcısı varsayılan olarak katıdır. Tanımlanan alanları doğrular ve tanımlanmamış anahtarlar taşıyan bir değeri reddeder (fazlalıklara izin vermek için tipe <code>@open</code> ekleyin). Generic olanlar dahil record tipleri bir tanımlayıcı alır; böylece <code>Paginated&lt;User&gt;</code> her elemanı bir <code>User</code> olarak kontrol eder. Bir tagged union'ın tanımlayıcısı önce tag'i, sonra o variant'ın payload alanlarını kontrol eder. Hâlâ tanımlayıcı almayanlar: generic bir tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> için <code>Box.parse</code> yoktur) ve yalnızca referans verdiğiniz bir <code>.d.ts</code>'den import edilen bir tip. Bir kontrolün bir biçimin yalnızca bir kısmını kanıtlayabildiği yerde derleyici, veremeyeceği bir garantiyi ima etmek yerine bunu söyler.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> Her durum, yoksa derlenmez</h2>
+        <p>
+          Mühürlü bir union üzerindeki bir <code>match</code> her variant'ı ele almak zorundadır. Sonradan bir variant ekleyin, onu hesaba katmayan <em>her</em> match derlenmeyi bırakır (<code>E0200</code>). Yeni durum, unutulmuş bir <code>switch</code> dalının yaptığı gibi sessizce <code>undefined</code>'a düşemez. Bu yalnızca union'lar için de geçerli değil: bir <code>number</code> ya da <code>string</code>'i literal değerler üzerinden eşleştirmek bir <code>else</code> gerektirir (<code>E0218</code>), çünkü bu alanlar sınırsızdır ve bir literal kümesi asla tam olamaz.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">status.glyph</span>
+<pre>type Status = Active | Paused | Cancelled
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Active =&gt; "on",
+    Paused =&gt; "hold",
+    <span class="cm">// forgot Cancelled...</span>
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-bad">çalışma zamanında bir undefined değil, derleme hatası</span>
+          <span class="cap">$ glyph build</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Status`: missing variant `Cancelled`</span>
+
+<span class="cm"># the equivalent TS switch returns
+# undefined at runtime and compiles
+# clean. here it does not build.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">04</span> Hatalar sürpriz değil, değerdir</h2>
+        <p>
+          Başarısız olabilen bir fonksiyon <code>Result&lt;T, E&gt;</code> döndürür. Onu <code>match</code> ile ele alırsınız ya da <code>?</code> operatörüyle yukarı iletirsiniz ve hata tipinin uyması gerekir (bir uyumsuzluğu gizleyen örtük bir dönüşüm yoktur). Bir <code>Result</code>'ı tamamen yok sayarsanız (yan etkisi için çağırıp döndürdüğünü atarsanız) Glyph sizi uyarır (<code>E0217</code>), çünkü atılan bir hata yutulmuş bir başarısızlıktır. Onu kazara değil, bilerek <code>let _ = ...</code> ile susturursunuz.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">pipeline.glyph</span>
+<pre>fn load(id: string) -&gt; Result&lt;User, AppError&gt; {
+  let raw = fetch_user(id)?           <span class="cm">// Err short-circuits to the caller</span>
+  let user = User.parse(raw.body)?    <span class="cm">// validation Err propagates too</span>
+  return Ok(user)
+}
+
+fn main() -&gt; number {
+  save(user)   <span class="cm">// E0217: this returns a Result whose Err is dropped</span>
+  return 0
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> Kişisel veri (PII) bile tip düzeyinde</h2>
+        <p>
+          "Bunu bir gelenek değil, derleyicinin işi yap" içgüdüsü hassas veriye kadar uzanır. Bir tipe <code>@redact</code> koyun, tanımlayıcısı o alanları maskeleyen bir <code>redact()</code> kazanır; böylece başıboş bir <code>json.stringify(User.redact(u))</code> onları sızdıramaz. Tipte olmayan bir alanı adlandırırsanız bu, sessizce hiçbir şeyi korumayan bir maskeleme değil, bir derleme hatasıdır (<code>E0219</code>).
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">patient.glyph</span>
+<pre>@redact fields: [diagnosis, notes]
+type Patient = {
+  name: string,
+  diagnosis: string,
+  notes: string,
+}
+
+<span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
+<span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          Beş farklı başarısızlık biçimi (kontrol edilmemiş girdi, kaçırılmış bir durum, atılmış bir hata, sızdırılmış bir sır, doğrulanmamış bir anahtar) ve hepsinde düzeltme aynı biçimdedir: <strong>derleyici öyleymiş gibi yapmayı reddeder.</strong>
+        </p>
+
+        <h2 class="block-label">Nasıl uygulanıyor ve garanti nerede bitiyor</h2>
+        <p>
+          Kesin konuşalım, çünkü fark önemli: Glyph bağımsız bir doğrulayıcı değil, <strong><code>tsc</code>'nin üzerinde katı ve zorunlu bir lehçedir</strong>. Bazı şeyleri kendisi kanıtlar: kapsamın tamlığı, <code>?</code> hata tipi, kaynağınızda <code>any</code>/<code>as</code> bulunmaması, katı anahtar doğrulaması. Tip uyumluluğunun geri kalanını TypeScript üreterek ve build'i başarısız kılan <code>tsc --strict</code>'i çalıştırarak uygular. Asıl mesele, Glyph'in bir tip denetleyicisini yeniden yazması değil, bu kontrollerin ajanın kapatabileceği isteğe bağlı bir lint değil, <em>dilin kendisi</em> olmasıdır.
+        </p>
+        <p>
+          Buradaki iki eski sınır 0.1.10'da kapatıldı. Emitter eskiden <em>her</em> generic fonksiyona, <code>tsc</code>'nin değil Glyph'in kontrol ettiği bir dönüş cast'i ekliyordu; artık yalnızca bir validator birleştiricisinin biçimden türetilen bir tipte (<code>infer_output&lt;Shape&gt;</code>) değer oluşturduğu yerde devreye giriyor ve dürüst her generic hiç cast olmadan üretiliyor. Ayrıca bir validator'ın çıktı tipine artık körü körüne güvenilmiyor: <code>infer_output</code> onu verdiğiniz biçimden türetir ve <code>tsc</code> tip bildiriminizi buna karşı kontrol eder; iddia ettiğiniz tipin bir alanı eksik olan bir biçim artık derlenmez.
+        </p>
+        <p>
+          Generic tipler de artık derinlemesine doğrulanıyor: bir <code>Paginated&lt;User&gt;</code> tanımlayıcısı her elemanı yalnızca var olup olmadığına bakarak değil, <em>bir <code>User</code> olarak</em> kontrol eder. Açıkça söyleyelim, bir sınır kalıyor: yalnızca referans verdiğiniz harici bir <code>.d.ts</code>'den <em>import edilen</em> bir tip, <code>glyph gen dts</code> ile somutlaştırana kadar tanımlayıcı taşımaz; bu yüzden o tipteki bir alanın biçimi değil, yalnızca varlığı kontrol edilir. Bu sınır bilerek konmuştur (Glyph'in üretmediği bir tip çalışma zamanı doğrulaması vaat edemez) ve onu somutlaştırmak sınırı kapatır.
+        </p>
+
+        <h2 class="block-label">Benchmark: yakında</h2>
+        <p>
+          Bu iddia deneysel, bu yüzden onu ölçmeyi amaçlıyoruz: ajanların yazdığı gerçek değişikliklerden bir derlem alıp her birini <code>tsc --strict</code>'ten ve Glyph'ten geçirmek ve her birinin gerçekte neyi yakaladığını saymak. Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden bildirilecek bir rakam yok. Aşağıdaki grafik yer tutucudur ve gerçek kullanım olduğu anda gerçek verilerle dolacak.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Ajanların production'a gönderdiği yakalanan hatalar &middot; yüksek olan daha iyi</span>
+        <h3>tsc --strict ve Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 64%;">bekleniyor</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">tsc --strict</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 34%;">bekleniyor</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Henüz ölçülmedi</span> Yöntem belli; derlemin, kaynak olarak gerçek Glyph kullanımına ihtiyacı var. Rakamları (ne olurlarsa olsunlar) ortaya çıkar çıkmaz burada yayımlayacağız.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Bunların hiçbiri tören karşılığında gelmiyor. Kanıt bildirimleri, kontratlar, tatmin edilmesi gereken bir doğrulayıcı yok. Yukarıdaki kod sıradan Glyph. Doğrulanabilirlik açtığınız bir özellik değil; yalan söylemenin yolları ortadan kalktığında geriye kalan şeydir.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">"Strict TypeScript ve bir lint yapılandırması bunu yapıyor"</h2>
+        <p>
+          Bir programın içinde yaklaşıyorlar. <code>strict</code>, <code>noUncheckedIndexedAccess</code> ve açık <code>any</code>'ye karşı bir kural, bir ajanın aksi halde kaçıracağı şeylerin çoğunu yakalar. Kenarlarda dururlar. <code>JSON.parse(body) as User</code> var olan her ayarda derlenir ve olağan çözüm olan bir zod şeması, <code>User</code>'ın ilkiyle elle uyumlu tutulması gereken ikinci bir tanımıdır. Glyph'te tipin kendisi validator'dır: <code>json.parse&lt;User&gt;(body)</code> doğrudan <code>User</code>'a karşı kontrol edilir ve Glyph'in çalışma zamanında kontrol edemeyeceği bir tipe güvenilmez, o tip reddedilir.
+        </p>
+        <p>
+          Diğer fark, ona kimin güvenebileceğidir. Bir lint yapılandırması bir deponun yaptığı bir seçimdir. Tanımadığı bir TypeScript kod tabanını açan bir ajan, orada <code>any</code>'nin yasak olduğunu varsayamaz; Glyph'te ise hiçbir yerde yazılamaz.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Aynı garanti, bir ajanın yaptığı hatalar ve onları durduran hata mesajları olarak, <a href="/answers/verifiability/">Bir ajanın kodumu sessizce bozmasını ne engelliyor?</a> sayfasında yanıtlanıyor.
+        </p>
+      </div>

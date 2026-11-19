@@ -1,0 +1,128 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/embedding/index.html",
+  "locale": "tr",
+  "source_hash": "4dc0a3c1d0f26ab3",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I adopt Glyph inside my existing app? · Glyph",
+      "tr": "Glyph'i mevcut uygulamamın içinde benimseyebilir miyim? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "No rewrite: keep the app in TypeScript, write the domain core in Glyph, and import the compiled modules like any local file. It works under stock Vite.",
+      "tr": "Yeniden yazmak yok: uygulamayı TypeScript'te tutun, domain çekirdeğini Glyph'te yazın ve derlenmiş modülleri herhangi bir yerel dosya gibi import edin. Standart Vite ile çalışır."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Önceki"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "Her API için elle validator yazmam gerekiyor mu?"
+    },
+    {
+      "id": "h-581974ff",
+      "kind": "html",
+      "en": "10 &middot; Inside your app",
+      "tr": "10 &middot; Uygulamanızın içinde"
+    },
+    {
+      "id": "h-68c07ce1",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "Glyph'i mevcut uygulamamın içinde benimseyebilir miyim, yoksa ya hep ya hiç mi?"
+    },
+    {
+      "id": "h-0e1c0ddb",
+      "kind": "html",
+      "en": "No rewrite. Keep the app in TypeScript and write the part you can't afford to get wrong (models, permissions, state transitions, money math) in Glyph. <code>glyph build</code> emits modules your app imports <strong>like any local file</strong>, with no bundler config and no path aliases.",
+      "tr": "Yeniden yazmak yok. Uygulamayı TypeScript'te tutun ve yanlış yapmayı göze alamayacağınız kısmı (modeller, yetkiler, durum geçişleri, para hesapları) Glyph'te yazın. <code>glyph build</code>, uygulamanızın <strong>herhangi bir yerel dosya gibi</strong> import ettiği modüller üretir; bundler yapılandırması ya da path alias'ı gerekmez."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "h-c70d97da",
+      "kind": "html",
+      "en": "Most teams can't rewrite an application, and most of an application doesn't need Glyph. The part that does is the domain core: the rules an AI agent will edit next month and nobody wants silently wrong. Keeping that core in Glyph gives you exhaustive <code>match</code>, no casts, and validated boundaries exactly where they pay, while the React components, the styling, and the infrastructure stay plain TypeScript.",
+      "tr": "Çoğu ekip bir uygulamayı yeniden yazamaz ve bir uygulamanın çoğu kısmının Glyph'e ihtiyacı yoktur. İhtiyacı olan kısım domain çekirdeğidir: bir yapay zekâ ajanının önümüzdeki ay düzenleyeceği ve kimsenin sessizce yanlış olmasını istemediği kurallar. Bu çekirdeği Glyph'te tutmak, kapsamı tam <code>match</code>'i, cast'in olmamasını ve doğrulanmış sınırları tam da işe yaradıkları yerde verir; React component'leri, stiller ve altyapı ise düz TypeScript olarak kalır."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Görün"
+    },
+    {
+      "id": "h-33682851",
+      "kind": "html",
+      "en": "One directory of Glyph sources, compiled into the app, imported by the UI:",
+      "tr": "Glyph kaynaklarından oluşan, uygulamanın içine derlenen ve arayüz tarafından import edilen tek bir dizin:"
+    },
+    {
+      "id": "h-a3eaf0cf",
+      "kind": "html",
+      "en": "A hybrid layout: Glyph domain core, TypeScript everything else",
+      "tr": "Hibrit bir düzen: domain çekirdeği Glyph'te, geri kalan her şey TypeScript'te"
+    },
+    {
+      "id": "h-abc250a1",
+      "kind": "html",
+      "en": "Everything the emitted code needs travels with it. Imports are relative, including the bundled standard library, so your project's <code>tsconfig.json</code> and bundler need nothing added: a stock Vite scaffold compiles and bundles the output as-is, and the same files pass a host <code>tsc --strict</code>. Mark what the app imports with <code>pub</code>; a declaration without it is private to its module. This isn't a hypothetical: an outside engineer <a href=\"https://github.com/yildizadem/glyph-kanban\">built a React Kanban board this way</a>, with the RBAC matrix, the analytics formulas, and the status transitions in four Glyph modules under a hand-written React UI.",
+      "tr": "Üretilen kodun ihtiyaç duyduğu her şey onunla birlikte gelir. Paketlenmiş standart kütüphane dahil import'lar relative'dir; bu yüzden projenizin <code>tsconfig.json</code>'una ve bundler'ına hiçbir şey eklemeniz gerekmez: standart bir Vite iskeleti çıktıyı olduğu gibi derler ve paketler, aynı dosyalar host projenin <code>tsc --strict</code>'inden de geçer. Uygulamanın import ettiklerini <code>pub</code> ile işaretleyin; bu işareti taşımayan bir tanım kendi modülüne özeldir. Bu bir varsayım değil: dışarıdan bir mühendis <a href=\"https://github.com/yildizadem/glyph-kanban\">bu şekilde bir React Kanban panosu geliştirdi</a>; RBAC matrisi, analitik formülleri ve durum geçişleri, elle yazılmış bir React arayüzünün altında dört Glyph modülünde."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Bugün yayında"
+    },
+    {
+      "id": "h-a33b093e",
+      "kind": "html",
+      "en": "Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself, verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>. The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">deployment guide</a> documents the hybrid layout.",
+      "tr": "Üretilen çıktı bir host projeye değiştirilmeden yerleşir: baştan sona relative belirteçler, kodun kendisinin taşıdığı prelude tipleri; standart bir Vite iskeletine, host <code>tsc --strict</code>'e, esbuild'e ve <code>tsx</code>'e karşı doğrulandı. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">Deploy rehberi</a> hibrit düzeni anlatıyor."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "Yolda olanlar"
+    },
+    {
+      "id": "h-6f1c79e2",
+      "kind": "html",
+      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script). Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.",
+      "tr": "Henüz watch modu yok: <code>.glyph</code> kaynaklarını düzenledikten sonra <code>glyph build</code>'i yeniden çalıştırın (<code>dev</code> script'inize bağlayın). <code>std/fs</code> ya da <code>std/net</code> kullanan modüller, Node'a dokunan her TypeScript gibi, host projede <code>@types/node</code> gerektirir."
+    }
+  ]
+}

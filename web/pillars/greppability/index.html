@@ -35,6 +35,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pillars/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Greppability","item":"https://glyphlang.io/pillars/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pillars/greppability/#article","headline":"Greppability · one name, one place","description":"Glyph's second pillar: every symbol has one form at its declaration. No overloads, decorators, namespace merging or barrel re-exports, so grep finds it.","url":"https://glyphlang.io/pillars/greppability/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pillars/greppability/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -430,9 +431,9 @@
         <div class="code">
           <span class="tag-good">Glyph: the first hit is the definition</span>
           <span class="cap">$ grep -n "fn parseUser" src/</span>
-<pre class="wraps">users.glyph:12:fn parseUser(
-  raw: unknown,
-) -&gt; Result&lt;User, string&gt; {</pre>
+<pre class="wraps">users.glyph:<span class="n">12</span>:<span class="k">fn</span> parseUser(
+  raw: <span class="t">unknown</span>,
+) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">string</span>&gt; {</pre>
         </div>
       </div>
 

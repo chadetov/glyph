@@ -35,6 +35,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/catches/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"What TypeScript lets through and Glyph catches","item":"https://glyphlang.io/catches/"}]}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -420,8 +421,8 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">checked when the data arrives</span></div>
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">User</span>&gt;(body) {
-  <span class="t">Ok</span>(user) =&gt; send_invoice(user.plan),
-  <span class="t">Err</span>(issues) =&gt; <span class="s">"rejected: ${json.stringify(issues)}"</span>,
+  <span class="t">Ok</span>(user) <span class="op">=&gt;</span> send_invoice(user.plan),
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
 }</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["plan"],"message":"field `plan` is required","code":"missing"}]</span></pre></div>
             <p class="c-result"><b>A body that is not a real <code>User</code> is an <code>Err</code>.</b> The program never holds a fake one.</p>
           </div>
@@ -457,9 +458,9 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">match</span> s {
-  <span class="s">"todo"</span> =&gt; print(<span class="s">"not started"</span>),
-  <span class="s">"doing"</span> =&gt; print(<span class="s">"in progress"</span>),
-  <span class="s">"done"</span> =&gt; print(<span class="s">"finished"</span>),
+  <span class="s">"todo"</span> <span class="op">=&gt;</span> print(<span class="s">"not started"</span>),
+  <span class="s">"doing"</span> <span class="op">=&gt;</span> print(<span class="s">"in progress"</span>),
+  <span class="s">"done"</span> <span class="op">=&gt;</span> print(<span class="s">"finished"</span>),
 }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0200] Error: typecheck: non-exhaustive match on `"todo" | "doing" | "done" | "archived"`: missing variants "archived"</span>
 <span class="h">Help: Add an arm for each missing variant.</span></pre></div>
             <p class="c-result"><b>The build stops and names the case.</b></p>
@@ -478,13 +479,13 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> users.find((u) =&gt; u.id === id)!.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> users.find((u) <span class="op">=&gt;</span> u.id === id)!.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
             <p class="c-result"><b><code>!</code> tells the compiler "trust me".</b> At run time it does nothing.</p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>no-non-null-assertion</code></p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> array.find(users, <span class="k">fn</span>(u: <span class="t">User</span>) -&gt; bool { u.id == id }).name</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0210] Error: typecheck: type `Option&lt;User&gt;` has no field `name`: an `Option` has no members</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> array.find(users, <span class="k">fn</span>(u: <span class="t">User</span>) <span class="op">-&gt;</span> <span class="t">bool</span> { u.id == id }).name</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0210] Error: typecheck: type `Option&lt;User&gt;` has no field `name`: an `Option` has no members</span>
 <span class="h">Help: Open it with `match array.find(...) { Some(u) =&gt; u.name, None =&gt; &lt;default&gt; }`. If the absence is a JSON `null` from the wire, declare the type `Nullable&lt;User&gt;` (D45).</span></pre></div>
             <p class="c-result"><b><code>find</code> returns an <code>Option</code>,</b> so the empty case must be handled.</p>
           </div>
@@ -512,7 +513,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> load_config() -&gt; <span class="t">Result</span>&lt;<span class="t">Config</span>, string&gt; {
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> load_config() <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Config</span>, <span class="t">string</span>&gt; {
   <span class="k">return</span> <span class="t">Err</span>(<span class="s">"missing file"</span>)
 }
 
@@ -561,13 +562,13 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> active = names.filter(
-  <span class="k">async</span> (n) =&gt; <span class="k">await</span> isActive(n));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ 'ada', 'mallory' ]</span></pre></div>
+  <span class="k">async</span> (n) <span class="op">=&gt;</span> <span class="k">await</span> isActive(n));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ 'ada', 'mallory' ]</span></pre></div>
             <p class="c-result"><b>Nothing is filtered out.</b></p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>no-misused-promises</code></p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> active = array.filter(names, <span class="k">async</span> <span class="k">fn</span>(n: string) -&gt; bool { <span class="k">await</span> is_active(n) })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `function`, found `async function`</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> active = array.filter(names, <span class="k">async</span> <span class="k">fn</span>(n: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">bool</span> { <span class="k">await</span> is_active(n) })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `function`, found `async function`</span>
 <span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
             <p class="c-result"><b>An async function is not a yes/no answer.</b></p>
           </div>
@@ -585,7 +586,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> isUser(x: unknown): x <span class="k">is</span> <span class="t">User</span> {
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> isUser(x: <span class="t">unknown</span>): x <span class="k">is</span> <span class="t">User</span> {
   <span class="k">return</span> <span class="k">typeof</span> x === <span class="s">"object"</span> &amp;&amp; x !== <span class="k">null</span> &amp;&amp; <span class="s">"id"</span> <span class="k">in</span> x;
 }</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'toLowerCase')</span></pre></div>
             <p class="c-result"><b>The guard says "User" after checking one field.</b></p>
@@ -594,8 +595,8 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">checked when the data arrives</span></div>
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> <span class="t">User</span>.<span class="k">is</span>(body) {
-  <span class="k">true</span> =&gt; <span class="s">"user"</span>,
-  <span class="k">false</span> =&gt; <span class="s">"not a user"</span>,
+  <span class="k">true</span> <span class="op">=&gt;</span> <span class="s">"user"</span>,
+  <span class="k">false</span> <span class="op">=&gt;</span> <span class="s">"not a user"</span>,
 }</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">not a user</span></pre></div>
             <p class="c-result"><b><code>User.is</code> checks every field.</b> Glyph has no hand-written guards.</p>
           </div>
@@ -613,14 +614,14 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cfg = raw <span class="k">as</span> unknown <span class="k">as</span> <span class="t">Config</span>;
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cfg = raw <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">Config</span>;
 console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'length')</span></pre></div>
             <p class="c-result"><b>A double cast switches checking off.</b></p>
             <p class="c-cfg none"><b>Nothing catches it</b>not even with every compiler flag and typescript-eslint strict on</p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span><span class="c-verdict">can't be written</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cfg = raw as unknown as <span class="t">Config</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0013] Error: parse: a statement cannot begin on the line where `let cfg = raw` ends</span></pre></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cfg = raw <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">Config</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0013] Error: parse: a statement cannot begin on the line where `let cfg = raw` ends</span></pre></div>
             <p class="c-result"><b>There is no cast to write.</b> The help says what to do instead.</p>
           </div>
         </div>
@@ -690,14 +691,14 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then prints the wrong text</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> [user, host] = s.split(<span class="s">"@"</span>);
-<span class="k">return</span> <span class="s">`${user} at ${host}`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">nobody at undefined</span></pre></div>
+<span class="k">return</span> <span class="s">`</span><span class="ip">${</span>user<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span>host<span class="ip">}</span><span class="s">`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">nobody at undefined</span></pre></div>
             <p class="c-result"><b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads "nobody at undefined".</p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>restrict-template-expressions</code></p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> [user, host] = string.split(s, <span class="s">"@"</span>)
-<span class="k">return</span> <span class="s">"${user} at ${host}"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0230] Error: typecheck: the length of `Array&lt;string&gt;` is not known, so a name in the pattern could hold `undefined`</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> [user, host] = <span class="t">string</span>.split(s, <span class="s">"@"</span>)
+<span class="k">return</span> <span class="s">"</span><span class="ip">${</span>user<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span>host<span class="ip">}</span><span class="s">"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0230] Error: typecheck: the length of `Array&lt;string&gt;` is not known, so a name in the pattern could hold `undefined`</span>
 <span class="h">Help: Its length is known only at run time, so match on it with a fallback arm: `match xs { [a, b] =&gt; ..., else =&gt; ... }`.</span></pre></div>
             <p class="c-result"><b>The missing part has to be handled.</b></p>
           </div>
@@ -727,8 +728,8 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Account</span> = { status: <span class="s">"active"</span> | <span class="s">"banned"</span> }
 
 <span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Account</span>&gt;(body) {
-  <span class="t">Ok</span>(acc) =&gt; <span class="s">"status ${acc.status}"</span>,
-  <span class="t">Err</span>(issues) =&gt; <span class="s">"rejected: ${json.stringify(issues)}"</span>,
+  <span class="t">Ok</span>(acc) <span class="op">=&gt;</span> <span class="s">"status </span><span class="ip">${</span>acc.status<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
 }</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["status"],"message":"field `status` must be \"active\" | \"banned\"","code":"type"}]</span></pre></div>
             <p class="c-result"><b>Only the listed values get through.</b></p>
           </div>
@@ -746,16 +747,16 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> limits = <span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">Plan</span>, number&gt;;
-console.log(limits.team * 2);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> limits = <span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">Plan</span>, <span class="t">number</span>&gt;;
+console.log(limits.team * <span class="n">2</span>);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
             <p class="c-result"><b>The type promises every plan has a limit.</b> The file does not.</p>
             <p class="c-cfg none"><b>Nothing catches it</b>not even with every compiler flag and typescript-eslint strict on</p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">checked when the data arrives</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Record</span>&lt;<span class="t">Plan</span>, int&gt;&gt;(text) {
-  <span class="t">Ok</span>(limits) =&gt; <span class="s">"loaded"</span>,
-  <span class="t">Err</span>(issues) =&gt; <span class="s">"rejected: ${json.stringify(issues)}"</span>,
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Record</span>&lt;<span class="t">Plan</span>, <span class="t">int</span>&gt;&gt;(text) {
+  <span class="t">Ok</span>(limits) <span class="op">=&gt;</span> <span class="s">"loaded"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
 }</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":[],"message":"expected Record&lt;Plan, int&gt;"}]</span></pre></div>
             <p class="c-result"><b>Every plan must be there, and nothing else.</b></p>
           </div>
@@ -773,14 +774,14 @@ console.log(limits.team * 2);</pre><span class="cap">$ tsx ts.ts</span><pre clas
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then picks the wrong state</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> fromDb: number = 7;
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> fromDb: <span class="t">number</span> = <span class="n">7</span>;
 console.log(label(fromDb));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">suspended</span></pre></div>
             <p class="c-result"><b>An unknown code becomes a real status.</b></p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>no-unsafe-enum-assignment</code></p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> from_db: number = 7
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> from_db: <span class="t">number</span> = <span class="n">7</span>
 print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `Status`, found `number`</span>
 <span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
             <p class="c-result"><b>A number is not a <code>Status</code>.</b></p>
@@ -809,8 +810,8 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> <span class="k">owned</span> c: <span class="t">Conn</span> = open()
 <span class="k">match</span> valid {
-  <span class="k">false</span> =&gt; { <span class="k">return</span> <span class="s">"rejected"</span> },
-  <span class="k">true</span> =&gt; close(c),
+  <span class="k">false</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="s">"rejected"</span> },
+  <span class="k">true</span> <span class="op">=&gt;</span> close(c),
 }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0206] Error: typecheck: `owned` resource `c` is not consumed on every path before the function returns</span>
 <span class="h">Help: Consume the handle on every path (move it into an `owned` parameter) before the function returns.</span></pre></div>
             <p class="c-result"><b>Every path must close it.</b></p>
@@ -837,8 +838,8 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span><span class="c-verdict">refused by glyph check</span></div>
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> json.parse(text) {
-  <span class="t">Ok</span>(data) =&gt; data.usr.name,
-  <span class="t">Err</span>(_) =&gt; <span class="s">"unreadable"</span>,
+  <span class="t">Ok</span>(data) <span class="op">=&gt;</span> data.usr.name,
+  <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unreadable"</span>,
 }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[TS18046] Error: tsc: 'data' is of type 'unknown'.</span>
 <span class="h">Help: TypeScript's checker rejected the code this expression compiles to. The caret is on the Glyph expression that produced it.</span></pre></div>
             <p class="c-result"><b>There is no <code>any</code>.</b> Data nobody has checked is <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gives it a type.</p>
@@ -857,7 +858,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then prints undefined</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> nameOf(row: <span class="t">Record</span>&lt;string, string&gt;): string {
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> nameOf(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;): <span class="t">string</span> {
   <span class="k">return</span> row.naem;
 }</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
             <p class="c-result"><b>Any key reads as a <code>string</code>,</b> even one that is not there, so the misspelled field prints <code>undefined</code>.</p>
@@ -865,7 +866,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">pub</span> <span class="k">fn</span> name_of(row: <span class="t">Record</span>&lt;string, string&gt;) -&gt; string {
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">pub</span> <span class="k">fn</span> name_of(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
   <span class="k">return</span> row.naem
 }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0224] Error: typecheck: `Record&lt;string, string&gt;` is a map, so `naem` may not be there</span>
 <span class="h">Help: Use `record.get(map, "key")`, which returns `Option&lt;V&gt;` so the absent case has somewhere to go. `record.has` tests for the key alone.</span></pre></div>
@@ -885,15 +886,15 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then uses the wrong setting</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> opts = { host: <span class="s">"db"</span>, timeoutMS: 500 };
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> opts = { host: <span class="s">"db"</span>, timeoutMS: <span class="n">500</span> };
 console.log(<span class="s">"timeout"</span>, connect(opts));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">timeout 30000</span></pre></div>
             <p class="c-result"><b>The misspelled option is silently dropped.</b></p>
             <p class="c-cfg none"><b>Nothing catches it</b>not even with every compiler flag and typescript-eslint strict on</p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> opts = { host: <span class="s">"db"</span>, timeout_MS: <span class="t">Some</span>(500) }
-print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `ConnectOptions`, found `record`: missing field `timeout_ms`</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> opts = { host: <span class="s">"db"</span>, timeout_MS: <span class="t">Some</span>(<span class="n">500</span>) }
+print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<span class="ip">}</span><span class="s">"</span>)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `ConnectOptions`, found `record`: missing field `timeout_ms`</span>
 <span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
             <p class="c-result"><b>The wrong name is an error.</b></p>
           </div>
@@ -911,7 +912,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives a wrong date or crashes</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="k">new</span> <span class="t">Date</span>(input).toISOString().slice(0, 10);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">2025-03-02</span>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="k">new</span> <span class="t">Date</span>(input).toISOString().slice(<span class="n">0</span>, <span class="n">10</span>);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">2025-03-02</span>
 <span class="e">RangeError: Invalid time value</span></pre></div>
             <p class="c-result"><b>Bad dates roll over</b> into real ones.</p>
             <p class="c-cfg none"><b>Nothing catches it</b>not even with every compiler flag and typescript-eslint strict on</p>
@@ -919,8 +920,8 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">can't be written</span></div>
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> time.parse_iso(input) {
-  <span class="t">Some</span>(ms) =&gt; <span class="s">"ok ${ms}"</span>,
-  <span class="t">None</span> =&gt; <span class="s">"rejected: ${input}"</span>,
+  <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="s">"ok </span><span class="ip">${</span>ms<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">None</span> <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>input<span class="ip">}</span><span class="s">"</span>,
 }</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: 2025-02-30</span>
 <span class="o">rejected: next friday</span></pre></div>
             <p class="c-result"><b>Parsing can fail, and the type says so.</b></p>
@@ -946,7 +947,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
           </div>
           <div class="c-side gl warn">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">warned</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cleaned = string.lower(string.trim(input))
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cleaned = <span class="t">string</span>.lower(<span class="t">string</span>.trim(input))
 <span class="k">return</span> input</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0107] Warning: lint: unused variable `cleaned`</span>
 <span class="h">Help: Remove the binding, or prefix its name with `_` if it is intentionally unused.</span></pre></div>
             <p class="c-result"><b>Glyph points at the unused value.</b></p>
@@ -965,13 +966,13 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then prints the wrong text</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="s">`Reports to: ${e.manager?.name}`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Reports to: undefined</span></pre></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="s">`Reports to: </span><span class="ip">${</span>e.manager<span class="op">?.</span>name<span class="ip">}</span><span class="s">`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Reports to: undefined</span></pre></div>
             <p class="c-result"><b>The user sees the word "undefined".</b></p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>restrict-template-expressions</code></p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="s">"Reports to: ${e.manager?.name}"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0235] Error: typecheck: `?.name` over a `Nullable&lt;Manager&gt;` is `undefined` when the value is null, and it is not given a default with `??` or compared with `==`/`!=`</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="s">"Reports to: </span><span class="ip">${</span>e.manager<span class="op">?.</span>name<span class="ip">}</span><span class="s">"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0235] Error: typecheck: `?.name` over a `Nullable&lt;Manager&gt;` is `undefined` when the value is null, and it is not given a default with `??` or compared with `==`/`!=`</span>
 <span class="h">Help: Give the absent case a value with `??` (`n?.name ?? "none"`), or convert the whole value with `nullable.to_option(n)` and `match` on it.</span></pre></div>
             <p class="c-result"><b>The missing case needs a default.</b></p>
           </div>
@@ -989,18 +990,18 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> total(input: string): number {
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> total(input: <span class="t">string</span>): <span class="t">number</span> {
   <span class="k">const</span> qty = parseInt(input);
-  <span class="k">return</span> qty * 10;
+  <span class="k">return</span> qty * <span class="n">10</span>;
 }</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
             <p class="c-result"><b><code>NaN</code> spreads</b> through every sum it touches.</p>
             <p class="c-cfg none"><b>Nothing catches it</b>not even with every compiler flag and typescript-eslint strict on</p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> total(input: string) -&gt; number {
-  <span class="k">let</span> qty: number = number.parse(input)
-  <span class="k">return</span> qty * 10
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> total(input: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> qty: <span class="t">number</span> = <span class="t">number</span>.parse(input)
+  <span class="k">return</span> qty * <span class="n">10</span>
 }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `number`, found `Result&lt;number, string&gt;`</span>
 <span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
             <p class="c-result"><b>Parsing returns a <code>Result</code>:</b> a number, or a reason it failed.</p>
@@ -1019,8 +1020,8 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then compares identity, not data</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = { x: 1, y: 2 };
-<span class="k">const</span> after = { x: 1, y: 2 };
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = { x: <span class="n">1</span>, y: <span class="n">2</span> };
+<span class="k">const</span> after = { x: <span class="n">1</span>, y: <span class="n">2</span> };
 
 <span class="k">if</span> (before === after) skipSave();</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">skipped false</span></pre></div>
             <p class="c-result"><b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs.</p>
@@ -1028,8 +1029,8 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">compares the data</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> before: <span class="t">Point</span> = { x: 1, y: 2 }
-<span class="k">let</span> after: <span class="t">Point</span> = { x: 1, y: 2 }
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> before: <span class="t">Point</span> = { x: <span class="n">1</span>, y: <span class="n">2</span> }
+<span class="k">let</span> after: <span class="t">Point</span> = { x: <span class="n">1</span>, y: <span class="n">2</span> }
 
 <span class="k">let</span> same = before == after</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">same true</span></pre></div>
             <p class="c-result"><b>Two records with the same fields are equal.</b></p>
@@ -1048,7 +1049,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> label(u: <span class="t">User</span>): string {
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> label(u: <span class="t">User</span>): <span class="t">string</span> {
   u.name = <span class="s">"admin"</span>;
   <span class="k">return</span> u.name;
 }</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">admin</span></pre></div>
@@ -1075,7 +1076,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Person</span> = { age: number }; <span class="c">// must be &gt;= 0</span>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Person</span> = { age: <span class="t">number</span> }; <span class="c">// must be &gt;= 0</span>
 
 <span class="k">const</span> text = <span class="s">'{"age": -5}'</span>;
 console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Person</span>).age);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">-5</span></pre></div>
@@ -1084,13 +1085,13 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">checked when the data arrives</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Age</span> = int <span class="k">where</span> value &gt;= 0
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Age</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
 
 <span class="k">type</span> <span class="t">Person</span> = { age: <span class="t">Age</span> }
 
 <span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Person</span>&gt;(text) {
-  <span class="t">Ok</span>(p) =&gt; <span class="s">"age ${p.age}"</span>,
-  <span class="t">Err</span>(issues) =&gt; <span class="s">"rejected: ${json.stringify(issues)}"</span>,
+  <span class="t">Ok</span>(p) <span class="op">=&gt;</span> <span class="s">"age </span><span class="ip">${</span>p.age<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
 }</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["age"],"message":"expected Age (int where value &gt;= 0)","code":"refinement"}]</span></pre></div>
             <p class="c-result"><b>The rule is part of the type,</b> and checked with it.</p>
           </div>
@@ -1116,7 +1117,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span><span class="c-verdict">one name everywhere</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">import</span> users { get_user as fetch_user }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0002] Error: parse: expected `}`, found As</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">import</span> users { get_user <span class="k">as</span> fetch_user }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0002] Error: parse: expected `}`, found As</span>
 <span class="h">Help: Add the expected token. Glyph is deliberately stricter than TypeScript (e.g. trailing commas required, no `if`/`else`).</span></pre></div>
             <p class="c-result"><b>No default exports, no renaming.</b> <code>grep get_user</code> finds every caller.</p>
           </div>
@@ -1134,17 +1135,17 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then charges the wrong price</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"pro"</span>: pct = 10;
-<span class="k">case</span> <span class="s">"team"</span>: pct = 20; <span class="k">break</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">pro discount 20</span></pre></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"pro"</span>: pct = <span class="n">10</span>;
+<span class="k">case</span> <span class="s">"team"</span>: pct = <span class="n">20</span>; <span class="k">break</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">pro discount 20</span></pre></div>
             <p class="c-result"><b>The missing <code>break</code> runs the next case.</b></p>
             <p class="c-cfg flag"><b>Off by default</b>caught by the compiler flag <code>noFallthroughCasesInSwitch</code></p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">can't be written</span></div>
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> plan {
-  <span class="s">"pro"</span> =&gt; 10,
-  <span class="s">"team"</span> =&gt; 20,
-  <span class="s">"free"</span> =&gt; 0,
+  <span class="s">"pro"</span> <span class="op">=&gt;</span> <span class="n">10</span>,
+  <span class="s">"team"</span> <span class="op">=&gt;</span> <span class="n">20</span>,
+  <span class="s">"free"</span> <span class="op">=&gt;</span> <span class="n">0</span>,
 }</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">pro discount 10</span></pre></div>
             <p class="c-result"><b><code>match</code> arms never fall through.</b></p>
           </div>
@@ -1162,13 +1163,13 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sorted[sorted.length / 2];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sorted[sorted.length / <span class="n">2</span>];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
             <p class="c-result"><b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.</p>
             <p class="c-cfg none"><b>Nothing catches it</b>not even with every compiler flag and typescript-eslint strict on</p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">stopped when it runs</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> sorted[sorted.length / 2]</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="e">RangeError: index 1.5 is out of range for an array of length 3</span></pre></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> sorted[sorted.length / <span class="n">2</span>]</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="e">RangeError: index 1.5 is out of range for an array of length 3</span></pre></div>
             <p class="c-result"><b>A bad index stops the program</b> instead of spreading <code>NaN</code>.</p>
           </div>
         </div>
@@ -1185,14 +1186,14 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">for</span> (<span class="k">let</span> i = 0; i &lt;= prices.length; i++)
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt;= prices.length; i++)
   sum += prices[i];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
             <p class="c-result"><b><code>&lt;=</code> reads one past the end.</b></p>
             <p class="c-cfg none"><b>Nothing catches it</b>not even with every compiler flag and typescript-eslint strict on</p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">stopped when it runs</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">for</span> i <span class="k">in</span> array.range(prices.length + 1) {
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">for</span> i <span class="k">in</span> array.range(prices.length + <span class="n">1</span>) {
   <span class="k">mut</span> sum = sum + prices[i]
 }</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="e">RangeError: index 3 is out of range for an array of length 3</span></pre></div>
             <p class="c-result"><b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program.</p>
@@ -1212,14 +1213,14 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sum;
-sum = sum * (1 + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">30</span></pre></div>
+sum = sum * (<span class="n">1</span> + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">30</span></pre></div>
             <p class="c-result"><b>The tax line never runs.</b></p>
             <p class="c-cfg flag"><b>Off by default</b>caught by the compiler flag <code>allowUnreachableCode: false</code></p>
           </div>
           <div class="c-side gl warn">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">warned</span></div>
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> sum
-<span class="k">mut</span> sum = sum * (1 + tax_rate)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0108] Warning: lint: unreachable code</span>
+<span class="k">mut</span> sum = sum * (<span class="n">1</span> + tax_rate)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0108] Warning: lint: unreachable code</span>
 <span class="h">Help: Remove it, or move the earlier `return`/`break`/`continue` so this can run.</span></pre></div>
             <p class="c-result"><b>Glyph points at the dead line.</b></p>
           </div>
@@ -1237,13 +1238,13 @@ sum = sum * (1 + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> rows = users.map((u) =&gt; { label: u.name });</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ undefined ]</span></pre></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> rows = users.map((u) <span class="op">=&gt;</span> { label: u.name });</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ undefined ]</span></pre></div>
             <p class="c-result"><b>The braces are a function body,</b> and <code>label:</code> is a statement label.</p>
             <p class="c-cfg flag"><b>Off by default</b>caught by the compiler flag <code>allowUnusedLabels: false</code></p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span><span class="c-verdict">can't be written</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> rows = array.map(users, <span class="k">fn</span>(u: <span class="t">User</span>) -&gt; <span class="t">Row</span> { label: u.name })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0003] Error: parse: unexpected token: Colon</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> rows = array.map(users, <span class="k">fn</span>(u: <span class="t">User</span>) <span class="op">-&gt;</span> <span class="t">Row</span> { label: u.name })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0003] Error: parse: unexpected token: Colon</span>
 <span class="h">Help: Remove or correct this token; it can't appear here.</span></pre></div>
             <p class="c-result"><b>The ambiguous form is not valid Glyph.</b></p>
           </div>
@@ -1289,8 +1290,8 @@ adopt(dogs);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span c
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">UnverifiedEmail</span> = { address: string };
-<span class="k">type</span> <span class="t">VerifiedEmail</span> = { address: string };
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">UnverifiedEmail</span> = { address: <span class="t">string</span> };
+<span class="k">type</span> <span class="t">VerifiedEmail</span> = { address: <span class="t">string</span> };
 
 sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">invoice sent to typo@exmaple.com</span></pre></div>
             <p class="c-result"><b>An unverified address gets the invoice.</b></p>
@@ -1316,12 +1317,12 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then accepts a string as a socket</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> isConn(value: unknown): value <span class="k">is</span> <span class="t">Conn</span> {
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> isConn(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">Conn</span> {
   <span class="k">return</span> (
     <span class="k">typeof</span> value === <span class="s">"object"</span> &amp;&amp;
     value !== <span class="k">null</span> &amp;&amp;
-    <span class="k">typeof</span> (value <span class="k">as</span> <span class="t">Record</span>&lt;string, unknown&gt;).id === <span class="s">"number"</span> &amp;&amp;
-    (value <span class="k">as</span> <span class="t">Record</span>&lt;string, unknown&gt;).sock !== <span class="k">undefined</span>
+    <span class="k">typeof</span> (value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).id === <span class="s">"number"</span> &amp;&amp;
+    (value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).sock !== <span class="k">undefined</span>
   );
 }</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">{ id: 1, sock: 'not a socket' }</span></pre></div>
             <p class="c-result"><b>The guard says <code>Conn</code> after checking that <code>sock</code> exists.</b> A string passes as a socket.</p>
@@ -1371,7 +1372,7 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
         <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: number };
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: <span class="t">number</span> };
 
 <span class="k">const</span> text = <span class="s">'{"qty": 1.5}'</span>;
 console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Order</span>).qty);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">1.5</span></pre></div>
@@ -1380,11 +1381,11 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">checked when the data arrives</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: int }
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: <span class="t">int</span> }
 
 <span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Order</span>&gt;(text) {
-  <span class="t">Ok</span>(o) =&gt; <span class="s">"qty ${o.qty}"</span>,
-  <span class="t">Err</span>(issues) =&gt; <span class="s">"rejected: ${json.stringify(issues)}"</span>,
+  <span class="t">Ok</span>(o) <span class="op">=&gt;</span> <span class="s">"qty </span><span class="ip">${</span>o.qty<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
 }</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["qty"],"message":"field `qty` must be int","code":"type"}]</span></pre></div>
             <p class="c-result"><b><code>int</code> is its own type,</b> and it is checked.</p>
           </div>
@@ -1410,9 +1411,9 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="s">"paid"</span> =&gt; <span class="k">true</span>,
-<span class="s">"shipped"</span> =&gt; <span class="k">true</span>,
-<span class="s">"paid"</span> =&gt; <span class="k">false</span>,</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0305] Error: emit: this match arm can never run: an earlier arm already matches `"paid"`</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="s">"paid"</span> <span class="op">=&gt;</span> <span class="k">true</span>,
+<span class="s">"shipped"</span> <span class="op">=&gt;</span> <span class="k">true</span>,
+<span class="s">"paid"</span> <span class="op">=&gt;</span> <span class="k">false</span>,</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0305] Error: emit: this match arm can never run: an earlier arm already matches `"paid"`</span>
 <span class="h">Help: Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.</span></pre></div>
             <p class="c-result"><b>An arm that can never run is an error.</b></p>
           </div>

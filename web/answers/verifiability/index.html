@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"What stops an agent from silently breaking my code?","item":"https://glyphlang.io/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/verifiability/#article","headline":"What stops an agent from silently breaking my code?","description":"Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.","url":"https://glyphlang.io/answers/verifiability/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/verifiability/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -604,11 +605,11 @@ fn label(s: Status) -&gt; string {
       </p>
       <div class="code">
         <span class="cap">repl.glyph: the inner arm tests the payload, it doesn't bind it</span>
-<pre>fn step(z: Zipper, line: string) -&gt; Zipper {
-  return match parse_command(line) {
-    Err(Blank) =&gt; z,                          // a comment or an empty line
-    Err(e) =&gt; { io.println(explain(e)) z },   // every other parse error
-    Ok(command) =&gt; execute(z, command),
+<pre><span class="k">fn</span> step(z: <span class="t">Zipper</span>, line: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Zipper</span> {
+  <span class="k">return</span> <span class="k">match</span> parse_command(line) {
+    <span class="t">Err</span>(<span class="t">Blank</span>) <span class="op">=&gt;</span> z,                          <span class="c">// a comment or an empty line</span>
+    <span class="t">Err</span>(e) <span class="op">=&gt;</span> { io.println(explain(e)) z },   <span class="c">// every other parse error</span>
+    <span class="t">Ok</span>(command) <span class="op">=&gt;</span> execute(z, command),
   }
 }</pre>
       </div>

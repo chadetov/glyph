@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/upgrades/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Will a new Glyph release break my build?","item":"https://glyphlang.io/answers/upgrades/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/upgrades/#article","headline":"Will a new Glyph release break my build?","description":"A Glyph project pins its compiler exactly, so a release never reaches you by accident. glyph doctor tells you one exists and glyph upgrade moves you to it.","url":"https://glyphlang.io/answers/upgrades/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/upgrades/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -484,15 +485,15 @@
 
       <div class="code">
         <span class="cap">glyph doctor</span>
-<pre class="wraps">glyph &mdash; 0.1.72
-  [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
-             what changed: https://glyphlang.io/versions/
+<pre class="wraps">glyph — 0.1.72
+  <span class="w">[update]</span>   0.1.73 is published — <span class="q">`glyph --update`</span> moves this compiler, <span class="q">`glyph upgrade`</span> moves a project's pin
+             what changed: <span class="lc">https://glyphlang.io/versions/</span>
 
-glyph doctor &mdash; JavaScript toolchain
-  [ok]       node: v22.1.0
-  [ok]       tsx: tsx v4.19.0
-  [ok]       tsc: Version 6.0.2
-All good. `glyph run` and `glyph build --check` are ready.</pre>
+glyph doctor — JavaScript toolchain
+  <span class="o">[ok]</span>       node: v22.1.0
+  <span class="o">[ok]</span>       tsx: tsx v4.19.0
+  <span class="o">[ok]</span>       tsc: Version 6.0.2
+All good. <span class="q">`glyph run`</span> and <span class="q">`glyph build --check`</span> are ready.</pre>
       </div>
 
       <div class="detail">
@@ -514,12 +515,12 @@ All good. `glyph run` and `glyph build --check` are ready.</pre>
 
       <div class="code">
         <span class="cap">One line changes, and you decide when</span>
-<pre class="wraps">$ glyph upgrade --dry-run
+<pre class="wraps"><span class="pr">$</span> <span class="f">glyph</span> upgrade <span class="fl">--dry-run</span>
 glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
 
-$ glyph upgrade
+<span class="pr">$</span> <span class="f">glyph</span> upgrade
 glyph upgrade: /app/package.json now pins 0.1.73 (was 0.1.72).
-glyph upgrade: what changed: https://glyphlang.io/versions/
+glyph upgrade: what changed: <span class="lc">https://glyphlang.io/versions/</span>
 glyph upgrade: build before you commit; a new release may report diagnostics
                this project did not have.</pre>
       </div>

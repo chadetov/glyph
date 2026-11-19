@@ -35,6 +35,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Verifiability","item":"https://glyphlang.io/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pillars/verifiability/#article","headline":"Verifiability · no any, exhaustive match","description":"Glyph's first pillar: no any or as, exhaustive match, and runtime validators for the types you declare: a strict layer over tsc, with its limits stated.","url":"https://glyphlang.io/pillars/verifiability/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pillars/verifiability/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -432,10 +433,10 @@
         <div class="code">
           <span class="tag-good">Glyph: the narrowing is the proof</span>
           <span class="cap">handler.glyph</span>
-<pre>fn handle(body: unknown) -&gt; string {
-  return match User.parse(body) {
-    Ok(u) =&gt; string.upper(u.name),
-    Err(_) =&gt; "unknown",
+<pre><span class="k">fn</span> handle(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(body) {
+    <span class="t">Ok</span>(u) <span class="op">=&gt;</span> <span class="t">string</span>.upper(u.name),
+    <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unknown"</span>,
   }
 }</pre>
         </div>

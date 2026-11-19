@@ -35,6 +35,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/versions.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/versions/2026-09/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Versions & changelog","item":"https://glyphlang.io/versions/"},{"@type":"ListItem","position":3,"name":"September 2026 releases","item":"https://glyphlang.io/versions/2026-09/"}]}]}</script>
+
     <link rel="alternate" type="application/atom+xml" title="Glyph releases" href="/versions/feed.xml" />
   </head>
   <body>
@@ -561,18 +562,18 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
             <p><code>glyph llms --json</code> emits one document and no line of it is written by hand. <code>diagnostics</code>: 61 codes, each with the catalogue sentence, the one-line fix, the long <code>--explain</code> text, and the help and note read off a real diagnostic. 38 of the 61 also carry a wrong program from the negative corpus, compiled at the moment you ask; the other 23 say the corpus has no case for the code. <code>prelude</code>: 24 names out of the resolver's own table. <code>stdlib</code>: 36 modules and 327 exports, split three ways. 24 carry a signature the checker models in every position, 76 carry one with a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code>, and 227 say in a <code>signature_absent</code> line that the tables model none. A <code>?</code> is <code>unknown</code> rendered, so a signature with one is never presented as complete. <code>decisions</code>: 47 parsed out of the spec. <code>tools</code>: the eleven the MCP server serves, each with its <code>glyph query</code> verb and its full manual.</p>
             <div class="code">
               <span class="cap">glyph llms --json, trimmed</span>
-<pre>"stdlib": {
-  "modules": [ { "path": "std/array", "exports": [
-    { "name": "filter",
-      "signature": "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;" },
-    { "name": "find",
-      "signature": "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;" }, ... ] } ],
-  "modeled": 24, "partially_modeled": 76,
-  "unmodeled": 227 },
-"decisions": { "count": 47, "duplicate_numbers": [43], ... },
-"tools": { "count": 11, "tools": [
-  { "name": "glyph_symbol", "cli_verb": "glyph query symbol",
-    "manual": "...", "input_schema": { ... } }, ... ] }</pre>
+<pre><span class="pk">"stdlib"</span>: {
+  <span class="pk">"modules"</span>: [ { <span class="pk">"path"</span>: <span class="s">"std/array"</span>, <span class="pk">"exports"</span>: [
+    { <span class="pk">"name"</span>: <span class="s">"filter"</span>,
+      <span class="pk">"signature"</span>: <span class="s">"fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;"</span> },
+    { <span class="pk">"name"</span>: <span class="s">"find"</span>,
+      <span class="pk">"signature"</span>: <span class="s">"fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;"</span> }, <span class="c">...</span> ] } ],
+  <span class="pk">"modeled"</span>: <span class="n">24</span>, <span class="pk">"partially_modeled"</span>: <span class="n">76</span>,
+  <span class="pk">"unmodeled"</span>: <span class="n">227</span> },
+<span class="pk">"decisions"</span>: { <span class="pk">"count"</span>: <span class="n">47</span>, <span class="pk">"duplicate_numbers"</span>: [<span class="n">43</span>], <span class="c">...</span> },
+<span class="pk">"tools"</span>: { <span class="pk">"count"</span>: <span class="n">11</span>, <span class="pk">"tools"</span>: [
+  { <span class="pk">"name"</span>: <span class="s">"glyph_symbol"</span>, <span class="pk">"cli_verb"</span>: <span class="s">"glyph query symbol"</span>,
+    <span class="pk">"manual"</span>: <span class="s">"..."</span>, <span class="pk">"input_schema"</span>: { <span class="c">...</span> } }, <span class="c">...</span> ] }</pre>
             </div>
             <p>The code catalogue is one table in the compiler now, and <code>docs/error-codes.md</code> and the diagnostic table in <code>AGENTS.md</code> are written from it by a script that fails on drift. Merging the three hand-maintained copies turned up <code>E0304</code>, which had an explanation and no place in the code list, and an <code>E0111</code> row whose escaped pipe had gone unnoticed. A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a tool count that disagrees with the list, fails the build. That is what let "exposes five tools" survive two releases against a server serving seven.</p>
             <p>Every Glyph fence in those two documents compiles. <code>AGENTS.md</code> was 19 fences with 2 compiled and 17 skipped as fragments; it is 24, with 20 compiled and 4 marked: one is a fragment of a named complete example that is itself compiled, and three are marked <code>needs-deps</code>, which is a different claim (they import an npm package or declare a <code>component</code>). <code>docs/reference/stdlib.md</code> was 4 of 8 and is 8 of 8. Five wrong forms the bootstrap warns about are now programs paired with the diagnostic each draws. Compiling the documents found two things reading them was never going to find: an inline triple backtick in <code>AGENTS.md</code> that read as a fence opener, so 250 lines counted as one snippet, and a worked server in the stdlib reference calling <code>http.serve</code>, which <code>std/http</code> does not export. The function is <code>listen</code>.</p>
@@ -704,20 +705,20 @@ fn main() {
             <div class="code">
               <span class="cap">glyph --explain E0200 --json</span>
 <pre>{
-  "code": "E0200",
-  "title": "non-exhaustive match",
-  "explanation": "A `match` over a tagged union must handle every
-    variant. Unions are sealed (D9) ...",
-  "help": "Add an arm for each missing variant, or an `else` arm ...",
-  "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
-  "counter_example": {
-    "name": "alias_of_local_union_not_exhaustive",
-    "files": [ { "path": "...glyph", "source": "module main\n\ntype Shape =\n ..." } ],
-    "diagnostic": { "code": "E0200", "missing_variants": ["Tri"], ... },
-    "corrected": null,
-    "corrected_absent": "`tests/negative/` pairs no repaired program with a
+  <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+  <span class="pk">"title"</span>: <span class="s">"non-exhaustive match"</span>,
+  <span class="pk">"explanation"</span>: <span class="s">"A `match` over a tagged union must handle every
+    variant. Unions are sealed (D9) ..."</span>,
+  <span class="pk">"help"</span>: <span class="s">"Add an arm for each missing variant, or an `else` arm ..."</span>,
+  <span class="pk">"docs"</span>: <span class="s">"https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200"</span>,
+  <span class="pk">"counter_example"</span>: {
+    <span class="pk">"name"</span>: <span class="s">"alias_of_local_union_not_exhaustive"</span>,
+    <span class="pk">"files"</span>: [ { <span class="pk">"path"</span>: <span class="s">"...glyph"</span>, <span class="pk">"source"</span>: <span class="s">"module main\n\ntype Shape =\n ..."</span> } ],
+    <span class="pk">"diagnostic"</span>: { <span class="pk">"code"</span>: <span class="s">"E0200"</span>, <span class="pk">"missing_variants"</span>: [<span class="s">"Tri"</span>], <span class="c">...</span> },
+    <span class="pk">"corrected"</span>: <span class="k">null</span>,
+    <span class="pk">"corrected_absent"</span>: <span class="s">"`tests/negative/` pairs no repaired program with a
       case: an entry is a wrong program and the code it draws. A fix invented
-      here would compile nowhere and be checked by nothing."
+      here would compile nowhere and be checked by nothing."</span>
   }
 }</pre>
             </div>
@@ -779,21 +780,21 @@ fn main() {
             <div class="code">
               <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
 <pre>{
-  "entity": "orders::OrderStatus",
-  "kind": "union",
-  "pub": true,
-  "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
-  "exhaustive_match": true,
-  "variants": [
-    { "name": "Pending",   "payload": null,
-      "construct": "Pending" },
-    { "name": "Paid",      "payload": "{ transaction_id: string }",
-      "construct": "Paid({ transaction_id: string })" },
-    { "name": "Cancelled", "payload": null,
-      "construct": "Cancelled" }
+  <span class="pk">"entity"</span>: <span class="s">"orders::OrderStatus"</span>,
+  <span class="pk">"kind"</span>: <span class="s">"union"</span>,
+  <span class="pk">"pub"</span>: <span class="k">true</span>,
+  <span class="pk">"type"</span>: <span class="s">"Pending | Paid({ transaction_id: string }) | Cancelled"</span>,
+  <span class="pk">"exhaustive_match"</span>: <span class="k">true</span>,
+  <span class="pk">"variants"</span>: [
+    { <span class="pk">"name"</span>: <span class="s">"Pending"</span>,   <span class="pk">"payload"</span>: <span class="k">null</span>,
+      <span class="pk">"construct"</span>: <span class="s">"Pending"</span> },
+    { <span class="pk">"name"</span>: <span class="s">"Paid"</span>,      <span class="pk">"payload"</span>: <span class="s">"{ transaction_id: string }"</span>,
+      <span class="pk">"construct"</span>: <span class="s">"Paid({ transaction_id: string })"</span> },
+    { <span class="pk">"name"</span>: <span class="s">"Cancelled"</span>, <span class="pk">"payload"</span>: <span class="k">null</span>,
+      <span class="pk">"construct"</span>: <span class="s">"Cancelled"</span> }
   ],
-  "path": "src/orders.glyph",
-  "origin": "glyph"
+  <span class="pk">"path"</span>: <span class="s">"src/orders.glyph"</span>,
+  <span class="pk">"origin"</span>: <span class="s">"glyph"</span>
 }</pre>
             </div>
             <p>Every fact the compiler doesn't hold comes back as null with a <code>&lt;key&gt;_absent</code> sentence saying why, so you never have to tell a missing answer from a symbol that has none. An unannotated <code>const</code> reports no type, for instance, because the checker deliberately doesn't infer a declaration's type from its initializer, and printing the initializer's type would claim uses are checked against something that checks nothing.</p>
@@ -892,9 +893,9 @@ fn main() {
             <p><code>array.fold</code> cannot stop early, so a search that knows when it is finished was either written as recursive functions threading an index, or as a <code>fold</code> that evaluates the whole array and looks correct doing it. <code>fold_while</code> checks a predicate before each element; <code>try_fold</code> stops on the first <code>Err</code>.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>let total = array.fold_while([1, 2, 3, 4, 5], 0,
-  (acc, x) -> acc + x, (acc) -> acc >= 6)
-io.println(string.from(total)) // 6, stops before visiting 4 and 5</pre>
+<pre><span class="k">let</span> total = array.fold_while([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>], <span class="n">0</span>,
+  (acc, x) <span class="op">-&gt;</span> acc + x, (acc) <span class="op">-&gt;</span> acc &gt;= <span class="n">6</span>)
+io.println(<span class="t">string</span>.from(total)) <span class="c">// 6, stops before visiting 4 and 5</span></pre>
             </div>
             <p>Both are typed through the existing signature table: a <code>done</code> predicate returning the wrong type, or a <code>try_fold</code> result matched with no <code>Err</code> arm, are diagnosed the same as any other stdlib call. There is no <code>Step&lt;A&gt;</code> continue-or-stop type; a generic stdlib union would be the first of its kind and a <code>match</code> over one gets no exhaustiveness check today, so the stop signal is a predicate the checker already knows how to type.</p>
             <h4>A line reader for std/fs</h4>
@@ -1066,7 +1067,7 @@ fn main(r: PaymentResult) -> string {
             <p>The compiler and the playground assembled the emit context separately, and the playground assembled an empty one. The same source file produced three differences, and one of them mattered:</p>
             <div class="code">
               <span class="cap">Row.is, from glyph build</span>
-<pre>(value as Record&lt;string, unknown&gt;).kind === "red" || ... === "blue"</pre>
+<pre>(value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).kind === <span class="s">"red"</span> || ... === <span class="s">"blue"</span></pre>
               <span class="cap">Row.is, from the playground</span>
 <pre><span class="del">(value as Record&lt;string, unknown&gt;).kind !== undefined</span></pre>
             </div>
@@ -1172,14 +1173,14 @@ fn main(r: PaymentResult) -> string {
             <p><code>std/array</code> gains <code>max</code>, <code>min</code>, <code>sum</code>, <code>max_by</code> and <code>min_by</code>. Picking the highest-scoring element is the core operation of every search, ranking and scheduler, and until now it was a four-line fold each time. One application in this repository wrote it five times in one file.</p>
             <div class="code">
               <span class="cap">before</span>
-<pre>let best = array.fold(moves, None, fn(acc, m) {
-  return match acc {
-    None =&gt; Some(m),
-    Some(b) =&gt; match m.score &gt; b.score { true =&gt; Some(m), false =&gt; Some(b) },
+<pre><span class="k">let</span> best = array.fold(moves, <span class="t">None</span>, <span class="k">fn</span>(acc, m) {
+  <span class="k">return</span> <span class="k">match</span> acc {
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Some</span>(m),
+    <span class="t">Some</span>(b) <span class="op">=&gt;</span> <span class="k">match</span> m.score &gt; b.score { <span class="k">true</span> <span class="op">=&gt;</span> <span class="t">Some</span>(m), <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Some</span>(b) },
   }
 })</pre>
               <span class="cap">now</span>
-<pre>let best = array.max_by(moves, fn(m) { return m.score })</pre>
+<pre><span class="k">let</span> best = array.max_by(moves, <span class="k">fn</span>(m) { <span class="k">return</span> m.score })</pre>
             </div>
             <p>Four of the five return <code>Option</code>, because an empty array has no maximum and answering 0 or negative infinity is the kind of quiet wrong answer this language exists to prevent. <code>sum</code> returns a plain number: the sum of no numbers is 0, which is a real answer rather than a stand-in. On a tie, <code>max_by</code> and <code>min_by</code> return the first element, and that is documented rather than incidental.</p>
             <p class="rel-note">The hand-written version was never wrong, just long, and long is what gets mistyped. Every one of those folds type-checks whether or not its seed and its comparison direction are right, so the compiler could not help you with the version you were writing before. Nothing that compiled on 0.1.108 stops compiling here.</p>
@@ -1235,8 +1236,8 @@ glyph_diagnostics    <span class="add">a::f</span></pre>
             <p><code>glyph fix</code> could remove a dead name from an import and leave the file unparseable, while exiting 0 and reporting success. It has done that since 0.1.99.</p>
             <div class="code">
               <span class="cap">before</span>
-<pre>import helper { one, two, three }
-fn main(argv: Array&lt;string&gt;) -&gt; number {</pre>
+<pre><span class="k">import</span> helper { one, two, three }
+<span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {</pre>
               <span class="cap">after, on 0.1.106</span>
 <pre><span class="del">import helper { one }fn main(argv: Array&lt;string&gt;) -&gt; number {</span>
 glyph fix:   removed 2 unused import(s)          exit 0

@@ -35,6 +35,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pillars/abstraction/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Abstraction","item":"https://glyphlang.io/pillars/abstraction/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pillars/abstraction/#article","headline":"Abstraction · a small, orthogonal core","description":"Glyph's fourth pillar: one way per concept. Pattern matching over switch ladders, Result over exceptions, records over tuples, and match as the conditional.","url":"https://glyphlang.io/pillars/abstraction/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pillars/abstraction/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -421,19 +422,19 @@
         <div class="code">
           <span class="tag-bad">TypeScript: statement, not a value</span>
           <span class="cap">grade.ts</span>
-<pre>let label: string;
-if (score &gt; 90) label = "A";
-else if (score &gt; 80) label = "B";
-else label = "C";</pre>
+<pre><span class="k">let</span> label: <span class="t">string</span>;
+<span class="k">if</span> (score &gt; <span class="n">90</span>) label = <span class="s">"A"</span>;
+<span class="k">else</span> <span class="k">if</span> (score &gt; <span class="n">80</span>) label = <span class="s">"B"</span>;
+<span class="k">else</span> label = <span class="s">"C"</span>;</pre>
         </div>
         <div class="code">
           <span class="tag-good">Glyph: one expression</span>
           <span class="cap">grade.glyph</span>
-<pre>let label = match score &gt; 90 {
-  true =&gt; "A",
-  false =&gt; match score &gt; 80 {
-    true =&gt; "B",
-    else =&gt; "C",
+<pre><span class="k">let</span> label = <span class="k">match</span> score &gt; <span class="n">90</span> {
+  <span class="k">true</span> <span class="op">=&gt;</span> <span class="s">"A"</span>,
+  <span class="k">false</span> <span class="op">=&gt;</span> <span class="k">match</span> score &gt; <span class="n">80</span> {
+    <span class="k">true</span> <span class="op">=&gt;</span> <span class="s">"B"</span>,
+    <span class="k">else</span> <span class="op">=&gt;</span> <span class="s">"C"</span>,
   },
 }</pre>
         </div>
@@ -496,10 +497,10 @@ p[0]; p[1];  <span class="cm">// x? y? row? col?</span></pre>
         <div class="code">
           <span class="tag-good">Glyph: the names travel with the value</span>
           <span class="cap">point.glyph</span>
-<pre>type Point = { x: number, y: number }
+<pre><span class="k">type</span> <span class="t">Point</span> = { x: <span class="t">number</span>, y: <span class="t">number</span> }
 
-fn origin() -&gt; Point {
-  return { x: 0, y: 0 }
+<span class="k">fn</span> origin() <span class="op">-&gt;</span> <span class="t">Point</span> {
+  <span class="k">return</span> { x: <span class="n">0</span>, y: <span class="n">0</span> }
 }</pre>
         </div>
       </div>

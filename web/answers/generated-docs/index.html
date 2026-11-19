@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/generated-docs/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Is the documentation my agent reads generated?","item":"https://glyphlang.io/answers/generated-docs/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/generated-docs/#article","headline":"Is the documentation my agent reads generated?","description":"glyph llms --json emits the diagnostics, the prelude, the stdlib signatures and the language decisions from the compiler's own tables, so they cannot drift.","url":"https://glyphlang.io/answers/generated-docs/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/generated-docs/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -467,26 +468,26 @@
       <div class="code">
         <span class="cap">glyph llms --json, the E0200 entry (trimmed)</span>
 <pre>{
-  "code": "E0200",
-  "phase": "typechecker",
-  "meaning": "Non-exhaustive `match` on a tagged union (yours, a prelude
+  <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+  <span class="pk">"phase"</span>: <span class="s">"typechecker"</span>,
+  <span class="pk">"meaning"</span>: <span class="s">"Non-exhaustive `match` on a tagged union (yours, a prelude
     `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a
-    string-literal union (`\"free\" | \"pro\"`, D30) missing a literal ...",
-  "fix": "Add an arm for each missing variant",
-  "help": "Add an arm for each missing variant.",
-  "note": "Tagged unions are sealed (D9): adding a variant forces every
+    string-literal union (`\"free\" | \"pro\"`, D30) missing a literal ..."</span>,
+  <span class="pk">"fix"</span>: <span class="s">"Add an arm for each missing variant"</span>,
+  <span class="pk">"help"</span>: <span class="s">"Add an arm for each missing variant."</span>,
+  <span class="pk">"note"</span>: <span class="s">"Tagged unions are sealed (D9): adding a variant forces every
            match to be updated. A `_`/`else` catch-all is allowed but
-           forfeits that guarantee.",
-  "counter_example": {
-    "name": "alias_of_local_union_not_exhaustive",
-    "files": [ { "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
-    "diagnostic": { "code": "E0200",
-      "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
-      "missing_variants": ["Tri"] },
-    "corrected": null,
-    "corrected_absent": "`tests/negative/` pairs no repaired program with a
+           forfeits that guarantee."</span>,
+  <span class="pk">"counter_example"</span>: {
+    <span class="pk">"name"</span>: <span class="s">"alias_of_local_union_not_exhaustive"</span>,
+    <span class="pk">"files"</span>: [ { <span class="pk">"source"</span>: <span class="s">"module main\n\ntype Shape =\n  | Circle\n ..."</span> } ],
+    <span class="pk">"diagnostic"</span>: { <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+      <span class="pk">"message"</span>: <span class="s">"non-exhaustive match on `Shape`: missing variants `Tri`"</span>,
+      <span class="pk">"missing_variants"</span>: [<span class="s">"Tri"</span>] },
+    <span class="pk">"corrected"</span>: <span class="k">null</span>,
+    <span class="pk">"corrected_absent"</span>: <span class="s">"`tests/negative/` pairs no repaired program with a
       case: an entry is a wrong program and the code it draws. A fix
-      invented here would compile nowhere and be checked by nothing."
+      invented here would compile nowhere and be checked by nothing."</span>
   }
 }</pre>
       </div>
@@ -517,35 +518,35 @@
       <div class="two-up stack">
         <div class="code">
           <span class="cap">"stdlib"</span>
-<pre>{ "path": "std/array", "exports": [
-  { "name": "filter",
-    "signature":
-      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;" },
-  { "name": "find",
-    "signature":
-      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;" },
-  { "name": "fold",
-    "signature":
-      "fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U" } ] }
+<pre>{ <span class="pk">"path"</span>: <span class="s">"std/array"</span>, <span class="pk">"exports"</span>: [
+  { <span class="pk">"name"</span>: <span class="s">"filter"</span>,
+    <span class="pk">"signature"</span>:
+      <span class="s">"fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;"</span> },
+  { <span class="pk">"name"</span>: <span class="s">"find"</span>,
+    <span class="pk">"signature"</span>:
+      <span class="s">"fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;"</span> },
+  { <span class="pk">"name"</span>: <span class="s">"fold"</span>,
+    <span class="pk">"signature"</span>:
+      <span class="s">"fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U"</span> } ] }
 
-"modeled": 129, "partially_modeled": 46,
-"unmodeled": 165</pre>
+<span class="pk">"modeled"</span>: <span class="n">129</span>, <span class="pk">"partially_modeled"</span>: <span class="n">46</span>,
+<span class="pk">"unmodeled"</span>: <span class="n">165</span></pre>
         </div>
         <div class="code">
           <span class="cap">"prelude" and "decisions"</span>
-<pre>"prelude": { "count": 24, "names": [
-  { "name": "int", "role": "type" },
-  { "name": "Ok",  "role": "value" },
-  { "name": "par", "role": "namespace" }, ... ] }
+<pre><span class="pk">"prelude"</span>: { <span class="pk">"count"</span>: <span class="n">24</span>, <span class="pk">"names"</span>: [
+  { <span class="pk">"name"</span>: <span class="s">"int"</span>, <span class="pk">"role"</span>: <span class="s">"type"</span> },
+  { <span class="pk">"name"</span>: <span class="s">"Ok"</span>,  <span class="pk">"role"</span>: <span class="s">"value"</span> },
+  { <span class="pk">"name"</span>: <span class="s">"par"</span>, <span class="pk">"role"</span>: <span class="s">"namespace"</span> }, <span class="c">...</span> ] }
 
-"decisions": { "count": 49,
-  "duplicate_numbers": [],
-  "decisions": [
-    { "id": "D9",
-      "section": "Control flow &amp; expressions",
-      "title": "`else` is a catch-all arm; `_` is a
+<span class="pk">"decisions"</span>: { <span class="pk">"count"</span>: <span class="n">49</span>,
+  <span class="pk">"duplicate_numbers"</span>: [],
+  <span class="pk">"decisions"</span>: [
+    { <span class="pk">"id"</span>: <span class="s">"D9"</span>,
+      <span class="pk">"section"</span>: <span class="s">"Control flow &amp; expressions"</span>,
+      <span class="pk">"title"</span>: <span class="s">"`else` is a catch-all arm; `_` is a
         position-level wildcard; a PascalCase arm
-        head is a variant reference ..." }, ... ] }</pre>
+        head is a variant reference ..."</span> }, <span class="c">...</span> ] }</pre>
         </div>
       </div>
 
@@ -572,23 +573,23 @@
       <div class="code">
         <span class="cap">glyph llms --negative E0008</span>
 <pre>{
-  "code": "E0008",
-  "meaning": "Assignment without `mut` (`x = e` should be `mut x = e`, or
-              `let x = e` for a new binding; D5)",
-  "fix": "Write `mut x = e`, or `let x = e` for a new binding",
-  "negative": [ {
-    "name": "bare_assignment_without_mut",
-    "files": [ { "path": "bare_assignment_without_mut.glyph",
-      "source": "module neg\n\nfn count() -&gt; number {\n  let total = 0\n
-                 total = total + 1\n  return total\n}\n" } ],
-    "diagnostic": { "code": "E0008", "stage": "parse",
-      "message": "assignment requires `mut`",
-      "help": "Glyph marks every mutation (D5): write `mut x = ...` to
+  <span class="pk">"code"</span>: <span class="s">"E0008"</span>,
+  <span class="pk">"meaning"</span>: <span class="s">"Assignment without `mut` (`x = e` should be `mut x = e`, or
+              `let x = e` for a new binding; D5)"</span>,
+  <span class="pk">"fix"</span>: <span class="s">"Write `mut x = e`, or `let x = e` for a new binding"</span>,
+  <span class="pk">"negative"</span>: [ {
+    <span class="pk">"name"</span>: <span class="s">"bare_assignment_without_mut"</span>,
+    <span class="pk">"files"</span>: [ { <span class="pk">"path"</span>: <span class="s">"bare_assignment_without_mut.glyph"</span>,
+      <span class="pk">"source"</span>: <span class="s">"module neg\n\nfn count() -&gt; number {\n  let total = 0\n
+                 total = total + 1\n  return total\n}\n"</span> } ],
+    <span class="pk">"diagnostic"</span>: { <span class="pk">"code"</span>: <span class="s">"E0008"</span>, <span class="pk">"stage"</span>: <span class="s">"parse"</span>,
+      <span class="pk">"message"</span>: <span class="s">"assignment requires `mut`"</span>,
+      <span class="pk">"help"</span>: <span class="s">"Glyph marks every mutation (D5): write `mut x = ...` to
                reassign an existing binding, or `let x = ...` to
-               introduce a new one.",
-      "range": { "start": { "line": 5, "col": 3, "offset": 53 }, ... } } } ],
-  "catches": [],
-  "catches_absent": "`catches/` pairs no TypeScript-accepted program with E0008"
+               introduce a new one."</span>,
+      <span class="pk">"range"</span>: { <span class="pk">"start"</span>: { <span class="pk">"line"</span>: <span class="n">5</span>, <span class="pk">"col"</span>: <span class="n">3</span>, <span class="pk">"offset"</span>: <span class="n">53</span> }, <span class="c">...</span> } } } ],
+  <span class="pk">"catches"</span>: [],
+  <span class="pk">"catches_absent"</span>: <span class="s">"`catches/` pairs no TypeScript-accepted program with E0008"</span>
 }</pre>
       </div>
 

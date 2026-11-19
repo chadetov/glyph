@@ -35,6 +35,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/design/vs-effect/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Design","item":"https://glyphlang.io/design/"},{"@type":"ListItem","position":3,"name":"Glyph and Effect","item":"https://glyphlang.io/design/vs-effect/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/design/vs-effect/#article","headline":"Glyph and Effect · a library and a language compared","description":"Effect is a TypeScript library with typed errors and a large ecosystem; Glyph is a language that compiles to TypeScript. What each does better, with code.","url":"https://glyphlang.io/design/vs-effect/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/design/vs-effect/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -439,33 +440,33 @@ console.log(Effect.runSyncExit(quiet)._tag, user.email)</pre>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">find.glyph: builds, passes tsc --strict</span>
-<pre>module find
+<pre><span class="k">module</span> find
 
-pub type NotFound = { id: string }
+<span class="k">pub</span> <span class="k">type</span> <span class="t">NotFound</span> = { id: <span class="t">string</span> }
 
-pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
-  return match id == "1" {
-    true =&gt; Ok(1),
-    false =&gt; Err({ id: id }),
+<span class="k">pub</span> <span class="k">fn</span> find(id: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, <span class="t">NotFound</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> id == <span class="s">"1"</span> {
+    <span class="k">true</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(<span class="n">1</span>),
+    <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Err</span>({ id: id }),
   }
 }</pre>
         </div>
         <div class="code">
           <span class="cap">adding a cast: refused</span>
-<pre data-check="expect-error E0013">module find
+<pre data-check="expect-error E0013"><span class="k">module</span> find
 
-pub type NotFound = { id: string }
+<span class="k">pub</span> <span class="k">type</span> <span class="t">NotFound</span> = { id: <span class="t">string</span> }
 
-pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
-  return match id == "1" {
-    true =&gt; Ok(1),
-    false =&gt; Err({ id: id }),
+<span class="k">pub</span> <span class="k">fn</span> find(id: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, <span class="t">NotFound</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> id == <span class="s">"1"</span> {
+    <span class="k">true</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(<span class="n">1</span>),
+    <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Err</span>({ id: id }),
   }
 }
 
-pub fn quiet() -&gt; number {
-  let n = find("2") as number
-  return n
+<span class="k">pub</span> <span class="k">fn</span> quiet() <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> n = find(<span class="s">"2"</span>) <span class="k">as</span> <span class="t">number</span>
+  <span class="k">return</span> n
 }</pre>
         </div>
       </div>

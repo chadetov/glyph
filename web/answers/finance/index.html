@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I trust it with money and untrusted input?","item":"https://glyphlang.io/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/finance/#article","headline":"Can I trust it with money and untrusted input?","description":"Money is exact (decimals and integers past 2^53), invariants are types the boundary enforces, and untrusted input cannot reach a SQL or shell sink unsanitized.","url":"https://glyphlang.io/answers/finance/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/finance/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -463,12 +464,12 @@ decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from 
         </div>
         <div class="code">
           <span class="cap">the bug it removes</span>
-<pre>// JS number, the default everywhere:
-0.1 + 0.2            // 0.30000000000000004
-1_000_000_000_000.10 * 1.07   // rounding drift
-9007199254740993     // === 9007199254740992
+<pre><span class="c">// JS number, the default everywhere:</span>
+<span class="n">0.1</span> + <span class="n">0.2</span>            <span class="c">// 0.30000000000000004</span>
+<span class="n">1_000_000_000_000.10</span> * <span class="n">1.07</span>   <span class="c">// rounding drift</span>
+<span class="n">9007199254740993</span>     <span class="c">// === 9007199254740992</span>
 
-// None of these are your money anymore.</pre>
+<span class="c">// None of these are your money anymore.</span></pre>
         </div>
       </div>
 
@@ -528,22 +529,22 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
         </div>
         <div class="code">
           <span class="cap">the injection path does not</span>
-<pre data-check="expect-error TS2345">module query
+<pre data-check="expect-error TS2345"><span class="k">module</span> query
 
-import std/taint { Tainted, Trusted, taint, expose }
+<span class="k">import</span> std/taint { <span class="t">Tainted</span>, <span class="t">Trusted</span>, taint, expose }
 
-fn run_query(sql: Trusted&lt;string&gt;) -&gt; string {
-  return expose(sql)
+<span class="k">fn</span> run_query(sql: <span class="t">Trusted</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> expose(sql)
 }
 
-pub fn handle(body: string) -&gt; string {
-  let input: Tainted&lt;string&gt; = taint(body)
-  return run_query(input)
+<span class="k">pub</span> <span class="k">fn</span> handle(body: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">let</span> input: <span class="t">Tainted</span>&lt;<span class="t">string</span>&gt; = taint(body)
+  <span class="k">return</span> run_query(input)
 }
 
-// [TS2345] Argument of type 'Tainted&lt;string&gt;'
-//   is not assignable to parameter of type
-//   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
+<span class="c">// [TS2345] Argument of type 'Tainted&lt;string&gt;'</span>
+<span class="c">//   is not assignable to parameter of type</span>
+<span class="c">//   'Trusted&lt;string&gt;'. (query.glyph:11)</span></pre>
         </div>
       </div>
 

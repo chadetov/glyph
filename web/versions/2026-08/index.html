@@ -35,6 +35,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/versions.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/versions/2026-08/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Versions & changelog","item":"https://glyphlang.io/versions/"},{"@type":"ListItem","position":3,"name":"August 2026 releases","item":"https://glyphlang.io/versions/2026-08/"}]}]}</script>
+
     <link rel="alternate" type="application/atom+xml" title="Glyph releases" href="/versions/feed.xml" />
   </head>
   <body>
@@ -569,14 +570,14 @@ fn f(xs: Array&lt;Colour&gt;) -&gt; string {
             <p>A <code>match</code> over a union imported from another module could leave a variant out, build clean, pass <code>tsc --strict</code>, and throw at run time. It took the type parameter to do it: delete <code>&lt;K&gt;</code> from both files and the identical program was <code>E0200</code>. A scrutinee from another module goes down its own coverage path, and the gate that reaches it asked whether the type was an imported union. <code>Tree&lt;string&gt;</code> is an <em>application</em> of one, so it matched nothing, the coverage check never ran, and the match went uncounted. The gate reads through the application now, which puts a union&rsquo;s arity out of reach of the answer.</p>
             <div class="code">
               <span class="cap">tree.glyph</span>
-<pre>module tree
+<pre><span class="k">module</span> tree
 
-pub type Tree&lt;K&gt; =
-  | Leaf
-  | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>&gt; =
+  | <span class="t">Leaf</span>
+  | <span class="t">Node</span>({ left: <span class="t">Tree</span>&lt;<span class="t">K</span>&gt;, key: <span class="t">K</span>, right: <span class="t">Tree</span>&lt;<span class="t">K</span>&gt; })
 
-pub fn leaf&lt;K&gt;() -&gt; Tree&lt;K&gt; {
-  return Leaf
+<span class="k">pub</span> <span class="k">fn</span> leaf&lt;<span class="t">K</span>&gt;() <span class="op">-&gt;</span> <span class="t">Tree</span>&lt;<span class="t">K</span>&gt; {
+  <span class="k">return</span> <span class="t">Leaf</span>
 }</pre>
             </div>
             <div class="code">
@@ -841,20 +842,20 @@ pub fn rotate(t: Tree) -&gt; Tree {
               <li><span class="tag changed">Changed</span> <strong><code>{ on: true }</code> tests the field.</strong> A <code>true</code>, <code>false</code> or <code>void</code> after the colon used to read as a binding named after the keyword, which matched every value. Harmless while a field could only bind, wrong the moment it could test.</li>
               <li><span class="tag changed">Changed</span> <strong><code>[Black]</code> at the top of a match is rejected, and used to compile.</strong> The array exhaustiveness check counted a bare name as matching anything whatever its case, so <code>[Black]</code> covered length 1 and a match that got the other lengths from a rest arm certified as exhaustive. It also emitted a length test and no tag test, so <code>[Red]</code> took that arm and got the wrong answer. A PascalCase element is a variant reference here the way it is everywhere else, and the match is now <code>E0208</code> on arrays of length 1. Bind the element and match it:
                 <div class="code">
-<pre>module colors
+<pre><span class="k">module</span> colors
 
-type Color =
-  | Red
-  | Black
+<span class="k">type</span> <span class="t">Color</span> =
+  | <span class="t">Red</span>
+  | <span class="t">Black</span>
 
-pub fn describe(xs: Array&lt;Color&gt;) -&gt; string {
-  return match xs {
-    [] =&gt; "empty",
-    [only] =&gt; match only {
-      Black =&gt; "one black",
-      Red =&gt; "one red",
+<span class="k">pub</span> <span class="k">fn</span> describe(xs: <span class="t">Array</span>&lt;<span class="t">Color</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> xs {
+    [] <span class="op">=&gt;</span> <span class="s">"empty"</span>,
+    [only] <span class="op">=&gt;</span> <span class="k">match</span> only {
+      <span class="t">Black</span> <span class="op">=&gt;</span> <span class="s">"one black"</span>,
+      <span class="t">Red</span> <span class="op">=&gt;</span> <span class="s">"one red"</span>,
     },
-    [a, b, ...rest] =&gt; "many",
+    [a, b, ...rest] <span class="op">=&gt;</span> <span class="s">"many"</span>,
   }
 }</pre>
                 </div>
@@ -879,13 +880,13 @@ pub fn describe(xs: Array&lt;Color&gt;) -&gt; string {
             <p>A binding in Glyph has one type for the whole of its life. TypeScript narrows a binding to whatever it last saw assigned, and its <code>boolean</code> is the union <code>true | false</code>, so <code>let done = false</code> arrived at <code>tsc</code> typed <code>false</code>. Matching on it built clean in Glyph and then failed with <code>Type 'true' is not comparable to type 'false'</code>: an error about a <code>switch</code> you never wrote, on a program the Glyph checker found nothing wrong with. A string-literal union type failed the same way, and so did <code>==</code>.</p>
             <div class="code">
               <span class="cap">This builds now, and used to fail the tsc pass</span>
-<pre>module status
+<pre><span class="k">module</span> status
 
-fn classify() -&gt; int {
-  let done = false
-  match done {
-    true =&gt; { return 1 },
-    false =&gt; { return 0 },
+<span class="k">fn</span> classify() <span class="op">-&gt;</span> <span class="t">int</span> {
+  <span class="k">let</span> done = <span class="k">false</span>
+  <span class="k">match</span> done {
+    <span class="k">true</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="n">1</span> },
+    <span class="k">false</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="n">0</span> },
   }
 }</pre>
             </div>
@@ -943,17 +944,17 @@ const f = __m0;</pre>
             <p>A CLI that computes a verdict inside <code>main</code> and records it, rather than returning it, exited 0 regardless. The wrapper we generate assigned <code>process.exitCode</code> unconditionally after <code>main</code> returned, so a <code>main</code> declared <code>-&gt; void</code> had whatever it recorded written back to zero on the way out. Every shell and CI check reading that code saw success.</p>
             <div class="code">
               <span class="cap">This exits 1 now, and used to exit 0</span>
-<pre>module audit
+<pre><span class="k">module</span> audit
 
-import std/process
-import std/io
+<span class="k">import</span> std/process
+<span class="k">import</span> std/io
 
-pub fn main(argv: Array&lt;string&gt;) -&gt; void {
-  let failures = 2
-  io.println("checked, ${failures} failing")
-  match failures &gt; 0 {
-    true =&gt; process.set_exit_code(1),
-    false =&gt; {},
+<span class="k">pub</span> <span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="k">void</span> {
+  <span class="k">let</span> failures = <span class="n">2</span>
+  io.println(<span class="s">"checked, </span><span class="ip">${</span>failures<span class="ip">}</span><span class="s"> failing"</span>)
+  <span class="k">match</span> failures &gt; <span class="n">0</span> {
+    <span class="k">true</span> <span class="op">=&gt;</span> process.set_exit_code(<span class="n">1</span>),
+    <span class="k">false</span> <span class="op">=&gt;</span> {},
   }
 }</pre>
             </div>

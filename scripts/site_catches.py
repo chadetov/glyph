@@ -34,6 +34,8 @@ import re
 import tomllib
 import urllib.parse
 
+import site_highlight
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CASES = ROOT / "catches"
 REPO = "https://github.com/chadetov/glyph"
@@ -141,48 +143,9 @@ def glyph_group(c: dict) -> str:
 
 # ---------------------------------------------------------------- highlighting
 
-TS_KEYWORDS = {
-    "abstract", "as", "async", "await", "break", "case", "catch", "class", "const", "continue",
-    "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for",
-    "from", "function", "if", "implements", "import", "in", "instanceof", "interface", "is",
-    "keyof", "let", "new", "null", "of", "private", "public", "readonly", "return", "static",
-    "switch", "this", "throw", "true", "try", "type", "typeof", "undefined", "var", "void",
-    "while", "yield",
-}
-GLYPH_KEYWORDS = {
-    "async", "await", "break", "component", "continue", "else", "extern_ts", "false", "fn",
-    "for", "import", "in", "is", "let", "match", "module", "mut", "owned", "pub", "resource",
-    "return", "true", "type", "where", "while",
-}
-TOKEN = re.compile(
-    r"(?P<c>//[^\n]*|/\*.*?\*/)"
-    r"|(?P<s>\"(?:\\.|[^\"\\\n])*\"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)"
-    r"|(?P<w>[A-Za-z_][A-Za-z0-9_]*)"
-    r"|(?P<o>.)",
-    re.S,
-)
-
-
-def highlight(code: str, lang: str) -> str:
-    keywords = TS_KEYWORDS if lang == "ts" else GLYPH_KEYWORDS
-    out = []
-    for m in TOKEN.finditer(code):
-        text = html.escape(m.group(0), quote=False)
-        if m.lastgroup == "c":
-            out.append(f'<span class="c">{text}</span>')
-        elif m.lastgroup == "s":
-            out.append(f'<span class="s">{text}</span>')
-        elif m.lastgroup == "w":
-            word = m.group(0)
-            if word in keywords:
-                out.append(f'<span class="k">{text}</span>')
-            elif word[0].isupper():
-                out.append(f'<span class="t">{text}</span>')
-            else:
-                out.append(text)
-        else:
-            out.append(text)
-    return "".join(out)
+# The site's one highlighter, so a case's code is coloured the way every other
+# code block on the site is.
+highlight = site_highlight.highlight
 
 
 def strip_tags(s: str) -> str:

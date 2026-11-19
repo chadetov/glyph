@@ -1,0 +1,11 @@
+pillar = "verifiability"
+title = "Numbers sorted as text"
+kind = "gap"
+gap_id = "G388"
+ts_output = "100,25,9"
+glyph_output = "100,25,9"
+fullconfig = "lint:require-array-sort-compare"
+section = "gap"
+slug = "gap-g388-sort-as-text"
+order = 6
+summary = "<code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>."

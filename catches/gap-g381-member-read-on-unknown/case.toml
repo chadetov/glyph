@@ -1,0 +1,11 @@
+code = "TS18046"
+pillar = "verifiability"
+title = "A field read on an unknown value"
+kind = "gap"
+gap_id = "G381"
+ts_output = "Cannot read properties of undefined (reading 'name')"
+fullconfig = "lint:no-unsafe-member-access"
+section = "gap"
+slug = "gap-g381-member-read-on-unknown"
+order = 9
+summary = "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them."

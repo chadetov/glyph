@@ -1,0 +1,11 @@
+pillar = "verifiability"
+title = "|| on a number turns a real 0 into the default"
+kind = "gap"
+gap_id = "G386"
+ts_output = "retries 3"
+glyph_output = "retries 3"
+fullconfig = "none"
+section = "gap"
+slug = "gap-g386-or-on-a-number"
+order = 1
+summary = "<code>requested || 3</code> turns a real <code>0</code> into <code>3</code>; <code>!</code> accepts numbers and strings."

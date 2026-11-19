@@ -1,0 +1,22 @@
+module main
+
+import std/json
+
+// show
+type Age = int where value >= 0
+
+type Person = { age: Age }
+
+// end show
+
+fn main(argv: Array<string>) -> number {
+  let text = """{"age": -5}"""
+  // show
+  let out = match json.parse<Person>(text) {
+    Ok(p) => "age ${p.age}",
+    Err(issues) => "rejected: ${json.stringify(issues)}",
+  }
+  // end show
+  print(out)
+  return 0
+}

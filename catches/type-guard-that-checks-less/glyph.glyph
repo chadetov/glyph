@@ -1,0 +1,20 @@
+module main
+
+import std/json
+
+type User = { id: number, email: string }
+
+fn main(argv: Array<string>) -> number {
+  let body = match json.parse("""{"id": 7}""") {
+    Ok(v) => v,
+    Err(_) => void,
+  }
+  // show
+  let out = match User.is(body) {
+    true => "user",
+    false => "not a user",
+  }
+  // end show
+  print(out)
+  return 0
+}

@@ -1,0 +1,19 @@
+module main
+
+import std/sqlite
+
+fn find(db: sqlite.Db, name: string) -> number {
+  // show
+  let rows = db.query("SELECT * FROM users WHERE name = '${name}'", [])
+  // end show
+  return rows.length
+}
+
+fn main(argv: Array<string>) -> number {
+  let db = sqlite.open(":memory:")
+  db.exec("CREATE TABLE users (name TEXT)")
+  db.exec("INSERT INTO users VALUES ('ada'), ('linus')")
+  let n = find(db, "x' OR '1'='1")
+  print("rows ${n}")
+  return 0
+}

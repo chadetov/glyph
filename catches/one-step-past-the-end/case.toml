@@ -1,0 +1,18 @@
+pillar = "verifiability"
+title = "One step past the end"
+kind = "runtime"
+ts_output = "NaN"
+glyph_output = "RangeError: index 3 is out of range for an array of length 3"
+fullconfig = "none"
+section = "mistake"
+slug = "one-step-past-the-end"
+order = 28
+page_title = "One step past the end"
+why = "Summing a list with a loop."
+likelihood = 3
+severity = 3
+ts_verdict = "compiles, wrong answer"
+glyph_verdict = "stopped when it runs"
+ts_result = "<b><code>&lt;=</code> reads one past the end.</b>"
+glyph_result = "<b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program."
+page_note = "Out-of-range reads return <code>undefined</code> in TypeScript, and arithmetic turns that into <code>NaN</code>."

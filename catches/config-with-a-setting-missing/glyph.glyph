@@ -1,0 +1,17 @@
+module main
+
+import std/json
+
+type Plan = "free" | "pro" | "team"
+
+fn main(argv: Array<string>) -> number {
+  let text = """{"free": 1, "pro": 5}"""
+  // show
+  let out = match json.parse<Record<Plan, int>>(text) {
+    Ok(limits) => "loaded",
+    Err(issues) => "rejected: ${json.stringify(issues)}",
+  }
+  // end show
+  print(out)
+  return 0
+}

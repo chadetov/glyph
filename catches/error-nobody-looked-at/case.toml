@@ -1,0 +1,18 @@
+code = "E0217"
+pillar = "verifiability"
+title = "An error nobody looked at"
+kind = "warned"
+ts_output = "done"
+fullconfig = "none"
+section = "mistake"
+slug = "error-nobody-looked-at"
+order = 5
+page_title = "An error nobody looked at"
+why = "Calling something that can fail and moving on."
+likelihood = 4
+severity = 4
+ts_verdict = "compiles"
+glyph_verdict = "warned"
+ts_result = "<b>The failure is dropped</b> and the user is told it worked."
+glyph_result = "<b>Glyph points at the dropped failure.</b>"
+page_note = "A warning, not an error. To drop it on purpose, say so: <code>let _ = save(user)</code>."

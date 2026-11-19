@@ -1,0 +1,11 @@
+pillar = "greppability"
+title = "A sort that changes the caller's array without mut"
+kind = "gap"
+gap_id = "G380"
+ts_output = "smallest 1 and xs[0] is now 1"
+glyph_output = "smallest 1 and xs[0] is now 1"
+fullconfig = "none"
+section = "gap"
+slug = "gap-g380-mutation-without-mut"
+order = 5
+summary = "<code>xs.push(4)</code> and <code>xs.sort()</code> change an array without <code>mut</code>."

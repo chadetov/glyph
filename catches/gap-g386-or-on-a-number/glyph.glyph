@@ -1,0 +1,13 @@
+module main
+
+fn retries(requested: number) -> number {
+  // show
+  return requested || 3
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  let n = retries(0)
+  print("retries ${n}")
+  return 0
+}

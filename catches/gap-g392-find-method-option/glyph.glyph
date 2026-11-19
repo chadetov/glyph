@@ -1,0 +1,14 @@
+module main
+
+type User = { id: number, name: string }
+
+fn name_of(users: Array<User>, id: number) -> string {
+  // show
+  return users.find(fn(u: User) -> bool { u.id == id }).name
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  print(name_of([{ id: 1, name: "Ada" }], 2))
+  return 0
+}

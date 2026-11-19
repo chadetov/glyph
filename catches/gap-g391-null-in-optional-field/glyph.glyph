@@ -1,0 +1,21 @@
+module main
+
+import std/json
+
+type Opts = { timeout_ms?: number }
+
+fn connect(opts: Opts) -> string {
+  // show
+  let cfg = { timeout_ms: 5000, ...opts }
+  // end show
+  return "timeout x2 = ${cfg.timeout_ms * 2}"
+}
+
+fn main(argv: Array<string>) -> number {
+  let r = match json.parse<Opts>("""{"timeout_ms": null}""") {
+    Ok(o) => connect(o),
+    Err(issues) => "rejected: ${json.stringify(issues)}",
+  }
+  print(r)
+  return 0
+}

@@ -1,0 +1,15 @@
+module main
+
+import std/string
+
+fn normalize_email(input: string) -> string {
+  // show
+  let cleaned = string.lower(string.trim(input))
+  return input
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  print(normalize_email("  Ada@Example.COM "))
+  return 0
+}

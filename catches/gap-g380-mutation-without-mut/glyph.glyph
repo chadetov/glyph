@@ -1,0 +1,20 @@
+module main
+
+fn by_value(a: number, b: number) -> number {
+  return a - b
+}
+
+// show
+fn smallest(xs: Array<number>) -> number {
+  return xs.sort(by_value)[0]
+}
+
+// end show
+
+fn main(argv: Array<string>) -> number {
+  let xs = [3, 1, 2]
+  let s = smallest(xs)
+  let first = xs[0]
+  print("smallest ${s} and xs[0] is now ${first}")
+  return 0
+}

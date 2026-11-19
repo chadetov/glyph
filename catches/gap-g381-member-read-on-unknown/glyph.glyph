@@ -1,0 +1,17 @@
+module main
+
+import std/json
+
+fn user_name(text: string) -> string {
+  // show
+  return match json.parse(text) {
+    Ok(data) => data.usr.name,
+    Err(_) => "unreadable",
+  }
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  print(user_name("""{"user":{"name":"ada"}}"""))
+  return 0
+}

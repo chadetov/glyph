@@ -1,0 +1,20 @@
+module main
+
+import std/json
+
+// show
+type Order = { qty: int }
+
+// end show
+
+fn main(argv: Array<string>) -> number {
+  let text = """{"qty": 1.5}"""
+  // show
+  let out = match json.parse<Order>(text) {
+    Ok(o) => "qty ${o.qty}",
+    Err(issues) => "rejected: ${json.stringify(issues)}",
+  }
+  // end show
+  print(out)
+  return 0
+}

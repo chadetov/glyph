@@ -1,0 +1,18 @@
+pillar = "abstraction"
+title = "Comparing two records with ==="
+kind = "boundary"
+ts_output = "skipped false"
+glyph_output = "same true"
+fullconfig = "none"
+section = "mistake"
+slug = "comparing-records-with-triple-equals"
+order = 22
+page_title = "Comparing two records with <code>===</code>"
+why = "Skipping a save when nothing changed."
+likelihood = 3
+severity = 3
+ts_verdict = "compiles, compares identity"
+glyph_verdict = "compares the data"
+ts_result = "<b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs."
+glyph_result = "<b>Two records with the same fields are equal.</b>"
+page_note = "This is JavaScript working as designed: <code>===</code> on objects compares identity, and comparing data needs a helper such as lodash's <code>isEqual</code>. The mistake is reaching for <code>===</code> when the data was meant. In Glyph <code>==</code> on records compares the data, so the obvious spelling is the right one."

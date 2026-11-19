@@ -1,0 +1,19 @@
+module main
+
+import std/time
+import std/option { Some, None }
+
+fn due(input: string) -> string {
+  // show
+  return match time.parse_iso(input) {
+    Some(ms) => "ok ${ms}",
+    None => "rejected: ${input}",
+  }
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  print(due("2025-02-30"))
+  print(due("next friday"))
+  return 0
+}

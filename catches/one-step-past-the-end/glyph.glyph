@@ -1,0 +1,18 @@
+module main
+
+import std/array
+
+fn total(prices: Array<number>) -> number {
+  let sum = 0
+  // show
+  for i in array.range(prices.length + 1) {
+    mut sum = sum + prices[i]
+  }
+  // end show
+  return sum
+}
+
+fn main(argv: Array<string>) -> number {
+  print("${total([10, 20, 30])}")
+  return 0
+}

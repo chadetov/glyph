@@ -284,6 +284,36 @@
       })();
     </script>
     <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
       // The answers list: a sidebar on wide screens needs nothing, and on
       // narrow ones the bar's button opens the same list as a panel.
       document.addEventListener("DOMContentLoaded", function () {
@@ -426,7 +456,7 @@ fn label(s: Status) -&gt; string {
             </div>
             <div class="code term">
               <span class="cap">glyph check --no-tsc, 0.1.149 (excerpt)</span>
-<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Cancelled`</span>
+<pre class="wraps"><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Cancelled`</span>
     ╭─[ status:6:10 ]
   6 │ ╭─▶   return match s {
  10 │ ├─▶   }
@@ -481,7 +511,7 @@ fn label(s: Status) -&gt; string {
       </p>
       <div class="code term wraps">
         <span class="cap">glyph check --no-tsc, 0.1.149 (excerpt)</span>
-<pre><span class="p">13 │</span>   save("a")
+<pre class="wraps"><span class="p">13 │</span>   save("a")
 <span class="del">[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored</span>
     │ Help: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional.</pre>
       </div>
@@ -533,7 +563,7 @@ fn label(s: Status) -&gt; string {
 
       <div class="code term">
         <span class="cap">glyph build</span>
-<pre><span class="del">[E0220] `Loadign` is not a variant of `Status`; did you mean `Loading`?</span>
+<pre class="wraps"><span class="del">[E0220] `Loadign` is not a variant of `Status`; did you mean `Loading`?</span>
    ╰─ a lowercase name would be a binding; a PascalCase name is read as a variant
 <span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Loading`</span></pre>
       </div>
@@ -621,7 +651,7 @@ pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;b
 
       <div class="code term">
         <span class="cap">glyph build, after deleting the last arm</span>
-<pre><span class="del">[E0200] non-exhaustive match on `Condition`: missing variants Not</span></pre>
+<pre class="wraps"><span class="del">[E0200] non-exhaustive match on `Condition`: missing variants Not</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">standard library unions, string enums, and why the list existed</span></summary><div class="body">
         <p>
@@ -664,7 +694,7 @@ pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;b
       </p>
       <div class="code term">
         <span class="cap">glyph build, on a typo'd field of an imported record</span>
-<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
+<pre class="wraps"><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
 <span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
       </div>
       <div class="code">
@@ -991,7 +1021,7 @@ fn charge(r: PaymentResult) -&gt; number {
 
       <div class="code term">
         <span class="cap">glyph build, now</span>
-<pre><span class="del">[E0211] argument type mismatch: expected `string`, found `PaymentResult`</span>
+<pre class="wraps"><span class="del">[E0211] argument type mismatch: expected `string`, found `PaymentResult`</span>
    ╰─ Pass a value of the expected type, or change the parameter's type.</pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">where the check fires, and where it stays quiet</span></summary><div class="body">
@@ -1026,7 +1056,7 @@ fn f() -&gt; number {
 
       <div class="code term">
         <span class="cap">glyph build, now</span>
-<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span></pre>
+<pre class="wraps"><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">unannotated consts, and why both fixes are breaking</span></summary><div class="body">
         <p>

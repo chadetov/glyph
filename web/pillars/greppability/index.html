@@ -283,6 +283,36 @@
       })();
     </script>
     <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
       // The answers list: a sidebar on wide screens needs nothing, and on
       // narrow ones the bar's button opens the same list as a panel.
       document.addEventListener("DOMContentLoaded", function () {
@@ -375,7 +405,7 @@
         <div class="code">
           <span class="tag-bad">TypeScript: four hits, one is the body</span>
           <span class="cap">$ grep -n "parseUser" src/</span>
-<pre><span class="cm">users.ts:4:  export function parseUser(</span>
+<pre class="wraps"><span class="cm">users.ts:4:  export function parseUser(</span>
 <span class="cm">users.ts:9:  export function parseUser(</span>
 <span class="cm">index.ts:2: export { parseUser } from</span>
 <span class="cm">api.ts:7:   import { parseUser } from</span></pre>
@@ -383,7 +413,7 @@
         <div class="code">
           <span class="tag-good">Glyph: the first hit is the definition</span>
           <span class="cap">$ grep -n "fn parseUser" src/</span>
-<pre>users.glyph:12:fn parseUser(
+<pre class="wraps">users.glyph:12:fn parseUser(
   raw: unknown,
 ) -&gt; Result&lt;User, string&gt; {</pre>
         </div>
@@ -433,7 +463,7 @@
 
       <div class="code">
         <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
-<pre><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(fn(cur) { ... })
+<pre class="wraps"><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(fn(cur) { ... })
 <span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
 <span class="cm"># every place the task list can change, enumerated.</span>
 <span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>

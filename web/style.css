@@ -1637,6 +1637,50 @@ pre .c {
   outline-color: var(--cyan);
 }
 
+/* On a phone. Tool output wraps (pre.wraps from scripts/build_site.py, a
+   catches case's c-out, a terminal): the end of the message is what a reader
+   needs, and its line breaks carry no meaning. Source keeps its lines at a
+   size where a 44-character line fits a 390px screen, and scrolls. */
+@media (max-width: 640px) {
+  pre,
+  .code {
+    font-size: 0.78125rem;
+  }
+  pre,
+  .code pre {
+    padding: 12px;
+  }
+  .code .cap {
+    padding: 8px 12px;
+  }
+  pre.wraps,
+  .code.term pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+/* A block that scrolls sideways fades at the edge it can still scroll
+   toward. The header script sets .scrolls, .at-start and .at-end. A bare
+   pre carries its own background, which a mask would fade too, so it gets an
+   edge glow instead. */
+@media (max-width: 860px) {
+  .code pre.scrolls {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 40px), transparent);
+  }
+  .code pre.scrolls.at-start {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  }
+  .code pre.scrolls.at-end {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
+    mask-image: linear-gradient(to right, transparent, #000 28px);
+  }
+  pre.scrolls:not(.code pre):not(.at-end) {
+    box-shadow: inset -30px 0 22px -22px rgba(155, 132, 255, 0.75);
+  }
+}
+
 /* side-by-side comparisons, at the column's width like every other block */
 .two-up {
   display: grid;

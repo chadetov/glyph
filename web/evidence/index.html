@@ -283,6 +283,36 @@
       })();
     </script>
     <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
       // The answers list: a sidebar on wide screens needs nothing, and on
       // narrow ones the bar's button opens the same list as a panel.
       document.addEventListener("DOMContentLoaded", function () {
@@ -432,7 +462,7 @@ noPropertyAccessFromIndexSignature: true</pre>
 
       <div class="code">
         <span class="cap">the gate, one case</span>
-<pre>$ python3 scripts/check_catches.py non-exhaustive-match
+<pre class="wraps">$ python3 scripts/check_catches.py non-exhaustive-match
 catches: 1/1 cases hold every claim they make.
 TypeScript checked with tsc --strict and the full flag set (typescript 6.0.3),
 typescript-eslint 8.73.0 strictTypeChecked on eslint 9.39.5, run with
@@ -442,7 +472,7 @@ tsx 4.23.15, and @types/node 26.6.6.</pre>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">the TypeScript half, by hand</span>
-<pre>$ npm i -D typescript@6 tsx@4
+<pre class="wraps">$ npm i -D typescript@6 tsx@4
 $ npx tsc --strict --noEmit ts.ts
 $ echo $?
 0
@@ -452,7 +482,7 @@ archived logged nothing</pre>
         </div>
         <div class="code">
           <span class="cap">the Glyph half, by hand</span>
-<pre>$ glyph check --no-tsc catches/non-exhaustive-match
+<pre class="wraps">$ glyph check --no-tsc catches/non-exhaustive-match
 <span class="del">[E0200] Error: typecheck: non-exhaustive match
   on `"todo" | "doing" | "done" | "archived"`:
   missing variants "archived"</span>

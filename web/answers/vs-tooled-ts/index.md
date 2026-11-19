@@ -67,9 +67,9 @@ tooled TS
 ```
 // ts-pattern .exhaustive() catches it,
 // IF every site used ts-pattern and
-// nobody wrote a plain switch or
-// a default: case. One that didn't
-// compiles green and returns undefined.
+// nobody wrote a default: case or a
+// switch that only logs. Those
+// compile green and skip the new case.
 ```
 
 Glyph

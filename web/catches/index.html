@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Caught before it ships · mistakes TypeScript lets through · Glyph</title>
-    <meta name="description" content="Mistakes AI agents write that pass tsc --strict, each shown as a TypeScript program that compiles and the same program in Glyph, with the real compiler output. Every case is re-run by a build gate." />
+    <title>Caught before it ships · cases TypeScript lets through · Glyph</title>
+    <meta name="description" content="Code AI agents write that passes tsc --strict, each shown as a TypeScript program that compiles and the same program in Glyph, with the real compiler output. Every case is re-run by a build gate." />
     <link rel="canonical" href="https://glyphlang.io/catches/" />
     <script>
       (function () {
@@ -93,7 +93,7 @@
                       <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Not caught yet</span><span class="nav-desc">Known holes, each with a reproduction</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">mistakes that nothing in a fully configured TypeScript setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">cases that nothing in a fully configured TypeScript setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -305,9 +305,9 @@
     <main id="main">
     <div class="wrap">
       <header class="page-hero">
-        <p class="eyebrow">Mistakes TypeScript lets through</p>
+        <p class="eyebrow">Cases TypeScript lets through</p>
         <h1>Caught before it ships</h1>
-        <p class="lede">Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For 21 of the 37 mistakes, nothing in that setup catches it. A compiler flag that is off by default catches 5, and a lint rule catches 11. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting.</p>
+        <p class="lede">Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For 21 of the 37 cases, nothing in that setup catches it. A compiler flag that is off by default catches 5, and a lint rule catches 11. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting.</p>
         <p class="lede">
           Each entry is two programs in <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>,
           and the output under each one is what the tools printed. A build gate,

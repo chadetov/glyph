@@ -325,7 +325,7 @@ def measured(cases: list[dict]) -> str:
         f"Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. "
         f"Each one is also checked against a fully configured project: every compiler flag "
         f"stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. "
-        f"For {k['none']} of the {k['count']} mistakes, nothing in that setup catches it. "
+        f"For {k['none']} of the {k['count']} cases, nothing in that setup catches it. "
         f"A compiler flag that is off by default catches {k['flag']}, and a lint rule "
         f"catches {k['lint']}. A project has to turn each of those on, and an agent can "
         f"turn it off again. In Glyph none of them is a setting."

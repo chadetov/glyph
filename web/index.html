@@ -121,7 +121,7 @@
                       <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Not caught yet</span><span class="nav-desc">Known holes, each with a reproduction</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">mistakes that nothing in a fully configured TypeScript setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">cases that nothing in a fully configured TypeScript setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -339,7 +339,7 @@
           <p class="sub">
             Glyph is a typed language that reads like TypeScript and compiles to
             readable TypeScript. You keep node, npm and the code you already
-            have, and the compiler refuses mistakes that <code>tsc --strict</code>
+            have, and the compiler refuses code that <code>tsc --strict</code>
             lets through.
           </p>
           <div class="install" title="Requires Node.js 18+">
@@ -392,9 +392,9 @@
 
     <section>
       <div class="wrap">
-        <h2 class="section-head">Mistakes nothing in TypeScript catches</h2>
+        <h2 class="section-head">Cases nothing in TypeScript catches</h2>
         <p class="friction-intro">
-          The three highest-ranked mistakes that pass <code>tsc --strict</code>
+          The three highest-ranked cases that pass <code>tsc --strict</code>
           with every extra flag on and typescript-eslint strict, ranked by how
           often an agent writes them and how bad they are when they ship.
         </p>
@@ -427,7 +427,7 @@
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>21</span> of 37</p>
-          <p>Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For 21 of the 37 mistakes, nothing in that setup catches it. A compiler flag that is off by default catches 5, and a lint rule catches 11. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting.</p>
+          <p>Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For 21 of the 37 cases, nothing in that setup catches it. A compiler flag that is off by default catches 5, and a lint rule catches 11. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting.</p>
         </div>
       </div>
     </section>

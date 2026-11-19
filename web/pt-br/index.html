@@ -427,9 +427,10 @@
           </p>
           <div class="install" title="Requer Node.js 18 ou mais recente">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">copiar</button>
           </div>
+          <p class="install-alt">Sem instalação global. Para ter <code>glyph</code> no PATH: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">Veja o que ele detecta →</a>
             <a class="btn" href="/start/">Comece em 10 minutos →</a>

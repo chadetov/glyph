@@ -1,7 +1,7 @@
 ---
 title: Glyph：一门编译到 TypeScript 的类型化语言，为 AI 智能体设计
 description: Glyph 是一门编译到 TypeScript 的静态类型语言，目的是让 AI 智能体写出的代码可以被阅读、检查和修改，不用靠猜。
-source_hash: dc3c50270be35784
+source_hash: a5087688a56d8e43
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, 编程语言, typescript, 转译器, AI 智能体, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -17,9 +17,10 @@ head: |
           </p>
           <div class="install" title="需要 Node.js 18 或更高版本">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">复制</button>
           </div>
+          <p class="install-alt">无需全局安装。若想把 <code>glyph</code> 放进 PATH：<code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">看看它能发现什么 →</a>
             <a class="btn" href="/start/">10 分钟上手 →</a>

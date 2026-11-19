@@ -4,30 +4,34 @@ Start here · ~10 minutes
 
 # Your first Glyph program
 
-Install it, scaffold a project, run it, then **break it on purpose** and read the error the compiler gives you. No prior Glyph knowledge assumed. If you've written a little TypeScript, you'll follow every line.
+Scaffold a project, run it, then **break it on purpose** and read the error the compiler gives you. No prior Glyph knowledge assumed. If you've written a little TypeScript, you'll follow every line.
 
-## 1 · Install
+## 1 · Create a project
 
-Glyph ships as a single prebuilt binary. You also need Node with `tsx` and `typescript`, which Glyph uses to run and type-check.
+Glyph ships on npm as a prebuilt binary for macOS and Linux (x64 and ARM) and Windows (x64), and needs Node 18 or later. This path installs nothing globally: `npx` fetches the compiler to scaffold the project, and the project pins its own copy along with `tsx` and `typescript`, which Glyph uses to run and type-check.
 
 terminal
 
 ```
-npm install -g @glyphlang/glyph
-npm install -g tsx typescript   # run & type-check toolchain
+npx -y @glyphlang/glyph init hello
+cd hello
+npm install
+```
+
+If you'd rather have `glyph` on your PATH, install it globally with the two tools it runs through, and drop the `npx` from the commands on this page:
+
+terminal, the global alternative
+
+```
+npm install -g @glyphlang/glyph tsx typescript
 glyph doctor                    # confirms your toolchain is ready
-```
-
-## 2 · Scaffold a project
-
-`glyph init` creates a runnable starter: `src/main.glyph`, `src/.types/README.md` explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a `package.json`, a `.gitignore`, and two files coding agents read on their own: `AGENTS.md`, which points at `glyph llms` for the full language reference, and `.mcp.json`, which registers `glyph mcp` so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, `glyph agents` writes those two. The `package.json` pins the compiler, `typescript` and `tsx` in `devDependencies`, so anyone who clones the project can build it with `npm install` and no global install.
-
-terminal
-
-```
 glyph init hello
 cd hello
 ```
+
+## 2 · Look at what it made
+
+`glyph init` creates a runnable starter: `src/main.glyph`, `src/.types/README.md` explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a `package.json`, a `.gitignore`, and two files coding agents read on their own: `AGENTS.md`, which points at `glyph llms` for the full language reference, and `.mcp.json`, which registers `glyph mcp` so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, `glyph agents` writes those two. The `package.json` pins the compiler, `typescript` and `tsx` in `devDependencies`, so anyone who clones the project can build it with `npm install` and no global install.
 
 Open `src/main.glyph`. It's a hello-world:
 
@@ -51,11 +55,11 @@ Two things to notice: a program runs its `main(argv)`, and `main` returns a `num
 terminal
 
 ```
-glyph run
+npx glyph run
 hello from glyph
 ```
 
-`glyph run` type-checked it, compiled it to TypeScript, and executed it. That's the whole loop.
+`glyph run` type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page.
 
 ## 4 · Add something real
 
@@ -85,7 +89,7 @@ fn main(argv: Array<string>) -> number {
 terminal
 
 ```
-glyph run
+npx glyph run
 finished
 ```
 
@@ -104,7 +108,7 @@ fn label(s: Status) -> string {
 }
 ```
 
-$ glyph run
+$ npx glyph run
 
 ```
 [E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`
@@ -128,7 +132,7 @@ Put the arm back (or add an `else`), and it runs again.
 terminal
 
 ```
-glyph run
+npx glyph run
 finished
 ```
 

@@ -429,9 +429,10 @@
           </p>
           <div class="install" title="需要 Node.js 18 或更高版本">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">复制</button>
           </div>
+          <p class="install-alt">无需全局安装。若想把 <code>glyph</code> 放进 PATH：<code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">看看它能发现什么 →</a>
             <a class="btn" href="/start/">10 分钟上手 →</a>

@@ -1,7 +1,7 @@
 ---
 title: Glyph: типизирован, компилируется в TypeScript, для ИИ-агентов
 description: Glyph: статически типизированный язык, который компилируется в TypeScript, чтобы код ИИ-агента можно было читать, проверять и менять без догадок.
-source_hash: dc3c50270be35784
+source_hash: a5087688a56d8e43
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, язык программирования, typescript, транспайлер, ии-агенты, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -17,9 +17,10 @@ head: |
           </p>
           <div class="install" title="Нужен Node.js 18 или новее">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">копировать</button>
           </div>
+          <p class="install-alt">Глобальная установка не нужна. Чтобы <code>glyph</code> был в PATH: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">Посмотреть, что он ловит →</a>
             <a class="btn" href="/start/">Начать за 10 минут →</a>

@@ -427,9 +427,10 @@
           </p>
           <div class="install" title="Node.js 18 veya üstü gerekir">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">kopyala</button>
           </div>
+          <p class="install-alt">Global kurulum gerekmez. <code>glyph</code> komutunu PATH'te istersen: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">Neleri yakaladığını gör →</a>
             <a class="btn" href="/start/">10 dakikada başla →</a>

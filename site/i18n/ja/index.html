@@ -1,7 +1,7 @@
 ---
 title: Glyph: AI エージェントのための、TypeScript にコンパイルされる型付き言語
 description: Glyph は TypeScript にコンパイルされる静的型付き言語です。AI エージェントが書いたコードを、推測に頼らずに読み、検証し、変更できるように設計されています。
-source_hash: dc3c50270be35784
+source_hash: a5087688a56d8e43
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, プログラミング言語, typescript, トランスパイラ, AI エージェント, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -17,9 +17,10 @@ head: |
           </p>
           <div class="install" title="Node.js 18 以上が必要です">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">コピー</button>
           </div>
+          <p class="install-alt">グローバルインストールは不要です。<code>glyph</code> を PATH に置く場合は <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">検出できるものを見る →</a>
             <a class="btn" href="/start/">10 分で始める →</a>

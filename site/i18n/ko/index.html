@@ -1,7 +1,7 @@
 ---
 title: Glyph: TypeScript로 컴파일되는, AI 에이전트를 위한 타입 언어
 description: Glyph는 TypeScript로 컴파일되는 정적 타입 언어로, AI 에이전트가 작성한 코드를 추측 없이 읽고 검사하고 수정할 수 있도록 설계되었습니다.
-source_hash: dc3c50270be35784
+source_hash: a5087688a56d8e43
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, 프로그래밍 언어, typescript, 트랜스파일러, ai 에이전트, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -17,9 +17,10 @@ head: |
           </p>
           <div class="install" title="Node.js 18 이상 필요">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">복사</button>
           </div>
+          <p class="install-alt">전역 설치가 필요 없습니다. <code>glyph</code>를 PATH에 두려면: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">무엇을 잡아내는지 보기 →</a>
             <a class="btn" href="/start/">10분 만에 시작하기 →</a>

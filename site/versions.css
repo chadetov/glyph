@@ -193,13 +193,30 @@ h3.rel-ver {
 }
 
 @media (max-width: 720px) {
-  /* style.css gives the date a row of its own on a phone; here it shares
-     the row with the link, which keeps each release one line shorter. */
+  /* On a phone the link and the notes toggle share one line, at the right
+     of the version's row, instead of taking a line each. The date stays in
+     the row and wraps under the version when the row is full. */
+  .releases > .release {
+    position: relative;
+  }
+  .releases .rel-head {
+    padding-right: 140px;
+  }
   .releases .rel-date {
     width: auto;
   }
+  .releases .rel-link,
+  .releases .rel-toggle {
+    position: absolute;
+    top: var(--s4);
+    line-height: 20px;
+  }
   .releases .rel-link {
-    margin-left: auto;
+    right: 96px;
+  }
+  .releases .rel-toggle {
+    right: 0;
+    top: calc(var(--s4) + 2px);
   }
   .breaking-only {
     margin-left: 0;

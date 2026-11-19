@@ -473,11 +473,8 @@ kbd {
 .nav-drop.cols-2.has-feature {
   grid-template-columns: 300px 236px;
 }
-/* the last menu opens leftwards so it stays inside the bar's width */
-.nav-li-menu:nth-last-child(2) .nav-drop {
-  left: auto;
-  right: -16px;
-}
+/* Every menu opens under its own trigger; the header script shifts one
+   that would cross the window's edge back inside it. */
 @keyframes nav-in {
   from {
     opacity: 0;

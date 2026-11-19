@@ -722,7 +722,7 @@ kbd {
 
 /* ============ phone: the menu button opens a full-height panel ============ */
 @media (max-width: 860px) {
-  .site-header {
+  .js .site-header {
     position: sticky;
     top: 0;
   }
@@ -924,14 +924,14 @@ kbd {
   }
 }
 
-/* ============ numbered sub-nav (answers, pillars) ============ */
+/* ============ numbered sub-nav (pillars) ============ */
 .subnav-wrap {
   display: block;
   background: var(--card);
   border-bottom: 1px solid var(--line);
 }
-.subnav {
-  max-width: var(--w-wide);
+.subnav-wrap .subnav {
+  max-width: var(--w-read);
   margin: 0 auto;
   padding: 0 var(--gutter);
   display: flex;
@@ -939,10 +939,10 @@ kbd {
   overflow-x: auto;
   scrollbar-width: none;
 }
-.subnav::-webkit-scrollbar {
+.subnav-wrap .subnav::-webkit-scrollbar {
   display: none;
 }
-.subnav a {
+.subnav-wrap .subnav a {
   white-space: nowrap;
   padding: 12px 10px;
   font-size: var(--fs-sm);
@@ -953,15 +953,15 @@ kbd {
   gap: 6px;
   align-items: baseline;
 }
-.subnav a:hover {
+.subnav-wrap .subnav a:hover {
   color: var(--ink);
   text-decoration: none;
 }
-.subnav a.active {
+.subnav-wrap .subnav a.active {
   color: var(--ink);
   border-bottom-color: var(--violet);
 }
-.subnav a .n {
+.subnav-wrap .subnav a .n {
   font-family: var(--mono);
   font-size: var(--fs-xs);
   color: var(--accent);
@@ -971,11 +971,297 @@ kbd {
     -webkit-mask-image: linear-gradient(to right, #000 86%, transparent);
     mask-image: linear-gradient(to right, #000 86%, transparent);
   }
-  .subnav {
+  .subnav-wrap .subnav {
     scroll-snap-type: x proximity;
   }
-  .subnav a {
+  .subnav-wrap .subnav a {
     scroll-snap-align: start;
+  }
+}
+
+/* ============ answers navigation ============ */
+/* Narrow screens: a bar under the header with where you are, the previous
+   and next answer, and a button that opens the full list as a panel. */
+.ans-bar {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.ans-bar-in {
+  max-width: var(--w-read);
+  min-height: 52px;
+  margin: 0 auto;
+  padding: var(--s2) var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.ans-crumb {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ans-crumb a {
+  color: var(--muted);
+  font-weight: 500;
+}
+.ans-crumb a.cur {
+  color: var(--ink);
+  font-weight: 600;
+}
+.ans-crumb .sep {
+  margin: 0 var(--s2);
+  color: var(--line-2);
+}
+.ans-crumb .n,
+.ans-grp .n {
+  font: 500 var(--fs-xs) / 1.4 var(--mono);
+  color: var(--accent);
+}
+.ans-crumb .n {
+  margin-right: 2px;
+}
+.ans-step,
+.ans-all,
+.ans-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font: 500 var(--fs-xs) / 1 var(--mono);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.ans-all,
+.ans-all-link {
+  font: 600 var(--fs-sm) / 1 var(--sans);
+  color: var(--ink);
+}
+.ans-step:hover,
+.ans-all:hover,
+.ans-all-link:hover,
+.ans-open .ans-all {
+  border-color: var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+}
+.ans-step.off {
+  visibility: hidden;
+  width: 48px;
+  padding: 0;
+}
+.ans-open .ans-all .nav-chev {
+  transform: translateY(1px) rotate(225deg);
+}
+.js .ans-all-link,
+.ans-all {
+  display: none;
+}
+.js .ans-all {
+  display: inline-flex;
+}
+
+/* the list: the sidebar on wide screens, the panel on narrow ones */
+.ans-side {
+  display: none;
+}
+.ans-list {
+  display: block;
+}
+.ans-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 var(--s2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.ans-side-head a {
+  color: var(--ink);
+}
+.ans-close {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ans-grp summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: var(--s2) 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink-2);
+  list-style: none;
+  cursor: pointer;
+}
+.ans-grp summary::-webkit-details-marker {
+  display: none;
+}
+.ans-grp summary::after {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+.ans-grp[open] summary::after {
+  transform: translateY(-2px) rotate(45deg);
+}
+.ans-grp summary:hover {
+  color: var(--ink);
+}
+.ans-grp ol {
+  list-style: none;
+  margin: 0 0 var(--s2);
+  padding: 0;
+  border-left: 1px solid var(--line);
+}
+.ans-grp a {
+  display: flex;
+  gap: var(--s2);
+  margin-left: -1px;
+  padding: 5px 10px;
+  border-left: 2px solid transparent;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.ans-grp a:hover {
+  color: var(--ink);
+  border-left-color: var(--line-2);
+  text-decoration: none;
+}
+.ans-grp a[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+  border-left-color: var(--accent);
+  background: var(--violet-bg);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+.ans-grp .n {
+  flex: none;
+  min-width: 1.6em;
+  color: var(--muted);
+}
+.ans-grp a[aria-current="page"] .n {
+  color: var(--accent);
+}
+.ans-grp a:focus-visible,
+.ans-grp summary:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Wide screens: the list is a sticky sidebar beside the article. The pair
+   is centred together: 232px of sidebar and a 40px gap to the left of the
+   960px article. The sidebar is a float whose margin box takes no width,
+   so the article's blocks keep their edges. */
+@media (min-width: 1240px) {
+  .ans-bar {
+    display: none;
+  }
+  .answer-page.has-side {
+    margin-left: calc(50% - 356px);
+    margin-right: auto;
+  }
+  .ans-side {
+    display: block;
+    float: left;
+    position: sticky;
+    top: var(--s5);
+    width: 232px;
+    max-height: calc(100vh - 2 * var(--s5));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0 40px 0 -272px;
+    padding-right: var(--s2);
+    scrollbar-width: thin;
+  }
+}
+
+/* Narrow screens: the button opens the list as a panel under the bar, and
+   as a full-height sheet on a phone. */
+@media (max-width: 1239px) {
+  .ans-open .ans-side {
+    display: block;
+    position: fixed;
+    z-index: 70;
+    top: var(--ans-top, 120px);
+    right: max(var(--gutter), calc(50% - 480px + var(--gutter)));
+    width: 380px;
+    max-height: calc(100vh - var(--ans-top, 120px) - var(--s4));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--s4) var(--s4) var(--s3);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-top: 0;
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+    box-shadow: 0 24px 48px -16px rgba(5, 9, 18, 0.45);
+    animation: nav-in 0.16s ease-out;
+  }
+}
+@media (max-width: 640px) {
+  .ans-open .ans-side {
+    z-index: 80;
+    inset: 0;
+    width: auto;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    padding: var(--s3) var(--gutter) var(--s6);
+  }
+  .ans-open .ans-close {
+    display: inline-grid;
+    place-items: center;
+  }
+  .ans-side-head {
+    font-size: var(--fs-md);
+    padding-bottom: var(--s2);
+    border-bottom: 1px solid var(--line);
+  }
+  .ans-grp a {
+    padding: 8px 10px;
+    font-size: var(--fs-sm);
+  }
+  .ans-step {
+    padding: 0 9px;
+  }
+  .ans-step.off {
+    width: 40px;
+  }
+  .ans-crumb a:not(.cur),
+  .ans-crumb .sep {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ans-open .ans-side {
+    animation: none;
   }
 }
 

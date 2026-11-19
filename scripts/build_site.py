@@ -214,27 +214,102 @@ def nav_links(site: dict, active: str | None, url: str, where: str) -> str:
     return "\n".join(out)
 
 
-def subnav(key: str, url: str, where: str) -> str:
-    """A numbered sub-nav from site/partials/subnav-<key>.html, one link per
-    line, with the current page's link marked active."""
+def subnav_entries(key: str, where: str) -> list[tuple[str | None, str, str]]:
+    """The entries of site/partials/subnav-<key>.html as (group, href, label
+    markup): one <a href> link per line, under the most recent "# Group" line."""
     path = PARTIALS / f"subnav-{key}.html"
     if not path.is_file():
         raise SiteError(f"{where}: no sub-nav {key!r} (expected {path.relative_to(ROOT)})")
-    links, found = [], False
+    out, group = [], None
     for line in path.read_text().splitlines():
-        if not line.strip():
+        line = line.strip()
+        if not line:
             continue
-        m = re.match(r'<a href="([^"]+)">(.*)</a>$', line.strip())
+        if line.startswith("# "):
+            group = line[2:]
+            continue
+        m = re.match(r'<a href="([^"]+)">(.*)</a>$', line)
         if not m:
             raise SiteError(f"{path.relative_to(ROOT)}: not a single <a href> link per line: {line!r}")
+        out.append((group, m.group(1), m.group(2)))
+    return out
+
+
+def subnav(key: str, url: str, where: str) -> str:
+    """A numbered sub-nav row from site/partials/subnav-<key>.html, with the
+    current page's link marked active."""
+    links, found = [], False
+    for _, href, label in subnav_entries(key, where):
         attrs = ""
-        if m.group(1) == url:
+        if href == url:
             attrs, found = ' class="active" aria-current="page"', True
-        links.append(f'        <a href="{m.group(1)}"{attrs}>{m.group(2)}</a>')
+        links.append(f'        <a href="{href}"{attrs}>{label}</a>')
     if not found:
         raise SiteError(f"{where}: sub-nav {key!r} has no entry for {url}")
     return ('    <nav class="subnav-wrap" aria-label="Sections">\n'
             '      <div class="subnav">\n' + "\n".join(links) + "\n      </div>\n    </nav>\n")
+
+
+def answers_nav(url: str, where: str) -> tuple[str, str]:
+    """The answers navigation as (bar, side). The side list holds every
+    answer under its group, the current group open; wide screens show it as a
+    sticky sidebar beside the article. Narrower screens show the bar instead:
+    where you are, the previous and next answer, and a button that opens the
+    same list as a panel."""
+    entries = subnav_entries("answers", where)
+    hrefs = [href for _, href, _ in entries]
+    if url not in hrefs:
+        raise SiteError(f"{where}: sub-nav 'answers' has no entry for {url}")
+    i = hrefs.index(url)
+    cur_group = entries[i][0]
+
+    def num(label: str) -> str:
+        m = re.match(r'<span class="n">([^<]*)</span>', label)
+        return m.group(1) if m else ""
+
+    def text(label: str) -> str:
+        return re.sub(r'<span class="n">[^<]*</span>\s*', "", label)
+
+    groups: list[tuple[str | None, list]] = []
+    for g, href, label in entries:
+        if not groups or groups[-1][0] != g:
+            groups.append((g, []))
+        groups[-1][1].append((href, label))
+    side = ['      <nav class="ans-side" id="ans-nav" aria-label="Answers">',
+            '        <div class="subnav ans-list">',
+            '          <p class="ans-side-head"><a href="/answers/">All answers</a>'
+            '<button class="ans-close" type="button" aria-label="Close the list of answers">'
+            '<span aria-hidden="true">&times;</span></button></p>']
+    for g, items in groups:
+        open_ = " open" if g == cur_group else ""
+        side.append(f'          <details class="ans-grp"{open_}><summary>{g}</summary><ol>')
+        for href, label in items:
+            cur = ' aria-current="page"' if href == url else ""
+            side.append(f'            <li><a href="{href}"{cur}><span class="n">{num(label)}</span>'
+                        f'<span class="t">{text(label)}</span></a></li>')
+        side.append("          </ol></details>")
+    side += ["        </div>", "      </nav>"]
+
+    def step(j: int, cls: str, arrow_before: bool) -> str:
+        if j < 0 or j >= len(entries):
+            return f'<span class="ans-step {cls} off" aria-hidden="true"></span>'
+        href, label = entries[j][1], entries[j][2]
+        word = "Previous" if arrow_before else "Next"
+        body = f"&lsaquo; {num(label)}" if arrow_before else f"{num(label)} &rsaquo;"
+        return (f'<a class="ans-step {cls}" href="{href}" '
+                f'aria-label="{word} answer: {num(label)} {text(label)}">{body}</a>')
+
+    bar = ('    <nav class="ans-bar" aria-label="Answer navigation">\n'
+           '      <div class="ans-bar-in">\n'
+           f'        <p class="ans-crumb"><a href="/answers/">Answers</a><span class="sep" aria-hidden="true">/</span>'
+           f'<a class="cur" href="{url}" aria-current="page"><span class="n">{num(entries[i][2])}</span> {text(entries[i][2])}</a></p>\n'
+           f'        {step(i - 1, "prev", True)}{step(i + 1, "next", False)}\n'
+           '        <a class="ans-all-link" href="/answers/">All answers</a>\n'
+           '        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">'
+           'All answers<span class="nav-chev" aria-hidden="true"></span></button>\n'
+           '      </div>\n'
+           '    </nav>\n')
+    return bar, "\n".join(side) + "\n"
 
 
 def prevnext(fm: dict, where: str) -> str:
@@ -373,13 +448,20 @@ def render(path: pathlib.Path, site: dict, version: str) -> str:
     }, where)
     edit = EDIT_BASE + path.relative_to(PAGES).as_posix()
     footer = fill(partial("footer.html"), {"edit_url": edit}, where)
-    sub = subnav(fm["subnav"], url, where) if fm.get("subnav") else ""
+    side = ""
+    if fm.get("subnav") == "answers" and fm["layout"] == "article":
+        sub, side = answers_nav(url, where)
+        if "</h1>" not in body:
+            raise SiteError(f"{where}: the answers sidebar goes after the page's <h1>, and there is none")
+        body = body.replace("</h1>\n", "</h1>\n" + side, 1)
+    else:
+        sub = subnav(fm["subnav"], url, where) if fm.get("subnav") else ""
 
     layout = fm["layout"]
     if layout == "home":
         main = f'    <main id="main" class="home">\n{body}    </main>\n'
     elif layout == "article":
-        cls = "answer-page" + (f" {fm['article_class']}" if fm.get("article_class") else "")
+        cls = "answer-page" + (" has-side" if side else "") + (f" {fm['article_class']}" if fm.get("article_class") else "")
         main = (f'    <main id="main">\n    <article class="{cls}">\n{body}'
                 f"{prevnext(fm, where)}    </article>\n    </main>\n")
     elif layout == "wide":

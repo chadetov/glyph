@@ -258,42 +258,106 @@
         layout();
       })();
     </script>
-    <nav class="subnav-wrap" aria-label="Sections">
-      <div class="subnav">
-        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
-        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
-        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
-        <a href="/answers/why-typescript/"><span class="n">04</span> Why TypeScript</a>
-        <a href="/answers/vs-tooled-ts/"><span class="n">05</span> Why not tooled TS</a>
-        <a href="/answers/human-value/"><span class="n">06</span> Without AI</a>
-        <a href="/answers/ai-authoring/"><span class="n">07</span> AI-authored</a>
-        <a href="/answers/upgrades/"><span class="n">08</span> Upgrades</a>
-        <a href="/answers/imports/"><span class="n">09</span> Your libraries</a>
-        <a href="/answers/embedding/" class="active" aria-current="page"><span class="n">10</span> Inside your app</a>
-        <a href="/answers/typed-apis/"><span class="n">11</span> Typed APIs</a>
-        <a href="/answers/codegen/"><span class="n">12</span> Client &amp; server</a>
-        <a href="/answers/react/"><span class="n">13</span> React</a>
-        <a href="/answers/state/"><span class="n">14</span> Shared state</a>
-        <a href="/answers/language/"><span class="n">15</span> The language</a>
-        <a href="/answers/finance/"><span class="n">16</span> Money &amp; safety</a>
-        <a href="/answers/web-serving/"><span class="n">17</span> Serving the web</a>
-        <a href="/answers/interactive-cli/"><span class="n">18</span> Programs you type into</a>
-        <a href="/answers/long-running/"><span class="n">19</span> Servers &amp; daemons</a>
-        <a href="/answers/binary/"><span class="n">20</span> Binary data</a>
-        <a href="/answers/impact/"><span class="n">21</span> Before you edit</a>
-        <a href="/answers/ask-the-compiler/"><span class="n">22</span> Ask the compiler</a>
-        <a href="/answers/repair-protocol/"><span class="n">23</span> Fixing a red build</a>
-        <a href="/answers/generated-docs/"><span class="n">24</span> Docs that can't drift</a>
-        <a href="/answers/tooling/"><span class="n">25</span> Editor &amp; debugging</a>
-        <a href="/answers/early-errors/"><span class="n">26</span> Caught earlier</a>
-        <a href="/answers/parse-errors/"><span class="n">27</span> Why a parse failed</a>
-        <a href="/answers/debugging/"><span class="n">28</span> Debugging &amp; ops</a>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="Answer navigation">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/answers/">Answers</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/answers/embedding/" aria-current="page"><span class="n">10</span> Inside your app</a></p>
+        <a class="ans-step prev" href="/answers/imports/" aria-label="Previous answer: 09 Your libraries">&lsaquo; 09</a><a class="ans-step next" href="/answers/typed-apis/" aria-label="Next answer: 11 Typed APIs">11 &rsaquo;</a>
+        <a class="ans-all-link" href="/answers/">All answers</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">All answers<span class="nav-chev" aria-hidden="true"></span></button>
       </div>
     </nav>
     <main id="main">
-    <article class="answer-page">
+    <article class="answer-page has-side">
       <p class="q-eyebrow">10 &middot; Inside your app</p>
       <h1 class="q-title">Can I adopt Glyph inside my existing app, or is it all-or-nothing?</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="Answers">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/answers/">All answers</a><button class="ans-close" type="button" aria-label="Close the list of answers"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>The problem it solves</summary><ol>
+            <li><a href="/answers/verifiability/"><span class="n">01</span><span class="t">Silent breakage</span></a></li>
+            <li><a href="/answers/diff-stability/"><span class="n">02</span><span class="t">Clean diffs</span></a></li>
+            <li><a href="/answers/greppability/"><span class="n">03</span><span class="t">Finding things</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Deciding whether to adopt it</summary><ol>
+            <li><a href="/answers/why-typescript/"><span class="n">04</span><span class="t">Why TypeScript</span></a></li>
+            <li><a href="/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">Why not tooled TS</span></a></li>
+            <li><a href="/answers/human-value/"><span class="n">06</span><span class="t">Without AI</span></a></li>
+            <li><a href="/answers/ai-authoring/"><span class="n">07</span><span class="t">AI-authored</span></a></li>
+            <li><a href="/answers/upgrades/"><span class="n">08</span><span class="t">Upgrades</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>Using it with your stack</summary><ol>
+            <li><a href="/answers/imports/"><span class="n">09</span><span class="t">Your libraries</span></a></li>
+            <li><a href="/answers/embedding/" aria-current="page"><span class="n">10</span><span class="t">Inside your app</span></a></li>
+            <li><a href="/answers/typed-apis/"><span class="n">11</span><span class="t">Typed APIs</span></a></li>
+            <li><a href="/answers/codegen/"><span class="n">12</span><span class="t">Client &amp; server</span></a></li>
+            <li><a href="/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/answers/state/"><span class="n">14</span><span class="t">Shared state</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>What you can build with it</summary><ol>
+            <li><a href="/answers/language/"><span class="n">15</span><span class="t">The language</span></a></li>
+            <li><a href="/answers/finance/"><span class="n">16</span><span class="t">Money &amp; safety</span></a></li>
+            <li><a href="/answers/web-serving/"><span class="n">17</span><span class="t">Serving the web</span></a></li>
+            <li><a href="/answers/interactive-cli/"><span class="n">18</span><span class="t">Programs you type into</span></a></li>
+            <li><a href="/answers/long-running/"><span class="n">19</span><span class="t">Servers &amp; daemons</span></a></li>
+            <li><a href="/answers/binary/"><span class="n">20</span><span class="t">Binary data</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Working with an agent</summary><ol>
+            <li><a href="/answers/impact/"><span class="n">21</span><span class="t">Before you edit</span></a></li>
+            <li><a href="/answers/ask-the-compiler/"><span class="n">22</span><span class="t">Ask the compiler</span></a></li>
+            <li><a href="/answers/repair-protocol/"><span class="n">23</span><span class="t">Fixing a red build</span></a></li>
+            <li><a href="/answers/generated-docs/"><span class="n">24</span><span class="t">Docs that can't drift</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Errors, editors and production</summary><ol>
+            <li><a href="/answers/tooling/"><span class="n">25</span><span class="t">Editor &amp; debugging</span></a></li>
+            <li><a href="/answers/early-errors/"><span class="n">26</span><span class="t">Caught earlier</span></a></li>
+            <li><a href="/answers/parse-errors/"><span class="n">27</span><span class="t">Why a parse failed</span></a></li>
+            <li><a href="/answers/debugging/"><span class="n">28</span><span class="t">Debugging &amp; ops</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
 
       <p class="short-answer">
         No rewrite. Keep the app in TypeScript and write the part you can't afford to get wrong

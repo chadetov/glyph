@@ -3284,7 +3284,6 @@ h4 code,
   /* a link that is a line of text, not a control: vertical padding on an
      inline box widens what a tap hits without moving the line */
   td a,
-  .h-tile-try a,
   .i18n-note a {
     padding-block: 13px;
   }

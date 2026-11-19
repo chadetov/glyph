@@ -13,6 +13,8 @@ on:
       - "scripts/check_site.py"
       - "scripts/build_site.py"
       - "scripts/check_site_built.py"
+      - "scripts/site_versions.py"
+      - "scripts/check_releases.py"
       - "glyph-compiler/Cargo.toml"
       - "npm/glyph/README.md"
       - ".github/workflows/docs.yml"
@@ -36,6 +38,8 @@ jobs:
         run: python3 scripts/check_site.py
       - name: Check web/ is what site/ renders (edit site/, then run scripts/build_site.py)
         run: python3 scripts/check_site_built.py
+      - name: Check every released version has notes in site/releases/
+        run: python3 scripts/check_releases.py
       - name: Confirm the npm package still ships a README
         working-directory: npm/glyph
         run: |

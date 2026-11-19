@@ -1,0 +1,548 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/early-errors/index.html",
+  "locale": "ru",
+  "source_hash": "117852a982fffaf4",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why does Glyph catch what tsc catches, but earlier? · Glyph",
+      "tr": "Почему Glyph ловит то же, что tsc, но раньше? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph reports await outside an async fn, a match arm that produces no value and a missing mut against your source, with the rule and the fix, before tsc.",
+      "tr": "Glyph сообщает await вне async fn, ветку match без значения и пропущенный mut относительно вашего исходного кода, с правилом и исправлением, ещё до tsc."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Назад"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "Как обстоят дела с редактором, отладкой и ошибками?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Далее &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "Когда разбор не удаётся, узнаю ли я почему?"
+    },
+    {
+      "id": "h-94bd0310",
+      "kind": "html",
+      "en": "26 &middot; Caught earlier",
+      "tr": "26 &middot; Пойманное раньше"
+    },
+    {
+      "id": "h-d7091fd1",
+      "kind": "html",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "Почему Glyph ловит то же, что tsc, но раньше?"
+    },
+    {
+      "id": "h-a4e100cc",
+      "kind": "html",
+      "en": "Because an error against generated TypeScript is an error about code you didn't write. Glyph reports these against your source, with the rule you broke and the edit that fixes it.",
+      "tr": "Потому что ошибка в сгенерированном TypeScript это ошибка в коде, который вы не писали. Glyph сообщает о таких ошибках относительно вашего исходного кода, с правилом, которое вы нарушили, и правкой, которая это исправляет."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Почему это важно"
+    },
+    {
+      "id": "h-94c346e3",
+      "kind": "html",
+      "en": "Glyph compiles to TypeScript and then type-checks the output with <code>tsc --strict</code>, so a mistake Glyph doesn't model isn't lost. It comes back one stage later, phrased in terms of the emitted file: a <code>TS1308</code> pointing at an <code>await</code> in a function you never spelled, or a <code>TS2366</code> about a <code>switch</code> you didn't write. The line is mapped back to your <code>.glyph</code>, but the explanation isn't.",
+      "tr": "Glyph компилируется в TypeScript, а затем проверяет типы результата через <code>tsc --strict</code>, так что ошибка, которую Glyph не моделирует, не теряется. Она возвращается на шаг позже, сформулированная в терминах сгенерированного файла: <code>TS1308</code>, указывающий на <code>await</code> в функции, которую вы не писали, или <code>TS2366</code> о <code>switch</code>, которого вы не писали. Строка отображается обратно в ваш <code>.glyph</code>, а объяснение нет."
+    },
+    {
+      "id": "h-2c890731",
+      "kind": "html",
+      "en": "That gap is where the compiler stops teaching. So each rule Glyph can decide for itself moves up: <code>await</code> outside an <code>async fn</code> (<code>E0222</code>), a <code>match</code> arm that produces no value while the <code>match</code> is used as a value (<code>E0223</code>), and an assignment written without <code>mut</code> (<code>E0008</code>). Each names the rule, cites the decision behind it, and shows the before and after.",
+      "tr": "В этом зазоре компилятор перестаёт учить. Поэтому каждое правило, которое Glyph может проверить сам, переносится раньше: <code>await</code> вне <code>async fn</code> (<code>E0222</code>), ветка <code>match</code>, которая не даёт значения, когда <code>match</code> используется как значение (<code>E0223</code>), и присваивание без <code>mut</code> (<code>E0008</code>). Каждая ошибка называет правило, ссылается на стоящее за ним решение и показывает код до и после."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Посмотрите сами"
+    },
+    {
+      "id": "h-d61df8a3",
+      "kind": "html",
+      "en": "The arm case is the one that used to escape entirely. <code>{}</code> in arm position is an empty <em>block</em>, not an empty record, so the arm ran and produced nothing:",
+      "tr": "Случай с веткой раньше проскакивал полностью. <code>{}</code> в позиции ветки это пустой <em>блок</em>, а не пустая запись, поэтому ветка выполнялась и ничего не давала:"
+    },
+    {
+      "id": "h-88f1df33",
+      "kind": "html",
+      "en": "status.glyph: an arm that yields nothing, in a position that needs a value",
+      "tr": "status.glyph: ветка, которая ничего не даёт, в позиции, где нужно значение"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-e6d4c412",
+      "kind": "html",
+      "en": "Before this, the emitted <code>switch</code> fell out of its own cases and <code>text</code> held <code>undefined</code> while its type said <code>string</code>. <code>tsc</code> catches some shapes of that and misses others. Glyph now decides it wherever the position is decidable: a <code>let</code>, a <code>mut</code>, a <code>return</code>, or the tail of a function that declares a return type. A statement <code>match</code> keeps <code>X =&gt; {}</code> as the deliberate no-op it is.",
+      "tr": "До этого сгенерированный <code>switch</code> проваливался мимо своих case, и <code>text</code> содержал <code>undefined</code>, хотя его тип говорил <code>string</code>. <code>tsc</code> ловит одни формы этой ошибки и пропускает другие. Теперь Glyph решает это везде, где позиция позволяет: в <code>let</code>, в <code>mut</code>, в <code>return</code> или в последнем выражении функции, объявляющей тип возврата. В <code>match</code> на уровне инструкции <code>X =&gt; {}</code> остаётся намеренным no-op, которым он и является."
+    },
+    {
+      "id": "h-c79dd30b",
+      "kind": "html",
+      "en": "<code>await</code> is the same move. Glyph has no user-visible <code>Promise</code>: an <code>async fn -&gt; T</code> is awaited to a <code>T</code>, so <code>await</code> anywhere else has nothing to suspend. That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses.",
+      "tr": "С <code>await</code> то же самое. В Glyph нет видимого пользователю <code>Promise</code>: <code>async fn -&gt; T</code> при ожидании даёт <code>T</code>, поэтому <code>await</code> в любом другом месте нечего приостанавливать. Раньше это была ошибка <code>tsc</code> <code>TS1308</code> в сгенерированном файле. Теперь это <code>E0222</code>, и решает ближайшая охватывающая вызываемая конструкция, так что синхронная лямбда внутри <code>async fn</code> образует свой контекст, по тому же правилу, что и в TypeScript."
+    },
+    {
+      "id": "h-f0ba95e3",
+      "kind": "html",
+      "en": "glyph build, on `fn total() -&gt; number { return await fetch_count() }`",
+      "tr": "glyph build, для `fn total() -&gt; number { return await fetch_count() }`"
+    },
+    {
+      "id": "h-d464ff82",
+      "kind": "html",
+      "en": "The third one is about a rule people break on day one. Glyph marks every mutation, so reassigning a binding is <code>mut x = e</code> and introducing one is <code>let x = e</code>. A bare <code>x = e</code> used to report \"unexpected token: Equals\", which names a character rather than the rule. It is <code>E0008</code> now, and <code>glyph --explain E0008</code> spells out why the mark exists: every place a value changes starts with <code>mut</code>, so <code>grep \"mut total\"</code> finds all of them.",
+      "tr": "Третья касается правила, которое нарушают в первый же день. Glyph помечает каждое изменение, поэтому переприсваивание привязки пишется <code>mut x = e</code>, а её введение <code>let x = e</code>. Голое <code>x = e</code> раньше давало «unexpected token: Equals», что называет символ, а не правило. Теперь это <code>E0008</code>, и <code>glyph --explain E0008</code> объясняет, зачем нужна пометка: каждое место, где меняется значение, начинается с <code>mut</code>, так что <code>grep \"mut total\"</code> находит их все."
+    },
+    {
+      "id": "h-ebed40e0",
+      "kind": "html",
+      "en": "The <code>?</code> operator gets the same treatment from the other direction. <code>?</code> expands to a binding plus an early <code>return</code> placed before the statement it sits in, so it needs a statement to expand into. It works in a <code>let</code>, a <code>return</code>, an argument, and now in a <code>match</code> arm body. Where it can't work, the message says which position it is and how to bind out of it (<code>E0302</code> and <code>E0303</code>) instead of claiming the operator isn't implemented.",
+      "tr": "Оператор <code>?</code> получает то же обращение с другой стороны. <code>?</code> раскрывается в привязку плюс ранний <code>return</code>, поставленный перед инструкцией, в которой он находится, поэтому ему нужна инструкция, в которую можно раскрыться. Он работает в <code>let</code>, в <code>return</code>, в аргументе, а теперь и в теле ветки <code>match</code>. Там, где он работать не может, сообщение говорит, что это за позиция и как вынести значение в привязку (<code>E0302</code> и <code>E0303</code>), вместо того чтобы утверждать, что оператор не реализован."
+    },
+    {
+      "id": "h-fd562d12",
+      "kind": "html",
+      "en": "The worse case: when tsc is happy too",
+      "tr": "Случай хуже: когда tsc тоже доволен"
+    },
+    {
+      "id": "h-885c1851",
+      "kind": "html",
+      "en": "A <code>tsc</code> error in the wrong place is annoying. A clean build on a program that means something else is the real problem, and Glyph had one. Every top-level name you declare goes into the emitted module verbatim, including a tagged union's variant constructors, so a variant named <code>Error</code> emits <code>export function Error(...)</code> at module top level. The <code>new Error(...)</code> the compiler writes below it then calls your variant.",
+      "tr": "Ошибка <code>tsc</code> не в том месте раздражает. Чистая сборка программы, которая означает что-то другое, это настоящая проблема, и в Glyph такая была. Каждое объявленное вами имя верхнего уровня попадает в сгенерированный модуль как есть, включая конструкторы вариантов размеченного объединения, поэтому вариант с именем <code>Error</code> даёт <code>export function Error(...)</code> на верхнем уровне модуля. И <code>new Error(...)</code>, который компилятор пишет ниже, вызывает уже ваш вариант."
+    },
+    {
+      "id": "h-75ff57e8",
+      "kind": "html",
+      "en": "<code>type Key = string | number</code> is the same defect with a friendlier face. In Glyph <code>A | B</code> declares a tagged union whose members are variant <em>constructors</em>, so that line declares variants called <code>string</code> and <code>number</code>. It compiled, passed <code>tsc --strict</code>, and emitted an <code>export const number</code> that shadowed the prelude <code>number</code> namespace. Nothing failed until a later <code>number.to_string</code> call did.",
+      "tr": "<code>type Key = string | number</code> это тот же дефект с более дружелюбным лицом. В Glyph <code>A | B</code> объявляет размеченное объединение, члены которого это <em>конструкторы</em> вариантов, поэтому эта строка объявляет варианты с именами <code>string</code> и <code>number</code>. Она компилировалась, проходила <code>tsc --strict</code> и генерировала <code>export const number</code>, который перекрывал пространство имён <code>number</code> из прелюдии. Ничего не падало, пока не упал более поздний вызов <code>number.to_string</code>."
+    },
+    {
+      "id": "h-a21321a8",
+      "kind": "html",
+      "en": "glyph build, on a union with an `Error` variant",
+      "tr": "glyph build, для union с вариантом `Error`"
+    },
+    {
+      "id": "h-31b46547",
+      "kind": "html",
+      "en": "The span is the declaration, which is where the rename goes. The guarded list is derived from the emitter rather than from a general list of JavaScript globals, and a test greps the emitter and fails when a new global reference appears without a matching entry. That test is the point: <code>Number</code> was harmless until <code>int</code> shipped and started emitting <code>Number.isInteger</code>, which is how this reached a release in the first place. <code>Date</code>, <code>Math</code>, and <code>JSON</code> stay free, because nothing Glyph emits mentions them.",
+      "tr": "Ошибка указывает на объявление, потому что переименовывать нужно именно там. Защищаемый список берётся из эмиттера, а не из общего списка глобальных объектов JavaScript, и тест проходит grep по эмиттеру и падает, когда появляется новая ссылка на глобальный объект без соответствующей записи. В этом тесте весь смысл: <code>Number</code> был безобиден, пока не вышел <code>int</code> и не начал генерировать <code>Number.isInteger</code>, и именно так этот дефект вообще попал в выпуск. <code>Date</code>, <code>Math</code> и <code>JSON</code> остаются свободными, потому что ничто из генерируемого Glyph их не упоминает."
+    },
+    {
+      "id": "h-cb06c784",
+      "kind": "html",
+      "en": "The primitive-union case gets its own code, <code>E0111</code>, because rejecting it without explaining it teaches nothing. It says what the line actually parsed as, points at named variants, and names <code>extern_ts(\"string | number\")</code> for the boundary where you want the raw TypeScript union. Every name Glyph will not let you use is tabulated in <code>docs/reference/reserved-words.md</code>: the 32 keywords, the 33 TypeScript reserved words behind <code>E0109</code>, and the shadow list, each with the reason the name is taken.",
+      "tr": "Для union из примитивов есть отдельный код, <code>E0111</code>, потому что отказ без объяснения ничему не учит. Он говорит, как на самом деле разобралась строка, указывает на именованные варианты и называет <code>extern_ts(\"string | number\")</code> для границы, где вам нужен настоящий union из TypeScript. Каждое имя, которое Glyph не даст использовать, перечислено в <code>docs/reference/reserved-words.md</code>: 32 ключевых слова, 33 зарезервированных слова TypeScript, стоящих за <code>E0109</code>, и список перекрываемых имён, у каждого указано, почему имя занято."
+    },
+    {
+      "id": "h-f9bb4040",
+      "kind": "html",
+      "en": "Worth being clear about what this does not do. You still cannot name a type or a variant <code>Error</code>, and the spreadsheet that turned this up ships a variant called <code>Cellerr</code> because of it. The program it wanted to be is still not writable; what changed is that the compiler now says so at the declaration instead of letting the build go green and mean something else. Making the name usable means mangling Glyph names on the way into TypeScript, which changes what a stack trace, a <code>grep</code> over <code>dist/</code>, and a hand-written <code>extern/</code> shim see, so it is not a patch we can make quietly.",
+      "tr": "Важно ясно сказать, чего это не делает. Назвать тип или вариант <code>Error</code> по-прежнему нельзя, и электронная таблица, на которой это обнаружилось, из-за этого содержит вариант <code>Cellerr</code>. Программу, которой она хотела быть, по-прежнему нельзя написать; изменилось то, что компилятор теперь говорит об этом на объявлении, а не даёт сборке позеленеть и означать что-то другое. Чтобы имя стало доступным, нужно искажать имена Glyph при переходе в TypeScript, а это меняет то, что видят стектрейс, <code>grep</code> по <code>dist/</code> и рукописная прослойка в <code>extern/</code>, так что тихо такое не исправить."
+    },
+    {
+      "id": "h-8afaf9f5",
+      "kind": "html",
+      "en": "A wrong message is worse than no message",
+      "tr": "Неверное сообщение хуже, чем никакого"
+    },
+    {
+      "id": "h-9130ed23",
+      "kind": "html",
+      "en": "The shadow list started with names the emitter writes as <em>values</em>. It was missing the ones it writes as <em>types</em>, and that produced the sharpest version of this whole problem. Every descriptor's <code>parse</code> returns <code>Result&lt;T, Issue[]&gt;</code>, so the emitted module writes <code>Issue</code> whether or not you did. Declare <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> in your own module and yours wins, the emitted <code>Issue</code> objects carry a <code>code</code> field yours has never heard of, and the build fails with a <code>tsc</code> error about generated code, at a span pointing somewhere else.",
+      "tr": "Список перекрываемых имён начинался с имён, которые эмиттер пишет как <em>значения</em>. В нём не хватало тех, что он пишет как <em>типы</em>, и это дало самую острую версию всей проблемы. <code>parse</code> каждого дескриптора возвращает <code>Result&lt;T, Issue[]&gt;</code>, поэтому сгенерированный модуль пишет <code>Issue</code> независимо от того, писали ли его вы. Объявите в своём модуле <code>type Issue = { path: Array&lt;string&gt;, message: string }</code>, и победит ваш тип, сгенерированные объекты <code>Issue</code> несут поле <code>code</code>, о котором ваш тип ничего не знает, и сборка падает с ошибкой <code>tsc</code> о сгенерированном коде, указывающей куда-то в другое место."
+    },
+    {
+      "id": "h-a6744752",
+      "kind": "html",
+      "en": "glyph build, before: fifteen of these, none of them near the cause",
+      "tr": "glyph build, раньше: пятнадцать таких ошибок, и ни одна не рядом с причиной"
+    },
+    {
+      "id": "h-a20d51b6",
+      "kind": "html",
+      "en": "glyph build, now",
+      "tr": "glyph build, теперь"
+    },
+    {
+      "id": "h-5a49991d",
+      "kind": "html",
+      "en": "<code>Record</code> joined the list at the same time, filed with the JavaScript globals rather than the prelude names because it is a TypeScript built-in and claiming otherwise would make the message wrong about where the name comes from. The drift test that greps the emitter now covers ambient types too, and it had to learn to see <code>Issue[]</code> in a type position, which is the reason this reached a release. <code>Schema</code>, <code>Component</code> and <code>Option</code> stay legal on the same rule that keeps <code>Date</code> free: the emitter writes them only because you wrote them in an annotation, so declaring one shadows nothing.",
+      "tr": "<code>Record</code> попал в список одновременно с ним, причём среди глобальных объектов JavaScript, а не среди имён прелюдии, потому что это встроенный тип TypeScript, и иначе сообщение неверно говорило бы, откуда взялось имя. Тест на расхождение, который проходит grep по эмиттеру, теперь покрывает и встроенные типы, и ему пришлось научиться видеть <code>Issue[]</code> в позиции типа: именно поэтому дефект дошёл до выпуска. <code>Schema</code>, <code>Component</code> и <code>Option</code> остаются допустимыми по тому же правилу, по которому свободен <code>Date</code>: эмиттер пишет их только потому, что вы написали их в аннотации, так что объявление такого имени ничего не перекрывает."
+    },
+    {
+      "id": "h-fbf610e9",
+      "kind": "html",
+      "en": "The other one in this class was an import. A local import path resolves from the build root, the directory you hand to <code>glyph build</code>, not from the directory of the file doing the importing. Build an enclosing tree and <code>import catalog</code> finds nothing, and until now nothing said so. The type degraded to unknown, a <code>match</code> over it lost the variants it was matching, and what you got was <code>E0218</code>, non-exhaustive match, on a <code>match</code> that covered every case. Doing what that message asked would have added a dead <code>else</code> arm to correct code.",
+      "tr": "Другой случай этого класса касался импорта. Локальный путь импорта разрешается от корня сборки, каталога, который вы передаёте <code>glyph build</code>, а не от каталога импортирующего файла. Соберите охватывающее дерево, и <code>import catalog</code> ничего не находит, а до сих пор об этом ничего не сообщалось. Тип вырождался в unknown, <code>match</code> по нему терял варианты, которые сопоставлял, и вы получали <code>E0218</code>, неполный match, на <code>match</code>, который покрывал все случаи. Сделав то, что просило сообщение, вы добавили бы мёртвую ветку <code>else</code> в правильный код."
+    },
+    {
+      "id": "h-dee2dcd5",
+      "kind": "html",
+      "en": "glyph build examples/apps, on `import catalog` inside csvql/",
+      "tr": "glyph build examples/apps, для `import catalog` внутри csvql/"
+    },
+    {
+      "id": "h-a61f2874",
+      "kind": "html",
+      "en": "The risk in a check like this is that it fires on things that are fine, and an import checker that cries wolf on every npm package is worse than the silence it replaced. So the build first collects the module names it can resolve without a <code>.glyph</code> file: every <code>declare module \"X\"</code> under <code>&lt;root&gt;/.types/</code> and in the bundled Node shim, plus every package in the project's <code>node_modules</code>. A name on that list is never reported, even when a local file happens to share its basename. When a project has no <code>node_modules</code> at all, the compiler cannot tell an uninstalled dependency from a typo, so it reports only what it can prove: an import that some <code>.glyph</code> file under the root answers to.",
+      "tr": "Риск такой проверки в том, что она срабатывает на нормальном коде, а проверка импортов, которая поднимает ложную тревогу на каждом пакете из npm, хуже молчания, которое она заменила. Поэтому сборка сначала собирает имена модулей, которые можно разрешить без файла <code>.glyph</code>: каждый <code>declare module \"X\"</code> в <code>&lt;root&gt;/.types/</code> и во встроенной прослойке Node, плюс каждый пакет в <code>node_modules</code> проекта. Об имени из этого списка никогда не сообщается, даже если у локального файла случайно такое же базовое имя. Когда у проекта вообще нет <code>node_modules</code>, компилятор не может отличить неустановленную зависимость от опечатки, поэтому сообщает только то, что может доказать: импорт, которому соответствует какой-то файл <code>.glyph</code> под корнем."
+    },
+    {
+      "id": "h-ea8659da",
+      "kind": "html",
+      "en": "Resolution itself did not change. The same programs build and the same programs fail. What changed is that the failure now names the import instead of accusing a <code>match</code> two files away, which is the whole of it: a compiler that reports the wrong cause costs you the hour spent chasing it, and then the benefit of the doubt on every message after.",
+      "tr": "Само разрешение не изменилось. Те же программы собираются, те же падают. Изменилось то, что ошибка теперь называет импорт, а не обвиняет <code>match</code> через два файла, и в этом всё дело: компилятор, который называет неверную причину, стоит вам часа на её поиски, а потом и доверия к каждому следующему сообщению."
+    },
+    {
+      "id": "h-807dc28e",
+      "kind": "html",
+      "en": "Naming the rule, not the token",
+      "tr": "Называть правило, а не токен"
+    },
+    {
+      "id": "h-f713d300",
+      "kind": "html",
+      "en": "The quieter version of the same problem is an error that is correct and still tells you nothing. An agent writing a red-black tree reached for the positional constructor every ML-family language has, and the parser stopped on its first comma with &ldquo;expected <code>)</code>&rdquo; and the advice &ldquo;add the expected token&rdquo;. Adding a <code>)</code> there produces a different program, not a working one. A Glyph variant carries one payload, and a payload with several fields is a record. Neither of those sentences was anywhere in the output.",
+      "tr": "Более тихая версия той же проблемы это ошибка, которая верна и всё равно ничего вам не говорит. Агент, писавший красно-чёрное дерево, потянулся к позиционному конструктору, который есть в каждом языке семейства ML, и парсер остановился на первой запятой с &ldquo;expected <code>)</code>&rdquo; и советом &ldquo;add the expected token&rdquo;. Если поставить там <code>)</code>, получится другая программа, а не работающая. Вариант в Glyph несёт одно содержимое, а содержимое с несколькими полями это запись. Ни одной из этих фраз в выводе не было."
+    },
+    {
+      "id": "h-2a5b1304",
+      "kind": "html",
+      "en": "glyph check, before and now",
+      "tr": "glyph check, раньше и теперь"
+    },
+    {
+      "id": "h-3db49ffc",
+      "kind": "html",
+      "en": "To say that, the parser had to read the whole list before refusing it, which is also what lets it count. The span underlines all six fields rather than the separator it happened to die on, and the suggested record is built from the variant name and the six types in the file, so the fix names your program rather than an example of someone else&rsquo;s. Field names are the one thing the compiler cannot supply, so it leaves them as holes.",
+      "tr": "Чтобы сказать это, парсеру пришлось прочитать весь список, прежде чем отказать, и это же позволяет ему считать. Подчёркнуты все шесть полей, а не разделитель, на котором он случайно остановился, а предлагаемая запись построена из имени варианта и шести типов из файла, так что исправление называет вашу программу, а не чей-то пример. Имена полей это единственное, что компилятор подставить не может, поэтому он оставляет на их месте пропуски."
+    },
+    {
+      "id": "h-a7125287",
+      "kind": "html",
+      "en": "The rule behind the message is a choice, not a gap. <code>Node(Black, l, x, b, h, r)</code> is the argument swap that type-checks, and position four tells a reader nothing. The record spelling names every field, a match arm names only the fields it uses, and both of those are things <code>grep</code> can find.",
+      "tr": "Правило за этим сообщением это выбор, а не пробел. <code>Node(Black, l, x, b, h, r)</code> это перестановка аргументов, которая проходит проверку типов, а четвёртая позиция ничего не говорит читателю. Запись называет каждое поле, ветка match называет только те поля, которые использует, и и то и другое можно найти через <code>grep</code>."
+    },
+    {
+      "id": "h-958f58ae",
+      "kind": "html",
+      "en": "Two more the checker took over in 0.1.121",
+      "tr": "Ещё две, которые проверка забрала себе в 0.1.121"
+    },
+    {
+      "id": "h-e177bf8c",
+      "kind": "html",
+      "en": "<code>Order { id: \"a\", total: 1 }</code> is what someone coming from TypeScript writes to build a record, and Glyph has no such form: a value is written on its own and the type goes on the annotation. What the compiler used to say about that line was <code>E0108</code>, unreachable code, on a build that exited 0, because the name resolved to the type and the braces parsed as a block after the <code>return</code>. A type's name written as a value is <code>E0228</code>, and the message is read off the declaration, so a record lists its fields, a tagged union lists its variants with their payload shapes, and a string-literal union lists its literals. <code>Order.parse(raw)</code> and <code>Order.is(v)</code> stay legal, since the receiver of a type's own descriptor is the one expression position a type name belongs in.",
+      "tr": "<code>Order { id: \"a\", total: 1 }</code> это то, что пишет пришедший из TypeScript, чтобы создать запись, а такой формы в Glyph нет: значение пишется само по себе, а тип ставится в аннотации. Раньше на такую строку компилятор говорил <code>E0108</code>, недостижимый код, при сборке, которая завершалась с кодом 0, потому что имя разрешалось в тип, а фигурные скобки разбирались как блок после <code>return</code>. Имя типа, записанное как значение, это <code>E0228</code>, а сообщение берётся из объявления, так что для записи перечисляются её поля, для размеченного объединения его варианты с формой содержимого, а для union строковых литералов его литералы. <code>Order.parse(raw)</code> и <code>Order.is(v)</code> остаются допустимыми, потому что получатель собственного дескриптора типа это единственная позиция выражения, где имени типа место."
+    },
+    {
+      "id": "h-f06c8bfb",
+      "kind": "html",
+      "en": "That fixed the case where the name was a type and left the parse alone, so <code>return h() { k: 2 }</code> still returned <code>h()</code> and dropped the braces with a warning. Since 0.1.146 a <code>{</code> on the line where a statement ended is <code>E0013</code> at parse, whatever the name before it is, and its help gives the same rewrite. Since 0.1.149 the rule covers every statement, not only one opening with a brace: <code>let s = \"a\" \"b\"</code> used to bind <code>\"a\"</code> and drop <code>\"b\"</code>, and <code>return x as User</code> was three statements, since Glyph has no cast. Each statement in a block starts its own line.",
+      "tr": "Это исправило случай, когда имя было типом, но разбор остался прежним, так что <code>return h() { k: 2 }</code> по-прежнему возвращал <code>h()</code> и выбрасывал фигурные скобки с предупреждением. Начиная с 0.1.146 <code>{</code> на строке, где закончилась инструкция, это <code>E0013</code> при разборе, каким бы ни было имя перед ней, и подсказка предлагает ту же переделку. Начиная с 0.1.149 правило покрывает любую инструкцию, а не только ту, что начинается с фигурной скобки: <code>let s = \"a\" \"b\"</code> раньше связывал <code>\"a\"</code> и выбрасывал <code>\"b\"</code>, а <code>return x as User</code> был тремя инструкциями, потому что в Glyph нет приведения типов. Каждая инструкция в блоке начинается с новой строки."
+    },
+    {
+      "id": "h-8ed13b42",
+      "kind": "html",
+      "en": "glyph check, on a record built the TypeScript way",
+      "tr": "glyph check, для записи, созданной по-TypeScript"
+    },
+    {
+      "id": "h-c496e232",
+      "kind": "html",
+      "en": "The other one is a prelude container assigned to a primitive. <code>let x: string = o</code> where <code>o: Option&lt;int&gt;</code> drew nothing from the Glyph checker, and neither did passing a <code>Nullable&lt;int&gt;</code> to a parameter declared <code>int</code>. Five containers are covered in both directions now: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> and <code>Nullable</code> are never a <code>string</code>, a <code>number</code> or a <code>bool</code>, whatever their arguments, and <code>Nullable&lt;T&gt;</code> against a scalar is decided one level in against <code>T</code>, so <code>let v: Nullable&lt;int&gt; = 3</code> stays correct and <code>let v: Nullable&lt;int&gt; = \"three\"</code> is <code>E0204</code>. The <code>Nullable</code> case belongs on this page more than the others, because it is one <code>tsc</code> cannot make: the emitted <code>const v: number | null = 3</code> narrows back to <code>number</code> before the call is checked, so a boundary type that exists to make <code>null</code> visible was passing silently where an <code>int</code> was declared, and the Glyph checker was the only place it could have been caught.",
+      "tr": "Другая касается контейнера из прелюдии, присвоенного примитиву. <code>let x: string = o</code> при <code>o: Option&lt;int&gt;</code> ничего не вызывал у проверки Glyph, как и передача <code>Nullable&lt;int&gt;</code> в параметр, объявленный как <code>int</code>. Теперь пять контейнеров покрыты в обе стороны: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> и <code>Nullable</code> никогда не являются <code>string</code>, <code>number</code> или <code>bool</code>, какими бы ни были их аргументы, а <code>Nullable&lt;T&gt;</code> против скаляра решается на уровень глубже, против <code>T</code>, так что <code>let v: Nullable&lt;int&gt; = 3</code> остаётся правильным, а <code>let v: Nullable&lt;int&gt; = \"three\"</code> даёт <code>E0204</code>. Случаю с <code>Nullable</code> на этой странице место больше, чем остальным, потому что его <code>tsc</code> поймать не может: сгенерированный <code>const v: number | null = 3</code> сужается обратно до <code>number</code> до проверки вызова, так что граничный тип, который существует, чтобы сделать <code>null</code> видимым, молча проходил там, где объявлен <code>int</code>, и поймать это могла только проверка Glyph."
+    },
+    {
+      "id": "h-4d3a0a1d",
+      "kind": "html",
+      "en": "The same containers against a declared record or union came next. Since 0.1.130 <code>let user: User = json.parse(body)</code> is <code>E0204</code>, expected <code>User</code>, found <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>. Before, only <code>tsc</code> said so, which meant <code>glyph check --no-tsc</code>, the editor and the playground showed a clean file on the one line a boundary exists to get right.",
+      "tr": "Следующими стали те же контейнеры против объявленной записи или union. Начиная с 0.1.130 <code>let user: User = json.parse(body)</code> даёт <code>E0204</code>, ожидался <code>User</code>, найден <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>. Раньше об этом говорил только <code>tsc</code>, а значит <code>glyph check --no-tsc</code>, редактор и песочница показывали чистый файл ровно на той строке, ради правильности которой и существует граница."
+    },
+    {
+      "id": "h-98c8eb1d",
+      "kind": "html",
+      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields. <code>tsc</code> would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
+      "tr": "Опечатка в имени члена массива или строки это другой случай, который раньше ждал <code>tsc</code>. <code>xs.lenght</code> даёт <code>E0210</code> с «did you mean <code>length</code>», и проверяется по членам, которые библиотека TypeScript объявляет для массивов и строк, так же как чтение поля записи проверяется по её полям. <code>tsc</code> отклонил бы оба случая, так что сборка, которая его запускала, и так была красной; изменилось то, что проверка Glyph и всё, что на ней построено, видят их первыми."
+    },
+    {
+      "id": "h-3d087635",
+      "kind": "html",
+      "en": "And three more, since 0.1.133",
+      "tr": "И ещё три, начиная с 0.1.133"
+    },
+    {
+      "id": "h-06826d1c",
+      "kind": "html",
+      "en": "<code>let up = s.toUpperCase</code> type-checks in TypeScript and throws when <code>up()</code> runs, because the read drops the string it belongs to. Glyph refuses it as <code>E0234</code>, and refuses <code>.bind(s)</code> on it too: wrap the call in a lambda instead. The checker now knows what each array and string method returns, from a table generated out of TypeScript's own declarations.",
+      "tr": "<code>let up = s.toUpperCase</code> проходит проверку типов в TypeScript и бросает исключение при вызове <code>up()</code>, потому что при чтении теряется строка, которой метод принадлежит. Glyph отклоняет это как <code>E0234</code>, и отклоняет и <code>.bind(s)</code> на нём: вместо этого оберните вызов в лямбду. Проверка теперь знает, что возвращает каждый метод массивов и строк, по таблице, сгенерированной из собственных объявлений TypeScript."
+    },
+    {
+      "id": "h-10186d4d",
+      "kind": "html",
+      "en": "<code>r?.label</code> on a <code>Result</code> reads like \"propagate the error, then read the field\". It is optional chaining, and a <code>Result</code> is never null, so it reads the field off the <code>Result</code> object and propagates nothing. An agent wrote exactly that while building a CSV query tool. It is <code>E0236</code> now, on an <code>Option</code> as well, and the help says to bind with <code>?</code> first.",
+      "tr": "<code>r?.label</code> на <code>Result</code> читается как «пробросить ошибку, потом прочитать поле». Но это опциональная цепочка, а <code>Result</code> никогда не равен null, так что она читает поле самого объекта <code>Result</code> и ничего не пробрасывает. Агент написал ровно это, когда делал инструмент для запросов к CSV. Теперь это <code>E0236</code>, и на <code>Option</code> тоже, а подсказка говорит сначала связать значение через <code>?</code>."
+    },
+    {
+      "id": "h-fb62cc51",
+      "kind": "html",
+      "en": "<code>json.parse(body)</code> with no type argument is the unchecked read, a <code>Result&lt;unknown, ...&gt;</code>. Written where a <code>Result&lt;User, ...&gt;</code> was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and the program crashed on its first field read. The emitter now writes the <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>. Glyph's own checker does not yet catch an <code>unknown</code> landing inside a declared type, so <code>--no-tsc</code> and the editor still miss <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code> is declared. (A bare <code>let user: User = json.parse(body)</code> is <code>E0204</code> from Glyph's own checker, because the outer type is already wrong.) Refusing <code>unknown</code> at every depth is G325, planned for 0.1.158.",
+      "tr": "<code>json.parse(body)</code> без аргумента типа это непроверенное чтение, <code>Result&lt;unknown, ...&gt;</code>. Если написать его там, где объявлен <code>Result&lt;User, ...&gt;</code>, <code>tsc</code> раньше выводил <code>User</code> из объявления, и программа падала на первом чтении поля. Теперь эмиттер явно пишет <code>unknown</code>, так что <code>glyph check</code> отклоняет это через <code>tsc</code>. Собственная проверка Glyph пока не ловит <code>unknown</code>, попадающий внутрь объявленного типа, так что <code>--no-tsc</code> и редактор всё ещё пропускают <code>Result&lt;unknown, ...&gt;</code>, записанный там, где объявлен <code>Result&lt;User, ...&gt;</code>. (Голый <code>let user: User = json.parse(body)</code> даёт <code>E0204</code> от собственной проверки Glyph, потому что внешний тип уже неверен.) Отклонение <code>unknown</code> на любой глубине это G325, запланированный на 0.1.158."
+    },
+    {
+      "id": "h-41090fb8",
+      "kind": "html",
+      "en": "And two more in 0.1.122",
+      "tr": "И ещё две в 0.1.122"
+    },
+    {
+      "id": "h-199da0a9",
+      "kind": "html",
+      "en": "<code>type Mode = \"read\" | \"write\"</code> declares a finite set of strings, and the Glyph checker compared a value against it by nothing at all. A number, a <code>bool</code>, a record and a string outside the set all passed <code>glyph check --no-tsc</code> with nothing but unused-variable warnings, while <code>tsc</code> refused every one of them on the emitted TypeScript. So a full <code>glyph build</code> was never wrong about this, but the four surfaces that have no <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP tools and the playground.",
+      "tr": "<code>type Mode = \"read\" | \"write\"</code> объявляет конечное множество строк, а проверка Glyph сравнивала с ним значение вообще никак. Число, <code>bool</code>, запись и строка вне множества проходили <code>glyph check --no-tsc</code> лишь с предупреждениями о неиспользуемых переменных, тогда как <code>tsc</code> отклонял каждое из них в сгенерированном TypeScript. Так что полный <code>glyph build</code> здесь никогда не ошибался, а вот четыре поверхности, где <code>tsc</code> не участвует, ошибались: <code>--no-tsc</code>, языковой сервер, инструменты MCP и песочница."
+    },
+    {
+      "id": "h-8ccbda80",
+      "kind": "html",
+      "en": "glyph check --no-tsc, on a type that lists its legal strings",
+      "tr": "glyph check --no-tsc, для типа, перечисляющего допустимые строки"
+    },
+    {
+      "id": "h-d0bde6bb",
+      "kind": "html",
+      "en": "That is the four <code>tsc</code> reported, at the same four statements, without running <code>tsc</code>. The rule reads the union as what it is at run time, a <code>string</code>, and asks the checker the corresponding <code>string</code> question in each direction, so it inherits the rules that already refuse a record or a container against a <code>string</code> rather than restating them one shape at a time. Two literal sets are compared by set, so a narrower union goes where a wider one is declared; an alias chain is followed on both sides; an imported union is decided like a local one; and <code>Nullable&lt;Mode&gt;</code> is descended with the union intact.",
+      "tr": "Это те же четыре ошибки, что сообщал <code>tsc</code>, на тех же четырёх инструкциях, без запуска <code>tsc</code>. Правило читает union как то, чем он является во время выполнения, то есть <code>string</code>, и задаёт проверке соответствующий вопрос о <code>string</code> в каждую сторону, так что наследует правила, которые уже отклоняют запись или контейнер против <code>string</code>, а не переписывает их для каждой формы. Два множества литералов сравниваются как множества, так что более узкий union можно передать туда, где объявлен более широкий; цепочка псевдонимов прослеживается с обеих сторон; импортированный union решается так же, как локальный; а внутрь <code>Nullable&lt;Mode&gt;</code> проверка спускается, сохраняя union."
+    },
+    {
+      "id": "h-fb0d1284",
+      "kind": "html",
+      "en": "A union nested in a record field or a generic argument was left to <code>tsc</code> in 0.1.122 and is decided in 0.1.123. See below.",
+      "tr": "Union, вложенный в поле записи или в аргумент дженерика, в 0.1.122 оставался на <code>tsc</code>, а в 0.1.123 решается сам. Смотрите ниже."
+    },
+    {
+      "id": "h-06af8498",
+      "kind": "html",
+      "en": "The second one is not a <code>tsc</code> story at all. The parser is recursive descent with no depth guard, so an expression nested two thousand levels deep ran the process out of stack and aborted with exit 134. That is bad on <code>glyph check</code> and worse on <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root: one pathological file took the server down for the whole workspace. It is <code>E0011</code> now, raised at the token that would have opened level 65.",
+      "tr": "Вторая вообще не про <code>tsc</code>. Парсер это рекурсивный спуск без ограничения глубины, поэтому выражение с вложенностью в две тысячи уровней исчерпывало стек процесса и аварийно завершалось с кодом 134. Это плохо для <code>glyph check</code> и ещё хуже для <code>glyph lsp</code> и <code>glyph mcp</code>, которые читают каждый файл под корнем: один патологический файл ронял сервер для всего рабочего пространства. Теперь это <code>E0011</code>, которое выдаётся на токене, открывшем бы 65-й уровень."
+    },
+    {
+      "id": "h-4667bbfa",
+      "kind": "html",
+      "en": "0.1.123: the literal a value is, not the <code>string</code> it emits to",
+      "tr": "0.1.123: литерал, которым является значение, а не <code>string</code>, в который он генерируется"
+    },
+    {
+      "id": "h-c893efbc",
+      "kind": "html",
+      "en": "<code>type Mode = \"read\" | \"write\"</code> put the set on the declaration and nothing on the value, so <code>\"read\"</code> was a <code>string</code> and <code>[\"read\", \"write\"]</code> an <code>Array&lt;string&gt;</code>. That made two programs indistinguishable: <code>return [\"read\", \"write\"]</code> where an <code>Array&lt;Mode&gt;</code> is declared, which <code>tsc</code> compiles, and <code>return xs</code> for an <code>xs: Array&lt;string&gt;</code>, which it refuses. 0.1.122 declined the pairing rather than get it wrong, and that bought the right program by giving up the wrong one: <code>{ mode: \"nope\" }</code> against a <code>{ mode: Mode }</code> drew nothing.",
+      "tr": "<code>type Mode = \"read\" | \"write\"</code> задавал множество в объявлении и ничего не задавал значению, так что <code>\"read\"</code> был <code>string</code>, а <code>[\"read\", \"write\"]</code> был <code>Array&lt;string&gt;</code>. Из-за этого две программы были неразличимы: <code>return [\"read\", \"write\"]</code> там, где объявлен <code>Array&lt;Mode&gt;</code>, что <code>tsc</code> компилирует, и <code>return xs</code> для <code>xs: Array&lt;string&gt;</code>, что он отклоняет. 0.1.122 отказался решать такую пару, чтобы не решить её неправильно, и купил этим правильную программу ценой пропуска неправильной: <code>{ mode: \"nope\" }</code> против <code>{ mode: Mode }</code> ничего не вызывал."
+    },
+    {
+      "id": "h-c0066fa2",
+      "kind": "html",
+      "en": "A written string literal now has the one-literal type it spells, an array literal's element type is the join of its elements', and a written array or object literal is checked element by element and field by field against the declared type, so the diagnostic names the literal and underlines it.",
+      "tr": "Записанный строковый литерал теперь имеет тип из одного литерала, который он и записывает, тип элемента литерала массива это объединение типов его элементов, а записанный литерал массива или объекта проверяется против объявленного типа поэлементно и поле за полем, так что диагностика называет литерал и подчёркивает его."
+    },
+    {
+      "id": "h-ddcce2d9",
+      "kind": "html",
+      "en": "glyph check --no-tsc, on a literal one container in",
+      "tr": "glyph check --no-tsc, для литерала на уровень внутри контейнера"
+    },
+    {
+      "id": "h-1582f0d1",
+      "kind": "html",
+      "en": "The literal widens back to <code>string</code> where TypeScript widens it: at a <code>let</code> with no annotation, whose emitted TypeScript <code>let</code> widens the same way, and at the element binding of a <code>for</code> over a written array. So <code>let l = \"read\"</code> followed by <code>takes_mode(l)</code> is refused here and <code>TS2345</code> there. A <code>const</code> emits a TypeScript <code>const</code> and keeps its literal, so <code>takes_mode(CM)</code> compiles under both. A literal type that arrived through a name is not widened, which is TypeScript's own freshness rule. Every row of that was settled by running <code>tsc --strict</code> on the equivalent TypeScript rather than reasoned about.",
+      "tr": "Литерал расширяется обратно до <code>string</code> там же, где его расширяет TypeScript: в <code>let</code> без аннотации, сгенерированный <code>let</code> которого в TypeScript расширяется так же, и в привязке элемента <code>for</code> по записанному массиву. Так что <code>let l = \"read\"</code>, а затем <code>takes_mode(l)</code> отклоняется здесь и даёт <code>TS2345</code> там. <code>const</code> генерирует <code>const</code> в TypeScript и сохраняет свой литерал, так что <code>takes_mode(CM)</code> компилируется в обоих. Литеральный тип, пришедший через имя, не расширяется: это собственное правило свежести TypeScript. Каждая строка этого была выяснена запуском <code>tsc --strict</code> на эквивалентном TypeScript, а не рассуждением."
+    },
+    {
+      "id": "h-bf8e8b89",
+      "kind": "html",
+      "en": "One pairing is still declined: the key argument of a <code>Record</code> against another <code>Record</code>'s. TypeScript writes <code>Record&lt;string, V&gt;</code> as an index signature covering every key a <code>Record&lt;Mode, V&gt;</code> declares and accepts it in both directions, so refusing it would refuse a program that compiles. Two more shapes the checker still says nothing about: a literal inside <code>Some(...)</code>, because a prelude constructor has no type here yet, and a record literal bound to an unannotated <code>let</code>, because no record type is synthesized for an object literal.",
+      "tr": "Одна пара по-прежнему не решается: аргумент-ключ <code>Record</code> против ключа другого <code>Record</code>. TypeScript записывает <code>Record&lt;string, V&gt;</code> как индексную сигнатуру, покрывающую каждый ключ, объявленный в <code>Record&lt;Mode, V&gt;</code>, и принимает её в обе стороны, так что отказ отклонил бы компилирующуюся программу. Ещё о двух формах проверка пока ничего не говорит: литерал внутри <code>Some(...)</code>, потому что у конструктора из прелюдии здесь пока нет типа, и литерал записи, привязанный к <code>let</code> без аннотации, потому что для объектного литерала тип записи не синтезируется."
+    },
+    {
+      "id": "h-02d8ec8f",
+      "kind": "html",
+      "en": "A module under <code>std/</code> was dead code with no diagnostic",
+      "tr": "Модуль под <code>std/</code> был мёртвым кодом без диагностики"
+    },
+    {
+      "id": "h-4742bc61",
+      "kind": "html",
+      "en": "<code>std/</code> and <code>extern/</code> name modules the compiler carries, and the resolver reserved them for imports. Nothing stopped a project file from <em>declaring</em> one. <code>module std/io</code> in your own <code>src/io.glyph</code> compiled clean, and then <code>import std/io { shout }</code> resolved to the stub and reported that <code>shout</code> is not exported: your file was never read. A file that draws no diagnostic and runs no code is the worst shape a compiler can leave you in, because nothing about it looks wrong.",
+      "tr": "<code>std/</code> и <code>extern/</code> называют модули, которые несёт компилятор, и резолвер резервировал их для импортов. Но ничто не мешало файлу проекта <em>объявить</em> такой модуль. <code>module std/io</code> в вашем собственном <code>src/io.glyph</code> компилировался чисто, а затем <code>import std/io { shout }</code> разрешался в заглушку и сообщал, что <code>shout</code> не экспортируется: ваш файл ни разу не читался. Файл, который не вызывает ни одной диагностики и не выполняет ни строчки кода, это худшее, в чём компилятор может вас оставить, потому что ничего в нём не выглядит неправильным."
+    },
+    {
+      "id": "h-6169c8f2",
+      "kind": "html",
+      "en": "glyph check --no-tsc, on src/io.glyph declaring `module std/io`",
+      "tr": "glyph check --no-tsc, для src/io.glyph с объявлением `module std/io`"
+    },
+    {
+      "id": "h-fffab50d",
+      "kind": "html",
+      "en": "The prefix is matched as a whole first segment, so <code>standard</code>, <code>externals/io</code>, <code>app/std</code> and <code>app/extern/helper</code> are untouched, and importing under either prefix still works the way it always did.",
+      "tr": "Префикс сопоставляется как целый первый сегмент, так что <code>standard</code>, <code>externals/io</code>, <code>app/std</code> и <code>app/extern/helper</code> не затронуты, а импорт под любым из префиксов работает как всегда."
+    },
+    {
+      "id": "h-15f6ae51",
+      "kind": "html",
+      "en": "glyph check, on `const x = ` followed by 2,000 nested brackets",
+      "tr": "glyph check, для `const x = `, за которым идут 2,000 вложенных скобок"
+    },
+    {
+      "id": "h-bdfdd02f",
+      "kind": "html",
+      "en": "The limit is 64 and it was measured rather than picked. One level of the costliest construct, a nested array literal, costs 7,792 bytes of stack in the release build and 8,810 in the debug one, found by binary-searching the smallest thread stack a given depth will parse in. The thinnest stack the parser runs on is a spawned thread's 2 MiB, which is what the language server's workers get, and 64 levels spend under a third of it in the costlier build. The deepest nesting across the 343 <code>.glyph</code> files in this repository is 16. The limit covers expressions, types, patterns, blocks and JSX children alike, and a thousand sibling arrays still parse, because depth is per-construct nesting and not a budget spent over the file.",
+      "tr": "Предел равен 64, и он измерен, а не выбран наугад. Один уровень самой затратной конструкции, вложенного литерала массива, стоит 7,792 байта стека в release-сборке и 8,810 в debug, что выяснили двоичным поиском наименьшего стека потока, на котором разбирается заданная глубина. Самый тонкий стек, на котором работает парсер, это 2 MiB порождённого потока, столько получают воркеры языкового сервера, и 64 уровня тратят меньше трети этого в более затратной сборке. Самая глубокая вложенность среди 343 файлов <code>.glyph</code> в этом репозитории равна 16. Предел одинаково покрывает выражения, типы, паттерны, блоки и дочерние элементы JSX, а тысяча соседних массивов по-прежнему разбирается, потому что глубина это вложенность конструкций, а не бюджет, расходуемый по всему файлу."
+    },
+    {
+      "id": "h-e9d87086",
+      "kind": "html",
+      "en": "When neither compiler is wrong",
+      "tr": "Когда ни один компилятор не ошибается"
+    },
+    {
+      "id": "h-12780416",
+      "kind": "html",
+      "en": "There is a third shape, and it is the one that reads worst. Glyph reports nothing, <code>tsc</code> reports something true, and the program you wrote was fine. What failed is the translation between them.",
+      "tr": "Есть и третья форма, и выглядит она хуже всех. Glyph ничего не сообщает, <code>tsc</code> сообщает правду, а написанная вами программа была в порядке. Сломался перевод между ними."
+    },
+    {
+      "id": "h-a7c4f666",
+      "kind": "html",
+      "en": "A binding in Glyph has one type for the whole of its life. TypeScript narrows a binding to whatever it last saw assigned, and its <code>boolean</code> is the union <code>true | false</code>, so <code>let done = false</code> reached <code>tsc</code> typed <code>false</code> and the <code>true</code> arm of the emitted <code>switch</code> had nothing to match.",
+      "tr": "Привязка в Glyph имеет один тип на всё время жизни. TypeScript сужает привязку до того, что видел присвоенным последним, а его <code>boolean</code> это union <code>true | false</code>, поэтому <code>let done = false</code> доходил до <code>tsc</code> с типом <code>false</code>, и ветке <code>true</code> в сгенерированном <code>switch</code> не с чем было сопоставляться."
+    },
+    {
+      "id": "h-af7bd67d",
+      "kind": "html",
+      "en": "poll.glyph, and what tsc said about it before 0.1.89",
+      "tr": "poll.glyph и что о нём говорил tsc до 0.1.89"
+    },
+    {
+      "id": "h-bd3065af",
+      "kind": "html",
+      "en": "A type declared as a set of string literals failed the same way, and so did <code>==</code>, which came back as <code>TS2367</code> instead: two messages, two codes, one cause. The app that hit it was polling a flag a timer callback sets, which is how you turn an event-based API into a value while Glyph has no <code>Promise</code> you can construct by hand. The callback turned out to be beside the point: four lines with no callback do it.",
+      "tr": "Тип, объявленный как множество строковых литералов, ломался так же, как и <code>==</code>, только с <code>TS2367</code>: два сообщения, два кода, одна причина. Приложение, которое на это наткнулось, опрашивало флаг, выставляемый колбэком таймера: так превращают событийный API в значение, пока в Glyph нет <code>Promise</code>, который можно создать вручную. Колбэк оказался ни при чём: хватает четырёх строк без всякого колбэка."
+    },
+    {
+      "id": "h-a0a47a8e",
+      "kind": "html",
+      "en": "The fix is not a new diagnostic, because there is nothing to diagnose. The emitter now restates the type the checker already decided, at the two places that discriminate over a value: the <code>match</code> scrutinee and either side of a <code>==</code> or <code>!=</code>. Each side is decided by its own type and ignores what sits next to it, so a comparison between two bindings is covered the same way a comparison against a literal is.",
+      "tr": "Исправление не новая диагностика, потому что диагностировать нечего. Эмиттер теперь повторяет тип, который уже определила проверка, в двух местах, где значение различается по вариантам: в выражении, по которому идёт <code>match</code>, и с обеих сторон <code>==</code> или <code>!=</code>. Каждая сторона определяется своим типом и не зависит от соседней, так что сравнение двух привязок покрыто так же, как сравнение с литералом."
+    },
+    {
+      "id": "h-0bd7cc54",
+      "kind": "html",
+      "en": "The checks you want still fire. <code>m == \"nope\"</code> where <code>m</code> is a <code>Mode</code> is still rejected, and now the message names <code>Mode</code> instead of the single member <code>m</code> happened to be holding. Doing this at the assignment instead would have been less code and would have thrown that away: a cast to <code>Mode</code> is accepted where the annotated assignment is not, and the membership check is the part Glyph leaves to <code>tsc</code> on purpose.",
+      "tr": "Нужные проверки по-прежнему срабатывают. <code>m == \"nope\"</code>, где <code>m</code> это <code>Mode</code>, по-прежнему отклоняется, и теперь сообщение называет <code>Mode</code>, а не тот единственный член, который <code>m</code> случайно содержал. Сделать это в месте присваивания было бы меньше кода, и это бы всё испортило: приведение к <code>Mode</code> принимается там, где присваивание с аннотацией нет, а проверку принадлежности Glyph намеренно оставляет <code>tsc</code>."
+    },
+    {
+      "id": "h-c761fe10",
+      "kind": "html",
+      "en": "What it costs is small and worth naming. A cast can narrow as well as confirm, so a value Glyph types as <code>bool</code> whose TypeScript type came out <code>unknown</code> now passes where the <code>switch</code> used to complain. The two types still have to be comparable, so a model that has drifted far enough to matter, <code>string</code> against <code>bool</code>, reports <code>TS2352</code> rather than nothing.",
+      "tr": "Цена небольшая, но её стоит назвать. Приведение может как подтверждать тип, так и сужать его, поэтому значение, которое Glyph типизирует как <code>bool</code>, а его тип в TypeScript получился <code>unknown</code>, теперь проходит там, где раньше жаловался <code>switch</code>. Два типа всё ещё должны быть сравнимы, так что модель, разошедшаяся достаточно сильно, чтобы это имело значение (<code>string</code> против <code>bool</code>), даёт <code>TS2352</code>, а не тишину."
+    },
+    {
+      "id": "h-e551f1c7",
+      "kind": "html",
+      "en": "The same typo, two answers",
+      "tr": "Одна опечатка, два ответа"
+    },
+    {
+      "id": "h-809fcce8",
+      "kind": "html",
+      "en": "A misspelled standard-library function used to get a different answer depending on how you had written the import, which is the kind of inconsistency that teaches you not to trust either answer.",
+      "tr": "Опечатка в имени функции стандартной библиотеки раньше получала разный ответ в зависимости от того, как вы написали импорт, а такая непоследовательность приучает не доверять ни одному из ответов."
+    },
+    {
+      "id": "h-09184d08",
+      "kind": "html",
+      "en": "the named import, always an E0105",
+      "tr": "именованный импорт, всегда E0105"
+    },
+    {
+      "id": "h-22b48a10",
+      "kind": "html",
+      "en": "the namespace read, before 0.1.72",
+      "tr": "чтение через пространство имён, до 0.1.72"
+    },
+    {
+      "id": "h-18ff7042",
+      "kind": "html",
+      "en": "The first spelling was checked against the module's export list during resolution. The second was not checked at all, so it fell through to <code>tsc</code>, which saw a property access on an object and answered in those terms. Both spellings go through the export list now, and both say <code>E0105</code>, naming the member and the module it is missing from.",
+      "tr": "Первый вариант записи проверялся по списку экспортов модуля при разрешении имён. Второй не проверялся вообще, поэтому доходил до <code>tsc</code>, который видел обращение к свойству объекта и отвечал в этих терминах. Теперь оба варианта проходят через список экспортов, и оба дают <code>E0105</code>, называя член и модуль, в котором его нет."
+    },
+    {
+      "id": "h-c8c0f51d",
+      "kind": "html",
+      "en": "Switching it on immediately found something nobody was looking for: a test fixture had been calling <code>fs.write</code>, where the function is <code>write_text</code>. It had passed for months because that fixture runs with type-checking off, and nothing else in the compiler looked at namespace members. The export list is now the authority for both spellings, so a separate check keeps it in step with what the runtime actually exports. That check was written, then deliberately broken to confirm it failed, which is how we found its first version had been silently checking nothing.",
+      "tr": "Включение проверки сразу нашло то, что никто не искал: тестовая фикстура вызывала <code>fs.write</code>, хотя функция называется <code>write_text</code>. Это месяцами проходило, потому что фикстура запускается с выключенной проверкой типов, а больше ничто в компиляторе не смотрело на члены пространств имён. Теперь список экспортов это авторитет для обоих вариантов записи, так что отдельная проверка следит, чтобы он совпадал с тем, что runtime на самом деле экспортирует. Эту проверку написали, а затем намеренно сломали, чтобы убедиться, что она падает, и так обнаружили, что её первая версия молча ничего не проверяла."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Текущее состояние"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Уже работает"
+    },
+    {
+      "id": "h-fd12ee55",
+      "kind": "html",
+      "en": "<code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, <code>E0013</code> for a statement that begins on the line where another ended, which used to drop the value after it, <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive or a declared record or union, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away, <code>E0210</code> for a member an array or a string does not have, the same two codes for a value that is not in a string-literal union's declared set, <code>E0011</code> for a construct nested past 64 levels, <code>E0101</code> for a relative import path, which used to stop in the parser as a generic \"expected module path segment\", and <code>E0113</code> for a project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.",
+      "tr": "<code>E0222</code> для <code>await</code> вне <code>async fn</code>, <code>E0223</code> для ветки <code>match</code> в позиции значения, которая не даёт значения, <code>E0008</code> для присваивания без <code>mut</code>, <code>E0010</code> для варианта с несколькими позиционными полями содержимого там, где существует только форма записи, <code>E0302</code>/<code>E0303</code> для <code>?</code> в позиции, из которой он не может пробросить ошибку, <code>E0110</code>/<code>E0111</code> для объявления, которое перекрыло бы имя, от которого уже зависит сгенерированный модуль, <code>E0104</code> для локального импорта, не называющего ни одного модуля под корнем сборки, <code>E0105</code> для имени, которое модуль не экспортирует, неважно, через именованный импорт или через пространство имён, <code>E0228</code> для имени типа, записанного там, где ожидается значение, <code>E0013</code> для инструкции, начинающейся на строке, где закончилась другая, что раньше выбрасывало значение после неё, <code>E0204</code>/<code>E0211</code> для контейнера из прелюдии, присвоенного или переданного как примитив либо как объявленная запись или union, включая случай <code>Nullable&lt;T&gt;</code>, который <code>tsc</code> сужает и теряет, <code>E0210</code> для члена, которого нет у массива или строки, те же два кода для значения, не входящего в объявленное множество union строковых литералов, <code>E0011</code> для конструкции с вложенностью больше 64 уровней, <code>E0101</code> для относительного пути импорта, который раньше останавливался в парсере с общим «expected module path segment», и <code>E0113</code> для модуля проекта, объявленного под <code>std/</code> или <code>extern/</code>, который раньше компилировался чисто и был недостижим. Список перекрываемых имён покрывает типы, которые эмиттер пишет сам, так что <code>Issue</code> и <code>Record</code> ловятся на объявлении. У каждого кода есть исправление в одну строку, примечание с объяснением правила и подробный текст для <code>glyph --explain</code>; <code>docs/error-codes.md</code> содержит каталог, а тест следит, чтобы они совпадали."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "Становится точнее"
+    },
+    {
+      "id": "h-b38f0d7d",
+      "kind": "html",
+      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it. Separately, the read-site pin that keeps a <code>bool</code> or string-literal-union binding matchable follows a type alias only inside the module being emitted, so <code>pub type Ready = bool</code> in one module and <code>let r: catalog.Ready = false</code> in another still reaches <code>tsc</code> as <code>TS2678</code>. String-literal unions are covered across modules in all three import spellings, and since 0.1.123 the diagnostic names the declaration (expected <code>Mode</code>) under every spelling instead of printing its literal set under one of them.",
+      "tr": "<code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк и возвращают массив ожидающих значений, который печатается как <code>[object Promise]</code>; пять функций для массивов, принимающих предикат, это останавливают, выдавая <code>E0211</code> на колбэке. Если смоделировать так же остальные три, будет отклонён и <code>par.all(array.map(items, async fn ...))</code>, а именно так Glyph выполняет работу конкурентно, потому что у массива ожидающих значений нет записи в языке. Это решение о системе типов, а не пропущенная запись, поэтому вопрос открыт. У инициализатора <code>const</code> на уровне модуля нет охватывающей вызываемой конструкции, поэтому <code>await</code> на верхнем уровне разрешён, и сгенерированный ESM его выполняет; нужна ли Glyph неявная асинхронная инициализация модулей, пока открытый вопрос спецификации. <code>E0223</code> может оценить завершающий <code>match</code>, только когда функция объявляет тип возврата, так что ветка внутри лямбды без аннотации всё ещё доходит до <code>tsc</code>. Со стороны перекрываемых имён две вещи сделаны наполовину. <code>E0110</code> велит переименовать, а не позволяет сохранить имя, так что <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> и <code>Promise</code> по-прежнему недоступны для типа или варианта. А <code>E0111</code> не даёт <code>type Key = string | number</code> означать не то, но и не даёт способа сказать то, что нужно: у union из двух примитивных типов нет записи в Glyph, кроме <code>extern_ts</code>, содержимое которого собственная проверка считает непрозрачным. Неразмеченные union затрагивают исчерпываемость, дескрипторы для проверки во время выполнения и <code>is</code>, так что это решение о системе типов, и оно не запланировано. <code>E0104</code> доходит до <code>glyph build</code> и <code>glyph check</code>, но не до редактора: LSP анализирует текст документа без корня сборки, а папка рабочего пространства корнем тоже не является, так что догадки дали бы те самые ложные срабатывания, которых проверка должна была избегать. И параметр с зарезервированным именем по-прежнему прячется за посторонней ошибкой в том же файле, потому что сбой на проходе сбора пропускает проход разрешения имён, который бы его нашёл. Отдельно: закрепление типа в месте чтения, которое сохраняет возможность сопоставления для привязки <code>bool</code> или union строковых литералов, следует за псевдонимом типа только внутри генерируемого модуля, так что <code>pub type Ready = bool</code> в одном модуле и <code>let r: catalog.Ready = false</code> в другом всё ещё доходят до <code>tsc</code> как <code>TS2678</code>. Union строковых литералов покрыты между модулями во всех трёх вариантах записи импорта, и начиная с 0.1.123 диагностика при любой записи называет объявление (ожидался <code>Mode</code>), а не печатает множество литералов в одной из них."
+    }
+  ]
+}

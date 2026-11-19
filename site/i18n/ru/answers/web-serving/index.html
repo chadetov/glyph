@@ -1,0 +1,85 @@
+---
+title: Можно ли отдавать веб-страницу, или только JSON API? · Glyph
+description: std/http отдаёт HTML-страницы, редиректы, собственные заголовки ответа и отправку форм, а не только JSON, и заголовки ответа моделирует проверка типов.
+source_hash: 3919e268d4a46ec8
+prev: /answers/finance/ | &larr; Назад | Можно ли доверить ему деньги и ввод, который я не контролирую?
+next: /answers/interactive-cli/ | Далее &rarr; | Можно ли написать программу, в которую пользователь вводит текст?
+---
+      <p class="q-eyebrow">17 &middot; Веб-сервер</p>
+      <h1 class="q-title">Можно ли отдавать веб-страницу, или только JSON API?</h1>
+
+      <p class="short-answer">
+        Веб-страницу. <code>std/http</code> выставляет заголовки ответа, поэтому страница <code>text/html</code>, редирект 302, заголовок кэширования и отправка HTML-формы пишутся на обычном Glyph. Без Express и без рукописной прослойки на TypeScript.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Почему это важно</h2>
+        <p>
+          До 0.1.46 ответ был <code>{ status, body }</code>, и сервер выбирал content type по форме тела: строка становилась <code>text/plain</code>, всё остальное JSON. Для API этого достаточно, а для всего, что отображает браузер, бесполезно. Выход был один: написать свой сервер на <code>node:http</code> в рукописном файле <code>.ts</code>, и тогда весь путь запроса оказывался вне проверки типов. Из-за двух недостающих конструкторов приходилось отдавать целую границу приложения.
+        </p>
+
+        <h2 class="block-label">Посмотрите сами</h2>
+        <p>
+          Это маршрутизатор <code>examples/apps/shortlink/main.glyph</code>, сокращателя ссылок, который лежит в репозитории. HTML-форма создаёт код, POST отвечает редиректом, чтобы перезагрузка страницы в браузере не отправляла форму повторно, а переход по коду это 302 на целевой адрес:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">shortlink.glyph: HTML-страница, отправка формы и 302</span>
+<pre>fn handle_home(req: Request) -&gt; Response {
+  return match req.method {
+    "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
+    "POST" =&gt; {
+      let fields = form(req)
+      match create_link(form_field(fields, "url"), form_field(fields, "alias")) {
+        Ok(link) =&gt; redirect(303, "/${link.code}+"),
+        Err(message) =&gt; redirect(303, "/?error=${url_encode(message)}"),
+      }
+    },
+    else =&gt; html(405, page("405", "&lt;h1&gt;405&lt;/h1&gt;")),
+  }
+}
+
+fn route(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match segments(req) {
+    [] =&gt; Ok(handle_home(req)),
+    [one] =&gt; match stats_code(percent_decode(one)) {
+      Some(code) =&gt; Ok(handle_stats(code)),
+      None =&gt; Ok(handle_code(percent_decode(one))),
+    },
+    else =&gt; Ok(html(404, not_found_page(path(req)))),
+  }
+}
+
+async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let outcome = await serve(8138, route)
+  return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Выпуском раньше то же приложение занимало в репозитории 615 строк, из них 121 приходилась на рукописный сервер на <code>node:http</code> в соседнем файле <code>.ts</code>, потому что <code>Location</code> и тело <code>text/html</code> нечем было записать. Теперь в нём 494 строки, и оно ничего не импортирует за пределами <code>std</code>. Обработчик возвращает <code>Result&lt;Response, string&gt;</code>, поэтому 404 это обычный <code>Ok</code>, а <code>Err</code> остаётся для того, на что приложение ответить не может, и сервер превращает его в 500. <code>serve</code> остаётся в ожидании, пока слушает порт, поэтому ничего не нужно делать вручную, чтобы процесс не завершился, а неудачная привязка к порту возвращается как значение.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Response</code> несёт обязательное поле <code>headers: Record&lt;string, string&gt;</code>. Именно обязательное, а не необязательное: его заполняет каждый конструктор, поэтому чтение <code>resp.headers</code> никогда не требует проверки на отсутствие, и про этот канал нельзя забыть. <code>with_header(resp, "cache-control", "no-store")</code> возвращает новый ответ, а не изменяет существующий, потому что в Glyph нельзя изменять поля записи. Проверка типов знает, что все три конструктора возвращают <code>Response</code>, поэтому обработчик с объявленным типом возврата <code>Result&lt;Response, string&gt;</code> проверяется в Glyph, а не <code>tsc</code> на сгенерированном выводе.
+        </p>
+        <p>
+          Две детали, которые вручную легко сделать неправильно. Любой символ, который Node отказывается записать в заголовок, удаляется из значения на выходе, поэтому <code>location</code>, собранный из параметра запроса, не может внедрить второй заголовок или второй ответ, а эмодзи в сокращаемом URL не уронит сервер. Кроме того, <code>form(req)</code> декодирует <code>+</code> как пробел вместе с процентным кодированием, а именно эту пару обычно упускает самописный разбор форм; он читает сырое тело, поэтому <code>req.body</code> остаётся нетронутым для обработчиков, которые разбирают его сами.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> и <code>form</code>; заголовки ответа уходят в сеть, а content type выводится, только если вы его не задали; на входе доступны заголовки запроса, параметры запроса, сегменты пути и сырое тело; клиент сообщает полученные заголовки ответа.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">В работе</h3>
+          <p>Процентное кодирование это пробел, который виден во фрагменте выше: <code>form</code> декодирует тело формы, но <code>encode_component</code> для сборки URL нет, поэтому сокращатель пишет свою функцию. На стороне клиента тоже не хватает таймаута, политики редиректов, <code>head</code> и итогового URL, на который привёл редирект. Сервера статических файлов и шаблонизатора нет, и их не планируется.</p>
+        </div>
+      </div>

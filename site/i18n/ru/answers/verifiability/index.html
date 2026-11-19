@@ -1,0 +1,634 @@
+---
+title: Что мешает агенту незаметно сломать мой код? · Glyph
+description: Изменения, которые в TypeScript компилируются и потом ломаются (пропущенный случай, необработанная ошибка, переименованное поле), в Glyph становятся ошибками компиляции, которые агент обязан исправить.
+source_hash: debac5501878fd3d
+next: /answers/diff-stability/ | Далее &rarr; | Останутся ли правки агента чистыми, или он переформатирует весь файл?
+---
+      <p class="q-eyebrow">01 &middot; Главное обещание</p>
+      <h1 class="q-title">Что мешает агенту незаметно сломать мой код?</h1>
+
+      <p class="short-answer">
+        Целый класс изменений, которые в TypeScript <strong>тихо компилируются</strong> (пропущенный случай, необработанная ошибка, переименованное поле), становится <strong>ошибкой компиляции, которую агент должен исправить, прежде чем что-то выпустить</strong>.
+      </p>
+
+      <figure class="ak-hero" id="see-it">
+        <div class="ak-compare">
+          <div class="ak-pane bad">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.ts</span> одно новое состояние, больше никаких правок <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg> tsc --strict: проходит, печатает undefined</span></span>
+<pre>type Status =
+  | { tag: "Loading" }
+  | { tag: "Ready" }
+  | { tag: "Failed"; msg: string }
+<span class="add">  | { tag: "Cancelled" };</span>
+
+function label(s: Status) {
+  switch (s.tag) {
+    case "Loading": return "…";
+    case "Ready": return "done";
+    case "Failed": return s.msg;
+  }
+}</pre>
+            </div>
+          </div>
+          <div class="ak-pane good">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.glyph</span> один новый вариант, и компилятор находит каждую дыру <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 8.4l3 3 6-6.6"/></svg> отклонено: E0200</span></span>
+<pre><span class="dim">type Status = Loading | Ready | Failed(string)<span class="cm">   // + Cancelled</span></span>
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Loading =&gt; "…",
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+<span class="add">    // no arm for Cancelled ⇒ this match no longer compiles</span>
+  }
+}</pre>
+            </div>
+            <div class="code term">
+              <span class="cap">glyph check --no-tsc, 0.1.149 (фрагмент)</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Cancelled`</span>
+    ╭─[ status:6:10 ]
+  6 │ ╭─▶   return match s {
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Status`: missing variants `Cancelled`
+    │     Help: Add an arm for each missing variant.</pre>
+            </div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Добавьте состояние в union, и каждое место, которое обрабатывало старый набор, перестанет компилироваться с указанием точного места для правки. Эквивалентный <code>switch</code> на TypeScript компилируется без ошибок и во время выполнения возвращает <code>undefined</code>.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему это важно</a></li>
+          <li><a href="#errors">Ошибки</a></li>
+          <li><a href="#typos">Опечатки в ветках</a></li>
+          <li><a href="#imports">Между модулями</a></li>
+          <li><a href="#refinements">Уточнения</a></li>
+          <li><a href="#examples">Тесты в сборке</a></li>
+          <li><a href="#four-more-found-by-building-with-it">Найдено на практике</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Агенты обычно ломают код не громко. Они ломают его <strong>уверенно</strong>: добавляют состояние, выкидывают ветку или переименовывают поле, всё по-прежнему проходит проверку типов, а баг всплывает в продакшене.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Дорого обходятся те ошибки, которые <em>скомпилировались и оказались неверными</em>. Glyph закрывает этот разрыв, превращая «вы, вероятно, это обработали» в «компилятор доказал, что вы это обработали».</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Закрытые union</b>Размеченные объединения <strong>закрыты</strong>, поэтому <code>match</code> обязан покрыть каждый вариант.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>Ошибки как значения</b>Ошибки это <strong>значения</strong>, которые нужно развернуть, а не исключения, которые бесследно пропадают.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Проверяемые границы</b>Кроме того, у каждого типа есть дескриптор времени выполнения, поэтому данные, пересекающие границу, проверяются на соответствие форме.</li>
+      </ul>
+
+      <h2 class="ak-h" id="errors">Отброшенная ошибка даёт предупреждение<a class="ak-anchor" href="#errors" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        С ошибками так же: функцию, которая возвращает <code>Result&lt;T, E&gt;</code>, предполагается обработать через <code>match</code> или пробросить через <code>?</code> (и компилятор проверяет, что типы ошибок совпадают). А если вы <em>отбросите</em> <code>Result</code> (вызовете функцию как инструкцию и проигнорируете результат), Glyph предупредит вас (<code>E0217</code>), потому что выброшенная ошибка это проглоченный сбой.
+      </p>
+      <div class="code term wraps">
+        <span class="cap">glyph check --no-tsc, 0.1.149 (фрагмент)</span>
+<pre><span class="p">13 │</span>   save("a")
+<span class="del">[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored</span>
+    │ Help: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional.</pre>
+      </div>
+      <p class="ak-lede">Заглушить предупреждение можно намеренно, через <code>let _ = ...</code>, но не случайно.</p>
+
+      <h2 class="ak-h" id="stdlib">Union из стандартной библиотеки тоже закрыты<a class="ak-anchor" href="#stdlib" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Для union, которым владеет стандартная библиотека, планка та же. <code>fs.ErrorKind</code> это закрытый набор из шести видов, и проверка типов знает его форму, поэтому <code>match e.kind</code> по ошибке файловой системы не требует ветки <code>else</code> и падает с <code>E0200</code>, если вы пропустите какой-то вид.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200 пропущен вид</span><span class="chip code">E0210 неизвестное поле</span><span class="chip code">E0218 нужен else</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">опечатки в полях, возвращаемые типы, match по числам и строкам</span></summary><div class="body">
+        <p>
+          <code>e.mesage</code> даёт <code>E0210</code>, а не то, что <code>tsc</code> поймает где-то дальше. Возвращаемые типы тоже распространяются: <code>string.split(text, ",")</code> имеет тип <code>Array&lt;string&gt;</code>, поэтому <code>for i, part in string.split(text, ",")</code> связывает <code>i</code> как число, а не как строковый ключ, который получился бы при нетипизированном итерируемом значении.
+        </p>
+        <p>
+          Исчерпываемость касается не только union. <code>match</code> по <code>number</code> или <code>string</code> только с литеральными ветками не может покрыть неограниченную область значений, поэтому Glyph требует <code>else</code> (<code>E0218</code>), а не позволяет непокрытому значению провалиться до исключения во время выполнения.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Правило везде одно: <code>match</code>, который не учитывает какой-то случай, не компилируется.</p></div>
+
+      <h2 class="ak-h" id="typos">Ветка с опечаткой это дыра, а не catch-all<a class="ak-anchor" href="#typos" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Опечатка тоже не может тихо замаскировать пропуск. Имя ветки с заглавной буквы это <strong>ссылка на вариант</strong>, а не новая переменная.
+      </p>
+      <div class="code">
+        <span class="cap">status.glyph: ветка с опечаткой это дыра, а не catch-all</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+<span class="del">    Loadign =&gt; "…",        // typo for Loading, read as a variant, not a binding</span>
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+  }
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0220] `Loadign` is not a variant of `Status`; did you mean `Loading`?</span>
+   ╰─ a lowercase name would be a binding; a PascalCase name is read as a variant
+<span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Loading`</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">что раньше Glyph делал с опечаткой</span></summary><div class="body">
+        <p>
+          Имя ветки с заглавной буквы это <strong>ссылка на вариант</strong>, а не новая переменная, поэтому если вы напишете <code>Loading</code> как <code>Loadign</code>, старые версии Glyph читали опечатку как catch-all, который связывал любое значение, и match выглядел полным. Теперь имя ветки должно называть реальный вариант union, по которому идёт match. Если это не так, сборка останавливается с <code>E0220</code> и указывает на ближайшее реальное имя, а вариант, который вы на самом деле пропустили, по-прежнему появляется рядом как <code>E0200</code>.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="payload">Варианты внутри полезной нагрузки<a class="ak-anchor" href="#payload" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Это прочтение работает и на уровень ниже, где вариант является полезной нагрузкой другого варианта. Теперь ветка выбирается по собственному тегу полезной нагрузки, каким бы ни был внешний вариант.
+      </p>
+      <div class="code">
+        <span class="cap">repl.glyph: внутренняя ветка проверяет полезную нагрузку, а не связывает её</span>
+<pre>fn step(z: Zipper, line: string) -&gt; Zipper {
+  return match parse_command(line) {
+    Err(Blank) =&gt; z,                          // a comment or an empty line
+    Err(e) =&gt; { io.println(explain(e)) z },   // every other parse error
+    Ok(command) =&gt; execute(z, command),
+  }
+}</pre>
+      </div>
+      <div class="ak-chips"><span class="chip code">E0305 повторяющаяся метка case</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">мёртвая ветка до 0.1.93 и защита E0305</span></summary><div class="body">
+        <p>
+          <code>Err(Blank)</code> рядом с <code>Err(e)</code> читается как «пропусти пустую строку, напечатай все остальные ошибки разбора», но до 0.1.93 это компилировалось в две метки <code>case "Err":</code> по внешнему тегу, и первая связывала всю полезную нагрузку под именем <code>Blank</code>. Каждая ошибка попадала в первую ветку, вторая была мёртвым кодом, и ничто об этом не сообщало: Glyph не выдавал диагностик, а <code>tsc --strict</code> принимает повторяющуюся метку case. Теперь ветка выбирается по собственному тегу полезной нагрузки, каким бы ни был внешний вариант, и компилятор читает имя так же, как проверка типов: решает собственный список вариантов union полезной нагрузки, и только когда этот список недоступен, решает форма имени. Для union, объявленного в том же файле, регистр больше не важен. Для union, импортированного из другого модуля, список вариантов сейчас недоступен, поэтому вариант с заглавной буквы выбирается по тегу, а со строчной останавливает сборку.
+        </p>
+        <p>
+          Она останавливается потому, что switch теперь защищён. Две ветки, которые записали бы одну и ту же метку <code>case</code>, дают <code>E0305</code>, а не switch, вторая метка которого никогда не выполнится. Именно это делает этот класс ошибок громким, а не тихим: преобразование, которое дважды обращается к одному тегу, роняет сборку, а не выбирает не ту ветку во время выполнения.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="imports">Способ импорта никогда не отключает проверку<a class="ak-anchor" href="#imports" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        То, как union попал в область видимости, ничего здесь не меняет. В Glyph ветку варианта можно записать двумя способами, и оба проверяются одинаково: <code>import model { Cond, Yes, No }</code> с короткими ветками или <code>import model</code> (или <code>import model as m</code>) с <code>model.Yes(_)</code>.
+      </p>
+      <div class="code">
+        <span class="cap">interp.glyph: список импорта убран, match по-прежнему проверяется</span>
+<pre><span class="del">import model { Action, All, Any, AtLeast, Clear, Condition, Context, Counter,</span>
+<span class="del">               Equals, Flag, FlagSet, Increment, Not, Set, Slot, Text }</span>
+import model
+import std/result
+
+pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;bool, SlotError&gt; {
+  return match c {
+    model.Equals({ key, value }) =&gt; result.Ok(read_text(ctx, key, "equals")? == value),
+    model.AtLeast({ key, least }) =&gt; result.Ok(read_count(ctx, key, "at-least")? &gt;= least),
+    model.FlagSet({ key }) =&gt; result.Ok(read_flag(ctx, key, "flag-set")?),
+    model.All({ of }) =&gt; all_of(ctx, of),
+    model.Any({ of }) =&gt; any_of(ctx, of),
+    model.Not({ of }) =&gt; result.Ok(!(evaluate(ctx, of)?)),
+  }
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build после удаления последней ветки</span>
+<pre><span class="del">[E0200] non-exhaustive match on `Condition`: missing variants Not</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">union стандартной библиотеки, строковые перечисления и зачем был нужен список</span></summary><div class="body">
+        <p>
+          Это верно и для union стандартной библиотеки, поэтому <code>match o { option.Some(s) =&gt; … }</code> по <code>option.Option&lt;string&gt;</code> даёт <code>E0200</code> за пропущенный <code>None</code> точно так же, как короткая запись <code>Some</code>/<code>None</code>. До 0.1.56 полная запись полностью пропускала проверку, и сборка не выдавала диагностик для match, который падал во время выполнения.
+        </p>
+        <p>
+          Строковое перечисление тоже пересекает границу. <code>type ColType = "text" | "int" | "real" | "bool"</code>, объявленный в <code>catalog.glyph</code> и импортированный в другой модуль, сохраняет свои четыре значения, поэтому match, покрывающий все четыре, компилируется без <code>else</code>, а пропуск одного даёт <code>E0200</code> с названием пропущенного значения. До 0.1.57 это был <code>E0218</code> с подсказкой добавить ветку <code>else</code>. Подсказка была неверна для кода, к которому относилась, и следование ей превращало ошибку компиляции в провал во время выполнения. Работают все три способа импорта: <code>import catalog { ColType }</code>, <code>import catalog</code> с <code>catalog.ColType</code> и <code>import catalog as c</code> с <code>c.ColType</code>.
+        </p>
+        <p>
+          Именно отсюда появился тот список импорта. Его вручную писали в каждом модуле движка statechart, с комментарием сверху: мол, конструкторы union не приходят вместе с его типом. Комментарий был прав насчёт синтаксиса и неправ насчёт причины: список был нужен потому, что короткая запись отключала проверку, и никто этого не замечал, потому что отключение происходит молча. Выбор формы теперь настоящий выбор, а не ловушка. Именованная форма помещает каждый обрабатываемый вариант в список импорта, и именно его найдёт <code>grep</code> по <code>Equals</code>. Полная форма в каждой ветке показывает, из какого модуля пришёл вариант. Ни одна из них не лишает вас проверки.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="records">Импортированные записи сохраняют свои поля<a class="ak-anchor" href="#records" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Записи теперь тоже пересекают границу, а до 0.1.58 этого не было. Поэтому запись сохраняет свой набор полей, и неверное поле даёт <code>E0210</code> с названием записи, а не ошибку <code>tsc</code> про анонимную форму.
+      </p>
+      <div class="code term">
+        <span class="cap">glyph build на поле импортированной записи с опечаткой</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
+<span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
+      </div>
+      <div class="code">
+        <span class="cap">table.glyph: вынесенные переменные и объясняющий их комментарий больше не нужны</span>
+<pre><span class="del">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span>
+<span class="del">// lowering from the iterand's type as the checker knows it, and a field</span>
+<span class="del">// access is not enough: without the `let`, `i` and `j` come out as strings</span>
+<span class="del">// and the row/column numbers in a `BadCell` are wrong.</span>
+<span class="del">let raw_rows: Array&lt;Array&lt;string&gt;&gt; = sheet.rows</span>
+<span class="del">for i, raw_row in raw_rows {</span>
+<span class="add">for i, raw_row in sheet.rows {</span>
+  let typed: Array&lt;Value&gt; = []
+<span class="del">  let cols: Array&lt;ColumnSpec&gt; = spec.columns</span>
+<span class="del">  for j, col in cols {</span>
+<span class="add">  for j, col in spec.columns {</span>
+    …
+  }
+}
+
+<span class="cm">// sheet: Sheet, declared in catalog.glyph and imported here.</span>
+<span class="cm">// Emitted TypeScript: sheet.rows.entries(), not Object.entries(sheet.rows).</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">баг со строкой 11, что пропускает tsc, как переносится идентичность</span></summary><div class="body">
+        <p>
+          Тип, объявленный в одном файле и используемый в другом, приходил без какой-либо информации о себе, и это стоило двух отдельных проверок. Опечатка в его поле вообще не вызывала ошибку Glyph, поэтому <code>sheet.rowz</code> проваливался до <code>tsc</code> и возвращался сообщением TypeScript о форме, которую вы никогда не писали. А <code>for i, r in sheet.rows</code> не мог понять, что <code>rows</code> это массив, поэтому генерировал <code>Object.entries(sheet.rows)</code> вместо <code>sheet.rows.entries()</code>. Это связывает <code>i</code> со строкой <code>"0"</code>. Тогда <code>i + 1</code> склеивает строки вместо сложения, и строка, о которой нужно сообщить как о <code>line 2</code>, сообщается как <code>line 11</code>.
+        </p>
+        <p>
+          Важно понимать, какую половину ловит <code>tsc</code>. Арифметику с таким индексом он ловит, хотя сообщает об ошибке в сгенерированном TypeScript, про переменную, которую Glyph объявил за вас. Чего он поймать не может, так это все места, где принимается строка там, где имелось в виду число: интерполяция строк, конкатенация, ключ <code>record.get</code>. Они компилируются без ошибок под обеими проверками и печатают неверное число. Это ровно тот тип багов, ради устранения которых существует этот проект, поэтому граница модулей, которая возвращает его обратно, не та граница, которую Glyph может оставить как есть.
+        </p>
+        <p>
+          Импортированный тип теперь переносит через границу свою идентичность, привязанную к модулю, который его объявляет, и к объявленному имени, поэтому все три способа импорта дают один и тот же тип. Само объявление загружается по требованию и обрабатывается на стороне объявляющего модуля, а это та половина, которую потребитель сделать не может: разрешение имён работает по позициям в исходнике, а позиции импортированного объявления принадлежат другому файлу.
+        </p>
+        <p>
+          Это всплыло в движке запросов в <code>examples/apps/csvql</code>. В нём было три вынесенных <code>let</code>, единственная задача которых состояла в том, чтобы повторить для эмиттера тип импортированного поля, а над ними четырёхстрочный комментарий о том, что без них номера строк и столбцов в сообщении об ошибке получаются неправильными. Все три удалены, и приложение выдаёт побайтно тот же вывод для всех двенадцати запросов.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Одна вещь всё ещё останавливается на границе. Передача <code>catalog.Sheet</code> туда, где ожидается <code>table.Row</code>, даёт E0211 с названием обоих типов, но список членов <code>interface</code> границу не пересекает, поэтому запись, переданная туда, где ожидается импортированный interface, ни с чем не сравнивается. Если обращаться с ним так же, как с набором полей записи, это тихо изменит смысл структурного соответствия, а это решение о языке, а не исправление.</p></div>
+
+      <h2 class="ak-h" id="redact">Маскирование персональных данных задаётся в типе<a class="ak-anchor" href="#redact" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Тот же принцип «на уровне типа, а не по соглашению» распространяется на персональные данные. Поставьте <code>@redact fields: [ssn, dob]</code> на тип, и компилятор сгенерирует в его дескрипторе <code>redact()</code>, который маскирует эти поля, так что <code>json.stringify(User.redact(u))</code> не может их раскрыть.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0219 неизвестное поле в @redact</span></div>
+      <p class="ak-lede">Укажите поле, которого у типа нет, и получите ошибку компиляции (<code>E0219</code>), а не маскирование, которое молча ничего не делает.</p>
+
+      <h2 class="ak-h" id="refinements">Уточнения проверяются на всю глубину<a class="ak-anchor" href="#refinements" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Дескриптор чего-то стоит, только если это та проверка, которую объявляет тип, на всю глубину. Уточнение <code>where</code> выполняет свой предикат везде, где появляется тип, а не только при прямом <code>Instant.parse</code>: как поле записи, как элемент <code>Array</code>, как полезная нагрузка <code>Option</code>, внутри варианта union и через <code>json.parse&lt;T&gt;</code>.
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="Где выполняется предикат">
+          <li><span>Calendar</span></li>
+          <li><span>Array&lt;WireParticipant&gt;</span></li>
+          <li><span>busy</span></li>
+          <li><span>start</span></li>
+          <li><span>is_instant(value)</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Исправление находится на четыре уровня ниже границы: от <code>Calendar</code> к <code>Array&lt;WireParticipant&gt;</code>, к <code>busy</code>, к <code>start</code> и к предикату.</span></figcaption>
+      </figure>
+      <div class="code">
+        <span class="cap">schedule.glyph: предикат следует за типом внутрь поля</span>
+<pre>fn is_instant(value: string) -&gt; bool {
+  return match time.parse_iso(value) {
+    Some(_) =&gt; true,
+    None =&gt; false,
+  }
+}
+
+type Instant = string where is_instant(value)
+
+type WireBlock = { start: Instant, end: Instant }
+type WireParticipant = { name: string, busy: Array&lt;WireBlock&gt; }
+type Calendar = { participants: Array&lt;WireParticipant&gt; }
+
+<span class="cm">// json.parse&lt;Calendar&gt;(text) on a file holding "start": "no"</span>
+<span class="cm">//   =&gt; Err. It returned Ok before 0.1.41.</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">уверенное неверное расписание до 0.1.41</span></summary><div class="body">
+        <p>
+          То же относится к записи, импортированной из другого модуля. До 0.1.41 в обоих случаях проверялось только наличие ключа, а это ничего не проверяет.
+        </p>
+        <p>
+          Это всплыло в приложении-планировщике ниже. Оно читает календари из JSON-файла, и каждая метка времени в нём должна быть настоящим моментом ISO-8601. Раньше уточнение останавливалось на верхнем уровне, поэтому отредактированный вручную файл с <code>"start": "no"</code> разбирался без ошибок, момент читался как 0, а приложение уверенно печатало расписание и завершалось с кодом 0.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="examples">Тесты запускаются как часть сборки<a class="ak-anchor" href="#examples" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Тесты лежат рядом с кодом и запускаются при его компиляции. <code>@example</code> над функцией или блок <code>```glyph @run```</code> внутри <code>@doc</code> выполняет <code>glyph build</code>, и никакой флаг помнить не нужно.
+      </p>
+      <div class="code term">
+        <span class="cap">bracket.glyph: сломайте посев, и сборка остановится</span>
+<pre>@example seed_order(2) == [1, 2]
+@example seed_order(4) == [1, 4, 2, 3]
+@example seed_order(8) == [1, 8, 4, 5, 2, 7, 3, 6]
+fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
+
+<span class="cm">// glyph build src --out dist</span>
+<span class="del">example failed: bracket example #16:</span>
+<span class="del">  (seed_order(8)) != ([1, 2, 3, 4, 5, 6, 7, 8])</span>
+<span class="del">1 of 23 example(s) failed.            # exit 1, no "tsc passed" line</span>
+
+<span class="cm">// glyph build src --out dist --json</span>
+<span class="del">{ "ok": false, "errors": 1, "tsc": "passed",</span>
+<span class="del">  "examples": { "total": 23, "ran": true, "skipped": false,</span>
+<span class="del">    "failures": ["bracket example #16: …"] } }</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему их нельзя тихо пропустить, и канал JSON</span></summary><div class="body">
+        <p>
+          Ложное утверждение роняет сборку так же, как ошибка типов, и в этом весь смысл: агент, переписывающий тело функции, не может пройти сборку, оставив утверждение позади. <code>--no-test</code> отключает их и печатает, сколько тестов пропущено, так что обход виден в логе.
+        </p>
+        <p>
+          JSON-вывод, который читают агенты, сообщает тот же вердикт. <code>glyph build --json</code> содержит объект <code>examples</code> рядом с диагностиками, а упавший пример делает <code>ok</code> ложным и код выхода ненулевым. До 0.1.43 примеры выполнялись только с <code>--test</code>, а путь JSON возвращал результат ещё до их запуска, так что единственный канал, который может прочитать агент, печатал <code>"ok": true</code> для проекта, собственное утверждение которого было ложным. Если <code>tsx</code> нет в <code>PATH</code>, сборка падает, а не сообщает об успехе, который она не проверяла.
+        </p>
+        <p>
+          В приложении турнирной сетки ниже таких 23. <code>seed_order</code> строит стандартный порядок сетки удвоением, а такую функцию легко незаметно сделать неправильно и легко точно описать. Поменяйте правило удвоения, и сборка остановится, без тестового файла, раннера и флага.
+        </p>
+      </div></details>
+
+      <p class="ak-kicker">Найдено на практике</p>
+      <h2 class="ak-h" id="four-more-found-by-building-with-it">Ещё четыре случая, найденные при работе с языком<a class="ak-anchor" href="#four-more-found-by-building-with-it" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Каждый из них компилировался без ошибок и проходил <code>tsc --strict</code>, и каждый был найден при написании приложения, а не при чтении компилятора. Это один и тот же сбой в трёх местах: типы говорили одно, а программа делала другое.
+      </p>
+
+      <h3 class="ak-h3" id="map-keys">Чтение ключа, которого может не быть<a class="ak-anchor" href="#map-keys" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">чтение ключа, которого может не быть: теперь E0224</span>
+<pre>fn name_of(row: Record&lt;string, string&gt;) -&gt; string {
+  return row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
+}</pre>
+      </div>
+      <p class="ak-lede">Теперь это ошибка компиляции, указывающая на <code>record.get</code>, который возвращает <code>Option&lt;V&gt;</code>, чтобы у случая отсутствия было куда деться.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">чем чтение из map отличается от индексации массива</span></summary><div class="body">
+        <p>
+          Ключи map произвольные, поэтому компилятор не может знать, что ключ есть. Типизация чтения как <code>string</code> утверждала то, что не было проверено, и значение печаталось как текст "undefined". Запись по ключу не затронута, как и индексация массивов: границу программа может проверить, а ключ map нет.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="equality"><code>==</code> везде означает равенство значений<a class="ak-anchor" href="#equality" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">тест, который проходил, когда код не работал</span>
+<pre><span class="cm">@example wrap("a") == wrap("a")   // passed: deep equality</span>
+fn same() -&gt; bool {
+  return wrap("a") == wrap("a")   <span class="cm">// false. no diagnostic</span>
+}</pre>
+      </div>
+      <p class="ak-lede"><code>==</code> теперь везде означает равенство значений; примитивы по-прежнему компилируются в <code>===</code>, так что обычные сравнения не изменились.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">как тест мог пройти на сломанном коде</span></summary><div class="body">
+        <p>
+          <code>==</code> был задокументирован как равенство значений, а компилировался в <code>===</code>, то есть в равенство <em>ссылок</em>, как только с любой стороны оказывалась запись, размеченное объединение или массив. Одно и то же выражение сравнивало структурно в тесте и по идентичности в программе рядом, поэтому тест мог сообщить об успехе для неработающего кода.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="loop-binding">Переменная цикла сохраняет тип элемента<a class="ak-anchor" href="#loop-binding" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">исчерпываемость, которая исчезала внутри цикла</span>
+<pre>for t in tiers {
+  match t {
+    "free" =&gt; ...          <span class="cm">// "pro" unhandled: once merely a warning to add `else`</span>
+  }
+}</pre>
+      </div>
+      <p class="ak-lede">Теперь компилятор называет необработанный вариант, то есть советует выполнить проверку, а не отключить её.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">совет про catch-all, который он раньше давал</span></summary><div class="body">
+        <p>
+          Переменная цикла не несла тип элемента, поэтому <code>match</code> по union строковых литералов деградировал до match по <code>string</code>, и компилятор советовал добавить catch-all.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="imported-generic">Импортированные обобщённые union проверяются<a class="ak-anchor" href="#imported-generic" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">вариант, пропущенный в match по импортированному обобщённому union</span>
+<pre>import tree { Tree, Node }
+
+fn label(t: Tree&lt;string&gt;) -&gt; string {
+  return match t {
+    Node({ key: k }) =&gt; k    <span class="cm">// Leaf unhandled: built clean, threw at run time</span>
+  }
+}</pre>
+      </div>
+      <p class="ak-lede">Теперь в любом случае это <code>E0200</code>, при обоих способах импорта и одинаково для открытого параметра и для конкретной подстановки.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">почему проверка так и не начиналась</span></summary><div class="body">
+        <p>
+          Union, объявленный в вашем собственном модуле, проверяется независимо от того, принимает ли он параметры типа. Union, импортированный из соседнего модуля, проверялся только если параметров у него не было. <code>Tree&lt;string&gt;</code> попадает в путь межмодульной проверки покрытия как применение импортированного union, а не как сам union, а условие, запускающее проверку, искало второе, поэтому <code>match</code> вообще не учитывался: <code>tsc --strict</code> проходил, а <code>Leaf</code> выбрасывал исключение. Удалите <code>&lt;K&gt;</code> из обоих файлов, и та же программа давала <code>E0200</code>.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="unchecked-parse"><code>parse</code> не может заявлять о проверке, которую не делал<a class="ak-anchor" href="#unchecked-parse" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap"><code>parse</code>, который сообщал об успехе без проверки: теперь E0304</span>
+<pre>type Conn = { id: number, sock: Socket }
+
+Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the message said it was</span></pre>
+      </div>
+      <p class="ak-lede">Хранить сокет в записи нормально, и это по-прежнему компилируется. А вот его валидация теперь отклоняется там, где она написана, и в каждом модуле, импортирующем запись, с названием поля и его типа, и отказ следует за формой: через вложенную запись, <code>Array</code>, <code>Option</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему наличие не проверка и какое исправление предлагается</span></summary><div class="body">
+        <p>
+          У каждого типа записи есть дескриптор времени выполнения. Для поля, тип которого компилятор не видит изнутри (сокет или что угодно, полученное через <code>extern_ts</code>), сгенерированная проверка была «присутствует ли поле», а сообщение гласило <code>field `sock` must be Socket</code>. Булево значение, которое всегда истинно, бесполезно. Значение, которое всегда истинно под сообщением с названием типа, который никто не проверял, ещё хуже, потому что именно <code>parse</code> граница должна доверять.
+        </p>
+        <p>
+          Предлагаемое исправление это разделение, которое вы бы и так написали: тип для передачи данных, все поля которого можно проверить, и доменная запись, которая строится из него. <code>unknown</code> эта проверка не ловит, потому что он ничего не утверждает, и наличие действительно составляет всю проверку.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-signature-change-invisible-at-the-call-site-closed-in-0-1">Изменение сигнатуры, невидимое в месте вызова: закрыто в 0.1.116<a class="ak-anchor" href="#a-signature-change-invisible-at-the-call-site-closed-in-0-1" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Поменяйте функцию, чтобы она принимала полезную нагрузку вместо сырой строки, и каждый вызов, который всё ещё передаёт старую форму, собирался без ошибок.
+      </p>
+      <div class="code">
+        <span class="cap">billing.glyph: union незаметно проходит через параметр `string`</span>
+<pre>type PaymentResult = Settled(string) | Declined(string)
+
+fn takes_string(s: string) -&gt; number { return s.length }
+
+fn charge(r: PaymentResult) -&gt; number {
+  return takes_string(r)   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build, теперь</span>
+<pre><span class="del">[E0211] argument type mismatch: expected `string`, found `PaymentResult`</span>
+   ╰─ Pass a value of the expected type, or change the parameter's type.</pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">где проверка срабатывает и где молчит</span></summary><div class="body">
+        <p>
+          Параметр с типом <code>string</code>, <code>number</code> или <code>bool</code> раньше без единой жалобы принимал значение объявленного union или записи, хотя тот же вызов с неподходящим аргументом <code>bool</code> уже давал <code>E0211</code>.
+        </p>
+        <p>
+          Проверка читает объявление, поэтому срабатывает только там, где ответ точно известен. Примитивный алиас, union строковых литералов (D30), тело <code>extern_ts</code> или <code>typeof</code> и <code>interface</code> по-прежнему ничего не дают, потому что ни про один из них нельзя доказать, что это не <code>string</code>, как про размеченное объединение или запись; <code>void</code> тоже исключён. Проверка одинаково работает для аргумента, для <code>return</code> и для аннотации <code>let</code>, поскольку все три используют одно отношение.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="const"><code>const</code> с аннотацией типизирован<a class="ak-anchor" href="#const" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        У <code>const</code> была такая же дыра с принимающей стороны.
+      </p>
+      <div class="code">
+        <span class="cap">catalog.glyph: const с аннотацией и поле, которого у него нет</span>
+<pre>type Sheet = { rows: number, cols: number }
+const ORIGIN: Sheet = { rows: 0, cols: 0 }
+
+fn f() -&gt; number {
+  return ORIGIN.rowz   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build, теперь</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">const без аннотации и почему оба исправления ломающие</span></summary><div class="body">
+        <p>
+          <code>const</code> уровня модуля с аннотацией типа превращался в <code>Ty::Unknown</code>, что бы ни говорила аннотация, поэтому опечатка в его поле была не видна ровно там, где такой же аннотированный <code>let</code> внутри функции уже давал ошибку.
+        </p>
+        <p>
+          <code>const</code> без аннотации ничего не утверждает и намеренно остаётся <code>Unknown</code>: вывод его типа из инициализатора это другой вопрос с другим набором ложных срабатываний. Оба исправления ломающие для <code>glyph check --no-tsc</code>, языкового сервера и песочницы, поскольку каждое начинает ловить программу, которую принимал предыдущий выпуск; полный <code>glyph build</code> в обоих случаях и так был красным из-за <code>tsc</code>.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="extra-field">Лишнее поле по-прежнему ловит <code>tsc</code><a class="ak-anchor" href="#extra-field" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Одна проверка литерала записи всё ещё за <code>tsc</code>, а не за Glyph. <code>glyph build</code> на ней останавливается; <code>glyph check --no-tsc</code>, языковой сервер и песочница молчат (G273).
+      </p>
+      <div class="code">
+        <span class="cap">point.glyph: лишнее поле, оставленное tsc</span>
+<pre data-check="expect-error TS2353">module point
+
+pub type Point = {
+  x: number,
+  y: number,
+}
+
+pub fn origin() -&gt; Point {
+  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+}</pre>
+      </div>
+      <div class="ak-chips"><span class="chip ts">TS2353 от tsc</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">как об этом сообщает tsc</span></summary><div class="body">
+        <p>
+          Литерал с полем, которого нет у объявленной записи, проходит проверку Glyph, а <code>tsc</code> отклоняет его в сгенерированном TypeScript как <code>TS2353</code>, с привязкой обратно к литералу.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает <span class="count">18</span></h3>
+
+          <p class="ak-st-group">Сопоставление</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Исчерпывающий <code>match</code> по закрытым union: вашим или из соседнего модуля, обобщённым или нет, и по union стандартной библиотеки, например <code>fs.ErrorKind</code></span><span class="chip code">E0200</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Исчерпывающий <code>match</code> по <code>number</code>/<code>string</code></span><span class="chip code">E0218</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ветка варианта с опечаткой ловится как ошибка компиляции с подсказкой ближайшего варианта, а не становится тихим catch-all</span><span class="chip code">E0220</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Вариант в позиции полезной нагрузки выбирается по собственному тегу полезной нагрузки, а не связывает её</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Две ветки, которые отвечали бы на один и тот же тег, отклоняются как <code>E0305</code>, а не так, что одна из них молча побеждает</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Переменная <code>for</code>, которая сохраняет тип элемента</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Ошибки и тесты</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>Result</code> и оператор <code>?</code> с проверкой типа ошибки</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Предупреждение, когда <code>Result</code> отброшен</span><span class="chip code">E0217</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Тесты <code>@example</code> / <code>@doc @run</code>, которые выполняются при каждой сборке, включая <code>--json</code></span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Типы, записи и литералы</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Объявленный union или запись, переданные туда, где ожидается <code>string</code>/<code>number</code>/<code>bool</code></span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Опечатка в поле аннотированного <code>const</code> уровня модуля</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> как равенство значений для любого типа</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Чтение ключа из map отклоняется</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Объектные литералы и атрибуты JSX проверяются по объявленному типу</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">с 0.1.124</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>С 0.1.124 у объектного литерала есть тип записи, который задают его поля, поэтому <code>let g: string = { x: 1 }</code>, литерал без поля, обязательного для объявленной записи, и литерал, переданный туда, куда он не подходит, дают E0204 или E0211 с названием объявленного типа, в <code>let</code>, <code>const</code>, <code>return</code> и аргументе вызова; а атрибут JSX проверяется по записи props компонента, поэтому <code>&lt;Button variant="nope" /&gt;</code> даёт E0211 со списком допустимых значений, а атрибут, которого запись не объявляет, даёт E0210, и <code>glyph fix</code> его переименовывает.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Пропущенное обязательное поле или prop называется по имени</span><span class="chip code">E0211</span><span class="chip code">E0229</span><span class="chip since">с 0.1.125</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>С 0.1.125 литерал записи или элемент компонента, в котором пропущено обязательное поле, называет его в сообщении и в <code>missing_fields</code> при <code>--json</code>, а элемент без обязательного prop даёт E0211, даже если у него нет ни одного атрибута; компонент, единственный параметр которого не запись, даёт E0229.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Каждое поле записи сравнивается по тому же правилу, что и сама запись</span><span class="chip since">с 0.1.127</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>С 0.1.127 каждое поле записи сравнивается по тому же правилу, что и сама запись, поэтому вложенная запись, объявленный тип или union строковых литералов внутри неё отклоняются там же, где их отклоняет <code>tsc</code>, как и необязательное поле там, где объявлено обязательное, функция, возвращаемое значение которой не подходит, и члены локального interface. Запись, все поля которой необязательны, отклоняет значение, не имеющее ни одного из них, как это делает TS2559. Параметры функций пока не сравниваются.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Границы данных</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Дескрипторы типов времени выполнения</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Маскирование персональных данных через <code>@redact</code> в дескрипторе типа</span><span class="chip code">E0219</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Становится точнее <span class="count">13</span></h3>
+
+          <p class="ak-st-group">Сопоставление</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Проверка покрытия импортированного union пока не заглядывает внутрь полезной нагрузки варианта</span><span class="chip">следующее на углубление</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Раньше параметр типа отключал проверку: до 0.1.90 включительно <code>match</code> по <code>Tree&lt;K&gt;</code> мог пропустить вариант, собраться без ошибок, пройти <code>tsc --strict</code> и упасть во время выполнения, тогда как тот же match по <code>Tree</code> давал <code>E0200</code>. Это закрыто для union, объявленного в вашем модуле, а с 0.1.95 и для импортированного. На пути импорта мельче осталась глубина, а не условие запуска: проверка для импортированного union никогда не заглядывает внутрь полезной нагрузки варианта, поэтому <code>B(X)</code> по импортированному union, полезная нагрузка которого сама является union, сопоставляется с любым <code>B</code>, а не сообщает о пропущенном <code>Y</code>, и параметры типа здесь ни при чём. Это следующее, что нужно углубить.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Вариант полезной нагрузки импортированного union со строчной буквы останавливает сборку</span><span class="chip code">E0305</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Вариант в позиции полезной нагрузки теперь определяется по списку вариантов union полезной нагрузки, поэтому для union, объявленного в вашем модуле, регистр имени больше не важен. Для union, импортированного из другого модуля, списка для чтения нет, и решает по-прежнему форма имени, а значит, <code>Err(Blank)</code> выбирается по тегу, а <code>Err(blank)</code> останавливает сборку на <code>E0305</code>: громкий сбой на корректной программе, и для исправления нужен тот же реестр импортированных union, что и для поверхностной проверки покрытия выше.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Конструкторный паттерн по полезной нагрузке-записи (<code>Ok(Point)</code>) падает в <code>tsc</code>, а не в Glyph</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Конструкторный паттерн по полезной нагрузке, которая является записью, а не union (<code>Ok(Point)</code>), падает через <code>tsc</code> с упоминанием <code>.tag</code>, которого вы не писали, хотя должен давать диагностику Glyph с названием типа и паттерна.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Короткая ветка с опечаткой даёт две строки для одного имени</span><span class="chip code">E0220</span><span class="chip code">E0103</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Проверка опечаток (<code>E0220</code>) теперь одинаково работает для union, объявленного в модуле, и для union, доступного через импорт пространства имён (<code>model.Nooo(_)</code>), в конструкторной и в короткой форме: до 0.1.115 включительно короткое имя с опечаткой по импортированному union (<code>Loadign</code>, без аргументов) засчитывалось как покрытие варианта и ничего не сообщало, тогда как та же опечатка в локальном union уже давала <code>E0220</code>; теперь обе формы сообщают об ошибке. Короткая ветка с опечаткой также вызывает <code>E0103</code> на стадию раньше, поэтому для одного имени вы получаете обе строки.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Типы, записи и литералы</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Литерал со spread не имеет типа, и лишнее поле по-прежнему принимается</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Литерал со spread не имеет типа, и лишнее поле по-прежнему принимается, тогда как <code>tsc</code> отклоняет такое поле в свежем литерале как TS2353 (G273).</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Члены импортированного <code>interface</code> и тип импортированного <code>const</code> пока не пересекают границу</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Типы теперь пересекают границу модуля без потерь: union сохраняют исчерпываемость, как размеченные, так и из строковых литералов, а запись сохраняет набор полей, поэтому опечатка в поле импортированной записи даёт <code>E0210</code> с названием собственного типа этой записи, а <code>for i, x</code> по одному из её полей-массивов связывает число без аннотации. Пока не пересекает границу список членов <code>interface</code>, поэтому запись, переданная туда, где ожидается импортированный interface, ни с чем не сравнивается; импортированный <code>const</code> это та же ситуация на шаг в сторону: он по-прежнему <code>Ty::Unknown</code>, поэтому опечатка в поле через именованный импорт или импорт пространства имён остаётся незамеченной, независимо от того, была ли у него аннотация в исходном модуле.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Более глубокое сужение типов по потоку управления в планах</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Границы данных</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Map из другого модуля или стандартной библиотеки читаются без проверки</span><span class="chip code">E0224</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Map, пришедший из другого модуля или из стандартной библиотеки, по-прежнему читается без проверки, поэтому E0224 пока не покрывает <code>sqlite.Row</code>, а <code>for i, x in xs</code> с двумя переменными по-прежнему теряет их типы.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">У типа из обычного <code>.d.ts</code> нет дескриптора; материализуйте его через <code>glyph gen dts</code></span><span class="chip code">E0304</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Тип, импортированный из другого модуля Glyph, теперь проверяется через собственный дескриптор, как и уточнение <code>where</code> в позиции поля; у типа, импортированного из обычного <code>.d.ts</code>, дескриптора нет, и <code>parse</code> для записи, которая его содержит, теперь отклоняется (<code>E0304</code>), а не сообщает об успехе, который не проверял; материализуйте его через <code>glyph gen dts</code>, чтобы получить тип с проверкой.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Инструменты и стандартная библиотека</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Девять функций <code>std/string</code> и <code>std/array</code> всё ещё возвращают нетипизированные значения</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Возвращаемые типы стандартной библиотеки, которые моделирует проверка, покрывают половину <code>std/string</code> и <code>std/array</code> с фиксированным числом аргументов; шесть функций с необязательным последним аргументом (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) и <code>array.map</code>/<code>flat_map</code>/<code>zip</code> пока не типизированы, поэтому значению, полученному прямо из них, нужна аннотация, прежде чем перебирать его с индексом.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Обращение к членам примитивов и массивов не даёт диагностики там, где не запускается <code>tsc</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Обращение к членам и вызовы на <code>string</code>, <code>number</code>, <code>bool</code> и <code>Array&lt;T&gt;</code> оставлены <code>tsc</code> намеренно, это не дыра; Glyph разрешает там обычные члены JS, поэтому <code>s.length</code> и <code>xs.length</code> компилируются и проходят <code>tsc --strict</code>, а не хватает диагностики для четырёх мест, где <code>tsc</code> никогда не запускается: <code>glyph check --no-tsc</code>, языкового сервера, MCP-сервера и песочницы.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Офлайн-сборке с примерами нужен <code>tsx</code> или <code>--no-test</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Запуск примеров вызывает <code>tsx</code>, поэтому проект с примерами без <code>tsx</code> в <code>PATH</code> роняет сборку, а не пропускает их молча; это сделано намеренно, но значит, что для офлайн-сборки нужен установленный <code>tsx</code> или <code>--no-test</code>.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>await</code> в обычной <code>fn</code> ловится относительно вашего исходного кода</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Асинхронный контекст был единственным правилом, которое Glyph оставлял <code>tsc</code>; <code>await</code> в обычной <code>fn</code> теперь даёт <code>E0222</code> относительно вашего исходного кода, и единственный оставшийся разрешённый случай это инициализатор <code>const</code> верхнего уровня. Это и ещё два правила, которые переехали на стадию раньше, описаны на странице <a href="/answers/early-errors/">о ранних ошибках</a>.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="detail">
+        <p>
+          Почему это первый из четырёх принципов Glyph и где заканчивается его гарантия, рассказано на <a href="/pillars/verifiability/">странице принципа проверяемости</a>.
+        </p>
+      </div>

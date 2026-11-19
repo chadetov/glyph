@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "mcp/index.html",
+  "locale": "ru",
+  "source_hash": "9b8dc9db4173cc83",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Wire your agent into Glyph over MCP · Glyph",
+      "tr": "Подключите агента к Glyph через MCP · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph mcp runs an MCP server with eleven tools: what a symbol is, what a change breaks, diagnostics, references and more. Each is also a glyph query verb.",
+      "tr": "glyph mcp запускает MCP-сервер с одиннадцатью инструментами: что такое символ, что сломает изменение, диагностики, ссылки и другое. Каждый также доступен как команда glyph query."
+    },
+    {
+      "id": "h-3e836396",
+      "kind": "html",
+      "en": "For agents &middot; Model Context Protocol",
+      "tr": "Для агентов &middot; Model Context Protocol"
+    },
+    {
+      "id": "h-09d8dc95",
+      "kind": "html",
+      "en": "Wire your agent into Glyph's compiler",
+      "tr": "Подключите агента к компилятору Glyph"
+    },
+    {
+      "id": "h-06f85893",
+      "kind": "html",
+      "en": "<code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> with eleven tools over your project: what a symbol is, what breaks if you change it, whether a value of one type can go where another is declared, what a declaration depends on, what a module exports, diagnostics checked inside the project, the type at a cursor, where a name is defined, every reference to it, every <code>match</code> site over a union, and symbol search. Each one is also a <code>glyph query</code> verb, so an agent with no MCP client asks the same questions and gets the same bytes.",
+      "tr": "<code>glyph mcp</code> запускает <strong>сервер Model Context Protocol</strong> с одиннадцатью инструментами для вашего проекта: что такое символ; что сломается, если его изменить; можно ли подставить значение одного типа туда, где объявлен другой; от чего зависит объявление; что экспортирует модуль; диагностики, проверенные внутри проекта; тип под курсором; где определено имя; все ссылки на него; все места <code>match</code> по union; поиск символов. Каждый из них также доступен как команда <code>glyph query</code>, так что агент без MCP-клиента задаёт те же вопросы и получает те же байты."
+    },
+    {
+      "id": "h-77095b90",
+      "kind": "html",
+      "en": "Why an agent wants this",
+      "tr": "Зачем это агенту"
+    },
+    {
+      "id": "h-5041d57e",
+      "kind": "html",
+      "en": "An agent editing a codebase usually works blind. It reads files, guesses at types, and finds out whether it broke something only after a build. Glyph already answers those questions for an editor. <code>glyph mcp</code> gives an agent the same answers straight from the compiler, without scraping build output or reading every file to find who calls what. Two of the tools answer questions an editor never asks: <code>glyph_symbol</code> returns a union's variants with the syntax that constructs each, which is what an agent needs before it writes the <code>match</code>, and <code>glyph_impact</code> answers what an edit breaks before the edit exists.",
+      "tr": "Агент, который правит кодовую базу, обычно работает вслепую. Он читает файлы, угадывает типы и узнаёт, сломал ли что-то, только после сборки. Для редактора Glyph уже отвечает на эти вопросы. <code>glyph mcp</code> даёт агенту те же ответы прямо от компилятора, без разбора вывода сборки и без чтения всех файлов, чтобы понять, кто что вызывает. Два инструмента отвечают на вопросы, которые редактор никогда не задаёт: <code>glyph_symbol</code> возвращает варианты union с синтаксисом, который создаёт каждый из них, а это именно то, что нужно агенту перед тем, как написать <code>match</code>; <code>glyph_impact</code> отвечает, что сломает правка, ещё до того, как она сделана."
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "Настройка"
+    },
+    {
+      "id": "h-7418b107",
+      "kind": "html",
+      "en": "Any MCP client can launch it. Point the client at the <code>glyph</code> binary with the <code>mcp</code> subcommand, and pass your project root as an argument or run it from the project directory. It speaks MCP over stdio, so there's no port and no daemon.",
+      "tr": "Запустить его может любой MCP-клиент. Укажите клиенту бинарный файл <code>glyph</code> с подкомандой <code>mcp</code> и передайте корень проекта аргументом или запускайте из каталога проекта. Сервер говорит на MCP через stdio, поэтому ни порта, ни демона нет."
+    },
+    {
+      "id": "h-1c9558ae",
+      "kind": "html",
+      "en": "mcp client config (generic)",
+      "tr": "конфигурация MCP-клиента (общая)"
+    },
+    {
+      "id": "h-14f598ae",
+      "kind": "html",
+      "en": "On first connect the client calls <code>initialize</code> and <code>tools/list</code>; the server reports the eleven tools below. Positions you send follow the LSP convention: a 0-based <code>line</code> and a 0-based <code>character</code> in UTF-16 code units. Diagnostic ranges come back the way <code>glyph check --json</code> prints them, with a 1-based <code>line</code> and <code>col</code> plus the byte <code>offset</code>.",
+      "tr": "При первом подключении клиент вызывает <code>initialize</code> и <code>tools/list</code>; сервер сообщает об одиннадцати инструментах ниже. Позиции, которые вы отправляете, следуют соглашению LSP: <code>line</code> с нуля и <code>character</code> с нуля в единицах кода UTF-16. Диапазоны диагностик возвращаются так же, как их печатает <code>glyph check --json</code>: <code>line</code> и <code>col</code> с единицы плюс байтовый <code>offset</code>."
+    },
+    {
+      "id": "h-d2740b17",
+      "kind": "html",
+      "en": "Each tool's description carries the contract you need at the moment of the call, and the full manual lives in <code>glyph llms --json</code> under <code>tools</code>, keyed by tool name, with each tool's <code>glyph query</code> verb beside it. That reply used to carry every manual: eleven tools, 31,446 bytes of description in a 45,509-byte reply. It is 8,627 in a 20,386-byte reply now, and nothing was deleted. Every session pays for <code>tools/list</code> on connect and pays for the manual only when it asks. <a href=\"/answers/generated-docs/\">That document</a> is generated from the compiler's own tables, and a test fails the build if it names a tool this server does not serve.",
+      "tr": "Описание каждого инструмента содержит контракт, который нужен в момент вызова, а полное руководство лежит в <code>glyph llms --json</code> под ключом <code>tools</code>, по имени инструмента, рядом с командой <code>glyph query</code> для каждого. Раньше этот ответ содержал все руководства: одиннадцать инструментов, 31 446 байт описаний в ответе размером 45 509 байт. Теперь это 8 627 байт в ответе на 20 386 байт, и ничего не удалено. Каждая сессия платит за <code>tools/list</code> при подключении, а за руководство только когда запрашивает его. <a href=\"/answers/generated-docs/\">Этот документ</a> генерируется из собственных таблиц компилятора, и тест валит сборку, если в нём назван инструмент, которого этот сервер не предоставляет."
+    },
+    {
+      "id": "h-1323cb30",
+      "kind": "html",
+      "en": "The eleven tools",
+      "tr": "Одиннадцать инструментов"
+    },
+    {
+      "id": "h-65beb4ac",
+      "kind": "html",
+      "en": "tools exposed by glyph mcp",
+      "tr": "инструменты, которые предоставляет glyph mcp"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Посмотрите сами"
+    },
+    {
+      "id": "h-a75b63e1",
+      "kind": "html",
+      "en": "A <code>tools/call</code> for <code>glyph_diagnostics</code> on a file with a field typo returns the compiler's own diagnostic, the same Rust type <code>glyph check --json</code> serializes, inside an envelope that also says what the check did not cover.",
+      "tr": "<code>tools/call</code> для <code>glyph_diagnostics</code> на файле с опечаткой в поле возвращает собственную диагностику компилятора, тот же тип Rust, который сериализует <code>glyph check --json</code>, внутри обёртки, которая также говорит, что проверка не покрыла."
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "запрос"
+    },
+    {
+      "id": "h-3841873d",
+      "kind": "html",
+      "en": "result (the tool's JSON content)",
+      "tr": "результат (JSON-содержимое инструмента)"
+    },
+    {
+      "id": "h-a4f1eb83",
+      "kind": "html",
+      "en": "The file is checked inside its project, so a wrong field on an imported record and a <code>match</code> missing arms over an imported union are reported here the way <code>glyph check</code> reports them. What the tool could not cover is on the answer rather than left for you to assume: <code>member</code> says whether the project walk reaches the file, <code>unindexed</code> names project files that don't parse, and <code>not_run</code> names the three checks <code>glyph check</code> makes and this one doesn't: <code>tsc</code>, <code>E0104</code> for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which is decided by running the emitted project. A test runs both surfaces on six projects and compares the JSON key for key, so the two can't drift.",
+      "tr": "Файл проверяется внутри своего проекта, поэтому неверное поле у импортированной записи и <code>match</code> без части веток по импортированному union сообщаются здесь так же, как их сообщает <code>glyph check</code>. То, что инструмент не смог покрыть, указано в ответе, а не оставлено на ваше предположение: <code>member</code> говорит, доходит ли обход проекта до файла, <code>unindexed</code> называет файлы проекта, которые не разбираются, а <code>not_run</code> называет три проверки, которые делает <code>glyph check</code>, а эта нет: <code>tsc</code>; <code>E0104</code> для импорта несуществующего модуля, которому нужен взгляд сборки на <code>node_modules</code>; и <code>E0400</code> для упавшего <code>@example</code>, что решается запуском сгенерированного проекта. Тест запускает обе поверхности на шести проектах и сравнивает JSON ключ за ключом, так что расхождений быть не может."
+    },
+    {
+      "id": "h-26714f00",
+      "kind": "html",
+      "en": "<code>glyph_references</code> is workspace-wide: ask about a symbol and you get its declaration, every use, and each importing module's <code>import</code> binding, across every file. It uses the same cross-file identity the editor's rename does, so the answer covers the whole project, not just the file you asked from.",
+      "tr": "<code>glyph_references</code> работает по всему рабочему пространству: спросите о символе, и вы получите его объявление, каждое использование и привязку <code>import</code> в каждом импортирующем модуле, во всех файлах. Он использует ту же межфайловую идентичность, что и переименование в редакторе, поэтому ответ покрывает весь проект, а не только файл, из которого вы спросили."
+    },
+    {
+      "id": "h-9d3b62a6",
+      "kind": "html",
+      "en": "No MCP client? Same questions on the command line",
+      "tr": "Нет MCP-клиента? Те же вопросы в командной строке"
+    },
+    {
+      "id": "h-132d1fdb",
+      "kind": "html",
+      "en": "Every tool has a <code>glyph query</code> verb taking the tool's own arguments as flags and printing the tool's JSON on stdout. An answered question exits 0; a refused one writes the reason to stderr and exits 2. The verbs route through the same entry point an MCP client reaches, and an integration test asks both surfaces the same question and compares the answers as text, so a verb that reformatted or summarized would fail it.",
+      "tr": "У каждого инструмента есть команда <code>glyph query</code>, которая принимает аргументы инструмента как флаги и печатает его JSON в stdout. Отвеченный вопрос завершается с кодом 0; отклонённый пишет причину в stderr и завершается с кодом 2. Команды идут через ту же точку входа, что и MCP-клиент, а интеграционный тест задаёт обеим поверхностям один и тот же вопрос и сравнивает ответы как текст, так что команда, которая переформатировала бы или сократила ответ, его не пройдёт."
+    },
+    {
+      "id": "h-33fc2c51",
+      "kind": "html",
+      "en": "the same eleven questions, without a client",
+      "tr": "те же одиннадцать вопросов без клиента"
+    },
+    {
+      "id": "h-4090bfff",
+      "kind": "html",
+      "en": "When the build is already red",
+      "tr": "Когда сборка уже красная"
+    },
+    {
+      "id": "h-fababe9f",
+      "kind": "html",
+      "en": "The tools answer questions asked before an edit. After one, the thing to read is <code>glyph check --agent</code>, which prints <code>check --json</code>'s diagnostics with two more keys on each: <code>constraints</code>, the invariants a repairing edit has to keep, and <code>symbols</code>, the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. On a <code>match</code> missing arms that means the union's variants with their payloads arrive with the error that asked for them, along with the sentence saying an <code>else</code> arm would forfeit the guarantee the diagnostic exists to protect. Where the repair is fully determined, <code>glyph fix</code> writes it and says what it declined. There is a <a href=\"/answers/repair-protocol/\">walkthrough of the whole loop</a> with real output.",
+      "tr": "Инструменты отвечают на вопросы, заданные до правки. После неё читать нужно <code>glyph check --agent</code>: он печатает диагностики <code>check --json</code> с двумя дополнительными ключами у каждой. <code>constraints</code> это инварианты, которые исправляющая правка должна сохранить, а <code>symbols</code> это ответ <code>glyph_symbol</code> для каждого символа, упомянутого в диагностике, так что следующей правке не нужен второй вызов. Для <code>match</code> без части веток это значит, что варианты union с их полезной нагрузкой приходят вместе с ошибкой, которая их запросила, вместе с фразой о том, что ветка <code>else</code> отказалась бы от гарантии, ради которой эта диагностика существует. Где исправление определено полностью, <code>glyph fix</code> записывает его и сообщает, от чего отказался. Есть <a href=\"/answers/repair-protocol/\">пошаговый разбор всего цикла</a> с настоящим выводом."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Текущее состояние"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Уже работает"
+    },
+    {
+      "id": "h-4fbc90ec",
+      "kind": "html",
+      "en": "A <code>glyph mcp [root]</code> server over stdio with eleven tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why. Hover answers at a name declared in another module, so an imported function at its call site and a field read off an imported record both have a type. An entity identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph_symbol</code> on it answers with <code>Ok(T)</code> and <code>Err(E)</code> and <code>glyph_exports</code> on <code>std/result</code> lists the surface. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.",
+      "tr": "Сервер <code>glyph mcp [root]</code> через stdio с одиннадцатью инструментами: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (по всему рабочему пространству), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> и <code>glyph_exports</code>. У каждого есть команда <code>glyph query</code>, печатающая тот же JSON. Ответы берутся из собственных запросов компилятора, и каждый факт, которого у инструмента нет, равен null, а рядом стоит фраза <code>&lt;key&gt;_absent</code> с объяснением. Hover отвечает на имени, объявленном в другом модуле, так что и у импортированной функции в месте вызова, и у поля, прочитанного из импортированной записи, есть тип. Идентичность сущностей доходит до стандартной библиотеки: <code>Result</code> из прелюдии это <code>std/result::Result</code>, то есть модуль, под которым его регистрирует резолвер и из которого эмиттер пишет импорт, поэтому <code>glyph_symbol</code> на нём отвечает <code>Ok(T)</code> и <code>Err(E)</code>, а <code>glyph_exports</code> на <code>std/result</code> перечисляет его поверхность. Исходного кода на Glyph за ним нет, поэтому <code>path</code> и <code>range</code> равны null с этой причиной, а не отсутствуют."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "В работе"
+    },
+    {
+      "id": "h-16a6d6db",
+      "kind": "html",
+      "en": "The tools only read: you can't rename or apply an edit through MCP. The write side lives on the command line instead, as <code>glyph fix</code>. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse. The <code>tools/list</code> reply is 20,386 bytes, down from 45,509, and that is still context every session pays for on connect.",
+      "tr": "Инструменты только читают: переименовать или применить правку через MCP нельзя. Сторона записи живёт в командной строке, это <code>glyph fix</code>. Сервер пересканирует проект при каждом вызове, а не держит кэшированный индекс, и пропускает файлы, которые не разбираются. Ответ <code>tools/list</code> занимает 20 386 байт, было 45 509, и это всё ещё контекст, за который каждая сессия платит при подключении."
+    },
+    {
+      "id": "h-51177984",
+      "kind": "html",
+      "en": "Beside the tools, an agent can read the language and the diagnostic surface offline: <a href=\"/llms.txt\">llms.txt</a> is the prose, <code>glyph llms --json</code> the same knowledge as data out of the compiler's own tables, and <code>glyph build --json</code> the batch path for coded diagnostics across a whole tree.",
+      "tr": "Помимо инструментов, агент может читать описание языка и диагностик без сети: <a href=\"/llms.txt\">llms.txt</a> это текст, <code>glyph llms --json</code> те же знания как данные из собственных таблиц компилятора, а <code>glyph build --json</code> пакетный путь для диагностик с кодами по всему дереву."
+    }
+  ]
+}

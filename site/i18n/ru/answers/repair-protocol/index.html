@@ -1,0 +1,168 @@
+---
+title: Говорит ли компилятор агенту, как это починить? · Glyph
+description: Каждая диагностика содержит типы, виновный символ и допустимые альтернативы, а glyph fix записывает те исправления, которые компилятор может определить сам.
+source_hash: 4b15cc7a1cc4e288
+prev: /answers/ask-the-compiler/ | &larr; Назад | Может ли агент спросить у компилятора, что такое символ, до того как писать код?
+next: /answers/generated-docs/ | Далее &rarr; | Документация, которую читает агент, генерируется или пишется вручную и устаревает?
+---
+      <p class="q-eyebrow">23 &middot; Починка красной сборки</p>
+      <h1 class="q-title">Когда сборка падает, говорит ли компилятор агенту, как её починить?</h1>
+
+      <p class="short-answer">
+        Он сообщает, что не так, в виде данных, а не фразы, которую надо разбирать: два типа, виновный символ в виде <code>module::name</code> и конечный список того, что может законно стоять на месте неправильного. <code>glyph check --agent</code> добавляет то, что исправляющая правка не должна сломать. Там, где ответ определён полностью, его записывает <code>glyph fix</code>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Почему это важно</h2>
+        <p>
+          Цикл агента вокруг компилятора выглядит так: прочитать ошибку, угадать правку, пересобрать. Вред возникает на шаге угадывания, и возникает потому, что ошибка это строка. Агент, прочитавший «non-exhaustive match on <code>OrderStatus</code>», понимает, что в match не хватает веток. Он не знает, что несут недостающие варианты, поэтому пишет <code>Paid("tx_1")</code> и узнаёт об ошибке из следующей диагностики. Или он видит слово «exhaustive», добавляет ветку <code>else</code>, и сборка становится зелёной, выбросив ту самую гарантию, ради защиты которой существовала диагностика.
+        </p>
+        <p>
+          Компилятор всё это знал. Он знал варианты union и их данные, знал, что <code>else</code> лишит match исчерпывающей гарантии, и выбросил и то и другое за строку до ответа.
+        </p>
+
+        <h2 class="block-label">Посмотрите сами</h2>
+        <p>
+          Проект из двух модулей. <code>orders</code> объявляет union; <code>main</code> пишет <code>match</code> по нему и обрабатывает один случай. Вывод <code>glyph check --agent</code>, сокращённый до ключей, которые здесь важны:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --agent --no-tsc src</span>
+<pre>{
+  "code": "E0200",
+  "severity": "error",
+  "stage": "typecheck",
+  "message": "non-exhaustive match on `OrderStatus`: missing variants
+              `Paid`, `Cancelled`",
+  "help": "Add an arm for each missing variant.",
+  "file":   "main.glyph",
+  "module": "main",
+  "entity": "main::describe",
+  "cause":  "orders::OrderStatus",
+  "related": ["Pending", "Paid", "Cancelled"],
+  "missing_variants": ["Paid", "Cancelled"],
+  "expected": null, "actual": null, "alternatives": null,
+
+  "constraints": [
+    "preserve exhaustiveness: this match must name every case of
+     `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
+    "do not add an `else` arm: `OrderStatus` is declared in this project,
+     and a catch-all forfeits the guarantee that adding a variant to it
+     later forces this match to be updated (D9)."
+  ],
+
+  "symbols": [
+    { "entity": "orders::OrderStatus", "kind": "union", "pub": true,
+      "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+      "exhaustive_match": true,
+      "variants": [
+        { "name": "Pending", "payload": null, "construct": "Pending" },
+        { "name": "Paid",    "payload": "{ transaction_id: string }",
+          "construct": "Paid({ transaction_id: string })" },
+        { "name": "Cancelled", "payload": null, "construct": "Cancelled" }
+      ] }
+  ],
+  "symbols_absent": [],
+
+  "explain": { "command": "glyph --explain E0200",
+               "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200" }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Стоит выделить три вещи. <code>cause</code> это виновный символ, и это не то же самое, что <code>entity</code>, то есть объявление, внутри которого находится диагностика: здесь правка делается в <code>main::describe</code>, а форма, которой она должна соответствовать, приходит из <code>orders::OrderStatus</code>. Оба значения являются адресами, которые принимают другие инструменты, так что ответы выстраиваются в цепочку без повторного вывода.
+        </p>
+        <p>
+          <code>constraints</code> не являются исправлением. Каждое из них это то, что компилятор уже проверяет, выписанное явно, чтобы правка, удовлетворяющая диагностике, не сломала стоящую за ней гарантию. Второе ограничение и есть причина существования этого ключа: ветка <code>else</code> допустима, она сделала бы сборку зелёной, а ограничение говорит, чего это стоит.
+        </p>
+        <p>
+          <code>symbols</code> это ответ <code>glyph_symbol</code> для каждого символа, который называет диагностика, поэтому следующей правке агента не нужен второй вызов. Символ, на который инструмент отвечает отказом, попадает в <code>symbols_absent</code> с причиной, и так «мы не смотрели» не путается с «мы посмотрели, и его там нет».
+        </p>
+        <p>
+          Каждый ключ присутствует всегда. Факт, которого у компилятора нет, приходит как явный <code>null</code>, а не как отсутствующий ключ, так что отсутствие записывается одинаково для каждого кода и в CLI, и в MCP.
+        </p>
+
+        <h2 class="block-label">Если ответ определён, компилятор записывает его сам</h2>
+        <p>
+          <code>glyph fix</code> применяет только те исправления, которые компилятор определяет сам: неиспользуемые импорты, заголовок ветки, который не является вариантом, если проверка типов вычислила ровно одну подсказку, и поле, которого нет в записи, если ровно одно объявленное поле отличается от него на один символ. <code>match</code> выше к ним не относится.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph fix src на match выше</span>
+<pre>glyph fix: removed 0 unused import(s) across 0 file(s).
+glyph fix: declined E0200 in src/main.glyph: the compiler does not
+           determine what a missing arm should do, so `glyph fix`
+           writes none: add an arm for each of `Paid`, `Cancelled`.
+           `glyph check --agent` gives the pattern each case takes.
+
+<span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Компилятор знает, каких случаев не хватает и какой шаблон у каждого. Он не знает, что программа должна делать, когда заказ в состоянии <code>Paid</code>, и любое тело, которое он бы написал, было бы догадкой, которая компилируется. До 0.1.128 <code>glyph fix</code> записывал такую догадку: по ветке на каждый случай, тело которой печатало случай и вызывало <code>process.exit(1)</code>. После этого программа проходила <code>check</code>, <code>tsc</code> и <code>build</code>, а <code>glyph query variants</code> считал match исчерпывающим, так что пропущенный случай превращался из ошибки компиляции в падение во время выполнения, и указать на него было уже нечему.
+        </p>
+        <p>
+          Поэтому правило отказывается и называет случаи. Всё, что нужно, чтобы написать ветки, уже есть в ответе <code>--agent</code> выше: <code>missing_variants</code> и запись <code>construct</code> для каждого варианта в <code>symbols</code>. Ветки пишете вы или ваш агент, как и любой другой код, поведение которого компилятор вывести не может.
+        </p>
+        <p>
+          То, что <code>glyph fix</code> записывает, он записывает без догадок, а каждое правило, которое не может прийти к ответу, печатает отказ и причину в том же выводе, что и применённые исправления. Два поля, отличающиеся от опечатки на один символ, это два поля, а не одно, и он так и говорит, вместо того чтобы выбирать.
+        </p>
+
+        <h2 class="block-label">Объяснение кода в виде данных</h2>
+        <p>
+          <code>glyph --explain &lt;CODE&gt; --json</code> отвечает развёрнутым объяснением, однострочным <code>help</code>, URL документации и неправильной программой из негативного корпуса компилятора в паре с диагностикой, которую этот компилятор на неё выдаёт. Диагностика компилируется в момент запроса, а не хранится, поэтому не может разойтись с тем, что компилятор говорит на самом деле.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --explain E0200 --json</span>
+<pre>{
+  "code": "E0200",
+  "title": "non-exhaustive match",
+  "explanation": "A `match` over a tagged union must handle every variant.
+    Unions are sealed (D9): adding a variant later forces every match to be
+    updated, so a missing variant cannot silently fall through at runtime ...",
+  "help": "Add an arm for each missing variant.",
+  "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "expected_error": "E0200",
+    "files": [ { "path": "alias_of_local_union_not_exhaustive.glyph",
+                 "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+                    "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+                    "cause": "alias_of_local_union_not_exhaustive::Shape",
+                    "related": ["Circle", "Square", "Tri"],
+                    "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a case:
+      an entry is a wrong program and the code it draws. A fix invented here would
+      compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Код, который корпус не покрывает, возвращается с <code>counter_example: null</code> и фразой о том, что в корпусе для него нет случая, а не с выдуманным примером. Корпус заявляет то, что покрывает, и ничего не утверждает об остальном.
+        </p>
+        <p>
+          <code>glyph --explain</code> отдаёт один случай на код. Весь корпус тоже можно прочитать: <code>glyph llms --negative E0200</code> печатает все неправильные программы, на которые выдаётся этот код, каждая компилируется в момент запроса, а если второй корпус сопоставляет программу, которую принимает <code>tsc --strict</code>, с кодом на Glyph, который её отклоняет, она возвращается рядом. Без кода команда перечисляет 102 случая по 46 из 70 кодов и называет 24 кода, у которых случаев нет, так что покрытие заявлено явно, а не выводится из того, что вернулось. Об этом и обо всём остальном, что компилятор публикует о себе, рассказывает <a href="/answers/generated-docs/">отдельная страница</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Каждая диагностика содержит <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (где <code>alternatives_kind</code> говорит, что в списке: <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> или <code>exports</code>, и задаётся там, где возникает ошибка), <code>related</code>, <code>module</code>, <code>file</code> и <code>explain</code>. Они заполняются из ошибки, которую выдал компилятор, а не выводятся заново, и каждое равно явному <code>null</code>, если у компилятора такого факта нет. <code>file</code> это путь относительно корня разрешения, а отчёт называет этот корень в <code>project_root</code>, так что файл открывается. <code>glyph check --agent</code> добавляет <code>constraints</code> и <code>symbols</code> к каждой диагностике. <code>glyph fix</code> применяет три правила (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) и сообщает о каждом отказе с причиной, включая каждый <code>E0200</code>, о котором он сообщает, но никогда не исправляет. <code>glyph --explain &lt;CODE&gt; --json</code> возвращает объяснение со скомпилированным контрпримером, а <code>glyph llms --negative &lt;CODE&gt;</code> возвращает весь корпус неправильных программ, на которые выдаётся этот код.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Где он останавливается</h3>
+          <p><code>cause</code> для <code>E0211</code> равен <code>null</code>: виновный символ в аргументе вызова это параметр, а <code>module::fn.param</code> нельзя записать в словаре идентичностей, так что null здесь намеренный, а не упущение. <code>corrected</code> у контрпримера всегда <code>null</code>, потому что негативный корпус не сопоставляет случаю исправленную программу, а у 24 из 70 кодов случаев нет вообще. <code>glyph fix</code> записывает три правила и больше ничего, и не пишет ни одной ветки для неполного <code>match</code>: они остаются вам или вашему агенту, а случаи и их шаблоны есть в диагностике. От всего, от чего он отказывается, он отказывается открыто.</p>
+        </div>
+      </div>

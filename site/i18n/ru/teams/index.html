@@ -1,0 +1,107 @@
+---
+title: Для команд · что гарантирует Glyph и чего он стоит · Glyph
+description: Для техлида, который оценивает Glyph: что гарантирует компилятор и где он останавливается, внедрение в приложение на TypeScript, как уйти, фиксация версий и статус до 1.0.
+source_hash: d4a38356fad5c816
+next_steps: |
+  Куда дальше
+  Рекомендуем | /catches/ | catches | Что пропускает TypeScript | Случаи, которые принимает строгий проект на TypeScript, по рейтингу, каждый запущен под <code>tsc --strict</code> и под Glyph. | Посмотреть случаи
+  /start/ | start | Напишите первую программу | Установите, создайте проект, запустите, намеренно сломайте, прочитайте ошибку. Около десяти минут.
+  /playground/ | playground | Попробуйте в браузере | Компилятор работает прямо на странице, ничего устанавливать не нужно.
+---
+      <p class="q-eyebrow">Для команд</p>
+      <h1 class="q-title">Что он гарантирует, чего стоит внедрение и как от него уйти</h1>
+
+      <p class="short-answer">
+        Glyph отклоняет конкретный, проверенный список случаев, которые принимает строгий проект на TypeScript, и компилируется в TypeScript, который останется у вас, если вы перестанете им пользоваться. Это ранняя версия: до 1.0, поддерживается в основном одним человеком, выпуски выходят несколько раз в неделю.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Что он гарантирует</h2>
+        <p>
+          Каждое утверждение о том, что ловит Glyph, это случай в каталоге <code>catches/</code> репозитория: одна и та же программа на TypeScript и на Glyph, обе запускаются проверкой в CI. {{catches:breakdown}} Из ошибок, которые он не отклоняет, на {{catches:warned-all}} выдаётся предупреждение, {{catches:boundary-all}} это плохие данные, остановленные проверкой на границе во время выполнения, а {{catches:runtime-all}} останавливаются при выполнении. Те, на которые больше всего опирается ревьюер кода от агентов:
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Код</th><th>Что отклоняется</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Code"><code>E0200</code></td><td data-label="What is refused"><code>match</code>, в котором пропущен вариант union, поэтому добавление варианта перечисляет все места, которые нужно изменить</td></tr>
+            <tr><td data-label="Code"><code>E0013</code></td><td data-label="What is refused">Приведение типа (<code>as</code>, <code>as unknown as</code>); приведений нет, как и <code>any</code></td></tr>
+            <tr><td data-label="Code"><code>E0204</code></td><td data-label="What is refused">Разобранный JSON, присвоенный типизированному имени без проверки</td></tr>
+            <tr><td data-label="Code"><code>E0224</code></td><td data-label="What is refused">Чтение из map, типизированное так, будто ключ есть всегда</td></tr>
+            <tr><td data-label="Code"><code>E0217</code></td><td data-label="What is refused">Отброшенный <code>Result</code> (предупреждение; <code>let _ =</code> говорит, что это сделано намеренно)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          На <a href="/catches/">странице случаев</a> перечислен каждый случай с его TypeScript, его Glyph и ошибкой, а также указано, какие из них поймал бы и полностью настроенный typescript-eslint.
+        </p>
+
+        <h2 class="block-label">Где он останавливается</h2>
+        <p>
+          Гарантии распространяются на код, написанный на Glyph. Исключение, брошенное внутри зависимости из npm, по-прежнему обходит <code>Result</code>, а у типа, импортированного из <code>.d.ts</code> пакета, нет проверки во время выполнения. Внутри Glyph открытые дыры ({{catches:gap-cases}}) перечислены с номерами gap в разделе <a href="/catches/#not-yet">что он пока не ловит</a>, а полный реестр лежит в <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>. Сравнение со строгим TypeScript плюс zod, eslint и ts-pattern, включая то, в чём такой набор пока впереди, есть в ответе <a href="/answers/vs-tooled-ts/">почему не TypeScript с инструментами</a>.
+        </p>
+
+        <h2 class="block-label">Внедрение в существующее приложение</h2>
+        <p>
+          Переписывать ничего не нужно. Часть, в которой нельзя ошибиться (модели, права доступа, переходы состояний, деньги), вы пишете на Glyph, а остальное приложение остаётся на TypeScript и импортирует сгенерированные модули как любой локальный файл. Пошаговый разбор использует стандартную заготовку Vite: <a href="/answers/embedding/">Можно ли внедрить Glyph в моё существующее приложение?</a>
+        </p>
+
+        <h2 class="block-label">Как уйти</h2>
+        <p>
+          <code>glyph build</code> пишет обычный TypeScript, по файлу на модуль, который проходит <code>tsc --strict</code>. Если вы перестанете использовать Glyph, вы закоммитите этот вывод и продолжите работать с <code>tsc</code>. Лицензия MIT или Apache-2.0, так что форк возможен всегда. На странице <a href="/from-typescript/">Если вы пишете на TypeScript</a> модуль показан рядом со сгенерированным файлом.
+        </p>
+
+        <h2 class="block-label">Фиксация версий и обновления</h2>
+        <p>
+          <code>glyph init</code> фиксирует точную версию компилятора в <code>package.json</code>, без <code>^</code>, так что ни один выпуск не попадёт в вашу сборку случайно. Остальное делают три команды:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">обновление по собственному решению</span>
+<pre>glyph doctor     <span class="cm"># your version against the latest release; never fails CI for that</span>
+glyph upgrade    <span class="cm"># moves the project's pin, runs npm install, links the notes</span>
+glyph --update   <span class="cm"># moves the installed compiler itself</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Подробности в ответе <a href="/answers/upgrades/">Сломает ли новый выпуск Glyph мою сборку?</a>
+        </p>
+
+        <h2 class="block-label">Частота выпусков и пометка Breaking</h2>
+        <p>
+          На <a href="/versions/">странице версий</a> есть запись для каждого выпуска от 0.1.0 до {{releases:latest}}, всего {{releases:count}}, и 22 из них вышли в ноябре 2026 года по 19-е число. Выпуск помечается как Breaking, если он отклоняет программу, которую принимала предыдущая версия; так приходит большинство исправлений корректности. Пометку несут записей: {{releases:breaking}}. Её ставят, запуская самую маленькую затронутую программу под обеими версиями, а не читая дифф. Выпуски до 0.1.99 так не проверялись, поэтому старый выпуск без пометки не проверен, а не безопасен.
+        </p>
+        <p>
+          Во что на практике обошёлся выпуск Breaking: в каждой недавней заметке сказано, что произошло, когда старую и новую версии прогнали по примерам приложений из репозитория. Вот самые новые выпуски Breaking, цитаты из их заметок:
+        </p>
+{{releases:breaking-cost}}
+        <p>
+          Примеры приложений это собственный код проекта, который поддерживается в компилируемом состоянии от выпуска к выпуску, поэтому новая отклоняемая конструкция в них появится с меньшей вероятностью, чем в вашем коде. Каждая заметка называет конструкции, которые она отклоняет, так что читайте её перед обновлением.
+        </p>
+
+        <h2 class="block-label">Статус</h2>
+        <p>
+          Glyph ещё не достиг 1.0. До 1.0 синтаксис, стандартная библиотека и форма сгенерированного TypeScript могут меняться, и выпуск может отклонить код, который раньше компилировался. В <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a> написано, что может измениться, а что остаётся стабильным. <a href="https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md">MAINTAINERS.md</a> прямо говорит, что сегодня проект поддерживает в основном один человек.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Возражения и ответы</h2>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/human-value/"><span class="q">Мы почти не используем ИИ. Стоит ли оно того?</span><p>Проверки одинаковы, кто бы ни писал код: меньше сюрпризов во время выполнения, меньше диффы, код, который можно искать grep.</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">У нас уже строгий TypeScript и линтер.</span><p>Каждая из этих проверок включается по желанию и выключается одной строкой. Проверки Glyph выключить нельзя.</p></a>
+        <a class="a-card" href="/answers/ai-authoring/"><span class="q">Смогут ли наши агенты писать на языке, который почти не видели?</span><p>Большая часть того, что модель знает о TypeScript, переносится, а остальное называет компилятор.</p></a>
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">Зачем вообще компилировать в TypeScript?</span><p>Там находятся npm, React и Node, и поэтому внедрять можно по одному файлу.</p></a>
+        <a class="a-card" href="/answers/debugging/"><span class="q">Что увидит дежурный, когда что-то сломается?</span><p>Читаемый TypeScript, source maps обратно в файл <code>.glyph</code> и стабильные коды ошибок.</p></a>
+        <a class="a-card" href="/evidence/"><span class="q">Откуда нам знать, что всё это правда?</span><p>Как проверяется каждое утверждение на этом сайте и как воспроизвести любое из них самому.</p></a>
+      </div>

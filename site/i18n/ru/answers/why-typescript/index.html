@@ -1,0 +1,50 @@
+---
+title: Почему TypeScript, а не Go или новый язык? · Glyph
+description: TypeScript это язык, на котором агенты уже пишут больше всего кода, и там живут npm, React и Node. Glyph можно внедрять по одному файлу только потому, что он компилируется в TS.
+source_hash: 9f7bf2e8baaad5d9
+prev: /answers/greppability/ | &larr; Назад | Может ли агент (или я) найти, где что определено?
+next: /answers/vs-tooled-ts/ | Далее &rarr; | Почему не просто строгий TypeScript + zod + eslint + ts-pattern?
+---
+      <p class="q-eyebrow">04 &middot; Позиционирование</p>
+      <h1 class="q-title">Почему TypeScript, а не Go или новый язык?</h1>
+
+      <p class="short-answer">
+        Потому что на TypeScript агенты уже пишут больше всего кода, и там живёт ваша экосистема (npm, React, Node). Glyph можно внедрять по одному файлу <strong>только потому, что он компилируется в TS</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Почему это важно</h2>
+        <p>
+          Новый язык живёт или умирает в зависимости от того, как дойти от нуля до продакшена. Компиляция в TypeScript означает, что вы не уходите из своей кодовой базы, своего бандлера, своего тест-раннера и своего деплоя. Glyph встаёт рядом с уже имеющимися файлами <code>.ts</code>, и импорт чисто работает в обе стороны:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">один проект: .glyph и .ts рядом</span>
+<pre><span class="cm">// cart.glyph: new, written in Glyph</span>
+import { formatPrice } from "./format.ts"
+
+<span class="cm">// checkout.ts: existing, untouched</span>
+import { total } from "./cart.glyph"</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Go нельзя внедрить в кодовую базу на TypeScript пофайлово: это другой рантайм, другая система модулей и другая экосистема. Именно поэтому целевой язык TS.
+        </p>
+        <p>
+          <strong>Справедливое замечание о Go:</strong> небольшой и стабильный набор ключевых слов оставляет агенту меньше способов ошибиться. Мы согласны, и именно поэтому у Glyph намеренно маленькое ядро с одним способом сделать каждую вещь. Go есть в нашем <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">бенчмарке</a> плотности для прямого сравнения.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Чистый TypeScript на выходе, импорт в обе стороны с вашими существующими <code>.ts</code> и маленькое ядро, которое работает везде, где работает Node или браузерный бандл.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Измеряется</h3>
+          <p>Межъязыковой бенчмарк (Glyph, TS, Go, Python, Rust) растёт вместе с корпусом, поэтому утверждение о «небольшой поверхности» остаётся числом, а не голословным заявлением.</p>
+        </div>
+      </div>

@@ -1,0 +1,43 @@
+---
+title: Что TypeScript пропускает, а Glyph ловит · Glyph
+description: Код ИИ-агентов, который проходит tsc --strict, рядом с той же программой на Glyph и настоящим выводом компилятора. Каждый случай перезапускается проверкой при сборке.
+source_hash: 09d8897c06eb2254
+---
+      <header class="page-hero">
+        <p class="eyebrow">Случаи, которые пропускает TypeScript</p>
+        <h1>Поймано до продакшена</h1>
+        <p class="lede">{{catches:breakdown}}</p>
+        <p class="lede">{{catches:measured}}</p>
+        <p class="lede">
+          Каждая запись это две программы в <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>, а вывод под каждой из них напечатан самими инструментами. Проверка при сборке, <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>, перезапускает каждый случай и падает, если какая-то из половин перестаёт делать то, что написано на странице. Полная конфигурация TypeScript, с которой идёт сравнение, лежит в этом скрипте.
+        </p>
+      </header>
+
+      <section class="c-cases" id="cases">
+        <h2 class="group-head">Ошибки в TypeScript: {{catches:count}}</h2>
+{{catches:legend}}
+{{catches:filters}}
+{{catches:mistakes}}
+      </section>
+      <section class="c-section" id="traps">
+        <h2 class="group-head">Ловушки JavaScript, которых нет в Glyph: {{catches:trap-count}}</h2>
+        <p class="group-sub">
+          Старые ловушки, в которые агенты всё ещё иногда попадают. Glyph отклоняет каждую такую программу, но не потому, что замечает ошибку: возможности, из-за которой она возникает, в языке нет, а замена названа.
+        </p>
+{{catches:traps}}
+      </section>
+
+      <section class="c-section" id="not-yet">
+        <h2 class="group-head">Что Glyph пока не ловит</h2>
+        <p class="group-sub">
+          Дыры, которые Glyph пока не закрывает: {{catches:gap-cases}}. Каждая из этих программ сегодня компилируется в Glyph и делает ту же ошибку, что и в TypeScript. У каждой есть воспроизведение в <code>catches/</code> и открытый номер gap, а проверка падает, когда появляется исправление, так что запись не переживёт саму дыру.
+        </p>
+{{catches:gaps}}
+        <p class="group-sub c-after">
+          Логические ошибки составляют самый большой класс во всех исследованиях кода, написанного агентами, и их не видит ни одна проверка типов: неверная формула или неправильно понятая задача компилируются в Glyph так же, как в TypeScript.
+        </p>
+        <p class="group-sub">
+          В Glyph есть одна лазейка, <code>extern_ts</code>, для TypeScript, который он не может выразить. Это фиксированное ключевое слово, поэтому <code>grep extern_ts</code> показывает все места, где правила приостановлены.
+        </p>
+      </section>
+{{catches:script}}

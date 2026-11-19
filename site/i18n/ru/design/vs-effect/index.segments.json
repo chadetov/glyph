@@ -1,0 +1,266 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/vs-effect/index.html",
+  "locale": "ru",
+  "source_hash": "f62ac4a8fc9859e6",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Glyph and Effect · a library and a language compared · Glyph",
+      "tr": "Glyph и Effect · сравнение библиотеки и языка · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Effect is a TypeScript library with typed errors and a large ecosystem; Glyph is a language that compiles to TypeScript. What each does better, with code.",
+      "tr": "Effect это библиотека для TypeScript с типизированными ошибками и большой экосистемой; Glyph это язык, который компилируется в TypeScript. Что каждый делает лучше, с кодом."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "Куда дальше"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "Рекомендуем"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "Что отклоняет Glyph"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "Каждый случай, проверенный под <code>tsc --strict</code> и под Glyph."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "Посмотреть случаи"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "Back to design",
+      "tr": "Назад к дизайну"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars, the spec, and the other comparisons.",
+      "tr": "Четыре принципа, спецификация и другие сравнения."
+    },
+    {
+      "id": "h-33d40d52",
+      "kind": "html",
+      "en": "Design &middot; Comparison",
+      "tr": "Дизайн &middot; Сравнение"
+    },
+    {
+      "id": "h-2ce1c395",
+      "kind": "html",
+      "en": "Glyph and Effect",
+      "tr": "Glyph и Effect"
+    },
+    {
+      "id": "h-d66fd4f3",
+      "kind": "html",
+      "en": "Both aim at TypeScript that people and agents can rely on. Effect is a library: you keep writing TypeScript and get typed errors, tracked dependencies and a large toolbox. Glyph is a language that compiles to TypeScript, so it can refuse what TypeScript allows, including the casts that undo a library's guarantees. Effect is far more mature.",
+      "tr": "Оба нацелены на TypeScript, на который могут положиться люди и агенты. Effect это библиотека: вы продолжаете писать на TypeScript и получаете типизированные ошибки, отслеживаемые зависимости и большой набор инструментов. Glyph это язык, который компилируется в TypeScript, поэтому он может отклонять то, что TypeScript разрешает, включая приведения типов, отменяющие гарантии библиотеки. Effect гораздо зрелее."
+    },
+    {
+      "id": "h-d661be43",
+      "kind": "html",
+      "en": "How Effect describes itself",
+      "tr": "Как Effect описывает себя"
+    },
+    {
+      "id": "h-32344d48",
+      "kind": "html",
+      "en": "Effect's home page leads with \"Reliable TypeScript for the AI era\" and says its \"declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code\" (<a href=\"https://effect.website\">effect.website</a>). Its docs call it \"an ecosystem of tools that help you build better applications and libraries\", built around an <code>Effect&lt;Success, Error, Requirements&gt;</code> type that records what a computation returns, how it can fail, and what it needs (<a href=\"https://effect.website/docs/getting-started/why-effect/\">Why Effect</a>). It asks for TypeScript 5.4 or newer with <code>strict</code> on (<a href=\"https://effect.website/docs/getting-started/installation/\">Installation</a>). These quotes were read on 2026-11-19.",
+      "tr": "Главная страница Effect начинается со слов «Reliable TypeScript for the AI era» и говорит, что его «declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code» (<a href=\"https://effect.website\">effect.website</a>). Документация называет его «an ecosystem of tools that help you build better applications and libraries», построенной вокруг типа <code>Effect&lt;Success, Error, Requirements&gt;</code>, который фиксирует, что вычисление возвращает, как оно может завершиться ошибкой и что ему нужно (<a href=\"https://effect.website/docs/getting-started/why-effect/\">Why Effect</a>). Он требует TypeScript 5.4 или новее с включённым <code>strict</code> (<a href=\"https://effect.website/docs/getting-started/installation/\">Installation</a>). Эти цитаты прочитаны 2026-11-19."
+    },
+    {
+      "id": "h-e150de4d",
+      "kind": "html",
+      "en": "The difference that follows from library versus language",
+      "tr": "Разница, которая следует из выбора между библиотекой и языком"
+    },
+    {
+      "id": "h-2feec0a8",
+      "kind": "html",
+      "en": "Effect's types are checked by <code>tsc</code>, so everything <code>tsc</code> allows is still allowed next to them. This compiles under <code>tsc --strict</code> with effect 4.1.4 and TypeScript 6. The cast removes <code>NotFound</code> from the error channel, and the program reports a failure from an effect typed as unable to fail.",
+      "tr": "Типы Effect проверяет <code>tsc</code>, поэтому всё, что разрешает <code>tsc</code>, рядом с ними по-прежнему разрешено. Этот код компилируется под <code>tsc --strict</code> с effect 4.1.4 и TypeScript 6. Приведение убирает <code>NotFound</code> из канала ошибок, и программа сообщает об ошибке от эффекта, типизированного как неспособный завершиться ошибкой."
+    },
+    {
+      "id": "h-97156b3d",
+      "kind": "html",
+      "en": "eff.ts: tsc --strict exits 0; running it prints \"Failure undefined\"",
+      "tr": "eff.ts: tsc --strict завершается с кодом 0; запуск печатает \"Failure undefined\""
+    },
+    {
+      "id": "h-352c43b9",
+      "kind": "html",
+      "en": "The same function in Glyph returns a <code>Result</code>, and there is no cast to write. The second module is refused before any TypeScript is emitted.",
+      "tr": "Та же функция на Glyph возвращает <code>Result</code>, а приведения, которое можно было бы написать, нет. Второй модуль отклоняется до того, как сгенерирован какой-либо TypeScript."
+    },
+    {
+      "id": "h-720a02dd",
+      "kind": "html",
+      "en": "find.glyph: builds, passes tsc --strict",
+      "tr": "find.glyph: собирается, проходит tsc --strict"
+    },
+    {
+      "id": "h-f1ea6b0b",
+      "kind": "html",
+      "en": "adding a cast: refused",
+      "tr": "добавление приведения: отклонено"
+    },
+    {
+      "id": "h-3390a257",
+      "kind": "html",
+      "en": "<code>E0013</code>'s help reads: \"Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>.\" A team can get close to this in an Effect codebase with lint rules, and <a href=\"/answers/vs-tooled-ts/\">that comparison</a> covers why a rule someone can turn off is a different guarantee.",
+      "tr": "Подсказка к <code>E0013</code> гласит: «Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>.» В кодовой базе на Effect команда может приблизиться к этому правилами линтера, а <a href=\"/answers/vs-tooled-ts/\">это сравнение</a> объясняет, почему правило, которое кто-то может выключить, это другая гарантия."
+    },
+    {
+      "id": "h-e5e2ffaf",
+      "kind": "html",
+      "en": "What Effect does better",
+      "tr": "Что Effect делает лучше"
+    },
+    {
+      "id": "h-024dc204",
+      "kind": "html",
+      "en": "Area",
+      "tr": "Область"
+    },
+    {
+      "id": "h-2252d5cf",
+      "kind": "html",
+      "en": "Effect",
+      "tr": "Effect"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-25e271b6",
+      "kind": "html",
+      "en": "Maturity",
+      "tr": "Зрелость"
+    },
+    {
+      "id": "h-bc464212",
+      "kind": "html",
+      "en": "Used in production; its home page lists Cloudflare among the companies",
+      "tr": "Используется в продакшене; на главной странице среди компаний указан Cloudflare"
+    },
+    {
+      "id": "h-2f439494",
+      "kind": "html",
+      "en": "Early preview, pre-1.0, maintained mainly by one person",
+      "tr": "Ранняя версия, до 1.0, поддерживается в основном одним человеком"
+    },
+    {
+      "id": "h-e2194392",
+      "kind": "html",
+      "en": "Ecosystem",
+      "tr": "Экосистема"
+    },
+    {
+      "id": "h-cd8308af",
+      "kind": "html",
+      "en": "HTTP APIs, workflows, clustering, schema, scheduling, tracing and dependency injection, all from one project",
+      "tr": "HTTP API, workflow, кластеризация, схемы, планирование, трассировка и внедрение зависимостей, всё из одного проекта"
+    },
+    {
+      "id": "h-e955c3b4",
+      "kind": "html",
+      "en": "A standard library of 40 modules; anything else comes from npm",
+      "tr": "Стандартная библиотека из 40 модулей; всё остальное берётся из npm"
+    },
+    {
+      "id": "h-b094b436",
+      "kind": "html",
+      "en": "Dependencies in the type",
+      "tr": "Зависимости в типе"
+    },
+    {
+      "id": "h-ac81bf68",
+      "kind": "html",
+      "en": "The <code>Requirements</code> parameter tracks what a computation needs",
+      "tr": "Параметр <code>Requirements</code> отслеживает, что нужно вычислению"
+    },
+    {
+      "id": "h-284ebc0e",
+      "kind": "html",
+      "en": "No equivalent; a function's signature records its result and error only",
+      "tr": "Аналога нет; сигнатура функции фиксирует только результат и ошибку"
+    },
+    {
+      "id": "h-9b331283",
+      "kind": "html",
+      "en": "Adoption",
+      "tr": "Внедрение"
+    },
+    {
+      "id": "h-2b1a373b",
+      "kind": "html",
+      "en": "An npm package; you wrap existing code and refactor upward, with no new compiler",
+      "tr": "Пакет из npm; вы оборачиваете существующий код и постепенно рефакторите его, без нового компилятора"
+    },
+    {
+      "id": "h-68261cc3",
+      "kind": "html",
+      "en": "A second compiler in the build, adopted one module at a time",
+      "tr": "Второй компилятор в сборке, внедрение по одному модулю"
+    },
+    {
+      "id": "h-8708492f",
+      "kind": "html",
+      "en": "Concurrency",
+      "tr": "Конкурентность"
+    },
+    {
+      "id": "h-61a7c131",
+      "kind": "html",
+      "en": "Structured concurrency, retries and scheduling built in",
+      "tr": "Структурированная конкурентность, повторы и планирование встроены"
+    },
+    {
+      "id": "h-24628f52",
+      "kind": "html",
+      "en": "<code>par</code> and <code>std/task</code> helpers, much smaller",
+      "tr": "Хелперы <code>par</code> и <code>std/task</code>, гораздо скромнее"
+    },
+    {
+      "id": "h-5e1868a7",
+      "kind": "html",
+      "en": "What Glyph does that a library can't",
+      "tr": "Что Glyph делает, а библиотека не может"
+    },
+    {
+      "id": "h-bd1481c3",
+      "kind": "html",
+      "en": "A language decides what can be written. Glyph has no <code>any</code>, no cast, no non-null assertion and no comment that silences an error, and every <code>match</code> over a union has to cover every case. Records and unions carry a runtime check generated from the declaration, so <code>json.parse&lt;User&gt;(body)</code> validates. Effect's Schema also derives a type from one description (<code>Schema.Schema.Type&lt;typeof Person&gt;</code> in <a href=\"https://effect.website/docs/schema/introduction/\">its introduction</a>), so the type and the validator don't drift there either; what differs is that nothing in TypeScript makes a codebase use it. The compiler also answers questions about a program for an agent, such as what a change will break, <a href=\"/agents/\">over MCP or the command line</a>.",
+      "tr": "Язык решает, что можно написать. В Glyph нет <code>any</code>, нет приведений типов, нет утверждения non-null и нет комментария, который глушит ошибку, а каждый <code>match</code> по union обязан покрыть все варианты. Записи и union несут проверку во время выполнения, сгенерированную из объявления, поэтому <code>json.parse&lt;User&gt;(body)</code> валидирует данные. Schema из Effect тоже выводит тип из одного описания (<code>Schema.Schema.Type&lt;typeof Person&gt;</code> в <a href=\"https://effect.website/docs/schema/introduction/\">его введении</a>), так что и там тип и валидатор не расходятся; разница в том, что ничто в TypeScript не заставляет кодовую базу им пользоваться. Компилятор также отвечает агенту на вопросы о программе, например что сломает изменение, <a href=\"/agents/\">через MCP или в командной строке</a>."
+    },
+    {
+      "id": "h-3b2c6b8a",
+      "kind": "html",
+      "en": "This page has not tested using Effect from inside a Glyph module, so it makes no claim about combining the two.",
+      "tr": "На этой странице не проверялось использование Effect изнутри модуля Glyph, поэтому о сочетании этих двух ничего не утверждается."
+    }
+  ]
+}

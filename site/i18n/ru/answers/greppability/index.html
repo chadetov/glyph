@@ -1,0 +1,72 @@
+---
+title: Может ли агент (или я) найти, где что определено? · Glyph
+description: У каждой конструкции в Glyph одна форма для поиска, поэтому grep (или поиск агента) попадает на единственное определение, а не на пятьдесят почти совпадений.
+source_hash: cb5e3e02dc597369
+prev: /answers/diff-stability/ | &larr; Назад | Останутся ли правки агента чистыми, или он переформатирует весь файл?
+next: /answers/why-typescript/ | Далее &rarr; | Почему TypeScript, а не Go или новый язык?
+---
+      <p class="q-eyebrow">03 &middot; Навигация поиском</p>
+      <h1 class="q-title">Может ли агент (или я) найти, где что определено?</h1>
+
+      <p class="short-answer">
+        У каждой конструкции <strong>ровно одна форма</strong> для поиска. Обычный <code>grep</code> (а именно так агенты и перемещаются по коду) попадает на единственное определение, <strong>а не на пятьдесят почти совпадений</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Почему это важно</h2>
+        <p>
+          Агент не держит весь репозиторий в голове, он <strong>ищет</strong>. Если понятие можно записать пятью способами, поиск пропускает случаи, а уверенный в себе агент, который не нашёл существующее определение, придумывает второе. Одна форма на понятие означает, что поиск полон, и агент правит то, что уже есть, а не дублирует это.
+        </p>
+
+        <h2 class="block-label">Посмотрите сами</h2>
+        <p>Glyph ограничивает изменение состояния двумя формами (<code>mut x = &hellip;</code> и <code>mut x.method(&hellip;)</code>), поэтому <em>каждое</em> место, где меняется состояние, находится одним поиском:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">grep -rn "mut " src/ (все изменения состояния в кодовой базе)</span>
+<pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
+<span class="dim">src/cart.glyph:22:</span>   mut total = total + price
+<span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Три изменения, все до одного, одним поиском. В TypeScript изменение может прятаться за <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, сеттером или spread. Единого токена для grep нет, поэтому на вопрос &laquo;меняет ли это что-нибудь?&raquo; надёжного ответа нет. То же правило одной формы делает проверяемыми целые категории:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">один поиск = один полный ответ</span>
+<pre><span class="cm"># every UI component</span>
+grep -rn <span class="add">"^component "</span> src/
+
+<span class="cm"># every function</span>
+grep -rn <span class="add">"^fn "</span> src/
+
+<span class="cm"># the entire resource-ownership surface</span>
+grep -rn <span class="add">"owned"</span> src/</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Нет сокращённой записи объектных литералов, нет второго способа объявить компонент, нет перегруженного синтаксиса, который нужно различать. Меньше способов что-то записать это настоящее ограничение, и в нём весь смысл: именно оно делает поиск агента и ваш поиск надёжными.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Какие конструкции Glyph не включает, чтобы поиску можно было доверять, и почему правило линтера не даёт той же гарантии, описано на <a href="/pillars/greppability/">странице принципа «Удобство поиска»</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Одна каноническая форма на конструкцию, изменение состояния ограничено двумя формами, которые находятся grep (<code>mut</code>), и проверки по одному ключевому слову (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Поверх этого</h3>
+          <p>Языковой сервер добавляет переход к определению и поиск ссылок по всему рабочему пространству: та же гарантия, теперь интерактивно в вашем редакторе.</p>
+        </div>
+      </div>

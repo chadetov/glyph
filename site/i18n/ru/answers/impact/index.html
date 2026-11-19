@@ -1,0 +1,110 @@
+---
+title: Может ли компилятор сказать, что сломает изменение? · Glyph
+description: glyph_impact принимает объявление, которое вы собираетесь изменить, и саму правку, и отвечает вердиктом с причиной для каждого места, ещё до того, как вы тронете файл.
+source_hash: 42e24af1156f67f1
+prev: /answers/binary/ | &larr; Назад | Можно ли работать с бинарными данными, или всё строка?
+next: /answers/ask-the-compiler/ | Далее &rarr; | Может ли агент спросить у компилятора, что такое символ, до того как писать код?
+---
+      <p class="q-eyebrow">21 &middot; До правки</p>
+      <h1 class="q-title">Может ли компилятор сказать, что сломает изменение, до того как я его сделаю?</h1>
+
+      <p class="short-answer">
+        Для шести видов правок да. <code>glyph_impact</code> принимает объявление, которое вы собираетесь изменить, и само изменение (переименовать, удалить вариант, сменить тип параметра, сменить арность, удалить объявление) и отвечает <strong>одним вердиктом на каждое место</strong> из закрытого списка, у каждого есть причина, почему вердикт именно такой, а не другой.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Почему это важно</h2>
+        <p>
+          Когда вы переименовываете функцию, расширяете union или меняете то, что принимает параметр, вы либо ищете старое имя через grep и надеетесь, что нашли все вызовы, либо делаете правку и читаете, что потом скажет компилятор. Ни один из способов не говорит, какие места продолжат компилироваться, но тихо станут неправильными: <code>match</code> с веткой catch-all не падает, когда вы добавляете вариант, он просто начинает отправлять новый случай туда, куда никто не решал его отправлять. Такое место никогда не проявится при сборке. <code>glyph_impact</code> отвечает до правки, на основе того же анализа, который выполняет компилятор.
+        </p>
+
+        <h2 class="block-label">Что приходит в ответ</h2>
+        <p>
+          Запрос называет сущность по её идентичности <code>module::name</code> и изменение из закрытого списка: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Изменение обязательно, потому что вердикт это факт о правке; без названной правки каждое место вернулось бы просто ссылкой, а не последствием. Ответ называет сущность, изменение и список <code>impact</code>: одна запись на место, в каждой объявление, внутри которого оно находится, <code>relation</code>, <code>verdict</code>, <code>because</code> и код диагностики, который выдаст компилятор, если он ровно один. Вердикты образуют закрытый список, и каждый значит одно: <code>WILL_FAIL</code> (компилятор может доказать, что место перестанет компилироваться), <code>ABSORBS</code> (может доказать, что изменение будет здесь молча поглощено), <code>SAFE</code> (может доказать, что место останется корректным), <code>UNDETERMINED</code> (он посмотрел на это место и не может установить последствие) и <code>NOT_INDEXED</code> (для места такой формы вопрос вообще нельзя задать).
+        </p>
+
+        <h2 class="block-label">Посмотрите сами</h2>
+        <p>
+          Модуль объявляет <code>label(s: string) -&gt; number</code>. До неё доходят три вызывающих места: одно передаёт строковый литерал, другое передаёт значение, тип которого это псевдоним для <code>string</code>, импортированный из другого модуля, а третье читает <code>label</code> как значение и никогда его не вызывает. Если спросить, что <code>change_signature_type</code> сделает с каждым из них, получится три разных вердикта, потому что это три разных утверждения:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">запрос</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_impact",
+    "arguments": {
+      "entity": "lib::label",
+      "change": { "kind": "change_signature_type" }
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">результат, сокращённый до трёх мест</span>
+<pre>{
+  "entity": "lib::label",
+  "impact": [
+    {
+      "entity": "literal::probe",
+      "verdict": "WILL_FAIL",
+      "diagnostic": "E0211",
+      "because": "every argument at this site is paired with
+        a parameter the relation reads in full, so a
+        replacement parameter type any of those pairings does
+        not accept is E0211 here. The pairings: argument 1
+        (`\"x\"`, `\"x\"`) against parameter `s: string`: ..."
+    },
+    {
+      "entity": "imported::probe",
+      "verdict": "UNDETERMINED",
+      "diagnostic": null,
+      "because": "argument 1 (`c`, `Cell`) against parameter
+        `s: string`: `Cell` is declared in another module as
+        an alias for a primitive, and the checker compares an
+        imported declaration only when the declaration at the
+        end of its chain of names is a tagged union or a
+        record (G215, G226), so a replacement is compared
+        against nothing here and only `tsc` on a full `glyph
+        build` would see a mismatch"
+    },
+    {
+      "entity": "reader::sizer",
+      "verdict": "NOT_INDEXED",
+      "diagnostic": null,
+      "because": "this site reads the name rather than
+        applying it, so no argument is paired with a
+        parameter here, and Glyph does not compare a
+        function value's parameter types against the type
+        its use context expects"
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Одна правка, три места, три вердикта, и <code>because</code> у каждого это настоящая фраза, которую выдаёт компилятор, а не метка категории. Это повторяет собственный тест компилятора для этого изменения (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> в <code>glyph-cli/tests/agent_loop.rs</code>): тест затем делает правку и проверяет, что E0211 появляется ровно там, где предсказал <code>WILL_FAIL</code>, а в двух других местах компилятор молчит.
+        </p>
+
+        <h2 class="block-label">На реальном приложении</h2>
+        <p>
+          В <code>examples/apps/csvql</code>, движке запросов к CSV из одиннадцати файлов в этом репозитории, есть одно размеченное объединение <code>Value</code>, сейчас с четырьмя вариантами. Если спросить <code>glyph_impact</code>, что сделает добавление пятого (<code>Blob</code>), он находит 10 мест match в 4 файлах: в 8 компиляция упадёт, а в 2 есть ветка catch-all, которая молча поглотит новый вариант. Если действительно добавить вариант, компилятор сообщает ровно 8 ошибок <code>E0200</code> ровно в 8 предсказанных местах и ничего не говорит о 2 местах <code>ABSORBS</code> ни до, ни после. Текстовый поиск веток catch-all по тому же приложению, то, что вы делали бы без инструмента, находит те же 2 настоящих места среди 20 совпадений (точность 0.10) и ничего не говорит о 8 падающих, потому что не знает, какой тип разбирает <code>match</code>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Шесть видов изменений из закрытого списка (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) и пять вердиктов из закрытого списка, одна запись на каждое затронутое место с причиной и кодом диагностики. <code>change_signature_type</code> решается для каждого аргумента вызова по собственным правилам сравнения проверки типов, и место получает самый слабый вердикт из своих аргументов. JSX-элемент оценивается как вызов, в который он понижается: <code>&lt;Card title="x" /&gt;</code> это одна запись props, переданная в <code>Card</code>, и каждый атрибут указывается напротив поля, с которым он сверяется, с тем вердиктом, который получил бы аргумент вызова того же типа. Покрытие (что поиск смог и не смог прочитать) указывается для каждого поиска, а не один раз на весь ответ, и каждый узел сообщает, пришёл ли он из исходника на Glyph, из лазейки <code>extern_ts</code> или из непрозрачного <code>.d.ts</code>.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Где это заканчивается</h3>
+          <p>Глубина точна на одном шаге и пуста дальше: Glyph никогда не выводит тип объявления из его тела, поэтому тип вызываемой функции не может дойти до сигнатуры вызывающей, и изменение X может сделать некорректными только выражения, которые называют X. Если запросить глубину 2, ответ вернётся с <code>next_query</code>, где назван точный вопрос, потому что второму шагу нужно исправление, которое кто-то внесёт в первое место, а этого исправления ещё нет. <code>UNDETERMINED</code> и <code>NOT_INDEXED</code> это разные утверждения: аргумент, для которого у проверки типов нет типа, или сопоставление записи с полем, которое не читает ни одно правило, это <code>UNDETERMINED</code> (посмотрел и не смог решить); функция, прочитанная как значение, а не вызванная, это <code>NOT_INDEXED</code> (там вопрос вообще нельзя было задать). Следить стоит за <code>ABSORBS</code>: место продолжает компилироваться и при этом доказуемо неправильно, а зелёная сборка этого никогда не покажет.</p>
+        </div>
+      </div>

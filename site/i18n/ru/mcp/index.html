@@ -1,0 +1,208 @@
+---
+title: Подключите агента к Glyph через MCP · Glyph
+description: glyph mcp запускает MCP-сервер с одиннадцатью инструментами: что такое символ, что сломает изменение, диагностики, ссылки и другое. Каждый также доступен как команда glyph query.
+source_hash: 9b8dc9db4173cc83
+---
+      <p class="q-eyebrow">Для агентов &middot; Model Context Protocol</p>
+      <h1 class="q-title">Подключите агента к компилятору Glyph</h1>
+
+      <p class="short-answer">
+        <code>glyph mcp</code> запускает <strong>сервер Model Context Protocol</strong> с одиннадцатью инструментами для вашего проекта: что такое символ; что сломается, если его изменить; можно ли подставить значение одного типа туда, где объявлен другой; от чего зависит объявление; что экспортирует модуль; диагностики, проверенные внутри проекта; тип под курсором; где определено имя; все ссылки на него; все места <code>match</code> по union; поиск символов. Каждый из них также доступен как команда <code>glyph query</code>, так что агент без MCP-клиента задаёт те же вопросы и получает те же байты.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Зачем это агенту</h2>
+        <p>
+          Агент, который правит кодовую базу, обычно работает вслепую. Он читает файлы, угадывает типы и узнаёт, сломал ли что-то, только после сборки. Для редактора Glyph уже отвечает на эти вопросы. <code>glyph mcp</code> даёт агенту те же ответы прямо от компилятора, без разбора вывода сборки и без чтения всех файлов, чтобы понять, кто что вызывает. Два инструмента отвечают на вопросы, которые редактор никогда не задаёт: <code>glyph_symbol</code> возвращает варианты union с синтаксисом, который создаёт каждый из них, а это именно то, что нужно агенту перед тем, как написать <code>match</code>; <code>glyph_impact</code> отвечает, что сломает правка, ещё до того, как она сделана.
+        </p>
+
+        <h2 class="block-label">Настройка</h2>
+        <p>
+          Запустить его может любой MCP-клиент. Укажите клиенту бинарный файл <code>glyph</code> с подкомандой <code>mcp</code> и передайте корень проекта аргументом или запускайте из каталога проекта. Сервер говорит на MCP через stdio, поэтому ни порта, ни демона нет.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">конфигурация MCP-клиента (общая)</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp", "/path/to/your/project"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          При первом подключении клиент вызывает <code>initialize</code> и <code>tools/list</code>; сервер сообщает об одиннадцати инструментах ниже. Позиции, которые вы отправляете, следуют соглашению LSP: <code>line</code> с нуля и <code>character</code> с нуля в единицах кода UTF-16. Диапазоны диагностик возвращаются так же, как их печатает <code>glyph check --json</code>: <code>line</code> и <code>col</code> с единицы плюс байтовый <code>offset</code>.
+        </p>
+        <p>
+          Описание каждого инструмента содержит контракт, который нужен в момент вызова, а полное руководство лежит в <code>glyph llms --json</code> под ключом <code>tools</code>, по имени инструмента, рядом с командой <code>glyph query</code> для каждого. Раньше этот ответ содержал все руководства: одиннадцать инструментов, 31 446 байт описаний в ответе размером 45 509 байт. Теперь это 8 627 байт в ответе на 20 386 байт, и ничего не удалено. Каждая сессия платит за <code>tools/list</code> при подключении, а за руководство только когда запрашивает его. <a href="/answers/generated-docs/">Этот документ</a> генерируется из собственных таблиц компилятора, и тест валит сборку, если в нём назван инструмент, которого этот сервер не предоставляет.
+        </p>
+
+        <h2 class="block-label">Одиннадцать инструментов</h2>
+      </div>
+
+      <div class="code">
+        <span class="cap">инструменты, которые предоставляет glyph mcp</span>
+<pre><span class="cm">// everything the compiler holds about one symbol: kind, identity,</span>
+<span class="cm">// visibility, a record's fields, a union's variants with payloads and</span>
+<span class="cm">// construction syntax, parameters and return, interface members,</span>
+<span class="cm">// whether a `match` over it must be exhaustive, its `@example`.</span>
+<span class="cm">// The identity reaches the stdlib: std/result::Result answers with</span>
+<span class="cm">// Ok(T) and Err(E), and `path` is null beside the reason why</span>
+glyph_symbol(entity)                       <span class="cm">// or (path, line, character)</span>
+
+<span class="cm">// what breaks if you make one named change to one declaration:</span>
+<span class="cm">// add_variant, remove_variant, rename, change_arity,</span>
+<span class="cm">// change_signature_type, remove. One verdict per site</span>
+glyph_impact(entity, change)
+
+<span class="cm">// can a value of `from` go where a `to` is declared? Asked of the</span>
+<span class="cm">// checker's own comparison. Each side is a `module::name` or a</span>
+<span class="cm">// Glyph type spelling read in the scope of `path`</span>
+glyph_assignable(path, from, to)
+
+<span class="cm">// every diagnostic for one file, checked inside its project, in the</span>
+<span class="cm">// shape `glyph check --json` prints, plus what was not checked</span>
+glyph_diagnostics(path)
+
+<span class="cm">// the type at a position: an expression, a declaration name, a</span>
+<span class="cm">// parameter, an annotation, a variant, or a binding</span>
+glyph_hover(path, line, character)
+
+<span class="cm">// where the name is defined, following imports across modules,</span>
+<span class="cm">// with the `module::name` so the answer chains into glyph_impact</span>
+glyph_definition(path, line, character)
+
+<span class="cm">// every edge into a symbol across the project, split by relation</span>
+<span class="cm">// (CALLS, REFERENCES, GENERATED_FROM), each with its provenance</span>
+glyph_references(path, name)               <span class="cm">// or by position</span>
+
+<span class="cm">// every `match` site over one tagged union and which variants each</span>
+<span class="cm">// site's arms name, with the union's own variants</span>
+glyph_variants(path, name)
+
+<span class="cm">// search top-level declarations and union variants by name, each</span>
+<span class="cm">// entry with its identity, `pub`, kind and one-line signature</span>
+glyph_symbols(query)
+
+<span class="cm">// what one declaration depends on: every declaration its own source</span>
+<span class="cm">// names, split by relation (CALLS, REFERENCES, FIELD_ACCESS), each</span>
+<span class="cm">// edge with both ends and its provenance. The mirror of references</span>
+glyph_dependencies(entity)
+
+<span class="cm">// what one module makes visible to an importer: every `pub`</span>
+<span class="cm">// declaration and every variant a `pub` union hoists, each with</span>
+<span class="cm">// its identity, kind and signature</span>
+glyph_exports(module)</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Посмотрите сами</h2>
+        <p>
+          <code>tools/call</code> для <code>glyph_diagnostics</code> на файле с опечаткой в поле возвращает собственную диагностику компилятора, тот же тип Rust, который сериализует <code>glyph check --json</code>, внутри обёртки, которая также говорит, что проверка не покрыла.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">запрос</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": { "path": "src/user.glyph" }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">результат (JSON-содержимое инструмента)</span>
+<pre>{
+  "path": "src/user.glyph",
+  "module": "user",
+  "project_root": "src",
+  "member": true,
+  "diagnostics": [
+    {
+      "code": "E0210",
+      "severity": "error",
+      "stage": "typecheck",
+      "message": "type `U` has no field `naem`; did you mean `name`?",
+      "help": "Check the field name for a typo,
+        or add the field to the type.",
+      "entity": "user::greet",
+      "file": "user",
+      "range": {
+        "start": { "line": 9, "col": 10, "offset": 99 },
+        "end":   { "line": 9, "col": 16, "offset": 105 }
+      },
+      "union": null,
+      "missing_variants": null
+    }
+  ],
+  "unindexed": [],
+  "not_run": [ ... ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Файл проверяется внутри своего проекта, поэтому неверное поле у импортированной записи и <code>match</code> без части веток по импортированному union сообщаются здесь так же, как их сообщает <code>glyph check</code>. То, что инструмент не смог покрыть, указано в ответе, а не оставлено на ваше предположение: <code>member</code> говорит, доходит ли обход проекта до файла, <code>unindexed</code> называет файлы проекта, которые не разбираются, а <code>not_run</code> называет три проверки, которые делает <code>glyph check</code>, а эта нет: <code>tsc</code>; <code>E0104</code> для импорта несуществующего модуля, которому нужен взгляд сборки на <code>node_modules</code>; и <code>E0400</code> для упавшего <code>@example</code>, что решается запуском сгенерированного проекта. Тест запускает обе поверхности на шести проектах и сравнивает JSON ключ за ключом, так что расхождений быть не может.
+        </p>
+        <p>
+          <code>glyph_references</code> работает по всему рабочему пространству: спросите о символе, и вы получите его объявление, каждое использование и привязку <code>import</code> в каждом импортирующем модуле, во всех файлах. Он использует ту же межфайловую идентичность, что и переименование в редакторе, поэтому ответ покрывает весь проект, а не только файл, из которого вы спросили.
+        </p>
+
+        <h2 class="block-label">Нет MCP-клиента? Те же вопросы в командной строке</h2>
+        <p>
+          У каждого инструмента есть команда <code>glyph query</code>, которая принимает аргументы инструмента как флаги и печатает его JSON в stdout. Отвеченный вопрос завершается с кодом 0; отклонённый пишет причину в stderr и завершается с кодом 2. Команды идут через ту же точку входа, что и MCP-клиент, а интеграционный тест задаёт обеим поверхностям один и тот же вопрос и сравнивает ответы как текст, так что команда, которая переформатировала бы или сократила ответ, его не пройдёт.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">те же одиннадцать вопросов без клиента</span>
+<pre>glyph query symbol       --path src/main.glyph --entity orders::OrderStatus
+glyph query impact       --entity orders::OrderStatus --change add_variant --variant Refunded
+glyph query assignable   --path src/main.glyph --from 'Nullable&lt;int&gt;' --to int
+glyph query diagnostics  --path src/main.glyph
+glyph query hover        --path src/main.glyph --line 9 --character 6
+glyph query definition   --path src/main.glyph --line 9 --character 6
+glyph query references   --path src/orders.glyph --name create
+glyph query variants     --path src/orders.glyph --name OrderStatus
+glyph query symbols      --query order
+glyph query dependencies --path src/main.glyph --entity main::build
+glyph query exports      --path src/main.glyph --module orders
+
+<span class="cm">// the same two, asked about a module the compiler carries</span>
+glyph query symbol       --path src/main.glyph --entity std/result::Result
+glyph query exports      --path src/main.glyph --module std/result</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Когда сборка уже красная</h2>
+        <p>
+          Инструменты отвечают на вопросы, заданные до правки. После неё читать нужно <code>glyph check --agent</code>: он печатает диагностики <code>check --json</code> с двумя дополнительными ключами у каждой. <code>constraints</code> это инварианты, которые исправляющая правка должна сохранить, а <code>symbols</code> это ответ <code>glyph_symbol</code> для каждого символа, упомянутого в диагностике, так что следующей правке не нужен второй вызов. Для <code>match</code> без части веток это значит, что варианты union с их полезной нагрузкой приходят вместе с ошибкой, которая их запросила, вместе с фразой о том, что ветка <code>else</code> отказалась бы от гарантии, ради которой эта диагностика существует. Где исправление определено полностью, <code>glyph fix</code> записывает его и сообщает, от чего отказался. Есть <a href="/answers/repair-protocol/">пошаговый разбор всего цикла</a> с настоящим выводом.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Сервер <code>glyph mcp [root]</code> через stdio с одиннадцатью инструментами: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (по всему рабочему пространству), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> и <code>glyph_exports</code>. У каждого есть команда <code>glyph query</code>, печатающая тот же JSON. Ответы берутся из собственных запросов компилятора, и каждый факт, которого у инструмента нет, равен null, а рядом стоит фраза <code>&lt;key&gt;_absent</code> с объяснением. Hover отвечает на имени, объявленном в другом модуле, так что и у импортированной функции в месте вызова, и у поля, прочитанного из импортированной записи, есть тип. Идентичность сущностей доходит до стандартной библиотеки: <code>Result</code> из прелюдии это <code>std/result::Result</code>, то есть модуль, под которым его регистрирует резолвер и из которого эмиттер пишет импорт, поэтому <code>glyph_symbol</code> на нём отвечает <code>Ok(T)</code> и <code>Err(E)</code>, а <code>glyph_exports</code> на <code>std/result</code> перечисляет его поверхность. Исходного кода на Glyph за ним нет, поэтому <code>path</code> и <code>range</code> равны null с этой причиной, а не отсутствуют.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">В работе</h3>
+          <p>Инструменты только читают: переименовать или применить правку через MCP нельзя. Сторона записи живёт в командной строке, это <code>glyph fix</code>. Сервер пересканирует проект при каждом вызове, а не держит кэшированный индекс, и пропускает файлы, которые не разбираются. Ответ <code>tools/list</code> занимает 20 386 байт, было 45 509, и это всё ещё контекст, за который каждая сессия платит при подключении.</p>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Помимо инструментов, агент может читать описание языка и диагностик без сети: <a href="/llms.txt">llms.txt</a> это текст, <code>glyph llms --json</code> те же знания как данные из собственных таблиц компилятора, а <code>glyph build --json</code> пакетный путь для диагностик с кодами по всему дереву.
+        </p>
+      </div>

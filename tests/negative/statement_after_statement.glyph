@@ -1,0 +1,10 @@
+module neg
+
+// G370. Inside a block a statement ends where its expression stops (D1), so
+// `let s = "a" "b"` bound `"a"` and read `"b"` as a separate statement that
+// did nothing: exit 0, and the value the author wrote was dropped. A
+// statement that begins on the line where the previous one ended is E0013.
+pub fn greeting() -> string {
+  let s = "a" "b"
+  return s
+}

@@ -7,7 +7,7 @@ use glyph_ast::{
 use glyph_lexer::{Span, Token};
 
 use crate::cursor::Cursor;
-use crate::error::{LetPatternRefusal, NameRole, ParseError};
+use crate::error::{LetPatternRefusal, NameRole, ParseError, SameLineStart};
 use crate::expr;
 use crate::pat;
 use crate::types;
@@ -22,21 +22,25 @@ pub(crate) fn parse_block(p: &mut Cursor) -> Result<Block, ParseError> {
                 break;
             }
             let s = parse_stmt(p)?;
-            // G351: `{` on the line where a statement ended does not begin a
-            // statement. Greedy parsing (D1) would end `return h()` before the
-            // brace and read `{ k: 2 }` as a separate statement that never
-            // runs, so the value the author wrote is lost without an error.
-            if matches!(p.peek(), Token::LBrace) && !p.line_break_before_current() {
-                let stmt = s.span();
-                let text = p.slice(stmt.start, stmt.end);
-                // Quoted only when it reads as one short line; a statement
-                // that spans lines is named, not reprinted.
-                let before = (!text.contains('\n') && text.chars().count() <= 60)
-                    .then(|| text.to_string());
-                return Err(ParseError::BraceAfterStatement {
-                    before,
-                    span: p.peek_span(),
-                });
+            // G351, G370: a statement does not begin on the line where the
+            // previous one ended. Greedy parsing (D1) ends `let x = h()`
+            // before `g` and `return h()` before `{ k: 2 }`, and reads what
+            // follows as a separate statement, so a value the author wrote
+            // was dropped or never ran without an error.
+            if let Some(start) = same_line_start(p.peek()) {
+                if !p.line_break_before_current() {
+                    let stmt = s.span();
+                    let text = p.slice(stmt.start, stmt.end);
+                    // Quoted only when it reads as one short line; a statement
+                    // that spans lines is named, not reprinted.
+                    let before = (!text.contains('\n') && text.chars().count() <= 60)
+                        .then(|| text.to_string());
+                    return Err(ParseError::StatementOnSameLine {
+                        before,
+                        start,
+                        span: p.peek_span(),
+                    });
+                }
             }
             stmts.push(s);
             p.skip_newlines();
@@ -47,6 +51,63 @@ pub(crate) fn parse_block(p: &mut Cursor) -> Result<Block, ParseError> {
     Ok(Block {
         stmts,
         span: Span::new(open.start, close.end),
+    })
+}
+
+/// What a token after a statement would begin, for E0013, or `None` for a
+/// token that cannot begin a statement at all. Those (`}`, `)`, `,`, `=`, a
+/// binary operator the expression did not take) keep the error the next step
+/// gives them, which names the token rather than a second statement.
+fn same_line_start(t: &Token) -> Option<SameLineStart> {
+    Some(match t {
+        Token::LBrace => SameLineStart::Brace,
+        Token::As => SameLineStart::As,
+        Token::String(_) | Token::Number(_) | Token::True | Token::False => SameLineStart::Literal,
+        Token::Let
+        | Token::Mut
+        | Token::Return
+        | Token::For
+        | Token::Loop
+        | Token::Break
+        | Token::Continue
+        | Token::Defer
+        | Token::Const => SameLineStart::Keyword,
+        Token::RBrace
+        | Token::RParen
+        | Token::RBracket
+        | Token::RAngle
+        | Token::Comma
+        | Token::Colon
+        | Token::Dot
+        | Token::QDot
+        | Token::Question
+        | Token::Equals
+        | Token::Arrow
+        | Token::FatArrow
+        | Token::EqEq
+        | Token::BangEq
+        | Token::LtEq
+        | Token::GtEq
+        | Token::AmpAmp
+        | Token::PipePipe
+        | Token::QQ
+        | Token::DotDot
+        | Token::DotDotDot
+        | Token::Plus
+        | Token::Star
+        | Token::Slash
+        | Token::Percent
+        | Token::Pipe
+        | Token::Amp
+        | Token::Caret
+        | Token::Else
+        | Token::In
+        | Token::Is
+        | Token::Where
+        | Token::JsxText(_)
+        | Token::Newline
+        | Token::Eof => return None,
+        _ => SameLineStart::Other,
     })
 }
 

@@ -494,11 +494,11 @@ type        []            expected Signup (an object), got an array</pre>
       <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
-          <p class="h">Shipping today</p>
+          <h3 class="h">Shipping today</h3>
           <p>Records and <code>where</code> types report the failing rule, not just the failing field: <code>"missing"</code> for an absent required field, <code>"type"</code> for the wrong shape (including a non-object or an array), <code>"refinement"</code> for a value that passed its base type and failed the predicate, and <code>"unexpected"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.</p>
         </div>
         <div class="status-card next">
-          <p class="h">Getting sharper</p>
+          <h3 class="h">Getting sharper</h3>
           <p>Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>"type"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.</p>
         </div>
       </div>

@@ -46,9 +46,9 @@
   border-bottom: 1px solid var(--line);
 }
 .month-title {
-  font-size: var(--fs-xl);
+  font-size: var(--h2);
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   margin: 0;
 }
 .month-sum {
@@ -96,7 +96,7 @@
 .releases .rel-head {
   margin-bottom: var(--s2);
 }
-h2.rel-ver {
+h3.rel-ver {
   margin: 0;
   line-height: 1.2;
   letter-spacing: 0;
@@ -156,8 +156,9 @@ h2.rel-ver {
   padding-top: 0;
 }
 /* A headline taken from the notes' leading <h3> is that heading, already
-   shown in the summary; showing it again right below would only repeat it. */
-.release[data-hl="h3"] .rel-body > h3:first-child {
+   shown in the summary; showing it again right below would only repeat it.
+   The notes render one level down, so it is the body's first <h4>. */
+.release[data-hl="h3"] .rel-body > h4:first-child {
   display: none;
 }
 /* A headline taken from the first sentence repeats the opening of the notes,

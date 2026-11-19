@@ -373,7 +373,7 @@
       <div class="releases">
         <article class="release" id="0.1.124" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.124</h2>
+            <h3 class="rel-ver">0.1.124</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.124" data-url="https://glyphlang.io/versions/2026-09/#0.1.124" aria-label="Link to 0.1.124">Link</a>
@@ -383,7 +383,7 @@
           <div class="rel-body">
             <p>This release closes the holes a two-agent experiment would have found first, so that the study the roadmap gates 0.2.0 on measures the language rather than a checker that still leaned on <code>tsc</code>. It is breaking in four places, each established by running 0.1.123 and this build on the same program: an object literal that does not fit its declared type, a JSX attribute that does not fit its component's props, a wrong argument type to one of eleven stdlib modules, and a single-file check of a nested file in a tree with no <code>package.json</code> marker, which now agrees with the project build. All four went from exit 0 to exit 1 under <code>glyph check --no-tsc</code>.</p>
 
-            <h3>An object literal has a type</h3>
+            <h4>An object literal has a type</h4>
             <p>Until now the checker typed <code>{ x: 1 }</code> as nothing at all. <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed to a parameter it does not fit all passed <code>glyph check</code> and were caught by <code>tsc</code> at the end of the build, which means the editor, the MCP tools and <code>--no-tsc</code> were blind to them.</p>
             <div class="code">
               <span class="cap">glyph check --no-tsc</span>
@@ -401,7 +401,7 @@ takes(c)
             </div>
             <p>A spread-free object literal is the structural record of the fields it writes, compared structurally at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument, with the declared type named. The type survives a binding: <code>let c = { name: "a" }</code> carries <code>{ name: string }</code>, with a fresh string literal widened the way TypeScript widens it, so a misspelled key read back off it is E0210. Every refusal was established against <code>tsc --strict</code> one shape at a time, and every accepted shape but one still passes it. Two things deliberately do not change: a literal holding a spread has no type, because its fields are not enumerable there, and an extra field the record does not declare is still accepted, which is the width rule the record comparison has always applied and which <code>tsc</code> does not share on a fresh literal (TS2353); that divergence predates this release and is pinned by a test so it cannot move silently. What still stops short is the message for a missing field, <code>found `record`</code> where <code>tsc</code> names the property; that is the first item of the next release.</p>
 
-            <h3>A JSX attribute is checked against the props record</h3>
+            <h4>A JSX attribute is checked against the props record</h4>
             <p>With <code>component Button(props: { variant: Variant, label: string })</code> over a <code>"primary" | "danger"</code> union, all of <code>variant="danger"</code>, <code>variant="nope"</code> and <code>variant={42}</code> passed <code>glyph check --no-tsc</code>. An attribute list never reached the assignability relation.</p>
             <div class="code">
               <span class="cap">glyph check --no-tsc</span>
@@ -413,7 +413,7 @@ takes(c)
             </div>
             <p>A component element's written attributes go through the same argument-versus-parameter check a call does, so a wrong value is E0211 carrying the values a string-literal union accepts, and an undeclared attribute is E0210 with the record's field list, which <code>glyph fix</code> renames when one declared field is a character away. It holds across an import, where the props record keeps its own name. Three readings were settled by running the equivalent TypeScript under React 18's types: children ride as <code>createElement</code> arguments and are not a prop; an element carrying a spread may get its props from the spread, so it is not asked about a missing attribute, but what it writes explicitly is still checked; and an optional field may be omitted. A missing required attribute is still caught only by <code>tsc</code>, for the same reason as the record literal above. The work also found two holes it did not fix, recorded as G242 and G243: a component reached through a lowercase namespace alias, <code>&lt;ui.Button /&gt;</code>, is classified by its first character and emitted as a string tag that React never calls while <code>tsc</code> accepts it, and <code>component Greeting(name: string)</code> is accepted although no element can ever render it. Both are in 0.1.125.</p>
 
-            <h3>The editor answers across a module boundary</h3>
+            <h4>The editor answers across a module boundary</h4>
             <p><code>glyph query hover</code> answered at every name declared in another module and the language server did not: its overlay registered the buffers the editor had opened, not a project, so hovering an imported function at its call site, or a field read off an imported record, came back <code>null</code> where the tool answered.</p>
             <div class="code">
               <span class="cap">textDocument/hover, over the protocol, at the call to an imported create</span>
@@ -422,13 +422,13 @@ takes(c)
             </div>
             <p>The server now holds one database per project the session touches, with the open buffers layered over the files on disk rather than standing in for them. A file is placed in the project its imports are counted from, which is the root <code>glyph query</code> uses and <code>glyph build</code> compiles from, so the two surfaces ask the same question and hover, definition, references and diagnostics agree with the tool. A buffer the editor has open outranks the bytes on disk everywhere, not only in the file the request is about: retyping a signature in an unsaved <code>orders.glyph</code> changes what hovering its call site in <code>main.glyph</code> says, and closing it without saving puts disk back in charge. A keystroke writes one input and re-registers nothing, and a body edit leaves a module's export surface content-equal so no sibling is re-analysed; measured on the latency lane's three files, a keystroke costs between one and nine percent more than it did single-file. Hover itself is now one function both surfaces call, which is how they came to give one answer.</p>
 
-            <h3>Eleven stdlib modules carry a type in every position</h3>
+            <h4>Eleven stdlib modules carry a type in every position</h4>
             <p>The stdlib tables modeled a function's arity and its return and left every parameter unknown, so <code>fs.read_text(42)</code> passed <code>glyph check --no-tsc</code> and only <code>tsc</code> refused it. <code>std/fs</code>, <code>std/math</code>, <code>std/regex</code> and <code>std/io</code> now carry a type in every position of every function, and <code>std/array</code>, <code>std/string</code>, <code>std/record</code>, <code>std/path</code>, <code>std/process</code>, <code>std/time</code> and <code>std/timers</code> in every position but four, each of which says so on its row. Fully modeled exports go from 24 to 117 of 327; exports with no signature at all from 227 to 164. Every type was read off the TypeScript in the runtime, so a call these refuse is a call <code>tsc</code> refuses; eight such calls are pinned in the negative corpus, each exit 0 under 0.1.123 and refused here. Three exports of <code>std/fs</code> are new rather than retyped, because the old table could only describe a function returning a <code>Result</code>: <code>exists</code>, <code>is_dir</code> and <code>close_lines</code> have a row now, and <code>io.read_line</code> and <code>process.env</code> answer <code>Option&lt;string&gt;</code>, so the end of input and an unset variable are values a <code>match</code> has to cover. The four positions left <code>unknown</code> are a <code>T</code> the unifier has already bound from an earlier argument (<code>array.push</code>, <code>array.contains</code>, <code>array.index_of</code>, <code>record.set</code>), where writing the declared type would refuse <code>array.contains(["a", "b"], s)</code>; the unifier change that fixes that is its own release.</p>
 
-            <h3>A diagnostic says what kind of names it lists, and a file has one name</h3>
+            <h4>A diagnostic says what kind of names it lists, and a file has one name</h4>
             <p><code>alternatives</code> carried a record's fields, a union's variants, a string-literal union's literals or a module's exports with nothing in the object saying which, so <code>check --agent</code> re-read <code>glyph_symbol</code> to find out and dropped its sentence for an inline union. Every diagnostic now carries <code>alternatives_kind</code> beside it, one of <code>fields</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised and <code>null</code> exactly when <code>alternatives</code> is. <code>alternatives</code> itself is unchanged. Separately, a nested file in a tree with no <code>package.json</code> marker was <code>sub/deep</code> to <code>glyph check</code> and <code>deep</code> to the tools, because the build keyed it from the nearest <code>src/</code> and the tools from its own directory. One rule on every surface now, written into D41: the nearest marked ancestor, else the nearest ancestor named <code>src</code>, else the file's own directory. That is the fourth breaking change: checking <code>src/sub/deep.glyph</code> alone used to accept an import the project build rejected, and now agrees with it.</p>
 
-            <h3>Smaller things</h3>
+            <h4>Smaller things</h4>
             <p><code>glyph fmt</code> no longer writes a file its own parser refuses: the formatter prints every unary operand in parentheses, and the parser charged a nesting level for the operand and another for the parentheses, so a run of forty minuses came back at eighty levels and the next pass drew E0011 on output the previous pass had produced. Parentheses around an operand are now that operand's level, so <code>-(x)</code> nests as deep as <code>-x</code>; the limit is still 64 and a run of bare parentheses is still counted one per bracket. The spec numbered two decisions D43; the <code>mut</code>-across-<code>await</code> rule keeps the number the shipped notes cite, and <code>never</code> as the bottom type is D47, with the old number noted on it, so <code>glyph llms --json</code> reports no duplicate. And the benchmarks page on this site had kept a withdrawn token figure for two weeks after the fixtures were made to compile; it now carries the measured 436 to TypeScript's 478, and the doc-claims gate reads the newest results file so the two cannot disagree again.</p>
 
             <p>One planned item did not ship. The publish workflow was to move to npm trusted publishing before this tag; a trusted publisher is configured per package on npmjs.com by the account owner, and that was not done in time, so this release publishes on the token path and the move heads 0.1.125.</p>
@@ -437,7 +437,7 @@ takes(c)
         </article>
         <article class="release" id="0.1.123" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.123</h2>
+            <h3 class="rel-ver">0.1.123</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.123" data-url="https://glyphlang.io/versions/2026-09/#0.1.123" aria-label="Link to 0.1.123">Link</a>
@@ -445,7 +445,7 @@ takes(c)
           <details class="rel-details">
             <summary><span class="rel-headline">A string literal now has the type it spells</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A string literal now has the type it spells</h3>
+            <h4>A string literal now has the type it spells</h4>
             <p>Until this release the set of legal strings lived on the declaration and nothing lived on the value, so <code>"read"</code> was a <code>string</code> and <code>["read", "write"]</code> was an <code>Array&lt;string&gt;</code>. That made two programs indistinguishable: returning <code>["read", "write"]</code> where an <code>Array&lt;Mode&gt;</code> is declared, which <code>tsc</code> compiles, and returning an <code>xs: Array&lt;string&gt;</code> in the same place, which it refuses. 0.1.122 declined the pairing rather than get it wrong, and buying the right program that way meant giving up the wrong one.</p>
             <div class="code">
               <span class="cap">glyph check --no-tsc</span>
@@ -465,7 +465,7 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
             <p>The literal widens back to <code>string</code> where TypeScript widens it: a <code>let</code> with no annotation, an array bound to one, and the element binding of a <code>for</code> over a written array, all three of which widen in the emitted TypeScript too. A <code>const</code> keeps its literal, because a Glyph <code>const</code> emits a TypeScript <code>const</code> and <code>takes_mode(CM)</code> compiles, so widening it would refuse a program <code>tsc</code> accepts. A literal type that arrived through a name is not fresh and is not widened, which is TypeScript's own freshness rule. Every row of that was settled by writing the equivalent TypeScript and running <code>tsc --strict</code> on it, which is why the <code>const</code> row and the <code>for</code> row point in opposite directions.</p>
             <p>Four shapes are still undecided and each says why. The key argument of a <code>Record</code> against another <code>Record</code>'s, because TypeScript writes <code>Record&lt;string, V&gt;</code> as an index signature covering every key a <code>Record&lt;Mode, V&gt;</code> declares and accepts it both ways. A literal inside <code>Some(...)</code>, because a prelude constructor's type is pending generic instantiation and it is the constructor that has no type here, not the literal. A record literal bound to an unannotated <code>let</code>, because nothing synthesizes a record type for an object literal yet. And a concatenation, because a binary expression has no type here at all.</p>
 
-            <h3>The prelude <code>Result</code> has an address</h3>
+            <h4>The prelude <code>Result</code> has an address</h4>
             <p><code>Result</code> and <code>Option</code> are declared by no project module, so an <code>E0200</code> over one of them used to carry <code>cause: null</code>, no tool keyed their variants, and <code>glyph fix</code> declined the single most common shape it exists for: <code>match r { Ok(v) =&gt; v, }</code>. The identity turned out not to need inventing. The resolver registers <code>std/result</code> with <code>Result</code>, <code>Ok</code> and <code>Err</code>; the emitter writes <code>import { Ok, type Result } from "./.glyph-runtime/std/result"</code> into a program that never imported it; and <code>import std/result { Result }</code> already resolves. One layer was throwing that away.</p>
             <div class="code">
               <span class="cap">glyph check --agent --no-tsc, on a match over a prelude Result</span>
@@ -509,7 +509,7 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
             <p>No import is written for the variants, because the prelude already binds <code>Ok</code> and <code>Err</code>; the <code>std/process</code> import is the one every <code>E0200</code> repair adds for the <code>TODO</code> body. The same rule gives <code>Option</code> its <code>std/option</code> address, <code>Nullable</code> its <code>std/nullable</code> one, and <code>fs.ErrorKind</code> the address <code>std/fs::ErrorKind</code>. <code>glyph query symbol --entity std/result::Result</code>, <code>glyph query variants</code> and <code>glyph query exports --module std/result</code> all answer instead of refusing, with <code>path</code> and <code>range</code> null beside the reason rather than missing. A project that declares its own <code>pub type Result</code> still keys as <code>orders::Result</code>.</p>
             <p>Two spellings were considered and rejected. A reserved segment such as <code>&lt;prelude&gt;::Result</code> is collision-proof and nothing else: it gives one declaration two identities, the agent's and the emitter's, and adds a fourth module-path grammar beside project paths, npm-scoped paths and <code>extern/</code>. A discriminator field beside a bare name was already shipped and is the thing that was broken, since the union entity has carried <code>kind: "builtin"</code> next to <code>name: "Result"</code> all along and it buys an agent no next call. The whole surface rests on forwarding one flat string from a diagnostic into the next query, and a string whose meaning depends on a sibling field cannot be forwarded. <code>union.kind</code> stays <code>builtin</code>, because it still answers whether this project can add a variant. The names no stdlib module declares, <code>Array</code>, <code>Record</code>, <code>Schema</code>, <code>Component</code>, <code>Issue</code>, <code>par</code>, <code>print</code>, <code>assert</code> and <code>infer_output</code>, stay unkeyed with a reason each rather than getting an invented <code>std/prelude</code>.</p>
 
-            <h3>Everything an agent has to know, out of the compiler</h3>
+            <h4>Everything an agent has to know, out of the compiler</h4>
             <p><code>glyph llms --json</code> emits one document and no line of it is written by hand. <code>diagnostics</code>: 61 codes, each with the catalogue sentence, the one-line fix, the long <code>--explain</code> text, and the help and note read off a real diagnostic. 38 of the 61 also carry a wrong program from the negative corpus, compiled at the moment you ask; the other 23 say the corpus has no case for the code. <code>prelude</code>: 24 names out of the resolver's own table. <code>stdlib</code>: 36 modules and 327 exports, split three ways. 24 carry a signature the checker models in every position, 76 carry one with a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code>, and 227 say in a <code>signature_absent</code> line that the tables model none. A <code>?</code> is <code>unknown</code> rendered, so a signature with one is never presented as complete. <code>decisions</code>: 47 parsed out of the spec. <code>tools</code>: the eleven the MCP server serves, each with its <code>glyph query</code> verb and its full manual.</p>
             <div class="code">
               <span class="cap">glyph llms --json, trimmed</span>
@@ -531,7 +531,7 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
             <p>The wrong programs are readable too. <code>glyph llms --negative E0200</code> prints the <code>tests/negative/</code> and <code>catches/</code> cases that draw the code, each compiled here, the <code>catches/</code> ones carrying the TypeScript a <code>tsc --strict</code> project accepts beside the Glyph that refuses it. With no code it lists 69 cases over 40 of the 61 codes and names the 21 codes that have none. That is a different count from the 38 above, which reads only <code>tests/negative/</code>.</p>
             <p>And <code>tools/list</code> stopped costing what it cost. Eleven tools carried 31,446 bytes of description in a 45,509-byte reply; the same eleven carry 8,627 in a 20,386-byte reply, which every session pays on connect. Nothing was deleted: the previous text is held verbatim, keyed by tool name, and published in <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away.</p>
 
-            <h3>A module under <code>std/</code> is an error instead of dead code</h3>
+            <h4>A module under <code>std/</code> is an error instead of dead code</h4>
             <p>A project file could declare <code>module std/io</code>. It compiled clean and was unreachable: an import of that path resolves to the stdlib module the compiler carries, and the project file is never read. The prefixes were reserved for imports and nothing rejected the declaration.</p>
             <div class="code">
               <span class="cap">glyph check --no-tsc, on src/io.glyph declaring `module std/io`</span>
@@ -543,12 +543,12 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
             </div>
             <p>The prefix is matched as a whole first segment, so <code>standard</code>, <code>externals/io</code>, <code>app/std</code> and <code>app/extern/helper</code> are untouched, and an import under either prefix still resolves. This is a dead-code hole on its own account, and it is also the guard the stdlib identities above rest on.</p>
 
-            <h3>Two smaller things</h3>
+            <h4>Two smaller things</h4>
             <p>An imported string-literal union prints its declared name. It used to lower straight to its literal set, so one declaration said expected <code>"read" | "write"</code> through a named import and expected <code>Alias</code> through an alias, and neither matched what the same declaration prints locally. It is expected <code>Mode</code> under both spellings now, and the literal set is read from the declaration through one accessor that assignability, exhaustiveness, the query tools and the emitter all go through. The emitted TypeScript is unchanged.</p>
             <p><code>glyph_impact</code>'s signature-type table decides a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools can no longer disagree about one pairing. The first cut of that reported the accepted pairing <code>SAFE</code>, and it was wrong: <code>change_signature_type</code> names no replacement type, and in a project that compiles every pairing is accepted, so <code>SAFE</code> was true of every argument of every call and proved nothing. On one <code>f(s: string)</code>, <code>f("x")</code> came back <code>SAFE</code> and <code>f(s)</code> came back <code>WILL_FAIL</code> under one edit, and both break identically. One meaning runs across the table now: an argument whose pairing the relation reads in full is <code>WILL_FAIL</code>, an argument with no rule is <code>UNDETERMINED</code>, and <code>glyph_assignable</code> keeps <code>COMPATIBLE</code> for the acceptance because it is asked about two types with no edit.</p>
             <p>One thing this release does not settle, named here rather than left silent. The spec numbers two different decisions D43, the <code>mut</code>-across-<code>await</code> rule and <code>never</code> as the bottom type; <code>glyph llms --json</code> reports the collision in <code>duplicate_numbers</code> rather than hiding it, and renumbering one of them is a change to a public index other documents cite.</p>
 
-            <h3>A union of your own, named <code>Result</code></h3>
+            <h4>A union of your own, named <code>Result</code></h4>
             <p>A project can declare <code>pub type Result = | Won | Lost</code>. Import it into another module, match on it with one arm missing, and until this release nothing said so: the compiler read the name as the prelude <code>Result</code> rather than as the declaration the import names, and a bare prelude <code>Result</code> carries no variant list, so the match was never checked. The program compiled, and the emitted TypeScript threw <code>non-exhaustive match</code> at run time. <code>Option</code> and <code>Nullable</code> did the same. Rename the type to <code>Outcome</code>, or declare it in the same module instead of importing it, and the check fired.</p>
             <p>An explicit import binding now shadows a prelude name, which is what a local <code>type Result</code> already did and what <code>import std/string</code> already did for a namespace binding. <code>import std/result { Result }</code> is unchanged: the prelude is a curated re-export of the standard library, so those two are one declaration. <code>glyph_variants</code> was reporting <code>0 match sites across 0 files</code> over the file that held the site, and it counts it now, because the site is keyed.</p>
 
@@ -558,7 +558,7 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
         </article>
         <article class="release" id="0.1.122" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.122</h2>
+            <h3 class="rel-ver">0.1.122</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.122" data-url="https://glyphlang.io/versions/2026-09/#0.1.122" aria-label="Link to 0.1.122">Link</a>
@@ -566,7 +566,7 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
           <details class="rel-details">
             <summary><span class="rel-headline">A type that lists its legal strings now rejects the illegal ones</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A type that lists its legal strings now rejects the illegal ones</h3>
+            <h4>A type that lists its legal strings now rejects the illegal ones</h4>
             <p><code>type Mode = "read" | "write"</code> declares a finite set of strings, and until this release the Glyph checker compared a value against it by nothing at all. A number, a <code>bool</code>, a record, a string outside the set: all four passed <code>glyph check --no-tsc</code> with nothing but unused-variable lints. <code>tsc</code> caught them on the emitted TypeScript, so a full <code>glyph build</code> was never wrong, but the four surfaces that have no <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP tools and the playground.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -591,7 +591,7 @@ fn main() {
             <p>That is the four <code>tsc</code> reported, at the same four statements, without running <code>tsc</code>. The rule reads the union as what it is at run time, a <code>string</code>, and asks the checker the corresponding <code>string</code> question in each direction, so it inherits the rules that already refuse a record or a container against a <code>string</code> instead of restating them. Two literal sets are compared by set, so a narrower union goes where a wider one is declared. An alias chain is followed on both sides, an imported union is decided like a local one, and <code>Nullable&lt;Mode&gt;</code> is descended with the union intact, so <code>let m: Nullable&lt;Mode&gt; = "read"</code> stands and <code>= "rw"</code> does not. A bare <code>string</code> where the union itself is declared is refused too, because <code>tsc</code> refuses it too.</p>
             <p>Four shapes are left to <code>tsc</code> on purpose rather than guessed at. A <code>string</code> produced by a value-position <code>match</code> whose arms are not all written literals is one: reading it as a bare <code>string</code> would reject correct programs, and one in this repository's own corpus was the first casualty of a stricter first cut. A union nested in a record field is another, which is the same boundary the record rules already stop at. A bare <code>string</code> inside a generic argument is the third, and it is the reason <code>fn arr() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }</code> still compiles: Glyph types every string literal <code>string</code>, so that array is <code>Array&lt;string&gt;</code> here while TypeScript reads it as <code>Array&lt;"read" | "write"&gt;</code>, and refusing the pairing would refuse the ordinary spelling of a list of modes. The fourth is a call to a generic function that returns its own type parameter: <code>id("read")</code> is a <code>Mode</code> under <code>tsc</code> and a <code>string</code> here, for the same reason. What is refused inside <code>Array&lt;Mode&gt;</code> is what is refused against <code>Mode</code> everywhere else: a <code>number</code>, a <code>bool</code>, a record, a tagged union and a literal outside the declared set.</p>
 
-            <h3>A deeply nested file no longer kills the process</h3>
+            <h4>A deeply nested file no longer kills the process</h4>
             <p>The parser is recursive descent with no depth guard, so an expression nested two thousand levels deep ran the process out of stack and aborted. That is bad on <code>glyph check</code> and worse on <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root: one pathological file took down the server for the whole workspace. The nightly fuzz targets had been failing on it every night since 2026-09-10.</p>
             <div class="code">
               <span class="cap">glyph check --no-tsc, on `const x = ` with 2,000 nested brackets</span>
@@ -606,7 +606,7 @@ fn main() {
             </div>
             <p>The limit is 64 and it was measured rather than picked. One level of the costliest construct, a nested array literal, costs 7,792 bytes of stack in the release build and 8,810 in the debug one, found by binary-searching the smallest thread stack a given depth will parse in. The thinnest stack the parser runs on is a spawned thread's 2 MiB, which is what the language server's workers get, and 64 levels spend under a third of it in the costlier build. For scale, the deepest nesting in the 343 <code>.glyph</code> files in this repository is 16 levels. The limit covers expressions, types, patterns, blocks and JSX children, and the diagnostic lands on the token that would have opened level 65.</p>
 
-            <h3>The diagnostic is an object your agent can act on</h3>
+            <h4>The diagnostic is an object your agent can act on</h4>
             <p>Every diagnostic now carries the pieces a repair needs, and carries them as an explicit <code>null</code> when the compiler does not hold one, so absence has a single spelling: <code>expected</code> and <code>actual</code> as the checker displays them, <code>cause</code> as the <code>module::name</code> of the symbol at fault, <code>alternatives</code> when there is a finite list of things that could legally stand there, <code>related</code> for a union's whole variant list, <code>file</code> as a path relative to the resolution root, and <code>explain</code> pointing at the code's own explanation. The report names that root in <code>project_root</code>, so <code>file</code> opens without a second question about what it is relative to; a tree holding several projects (D41) gets <code>project_roots</code> and a null <code>project_root</code>.</p>
             <p><code>glyph check --agent</code> prints that object with two more keys. <code>constraints</code> are the invariants a repairing edit has to keep, written out so the edit that satisfies the diagnostic does not break the guarantee the diagnostic existed to protect. <code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call.</p>
             <div class="code">
@@ -674,7 +674,7 @@ fn main() {
 }</pre>
             </div>
 
-            <h3>Two more tools, and one answer that was claiming more than it knew</h3>
+            <h4>Two more tools, and one answer that was claiming more than it knew</h4>
             <p><code>glyph_dependencies</code> answers what one declaration depends on: every declaration its own source names, split by <code>CALLS</code>, <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge with both ends and where it sits. <code>glyph_exports</code> answers what a module makes visible to an importer, straight from the compiler's export query: every <code>pub</code> declaration and every variant a <code>pub</code> union hoists. That is eleven tools, each with a <code>glyph query</code> verb.</p>
             <p>Building the mirror of an existing relation is what turned up a bug in the original. Every edge carries a provenance, and <code>PROVED</code> is supposed to mean the compiler read both ends. It was answering <code>PROVED</code> for an edge into a module that does not parse, where nothing had been read at all. It answers <code>UNDETERMINED</code> with the reason now, and because <code>glyph_references</code> and <code>glyph_impact</code> read the same function, both were wrong the same way and both are fixed.</p>
             <p>Hover answers at every name declared in another module now, which is the last four positions of a fourteen-position audit and makes it fourteen of fourteen. The predicted cause was wrong and it is worth saying so: the guess was that the member access on an imported record was missing from the checker's type map, and it was not. The tool was reading the file without its project. The editor's own hover is not fixed by this: <code>glyph lsp</code> registers the buffers an editor opened rather than a project, so it still answers <code>null</code> at an imported name, and that is now tracked as its own finding.</p>
@@ -687,7 +687,7 @@ fn main() {
         </article>
         <article class="release" id="0.1.121" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.121</h2>
+            <h3 class="rel-ver">0.1.121</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.121" data-url="https://glyphlang.io/versions/2026-09/#0.1.121" aria-label="Link to 0.1.121">Link</a>
@@ -695,7 +695,7 @@ fn main() {
           <details class="rel-details">
             <summary><span class="rel-headline">Three programs that used to build clean now don't</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Three programs that used to build clean now don't</h3>
+            <h4>Three programs that used to build clean now don't</h4>
             <p>A prelude container assigned to a primitive was silent. <code>Option&lt;int&gt;</code> into a <code>string</code>, <code>Nullable&lt;int&gt;</code> into an <code>int</code> parameter: <code>glyph check --no-tsc</code> said nothing about either, and <code>tsc</code> only caught the first. The <code>Nullable</code> case is the one <code>tsc</code> can't make, because the emitted <code>const v: number | null = 3</code> narrows back to <code>number</code> before the call is checked, so the Glyph checker was the only place it could be caught and it wasn't.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -726,7 +726,7 @@ fn main() {
             </div>
             <p>The message is read off the declaration, so a record lists its fields, a tagged union lists its variants with their payload shapes, and a string-literal union lists its literals. <code>Order.parse(raw)</code> and <code>Order.is(v)</code> are still legal, because the receiver of a type's own descriptor is the one expression position a type name belongs in. Raising the error is also what takes the unreachable-code warning off, since the lint tier only runs on a module that produced no errors.</p>
 
-            <h3>One call describes a symbol, and every query has a command-line verb</h3>
+            <h4>One call describes a symbol, and every query has a command-line verb</h4>
             <p>An agent that wants to write a <code>match</code> over a union it didn't declare had to piece the union together from hover, symbol search and a file read. <code>glyph_symbol</code> answers it in one call, addressed by the <code>module::name</code> a diagnostic already prints or by a position in a file. It returns the kind, the identity, whether it's exported, a record's fields with their types, a union's variants with their payloads and the syntax that constructs each, a callable's parameters and return, an interface's members, whether a <code>match</code> over it must be exhaustive, and the <code>@example</code> text written above it.</p>
             <div class="code">
               <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
@@ -752,7 +752,7 @@ fn main() {
             <p>Hover picked up the same query and now answers at declaration names, parameters, annotations, variants and a binding's definition site, not just at expressions: thirteen of the fourteen positions an audit probed on a three-module project, against two before. Those fourteen positions are a test now, each with the exact string hover answers or the null it doesn't, so the ratio moves only when the code does. The fourteenth is a field read from an imported record, and it's one of four places hover answers null at a name declared in another module: the import binding, an imported function where it's called, an imported variant used as a value, and that field read. An imported type written as an annotation does answer. <code>glyph_variants</code> carries each variant's payload and construction syntax, <code>glyph_definition</code> carries the identity so its answer chains into <code>glyph_impact</code>, and <code>glyph_symbols</code> carries the identity, <code>pub</code>, the kind and a one-line signature, with an <code>interface</code> reported as an interface rather than as a type.</p>
             <p>There's also <code>glyph_assignable</code>, which asks the checker's own comparison whether a value of one type can go where another is declared, and answers <code>WILL_FAIL</code> with the codes the pairing draws, <code>COMPATIBLE</code> where a rule accepts, or <code>UNDETERMINED</code> where no rule covers it. And all nine tools now have a command-line verb, so an agent with no MCP client runs <code>glyph query symbol</code>, <code>glyph query impact</code>, <code>glyph query assignable</code> and gets the same bytes over stdout.</p>
 
-            <h3>If you parse glyph_diagnostics, read the diagnostics key</h3>
+            <h4>If you parse glyph_diagnostics, read the diagnostics key</h4>
             <p>The MCP tool used to type-check one file's text on its own, so anything that needed another module was invisible to it: a wrong field on an imported record came back as an empty list, and a <code>match</code> missing arms over an imported union came back as two unused-import warnings naming the very variants the missing arms would have named. It now checks the file inside its project and hands back the same structured diagnostic <code>glyph check --json</code> prints, from the same Rust type, with a test that runs both surfaces on six projects and compares the JSON key for key.</p>
             <p>The answer is an envelope rather than a bare array, because what the check couldn't read is part of the answer: <code>diagnostics</code> holds the list, <code>member</code> says whether the project walk reaches the file, <code>unindexed</code> names project files that don't parse, and <code>not_run</code> names the three things <code>glyph check</code> does that this doesn't: <code>tsc</code>, <code>E0104</code> for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which is decided by running the emitted project. A client that read the old top-level array reads <code>diagnostics</code> now.</p>
             <p class="rel-note"><strong>Breaking.</strong> The three programs above turn a previously green build red under <code>glyph check --no-tsc</code>. Established by running the published 0.1.120 and this release on the same programs under an isolated <code>HOME</code>: the <code>Option&lt;int&gt;</code> assignment, the <code>Nullable&lt;int&gt;</code> argument and the <code>Order { ... }</code> construction each exit 0 under 0.1.120 and 1 under this release, reporting <code>E0204</code>, <code>E0211</code> and <code>E0228</code> in turn.</p>
@@ -761,7 +761,7 @@ fn main() {
         </article>
         <article class="release" id="0.1.120" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.120</h2>
+            <h3 class="rel-ver">0.1.120</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.120" data-url="https://glyphlang.io/versions/2026-09/#0.1.120" aria-label="Link to 0.1.120">Link</a>
@@ -769,7 +769,7 @@ fn main() {
           <details class="rel-details">
             <summary><span class="rel-headline">An imported union passed where a string is declared, without tsc</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>An imported union passed where a string is declared, without tsc</h3>
+            <h4>An imported union passed where a string is declared, without tsc</h4>
             <p>A function imported from another module and a value assigned across that boundary used to get a pass that the same code in one file never got. Passing a union imported from a sibling module where a plain <code>string</code> parameter is declared drew nothing from <code>glyph check --no-tsc</code>; the identical call with the union declared locally has reported <code>E0211</code> since 0.1.116.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -787,7 +787,7 @@ fn main() {
 <span class="add">// 0.1.120: [E0211] expected `string`, found `Status`</span></pre>
             </div>
             <p>Two more of the same shape close alongside it. A <code>match</code> over a local alias of an imported union (<code>type Local = Shape</code>, then <code>match s: Local { ... }</code>) was not exhaustiveness-checked at all; it now gets the same <code>E0200</code> a match over <code>Shape</code> directly has always gotten. And <code>import std/string</code>, the namespace form the stdlib reference recommends, bound the name <code>string</code> without the checker noticing: <code>let x: string = 5</code> built clean under that import, while the named form <code>import std/string { trim }</code> caught it. Both forms now report <code>E0204</code>. Separately, a user program that declares its own <code>type Option&lt;T&gt;</code> no longer gets the prelude <code>Option</code>'s runtime check stapled onto a type of its own.</p>
-            <h3>What changed underneath: the emitter reads the checker's answers instead of computing its own</h3>
+            <h4>What changed underneath: the emitter reads the checker's answers instead of computing its own</h4>
             <p>All four of the above are one cause. The emitter used to re-derive semantic facts the checker had already worked out: which declaration a name resolves to, whether a field exists on a type, whether a bare identifier in a match arm names a variant or binds a value. An audit of the emitter found 49 sites doing this across six families. Three changes remove them: the emitter now holds the same resolver the checker built for the module, so an imported declaration is read once instead of independently re-discovered; it walks one alias chain instead of four separate copies, and decides a field's runtime check from the resolved type rather than a name's last segment; and it reads the checker's own record of which pattern nodes are variants rather than guessing from capitalisation. Landing each of the three changes is what surfaced the four holes above, because the checker had never been asked those questions from the emitter's position before: the emitter was answering them itself.</p>
             <p>No program that compiled before emits different TypeScript. Every application under <code>examples/apps/</code> at its own root, plus the full corpus, was emitted before and after each of the three changes: 684 TypeScript files across 32 roots, byte-identical every time.</p>
             <p class="rel-note"><strong>Breaking.</strong> The four items above each turn a previously silent program red under <code>glyph check --no-tsc</code>. Established by running the published 0.1.119 and this release on the same four programs, under an isolated <code>HOME</code>: the imported-union-as-string call, the match over a local alias of an imported union, and the namespace-import shadowing case each exit 0 under 0.1.119 and 1 under this release, reporting <code>E0211</code>, <code>E0200</code> and <code>E0204</code> in turn; a control program that imports and matches a union correctly stays exit 0 on both.</p>
@@ -796,22 +796,22 @@ fn main() {
         </article>
         <article class="release" id="0.1.119" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.119</h2>
+            <h3 class="rel-ver">0.1.119</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.119" data-url="https://glyphlang.io/versions/2026-09/#0.1.119" aria-label="Link to 0.1.119">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The corpus, checked against its own formatter</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The corpus, checked against its own formatter</h3>
+            <h4>The corpus, checked against its own formatter</h4>
             <p>80 of the 175 Glyph files under <code>examples/</code> were not what <code>glyph fmt</code> produces: collapsed parameter lists, missing blank lines, a corpus that the diff-stability pillar points to without being in its own canonical form. Every file is reformatted, a second pass changes nothing, and every app and corpus file gives the same exit code and diagnostic count before and after. <code>scripts/check_fmt.py</code> runs <code>glyph fmt --check</code> over <code>examples/</code> in the release gates and in CI, so the corpus can't drift again without the gate catching it.</p>
-            <h3>The token-count benchmark, corrected to the fixtures that actually compile</h3>
+            <h4>The token-count benchmark, corrected to the fixtures that actually compile</h4>
             <p>None of the three Glyph fixtures behind the density claim was a program the compiler accepted: one used a regex literal Glyph doesn't have, one propagated the wrong error type out of a function, one only passed with <code>tsc</code> turned off. The comparison was Glyph that didn't compile against four languages that did. All three fixtures are rewritten to what Glyph offers, changing what each program does as little as possible, and now pass <code>glyph check</code> with <code>tsc</code> included. The number moves with them: Glyph is 436 tokens to TypeScript's 478 on the three functions, about 9% fewer, not the 29% measured on the fixtures that didn't compile, and it lands about level with Python rather than ahead of it. <code>scripts/check_benchmark_fixtures.py</code> keeps each fixture compiling, in the release gates and in CI.</p>
-            <h3>A hang in the socket tests, and a deadline for every spawned run</h3>
+            <h4>A hang in the socket tests, and a deadline for every spawned run</h4>
             <p>The <code>std/net</code> integration test could hang for hours. TCP has no message boundaries, which is the very fact the test exists to check: the test program's client counted reads and exited on the second one, so when the two halves of a split message arrived in a single read on either side, the count never reached two and the client waited on an idle socket that was never going to produce another one. The client now sends its second half only after the first echo comes back and exits on content instead of a read count. Every <code>glyph run</code> the integration suite spawns, 24 call sites, now runs in its own process group under a 120-second deadline that kills the whole tree and reports the test name, the elapsed time, and the output captured so far if it fires.</p>
-            <h3>E0101 names the three real import spellings</h3>
+            <h4>E0101 names the three real import spellings</h4>
             <p>The help text for an unresolved import offered a form, <code>myapp/feature</code>, that reads like a package prefix no project has. It now names the three spellings a module can actually have: <code>std/io</code> for the standard library, a bare name for a sibling in the same directory, and the path from the source root for a file in a subdirectory. Writing the fix down found that no program ever reaches this help: a relative import (<code>import ./helper</code>) stops earlier, in the parser, as <code>E0002</code> with generic help. That gap is scheduled for the diagnostics work below.</p>
-            <h3>What's next</h3>
+            <h4>What's next</h4>
             <p>The roadmap now names the next three releases: an agent-native query API over the compiler's own facts, diagnostics reframed as a repair protocol an agent can act on without a second call, and a knowledge surface generated from the compiler rather than written by hand about it. The lanes are in <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">docs/roadmap/releases.md</a>.</p>
             <p class="rel-note">Not breaking. Established by running the published 0.1.118 and this release on the same two programs, under an isolated <code>HOME</code>: a two-module program with a bare sibling import exits 0 on both, and a relative import (<code>import ./helper</code>) exits 1 on both, reporting <code>E0002</code> on both.</p>
           </div>
@@ -819,7 +819,7 @@ fn main() {
         </article>
         <article class="release" id="0.1.118" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.118</h2>
+            <h3 class="rel-ver">0.1.118</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.118" data-url="https://glyphlang.io/versions/2026-09/#0.1.118" aria-label="Link to 0.1.118">Link</a>
@@ -827,7 +827,7 @@ fn main() {
           <details class="rel-details">
             <summary><span class="rel-headline">Every HTTP request now has a deadline, and a rejected one says so</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Every HTTP request now has a deadline, and a rejected one says so</h3>
+            <h4>Every HTTP request now has a deadline, and a rejected one says so</h4>
             <p><code>std/http</code> bounded nothing by default: <code>get</code> against a peer that accepted the connection and said nothing waited for as long as the process lived. All six verbs (<code>get</code>, <code>post</code>, <code>put</code>, <code>patch</code>, <code>del</code>, <code>head</code>) now carry a 30,000ms deadline unless the call sets its own, and a deadline past what <code>setTimeout</code> can hold is refused up front instead of firing after one millisecond and blaming the network. Filing that refusal under an existing <code>HttpErrorKind</code> would have been the wrong answer with confidence attached, so <code>HttpErrorKind</code> gains a fourth member, <code>"argument"</code>: the request was never issued because one of its arguments was invalid.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -840,7 +840,7 @@ fn main() {
 <span class="add">// 0.1.118: [E0200] match is not exhaustive: missing case for "argument"</span></pre>
             </div>
             <p>An explicit <code>timeout_ms: 0</code> on a <code>Fetch</code> sent through <code>send</code> still means no timeout; that stays the one greppable opt-out. Nothing that compiles or runs today changes behaviour, except that a request nobody bounded now fails with <code>kind: "timeout"</code> after thirty seconds instead of hanging.</p>
-            <h3>fold_while and try_fold, for a fold that knows when to stop</h3>
+            <h4>fold_while and try_fold, for a fold that knows when to stop</h4>
             <p><code>array.fold</code> cannot stop early, so a search that knows when it is finished was either written as recursive functions threading an index, or as a <code>fold</code> that evaluates the whole array and looks correct doing it. <code>fold_while</code> checks a predicate before each element; <code>try_fold</code> stops on the first <code>Err</code>.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -849,13 +849,13 @@ fn main() {
 io.println(string.from(total)) // 6, stops before visiting 4 and 5</pre>
             </div>
             <p>Both are typed through the existing signature table: a <code>done</code> predicate returning the wrong type, or a <code>try_fold</code> result matched with no <code>Err</code> arm, are diagnosed the same as any other stdlib call. There is no <code>Step&lt;A&gt;</code> continue-or-stop type; a generic stdlib union would be the first of its kind and a <code>match</code> over one gets no exhaustiveness check today, so the stop signal is a predicate the checker already knows how to type.</p>
-            <h3>A line reader for std/fs</h3>
+            <h4>A line reader for std/fs</h4>
             <p>Reading a large file meant loading it whole. <code>std/fs</code> gains a handle-based reader: <code>open_lines(path) -&gt; Result&lt;LineReader, FsError&gt;</code>, <code>next_line(reader) -&gt; Result&lt;Option&lt;string&gt;, FsError&gt;</code>, and <code>close_lines(reader) -&gt; void</code>. <code>next_line</code> returns a <code>Result</code> around the <code>Option</code> rather than the <code>Option</code> alone, because a disc error at line 400,000 reported as end of input is a silent truncation: a real read failure is <code>Err</code>, never a quiet <code>None</code>. Reaching the end and hitting an error both close the underlying descriptor, and <code>close_lines</code> is idempotent for an early stop. The reads are synchronous and block the event loop, the same way <code>io.read_line</code> already does on standard input.</p>
-            <h3>A tsc error in a block's last statement now points at that statement</h3>
+            <h4>A tsc error in a block's last statement now points at that statement</h4>
             <p>The emitter recorded a source-map checkpoint at the start of every declaration and statement, except the last statement of a block, so a <code>tsc</code> error there was reported at the statement before it. A caret that lands one line early is a line an agent repairing the error would edit instead of the one that actually failed. The tail statement now records its own checkpoint; the verdict a program gets is unchanged, only where the error points.</p>
-            <h3>A resource reached through a type alias is still a resource</h3>
+            <h4>A resource reached through a type alias is still a resource</h4>
             <p><code>type H = Handle</code> with <code>resource type Handle = { fd: number }</code> used to lose the ownership check: <code>let owned a: Handle</code> was tracked and a double consume was <code>E0206</code>, but <code>let owned b: H</code> was rejected outright as not a resource at all. The ownership check now follows the same alias chain the rest of the checker already follows, so an alias of a resource is accepted and tracked, and a drop through either name is caught.</p>
-            <h3>Eleven stdlib modules, documented</h3>
+            <h4>Eleven stdlib modules, documented</h4>
             <p><code>store</code>, <code>task</code>, <code>set</code>, <code>path</code>, <code>crypto</code>, <code>math</code>, <code>encoding</code>, <code>log</code>, <code>collections</code>, <code>timers</code> and <code>websocket</code> were shipped and importable with no signature listed for any of them. Every export now has a documented signature, checked against the runtime source and the resolver's own export list. Separately, <code>url.join</code>'s <code>Err</code> case is documented: against a valid base the parser resolves almost anything as a relative path, so the failure comes from an unparseable base, not from the string being joined to it.</p>
             <p class="rel-note"><strong>Breaking.</strong> The new <code>"argument"</code> <code>HttpErrorKind</code> turns an exhaustive <code>match e.kind</code> with no catch-all arm red. Established by running the published 0.1.117 and this release on the same program under an isolated <code>HOME</code>: <code>check --no-tsc</code> exits 0 under 0.1.117 and 1 under 0.1.118, reporting <code>E0200</code>. The alias-resource fix and the folds only accept programs that were previously rejected; the tsc position fix changes no verdict.</p>
           </div>
@@ -863,7 +863,7 @@ io.println(string.from(total)) // 6, stops before visiting 4 and 5</pre>
         </article>
         <article class="release" id="0.1.117" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.117</h2>
+            <h3 class="rel-ver">0.1.117</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.117" data-url="https://glyphlang.io/versions/2026-09/#0.1.117" aria-label="Link to 0.1.117">Link</a>
@@ -871,7 +871,7 @@ io.println(string.from(total)) // 6, stops before visiting 4 and 5</pre>
           <details class="rel-details">
             <summary><span class="rel-headline">Nullable&lt;T&gt;, for a field the wire sends as null</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Nullable&lt;T&gt;, for a field the wire sends as null</h3>
+            <h4>Nullable&lt;T&gt;, for a field the wire sends as null</h4>
             <p>A field a real API sends as JSON <code>null</code> had no Glyph type to declare it with. <code>Option&lt;T&gt;</code> only decodes its own tagged form, and an optional field of the base type accepted <code>null</code> but gave the program nothing to match on. <code>Nullable&lt;T&gt;</code> is a new prelude type for exactly that field: it emits as TypeScript <code>T | null</code>, and its check accepts <code>null</code> or a <code>T</code>, rejecting the tagged <code>Option</code> encoding as a value of the wrong shape.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -888,7 +888,7 @@ fn main() -> void {
 <span class="add">// {"op":1,"s":null} and {"op":1,"s":3} both decode; {"s":{"tag":"Some","value":3}} does not</span></pre>
             </div>
             <p>It is its own type, not an <code>Option</code>: assigning one where the other is declared is <code>E0204</code> at a <code>let</code> and <code>E0211</code> at an argument in either direction, and there is no <code>match</code> arm for <code>Some</code> or <code>None</code> on it. The bridge is explicit, <code>std/nullable</code>'s <code>to_option</code>, <code>from_option</code> and <code>is_null</code>, one greppable call at the point null enters a program. <code>T</code> may not itself be <code>Nullable</code> or <code>Option</code> (<code>E0227</code>): the first would give two states one runtime spelling, the second would put a tagged object under a null-tolerant field. <code>glyph gen dts</code> and <code>glyph gen openapi</code> route a schema's <code>nullable</code> field to <code>Nullable&lt;T&gt;</code> instead of collapsing it to an optional field. <code>Option&lt;T&gt;</code> is untouched, so this addition rejects nothing that built before.</p>
-            <h3>A bare-name type alias is a second name for its declaration</h3>
+            <h4>A bare-name type alias is a second name for its declaration</h4>
             <p><code>type B = A</code>, with <code>type A = { x: number }</code>, used to declare a type of its own: a <code>B</code> passed where an <code>A</code> was expected was <code>E0211</code> on a program <code>tsc</code> accepts, and <code>b.naem</code> on a <code>b: B</code> got no field check at all, while the identical two declarations imported from a sibling module answered both correctly. One spelling had two answers, decided only by which file it was written in.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -906,9 +906,9 @@ fn main(b: B) -> number {
 <span class="add">// 0.1.117: no diagnostics. B.parse is A.parse, and b.naem is E0210 as it already was on an a: A</span></pre>
             </div>
             <p>Only a bare name is followed to the declaration it names; a record, a union, a generic application such as <code>Record&lt;string, T&gt;</code>, or a body carrying a <code>where</code> is still the declaration's own type, unchanged by this rule. A <code>where</code> over an alias of a record or union is now <code>E0300</code> like the inline spelling, since the two are one type once the alias is followed: <code>type Positive = Rec where value.x &gt; 0</code> with <code>Rec</code> a record built clean before and is refused now.</p>
-            <h3>gen dts anchors a class instead of naming one that doesn't exist</h3>
+            <h4>gen dts anchors a class instead of naming one that doesn't exist</h4>
             <p>A field typed by a class the <code>.d.ts</code> declares, or by a host type Glyph has no spelling for (<code>RegExp</code>, <code>Date</code>, <code>Map</code>), used to materialize as a reference to a name <code>gen dts</code> never wrote, and the next build failed on it as an unresolved name. It now anchors each as a descriptorless <code>extern_ts</code> alias, so the reference resolves, <code>tsc</code> checks every method call against the real class, and a wire record holding one is still refused parse in the module that declares it, since nothing validated the class at runtime. Every interface member the reader still drops, a method signature among them, now gets a note naming the owner and the reason, and every declaration <code>gen dts</code>, <code>gen zod</code> and <code>gen openapi</code> write is <code>pub</code>, so a generated module can finally be imported by name from the module that owns the boundary.</p>
-            <h3>An imported const and an imported union, closed</h3>
+            <h4>An imported const and an imported union, closed</h4>
             <p>A cross-module <code>pub const</code> was typed by its annotation in the module that declared it and <code>Ty::Unknown</code> everywhere it was imported, so <code>ORIGIN.rowz</code> on a <code>Sheet</code> with no <code>rowz</code> field said nothing one import away. It is now <code>E0210</code> naming the record on both sides of the boundary. Separately, a lowercase nullary variant nested under a payload-carrying variant of an imported union, <code>B(alpha)</code> over an imported <code>tree.G</code>, stopped a valid build at <code>E0305</code>; a new per-variant payload registry resolves it the same way in the CLI, the playground and the MCP server at once.</p>
             <p>Two findings from this round are recorded open, not fixed: <code>E0304</code> only refuses an unverifiable record in the module that declares it, so the same <code>Doc.parse</code> call from a sibling that imports <code>Doc</code> reports nothing (G210); and a <code>tsc</code> error is mapped to the Glyph statement before the one that actually failed, so a caret follows a reader to the wrong line (G211).</p>
             <p class="rel-note"><strong>Breaking.</strong> G205 (the imported const), G207 (the alias <code>where</code>) and the alias hop through G201 each turn a previously silent program red; G91 (<code>Nullable</code>) and G147 (the nested variant) only accept more. Established by running the published 0.1.116 and this release on the same five programs, under an isolated <code>HOME</code>: a <code>where</code> over an alias of a record, and an imported const's misspelt field, each go from exit 0 to exit 1; a <code>B</code> passed where an <code>A</code> is declared goes from exit 1 to exit 0; a <code>Nullable&lt;int&gt;</code> field goes from exit 1 (no such type) to exit 0; and a program using <code>Option&lt;int&gt;</code> alone stays exit 0 on both.</p>
@@ -917,7 +917,7 @@ fn main(b: B) -> number {
         </article>
         <article class="release" id="0.1.116" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.116</h2>
+            <h3 class="rel-ver">0.1.116</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.116" data-url="https://glyphlang.io/versions/2026-09/#0.1.116" aria-label="Link to 0.1.116">Link</a>
@@ -925,7 +925,7 @@ fn main(b: B) -> number {
           <details class="rel-details">
             <summary><span class="rel-headline">The checker stops accepting five things it shouldn't</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The checker stops accepting five things it shouldn't</h3>
+            <h4>The checker stops accepting five things it shouldn't</h4>
             <p>Passing a value of a declared union or record where a <code>string</code>, <code>number</code> or <code>bool</code> is declared drew nothing from <code>glyph check --no-tsc</code>, while the same call with a <code>bool</code> argument was <code>E0211</code>. Only <code>tsc</code> caught the union:</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -956,9 +956,9 @@ fn main(r: PaymentResult) -> string {
             <p>That is the same diagnostic the module-local check has always raised for an unknown arm head; the imported path now raises it too, with the same nearest-variant suggestion.</p>
             <p>Two positions around module-level <code>const</code> are checked for the first time. An annotated const is typed by its annotation, so a wrong field on it is now <code>E0210</code> the way the identical program with a <code>let</code> already was. And a const's own initializer is checked against that annotation, so <code>const LIMIT: number = "ten"</code> is <code>E0204</code> instead of compiling clean and only failing under <code>tsc</code>.</p>
             <p class="rel-note"><strong>Breaking, and deliberately so.</strong> Each of these starts catching a program the checker used to wave through, so a green build can go red on upgrade. Established by running the published 0.1.115 and this release on the same four programs, under an isolated <code>HOME</code>: the union argument, the const initializer, and the wrong-union match arm each go from exit 0 to exit 1; a fourth program using the same union correctly stays exit 0 on both.</p>
-            <h3>What a signature change breaks, for every argument</h3>
+            <h4>What a signature change breaks, for every argument</h4>
             <p><code>glyph_impact</code>'s <code>change_signature_type</code> used to answer every call site <code>NOT_INDEXED</code>, because the checker itself drew no conclusion for a named type against a primitive. Now that the checker compares that pairing, the tool answers per argument: <code>WILL_FAIL</code> with <code>E0211</code> where the checker's own rules would reject the call, <code>UNDETERMINED</code> with a stated reason where they don't (a type declared in another module, an argument the checker holds no type for, the empty-record exclusion), and <code>NOT_INDEXED</code> only for a function read as a value rather than called. A site is the weakest of its arguments.</p>
-            <h3>What a file's address is, decided</h3>
+            <h4>What a file's address is, decided</h4>
             <p>A file's own <code>module</code> line and the path the project keys it by could disagree with nothing saying so, and in shipped code that silently misdirected an exact-or-absent answer to the wrong file's declaration. The ruling: the path is authoritative, and a disagreeing header is not a key. The diagnostic that enforces this inside a marked project is recorded as owed work, not shipped in this release.</p>
             <p>A positional variant pattern such as <code>Node(c, k)</code> is rejected in the parser now, sharing <code>E0010</code> with the declaration spelling, so the emitter can no longer call the same shape unimplemented one line after the parser called it nonexistent. Not breaking: the program was rejected before and is rejected now, with a diagnostic that says why.</p>
             <p>The site gained a new answer page, <a href="/answers/impact/">what a change will break before you make it</a>, and deepened the existing one on silent breakage with the two holes this release closed.</p>
@@ -967,17 +967,17 @@ fn main(r: PaymentResult) -> string {
         </article>
         <article class="release" id="0.1.115" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.115</h2>
+            <h3 class="rel-ver">0.1.115</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.115" data-url="https://glyphlang.io/versions/2026-09/#0.1.115" aria-label="Link to 0.1.115">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The language server stopped running a second compiler</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The language server stopped running a second compiler</h3>
+            <h4>The language server stopped running a second compiler</h4>
             <p>Every request to <code>glyph lsp</code>, a keystroke, a hover, a find-references, re-ran the whole front end on a bare string: parse, symbol collection, prelude construction, resolution, and type assignment, every time. A hover cost the same as a fresh diagnostics pass. The server now owns its own <code>CompilerDb</code>, fed by the editor's buffers rather than disk, and a second request over an unchanged buffer executes zero queries.</p>
             <p>The server never shares the MCP server's database. Sharing would let an unsaved keystroke rewrite the input the agent's disk-truth answers are computed from, and buffer state and disk state are kept apart on purpose.</p>
-            <h3>A regression, found before anyone else could</h3>
+            <h4>A regression, found before anyone else could</h4>
             <p>The first measurement of the overlay showed a keystroke getting slower, not faster: 15.60ms rose to 33.39ms. The cause was the per-declaration fill layer beneath it, <code>decl_ast</code> cloning every declaration's source bytes and <code>resolved_decl</code> cloning a sliced module per declaration, work that pays for itself across a build but was being paid in full on every keystroke. That layer was fixed; <code>resolved_decl</code> fell from about 15ms per call to 0.29ms, and the overlay shipped unchanged underneath it.</p>
             <p>Measured back to back over the real protocol on the 2,205-line <code>minilang</code> example: the keystroke went from 15.96ms to 13.78ms, the editor burst from 64.38ms to 16.97ms, and a repeated workspace-wide references from 13.96ms to 1.44ms. The full per-file table is in <code>benchmarks/lsp-latency/README.md</code>, and the harness that produced it ships under <code>benchmarks/lsp-latency/</code> so the next measurement is a command rather than an excavation.</p>
             <p class="rel-note">One number moved the wrong way: the keystroke's growth exponent, from n^1.49 to n^1.64, because the smallest file gains 30% and the largest gains 14%. Every measured size is faster than before; whether the exponent matters past 2,205 lines is not something this sweep can say.</p>
@@ -987,19 +987,19 @@ fn main(r: PaymentResult) -> string {
         </article>
         <article class="release" id="0.1.114" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.114</h2>
+            <h3 class="rel-ver">0.1.114</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.114" data-url="https://glyphlang.io/versions/2026-09/#0.1.114" aria-label="Link to 0.1.114">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Editing one declaration no longer invalidates the others</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Editing one declaration no longer invalidates the others</h3>
+            <h4>Editing one declaration no longer invalidates the others</h4>
             <p>The compiler's per-declaration answers were keyed by position, so adding a function at the top of a file threw away what it knew about every function below it. They key by name now, and an edit above a declaration leaves that declaration's work intact.</p>
             <p>Rewriting a file with identical bytes also cost a full rebuild. The incremental layer compares before it writes, so a tool that formats a file and changes nothing pays nothing.</p>
-            <h3>What this release deliberately does not contain</h3>
+            <h4>What this release deliberately does not contain</h4>
             <p>A third change was planned and is not here. The plan said every relation the agent work depends on sits downstream of one map, so rekeying that map came first. That turned out not to be true of the current code, so the change would have moved nothing anyone can observe. It was left undone, and the wrong claim stays on the record marked wrong. A release that ships tidiness while calling it progress is worse than a smaller one.</p>
-            <h3>A measurement that changed its own argument</h3>
+            <h4>A measurement that changed its own argument</h4>
             <p>Locals are excluded from the semantic model, and the recorded reason was that no question this work answers is about a <code>let</code>. That had never been checked. Measured across the real corpus: 71.7% of diagnostics land inside a function body, and code lines are 72.8% bodies, so diagnostics are not concentrated at declarations and the stated reason was failing its own test.</p>
             <p class="rel-note">But 91% of those body diagnostics already name the declaration they sit in, and only 8.7% have a span that binds a local. The rest sit inside a body while addressing a union, a field, or a callee, all of which are already known. So the exclusion holds for a different reason than the one written down: an agent repairing a body diagnostic is told which declaration to open, and the identity it needs next is almost never the local. The conclusion survived, the argument did not.</p>
           </div>
@@ -1007,14 +1007,14 @@ fn main(r: PaymentResult) -> string {
         </article>
         <article class="release" id="0.1.113" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.113</h2>
+            <h3 class="rel-ver">0.1.113</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.113" data-url="https://glyphlang.io/versions/2026-09/#0.1.113" aria-label="Link to 0.1.113">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The playground was showing you different TypeScript</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The playground was showing you different TypeScript</h3>
+            <h4>The playground was showing you different TypeScript</h4>
             <p>The compiler and the playground assembled the emit context separately, and the playground assembled an empty one. The same source file produced three differences, and one of them mattered:</p>
             <div class="code">
               <span class="cap">Row.is, from glyph build</span>
@@ -1023,7 +1023,7 @@ fn main(r: PaymentResult) -> string {
 <pre><span class="del">(value as Record&lt;string, unknown&gt;).kind !== undefined</span></pre>
             </div>
             <p>The page was showing a validator that accepts <code>{ kind: 42 }</code> for a type whose declaration forbids it, and <code>Row.parse</code> had no rejecting branch at all. For a language, that is not a rendering difference.</p>
-            <h3>One scan, and an honest note where it cannot reach</h3>
+            <h4>One scan, and an honest note where it cannot reach</h4>
             <p>The scan behind the six emit tables now lives in one place and both surfaces use it. The emitted bytes are unchanged on both sides, and the compiler lost its hand-rolled copy.</p>
             <p>That does not make the two outputs identical, and it cannot. Every one of those tables is keyed by the source module of an imported name, so all six answer questions about sibling files, and the playground holds one file. The obstacle was never the database: the scan is a pass over parsed syntax and takes none. It is that the other files are not in your browser.</p>
             <p>So the playground names what it is assuming. Every import that is not <code>std</code> or <code>extern</code> is listed, with what <code>glyph build</code> would write instead. A module that imports only <code>std</code> lists nothing and the notice does not appear, because absence has to mean absence here too.</p>
@@ -1033,14 +1033,14 @@ fn main(r: PaymentResult) -> string {
         </article>
         <article class="release" id="0.1.112" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.112</h2>
+            <h3 class="rel-ver">0.1.112</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.112" data-url="https://glyphlang.io/versions/2026-09/#0.1.112" aria-label="Link to 0.1.112">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Ask what one change breaks, across every relation that carries it</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Ask what one change breaks, across every relation that carries it</h3>
+            <h4>Ask what one change breaks, across every relation that carries it</h4>
             <p><code>glyph_impact</code> takes an entity and a change, not just an entity. That is the design: a verdict is a fact about an edit, and with no edit named every answer degrades into a list of things that mention something.</p>
             <div class="code">
               <span class="cap">glyph_impact { entity: "value::Value", change: { kind: "add_variant", variant: "Blob" } }</span>
@@ -1052,7 +1052,7 @@ fn main(r: PaymentResult) -> string {
 <span class="dim">8 WILL_FAIL, 2 ABSORBS, across 4 files</span></pre>
             </div>
             <p>That is the set the compiler reports when the case is actually added, and a committed benchmark checks the two against each other on every run.</p>
-            <h3>What it refuses to say</h3>
+            <h4>What it refuses to say</h4>
             <p>Six change kinds, each mapped to the one relation that carries it. The mapping was measured rather than chosen: seven change kinds were probed and every diagnostic landed at a site naming the changed entity, none a hop further, because Glyph never infers a declaration's type from its body. A request for a second hop is answered with the exact first-hop result and a <code>next_query</code> naming the question that would also be exact.</p>
             <p>Changing a parameter's type returns nothing but <code>NOT_INDEXED</code>. Passing a declared union where a <code>string</code> is expected produces no diagnostic, where passing a <code>bool</code> does, because the checker reports only a mismatch it can prove. Those call sites are neither broken nor safe, and claiming either would be asserting something the compiler never established.</p>
             <p class="rel-note">Building the gate for this found a live defect. <code>UNDETERMINED</code> was returned for any match site with an arm the checker does not model, on the reasoning that the unread arm might absorb the new case. It cannot: such an arm never counts as covering anything, so a case no arm names is missing regardless. Those sites fail to compile and now say so. A verdict meaning "I could not decide" is useful only while it stays rare, and it had begun collecting cases the compiler decides plainly.</p>
@@ -1061,18 +1061,18 @@ fn main(r: PaymentResult) -> string {
         </article>
         <article class="release" id="0.1.111" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.111</h2>
+            <h3 class="rel-ver">0.1.111</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.111" data-url="https://glyphlang.io/versions/2026-09/#0.1.111" aria-label="Link to 0.1.111">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The loop is proven, not asserted</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The loop is proven, not asserted</h3>
+            <h4>The loop is proven, not asserted</h4>
             <p>An agent adds a case to a union, the compiler names what broke, a query names a site the compiler never mentioned because it keeps compiling, and the tree goes green after the named sites are fixed. That had been walked once by hand and tested nowhere. It is six tests now, over the real process.</p>
             <p>The loop test was the one easy to write dishonestly, so the honesty is structural rather than a promise. Its fixture hands back paths and counts and nothing else, so a test cannot spell the union, its module, or the variant: those names are not in scope. They also carry a per-run suffix, so a hard-coded one fails instead of passing quietly. Each hop is fed from the previous answer.</p>
             <p>Three deliberate breakages prove it bites. The one that matters: repair only the sites the compiler reported, and the tree still goes green, but the test fails because the edits did not go where the answer pointed. A test asserting only that the build passes would have missed it, and that silent site is the entire reason for this work.</p>
-            <h3>The surface an agent talks to, tested for the first time</h3>
+            <h4>The surface an agent talks to, tested for the first time</h4>
             <p>Every test called the server in process, so the transport was never exercised. The <code>instructions</code> string shipped in 0.1.107 appeared in no assertion at all, which was checked by deleting it and watching 1312 tests pass. The handshake is now exercised as an ordered exchange over a spawned process, and three kinds of line that are not requests get no answer while the server stays up.</p>
             <p class="rel-note">The demonstration is a committed benchmark rather than a story. On a CSV query engine in this repository, eleven files, adding one case to the union at its centre: ten match sites across four files, eight that fail and two that absorb, and the compiler afterwards reporting exactly those eight. A text search asked the same question finds twenty catch-all arms, two of them relevant, and says nothing about the eight that break.</p>
           </div>
@@ -1080,14 +1080,14 @@ fn main(r: PaymentResult) -> string {
         </article>
         <article class="release" id="0.1.110" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.110</h2>
+            <h3 class="rel-ver">0.1.110</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.110" data-url="https://glyphlang.io/versions/2026-09/#0.1.110" aria-label="Link to 0.1.110">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Ask what a change breaks, before you make it</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Ask what a change breaks, before you make it</h3>
+            <h4>Ask what a change breaks, before you make it</h4>
             <p>Until now you could ask which match sites exist over a union. You can now ask what happens if you add a case to it, which is the question anyone actually has.</p>
             <div class="code">
               <span class="cap">glyph_variants { name: "PaymentResult", proposed_variant: "Pending" }</span>
@@ -1102,10 +1102,10 @@ fn main(r: PaymentResult) -> string {
             </div>
             <p>The second line is the one that matters. <code>billing::audit</code> has a catch-all, so it keeps compiling and routes <code>Pending</code> wherever that arm points. No build, no test and no type error will mention it. Fix the two failures and stop, and you have a green tree and a live bug.</p>
             <p>Four words, each meaning one thing. <code>WILL_FAIL</code>, <code>ABSORBS</code>, <code>NOT_INDEXED</code> for a site the compiler could not key, and <code>UNDETERMINED</code> for one it keyed but drew no conclusion about. That last word was not in the original design and it earns its place: a site with an arm the checker read nothing from is keyed, so calling it not-indexed would state something false.</p>
-            <h3>The answer stays honest when the program is not</h3>
+            <h4>The answer stays honest when the program is not</h4>
             <p>A diagnostic now carries the union it is about and the variants it leaves unmentioned as fields, beside the prose rather than instead of it. Getting from an error to the next question no longer means running a regex over an error message.</p>
             <p>Asking about a record used to answer with an empty site list, which is shaped exactly like a union nothing matches on. "The question does not apply" and "nothing is affected" were spelled the same way. And <code>glyph check --no-tsc</code> reported no diagnostics on a program importing a module that does not exist, while the impact surface, asked about the same file, correctly said it could not resolve the type. One unresolvable name, two surfaces, one admitting it did not know and one saying everything was fine.</p>
-            <h3>Relations that answer the same way whichever way you spell the question</h3>
+            <h4>Relations that answer the same way whichever way you spell the question</h4>
             <p><code>glyph_references</code> dropped a namespace-qualified call: <code>import render { label }</code> found three sites, <code>import render</code> with <code>render.label(s)</code> found one. Not an empty answer, which would have been visibly wrong, but a short one that looked complete. <code>CALLS</code> is now distinct from <code>REFERENCES</code>, an edge the compiler proved is kept apart from one a <code>.d.ts</code> asserted, and a record field is addressable as <code>module::Type.field</code> so renaming a field has an impact set.</p>
             <p class="rel-note">The exact-or-absent gate went from five invariants with two known failures to thirteen with none. It fails when a known failure starts passing, so neither of those could be fixed without promoting its case to a hard assertion in the same change. What is not here: the tests that prove the repair loop closes, and the demonstration as something you can run rather than read. Both move to the next release.</p>
           </div>
@@ -1113,14 +1113,14 @@ fn main(r: PaymentResult) -> string {
         </article>
         <article class="release" id="0.1.109" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.109</h2>
+            <h3 class="rel-ver">0.1.109</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.109" data-url="https://glyphlang.io/versions/2026-09/#0.1.109" aria-label="Link to 0.1.109">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The folds you were writing by hand</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The folds you were writing by hand</h3>
+            <h4>The folds you were writing by hand</h4>
             <p><code>std/array</code> gains <code>max</code>, <code>min</code>, <code>sum</code>, <code>max_by</code> and <code>min_by</code>. Picking the highest-scoring element is the core operation of every search, ranking and scheduler, and until now it was a four-line fold each time. One application in this repository wrote it five times in one file.</p>
             <div class="code">
               <span class="cap">before</span>
@@ -1140,7 +1140,7 @@ fn main(r: PaymentResult) -> string {
         </article>
         <article class="release" id="0.1.108" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.108</h2>
+            <h3 class="rel-ver">0.1.108</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.108" data-url="https://glyphlang.io/versions/2026-09/#0.1.108" aria-label="Link to 0.1.108">Link</a>
@@ -1148,7 +1148,7 @@ fn main(r: PaymentResult) -> string {
           <details class="rel-details">
             <summary><span class="rel-headline">The JSON surface stopped saying a broken project was fine</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The JSON surface stopped saying a broken project was fine</h3>
+            <h4>The JSON surface stopped saying a broken project was fine</h4>
             <p><code>glyph check --json</code> ran no <code>@example</code> gate at all. The same project, the same flags, two answers:</p>
             <div class="code">
               <span class="cap">0.1.107</span>
@@ -1157,7 +1157,7 @@ glyph check src --no-tsc --json   <span class="add">{"ok": true, "errors": 0}</s
             </div>
             <p>The gate ran on the path a person reads and not on the path a tool reads. <code>glyph check</code>'s promise is that it cannot report a clean tree that <code>build</code> would fail, and under <code>--json</code> it did exactly that. This is why the release is marked breaking: a project whose example was failing silently now fails out loud, so a green build can go red on upgrade. That is the fix working.</p>
             <p>Two more holes of the same shape went with it. A project whose augmented copy would not compile reported "1 example(s) passed" and exited 0. A malformed <code>@example</code> was reported as a missing <code>tsx</code> install. Failures now carry structure rather than prose: a code, the declaration they belong to, and the detail, taken from values the compiler already had instead of parsed back out of its own output.</p>
-            <h3>One declaration, one spelling</h3>
+            <h4>One declaration, one spelling</h4>
             <p>0.1.107 gave every diagnostic the declaration it sits in, and gave it three spellings, because three surfaces measured the module half from three different roots. On the layout <code>glyph init</code> writes:</p>
             <div class="code">
               <span class="cap">before</span>
@@ -1168,7 +1168,7 @@ glyph_diagnostics    <span class="del">src/a::f</span></pre>
 glyph_diagnostics    <span class="add">a::f</span></pre>
             </div>
             <p>The rule now lives in one place: a declaration's module half is measured from its project, and from its own directory when no project marks it. Neither answer changes with where you ran the tool from, which was the whole defect. The fallbacks disagreed too, and a comment claimed they could not.</p>
-            <h3>A diagnostic the compiler could place no longer says it cannot</h3>
+            <h4>A diagnostic the compiler could place no longer says it cannot</h4>
             <p>An annotation's text sits in the gap before a declaration starts, so the walk that assigns a declaration found nothing for an unknown-annotation error and reported none. But the checker raises that error while holding the declaration. It carries the name now, from where it was already known. Absence of an answer is supposed to mean there is no answer, not that we computed one and dropped it.</p>
             <p class="rel-note">The example gate also left a copy of your project in the temp directory on every run, since it removed that copy only on the way in and never on the way out. Four thousand had built up on one machine. It surfaced as a flaky test: with that many orphans around, the operating system reuses a process id and a new run collides with a directory left days earlier.</p>
           </div>
@@ -1176,14 +1176,14 @@ glyph_diagnostics    <span class="add">a::f</span></pre>
         </article>
         <article class="release" id="0.1.107" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.107</h2>
+            <h3 class="rel-ver">0.1.107</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.107" data-url="https://glyphlang.io/versions/2026-09/#0.1.107" aria-label="Link to 0.1.107">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">An autofix that breaks a file now says so</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>An autofix that breaks a file now says so</h3>
+            <h4>An autofix that breaks a file now says so</h4>
             <p><code>glyph fix</code> could remove a dead name from an import and leave the file unparseable, while exiting 0 and reporting success. It has done that since 0.1.99.</p>
             <div class="code">
               <span class="cap">before</span>
@@ -1196,13 +1196,13 @@ glyph check: [E0002] expected newline after import   exit 1</pre>
             </div>
             <p>An import's span ends past the newline that terminates it. Removing a whole import walks that back; the path that prunes individual names, added in 0.1.99, spliced over the raw span and took the newline with it. It survived only when a blank line happened to sit below the import and absorb the loss, which is why the existing tests never saw it.</p>
             <p>Both paths now share one helper, so the terminator is preserved rather than reconstructed. Separately, <code>glyph fix</code> re-parses every file before writing it and refuses to write one it broke. That second change is the one that matters: it catches this whole class whatever causes it, and an autofix that can corrupt a file should never be the thing that tells you it worked.</p>
-            <h3>The compiler tells an agent how to update itself</h3>
+            <h4>The compiler tells an agent how to update itself</h4>
             <p>The MCP server now sends an <code>instructions</code> string at connect time, which clients put in the model's context without anyone reading a file. It names <code>glyph_variants</code>, <code>glyph llms</code>, and the two update commands: <code>glyph --update</code> for the installed tool, <code>glyph upgrade</code> for a project's pin.</p>
             <p>That channel exists because documentation alone did not carry. <code>glyph --update</code> was already in the bootstrap, and the next agent that needed it still reached for npm.</p>
-            <h3>Two more places a tool answered without saying what it left out</h3>
+            <h4>Two more places a tool answered without saying what it left out</h4>
             <p><code>glyph_variants</code> could drop a match site entirely. A site that reaches the queried type through a payload, in a file whose <code>module</code> line disagrees with the path the project keys it by, appeared in none of the three lists the answer returns: not <code>sites</code>, not <code>nested</code>, not <code>unkeyed</code>. The top-level case already had a name-only fallback and the nested case did not. It reproduced on the layout <code>glyph init</code> generates, which is how it went unnoticed.</p>
             <p>And a diagnostic now carries the declaration it sits in, as <code>module::name</code>, on both <code>glyph check --json</code> and <code>glyph_diagnostics</code>. An agent that gets an error can go straight to <code>glyph_variants</code> or <code>glyph_references</code> for that entity without re-parsing the file to work out where it was.</p>
-            <h3>Six things the reference got wrong</h3>
+            <h4>Six things the reference got wrong</h4>
             <p>From an outside author who wrote 1,430 lines of Glyph having never seen it. The gotcha on <code>mut</code> read as "you cannot mutate through a parameter", which is false and would force every state transition to rebuild a whole record; it now says <code>mut</code> is not a declaration modifier and that a parameter's fields are mutable in place. A sibling module is imported by its bare name, which E0101's help implied otherwise. <code>rng.bool</code> lost the <code>?</code> that says its argument is optional. <code>std/random</code> sat in the "not detailed" list while being detailed. And the two ways to read an undocumented module's signatures are now written down, including that the emitted runtime holds only the modules you already import.</p>
             <p class="rel-note">Nothing the compiler accepts or rejects changed. A program that compiled on 0.1.106 compiles here, and one that failed fails the same way; the difference is only that a file <code>glyph fix</code> touches is still valid afterwards.</p>
           </div>
@@ -1210,14 +1210,14 @@ glyph check: [E0002] expected newline after import   exit 1</pre>
         </article>
         <article class="release" id="0.1.106" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.106</h2>
+            <h3 class="rel-ver">0.1.106</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.106" data-url="https://glyphlang.io/versions/2026-09/#0.1.106" aria-label="Link to 0.1.106">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Ask what an added variant would break, before you add it</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Ask what an added variant would break, before you add it</h3>
+            <h4>Ask what an added variant would break, before you add it</h4>
             <p>The compiler worked out which match arms name which variants on every build and then threw the answer away. It keeps it now, and <code>glyph_variants</code> hands it to an agent.</p>
             <div class="code">
               <span class="cap">glyph_variants { name: "Status" }</span>
@@ -1236,14 +1236,14 @@ main::label   <span class="del">compiles, and routes Suspended into else</span><
         </article>
         <article class="release" id="0.1.105" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.105</h2>
+            <h3 class="rel-ver">0.1.105</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.105" data-url="https://glyphlang.io/versions/2026-09/#0.1.105" aria-label="Link to 0.1.105">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A match that could not compile no longer type-checks clean first</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A match that could not compile no longer type-checks clean first</h3>
+            <h4>A match that could not compile no longer type-checks clean first</h4>
             <p>Seven places in the checker each decided whether a match had a catch-all arm, and they did not agree. Four of them treated a capitalised bare name as one, on the reasoning that a boolean has no constructors so the name must be a variable.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -1266,14 +1266,14 @@ main::label   <span class="del">compiles, and routes Suspended into else</span><
         </article>
         <article class="release" id="0.1.104" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.104</h2>
+            <h3 class="rel-ver">0.1.104</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.104" data-url="https://glyphlang.io/versions/2026-09/#0.1.104" aria-label="Link to 0.1.104">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Ask about a function by name, not by a line number that moves</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Ask about a function by name, not by a line number that moves</h3>
+            <h4>Ask about a function by name, not by a line number that moves</h4>
             <p>An agent that recorded a position and asked again after an edit got a confident answer about the wrong thing. Inserting one function above another was enough.</p>
             <div class="code">
               <span class="cap">before, against 0.1.103</span>
@@ -1296,14 +1296,14 @@ glyph_references { path, name: "charge" }
         </article>
         <article class="release" id="0.1.103" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.103</h2>
+            <h3 class="rel-ver">0.1.103</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.103" data-url="https://glyphlang.io/versions/2026-09/#0.1.103" aria-label="Link to 0.1.103">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">An agent asking where a symbol is used gets an answer in 15ms</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>An agent asking where a symbol is used gets an answer in 15ms</h3>
+            <h4>An agent asking where a symbol is used gets an answer in 15ms</h4>
             <p>The MCP server used to analyse every file in the project on every call. Asking where one function was referenced meant 175 full analyses to return three locations, and it cost the same on the tenth call as the first.</p>
             <div class="code">
               <span class="cap">glyph_references, same question, warm</span>
@@ -1321,14 +1321,14 @@ glyph_references { path, name: "charge" }
         </article>
         <article class="release" id="0.1.102" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.102</h2>
+            <h3 class="rel-ver">0.1.102</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.102" data-url="https://glyphlang.io/versions/2026-09/#0.1.102" aria-label="Link to 0.1.102">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Housekeeping, and a formatter that stops changing what code means</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Housekeeping, and a formatter that stops changing what code means</h3>
+            <h4>Housekeeping, and a formatter that stops changing what code means</h4>
             <p>No new language features. The query layer moves to salsa 0.28, and four things that kept turning up during release checks are fixed.</p>
             <div class="code">
               <span class="cap">before, and after</span>
@@ -1349,7 +1349,7 @@ match i &gt;= n { true =&gt; { break }, false =&gt; {}, }?
         </article>
         <article class="release" id="0.1.101" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.101</h2>
+            <h3 class="rel-ver">0.1.101</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.101" data-url="https://glyphlang.io/versions/2026-09/#0.1.101" aria-label="Link to 0.1.101">Link</a>
@@ -1357,7 +1357,7 @@ match i &gt;= n { true =&gt; { break }, false =&gt; {}, }?
           <details class="rel-details">
             <summary><span class="rel-headline">A note on an example line no longer verifies a false claim</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A note on an example line no longer verifies a false claim</h3>
+            <h4>A note on an example line no longer verifies a false claim</h4>
             <p>Writing a <code>//</code> note on the first line of a wrapped <code>@example</code> deleted the assertion. The example still ran, and still reported success, having checked something else.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -1381,14 +1381,14 @@ pub fn has_bug(n: number) -&gt; bool {
         </article>
         <article class="release" id="0.1.100" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.100</h2>
+            <h3 class="rel-ver">0.1.100</h3>
             <span class="rel-date">September 2026</span>
             <a class="rel-link" href="/versions/2026-09/#0.1.100" data-url="https://glyphlang.io/versions/2026-09/#0.1.100" aria-label="Link to 0.1.100">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Reading a response body as text</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Reading a response body as text</h3>
+            <h4>Reading a response body as text</h4>
             <p>A client had no way to ask for a response as text. The body arrives best-effort JSON-parsed, so printing it went through <code>string.from</code> and a JSON body rendered as <code>[object Object]</code>, silently.</p>
             <div class="code">
               <span class="cap">main.glyph</span>

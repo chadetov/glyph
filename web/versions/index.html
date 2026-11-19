@@ -373,7 +373,7 @@
       <div class="releases">
         <article class="release" id="0.1.149" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.149</h2>
+            <h3 class="rel-ver">0.1.149</h3>
             <span class="rel-tag latest">Latest</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
@@ -386,14 +386,14 @@
 
             <p>Each is now E0013, with help that fits what came second: Glyph has no <code>as</code>, adjacent strings are not joined (write <code>"a" + "b"</code>), or the statement needs its own line. 0.1.146 did this for <code>{</code>; this release does it for everything else. One-line bodies like <code>fn f() -&gt; int { return 1 }</code> and <code>for x in xs { f(x) }</code> are unaffected.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>Programs with two statements on one line inside a block no longer compile. On every <code>.glyph</code> file in the repository and all 32 example apps, the only changes are three files that were already refused (two test fixtures and a benchmark that demonstrates a refusal, which still passes), and the emitted TypeScript is identical.</p>
           </div>
           </details>
         </article>
         <article class="release" id="0.1.148" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.148</h2>
+            <h3 class="rel-ver">0.1.148</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.148" data-url="https://glyphlang.io/versions/2026-11/#0.1.148" aria-label="Link to 0.1.148">Link</a>
@@ -405,7 +405,7 @@
 
             <p>A <code>where</code>-refined key type runs its predicate on each key, and an <code>int</code> key must be the plain spelling of a whole number, so <code>"01"</code> and <code>"1.5"</code> are refused. The same check runs in <code>T.parse</code>, <code>T.is</code>, <code>is</code> patterns, record fields and everywhere else a value is validated. <code>Record&lt;string, V&gt;</code> behaves exactly as before, and its emitted code is unchanged.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>Programs that compiled still compile, but a map that does not match its key type is now refused where it used to be accepted. Two shapes stop compiling with E0304: a <code>Record</code> whose key type has no runtime check, and a generic record whose <code>Record</code> field is keyed by its own type parameter, unless that parameter is <code>string</code>. On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> and the emitted TypeScript are unchanged.</p>
 
             <p>Still open: a <code>Record&lt;string, V&gt;</code> can still be passed where <code>Record&lt;Tier, V&gt;</code> is declared, which 0.1.151 addresses, and Glyph's own checker leaves a map's keys to <code>tsc</code>, which is on the list after that.</p>
@@ -414,7 +414,7 @@
         </article>
         <article class="release" id="0.1.147" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.147</h2>
+            <h3 class="rel-ver">0.1.147</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.147" data-url="https://glyphlang.io/versions/2026-11/#0.1.147" aria-label="Link to 0.1.147">Link</a>
@@ -426,14 +426,14 @@
 
             <p>Before, inside <code>fn h&lt;Doc&gt;</code> in a module that also declares a <code>type Doc</code>, these quietly ran the record's check while the code treated the result as the type parameter. Some passed <code>glyph check</code> and <code>tsc</code> outright and checked values against the wrong type; others crashed at run time. The parameter is now found by scope, so a module-level type with the same name never stands in for it.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>We ran 0.1.146 and this build on each shape: those that exited 0 before now exit 1, with and without <code>tsc</code>. On every <code>.glyph</code> file in the repository and all 32 example apps, nothing changes. To validate a value whose type is a parameter, take a <code>Schema&lt;T&gt;</code> argument and use <code>json.parse_with</code>.</p>
           </div>
           </details>
         </article>
         <article class="release" id="0.1.146" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.146</h2>
+            <h3 class="rel-ver">0.1.146</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.146" data-url="https://glyphlang.io/versions/2026-11/#0.1.146" aria-label="Link to 0.1.146">Link</a>
@@ -447,14 +447,14 @@
 
             <p>The help gives the fix. Glyph has no <code>Order { … }</code> form, so write the literal on its own and put the type on the annotation, or drop the braces if they were not meant to be the value. <code>return Order { … }</code> now reports this error instead of E0228.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>We ran 0.1.145 and this build on each shape: <code>return h() { … }</code>, <code>let o = h() { … }</code> and a bare <code>h() { … }</code>, in a function, a match arm or a lambda, exited 0 before and exit 1 now, and <code>tsc</code> accepted all of them. <code>glyph fmt</code> refuses such a file instead of splitting it across two lines. On every other <code>.glyph</code> file in the repository and all 32 example apps, nothing changes.</p>
           </div>
           </details>
         </article>
         <article class="release" id="0.1.145" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.145</h2>
+            <h3 class="rel-ver">0.1.145</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.145" data-url="https://glyphlang.io/versions/2026-11/#0.1.145" aria-label="Link to 0.1.145">Link</a>
@@ -466,7 +466,7 @@
 
             <p>While doing this we found that a generic named through an import alias, like <code>w.Box&lt;int&gt;</code>, was checked against a different <code>Box</code> when the module declared its own. <code>json.parse&lt;w.Box&lt;int&gt;&gt;</code> compiled, rejected a real <code>w.Box</code> value and accepted a local one. That is now E0304. When the bare name refers to the same generic (<code>m.Page&lt;m.User&gt;</code> beside <code>import model { Page, User }</code>), it is still checked as before.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>We ran 0.1.144 and this build on each affected shape. Patterns over a part with no runtime check, and the mislabelled namespaced generics, went from exit 0 to 1, with and without <code>tsc</code>. Some programs still compile but now behave differently at run time: a value that does not match the declared element or value type falls through to the next arm instead of taking this one. On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> and the emitted TypeScript are identical to 0.1.144.</p>
 
             <p>A record's keys are not checked yet, here or by <code>json.parse</code>: <code>Record&lt;Tier, int&gt;</code> accepts a key outside <code>Tier</code>. That is 0.1.148.</p>
@@ -475,7 +475,7 @@
         </article>
         <article class="release" id="0.1.144" data-hl="sentence">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.144</h2>
+            <h3 class="rel-ver">0.1.144</h3>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.144" data-url="https://glyphlang.io/versions/2026-11/#0.1.144" aria-label="Link to 0.1.144">Link</a>
           </div>
@@ -492,7 +492,7 @@
         </article>
         <article class="release" id="0.1.143" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.143</h2>
+            <h3 class="rel-ver">0.1.143</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.143" data-url="https://glyphlang.io/versions/2026-11/#0.1.143" aria-label="Link to 0.1.143">Link</a>
@@ -504,7 +504,7 @@
 
             <p>One spelling ran the wrong check entirely: in a module that declares its own <code>Box</code>, a pattern <code>is w.Box&lt;int&gt;</code> naming the imported one was compiled as a check against the local <code>Box</code>. It is now refused (E0300), as a namespaced pattern without a type argument already was.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>We ran the published 0.1.142 and this build on each refused shape: every one exited 0 before and exits 1 now, with and without <code>tsc</code>, and <code>tsc</code> accepts all of them. On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> gives the same result apart from the reworded E0304 note on one file that already failed, and the emitted TypeScript is identical.</p>
 
             <p>Still open: <code>is Record&lt;string, int&gt;</code> and <code>is Array&lt;X&gt;</code> check only that the value is an object or an array, not what it holds; that is 0.1.145. A namespaced pattern like <code>is w.P</code> has no lowering yet, so import the type by name to match on it.</p>
@@ -513,7 +513,7 @@
         </article>
         <article class="release" id="0.1.142" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.142</h2>
+            <h3 class="rel-ver">0.1.142</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.142" data-url="https://glyphlang.io/versions/2026-11/#0.1.142" aria-label="Link to 0.1.142">Link</a>
@@ -527,7 +527,7 @@
 
             <p>If an import is unused only because a missing <code>match</code> arm would use it, <code>glyph --explain E0106</code> now says to write the arm rather than delete the import. And when <code>glyph fix</code> declines to rename an arm head, it now names the arm that already handles the case.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>For the applyEdit protocol, as above, and for anything that counts warnings: a file that already fails <code>glyph check</code> can now print more of them. We compared the published 0.1.141 with this build on every <code>.glyph</code> file in the repository and on all 32 example apps: the only differences are 32 added warnings on 27 files that already had a type error. Formatting, builds and the emitted TypeScript are identical.</p>
 
             <p>Still open: <code>return h() { k: 2 }</code> is read as <code>return h()</code> followed by an object literal that never runs, and only warns (G351); the playground still shows emitted TypeScript for a file with a type error (G352); and applyEdit refuses an edit that writes one of several missing <code>match</code> arms (G353).</p>
@@ -536,7 +536,7 @@
         </article>
         <article class="release" id="0.1.141" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.141</h2>
+            <h3 class="rel-ver">0.1.141</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.141" data-url="https://glyphlang.io/versions/2026-11/#0.1.141" aria-label="Link to 0.1.141">Link</a>
@@ -557,7 +557,7 @@ let page = json.parse&lt;Page&lt;User&gt;&gt;(body)</pre>
 
             <p>Here <code>Handle</code> is an <code>extern_ts</code> type, which Glyph cannot check at run time. A record with the same field was already refused; a generic one and a union variant carrying it now get the same answer, whether you call <code>json.parse</code>, <code>Page.parse</code>, <code>U.is</code> or <code>json.parse_with</code> with its <code>schema</code>, put the type inside another record, an <code>Option</code> or an <code>Array</code>, pass it as a generic's type argument, or reach it through another module.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>We ran 0.1.140 and this build on each refused shape: every one exited 0 before and exits 1 now, with and without <code>tsc</code>, and <code>tsc</code> accepts all of them. One case is refused although it was safe: an imported generic whose field is a record its module keeps private. This module cannot see into that record, so it refuses rather than guess; the message says so, and marking the record <code>pub</code> fixes it. 0.1.144 will judge it from the module that declares it instead. Nothing else changes. On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code>, <code>glyph fmt</code> and the emitted TypeScript are identical to 0.1.140.</p>
 
             <p>A <code>match</code> arm written <code>is Page</code> is not covered by this check yet; that is 0.1.143.</p>
@@ -566,7 +566,7 @@ let page = json.parse&lt;Page&lt;User&gt;&gt;(body)</pre>
         </article>
         <article class="release" id="0.1.140" data-hl="sentence">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.140</h2>
+            <h3 class="rel-ver">0.1.140</h3>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.140" data-url="https://glyphlang.io/versions/2026-11/#0.1.140" aria-label="Link to 0.1.140">Link</a>
           </div>
@@ -594,7 +594,7 @@ pub type Rows = Array&lt;User&gt;</pre>
         </article>
         <article class="release" id="0.1.139" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.139</h2>
+            <h3 class="rel-ver">0.1.139</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.139" data-url="https://glyphlang.io/versions/2026-11/#0.1.139" aria-label="Link to 0.1.139">Link</a>
@@ -618,14 +618,14 @@ return Ok(note.name)</pre>
 
             <p>The check needs to know the value is an <code>Option</code> or a <code>Result</code>. A value built with <code>Ok(x)</code> or <code>Some(x)</code> and never annotated is not typed that way yet, so <code>let r = Ok(x)</code> followed by <code>r.value</code> still passes, and so does <code>r["value"]</code>. Both are on the list.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>We ran the published 0.1.137 and this build on the same programs. <code>o.tag</code>, <code>r.tag</code> and <code>r.value</code> passed <code>glyph check</code> with <code>tsc</code> and now fail. Other reads, such as <code>o.name</code> or <code>r.unwrap()</code>, were already refused by <code>tsc</code> in a full check and are now also caught under <code>--no-tsc</code>, in the editor and over MCP. On every <code>.glyph</code> file in the repository except the two test files added to be refused, and on all 32 example apps, <code>glyph check</code> gives the same result as before, and the emitted TypeScript is identical.</p>
           </div>
           </details>
         </article>
         <article class="release" id="0.1.138" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.138</h2>
+            <h3 class="rel-ver">0.1.138</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.138" data-url="https://glyphlang.io/versions/2026-11/#0.1.138" aria-label="Link to 0.1.138">Link</a>
@@ -655,14 +655,14 @@ return Ok(note.name)</pre>
 
             <p>A method chain with two <code>?</code> in a row can now hold comments between its steps, like any other chain. 0.1.137 refused such a file.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>Only for <code>glyph fmt --check</code>. We ran the published 0.1.137 and this build on each layout the formatter now writes differently: <code>(e?)(x)</code> and <code>(e?)[i]</code> become <code>e?(x)</code> and <code>e?[i]</code>, <code>(e?)?</code> becomes <code>e? ?</code> wherever it appears, and a statement that starts with <code>(e?).f</code>, including the body of a one-line lambda, is split across two lines. A file containing one of these passed <code>fmt --check</code> under 0.1.137 and fails it now; running <code>glyph fmt</code> once fixes it. No program's meaning changes, and <code>glyph check</code>, <code>glyph build</code> and the emitted TypeScript are the same. On every <code>.glyph</code> file in the repository and all 32 example apps, the only formatting changes are on the two new test files, and no file that 0.1.137 had already formatted is touched.</p>
           </div>
           </details>
         </article>
         <article class="release" id="0.1.137" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.137</h2>
+            <h3 class="rel-ver">0.1.137</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.137" data-url="https://glyphlang.io/versions/2026-11/#0.1.137" aria-label="Link to 0.1.137">Link</a>
@@ -690,21 +690,21 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
 
             <p>Places with no line for a comment include an index, a <code>!</code> or <code>await</code> operand, a type annotation or a generic argument, a pattern, the inside of a JSX tag, an import list, the middle of a method chain after a call's arguments, and the space between <code>let x =</code> or <code>return</code> and the value, which is the one people write most. Where the formatter has a one-per-line layout (a block, a <code>match</code>, a record or union body, a literal, an argument list, an operator chain, a method chain between steps), comments are placed exactly as in 0.1.136. Only the first refused comment in a file is reported; fix it and run again to see the next.</p>
 
-            <h3>The editor and <code>glyph check</code> see it too</h3>
+            <h4>The editor and <code>glyph check</code> see it too</h4>
             <p>The same message is warning E0500, in a new formatter range of error codes. <code>glyph check</code>, <code>check --json</code>, the MCP diagnostics tool and the editor all report it, so an agent finds the comment without running <code>fmt</code>. It is a warning because where a comment sits does not change what the program does: <code>glyph check</code> still exits 0. <code>glyph/applyEdit</code> refuses an edit that introduces one.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>We ran the published 0.1.136 and this build on the same files. On a file whose comment the formatter used to move, <code>glyph fmt</code> now exits 1 and leaves the file alone, where 0.1.136 exited 0 and rewrote it. The editor's format command returns an error instead of edits on such a file. A pre-commit hook that runs <code>glyph fmt</code> will stop on it until the comment is moved. <code>glyph canonical</code>, and the canonical view the editor and agents read, now fail on such a file instead of printing it. <code>glyph fmt --check</code> exits as before, but its output changes: it prints the refusal and <code>refused first.glyph (left unchanged)</code> where it printed <code>would reformat first.glyph</code>, and the summary gains a <code>refused</code> count.</p>
             <p>What does not change: <code>glyph fmt --check</code> exits as it did, since 0.1.136 already failed a file it would have rewritten; a file 0.1.136 had already formatted is never refused; and <code>glyph check</code>, <code>glyph build</code> and the emitted TypeScript are the same apart from the new warning. Apart from the test case written to be refused, no file in the repository or its 32 example apps is.</p>
 
-            <h3>Known issues</h3>
+            <h4>Known issues</h4>
             <p>The fuzzer found that <code>glyph fmt</code> deletes a <code>where</code> refinement on a union type (G338). Glyph refuses that refinement (E0300), and the formatted file drops it and compiles. G335, described under 0.1.136, is still open. Both are fixed in 0.1.138.</p>
           </div>
           </details>
         </article>
         <article class="release" id="0.1.136" data-hl="sentence">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.136</h2>
+            <h3 class="rel-ver">0.1.136</h3>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.136" data-url="https://glyphlang.io/versions/2026-11/#0.1.136" aria-label="Link to 0.1.136">Link</a>
           </div>
@@ -727,7 +727,7 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
 
             <p>Some comments in a chain have no step line to sit above: one after a call's arguments and before an index (<code>.split(",") // first</code> then <code>[0]</code>), one between the function name at the head of a chain and its arguments, or one inside an index. A chain holding one of those keeps its old one-line layout, even if another comment in it could be placed, because breaking it would put the stray comment somewhere that looks deliberate. Those comments are still moved, below the statement or into the next argument list. The next release makes <code>glyph fmt</code> refuse the file and name the line instead.</p>
 
-            <h3>Known issue</h3>
+            <h4>Known issue</h4>
             <p>While testing this, the fuzzer found a way for <code>glyph fmt</code> to change a program. Inside a block, a line that starts with <code>(</code> continues the line above, and the formatter prints <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>. After a line such as <code>let a = 1</code>, the formatted file means <code>let a = 1(…).run()</code>. A full build catches it here (<code>tsc</code> reports TS2349, since a number cannot be called), but not when the line above ends in something callable; <code>glyph check --no-tsc</code> catches neither. This was already in 0.1.135. Until it is fixed (G335), bind the result first: <code>let job = load()?</code>, then <code>job.run()</code>.</p>
 
             <p>This release is not breaking. We ran the published 0.1.135 and this build on every <code>.glyph</code> file in the repository and on all 32 example apps: <code>glyph check</code> and the emitted TypeScript are the same everywhere, and <code>glyph fmt</code> output differs only on the new test file written to exercise the layout.</p>
@@ -736,7 +736,7 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
         </article>
         <article class="release" id="0.1.135" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.135</h2>
+            <h3 class="rel-ver">0.1.135</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.135" data-url="https://glyphlang.io/versions/2026-11/#0.1.135" aria-label="Link to 0.1.135">Link</a>
@@ -759,7 +759,7 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
 }</pre>
             </div>
 
-            <h3>What text can hold</h3>
+            <h4>What text can hold</h4>
             <p>Anything except <code>{</code> and <code>&lt;</code>, with four refusals, all reported as E0012 with the character named:</p>
             <ul>
               <li><code>}</code> and <code>&gt;</code>, which TSX refuses too. Write <code>{"}"}</code> or <code>{"&gt;"}</code>.</li>
@@ -768,10 +768,10 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
             </ul>
             <p>A <code>&gt;=</code> glued to a tag is split where text follows it, so <code>&lt;p&gt;=x&lt;/p&gt;</code> is the text <code>=x</code>. After the outermost element it is still an error.</p>
 
-            <h3>Breaking</h3>
+            <h4>Breaking</h4>
             <p>We ran the published 0.1.134 and this build on the same programs. These compiled before and are refused now (E0012): <code>}</code> or <code>&gt;</code> in text, <code>//</code> in text when the closing tag is on a later line, and <code>//</code> inside quotes in text, as in <code>see "http://x.com" now</code>. These were refused and compile now: an apostrophe, an unpaired <code>"</code>, <code>\</code>, <code>/*</code>, <code>;</code>, <code>#</code> or a backtick in text, and <code>=</code> right after a tag. Any non-ASCII character in JSX text (<code>é</code>, <code>’</code>, <code>—</code>, an emoji) crashed 0.1.134 with exit code 101 and compiles now. An entity was E0001 and is E0012.</p>
 
-            <h3>Same program, different output</h3>
+            <h4>Same program, different output</h4>
             <p>Some programs compile under both versions and emit different TypeScript. In each case the new output is what Babel's JSX whitespace rule gives:</p>
             <ul>
               <li>Whitespace on one line between or around children is kept as a child. <code>&lt;p&gt;{first} {last}&lt;/p&gt;</code> renders <code>John Doe</code>; 0.1.134 dropped the space and rendered <code>JohnDoe</code>. The same goes for <code>&lt;b&gt;x&lt;/b&gt; &lt;i&gt;y&lt;/i&gt;</code>, a space before <code>&lt;/p&gt;</code>, and <code>&lt;p&gt; &lt;/p&gt;</code>. Whitespace that contains a line break, like the indentation between tags, is still dropped.</li>
@@ -780,14 +780,14 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
             </ul>
             <p>None of these shapes occurs in the repository: every <code>.glyph</code> file in it and all 32 example apps emit byte for byte what 0.1.134 emitted. Our release review found the whitespace case, so before upgrading look in your own components for spaces that sit on one line between a <code>}</code> or <code>&gt;</code> and the next <code>{</code> or <code>&lt;</code>, and between a tag and an <code>{expression}</code> it holds.</p>
 
-            <h3>Also fixed</h3>
+            <h4>Also fixed</h4>
             <p>A character the lexer does not accept, such as <code>é</code> in code outside a string, crashed <code>glyph check</code> with exit code 101 in 0.1.134. It is reported as an error at that character now.</p>
           </div>
           </details>
         </article>
         <article class="release" id="0.1.134" data-hl="sentence">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.134</h2>
+            <h3 class="rel-ver">0.1.134</h3>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.134" data-url="https://glyphlang.io/versions/2026-11/#0.1.134" aria-label="Link to 0.1.134">Link</a>
           </div>
@@ -796,11 +796,11 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
           <div class="rel-body">
             <p>This release changes how the parser reads a file and nothing about what a program means. It is the groundwork for reading JSX text as text in 0.1.135, which today goes through the ordinary token lexer: that is why <code>&lt;p&gt;don't stop&lt;/p&gt;</code> does not compile and <code>//</code> inside JSX text is read as a comment.</p>
 
-            <h3>The lexer runs on demand</h3>
+            <h4>The lexer runs on demand</h4>
             <p>The whole file used to be split into tokens before parsing started. The parser now asks the lexer for each token as it needs one, and the lexer can resume from any point in the file. A lex error waits until the parser reaches it, so a lookahead that strays into one backs off without failing.</p>
             <p>For every program that compiles, nothing changes. We checked that by running 0.1.133 and 0.1.134 on every <code>.glyph</code> file in the repository and on all 32 example apps, built as projects: the emitted TypeScript (2795 files for the single files, 616 for the apps) and the <code>glyph fmt</code> output are byte for byte the same, and no exit code changes.</p>
 
-            <h3>Changed: which error you see first</h3>
+            <h4>Changed: which error you see first</h4>
             <p>A file with two errors reports the first one the parser reaches. Before, a lex error (an unterminated string, a stray character) was always reported first, even when a parse error came earlier in the file. So <code>x = 1 # 2</code> in a function body used to report the <code>#</code> (E0001) and now reports the missing <code>mut</code> (E0008), which is the earlier mistake. The program fails either way; the message is what changed. One file in our test corpus changed this way, and it turned out to hold a second error the old order hid.</p>
             <p>One case reads worse than before. When the parser looks ahead to decide what it is reading and runs into a lex error, it backs off and tries the other reading, and that reading can fail on code that is fine. In <code>let x = f&lt;a, "\q"&gt;(x)</code> the invalid escape <code>\q</code> used to be reported; now the parser reports an unexpected <code>,</code>, because it read <code>f &lt; a</code> as a comparison. If an error points at code that looks correct, look for a bad string or character further along the line. It is filed as G329.</p>
 
@@ -810,7 +810,7 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
         </article>
         <article class="release" id="0.1.133" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.133</h2>
+            <h3 class="rel-ver">0.1.133</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.133" data-url="https://glyphlang.io/versions/2026-11/#0.1.133" aria-label="Link to 0.1.133">Link</a>
@@ -820,7 +820,7 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
           <div class="rel-body">
             <p>This release finishes what 0.1.132 started on <code>json.parse</code>: it never casts now, however it is spelled or reached. It also checks <code>?.</code> on an <code>Option</code> or a <code>Result</code>, types the methods of arrays and strings, and makes <code>glyph/applyEdit</code> check the whole project.</p>
 
-            <h3><code>json.parse</code> never casts</h3>
+            <h4><code>json.parse</code> never casts</h4>
             <div class="code">
               <span class="cap">read.glyph</span>
 <pre>fn read&lt;T&gt;(s: string) -&gt; Result&lt;T, Array&lt;Issue&gt;&gt; {
@@ -832,16 +832,16 @@ let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
             <p>That program passed <code>glyph check</code> and <code>tsc</code> in 0.1.132 and crashed on the first field read. The emitter wrote <code>json.parse(s)</code> with no type argument, and <code>tsc</code> inferred <code>T</code> from the return type, which made the unchecked read a cast with no <code>as</code> anywhere. A call with no type argument is now emitted as <code>json.parse&lt;unknown&gt;(s)</code>, so <code>tsc</code> refuses it there, at a <code>let</code> annotated <code>Result&lt;User, ...&gt;</code>, at an argument and in a record field. <code>glyph check --no-tsc</code> does not refuse an <code>unknown</code> value where another type is declared yet; that is 0.1.158.</p>
             <p><code>json.parse&lt;T&gt;</code> with a <code>T</code> nothing can check at run time is E0304: a type parameter, an <code>extern_ts</code> or package type, an interface, <code>Result</code>, a generic union, an <code>Option</code>, <code>Nullable</code> or <code>Record</code> of one, or a generic record applied to one (<code>Pair&lt;Shape&gt;</code>, whose check tested <code>a</code> only for being there). The note says which. A container of <code>unknown</code> is checked by its shape, so <code>json.parse&lt;Array&lt;unknown&gt;&gt;("{}")</code> is an <code>Err</code>. An <code>Array</code> alias imported from another module validates when its body names types that module declares. If it names one the module imports, that is E0304 for now. It used to look the name up in your module, and validate against your own <code>User</code> if you had one. Assigning <code>json.parse</code> to a variable gives you the unchecked read: <code>let p = json.parse</code> takes no type arguments.</p>
 
-            <h3><code>?.</code> on an <code>Option</code> or a <code>Result</code></h3>
+            <h4><code>?.</code> on an <code>Option</code> or a <code>Result</code></h4>
             <p>An <code>Option</code> and a <code>Result</code> are never null, so <code>?.</code> on one never skips anything; it reads off the wrapper. An agent writing csvql wrote <code>bind_agg(...)?.label</code> meaning "propagate the error, then read the field", and the error was not propagated. That is E0236 now, with help that says to bind first (<code>let a = bind_agg(...)?</code>) or to <code>match</code>. A plain <code>.</code> on them is still unchecked; that is 0.1.139.</p>
 
-            <h3>Methods of arrays and strings</h3>
+            <h4>Methods of arrays and strings</h4>
             <p>The checker knows what <code>xs.indexOf(2)</code> and <code>s.trim()</code> return, from a table generated out of TypeScript's own declarations and checked for drift in CI. A method read without calling it, <code>let up = s.toUpperCase</code>, is E0234: the read loses its receiver and throws when called. <code>.bind(s)</code> is refused the same way; write <code>fn() -&gt; string { return s.toUpperCase() }</code>. Type arguments on a function you stored in a variable are read now: <code>let g = id</code> then <code>g&lt;number&gt;("x")</code> is an error, as it is on <code>id</code> itself.</p>
 
-            <h3>The editor and agents</h3>
+            <h4>The editor and agents</h4>
             <p><code>glyph/applyEdit</code> checks every module of the project, not just the edited file, so an edit that breaks an importer is refused, and the other files' diagnostics come back under <code>elsewhere</code>. An edit can span files through the new <code>changes</code> form, checked as one. A pre-existing error elsewhere whose suggestion the edit happened to change (adding an export rewrites another file's "did you mean") stays pre-existing. <code>glyph fix</code> repairs a misspelled string-literal arm the way it repairs a variant, and declines when the repair is not determined: when the error that lists the missing case belongs to another match, or two arms would take the same value.</p>
 
-            <h3>Fixes</h3>
+            <h4>Fixes</h4>
             <p><code>glyph fmt</code> cut a run of spaces at the edge of JSX text to one, which changed what the page renders; it writes such a text as one string child now, and formatting leaves the emitted TypeScript byte for byte the same. It also moved a comment written between the operands of a multi-line expression below the statement; the comment stays with its operand. A <code>match</code> with no arms crashed the playground. The nightly fuzzer, which had been failing unread for fifteen days, found all three; it now keeps fuzzing past a crash, and a new target checks that formatting never changes the emitted TypeScript.</p>
 
             <p>This release is breaking. Each line below was established by running 0.1.132 and 0.1.133 on the same program. The list is what that testing found; it is not every program that could change.</p>
@@ -856,7 +856,7 @@ let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
         </article>
         <article class="release" id="0.1.132" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.132</h2>
+            <h3 class="rel-ver">0.1.132</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.132" data-url="https://glyphlang.io/versions/2026-11/#0.1.132" aria-label="Link to 0.1.132">Link</a>
@@ -866,10 +866,10 @@ let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
           <div class="rel-body">
             <p>This release removes places where a guarantee depended on how something was spelled, and closes more of the programs only <code>tsc</code> used to refuse.</p>
 
-            <h3>An alias is the type it names, however you import it</h3>
+            <h4>An alias is the type it names, however you import it</h4>
             <p><code>pub type Page = Doc</code> was already a second name for <code>Doc</code>. Written through a namespace, <code>pub type Page = a.Doc</code>, it was a different type: <code>Page</code> and <code>a.Doc</code> did not match, <code>Page.parse</code> did not exist, and a misspelled field passed. Both spellings now mean the same thing. A misspelled field through an alias names both types: <code>type `Page` (a second name for `a.Doc`) has no field `titel`; did you mean `title`?</code></p>
 
-            <h3>Reading through a <code>Nullable</code></h3>
+            <h4>Reading through a <code>Nullable</code></h4>
             <div class="code">
               <span class="cap">note.glyph</span>
 <pre>pub fn label(n: Nullable&lt;Note&gt;) -&gt; string {
@@ -878,13 +878,13 @@ let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
             </div>
             <p><code>n?.name</code> is now checked against <code>Note</code>'s fields. Its value is the name or JavaScript's <code>undefined</code>, and Glyph has no type for <code>undefined</code>, so it can only be the left side of <code>??</code> or compared with <code>==</code>. Anywhere else, such as a <code>let</code> or a <code>"${...}"</code>, it is the new E0235. That catches <code>"${n?.name}"</code> printing the text "undefined", which <code>tsc</code> accepts. <code>n.name</code> without the <code>?</code> is E0235 too.</p>
 
-            <h3><code>json.parse</code> validates in both spellings</h3>
+            <h4><code>json.parse</code> validates in both spellings</h4>
             <p><code>parse&lt;Doc&gt;(body)</code> through <code>import std/json { parse }</code> used to compile to a cast, where <code>json.parse&lt;Doc&gt;</code> validated. Both validate now, and so does a <code>T</code> that is an <code>Option</code>, a <code>Nullable</code>, a <code>Record</code> of a checked type, or a primitive. Some <code>T</code> still cast, and that is next: a type parameter, an <code>extern_ts</code> type, a package type, a container of <code>unknown</code>, and an <code>Array</code> alias imported from another module.</p>
 
-            <h3>Smaller checks</h3>
+            <h4>Smaller checks</h4>
             <p>A wrong number of type arguments, including none on a generic type (<code>let b: Box</code>), is the new E0233. <code>print</code> takes a <code>string</code> and <code>assert</code> takes a <code>bool</code>, so <code>print(42)</code> is an argument mismatch: write <code>print("${n}")</code>. A match arm for a string outside its union is E0220. <code>xs.length</code> is a <code>number</code>. A record where <code>Record&lt;string, V&gt;</code> is declared is compared field by field. <code>kinds.type</code> works as a type name.</p>
 
-            <h3>The editor</h3>
+            <h4>The editor</h4>
             <p>The emitter's errors no longer disappear while you type; they move with your edits until the next check. Editing one file refreshes the other open files that import it. For agents, <code>glyph/applyEdit</code> now refuses only what an edit introduces, warnings included, and returns what the file already had under <code>preexisting</code>. So <code>ok: true</code> no longer means the file is clean; it means the edit introduced nothing, and the file is clean only when <code>preexisting</code> is empty too. While the file has an error, the warnings and the emitter's checks do not run, so an edit to it can add one of those and still get <code>ok: true</code> (G313). It still checks only the edited file, so <code>glyph check</code> remains the authority for changes that affect other modules.</p>
 
             <p>This release is breaking, at compile time and at run time.</p>
@@ -897,7 +897,7 @@ let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
         </article>
         <article class="release" id="0.1.131" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.131</h2>
+            <h3 class="rel-ver">0.1.131</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.131" data-url="https://glyphlang.io/versions/2026-11/#0.1.131" aria-label="Link to 0.1.131">Link</a>
@@ -907,7 +907,7 @@ let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
           <div class="rel-body">
             <p>Most of this release is programs that only <code>tsc</code> refused and Glyph's own checker now refuses too, so <code>glyph check --no-tsc</code>, the editor and the playground see them. The rest is the editor catching up with <code>glyph check</code>.</p>
 
-            <h3>A field called <code>type</code></h3>
+            <h4>A field called <code>type</code></h4>
             <div class="code">
               <span class="cap">event.glyph</span>
 <pre>type Event = { type: string, id: number, }
@@ -918,13 +918,13 @@ pub fn kind(e: Event) -&gt; string {
             </div>
             <p>The record was accepted and the read was not: <code>e.type</code> was E0002, because <code>type</code> is a reserved word. A JSON discriminator is usually called exactly that. Any keyword after <code>.</code> or <code>?.</code> is now a member name, so <code>e.type</code> reads and <code>Sized.is(v)</code> can be called. A keyword used as a type, like <code>fn f(x: match)</code>, says it is reserved instead of giving a generic parse error.</p>
 
-            <h3>The editor shows what <code>glyph check</code> shows</h3>
+            <h4>The editor shows what <code>glyph check</code> shows</h4>
             <p>The language server stopped after the type checker, so the emitter's errors (E0302 to E0305, including an unverifiable <code>parse</code>) appeared in <code>glyph check</code> and the MCP tools but not in the editor. The editor now shows them. The checker's errors still arrive on every keystroke; the emitter's follow once you stop typing for 300 ms, and straight away when a file is opened or saved. While you type they drop out and come back at the pause. The editor still does not run <code>tsc</code>, the <code>@example</code> gate or the missing-module check (E0104), so it shows what <code>glyph check --no-tsc --no-test</code> shows, not the full <code>glyph check</code>. Lint findings now appear as warnings, as <code>glyph check</code> reports them.</p>
 
-            <h3><code>json.parse</code> refuses what it cannot validate</h3>
+            <h4><code>json.parse</code> refuses what it cannot validate</h4>
             <p><code>Doc.parse(v)</code> was already refused when a field of <code>Doc</code> has no runtime check. <code>json.parse&lt;Doc&gt;(body)</code> validates through the same check and was not refused, so it returned <code>Ok</code> for a field nothing had looked at. It is E0304 now, and so is <code>json.parse_with(body, Doc.schema)</code>. <code>json.parse&lt;w.Doc&gt;</code> through <code>import w</code> used to compile to a cast and now validates, which changes what a running program gets back (see below). Two forms still cast without validating: <code>parse&lt;Doc&gt;</code> through <code>import std/json { parse }</code>, and a type argument wrapped in <code>Option</code>, <code>Nullable</code> or <code>Record</code>.</p>
 
-            <h3>Types the checker used to skip</h3>
+            <h4>Types the checker used to skip</h4>
             <p>Explicit type arguments on your own generic functions are used: <code>id&lt;number&gt;("x")</code> is an argument mismatch. A record where a <code>Result</code>, <code>Option</code> or <code>Array</code> is declared is a type mismatch, the reverse of 0.1.130's rule. A match over <code>http.RedirectPolicy</code> or <code>log.Level</code> compiles without an <code>else</code>, and a missing value is named. <code>n.toFixd(2)</code> on a number says "did you mean <code>toFixed</code>", and a misspelled record field suggests the nearest field. A second name for an imported record, <code>pub type Page = Doc</code>, has a working <code>Page.parse</code>; written through a namespace, <code>pub type Page = a.Doc</code>, it still does not (G302).</p>
             <p>Some of this is partial. A wrong number of explicit type arguments is still left to <code>tsc</code>, and so are type arguments on a function stored in a variable. <code>Record&lt;K, V&gt;</code> where a declared record is the value is left undecided.</p>
 
@@ -937,7 +937,7 @@ pub fn kind(e: Event) -&gt; string {
         </article>
         <article class="release" id="0.1.130" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.130</h2>
+            <h3 class="rel-ver">0.1.130</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.130" data-url="https://glyphlang.io/versions/2026-11/#0.1.130" aria-label="Link to 0.1.130">Link</a>
@@ -947,24 +947,24 @@ pub fn kind(e: Event) -&gt; string {
           <div class="rel-body">
             <p>The preview announcement makes five claims of the form "TypeScript accepts this and Glyph refuses it". A review of the draft against 0.1.129 found two of them weaker than they read: one held only inside the module that declared the type, and one was refused by <code>tsc</code> rather than by Glyph. This release makes both hold, and fixes the things a newcomer would hit first.</p>
 
-            <h3>An unverifiable <code>parse</code> is refused across an import</h3>
+            <h4>An unverifiable <code>parse</code> is refused across an import</h4>
             <p>E0304 refuses <code>Doc.parse(v)</code> when a field of <code>Doc</code> has no runtime check, because the validator would report success for a value it never looked at. It only fired in the module that declared <code>Doc</code>. Called from a module that imported it, the same call compiled and returned <code>Ok</code>. The refusal now follows the record across modules, including records a field check hands off to.</p>
 
-            <h3>Glyph's own checker refuses an unchecked boundary read</h3>
+            <h4>Glyph's own checker refuses an unchecked boundary read</h4>
             <div class="code">
               <span class="cap">user.glyph</span>
 <pre>let user: User = json.parse(body)</pre>
             </div>
             <p><code>json.parse</code> returns a <code>Result</code>, so this was always an error, but only <code>tsc</code> reported it. <code>glyph check --no-tsc</code>, the editor and the playground said nothing. It is E0204 now: a <code>Result</code>, <code>Option</code>, <code>Array</code>, <code>Record</code> or <code>Nullable</code> where a declared record or union is expected is a type mismatch in the checker. All five <code>catches/</code> programs are now refused by Glyph itself, and all five reproduce in the playground.</p>
 
-            <h3>Member reads on arrays and strings</h3>
+            <h4>Member reads on arrays and strings</h4>
             <p><code>xs.lenght</code> on an array was left to <code>tsc</code>. It is E0210 with "did you mean <code>length</code>", checked against the members TypeScript's library declares for arrays and strings. A CI check compares those lists with the TypeScript the project pins, in both directions, so moving the pin to a release that adds a method fails CI until the lists catch up. A TypeScript newer than the pin can still have a member Glyph does not know yet.</p>
 
-            <h3>Errors point at the expression</h3>
+            <h4>Errors point at the expression</h4>
             <p>A <code>tsc</code> error in Glyph code used to underline the whole statement it came from: a wrong argument marked the entire <code>let</code>, and a typo in a JSX handler marked eight lines. The emitter now maps every expression it writes, so the caret lands on the argument. The emitted TypeScript is unchanged.</p>
             <p><code>let where = 1</code> now says <code>where</code> is a reserved word instead of giving a generic parse error, and <code>glyph llms</code> lists the 32 reserved words. A match on string literals whose type the checker cannot see is E0232, which says that, instead of E0218 suggesting an <code>else</code> arm, which would have switched the check off.</p>
 
-            <h3>The playground and the docs</h3>
+            <h4>The playground and the docs</h4>
             <p>The playground opens on a program it refuses, has a picker of the <code>catches/</code> cases, and can share a program by URL. The docs check now compiles fences whose point is a <code>tsc</code> error, and fences that import zod, pg or mongodb against those packages' real types. E0400 to E0404 have <code>glyph --explain</code> pages, and a test requires every code the compiler can emit to have one.</p>
 
             <p>This release is breaking. <code>Bag.parse(v)</code> on an imported record with an <code>Array&lt;unknown&gt;</code> field exits 0 under <code>glyph check</code> in 0.1.129 and 1 here. <code>let s: Sized = xs</code>, where <code>Sized</code> is the record <code>{ length: number }</code> and <code>xs</code> is an array, exits 0 in 0.1.129 and 1 here, although <code>tsc</code> accepts it: a declared record is its own type, and <code>Sized.parse(xs)</code> already refused the array. Declaring <code>interface Sized { length: number }</code> instead keeps the program. A misspelled array or string member was already a <code>tsc</code> error; under <code>--no-tsc</code> it exits 0 in 0.1.129 and 1 here.</p>
@@ -973,7 +973,7 @@ pub fn kind(e: Event) -&gt; string {
         </article>
         <article class="release" id="0.1.129" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.129</h2>
+            <h3 class="rel-ver">0.1.129</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.129" data-url="https://glyphlang.io/versions/2026-11/#0.1.129" aria-label="Link to 0.1.129">Link</a>
@@ -983,10 +983,10 @@ pub fn kind(e: Event) -&gt; string {
           <div class="rel-body">
             <p>Before announcing a preview I had two agents start from <code>npx @glyphlang/glyph init</code> with nothing but the shipped docs, one building a small React page and one a Node CLI. Both got to a clean <code>tsc</code> build. This release fixes what they ran into, and one bug the Node run found that matters more than any of it.</p>
 
-            <h3>Examples now run in a module that imports an npm package</h3>
+            <h4>Examples now run in a module that imports an npm package</h4>
             <p>In a module that imported an npm package, a failing <code>@example</code> passed. The example gate builds a copy of the project in a temp directory, the package could not be found from there, and the test harness died before running anything. The runner took the absence of a failure as success. The copy now resolves packages from your project, and a harness that does not report a result for every example it was given fails the build as "not run". The same check now covers <code>glyph bench</code>, which reported zero benchmarks and exited 0 when its module threw.</p>
 
-            <h3><code>&lt;case&gt;</code> takes a match pattern</h3>
+            <h4><code>&lt;case&gt;</code> takes a match pattern</h4>
             <p><code>&lt;case Loaded bind={items}&gt;</code> read a field called <code>items</code> whatever the payload was, so on a positional payload it bound <code>undefined</code>, and the checker never typed the name. A case now takes the pattern a <code>match</code> arm takes:</p>
             <div class="code">
               <span class="cap">view.glyph</span>
@@ -998,14 +998,14 @@ pub fn kind(e: Event) -&gt; string {
             </div>
             <p>The bindings are typed, and a case that only matches some values of its variant does not count as covering it. <code>bind=</code> is now E0231, and its help writes the pattern for you. The same change closed a hole in ordinary <code>match</code> arms: <code>Loaded({ totl })</code> on a record with no <code>totl</code> field passed the checker and only <code>tsc</code> complained. It is E0210 now, listing the fields the record has.</p>
 
-            <h3><code>glyph fix</code> no longer writes match arms</h3>
+            <h4><code>glyph fix</code> no longer writes match arms</h4>
             <p>On a non-exhaustive match, <code>glyph fix</code> used to add one arm per missing case that printed the case and exited the process. The program then passed every check, and the match counted as exhaustive in <code>glyph query variants</code>. The compiler knows which cases are missing, not what your program should do in them, so <code>fix</code> now reports them and writes nothing. The E0200 help also stopped suggesting an <code>else</code> arm.</p>
 
-            <h3>The docs the agents needed</h3>
+            <h4>The docs the agents needed</h4>
             <p>The agent docs (what <code>glyph llms</code> prints and <code>glyph init</code> copies) now show a whole browser page: the app module, the entry that mounts it, the <code>index.html</code>, and building then bundling with Vite. Both modules are compiled against React's types in CI. An HTTP recipe that imported a <code>serve</code> <code>std/http</code> does not export is fixed, and every <code>std</code> import written in those docs is now compiled by a CI check. The scaffold's <code>.types</code> README no longer tells you to write <code>.d.ts</code> files for packages that ship their own types, and the getting-started guide begins with <code>glyph init</code>.</p>
             <p><code>glyph run -- in.json</code> now runs the current project with <code>in.json</code> as an argument, and a new scaffold's <code>start</code> script is <code>glyph run --</code>, so <code>npm start -- in.json</code> works. In a project made before this release, change the <code>start</code> script to <code>glyph run --</code>.</p>
 
-            <h3>Smaller fixes</h3>
+            <h4>Smaller fixes</h4>
             <p>A U+E000 character inside a string compiled to <code>$</code>, because the lexer used that codepoint as an internal marker; the scheduled fuzzer found it. The <code>catches/</code> folder is down to five programs, each one the same program in TypeScript and Glyph, after a review found four that compared two different programs or that <code>tsc</code> also catches. Tests that need <code>tsc</code> or <code>node</code> now fail in CI when the tool is missing instead of quietly passing, and on their first run they found ten <code>glyph gen dts</code> tests that had been skipping: <code>gen dts</code> replaced the caller's <code>NODE_PATH</code> with the global npm root, so a TypeScript found only through <code>NODE_PATH</code> was reported missing. It now adds the global root after it.</p>
 
             <p>This release is breaking. A <code>bind=</code> case, an arm naming a field the record does not have, a failing example in a module that imports an npm package, and a benchmark that throws all exit 0 under 0.1.128 and 1 here. One spelling changes meaning without an error: <code>glyph run -- tools/other.glyph</code> ran that file under 0.1.128, and now runs the current project with <code>tools/other.glyph</code> as an argument. Write the path before the <code>--</code>.</p>
@@ -1014,7 +1014,7 @@ pub fn kind(e: Event) -&gt; string {
         </article>
         <article class="release" id="0.1.128" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.128</h2>
+            <h3 class="rel-ver">0.1.128</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
             <a class="rel-link" href="/versions/2026-11/#0.1.128" data-url="https://glyphlang.io/versions/2026-11/#0.1.128" aria-label="Link to 0.1.128">Link</a>
@@ -1024,7 +1024,7 @@ pub fn kind(e: Event) -&gt; string {
           <div class="rel-body">
             <p>This release is about writing a React app in Glyph against real React. The last attempt stopped at <code>document.title</code>, because browser globals are unresolved names in Glyph and nothing in the standard library reached the page. Now a counter and a todo list using React 18's own hooks builds, bundles with Vite and runs in a browser. It's in the repo as <code>examples/apps/todo</code>, and CI now drives it in headless Chromium and checks the text on the page.</p>
 
-            <h3>The page, through the standard library</h3>
+            <h4>The page, through the standard library</h4>
             <p>Three small modules. <code>std/dom</code> reads and sets the title, finds an element by id and gives you the page's address. <code>std/storage</code> wraps <code>localStorage</code>: a read is an <code>Option</code> and a write is a <code>Result</code>, because a full or blocked store is an ordinary failure in a real browser. <code>std/console</code> writes a line at three levels. An element is opaque to Glyph: you hand it to React, you don't poke at it.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -1037,13 +1037,13 @@ pub fn kind(e: Event) -&gt; string {
             </div>
             <p>Writing <code>document</code> or <code>localStorage</code> is still E0103, and the message now names the module to import.</p>
 
-            <h3>A hook's pair, destructured</h3>
+            <h4>A hook's pair, destructured</h4>
             <p><code>let [count, set_count] = useState(0)</code> works now. The pattern can't test anything, so it always matches, and the length has to be provable: a written array is counted, an <code>Array&lt;T&gt;</code> is refused because it might be shorter, and a value from npm gets a <code>satisfies</code> clause in the emitted TypeScript so <code>tsc</code> checks it is really a pair. That makes <code>const [user, host] = s.split("@")</code>, which <code>tsc --strict</code> accepts, an error in Glyph (E0230).</p>
 
-            <h3>Two formatter and parser fixes in JSX</h3>
+            <h4>Two formatter and parser fixes in JSX</h4>
             <p><code>glyph fmt</code> trimmed JSX text, so <code>&lt;p&gt;{n} left&lt;/p&gt;</code> came back as <code>{n}left</code> and the page read "2left". It now keeps every space JSX renders. Separately, text on its own line below an element kept its indentation in the output; it's dropped now, as in TSX. Neither fix changes the TypeScript emitted for any example.</p>
 
-            <h3>Breaking, measured</h3>
+            <h4>Breaking, measured</h4>
             <p>An import of a <code>std/</code> module that doesn't exist exits 0 under 0.1.127 with <code>--no-tsc</code> and is E0104 here; with <code>tsc</code> it failed under both. Across the 31 apps that existed before this release, with and without <code>tsc</code>, every exit code and list of diagnostic codes is the same under both versions. The new todo app and the rewritten React example use the new syntax and modules, so 0.1.127 refuses them (E0002 and E0105) and this build passes them.</p>
           </div>
           </details>

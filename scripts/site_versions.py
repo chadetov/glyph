@@ -265,10 +265,13 @@ def release_html(r: Release, latest: str, open_set: set[str]) -> str:
     if r.breaking:
         attrs += " data-breaking"
     opened = " open" if r.version in open_set else ""
+    # The month is the page's h2 and each release its h3, so the notes'
+    # own subheads, written as <h3> in site/releases/, render one level down.
+    notes = re.sub(r"<(/?)h3\b", r"<\1h4", r.body)
     return (
         f'        <article class="release"{attrs}>\n'
         '          <div class="rel-head">\n'
-        f'            <h2 class="rel-ver">{esc(r.version)}</h2>\n'
+        f'            <h3 class="rel-ver">{esc(r.version)}</h3>\n'
         + (head + "\n" if head else "")
         + f'            <span class="rel-date">{month_name(r.month)}</span>\n'
         f'            <a class="rel-link" href="{r.permalink}" data-url="{ORIGIN}{r.permalink}"'
@@ -278,7 +281,7 @@ def release_html(r: Release, latest: str, open_set: set[str]) -> str:
         f'            <summary><span class="rel-headline">{r.headline}</span>'
         '<span class="rel-toggle" aria-hidden="true"></span></summary>\n'
         '          <div class="rel-body">\n'
-        f"{r.body}\n"
+        f"{notes}\n"
         "          </div>\n"
         "          </details>\n"
         "        </article>\n"

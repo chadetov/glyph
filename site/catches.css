@@ -36,6 +36,13 @@
 .severe .c-dots i.on {
   background: var(--red-fill);
 }
+/* the list of cases is the page's first section, under its own h2 */
+.c-cases {
+  padding: 0;
+}
+.c-cases > .group-head {
+  margin-bottom: var(--s4);
+}
 .c-legend {
   display: flex;
   flex-wrap: wrap;
@@ -135,19 +142,10 @@
 }
 .c-num {
   flex: none;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--violet);
-  color: #fff;
-  font-weight: 700;
-  font-size: 13px;
-  display: grid;
-  place-items: center;
 }
 .c-head h3 {
   margin: 0;
-  font-size: var(--fs-lg);
+  font-size: var(--h3);
   font-weight: 600;
   flex: 1 1 18ch;
   min-width: 0;
@@ -166,7 +164,8 @@
   white-space: nowrap;
 }
 .c-why {
-  color: var(--muted);
+  color: var(--ink-2);
+  font-size: var(--fs-body);
   margin: var(--s1) 0 var(--s4);
 }
 .c-pair {
@@ -180,24 +179,6 @@
   flex-wrap: wrap;
   gap: 6px 10px;
   margin-bottom: var(--s2);
-}
-.c-lang {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 999px;
-}
-.ts .c-lang {
-  background: var(--red-bg);
-  color: var(--red);
-}
-.gl .c-lang {
-  background: var(--green-bg);
-  color: var(--green);
-}
-.gl.warn .c-lang {
-  background: var(--amber-bg);
-  color: var(--amber);
 }
 .c-verdict,
 .c-kind {
@@ -251,21 +232,6 @@ pre .h {
   gap: 4px 8px;
   align-items: baseline;
 }
-.c-cfg b {
-  font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 7px;
-  border-radius: 4px;
-  white-space: nowrap;
-  background: var(--card-2);
-  color: var(--ink);
-}
-.c-cfg.none b {
-  background: var(--red-bg);
-  color: var(--red);
-}
 .c-note {
   margin: var(--s4) 0 0;
   padding: var(--s3) var(--s4);
@@ -295,7 +261,7 @@ pre .h {
   margin-top: var(--s4);
   scroll-margin-top: var(--s4);
 }
-.c-list + .c-section {
+.c-cases + .c-section {
   border-top: 0;
   margin-top: 0;
 }
@@ -305,6 +271,7 @@ pre .h {
 }
 .c-traps li {
   margin-bottom: var(--s2);
+  font-size: var(--fs-body);
 }
 .c-gaps {
   margin: 0;
@@ -348,16 +315,8 @@ pre .h {
 .c-hero .c-tags {
   margin-bottom: 6px;
 }
-.c-hero .ts .c-lang {
-  background: rgba(229, 72, 77, 0.18);
-  color: #ffb3b5;
-}
 .c-hero .ts .c-verdict {
   color: #ffb3b5;
-}
-.c-hero .gl .c-lang {
-  background: rgba(18, 161, 80, 0.2);
-  color: #8ee6b2;
 }
 .c-hero .gl .c-kind {
   color: #8ee6b2;
@@ -377,7 +336,7 @@ a.c-card {
   padding: var(--s5);
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   color: var(--ink);
 }
 a.c-card:hover {
@@ -385,20 +344,10 @@ a.c-card:hover {
   text-decoration: none;
   color: var(--ink);
 }
-.c-card-n {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--violet);
-  color: #fff;
-  font-weight: 700;
-  font-size: 13px;
-  display: grid;
-  place-items: center;
-}
 .c-card h3 {
   margin: 0;
-  font-size: var(--fs-md);
+  font-size: var(--h3);
+  font-weight: 600;
 }
 .c-card p {
   margin: 0;

@@ -373,7 +373,7 @@
       <div class="releases">
         <article class="release" id="0.1.127" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.127</h2>
+            <h3 class="rel-ver">0.1.127</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">October 2026</span>
             <a class="rel-link" href="/versions/2026-10/#0.1.127" data-url="https://glyphlang.io/versions/2026-10/#0.1.127" aria-label="Link to 0.1.127">Link</a>
@@ -383,7 +383,7 @@
           <div class="rel-body">
             <p>This release is about records. Glyph checked the top level of a record against its declaration and then compared what was inside it with a weaker rule, so a record nested in another record could be the wrong shape and pass <code>glyph check --no-tsc</code>. It is breaking for that reason: programs that 0.1.126 accepted and <code>tsc</code> refuses are now refused by Glyph too. That was established by running 0.1.126 and this build on each program below.</p>
 
-            <h3>Records are compared all the way down</h3>
+            <h4>Records are compared all the way down</h4>
             <p>Every field of a record is now compared by the same rule as the record itself, so a nested record, a declared type and a string-literal union inside a record are checked the way they are at the top. The same gap reached four other places, and they are closed too: a field the value may not have (<code>a?: number</code>) where the declaration requires it, a declared record passed where an inline one is declared, a function whose return type doesn't fit, and an interface's members.</p>
             <div class="code">
               <span class="cap">glyph check --no-tsc</span>
@@ -399,7 +399,7 @@ pub fn g() -&gt; number {
             </div>
             <p>The message still calls both sides <code>record</code> when neither has a name, which is a known display gap. One program goes the other way: a record that refers to itself through a field, such as <code>type Node = { kids: Array&lt;Node&gt;, }</code>, passed to an interface shaped the same way used to be refused by name one level down. <code>tsc</code> accepts it, and now Glyph does too.</p>
 
-            <h3>A record of only optional fields</h3>
+            <h4>A record of only optional fields</h4>
             <p>A record whose fields are all optional accepts almost anything, so TypeScript refuses a value that shares none of its fields (TS2559). Glyph now applies the same rule, with the same edges: an empty value is accepted, and one shared field is enough.</p>
             <div class="code">
               <span class="cap">glyph check --no-tsc</span>
@@ -414,17 +414,17 @@ pub fn g() -&gt; number {
             </div>
             <p>An extra field on a fresh object literal is still accepted. <code>tsc</code> refuses it (TS2353) and Glyph doesn't yet; that's recorded as G273.</p>
 
-            <h3>Impact on components</h3>
+            <h4>Impact on components</h4>
             <p><code>glyph_impact</code> answered "not indexed" for a JSX element under a change to a component's props. It now treats <code>&lt;Card title="x" /&gt;</code> as the call it compiles to, one props record passed to <code>Card</code>, and lists each attribute against the field it is checked against. An attribute and a call argument of the same types now get the same verdict, because they go through the same code. With the record rule complete, <code>glyph_assignable</code> answers <code>COMPATIBLE</code> or <code>WILL_FAIL</code> for a record against a declared record, where it used to say it had no rule.</p>
 
-            <h3>Breaking, measured</h3>
+            <h4>Breaking, measured</h4>
             <p>Across the 31 apps and <code>examples/</code>, with and without <code>tsc</code>, every exit code and every list of diagnostic codes is the same under 0.1.126 and this build. An early cut of this release refused two of the apps, <code>shortlink</code> and <code>zipper</code>: <code>array.fold(xs, "", ...)</code> inferred the accumulator as the literal type <code>""</code> instead of <code>string</code>. That was fixed before release, and it is now inferred as <code>string</code>, which is what <code>tsc</code> infers.</p>
           </div>
           </details>
         </article>
         <article class="release" id="0.1.126" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.126</h2>
+            <h3 class="rel-ver">0.1.126</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">October 2026</span>
             <a class="rel-link" href="/versions/2026-10/#0.1.126" data-url="https://glyphlang.io/versions/2026-10/#0.1.126" aria-label="Link to 0.1.126">Link</a>
@@ -434,7 +434,7 @@ pub fn g() -&gt; number {
           <div class="rel-body">
             <p>This release finishes what 0.1.125 started on React components: the type a component returns now means something to <code>tsc</code>, go-to-definition works through a namespace import, and impact answers the same for a call however its callee was imported. It is breaking in two places, each established by running 0.1.125 and this build on the same program: a component whose parameter is <code>unknown</code> or an unbounded type parameter is E0229, and <code>?</code> inside a component body is E0201.</p>
 
-            <h3>A component returns a type tsc can read</h3>
+            <h4>A component returns a type tsc can read</h4>
             <p><code>Component</code> is a prelude name, and <code>-&gt; Component</code> is how a component declares that it returns a rendered element. The emitter wrote the bare word into the TypeScript, which <code>tsc</code> could not resolve. The flagship React example only got past that by importing React's <code>Component</code> class over the prelude name, which <code>tsc</code> refuses for a different reason.</p>
             <div class="code">
               <span class="cap">glyph check, with React 18's types</span>
@@ -445,7 +445,7 @@ pub component App() -&gt; Component { return &lt;div&gt;{view()}&lt;/div&gt; }
             </div>
             <p>The prelude <code>Component</code> now lowers to <code>React.ReactNode</code>. It was picked by running <code>tsc</code> on every value a component can return in Glyph: an element, a fragment, an <code>&lt;if&gt;</code> without an <code>&lt;else&gt;</code> (which yields <code>null</code>), a <code>&lt;match&gt;</code> and a <code>&lt;for&gt;</code> list. <code>ReactNode</code> is the narrowest type that accepts all of them. A component with no annotation now returns <code>Component</code> too, where the checker used to record <code>void</code>, so hover and <code>glyph_symbol</code> read <code>fn(Props) -&gt; Component</code>. A module whose JSX lives only in plain functions now gets its <code>import * as React</code> line. One edge: React's types before 18.2.8 refuse a function component that returns <code>ReactNode</code>.</p>
 
-            <h3>Two things a component cannot be</h3>
+            <h4>Two things a component cannot be</h4>
             <p>A component whose parameter is <code>unknown</code> or an unbounded type parameter receives a props object it can read nothing from, and <code>tsc</code> refuses its elements once they write attributes. Both are E0229 now, like a primitive. A type parameter bounded by a record or interface is still allowed. And <code>?</code> in a component body used to compile and hand React the <code>Err</code> object to render; now that a component's return type is <code>Component</code>, it is E0201 like <code>?</code> anywhere that does not return a <code>Result</code>.</p>
             <div class="code">
               <span class="cap">glyph check --no-tsc</span>
@@ -459,20 +459,20 @@ pub component App() {
 //          [E0201] ...                                         (exit 1)</span></pre>
             </div>
 
-            <h3>Go-to-definition through a namespace</h3>
+            <h4>Go-to-definition through a namespace</h4>
             <p>Under <code>import ui</code>, go-to-definition on <code>Button</code> in <code>ui.Button</code> or <code>&lt;ui.Button&gt;</code> answered nothing, and on <code>Props</code> in <code>ui.Props</code> it jumped to the import line. It now answers the declaration in <code>ui.glyph</code>, as the named import <code>import ui { Button }</code> always did, in the editor and in <code>glyph_definition</code> alike. A test drives it over the language server protocol under all three import spellings.</p>
 
-            <h3>Impact, and a missing children prop</h3>
+            <h4>Impact, and a missing children prop</h4>
             <p>A call written <code>ui.fmt(1)</code> was filed as a reference and answered "not indexed", where <code>fmt(1)</code> under a named import was a call that will fail. Both are calls now, with the same verdict and reason. An import line under an edit that keeps the name (a changed parameter type, an added parameter) is <code>SAFE</code>: an import checks only that the name exists and is exported, which was confirmed by reading every check at an import line and by making the edits. And when a required <code>children</code> prop is reported missing on an element that writes children, the help now says why: children between the tags are passed outside the props object, so declare <code>children?:</code> or pass <code>children={...}</code>.</p>
 
-            <h3>The React page, corrected</h3>
+            <h4>The React page, corrected</h4>
             <p>The React answer page showed hooks named <code>use_state</code> and <code>use_reducer</code>. They existed only in a stub this repository uses for CI, not in React. A round that built a small app against real React 18 found it, along with what does not work yet. Browser globals such as <code>document</code> can't be named, so an effect that sets the page title can't be written. And a hook's tuple has to be read by index. The page now shows React's real <code>useReducer</code> and says both of those plainly. A typed <code>std/dom</code> module and <code>let [a, b] = ...</code> are planned. Across the 31 apps and the examples, the only verdict that changed is the React example, which went from failing <code>tsc</code> to passing.</p>
           </div>
           </details>
         </article>
         <article class="release" id="0.1.125" data-hl="sentence" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.125</h2>
+            <h3 class="rel-ver">0.1.125</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">October 2026</span>
             <a class="rel-link" href="/versions/2026-10/#0.1.125" data-url="https://glyphlang.io/versions/2026-10/#0.1.125" aria-label="Link to 0.1.125">Link</a>
@@ -482,7 +482,7 @@ pub component App() {
           <div class="rel-body">
             <p>This release is about React components. Three programs passed <code>glyph check</code> with <code>tsc</code> in the loop under 0.1.124 and were broken when they ran: a component reached through <code>import ui</code> was emitted as a string tag and never called, an element with no attributes passed <code>null</code> as its props, and an unexported component reached through a namespace was accepted. All three are Glyph diagnostics now. It is breaking for that reason, and for two more programs that 0.1.124 left to <code>tsc</code>: a component whose parameter is not a record, and an element missing a required prop. Each was established by running 0.1.124 and this build on the same program.</p>
 
-            <h3>A dotted element is a component</h3>
+            <h4>A dotted element is a component</h4>
             <p>An element was classified by the first character of its name, so <code>&lt;ui.Button /&gt;</code> under <code>import ui</code> was treated like <code>&lt;div&gt;</code> and emitted as <code>createElement("ui.Button", ...)</code>. React rendered an unknown tag, <code>tsc</code> accepted a string tag with any props, and the only diagnostic was a wrong "unused import <code>ui</code>".</p>
             <div class="code">
               <span class="cap">import ui, then a wrong attribute</span>
@@ -494,7 +494,7 @@ pub component App() {
             </div>
             <p>A dotted name is a component whatever the case of its base, which is TypeScript's rule for a member-expression tag. One classifier now decides it, where the resolver and the emitter each kept their own copy. The base resolves like any name, the props check reaches the component through a namespace or an aliased import, and the member goes through the same export check <code>ui.Button</code> does as a value, so <code>&lt;ui.Nope /&gt;</code> and an unexported component are E0105.</p>
 
-            <h3>A missing required prop is named, even with no attributes</h3>
+            <h4>A missing required prop is named, even with no attributes</h4>
             <p>A record literal or an element missing a required field was refused as <code>found `record`</code>, or at the element not at all. The diagnostic now names what is missing, in the message and in a <code>missing_fields</code> list on <code>--json</code>, <code>--agent</code> and the MCP diagnostics.</p>
             <div class="code">
               <span class="cap">glyph check, with tsc</span>
@@ -506,13 +506,13 @@ pub component App() {
             </div>
             <p>The second line is the one that mattered. An element with no attributes was emitted with <code>null</code> props, and React's types accept <code>null</code> for any component, so <code>&lt;Button /&gt;</code> against required props passed <code>tsc --strict</code> and the component read <code>undefined</code> when it rendered. It passes <code>{}</code> now, so <code>tsc</code> refuses it too, and Glyph asks every component element without a spread for its required props. A <code>?</code> prop may be left out. A required <code>children</code> prop is reported missing even when children are written between the tags, because they are passed outside the props object; <code>tsc</code> says the same, and the message should explain it and does not yet.</p>
 
-            <h3>A component takes one props record</h3>
+            <h4>A component takes one props record</h4>
             <p><code>component Greeting(name: string)</code> was accepted, and no element could ever render it: React hands a component the one props object its element builds. It is E0229 at the parameter now, for a primitive, a string-literal union, a tagged union, an array, a <code>Nullable</code> or a function type. A record, an alias of one, an imported record and an <code>interface</code> are props records. <code>unknown</code> and a bare generic draw nothing, because the checker cannot prove they are not records. A function that returns JSX and is called directly is an <code>fn</code>.</p>
 
-            <h3>References, rename and impact see an element at its name</h3>
+            <h4>References, rename and impact see an element at its name</h4>
             <p>After the classification fix, <code>glyph query references</code> on a component still listed a use written <code>&lt;Button&gt;</code> under a named import and missed the same use written <code>&lt;ui.Button&gt;</code>, so the answer depended on how the component was imported, and <code>glyph_impact</code> missed the site. The named case was wrong too: it recorded the whole element, so a rename wrote the new name over the attributes and children, and the closing tag was never recorded. Every element is now recorded at its name, in the opening and closing tag alike. Rename rewrites both tags, and impact counts one site per element. Hover on <code>Button</code> in <code>&lt;ui.Button&gt;</code> answers the component's type instead of <code>null</code>. Two explanations in the impact table were false for an element and an import line, and each now has its own; the verdicts did not change.</p>
 
-            <h3>Smaller things</h3>
+            <h4>Smaller things</h4>
             <p>Two <code>glyph check</code> runs at the same time could fail each other with <code>io error reading .../glyph-check-scratch/&lt;pid&gt;-0/: Invalid argument</code>: each staged under a shared temp directory and removed it on the way out. 2,000 concurrent checks gave 3 such failures; each check now owns its own directory, and 4,000 gave none. Publishing moved to npm trusted publishing, so no npm token is stored anywhere, and before the first package is published the release job proves each of the six packages' publisher through the same OIDC exchange a publish makes. Across the 31 apps and the examples, every exit code and diagnostic code is the same under both versions, with and without <code>tsc</code>.</p>
           </div>
           </details>

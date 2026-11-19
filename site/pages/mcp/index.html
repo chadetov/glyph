@@ -247,11 +247,11 @@ glyph query exports      --path src/main.glyph --module std/result</pre>
       <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
-          <p class="h">Shipping today</p>
+          <h3 class="h">Shipping today</h3>
           <p>A <code>glyph mcp [root]</code> server over stdio with eleven tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why. Hover answers at a name declared in another module, so an imported function at its call site and a field read off an imported record both have a type. An entity identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph_symbol</code> on it answers with <code>Ok(T)</code> and <code>Err(E)</code> and <code>glyph_exports</code> on <code>std/result</code> lists the surface. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.</p>
         </div>
         <div class="status-card next">
-          <p class="h">On the way</p>
+          <h3 class="h">On the way</h3>
           <p>The tools only read: you can't rename or apply an edit through MCP. The write side lives on the command line instead, as <code>glyph fix</code>. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse. The <code>tools/list</code> reply is 20,386 bytes, down from 45,509, and that is still context every session pays for on connect.</p>
         </div>
       </div>

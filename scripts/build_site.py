@@ -84,6 +84,10 @@ supports: every page's body was rewritten that day when the site moved to
 this generator. scripts/check_site_built.py fails when site/lastmod.json is not
 what a build would write, which keeps the dates from drifting.
 
+site/pages/404.html renders to web/404.html, which GitHub Pages serves for
+any address with no file: the normal header and footer, links to the main
+sections, a robots noindex tag instead of a canonical, and no sitemap entry.
+
 Translations live in site/i18n/<locale>/ and render to web/<locale>/:
 scripts/site_i18n.py holds the locales, the UI strings the partials use as
 {{t:key}}, the language menu and the hreflang links, and
@@ -619,13 +623,17 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
     # version bump alone does not change any page's date.
     if fm.get("lastmod"):
         date = fm["lastmod"]
+    elif fm.get("noindex"):
+        date = ""
     else:
         date = lastmod.date(ctx.here, f'{fm["title"]}\n{fm["description"]}\n{body}')
     body = body.replace("{{version}}", version)
     head_values = {
         "title": fm["title"],
         "description": fm["description"],
-        "canonical": fm.get("canonical", ORIGIN + ctx.here),
+        "canonical_link": (f'    <link rel="canonical" href="{fm.get("canonical", ORIGIN + ctx.here)}" />\n'
+                           if not fm.get("noindex") else '    <meta name="robots" content="noindex" />\n'),
+        "og_url": fm.get("canonical", ORIGIN + ctx.here) if not fm.get("noindex") else ORIGIN + "/",
         "og_title": attr(short_title(fm["title"])),
         "og_description": attr(fm["description"]),
         "og_locale": site_i18n.OG_LOCALES[ctx.loc],
@@ -710,6 +718,9 @@ def expand_pages(path: pathlib.Path) -> list[tuple[str, dict, str]]:
         raise SiteError(str(e)) from None
 
 
+NOT_FOUND = PAGES / "404.html"
+
+
 def page_files() -> list[pathlib.Path]:
     return sorted(PAGES.rglob("index.html"),
                   key=lambda p: (p.relative_to(PAGES).parent.as_posix() != ".", p.relative_to(PAGES).as_posix()))
@@ -759,6 +770,15 @@ def build() -> dict[str, str | bytes]:
                 # Only a page that is its own canonical belongs in the sitemap.
                 if vfm.get("canonical", ORIGIN + here) == ORIGIN + here:
                     entries.append({"loc": here, "lastmod": date, "alternates": alternates})
+    # GitHub Pages serves web/404.html for any address with no file. It has
+    # the site's chrome, is noindex, and is not in the sitemap.
+    fm, body = parse_page(NOT_FOUND)
+    fm["noindex"] = "yes"
+    try:
+        _, files["404.html"] = render(NOT_FOUND, site, version, fm, body, "/404.html",
+                                      site_i18n.Ctx("en", "/404.html", ["en"], None, translated_urls), lastmod)
+    except site_i18n.I18nError as e:
+        raise SiteError(str(e)) from None
     try:
         files["versions/feed.xml"] = site_versions.feed()
     except site_versions.VersionsError as e:

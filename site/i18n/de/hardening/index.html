@@ -1,0 +1,173 @@
+---
+title: Härtung · wie Glyph unter Belastung getestet wird und was dabei herauskam
+description: KI-Agenten spielen skeptische Entwickler, bauen Apps in Glyph und versuchen, seine Garantien zu brechen. Die Schleife und die Bugs, die sie gefunden hat.
+source_hash: 39150fb233f95dbe
+---
+      <header class="page-hero">
+        <p class="eyebrow">Wie Glyph gehärtet wird</p>
+        <h1>Agenten versuchen, es kaputtzumachen, <span class="accent">und wir behalten, was sie finden</span>.</h1>
+        <p class="lede">
+          Eine Sprache, die verspricht, dass deine Agenten sie nicht unbemerkt kaputtmachen können, muss genau daran getestet werden. Wir lassen KI-Agenten skeptische Entwickler spielen (einen frustrierten React-Entwickler, einen Backend-Querdenker, einen Sicherheits-Gegenspieler), lassen sie Apps bauen und versuchen, die Garantien zu brechen, und beheben dann, was sie finden, oder erfassen es als offene Lücke. Hier ist diese Schleife und was sie gefunden hat.
+        </p>
+      </header>
+
+      <!-- ============ THE REFUSED CASES ============ -->
+      <section>
+        <h2 class="group-head">Fälle, die <code>tsc --strict</code> bestehen und in Glyph nicht kompilieren</h2>
+        <p class="group-sub">
+          Jeder besteht aus zwei Dateien: einer <code>.ts</code>, die unter <code>tsc --strict</code> sauber durch die Typprüfung kommt, und demselben Programm in Glyph, das nicht kompiliert. Ein Build-Gate, <code>scripts/check_catches.py</code>, führt jeden erneut aus und schlägt fehl, wenn sich eine der beiden Hälften anders verhält, also reißt eine Garantie, die stillschweigend verschwindet, den Build mit. Die Tabelle listet die {{catches:refused}} der {{catches:count}} TypeScript-Fehler auf <a href="/catches/">der Seite mit den Fällen</a>, die so abgelehnt werden; die Seite hat den Rest, den Glyph beim Eintreffen der Daten prüft, mit einer Warnung meldet oder zur Laufzeit stoppt. {{catches:breakdown}}
+        </p>
+{{catches:refused-table}}
+        <p class="group-sub" style="margin-top:24px">
+          Fälle, die sich als auch von TypeScript gefunden herausstellten oder deren zwei Hälften nicht dasselbe Programm waren, wurden gelöscht statt abgeschwächt; <code>catches/README.md</code> listet jeden davon und warum.
+        </p>
+        <p class="group-sub">
+          Der Lesezugriff auf die Map wird auch abgelehnt, wenn der Schlüssel richtig geschrieben ist, weil ein <code>Record&lt;string, string&gt;</code> nichts darüber sagt, welche Schlüssel existieren. TypeScript findet es mit <code>noUncheckedIndexedAccess</code>, das <code>--strict</code> nicht einschaltet. Der fehlende Union-Fall lässt sich in TypeScript ebenfalls finden, mit <code>switch-exhaustiveness-check</code> von typescript-eslint oder einem <code>assertNever</code>-Default, wenn das Projekt sie einsetzt. In Glyph ist keine der beiden Prüfungen optional.
+        </p>
+        <p class="group-sub">
+          Im Fall mit dem geparsten Body gibt Glyphs <code>json.parse</code> ein <code>Result</code> zurück, keinen <code>User</code>, also ist die Zuweisung ein Typfehler, bis der Body geprüft ist. TypeScripts <code>JSON.parse</code> gibt <code>any</code> zurück, und die Annotation an <code>user</code> wäscht es rein.
+        </p>
+      </section>
+
+      <!-- ============ THE LOOP ============ -->
+      <section>
+        <h2 class="group-head">Die Schleife der Gegenspieler</h2>
+        <p class="group-sub">Jeder Fund wird gegen den Compiler reproduziert, an der Ursache behoben und unabhängig erneut verifiziert, bevor er zählt.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>Erkunden</h3>
+            <p>Persona-Agenten bauen Programme (Formulare, Backends, UI mit Zustand) und halten jede Stelle fest, an der die Sprache sich gegen sie gesträubt hat.</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>Reproduzieren</h3>
+            <p>Jeder Fund wird auf das kleinste fehlschlagende Programm reduziert und erneut gegen den Compiler ausgeführt. Was sich nicht reproduzieren lässt, wird verworfen.</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>Beheben</h3>
+            <p>Fix an der Ursache im Rust-Compiler, mit einem Regressionstest, der vorher fehlschlägt und danach besteht. Die vollständige Suite muss grün bleiben, sonst wird die Änderung zurückgenommen.</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h3>Verifizieren</h3>
+            <p>Ein unabhängiger Durchgang führt jede Reproduktion gegen den frisch gebauten Compiler erneut aus und fängt Lücken der Art &ldquo;der Agent dachte, es sei behoben&rdquo; ab, bevor etwas ausgeliefert wird.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SILENT CORRECTNESS ============ -->
+      <section>
+        <h2 class="group-head">Die wichtigsten: stille Korrektheitslücken</h2>
+        <p class="group-sub">
+          Jede davon kompilierte sauber und konnte <em>falschen Code ausliefern, der die Typprüfung bestand</em>: genau die Art von Bug, die Glyph verhindern soll. Jede wird jetzt beim Kompilieren gefunden.
+        </p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev critical">Kritisch, behoben</span>
+            <h3>Fehlervarianten ohne Payload in einem <code>Result</code>-match</h3>
+            <p>Ein <code>match</code> über <code>Result&lt;T, Empty | BadQty(...)&gt;</code> wurde zu zwei doppelten Zweigen <code>case&nbsp;"Err"</code> übersetzt; der erste schluckte jeden Fehler und verzweigte stillschweigend in den falschen Arm.</p>
+            <p class="now">Jetzt: ein gruppierter Fall mit einem korrekten inneren switch; jede Variante landet richtig.</p>
+          </div>
+          <div class="fix">
+            <span class="sev critical">Kritisch, behoben</span>
+            <h3>Falsch geschriebener Konstruktor als stiller Catch-all</h3>
+            <p>Eine Variante mit Tippfehler in einem match-Arm (<code>Loded</code> statt <code>Loaded</code>) wurde stillschweigend als unwiderlegbarer Catch-all gebunden, was fehlende Erschöpfendheit verdeckte und zur Laufzeit falsch verzweigte, ohne Diagnose.</p>
+            <p class="now">Jetzt: Ein unbekannter Konstruktor wird am Tippfehler abgelehnt, wie ein echter Name.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Hoch, behoben</span>
+            <h3>Unvollständiges <code>bool</code>-match rutschte an der Erschöpfendheitsprüfung vorbei</h3>
+            <p><code>match n &gt; 0 { true =&gt; ... }</code> (ohne den Arm <code>false</code>) kompilierte, bestand <code>tsc</code> und warf dann zur Laufzeit.</p>
+            <p class="now">Jetzt: ein Fehler wegen nicht erschöpfendem match beim Kompilieren.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Hoch, behoben</span>
+            <h3>Komponenten mit mehreren Parametern banden Props falsch</h3>
+            <p><code>component C(a, b)</code> erzeugte positionale Parameter, aber React ruft Komponenten mit den Props als erstem Argument auf, also wurde <code>a</code> stillschweigend an das ganze Props-Objekt gebunden. Es bestand <code>tsc</code>.</p>
+            <p class="now">Jetzt: ein klarer Compile-Fehler, der auf die Form mit einem einzigen Props-Record verweist.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Hoch, behoben</span>
+            <h3>JSX-<code>&lt;match&gt;</code> übersprang die Erschöpfendheitsprüfung</h3>
+            <p>Ein JSX-<code>&lt;match&gt;</code> mit fehlendem <code>&lt;case&gt;</code> kompilierte grün und warf zur Laufzeit, anders als das <code>match</code> auf Wertebene, das geprüft wurde.</p>
+            <p class="now">Jetzt: Es gilt dieselbe Erschöpfendheitsprüfung; ein fehlender Fall ist ein Compile-Fehler.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Hoch, behoben</span>
+            <h3>Record-Payload an das falsche Feld gebunden</h3>
+            <p>Das Binden einer Variante mit Record-Payload an einen Namen (<code>BadQty(b)</code>) las ein nicht existierendes <code>.value</code> aus dem flachgeklopften Payload.</p>
+            <p class="now">Jetzt: Der Payload wird korrekt gebunden, also funktioniert <code>b.sku</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RULES ENFORCED ============ -->
+      <section>
+        <h2 class="group-head">Regeln, die der Checker jetzt durchsetzt</h2>
+        <p class="group-sub">Korrektheit, die der Compiler früher <code>tsc</code> überließ, wird jetzt von Glyph selbst geprüft.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev high">Behoben</span>
+            <h3>Anzahl der Argumente</h3>
+            <p>Zu wenige oder zu viele Argumente wurden akzeptiert (und liefen auf <code>NaN</code> hinaus). Jetzt lehnt <code>E0213</code> eine falsche Anzahl ab.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Behoben</span>
+            <h3>Der Fehlertyp von <code>?</code> über die Stdlib-Grenze hinweg</h3>
+            <p>Die Regel zum exakten Fehlertyp wurde übersprungen, wenn der Fehler aus einem Stdlib-Wrapper kam. Jetzt wird sie auch dort durchgesetzt.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Behoben</span>
+            <h3>Aliasing eines <code>owned</code>-Handles</h3>
+            <p><code>let g = f</code> auf einem Ressourcen-Handle erzeugte ein zweites Binding, das doppelt schließen konnte. Wird jetzt abgelehnt (<code>E0215</code>).</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Behoben</span>
+            <h3>Unerreichbare Arme &amp; tiefere Validierung</h3>
+            <p>Ein Arm nach einem Catch-all wird jetzt gemeldet; <code>json.parse&lt;T&gt;</code> validiert jetzt die Struktur von <code>Record</code>-Feldern, statt nur ihr Vorhandensein zu prüfen.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FIRST CONTACT ============ -->
+      <section>
+        <h2 class="group-head">Reibung beim ersten Kontakt, beseitigt</h2>
+        <p class="group-sub">Die Kleinigkeiten, die einen schlechten ersten Eindruck machten und keinem Zweck dienten.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev">Behoben</span>
+            <h3>Barrierefreiheit &amp; Data-Attribute</h3>
+            <p><code>aria-label</code> und <code>data-*</code> wurden als Subtraktion geparst. Jetzt funktionieren sie und werden als richtige React-Props ausgegeben.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Behoben</span>
+            <h3>Namen von npm-Paketen</h3>
+            <p>Specifier mit Bindestrich und Scope (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>) wurden abgelehnt. Jetzt lassen sie sich direkt importieren.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Behoben</span>
+            <h3>Erster Start eines Browser-Bundles</h3>
+            <p>Der Laufzeit-Bootstrap wurde in einem Browser-Build nicht geladen und stürzte beim ersten Start ab. Jedes erzeugte Modul zieht ihn jetzt ein.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Behoben</span>
+            <h3>Fehlermeldungen, die in die Irre führen</h3>
+            <p>Wer <code>if</code> schreibt, wird jetzt auf <code>match</code> verwiesen; ein Range-Pattern sagt das direkt; Leerraum in JSX und ein einzelnes <code>$</code> im Text werden behandelt.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STILL OPEN ============ -->
+      <section>
+        <h2 class="group-head">Noch offen: offiziell festgehalten</h2>
+        <p class="group-sub">Härtung heißt auch, zu benennen, was nicht fertig ist. Diese Punkte sind bekannt und werden verfolgt, nicht versteckt.</p>
+        <div class="callout">
+          <p style="margin:0 0 10px;"><strong>Bewusst zurückgestellt oder wartet auf eine Design-Entscheidung:</strong></p>
+          <p style="margin:0;">
+            Closures mit implizitem <code>any</code> in Glyphs eigenem Checker abzulehnen, braucht kontextuelle Inferenz, um Fehlalarme bei korrekt typisierten Callbacks zu vermeiden. Ergonomisches FFI, also eine TS-Bibliothek mit komplexen Typen ohne Adapter pro Bibliothek zu verwenden, ist die größte noch offene Interop-Frage, verfolgt unter <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">offene Fragen</a>. Eine Map, die aus einem anderen Modul oder der Standardbibliothek kommt, wird weiterhin ungeprüft gelesen, also erreicht E0224 noch kein <code>sqlite.Row</code>, und das <code>for i, x in xs</code> mit zwei Bindings verliert weiterhin seine Elementtypen.
+            </p>
+        </div>
+        <a href="/answers/" class="backlink">&larr; Die Fragen von Entwicklern ansehen, aus denen diese Fixes kamen</a>
+      </section>

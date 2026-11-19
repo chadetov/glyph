@@ -1,0 +1,110 @@
+---
+title: Kann der Compiler mir sagen, was eine Änderung kaputtmachen wird? · Glyph
+description: glyph_impact nimmt die Deklaration, die du ändern willst, und die Änderung und antwortet für jede Stelle mit einem Urteil und einer Begründung, bevor du die Datei anfasst.
+source_hash: 42e24af1156f67f1
+prev: /answers/binary/ | &larr; Zurück | Kann ich Binärdaten verarbeiten, oder ist alles ein String?
+next: /answers/ask-the-compiler/ | Weiter &rarr; | Kann mein Agent den Compiler fragen, was ein Symbol ist, bevor er Code schreibt?
+---
+      <p class="q-eyebrow">21 &middot; Vor dem Bearbeiten</p>
+      <h1 class="q-title">Kann der Compiler mir sagen, was eine Änderung kaputtmachen wird, bevor ich sie mache?</h1>
+
+      <p class="short-answer">
+        Für sechs Arten von Änderungen, ja. <code>glyph_impact</code> nimmt die Deklaration, die du ändern willst, und die Änderung selbst (umbenennen, eine Variante entfernen, den Typ eines Parameters ändern, die Anzahl der Parameter ändern, sie entfernen) und antwortet mit <strong>einem Urteil pro Stelle</strong> aus einer festen Liste, jedes mit der Begründung, warum es genau dieses Urteil ist.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Wenn du eine Funktion umbenennst, eine Union erweiterst oder änderst, was ein Parameter akzeptiert, greppst du entweder nach dem alten Namen und hoffst, jeden Aufruf gefunden zu haben, oder du machst die Änderung und liest hinterher, was der Compiler sagt. Keiner der beiden Wege sagt dir, welche Stellen weiter kompilieren und dabei still falsch werden: Ein <code>match</code> mit einem Catch-all-Arm schlägt nicht fehl, wenn du eine Variante hinzufügst, er leitet den neuen Fall einfach irgendwohin, wo ihn niemand haben wollte. Diese Stelle taucht in keinem Build auf. <code>glyph_impact</code> antwortet vor der Änderung, auf derselben Analyse, die der Compiler ausführt.
+        </p>
+
+        <h2 class="block-label">Was zurückkommt</h2>
+        <p>
+          Die Anfrage nennt eine Entität über ihre Identität <code>module::name</code> und eine Änderung aus einer festen Liste: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Die Änderung ist Pflicht, weil ein Urteil eine Aussage über eine Änderung ist; ohne benannte Änderung käme jede Stelle als bloße Referenz statt als Folge zurück. Die Antwort nennt die Entität, die Änderung und eine <code>impact</code>-Liste: ein Eintrag pro Stelle, jeder mit der Deklaration, in der er steht, einer <code>relation</code>, einem <code>verdict</code>, einem <code>because</code> und dem Diagnosecode, den der Compiler auslöst, wenn es genau einen gibt. Die Urteile sind fest, und jedes bedeutet eine Sache: <code>WILL_FAIL</code> (der Compiler kann beweisen, dass die Stelle nicht mehr kompiliert), <code>ABSORBS</code> (er kann beweisen, dass die Änderung hier still aufgenommen wird), <code>SAFE</code> (er kann beweisen, dass die Stelle korrekt bleibt), <code>UNDETERMINED</code> (er hat sich die Stelle angesehen und kann die Folge nicht feststellen) und <code>NOT_INDEXED</code> (die Frage lässt sich für eine Stelle dieser Form gar nicht stellen).
+        </p>
+
+        <h2 class="block-label">So sieht es aus</h2>
+        <p>
+          Ein Modul deklariert <code>label(s: string) -&gt; number</code>. Drei Aufrufer erreichen es: Einer übergibt ein String-Literal, einer übergibt einen Wert, dessen Typ ein aus einem anderen Modul importierter Alias für <code>string</code> ist, und einer liest <code>label</code> als Wert und ruft es nie auf. Die Frage, was <code>change_signature_type</code> bei jedem bewirkt, ergibt drei verschiedene Urteile, weil es drei verschiedene Aussagen sind:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">Request</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_impact",
+    "arguments": {
+      "entity": "lib::label",
+      "change": { "kind": "change_signature_type" }
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Ergebnis, gekürzt auf die drei Stellen</span>
+<pre>{
+  "entity": "lib::label",
+  "impact": [
+    {
+      "entity": "literal::probe",
+      "verdict": "WILL_FAIL",
+      "diagnostic": "E0211",
+      "because": "every argument at this site is paired with
+        a parameter the relation reads in full, so a
+        replacement parameter type any of those pairings does
+        not accept is E0211 here. The pairings: argument 1
+        (`\"x\"`, `\"x\"`) against parameter `s: string`: ..."
+    },
+    {
+      "entity": "imported::probe",
+      "verdict": "UNDETERMINED",
+      "diagnostic": null,
+      "because": "argument 1 (`c`, `Cell`) against parameter
+        `s: string`: `Cell` is declared in another module as
+        an alias for a primitive, and the checker compares an
+        imported declaration only when the declaration at the
+        end of its chain of names is a tagged union or a
+        record (G215, G226), so a replacement is compared
+        against nothing here and only `tsc` on a full `glyph
+        build` would see a mismatch"
+    },
+    {
+      "entity": "reader::sizer",
+      "verdict": "NOT_INDEXED",
+      "diagnostic": null,
+      "because": "this site reads the name rather than
+        applying it, so no argument is paired with a
+        parameter here, and Glyph does not compare a
+        function value's parameter types against the type
+        its use context expects"
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Dieselbe Änderung, drei Stellen, drei Urteile, und das <code>because</code> bei jedem ist der tatsächliche Satz, den der Compiler erzeugt, kein Kategorie-Label. Das entspricht dem eigenen Test des Compilers für diese Änderung (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): Der Test macht die Änderung danach und prüft, dass E0211 genau dort landet, wo <code>WILL_FAIL</code> es angekündigt hat, und dass der Compiler an den anderen beiden still bleibt.
+        </p>
+
+        <h2 class="block-label">An einer echten Anwendung</h2>
+        <p>
+          <code>examples/apps/csvql</code>, eine CSV-Abfrage-Engine aus elf Dateien in diesem Repository, hat eine Tagged Union, <code>Value</code>, mit heute vier Varianten. Auf die Frage an <code>glyph_impact</code>, was eine fünfte (<code>Blob</code>) bewirkt, findet es 10 match-Stellen in 4 Dateien: 8 werden nicht mehr kompilieren, und 2 enthalten einen Catch-all-Arm, der die neue Variante still aufnehmen wird. Fügt man die Variante tatsächlich hinzu, meldet der Compiler genau 8 <code>E0200</code>-Fehler, an genau den 8 vorhergesagten Stellen, und sagt an den 2 <code>ABSORBS</code>-Stellen nichts, weder vorher noch nachher. Eine Textsuche nach Catch-all-Armen in derselben App, das, was du ohne das Tool tun würdest, findet dieselben 2 echten Stellen unter 20 Treffern (Präzision 0.10) und sagt überhaupt nichts über die 8, die fehlschlagen, weil sie keine Ahnung hat, welchen Typ ein <code>match</code> untersucht.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Sechs feste Arten von Änderungen (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) und fünf feste Urteile, ein Eintrag pro betroffener Stelle mit Begründung und Diagnosecode. <code>change_signature_type</code> wird pro Aufrufargument anhand der eigenen Vergleichsregeln des Checkers entschieden, und eine Stelle ist so schwach wie ihr schwächstes Argument. Ein JSX-Element wird als der Aufruf entschieden, zu dem es übersetzt wird: <code>&lt;Card title="x" /&gt;</code> ist ein Props-Record, der an <code>Card</code> übergeben wird, und jedes Attribut wird gegen das Feld aufgeführt, gegen das es geprüft wird, mit dem Urteil, das ein Aufrufargument desselben Typs bekäme. Die Abdeckung (was eine Suche lesen konnte und was nicht) wird pro Suche angegeben statt einmal für die ganze Antwort, und jeder Knoten sagt, ob er aus Glyph-Quellcode, einer <code>extern_ts</code>-Hintertür oder einer undurchsichtigen <code>.d.ts</code> stammt.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Wo es aufhört</h3>
+          <p>Die Tiefe ist bei einem Schritt exakt und darüber hinaus leer: Glyph leitet den Typ einer Deklaration nie aus ihrem Rumpf ab, also kann der Typ eines Aufgerufenen nicht die Signatur eines Aufrufers erreichen, und eine Änderung an X kann nur Ausdrücke ungültig machen, die X nennen. Fragst du nach Tiefe 2, kommt die Antwort mit <code>next_query</code> zurück, das stattdessen die genaue Frage nennt, weil das, was ein zweiter Schritt braucht, die Reparatur ist, die jemand an der ersten Stelle vornimmt, und diese Reparatur gibt es noch nicht. <code>UNDETERMINED</code> und <code>NOT_INDEXED</code> sind verschiedene Aussagen: Ein Argument, für das der Checker keinen Typ hat, oder eine Record-Zuordnung mit einem Feld, das keine Regel liest, ist <code>UNDETERMINED</code> (er hat nachgesehen und konnte nicht entscheiden); eine Funktion, die als Wert gelesen statt aufgerufen wird, ist <code>NOT_INDEXED</code> (die Frage ließ sich dort nie stellen). Auf <code>ABSORBS</code> solltest du achten: Die Stelle kompiliert weiter und ist trotzdem nachweislich falsch, was dir ein grüner Build nie zeigen wird.</p>
+        </div>
+      </div>

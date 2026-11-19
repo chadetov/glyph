@@ -1,0 +1,78 @@
+---
+title: Wie sieht es mit Editor, Debugging und Fehlermeldungen aus? · Glyph
+description: Ein Language Server für jeden Editor, eine VS-Code-Erweiterung, Fehlermeldungen mit stabilen Codes und glyph --explain. Debuggt wird das lesbare TypeScript, das es erzeugt.
+source_hash: d0791fdb41f61a1e
+prev: /answers/generated-docs/ | &larr; Zurück | Ist die Dokumentation, die mein Agent liest, generiert oder von Hand geschrieben und veraltet?
+next: /answers/early-errors/ | Weiter &rarr; | Warum findet Glyph, was tsc findet, nur früher?
+---
+      <p class="q-eyebrow">25 &middot; Im Alltag</p>
+      <h1 class="q-title">Wie sieht es mit Editor, Debugging und Fehlermeldungen aus?</h1>
+
+      <p class="short-answer">
+        <code>glyph lsp</code> spricht das Language Server Protocol über stdio, also bekommt jeder Editor mit LSP-Client Diagnosen, Typen beim Hover, Go-to-Definition, Vervollständigung und Formatieren beim Speichern. Eine VS-Code-Erweiterung liegt im Repository; sie ist noch nicht im Marketplace, also baust du sie aus dem Quellcode. Jeder Fehler hat einen stabilen Code, den Fix und den Grund.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Eine Sprache zu bearbeiten, die dein Editor nicht versteht, fühlt sich wie ein Rückschritt an, und anfangs war das ein berechtigter Einwand. Das ist er nicht mehr: Dein Editor gibt dir den modernen Komfort, und die Fehler sind geschrieben, um zu erklären, nicht nur um abzulehnen.
+        </p>
+
+        <h2 class="block-label">Ist das ein echter LSP oder nur ein VS-Code-Plugin?</h2>
+        <p>
+          Ein echter. Der Compiler liefert einen Language Server mit, den du als <code>glyph lsp</code> startest und der das Language Server Protocol über stdio spricht (der Standard-JSON-RPC-Transport, den jeder LSP-Client versteht). Die mitgelieferte VS-Code-Erweiterung ist ein dünner Client darum, aber nichts daran ist VS-Code-spezifisch: Richte <strong>jeden</strong> LSP-fähigen Editor, Neovim, Helix, Zed, Emacs (eglot), auf <code>glyph lsp</code>, und er verhält sich gleich. Es ist dasselbe Binary, das du schon installiert hast (<code>npx @glyphlang/glyph lsp</code>), also gibt es keinen separaten Server zu holen.
+        </p>
+        <p>
+          Der Server implementiert, was ein Editor braucht: Live-Diagnosen mit den stabilen Codes unten, Typen beim Hover, Go-to-Definition (modulübergreifend über einen benannten Import; über einen Namespace liefert <code>ui.Button</code> noch keine Antwort), Vervollständigung, Dokument- und Workspace-Symbole für Gliederung und Symbolsuche, Find-References über den ganzen Workspace, Umbenennen und Formatieren im kanonischen <code>glyph fmt</code>-Layout beim Speichern. Das Umbenennen ist vollständig: Eine Deklaration auf Modulebene umzubenennen ändert ihre Definition, jede Referenz und das <code>import</code>-Binding jedes importierenden Moduls im ganzen Workspace, und es prüft den neuen Namen (ein echter Bezeichner, kein Schlüsselwort), bevor es etwas anfasst. Zwei Grenzen, die man kennen sollte: Der dateiübergreifende Index wird bei jeder Anfrage neu aufgebaut statt gecacht (für ein normales Projekt in Ordnung, später lohnt es sich, das zu beschleunigen), und eine Datei, die sich gerade nicht parsen lässt, wird übersprungen, also erreicht ein Umbenennen keine Referenzen in einer Datei, die selbst kaputt ist.
+        </p>
+
+        <h2 class="block-label">So sieht es aus</h2>
+        <p>Jede Diagnose hat einen stabilen Code, einen einzeiligen Fix und oft den Design-Grund. <code>glyph --explain</code> gibt für jede die ausführliche Fassung aus:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0203]</span> the `?` operator propagates error type `HttpError`,
+        but this function returns `Result&lt;_, string&gt;`
+   ╰─ <span class="cm">Help: map the error first, e.g. `.map_err(...)`,</span>
+      <span class="cm">so its `E` matches the function's.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Wir haben die Meldungen genau dort geschärft, wo Agenten und Neulinge am häufigsten stolpern: Wer <code>if</code> schreibt, wird jetzt auf <code>match</code> verwiesen statt auf ein allgemeines &ldquo;unerwartetes Token&rdquo;, und eine falsche Argumentanzahl, ein nicht erschöpfendes <code>match</code> oder eine falsch geschriebene Variante bekommen jeweils einen eigenen Fehler mit Code und Fix.
+        </p>
+        <p>
+          Typfehler, die nur das TypeScript-Backend finden kann, zeigten früher auf die erzeugte <code>.ts</code>. Jetzt werden sie <strong>zurück auf deine <code>.glyph</code> abgebildet</strong> (derselbe ariadne-Caret, derselbe stabile Code), also liest sich ein <code>tsc</code>-Fehler wie ein nativer Glyph-Fehler.
+        </p>
+        <p>
+          <strong>Debugging:</strong> Du debuggst das erzeugte TypeScript mit den Tools, die du schon verwendest, etwa dem Inspector von Node, den Devtools des Browsers oder dem JS/TS-Debugger deiner IDE. Jeder Build liefert neben jeder <code>.ts</code> eine Standard-<strong>v3-Source-Map</strong> (mit eingebettetem Glyph-Quellcode), also führt ein Debugger oder ein Bundler, der Maps verkettet, zurück zu den Zeilennummern deiner <code>.glyph</code>. Eine Sache deckt es noch nicht ab: Der eigene Absturz-Stack von <code>glyph run</code> gibt weiterhin <code>.ts</code>-Zeilen aus, weil <code>tsx</code> die Map nicht durch seine Transformation verkettet. Diesen Stack umzurechnen kommt als Nächstes.
+        </p>
+        <p>
+          <strong>Fragen, &ldquo;kompiliert das?&rdquo;, ohne es auszuführen:</strong> <code>glyph check path.glyph</code> prüft die Typen einer Datei oder eines ganzen Verzeichnisses und beendet sich. Es schreibt nichts in deinen Baum, was <code>glyph run</code> nicht versprechen konnte und <code>glyph build</code> überhaupt nicht tun würde (es lehnte alles ab, was kein Verzeichnis war). Es führt dieselbe Pipeline aus wie ein Build, einschließlich <code>tsc --strict</code> über das erzeugte TypeScript, in ein temporäres Verzeichnis, das es am Ende löscht. <code>--no-tsc</code> hört nach den Glyph-Stufen auf, wenn du die schnelle Antwort willst; <code>--json</code> gibt einem Agenten dieselbe Form von Diagnosen wie <code>glyph build --json</code>. Eine Datei wird im Kontext ihres eigenen Verzeichnisses geprüft, also lässt ein kaputtes Geschwister die Prüfung trotzdem scheitern. Deine <code>@example</code>- und <code>@doc @run</code>-Tests laufen hier auch, dasselbe Gate, das <code>glyph build</code> verwendet, also kann eine Prüfung keinen sauberen Baum melden, an dem ein Build scheitern würde; <code>--no-test</code> überspringt sie, wenn du eine Antwort willst, die nichts ausführt.
+        </p>
+        <p>
+          <strong>Auch die Ausgabe lügt dich nicht an.</strong> Ein fehlschlagender Build begann früher mit &ldquo;no diagnostics&rdquo; und gab darunter <code>tsc</code>-Fehler aus, weil die Zusammenfassung der Glyph-Stufen geschrieben wurde, bevor die TypeScript-Stufe lief. Die Zusammenfassung erscheint jetzt nach jeder Stufe, die den Build rot machen kann, also zeigt ein roter Build nie eine grüne Zeile. Im selben Durchgang fing <code>glyph run app.glyph --min -12.50</code> an zu funktionieren: Ein führender Bindestrich ließ clap das Argument früher ablehnen, bevor dein <code>main</code> es überhaupt sah. Flags, die glyph gehören, binden weiterhin an glyph, also setz <code>--</code> vor ein Programm-Flag, das mit einem davon kollidiert.
+        </p>
+        <p>
+          <strong>Und für den Agenten in der Schleife:</strong> <code>glyph build --json</code> gibt jede Diagnose als strukturiertes JSON aus: ein stabiler Code, Schweregrad, Meldung, Datei und 1-basierter Bereich aus Zeile/Spalte, dazu Hilfe und Hinweis, einschließlich der <code>tsc</code>-Fehler, die auf deinen Glyph-Quellcode abgebildet sind. Ein Agent liest sie und handelt direkt danach, statt Terminaltext auszuwerten.
+        </p>
+        <p>
+          Für interaktive Agenten gibt es mehr als Batch-Diagnosen: <a href="/mcp/"><code>glyph mcp</code></a> startet einen <strong>Model-Context-Protocol-Server</strong> über stdio (dasselbe Binary, dieselbe Analyse, die der Editor verwendet), der die Abfragen des Language Servers als MCP-Tools bereitstellt. Ein Agent kann nach den <strong>Diagnosen</strong> einer Datei fragen, nach dem <strong>Typ</strong> an einer Position, wo ein Name <strong>definiert</strong> ist (Imports folgend), nach jeder <strong>Referenz</strong> auf ein Symbol im ganzen Projekt oder nach einer <strong>Symbolsuche</strong>, ohne einen vollständigen Build auszuführen oder jede Datei zu lesen. Es ist ein dünner Adapter über derselben reinen Analyseschicht, keine zweite Implementierung, also kann es nicht von dem abweichen, was Compiler und Editor sehen.
+        </p>
+        <p>
+          <strong>Nicht alles ist ein harter Fehler.</strong> Glyph hat eine Warnstufe, die Ballast meldet, ohne den Build scheitern zu lassen: einen <em>unbenutzten Import</em> (<code>E0106</code>), ein <em>unbenutztes</em> <code>let</code> (<code>E0107</code>, ausgenommen Namen, die mit <code>_</code> beginnen), und <em>unerreichbaren Code</em> nach einem <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>). Diese halten ein Modul ehrlich: Ein toter Import ist genau die Art von Rauschen, die einen Leser nach einer Abhängigkeit suchen lässt, die der Code gar nicht hat. Warnungen erscheinen in derselben gerenderten und <code>--json</code>-Ausgabe, nach Schweregrad markiert, und es wird trotzdem TypeScript erzeugt.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Ein Language Server (<code>glyph lsp</code> über stdio, jeder Editor; VS-Code-Erweiterung mitgeliefert) mit Syntaxhervorhebung, Diagnosen, Hover, Go-to-Definition, Vervollständigung, Symbolen, Find-References und Umbenennen über den ganzen Workspace und Formatieren beim Speichern, mit Antworten über Modulgrenzen hinweg seit 0.1.124: Der Server hält eine Datenbank pro Projekt, in der deine offenen Buffer über den Dateien auf der Platte liegen, also liefert Hover über einer importierten Funktion oder einem Feld eines importierten Records dieselbe Antwort wie <code>glyph query hover</code>, eine ungespeicherte Änderung in einer Datei ist von einer anderen aus sichtbar, und ein Tastendruck kostet ein bis neun Prozent mehr als bei einer einzelnen Datei; ein Model-Context-Protocol-Server <code>glyph mcp</code> mit elf Tools, den Abfragen des Editors plus <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> und <code>glyph_exports</code>, jedes mit einem Verb von <code>glyph query</code>, das dasselbe JSON für einen Agenten ohne MCP-Client ausgibt; stabile Fehlercodes, <code>glyph --explain</code>, Fehler des <code>tsc</code>-Backends auf <code>.glyph</code>-Quellcode abgebildet, eine Warnstufe (unbenutzter Import/Binding, unerreichbarer Code) und strukturierte Diagnosen per <code>--json</code>. <code>glyph check [path]</code> prüft die Typen einer einzelnen Datei oder eines Baums, ohne ihn auszuführen oder Ausgabe zu schreiben. <code>glyph fmt --check</code> sichert die Formatierung in CI ab: Es schreibt nichts und endet mit einem Wert ungleich null, wenn eine Datei nicht schon im einen kanonischen Layout ist.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">In Arbeit</h3>
+          <p>Den dateiübergreifenden Index cachen, statt ihn pro Anfrage neu aufzubauen (ein Geschwindigkeitsgewinn bei großen Bäumen), und den eigenen Absturz-Stack von <code>glyph run</code> umrechnen, da <code>tsx</code> die erzeugte Map nicht durch seine Transformation verkettet, sodass dieser Stack weiterhin die erzeugte <code>.ts</code> nennt statt deiner <code>.glyph</code>.</p>
+        </div>
+      </div>

@@ -1,0 +1,153 @@
+---
+title: Bleiben Änderungen von Agenten sauber, oder formatieren sie meine Datei um? · Glyph
+description: Glyph hat ein kanonisches Layout und verlangt Trailing Commas, also ist eine einzeilige Änderung ein einzeiliger Diff. Agenten können eine echte Änderung nicht unter Umformatierungsrauschen begraben.
+source_hash: b0148f7848d7e246
+prev: /answers/verifiability/ | &larr; Zurück | Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?
+next: /answers/greppability/ | Weiter &rarr; | Kann ein Agent (oder ich) finden, wo etwas definiert ist?
+---
+      <p class="q-eyebrow">02 &middot; Reviewbare Änderungen</p>
+      <h1 class="q-title">Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?</h1>
+
+      <p class="short-answer">
+        Eine einzeilige Änderung ist ein <strong>einzeiliger Diff</strong>, jedes Mal. Glyph hat ein einziges kanonisches Layout, also <strong>kann ein Agent eine echte Änderung nicht unter einer Wand aus Umformatierung begraben</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Wenn ein Agent einen Pull Request öffnet, <em>ist</em> der Diff das Review. Wenn ein echter einzeiliger Fix als Umformatierung über 200 Zeilen ankommt, kann niemand sehen, was sich tatsächlich geändert hat, und genau in diesem Rauschen schlüpft ein Bug durch. Stabile Diffs heißt, der Diff zeigt die Änderung und <strong>nichts als die Änderung</strong>.
+        </p>
+        <p>Zwei Regeln erledigen den Großteil der Arbeit. Hier ist jede, gezeigt als der Diff, den du reviewen würdest.</p>
+
+        <h2 class="block-label">Beispiel 1: Trailing Commas, ein Eintrag pro Zeile</h2>
+        <p>Eine Route hinzufügen. Im üblichen TypeScript-Stil muss sich die bisher letzte Zeile ändern, nur um ein Komma zu bekommen. Zwei Zeilen bewegen sich für eine Änderung an einem Eintrag:</p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript: "/billing" hinzufügen</span>
+<pre> const routes = [
+   "/home",
+<span class="del">-  "/about"</span>
+<span class="add">+  "/about",</span>
+<span class="add">+  "/billing"</span>
+ ]</pre>
+          <div style="padding:0 16px 14px"><span class="verdict bad">3 Zeilen bewegt für 1 Änderung</span></div>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph: "/billing" hinzufügen</span>
+<pre> let routes = [
+   "/home",
+   "/about",
+<span class="add">+  "/billing",</span>
+ ]</pre>
+          <div style="padding:0 16px 14px"><span class="verdict good">1 Zeile hinzugefügt, genau die Änderung</span></div>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Trailing Commas sind <strong>Pflicht</strong>, und eine Liste, die nicht in eine Zeile passt, bekommt ein Element pro Zeile, statt neu gepackt zu werden, also stört Einfügen, Entfernen oder Umordnen eines Eintrags nie seine Nachbarn. Dasselbe gilt für Record-Felder, Parameter, match-Arme und Imports. Die Schwelle hat ihren Preis: Eine Umbenennung, die einen Aufruf über 100 Spalten schiebt, klappt die ganze Argumentliste auf ein Argument pro Zeile auf.
+        </p>
+
+        <h2 class="block-label">Beispiel 2: ein kanonisches Layout</h2>
+        <p>
+          Es gibt genau eine korrekte Formatierung, erzeugt von <code>glyph fmt</code>. Leerraum, Umbrüche und Ausrichtung sind keine Entscheidungen, die ein Agent &ldquo;aufräumen&rdquo; kann, also kann eine inhaltliche Änderung keinen Umbruch mit sich ziehen. Ändere den Typ eines Feldes, und das ist der ganze Diff:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">user.glyph: ein Feld ändern, eine Zeile reviewen</span>
+<pre> type User = {
+   id: string,
+<span class="del">-  age: string,</span>
+<span class="add">+  age: number,</span>
+   email: string,
+ }</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Weil das Layout fest ist, erzeugen zwei verschiedene Agenten, die dieselbe Datei bearbeiten, <strong>byteidentische</strong> Formatierung, kein Umbruch-Rauschen, kein &ldquo;mein Formatter gegen deinen&rdquo;, und ein sauberes <code>git blame</code>, das auf den Commit zeigt, der eine Zeile tatsächlich geändert hat, nicht auf den, der sie umformatiert hat.
+        </p>
+
+        <h2 class="block-label">Ein kanonisches Layout, verschiebt der Formatter also meine Kommentare?</h2>
+        <p>
+          Früher ja, und das war ein Bug, den man beim Namen nennen sollte. Glyph hat keine Blockkommentare und keine Doc-Comment-Syntax, also ist eine <code>//</code>-Zeile der einzige Weg, ein Record-Feld, eine Union-Variante oder einen <code>match</code>-Arm zu erklären. Der Formatter gab ausstehende Kommentare nur an Grenzen von Deklarationen und Anweisungen aus, was hieß, dass ein Kommentar, der <em>innerhalb</em> eines Konstrukts geschrieben wurde, zur nächsten Deklaration hinunterwanderte und sich als Dokumentation für das las, wo er gelandet war. Aufgefallen ist es beim Schreiben von Minesweeper in Glyph. Diese beiden Deklarationen stammen aus <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">der echten App</a> (Kommentare passend gekürzt), einmal durch den alten Formatter und einmal durch den neuen gelaufen.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">0.1.37: ein fmt-Durchlauf</span>
+<pre>type Visibility =
+  | Hidden
+  | Flagged
+  | Revealed
+
+<span class="del">// Face down. Prints as `.`.</span>
+<span class="del">// Face down and marked by the player.</span>
+<span class="del">// Face up. `Cell.adjacent` is what gets printed.</span>
+type Cell = { mine: bool, adjacent: int, visibility: Visibility }
+<span class="del">// Number of mined neighbours. Only meaningful</span>
+<span class="del">// once mines are placed.</span></pre>
+          <div style="padding:0 16px 14px"><span class="verdict bad">drei Varianten-Kommentare dokumentieren jetzt einen Record</span></div>
+        </div>
+        <div class="code">
+          <span class="cap">0.1.38: dieselbe Datei</span>
+<pre>type Visibility =
+<span class="add">  // Face down. Prints as `.`.</span>
+  | Hidden
+<span class="add">  // Face down and marked by the player.</span>
+  | Flagged
+<span class="add">  // Face up. `Cell.adjacent` is what gets printed.</span>
+  | Revealed
+
+type Cell = {
+  mine: bool,
+<span class="add">  // Number of mined neighbours. Only meaningful</span>
+<span class="add">  // once mines are placed.</span>
+  adjacent: int,
+  visibility: Visibility,
+}</pre>
+          <div style="padding:0 16px 14px"><span class="verdict good">jeder Kommentar an dem, was er beschreibt</span></div>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Die Regel jetzt: Ein Kommentar wird über dem Element neu ausgegeben, über dem er geschrieben wurde, innerhalb eines Record-Rumpfs, einer Liste von Union-Varianten, eines Array- oder Objektliterals, einer Argument- oder Parameterliste und eines <code>match</code>. Und ein Konstrukt mit einem Kommentar im Inneren nimmt immer die Form mit einem Element pro Zeile an, in jeder Größe, damit der Kommentar ein Element hat, über dem er stehen kann. <code>type Shape = { w: int, h: int }</code> wird also weiterhin auf eine Zeile zusammengezogen, und sobald du <code>h</code> dokumentierst, bleibt der Record aufgeklappt.
+        </p>
+        <p>
+          Warum das als Korrektheits-Bug zählt und nicht als kosmetischer: Nichts schlug fehl. Der Build endete mit 0, <code>tsc</code> bestand, und die verunstaltete Ausgabe war selbst ein Fixpunkt, also wurde <code>glyph fmt --check</code> in CI grün für eine Datei, deren Kommentare jetzt etwas Falsches sagten. Das ist dieselbe Klasse von Fehlern, die Glyph beseitigen soll, nur im Formatter statt im Typsystem.
+        </p>
+
+        <h2 class="block-label">Kann <code>glyph fmt</code> ein Programm kaputtmachen, das baut?</h2>
+        <p>
+          Es konnte, und ein Fall ist noch offen. Zuerst der behobene. Ein Arm, der &ldquo;der leere Record&rdquo; bedeutet, wird <code>true =&gt; ({})</code> geschrieben. Die Position des Arm-Rumpfs ist die einzige Stelle in der Grammatik, an der eine führende <code>{</code> mehrdeutig ist, und der Parser löst das, indem er direkt nach der Klammer <code>key:</code> oder <code>...</code> verlangt. Ein leeres Objekt hat keins von beidem, also kam der Arm, als der Formatter die Klammern wegließ und <code>true =&gt; {}</code> neu ausgab, als leerer <em>Block</em> zurück, und die Datei baute nicht mehr: <code>E0223</code>, der Arm erzeugt keinen Wert. Du hast einen Formatter über funktionierenden Code laufen lassen und Code bekommen, der nicht mehr kompilierte.
+        </p>
+        <p>
+          Der Printer klammert jetzt einen Arm-Rumpf ein, dessen erstes Token eine <code>{</code> ist, die als Block neu geparst würde, also das leere Objekt und alles, was darauf aufbaut (<code>({}).size</code> kommt als <code>({}.size)</code> zurück). Ein Arm-Rumpf, der sich schon eindeutig liest, wie <code>false =&gt; { a: "x" }</code>, bleibt ohne Klammern, also gibt es nirgendwo sonst neue Satzzeichen zu lesen. <code>fmt</code> ist auf dem Ergebnis ein Fixpunkt, und das erzeugte TypeScript ist unverändert. Ein Formatter, den dein Programm überleben muss, ist schlimmer als ein fehlendes Feature, weil er Code beschädigt, der schon funktioniert hat.
+        </p>
+        <p>
+          Zwei weitere wurden in 0.1.138 behoben. Innerhalb eines Blocks setzt eine Zeile, die mit <code>(</code> beginnt, die Zeile darüber fort, und bis 0.1.137 gab der Formatter <code>load()?</code> gefolgt von <code>.run()</code> als <code>(load()?).run()</code> aus, also bedeutete die formatierte Datei nach <code>let a = 1</code> <code>let a = 1(…).run()</code>. Jetzt behält er <code>load()?</code> mit <code>.run()</code> eingerückt in der nächsten Zeile bei und schreibt <code>e?(x)</code>, <code>e?[0]</code> und <code>e? ?</code> ohne Klammern. Der andere war die <code>where</code>-Verfeinerung einer Union, die der Formatter wegließ, wodurch aus einem Programm, das <code>check</code> ablehnte, eins wurde, das es akzeptierte. Der Fuzzer parst jetzt die formatierte Datei und vergleicht den Baum mit dem des Originals, also scheitert ein Layout, das die Bedeutung einer Datei ändert, beim ersten Durchlauf, statt darauf zu warten, dass es jemand bemerkt.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Die Formatierungsregeln dahinter und der Tausch, den sie machen, stehen auf der <a href="/pillars/diff-stability/">Seite zur Säule stabile Diffs</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Pflicht-Trailing-Commas, Listen mit einem Eintrag pro Zeile und das eine kanonische Layout von <code>glyph fmt</code>, verlustfrei hin und zurück und idempotent, mit Formatieren beim Speichern im Editor. <code>glyph fmt</code> verschiebt einen Kommentar nie dorthin, wo er nicht hingehört. Kommentare bleiben über dem Element, über dem sie geschrieben wurden, auch innerhalb eines Records, eines Literals, einer Argumentliste, eines <code>match</code>, zwischen den Operanden eines Operators und zwischen den Schritten einer Methodenkette, die dann einen Schritt pro Zeile mit führendem Punkt bekommt.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Die Grenze, und was als Nächstes kommt</h3>
+          <p>Ein Kommentar wird immer in einer eigenen Zeile ausgegeben, also wandert einer, der am Ende einer Codezeile steht (<code>w: int, // width in cells</code>), in die Zeile über dem nächsten Element. Er überschreitet keine Deklarationsgrenze mehr, aber er bewegt sich; ihn am Zeilenende zu halten, verlangt, dass der Printer verfolgt, welche Zeile ein Kommentar sich teilt. Ein Kommentar, für den das Layout keinen Platz hat, etwa in einem Index, nach den Argumenten eines Aufrufs mitten in einer Kette oder vor einem Operanden von <code>!</code> oder <code>await</code>, wird nicht mehr verschoben: <code>glyph fmt</code> lehnt die Datei ab, lässt sie, wie sie war, und nennt die Zeile und wohin der Kommentar gehört, und <code>glyph check</code> meldet dasselbe als Warnung E0500. Ein Kommentar zwischen JSX-Attributen oder zwischen den Feldern eines Objekt-Patterns wird ebenfalls abgelehnt, wo ein Layout mit einem Element pro Zeile ihn unterbringen könnte; diese Layouts stehen auf der Liste. Der Printer hat auch noch keine Regel, um eine lange Methoden- oder <code>+</code>-Kette umzubrechen, also bricht eine zu lange Kette stattdessen die innerste Argumentliste um, was die falsche Stelle ist. Wir bauen außerdem einen Benchmark zur Diff-Größe gegen dieselben Änderungen in TypeScript, damit diese Säule eine Zahl wird, die du prüfen kannst.</p>
+        </div>
+      </div>

@@ -1,0 +1,236 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "start/index.html",
+  "locale": "de",
+  "source_hash": "0967efaee1e51c6b",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Start Here · your first Glyph program in 10 minutes · Glyph",
+      "tr": "Hier anfangen · dein erstes Glyph-Programm in 10 Minuten · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally.",
+      "tr": "Ein Glyph-Projekt mit npx anlegen, ausführen, absichtlich kaputtmachen, den Compiler-Fehler lesen und beheben. Zehn Minuten, nichts global installiert."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Home",
+      "tr": "&larr; Startseite"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "TypeScript your agents can't quietly break",
+      "tr": "TypeScript, das deine Agenten nicht unbemerkt kaputtmachen können"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Weiter &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "From here",
+      "tr": "Von hier aus"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Next &middot; no install",
+      "tr": "Weiter &middot; ohne Installation"
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "The playground",
+      "tr": "Der Playground"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "Try Glyph in your browser, no install.",
+      "tr": "Glyph im Browser ausprobieren, ohne Installation."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open the playground",
+      "tr": "Playground öffnen"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md.title",
+      "kind": "ns.title",
+      "en": "The five-minute tour",
+      "tr": "Die Fünf-Minuten-Tour"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md.desc",
+      "kind": "ns.desc",
+      "en": "The whole language, quickly.",
+      "tr": "Die ganze Sprache, im Schnelldurchlauf."
+    },
+    {
+      "id": "ns./answers/.title",
+      "kind": "ns.title",
+      "en": "The answers",
+      "tr": "Die Antworten"
+    },
+    {
+      "id": "ns./answers/.desc",
+      "kind": "ns.desc",
+      "en": "Worked answers about React, typed APIs, npm and tooled TypeScript.",
+      "tr": "Durchgearbeitete Antworten zu React, typisierten APIs, npm und TypeScript mit vollem Tooling."
+    },
+    {
+      "id": "h-046417a2",
+      "kind": "html",
+      "en": "Start here &middot; ~10 minutes",
+      "tr": "Hier anfangen &middot; ~10 Minuten"
+    },
+    {
+      "id": "h-ce040163",
+      "kind": "html",
+      "en": "Your first Glyph program",
+      "tr": "Dein erstes Glyph-Programm"
+    },
+    {
+      "id": "h-af332234",
+      "kind": "html",
+      "en": "Scaffold a project, run it, then <strong>break it on purpose</strong> and read the error the compiler gives you. No prior Glyph knowledge assumed. If you've written a little TypeScript, you'll follow every line.",
+      "tr": "Ein Projekt anlegen, ausführen, dann <strong>absichtlich kaputtmachen</strong> und den Fehler lesen, den der Compiler ausgibt. Glyph-Vorkenntnisse sind nicht nötig. Wenn du schon ein bisschen TypeScript geschrieben hast, kannst du jeder Zeile folgen."
+    },
+    {
+      "id": "h-86a4f8cb",
+      "kind": "html",
+      "en": "1 &middot; Create a project",
+      "tr": "1 &middot; Ein Projekt anlegen"
+    },
+    {
+      "id": "h-355a40de",
+      "kind": "html",
+      "en": "Glyph ships on npm as a prebuilt binary for macOS and Linux (x64 and ARM) and Windows (x64), and needs Node 18 or later. This path installs nothing globally: <code>npx</code> fetches the compiler to scaffold the project, and the project pins its own copy along with <code>tsx</code> and <code>typescript</code>, which Glyph uses to run and type-check.",
+      "tr": "Glyph wird über npm als vorkompiliertes Binary für macOS und Linux (x64 und ARM) und Windows (x64) ausgeliefert und braucht Node 18 oder neuer. Auf diesem Weg wird nichts global installiert: <code>npx</code> holt den Compiler, um das Projekt anzulegen, und das Projekt pinnt seine eigene Kopie zusammen mit <code>tsx</code> und <code>typescript</code>, die Glyph zum Ausführen und für die Typprüfung verwendet."
+    },
+    {
+      "id": "h-4e686af7",
+      "kind": "html",
+      "en": "terminal",
+      "tr": "Terminal"
+    },
+    {
+      "id": "h-ba09e82e",
+      "kind": "html",
+      "en": "If you'd rather have <code>glyph</code> on your PATH, install it globally with the two tools it runs through, and drop the <code>npx</code> from the commands on this page:",
+      "tr": "Wenn du <code>glyph</code> lieber im PATH haben willst, installiere es global zusammen mit den beiden Tools, über die es läuft, und lass in den Befehlen auf dieser Seite das <code>npx</code> weg:"
+    },
+    {
+      "id": "h-5c1d388d",
+      "kind": "html",
+      "en": "terminal, the global alternative",
+      "tr": "Terminal, die globale Alternative"
+    },
+    {
+      "id": "h-377cd0d0",
+      "kind": "html",
+      "en": "2 &middot; Look at what it made",
+      "tr": "2 &middot; Ansehen, was angelegt wurde"
+    },
+    {
+      "id": "h-3694bb2c",
+      "kind": "html",
+      "en": "<code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a <code>package.json</code>, a <code>.gitignore</code>, and two files coding agents read on their own: <code>AGENTS.md</code>, which points at <code>glyph llms</code> for the full language reference, and <code>.mcp.json</code>, which registers <code>glyph mcp</code> so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, <code>glyph agents</code> writes those two. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.",
+      "tr": "<code>glyph init</code> legt ein lauffähiges Grundgerüst an: <code>src/main.glyph</code>, <code>src/.types/README.md</code>, das erklärt, dass ein typisiertes npm-Paket dort nichts braucht und das Verzeichnis für eines ohne eigene Typen gedacht ist, eine <code>package.json</code>, eine <code>.gitignore</code> und zwei Dateien, die Coding-Agenten von sich aus lesen: <code>AGENTS.md</code>, das auf <code>glyph llms</code> für die vollständige Sprachreferenz verweist, und <code>.mcp.json</code>, das <code>glyph mcp</code> registriert, damit ein Agent den Compiler nach Typen und Referenzen fragen kann, statt danach zu suchen. In einem bestehenden Projekt schreibt <code>glyph agents</code> diese beiden. Die <code>package.json</code> pinnt den Compiler, <code>typescript</code> und <code>tsx</code> in den <code>devDependencies</code>, sodass jeder, der das Projekt klont, es mit <code>npm install</code> ohne globale Installation bauen kann."
+    },
+    {
+      "id": "h-915bf352",
+      "kind": "html",
+      "en": "Open <code>src/main.glyph</code>. It's a hello-world:",
+      "tr": "Öffne <code>src/main.glyph</code>. Es ist ein Hello World:"
+    },
+    {
+      "id": "h-71deb346",
+      "kind": "html",
+      "en": "Two things to notice: a program runs its <code>main(argv)</code>, and <code>main</code> returns a <code>number</code>, the process exit code. Returning sets that code without forcing the process to stop, so a program that starts a server keeps serving.",
+      "tr": "Zwei Dinge fallen auf: Ein Programm führt seine <code>main(argv)</code> aus, und <code>main</code> gibt eine <code>number</code> zurück, den Exit-Code des Prozesses. Die Rückgabe setzt diesen Code, ohne den Prozess zum Beenden zu zwingen, also läuft ein Programm, das einen Server startet, weiter."
+    },
+    {
+      "id": "h-574233d5",
+      "kind": "html",
+      "en": "3 &middot; Run it",
+      "tr": "3 &middot; Ausführen"
+    },
+    {
+      "id": "h-168ebd5f",
+      "kind": "html",
+      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page.",
+      "tr": "<code>glyph run</code> hat es typgeprüft, zu TypeScript kompiliert und ausgeführt. Das ist die Schleife, die du für den Rest dieser Seite wiederholst."
+    },
+    {
+      "id": "h-e7d3d489",
+      "kind": "html",
+      "en": "4 &middot; Add something real",
+      "tr": "4 &middot; Etwas Echtes hinzufügen"
+    },
+    {
+      "id": "h-f1d8aa48",
+      "kind": "html",
+      "en": "Now replace the body with a tiny bit of logic: a task status and a function that labels it. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
+      "tr": "Ersetze jetzt den Rumpf durch ein bisschen Logik: einen Aufgabenstatus und eine Funktion, die ihm ein Label gibt. Damit lernst du die beiden Dinge kennen, die du ständig benutzen wirst: eine <em>Tagged Union</em> (<code>type Status = ...</code>) und <code>match</code>, die einzige Bedingung in Glyph."
+    },
+    {
+      "id": "h-227acdb7",
+      "kind": "html",
+      "en": "5 &middot; Break it on purpose",
+      "tr": "5 &middot; Absichtlich kaputtmachen"
+    },
+    {
+      "id": "h-08f96fcf",
+      "kind": "html",
+      "en": "Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm from the <code>match</code> (the kind of thing an agent does when it adds a case somewhere and forgets to handle it), and run again.",
+      "tr": "Jetzt kommt der Teil, der zeigt, <em>wofür</em> Glyph da ist. Lösch den Arm <code>Done</code> aus dem <code>match</code> (so etwas macht ein Agent, wenn er irgendwo einen Fall hinzufügt und vergisst, ihn zu behandeln), und führ es noch einmal aus."
+    },
+    {
+      "id": "h-4f6a6f0d",
+      "kind": "html",
+      "en": "src/main.glyph (with the Done arm deleted)",
+      "tr": "src/main.glyph (ohne den Done-Arm)"
+    },
+    {
+      "id": "h-31c09e63",
+      "kind": "html",
+      "en": "It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A <code>switch</code> that only logs or updates state, or one with a <code>default:</code>, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run <code>glyph --explain E0200</code> any time you want the long version.",
+      "tr": "Es lief nicht. In TypeScript wird genau diese Funktion mit ausgeschriebenem Rückgabetyp ebenfalls abgelehnt (TS2366). Ein <code>switch</code>, der nur loggt oder Zustand aktualisiert, oder einer mit <code>default:</code>, kompiliert sauber und überspringt den neuen Fall stillschweigend. Hier ist jedes nicht erschöpfende match ein Compile-Fehler mit einem stabilen Code (<code>E0200</code>), der genauen Stelle und einem einzeiligen Fix. Führ <code>glyph --explain E0200</code> aus, wann immer du die ausführliche Fassung willst."
+    },
+    {
+      "id": "h-a205e0c5",
+      "kind": "html",
+      "en": "6 &middot; Fix it",
+      "tr": "6 &middot; Beheben"
+    },
+    {
+      "id": "h-1995de51",
+      "kind": "html",
+      "en": "Put the arm back (or add an <code>else</code>), and it runs again.",
+      "tr": "Setz den Arm wieder ein (oder füg ein <code>else</code> hinzu), und es läuft wieder."
+    },
+    {
+      "id": "h-25ed8d45",
+      "kind": "html",
+      "en": "That's the core loop: write, run, and when something's wrong the compiler tells you exactly what and how, before your code ships, not after.",
+      "tr": "Das ist die Kernschleife: schreiben, ausführen, und wenn etwas falsch ist, sagt dir der Compiler genau was und wie, bevor dein Code ausgeliefert wird, nicht danach."
+    }
+  ]
+}

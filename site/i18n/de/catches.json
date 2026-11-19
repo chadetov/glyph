@@ -1,0 +1,1212 @@
+{
+  "_about": "The texts of each case in catches/ as the generated pages show them. Translate each \"tr\" from its \"en\"; keep tags, <code> content and placeholders. A case whose English changes shows in English until its \"tr\" is redone. See site/i18n/README.md.",
+  "locale": "de",
+  "cases": {
+    "absent-map-key": {
+      "page_title": {
+        "en": "A key that may not be there",
+        "tr": "Ein Schlüssel, der vielleicht nicht existiert"
+      },
+      "why": {
+        "en": "Reading a field from a row of strings, with the name misspelled.",
+        "tr": "Ein Feld aus einer Zeile von Strings lesen, mit falsch geschriebenem Namen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints undefined",
+        "tr": "kompiliert, gibt dann undefined aus"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>Any key reads as a <code>string</code>,</b> even one that is not there, so the misspelled field prints <code>undefined</code>.",
+        "tr": "<b>Jeder Schlüssel liest sich als <code>string</code>,</b> auch einer, den es nicht gibt, also gibt das falsch geschriebene Feld <code>undefined</code> aus."
+      },
+      "glyph_result": {
+        "en": "<b>A map read says it might be empty,</b> so the code has to say what happens then.",
+        "tr": "<b>Ein Lesezugriff auf eine Map sagt, dass er leer sein kann,</b> also muss der Code sagen, was dann passiert."
+      },
+      "page_note": {
+        "en": "TypeScript's <code>Record&lt;string, string&gt;</code> claims every possible key has a string. Glyph treats it as a map, where a lookup can find nothing, so it refuses the correctly spelled <code>row.name</code> too.",
+        "tr": "TypeScripts <code>Record&lt;string, string&gt;</code> behauptet, dass jeder mögliche Schlüssel einen String hat. Glyph behandelt es als Map, in der ein Lookup nichts finden kann, und lehnt deshalb auch das korrekt geschriebene <code>row.name</code> ab."
+      }
+    },
+    "array-covariance": {
+      "page_title": {
+        "en": "Array covariance",
+        "tr": "Array-Kovarianz"
+      },
+      "why": {
+        "en": "Passing a list of dogs where a list of animals is expected.",
+        "tr": "Eine Liste von Hunden übergeben, wo eine Liste von Tieren erwartet wird."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "kompiliert, stürzt dann zur Laufzeit ab"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>A cat ends up in the list of dogs.</b>",
+        "tr": "<b>Eine Katze landet in der Liste der Hunde.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A list of dogs is not a writable list of animals.</b>",
+        "tr": "<b>Eine Liste von Hunden ist keine beschreibbare Liste von Tieren.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript lets <code>Dog[]</code> stand in for <code>Animal[]</code> even when the function adds to it.",
+        "tr": "TypeScript lässt <code>Dog[]</code> für <code>Animal[]</code> durchgehen, auch wenn die Funktion etwas hinzufügt."
+      }
+    },
+    "arrow-function-returns-nothing": {
+      "page_title": {
+        "en": "An arrow function that returns nothing",
+        "tr": "Eine Arrow Function, die nichts zurückgibt"
+      },
+      "why": {
+        "en": "Mapping users to rows.",
+        "tr": "User auf Zeilen abbilden."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "kompiliert, liefert dann das falsche Ergebnis"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "lässt sich nicht schreiben"
+      },
+      "ts_result": {
+        "en": "<b>The braces are a function body,</b> and <code>label:</code> is a statement label.",
+        "tr": "<b>Die geschweiften Klammern sind ein Funktionsrumpf,</b> und <code>label:</code> ist ein Statement-Label."
+      },
+      "glyph_result": {
+        "en": "<b>The ambiguous form is not valid Glyph.</b>",
+        "tr": "<b>Die mehrdeutige Form ist kein gültiges Glyph.</b>"
+      },
+      "page_note": {
+        "en": "To return an object from a TypeScript arrow function, the braces need parentheses: <code>u =&gt; ({ ... })</code>.",
+        "tr": "Um aus einer TypeScript-Arrow-Function ein Objekt zurückzugeben, brauchen die geschweiften Klammern runde Klammern drumherum: <code>u =&gt; ({ ... })</code>."
+      }
+    },
+    "as-unknown-as": {
+      "page_title": {
+        "en": "<code>as unknown as T</code>",
+        "tr": "<code>as unknown as T</code>"
+      },
+      "why": {
+        "en": "Forcing a value into the type you want.",
+        "tr": "Einen Wert in den gewünschten Typ zwingen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "kompiliert, stürzt dann zur Laufzeit ab"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "lässt sich nicht schreiben"
+      },
+      "ts_result": {
+        "en": "<b>A double cast switches checking off.</b>",
+        "tr": "<b>Ein doppelter Cast schaltet die Prüfung ab.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>There is no cast to write.</b> The help says what to do instead.",
+        "tr": "<b>Es gibt keinen Cast, den man schreiben könnte.</b> Die Hilfe sagt, was stattdessen zu tun ist."
+      },
+      "page_note": {
+        "en": "<code>as unknown as T</code> is how agents silence a type error they can't fix.",
+        "tr": "Mit <code>as unknown as T</code> bringen Agenten einen Typfehler zum Schweigen, den sie nicht beheben können."
+      }
+    },
+    "change-hidden-in-a-helper": {
+      "page_title": {
+        "en": "A change hidden in a helper",
+        "tr": "Eine Änderung, versteckt in einem Helper"
+      },
+      "why": {
+        "en": "A function that edits the object it was given.",
+        "tr": "Eine Funktion, die das übergebene Objekt verändert."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "kompiliert ohne Warnung"
+      },
+      "glyph_verdict": {
+        "en": "refused until it is marked",
+        "tr": "abgelehnt, bis es markiert ist"
+      },
+      "ts_result": {
+        "en": "<b>The caller's user is renamed.</b> Nothing at the call site says so.",
+        "tr": "<b>Der User des Aufrufers wird umbenannt.</b> Nichts an der Aufrufstelle sagt das."
+      },
+      "glyph_result": {
+        "en": "<b>Changing a field takes <code>mut</code>.</b>",
+        "tr": "<b>Ein Feld zu ändern erfordert <code>mut</code>.</b>"
+      },
+      "page_note": {
+        "en": "Glyph does not forbid the change. It makes it visible: searching for <code>mut</code> lists every field a function writes.",
+        "tr": "Glyph verbietet die Änderung nicht. Es macht sie sichtbar: Eine Suche nach <code>mut</code> listet jedes Feld, das eine Funktion schreibt."
+      }
+    },
+    "code-after-return": {
+      "page_title": {
+        "en": "Code after <code>return</code>",
+        "tr": "Code nach <code>return</code>"
+      },
+      "why": {
+        "en": "Adding tax after the function already returned.",
+        "tr": "Steuer hinzufügen, nachdem die Funktion schon zurückgekehrt ist."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "kompiliert ohne Warnung"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "gewarnt"
+      },
+      "ts_result": {
+        "en": "<b>The tax line never runs.</b>",
+        "tr": "<b>Die Steuerzeile läuft nie.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dead line.</b>",
+        "tr": "<b>Glyph zeigt auf die tote Zeile.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only shows unreachable code as a faded hint in the editor by default.",
+        "tr": "TypeScript zeigt unerreichbaren Code standardmäßig nur als ausgegrauten Hinweis im Editor."
+      }
+    },
+    "comparing-records-with-triple-equals": {
+      "page_title": {
+        "en": "Comparing two records with <code>===</code>",
+        "tr": "Zwei Records mit <code>===</code> vergleichen"
+      },
+      "why": {
+        "en": "Skipping a save when nothing changed.",
+        "tr": "Das Speichern überspringen, wenn sich nichts geändert hat."
+      },
+      "ts_verdict": {
+        "en": "compiles, then compares identity, not data",
+        "tr": "kompiliert, vergleicht dann Identität statt Daten"
+      },
+      "glyph_verdict": {
+        "en": "compares the data",
+        "tr": "vergleicht die Daten"
+      },
+      "ts_result": {
+        "en": "<b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs.",
+        "tr": "<b>Gleiche Daten, aber <code>===</code> fragt, ob es dasselbe Objekt ist.</b> Jedes Speichern läuft."
+      },
+      "glyph_result": {
+        "en": "<b>Two records with the same fields are equal.</b>",
+        "tr": "<b>Zwei Records mit gleichen Feldern sind gleich.</b>"
+      },
+      "page_note": {
+        "en": "This is JavaScript working as designed: <code>===</code> on objects compares identity, and comparing data needs a helper such as lodash's <code>isEqual</code>. The mistake is reaching for <code>===</code> when the data was meant. In Glyph <code>==</code> on records compares the data, so the obvious spelling is the right one.",
+        "tr": "Das ist JavaScript, das wie vorgesehen funktioniert: <code>===</code> vergleicht bei Objekten die Identität, und für einen Datenvergleich braucht man einen Helper wie <code>isEqual</code> aus lodash. Der Fehler ist, zu <code>===</code> zu greifen, wenn die Daten gemeint waren. In Glyph vergleicht <code>==</code> bei Records die Daten, also ist die naheliegende Schreibweise die richtige."
+      }
+    },
+    "computed-value-never-used": {
+      "page_title": {
+        "en": "A computed value that is never used",
+        "tr": "Ein berechneter Wert, der nie verwendet wird"
+      },
+      "why": {
+        "en": "Cleaning an input, then returning the original by mistake.",
+        "tr": "Eine Eingabe bereinigen und dann versehentlich das Original zurückgeben."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "kompiliert ohne Warnung"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "gewarnt"
+      },
+      "ts_result": {
+        "en": "<b>The cleaning never happens.</b>",
+        "tr": "<b>Die Bereinigung passiert nie.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the unused value.</b>",
+        "tr": "<b>Glyph zeigt auf den unbenutzten Wert.</b>"
+      },
+      "page_note": {
+        "en": "<code>noUnusedLocals</code> is not part of <code>--strict</code>, so TypeScript says nothing by default.",
+        "tr": "<code>noUnusedLocals</code> ist nicht Teil von <code>--strict</code>, also sagt TypeScript standardmäßig nichts."
+      }
+    },
+    "config-with-a-setting-missing": {
+      "page_title": {
+        "en": "A config with a setting missing",
+        "tr": "Eine Konfiguration, in der eine Einstellung fehlt"
+      },
+      "why": {
+        "en": "A limit for each plan, loaded from a file someone forgot to update.",
+        "tr": "Ein Limit pro Tarif, geladen aus einer Datei, die jemand vergessen hat zu aktualisieren."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "kompiliert, läuft dann mit fehlerhaften Daten"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "beim Eintreffen der Daten geprüft"
+      },
+      "ts_result": {
+        "en": "<b>The type promises every plan has a limit.</b> The file does not.",
+        "tr": "<b>Der Typ verspricht, dass jeder Tarif ein Limit hat.</b> Die Datei nicht."
+      },
+      "glyph_result": {
+        "en": "<b>Every plan must be there, and nothing else.</b>",
+        "tr": "<b>Jeder Tarif muss da sein, und sonst nichts.</b>"
+      },
+      "page_note": {
+        "en": "<code>Record&lt;Plan, number&gt;</code> promises a value for every plan, and <code>as</code> never looks. Glyph requires every key in the type and refuses extra ones.",
+        "tr": "<code>Record&lt;Plan, number&gt;</code> verspricht einen Wert für jeden Tarif, und <code>as</code> schaut nie nach. Glyph verlangt jeden Schlüssel des Typs und lehnt zusätzliche ab."
+      }
+    },
+    "connection-left-open": {
+      "page_title": {
+        "en": "A connection left open",
+        "tr": "Eine offen gelassene Verbindung"
+      },
+      "why": {
+        "en": "Returning early before cleanup.",
+        "tr": "Vor dem Aufräumen vorzeitig zurückkehren."
+      },
+      "ts_verdict": {
+        "en": "compiles, then leaks a connection",
+        "tr": "kompiliert, verliert dann eine Verbindung"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>Every rejected request leaks a connection.</b>",
+        "tr": "<b>Jeder abgelehnte Request lässt eine Verbindung offen.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Every path must close it.</b>",
+        "tr": "<b>Jeder Pfad muss sie schließen.</b>"
+      },
+      "page_note": {
+        "en": "This check applies to values declared <code>owned</code>. A resource without it is not tracked.",
+        "tr": "Diese Prüfung gilt für Werte, die als <code>owned</code> deklariert sind. Eine Ressource ohne diese Markierung wird nicht verfolgt."
+      }
+    },
+    "data-from-outside-the-program": {
+      "page_title": {
+        "en": "Data from outside the program",
+        "tr": "Daten von außerhalb des Programms"
+      },
+      "why": {
+        "en": "A request body, a file, an API response.",
+        "tr": "Ein Request-Body, eine Datei, eine API-Antwort."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "kompiliert, läuft dann mit fehlerhaften Daten"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "beim Eintreffen der Daten geprüft"
+      },
+      "ts_result": {
+        "en": "<b>Nothing checks the data.</b> <code>undefined</code> travels on as a plan.",
+        "tr": "<b>Nichts prüft die Daten.</b> <code>undefined</code> wandert als Tarif weiter."
+      },
+      "glyph_result": {
+        "en": "<b>A body that is not a real <code>User</code> is an <code>Err</code>.</b> The program never holds a fake one.",
+        "tr": "<b>Ein Body, der kein echter <code>User</code> ist, wird zu einem <code>Err</code>.</b> Das Programm hält nie einen gefälschten."
+      },
+      "page_note": {
+        "en": "<code>as User</code> does not check anything. It tells the compiler to trust you. Glyph has no <code>as</code>.",
+        "tr": "<code>as User</code> prüft gar nichts. Es sagt dem Compiler, dass er dir vertrauen soll. Glyph hat kein <code>as</code>."
+      }
+    },
+    "duplicate-case": {
+      "page_title": {
+        "en": "A duplicate case",
+        "tr": "Ein doppelter Fall"
+      },
+      "why": {
+        "en": "Deciding which orders can be refunded.",
+        "tr": "Entscheiden, welche Bestellungen erstattet werden können."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "kompiliert ohne Warnung"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>The second rule is dead.</b> Nobody notices.",
+        "tr": "<b>Die zweite Regel ist tot.</b> Niemand bemerkt es."
+      },
+      "glyph_result": {
+        "en": "<b>An arm that can never run is an error.</b>",
+        "tr": "<b>Ein Arm, der nie laufen kann, ist ein Fehler.</b>"
+      },
+      "page_note": {
+        "en": "tsc does not flag a <code>case</code> label that appears twice.",
+        "tr": "tsc meldet kein <code>case</code>-Label, das zweimal vorkommt."
+      }
+    },
+    "error-nobody-looked-at": {
+      "page_title": {
+        "en": "An error nobody looked at",
+        "tr": "Ein Fehler, den sich niemand angesehen hat"
+      },
+      "why": {
+        "en": "Calling something that can fail and moving on.",
+        "tr": "Etwas aufrufen, das fehlschlagen kann, und einfach weitermachen."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "kompiliert ohne Warnung"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "gewarnt"
+      },
+      "ts_result": {
+        "en": "<b>The failure is dropped</b> and the user is told it worked.",
+        "tr": "<b>Der Fehlschlag wird verworfen,</b> und dem User wird gesagt, es habe geklappt."
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dropped failure.</b>",
+        "tr": "<b>Glyph zeigt auf den verworfenen Fehlschlag.</b>"
+      },
+      "page_note": {
+        "en": "A warning, not an error. To drop it on purpose, say so: <code>let _ = save(user)</code>.",
+        "tr": "Eine Warnung, kein Fehler. Um ihn bewusst zu verwerfen, schreib es hin: <code>let _ = save(user)</code>."
+      }
+    },
+    "error-the-signature-hides": {
+      "page_title": {
+        "en": "An error the signature hides",
+        "tr": "Ein Fehler, den die Signatur verschweigt"
+      },
+      "why": {
+        "en": "A function that can fail, called by code that does not know it can.",
+        "tr": "Eine Funktion, die fehlschlagen kann, aufgerufen von Code, der das nicht weiß."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "kompiliert, stürzt dann zur Laufzeit ab"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>The type says <code>Config</code>.</b> Nothing says it can throw.",
+        "tr": "<b>Der Typ sagt <code>Config</code>.</b> Nichts sagt, dass sie werfen kann."
+      },
+      "glyph_result": {
+        "en": "<b>Failure is part of the return type,</b> so the caller has to handle it.",
+        "tr": "<b>Der Fehlschlag ist Teil des Rückgabetyps,</b> also muss der Aufrufer ihn behandeln."
+      },
+      "page_note": {
+        "en": "A TypeScript function's type lists what it returns, never what it throws. In Glyph, failure is part of the return type, so every caller can see it.",
+        "tr": "Der Typ einer TypeScript-Funktion nennt, was sie zurückgibt, nie, was sie wirft. In Glyph ist der Fehlschlag Teil des Rückgabetyps, also sieht ihn jeder Aufrufer."
+      }
+    },
+    "filter-that-keeps-everyone": {
+      "page_title": {
+        "en": "A filter that keeps everyone",
+        "tr": "Ein Filter, der alle durchlässt"
+      },
+      "why": {
+        "en": "Checking each user against an async permission call.",
+        "tr": "Jeden User mit einem asynchronen Berechtigungsaufruf prüfen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "kompiliert, liefert dann das falsche Ergebnis"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>Nothing is filtered out.</b>",
+        "tr": "<b>Nichts wird herausgefiltert.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>An async function is not a yes/no answer.</b>",
+        "tr": "<b>Eine async-Funktion ist keine Ja/Nein-Antwort.</b>"
+      },
+      "page_note": {
+        "en": "An async function returns a Promise, and any Promise counts as true. A permission filter built this way lets everyone through.",
+        "tr": "Eine async-Funktion gibt ein Promise zurück, und jedes Promise zählt als true. Ein so gebauter Berechtigungsfilter lässt alle durch."
+      }
+    },
+    "gap-g380-mutation-without-mut": {
+      "summary": {
+        "en": "<code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it.",
+        "tr": "<code>xs.sort(...)</code> in einem Helper sortiert das Array des Aufrufers um, und kein <code>mut</code> markiert das."
+      }
+    },
+    "gap-g381-member-read-on-unknown": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "<code>input + 1</code> auf einem String, <code>users.find(...).name</code> und ein Feldzugriff auf <code>unknown</code> werden nur vom <code>tsc</code>-Schritt gefunden, nicht von Glyphs eigenem Checker, also übersehen sie der Editor und die Agenten-Tools."
+      }
+    },
+    "gap-g382-string-plus-number": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "<code>input + 1</code> auf einem String, <code>users.find(...).name</code> und ein Feldzugriff auf <code>unknown</code> werden nur vom <code>tsc</code>-Schritt gefunden, nicht von Glyphs eigenem Checker, also übersehen sie der Editor und die Agenten-Tools."
+      }
+    },
+    "gap-g384-dropped-async-call": {
+      "summary": {
+        "en": "<code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns.",
+        "tr": "<code>forEach(async ...)</code> verwirft jedes Promise, also wird die Arbeit erst nach dem Code fertig, der davon abhängt, und nichts warnt."
+      }
+    },
+    "gap-g385-record-in-template": {
+      "summary": {
+        "en": "<code>\"Welcome back, ${user}!\"</code> with a record prints <code>[object Object]</code>.",
+        "tr": "<code>\"Welcome back, ${user}!\"</code> mit einem Record gibt <code>[object Object]</code> aus."
+      }
+    },
+    "gap-g386-or-on-a-number": {
+      "summary": {
+        "en": "<code>requested || 3</code> turns a real <code>0</code> into <code>3</code>.",
+        "tr": "<code>requested || 3</code> macht aus einer echten <code>0</code> eine <code>3</code>."
+      }
+    },
+    "gap-g387-sql-by-interpolation": {
+      "summary": {
+        "en": "A SQL query built with <code>${name}</code> is accepted by <code>std/sqlite</code>.",
+        "tr": "Eine SQL-Abfrage, die mit <code>${name}</code> gebaut wird, wird von <code>std/sqlite</code> akzeptiert."
+      }
+    },
+    "gap-g388-sort-as-text": {
+      "summary": {
+        "en": "<code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>.",
+        "tr": "<code>.sort()</code> auf Zahlen sortiert sie als Text: <code>100,25,9</code>."
+      }
+    },
+    "gap-g390-index-update-across-await": {
+      "summary": {
+        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
+        "tr": "Ein verlorenes Update über ein <code>await</code> hinweg auf <code>c[0]</code>, wo derselbe Schreibzugriff auf ein Feld abgelehnt wird."
+      }
+    },
+    "gap-g391-null-in-optional-field": {
+      "summary": {
+        "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",
+        "tr": "Ein JSON-<code>null</code> in einem optionalen Feld übersteht die Prüfung, also bleibt bei einem Spread über einen Default-Wert <code>null</code> übrig."
+      }
+    },
+    "gap-g392-find-method-option": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "<code>input + 1</code> auf einem String, <code>users.find(...).name</code> und ein Feldzugriff auf <code>unknown</code> werden nur vom <code>tsc</code>-Schritt gefunden, nicht von Glyphs eigenem Checker, also übersehen sie der Editor und die Agenten-Tools."
+      }
+    },
+    "invalid-date": {
+      "page_title": {
+        "en": "An invalid date",
+        "tr": "Ein ungültiges Datum"
+      },
+      "why": {
+        "en": "Parsing a date from a form.",
+        "tr": "Ein Datum aus einem Formular parsen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives a wrong date or crashes",
+        "tr": "kompiliert, liefert dann ein falsches Datum oder stürzt ab"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "lässt sich nicht schreiben"
+      },
+      "ts_result": {
+        "en": "<b>Bad dates roll over</b> into real ones.",
+        "tr": "<b>Ungültige Daten rollen über</b> in echte."
+      },
+      "glyph_result": {
+        "en": "<b>Parsing can fail, and the type says so.</b>",
+        "tr": "<b>Parsen kann fehlschlagen, und der Typ sagt das.</b>"
+      },
+      "page_note": {
+        "en": "JavaScript's <code>Date</code> turns February 30 into March 2 without complaint. Glyph has no <code>Date</code>; <code>time.parse_iso</code> returns <code>None</code>.",
+        "tr": "JavaScripts <code>Date</code> macht aus dem 30. Februar ohne Beschwerde den 2. März. Glyph hat kein <code>Date</code>; <code>time.parse_iso</code> gibt <code>None</code> zurück."
+      }
+    },
+    "lost-update-across-await": {
+      "page_title": {
+        "en": "A lost update across <code>await</code>",
+        "tr": "Ein verlorenes Update über ein <code>await</code> hinweg"
+      },
+      "why": {
+        "en": "Two requests charge the same account at once.",
+        "tr": "Zwei Requests belasten gleichzeitig dasselbe Konto."
+      },
+      "ts_verdict": {
+        "en": "compiles, then loses money at run time",
+        "tr": "kompiliert, verliert dann zur Laufzeit Geld"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>One charge vanishes.</b> No test reliably catches it.",
+        "tr": "<b>Eine Buchung verschwindet.</b> Kein Test findet das zuverlässig."
+      },
+      "glyph_result": {
+        "en": "<b>Glyph spots the read-then-write around the wait.</b>",
+        "tr": "<b>Glyph erkennt das Lesen-dann-Schreiben rund um das Warten.</b>"
+      },
+      "page_note": {
+        "en": "While one call waits on <code>fee()</code>, another can update the balance. The first then writes back a stale value.",
+        "tr": "Während ein Aufruf auf <code>fee()</code> wartet, kann ein anderer den Kontostand ändern. Der erste schreibt dann einen veralteten Wert zurück."
+      }
+    },
+    "median-with-a-fractional-index": {
+      "page_title": {
+        "en": "A median with a fractional index",
+        "tr": "Ein Median mit gebrochenem Index"
+      },
+      "why": {
+        "en": "Taking the middle of a sorted list.",
+        "tr": "Die Mitte einer sortierten Liste nehmen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "kompiliert, liefert dann das falsche Ergebnis"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "zur Laufzeit gestoppt"
+      },
+      "ts_result": {
+        "en": "<b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.",
+        "tr": "<b>Index 1.5 zu lesen ergibt <code>undefined</code>,</b> und die Arithmetik des Aufrufers macht daraus <code>NaN</code>."
+      },
+      "glyph_result": {
+        "en": "<b>A bad index stops the program</b> instead of spreading <code>NaN</code>.",
+        "tr": "<b>Ein ungültiger Index stoppt das Programm,</b> statt <code>NaN</code> zu verbreiten."
+      },
+      "page_note": {
+        "en": "Glyph checks every array index when the code runs. This one is not caught at build time.",
+        "tr": "Glyph prüft jeden Array-Index zur Laufzeit. Dieser hier wird beim Build nicht gefunden."
+      }
+    },
+    "method-forgets-its-object": {
+      "page_title": {
+        "en": "A method that forgets its object",
+        "tr": "Eine Methode, die ihr Objekt vergisst"
+      },
+      "why": {
+        "en": "Passing a method around as a value.",
+        "tr": "Eine Methode als Wert herumreichen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "kompiliert, stürzt dann zur Laufzeit ab"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>The method is pulled off its string</b> and loses track of it.",
+        "tr": "<b>Die Methode wird von ihrem String abgelöst</b> und verliert ihn aus dem Blick."
+      },
+      "glyph_result": {
+        "en": "<b>A method has to be called where it is read.</b> Pass a function instead.",
+        "tr": "<b>Eine Methode muss dort aufgerufen werden, wo sie gelesen wird.</b> Übergib stattdessen eine Funktion."
+      },
+      "page_note": {
+        "en": "A TypeScript method depends on the object it is called on (<code>this</code>). Taken out of <code>name.toUpperCase()</code> as a value, it no longer knows which string to use.",
+        "tr": "Eine TypeScript-Methode hängt von dem Objekt ab, auf dem sie aufgerufen wird (<code>this</code>). Als Wert aus <code>name.toUpperCase()</code> herausgelöst, weiß sie nicht mehr, welchen String sie verwenden soll."
+      }
+    },
+    "negative-age": {
+      "page_title": {
+        "en": "A negative age",
+        "tr": "Ein negatives Alter"
+      },
+      "why": {
+        "en": "A rule about a value, not just its type.",
+        "tr": "Eine Regel über einen Wert, nicht nur über seinen Typ."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "kompiliert, läuft dann mit fehlerhaften Daten"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "beim Eintreffen der Daten geprüft"
+      },
+      "ts_result": {
+        "en": "<b>The rule lives in a comment,</b> where nothing enforces it.",
+        "tr": "<b>Die Regel steht in einem Kommentar,</b> wo nichts sie durchsetzt."
+      },
+      "glyph_result": {
+        "en": "<b>The rule is part of the type,</b> and checked with it.",
+        "tr": "<b>Die Regel ist Teil des Typs</b> und wird mit ihm geprüft."
+      },
+      "page_note": {
+        "en": "In TypeScript, a rule like \"never negative\" lives in a comment or a separate validator. In Glyph it is part of the type, so every check of the type enforces it.",
+        "tr": "In TypeScript steht eine Regel wie \"nie negativ\" in einem Kommentar oder einem separaten Validator. In Glyph ist sie Teil des Typs, also setzt jede Prüfung des Typs sie durch."
+      }
+    },
+    "non-exhaustive-match": {
+      "page_title": {
+        "en": "A case nobody handled",
+        "tr": "Ein Fall, den niemand behandelt hat"
+      },
+      "why": {
+        "en": "An agent adds an <code>\"archived\"</code> status. The handler that announces each status was written before it existed.",
+        "tr": "Ein Agent fügt einen Status <code>\"archived\"</code> hinzu. Der Handler, der jeden Status meldet, wurde geschrieben, bevor es ihn gab."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "kompiliert ohne Warnung"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>Archiving an item logs nothing.</b> Nothing says the <code>switch</code> is out of date.",
+        "tr": "<b>Das Archivieren eines Eintrags loggt nichts.</b> Nichts sagt, dass der <code>switch</code> veraltet ist."
+      },
+      "glyph_result": {
+        "en": "<b>The build stops and names the case.</b>",
+        "tr": "<b>Der Build bricht ab und nennt den Fall.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript checks that a <code>switch</code> covers every case only when the function returns a value from every branch, or with the <code>assertNever</code> idiom. A handler that returns nothing gets neither. In Glyph every <code>match</code> must cover every case, so adding a variant lists each place that has to change.",
+        "tr": "TypeScript prüft nur dann, ob ein <code>switch</code> jeden Fall abdeckt, wenn die Funktion aus jedem Zweig einen Wert zurückgibt, oder mit dem Idiom <code>assertNever</code>. Ein Handler, der nichts zurückgibt, bekommt keins von beidem. In Glyph muss jedes <code>match</code> jeden Fall abdecken, also listet eine neue Variante jede Stelle, die sich ändern muss."
+      }
+    },
+    "number-accepted-as-enum": {
+      "page_title": {
+        "en": "A number accepted as an enum",
+        "tr": "Eine Zahl, die als Enum akzeptiert wird"
+      },
+      "why": {
+        "en": "A status code read from the database.",
+        "tr": "Ein Statuscode aus der Datenbank."
+      },
+      "ts_verdict": {
+        "en": "compiles, then picks the wrong state",
+        "tr": "kompiliert, wählt dann den falschen Zustand"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>An unknown code becomes a real status.</b>",
+        "tr": "<b>Ein unbekannter Code wird zu einem echten Status.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A number is not a <code>Status</code>.</b>",
+        "tr": "<b>Eine Zahl ist kein <code>Status</code>.</b>"
+      },
+      "page_note": {
+        "en": "Any number is assignable to a numeric enum in TypeScript, even one with no matching member.",
+        "tr": "In TypeScript ist jede Zahl einem numerischen Enum zuweisbar, auch eine ohne passendes Member."
+      }
+    },
+    "number-that-is-not-a-number": {
+      "page_title": {
+        "en": "A number that is not a number",
+        "tr": "Eine Zahl, die keine Zahl ist"
+      },
+      "why": {
+        "en": "User input, a query string, a CSV cell.",
+        "tr": "Benutzereingabe, ein Query-String, eine CSV-Zelle."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "kompiliert, läuft dann mit fehlerhaften Daten"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b><code>NaN</code> spreads</b> through every sum it touches.",
+        "tr": "<b><code>NaN</code> breitet sich aus</b> über jede Summe, die es berührt."
+      },
+      "glyph_result": {
+        "en": "<b>Parsing returns a <code>Result</code>:</b> a number, or a reason it failed.",
+        "tr": "<b>Parsen gibt ein <code>Result</code> zurück:</b> eine Zahl oder einen Grund, warum es fehlschlug."
+      },
+      "page_note": {
+        "en": "The error points at this line, before <code>total</code> is ever called. To compile, the code has to say what a bad input means: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>",
+        "tr": "Der Fehler zeigt auf diese Zeile, bevor <code>total</code> überhaupt aufgerufen wird. Damit es kompiliert, muss der Code sagen, was eine ungültige Eingabe bedeutet: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>"
+      }
+    },
+    "one-function-many-names": {
+      "page_title": {
+        "en": "One function, many names",
+        "tr": "Eine Funktion, viele Namen"
+      },
+      "why": {
+        "en": "Finding every caller before you change something.",
+        "tr": "Jeden Aufrufer finden, bevor du etwas änderst."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "kompiliert ohne Warnung"
+      },
+      "glyph_verdict": {
+        "en": "one name everywhere",
+        "tr": "überall ein Name"
+      },
+      "ts_result": {
+        "en": "<b><code>grep getUser</code> misses two of three callers.</b>",
+        "tr": "<b><code>grep getUser</code> übersieht zwei von drei Aufrufern.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>No default exports, no renaming.</b> <code>grep get_user</code> finds every caller.",
+        "tr": "<b>Keine Default-Exports, kein Umbenennen.</b> <code>grep get_user</code> findet jeden Aufrufer."
+      },
+      "page_note": {
+        "en": "This is what lets an agent change a function safely: it can find every place that uses it with a plain text search.",
+        "tr": "Das ist es, was einen Agenten eine Funktion sicher ändern lässt: Er findet mit einer einfachen Textsuche jede Stelle, die sie verwendet."
+      }
+    },
+    "one-step-past-the-end": {
+      "page_title": {
+        "en": "One step past the end",
+        "tr": "Ein Schritt über das Ende hinaus"
+      },
+      "why": {
+        "en": "Summing a list with a loop.",
+        "tr": "Eine Liste mit einer Schleife aufsummieren."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "kompiliert, liefert dann das falsche Ergebnis"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "zur Laufzeit gestoppt"
+      },
+      "ts_result": {
+        "en": "<b><code>&lt;=</code> reads one past the end.</b>",
+        "tr": "<b><code>&lt;=</code> liest eins über das Ende hinaus.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program.",
+        "tr": "<b>Glyph hat kein <code>for</code> im C-Stil.</b> Über das Ende hinaus zu lesen stoppt das Programm."
+      },
+      "page_note": {
+        "en": "Out-of-range reads return <code>undefined</code> in TypeScript, and arithmetic turns that into <code>NaN</code>.",
+        "tr": "Zugriffe außerhalb des Bereichs geben in TypeScript <code>undefined</code> zurück, und Arithmetik macht daraus <code>NaN</code>."
+      }
+    },
+    "quantity-of-one-and-a-half": {
+      "page_title": {
+        "en": "A quantity of 1.5",
+        "tr": "Eine Menge von 1,5"
+      },
+      "why": {
+        "en": "An order line that can only be a whole number.",
+        "tr": "Eine Bestellposition, die nur eine ganze Zahl sein darf."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "kompiliert, läuft dann mit fehlerhaften Daten"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "beim Eintreffen der Daten geprüft"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript has one <code>number</code>.</b> Half an item ships.",
+        "tr": "<b>TypeScript hat ein einziges <code>number</code>.</b> Ein halber Artikel wird verschickt."
+      },
+      "glyph_result": {
+        "en": "<b><code>int</code> is its own type,</b> and it is checked.",
+        "tr": "<b><code>int</code> ist ein eigener Typ</b> und wird geprüft."
+      },
+      "page_note": {
+        "en": "TypeScript has one <code>number</code> type for whole numbers and fractions alike. Glyph has <code>int</code>, and checks it when the data arrives.",
+        "tr": "TypeScript hat einen einzigen <code>number</code>-Typ für ganze Zahlen und Brüche gleichermaßen. Glyph hat <code>int</code> und prüft es, wenn die Daten eintreffen."
+      }
+    },
+    "split-into-a-pair": {
+      "page_title": {
+        "en": "Destructuring a <code>split</code>",
+        "tr": "Destructuring eines <code>split</code>"
+      },
+      "why": {
+        "en": "Splitting an address into a user and a host.",
+        "tr": "Eine Adresse in User und Host aufteilen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "kompiliert, gibt dann den falschen Text aus"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads \"nobody at undefined\".",
+        "tr": "<b>TypeScript nimmt an, dass der zweite Teil existiert.</b> Ohne <code>@</code> lautet der Text \"nobody at undefined\"."
+      },
+      "glyph_result": {
+        "en": "<b>The missing part has to be handled.</b>",
+        "tr": "<b>Der fehlende Teil muss behandelt werden.</b>"
+      },
+      "page_note": {
+        "en": "<code>split</code> can return one piece. TypeScript types <code>host</code> as <code>string</code> anyway.",
+        "tr": "<code>split</code> kann ein einziges Stück zurückgeben. TypeScript typisiert <code>host</code> trotzdem als <code>string</code>."
+      }
+    },
+    "switch-fallthrough": {
+      "page_title": {
+        "en": "Switch fallthrough",
+        "tr": "Switch-Fallthrough"
+      },
+      "why": {
+        "en": "A discount per plan.",
+        "tr": "Ein Rabatt pro Tarif."
+      },
+      "ts_verdict": {
+        "en": "compiles, then charges the wrong price",
+        "tr": "kompiliert, berechnet dann den falschen Preis"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "lässt sich nicht schreiben"
+      },
+      "ts_result": {
+        "en": "<b>The missing <code>break</code> runs the next case.</b>",
+        "tr": "<b>Das fehlende <code>break</code> führt den nächsten Fall aus.</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>match</code> arms never fall through.</b>",
+        "tr": "<b><code>match</code>-Arme fallen nie durch.</b>"
+      },
+      "page_note": {
+        "en": "<code>noFallthroughCasesInSwitch</code> is not part of <code>--strict</code>.",
+        "tr": "<code>noFallthroughCasesInSwitch</code> ist nicht Teil von <code>--strict</code>."
+      }
+    },
+    "template-prints-undefined": {
+      "page_title": {
+        "en": "A template that prints \"undefined\"",
+        "tr": "Ein Template, das \"undefined\" ausgibt"
+      },
+      "why": {
+        "en": "Showing an optional relation.",
+        "tr": "Eine optionale Relation anzeigen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "kompiliert, gibt dann den falschen Text aus"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>The user sees the word \"undefined\".</b>",
+        "tr": "<b>Der User sieht das Wort \"undefined\".</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The missing case needs a default.</b>",
+        "tr": "<b>Der fehlende Fall braucht einen Default.</b>"
+      },
+      "page_note": {
+        "en": "<code>?.</code> stops the crash, but the <code>undefined</code> it produces still gets printed.",
+        "tr": "<code>?.</code> verhindert den Absturz, aber das <code>undefined</code>, das es liefert, wird trotzdem ausgegeben."
+      }
+    },
+    "trap-array-holes": {
+      "summary": {
+        "en": "<code>Array(3).map(...)</code> returns three holes, because <code>map</code> skips them. Glyph has no <code>Array(n)</code>; arrays are written as literals.",
+        "tr": "<code>Array(3).map(...)</code> gibt drei Löcher zurück, weil <code>map</code> sie überspringt. Glyph hat kein <code>Array(n)</code>; Arrays werden als Literale geschrieben."
+      }
+    },
+    "trap-foreach-method-this": {
+      "summary": {
+        "en": "<code>[1, 2, 3].forEach(counter.increment)</code> runs the method without its object. Glyph has no classes and no <code>this</code>.",
+        "tr": "<code>[1, 2, 3].forEach(counter.increment)</code> führt die Methode ohne ihr Objekt aus. Glyph hat keine Klassen und kein <code>this</code>."
+      }
+    },
+    "trap-map-parseint": {
+      "summary": {
+        "en": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> is <code>[10, NaN, NaN]</code>, because <code>map</code> passes the index as the number base. Glyph has <code>number.parse</code>, which returns a <code>Result</code>.",
+        "tr": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> ergibt <code>[10, NaN, NaN]</code>, weil <code>map</code> den Index als Zahlenbasis übergibt. Glyph hat <code>number.parse</code>, das ein <code>Result</code> zurückgibt."
+      }
+    },
+    "trap-math-max-empty": {
+      "summary": {
+        "en": "<code>Math.max(...[])</code> is <code>-Infinity</code>. Glyph's <code>array.max</code> returns an <code>Option</code>, empty for an empty list.",
+        "tr": "<code>Math.max(...[])</code> ist <code>-Infinity</code>. Glyphs <code>array.max</code> gibt ein <code>Option</code> zurück, leer bei einer leeren Liste."
+      }
+    },
+    "trap-regex-lastindex": {
+      "summary": {
+        "en": "A <code>/g</code> regex reused with <code>.test</code> fails every second match, because it remembers <code>lastIndex</code>. Glyph has no regex objects; <code>regex.matches(pattern, text)</code> has no state.",
+        "tr": "Eine <code>/g</code>-Regex, die mit <code>.test</code> wiederverwendet wird, schlägt bei jedem zweiten Treffer fehl, weil sie sich <code>lastIndex</code> merkt. Glyph hat keine Regex-Objekte; <code>regex.matches(pattern, text)</code> hat keinen Zustand."
+      }
+    },
+    "trusting-find-with-bang": {
+      "page_title": {
+        "en": "Trusting <code>find</code> with <code>!</code>",
+        "tr": "<code>find</code> mit <code>!</code> vertrauen"
+      },
+      "why": {
+        "en": "Looking a record up by id.",
+        "tr": "Einen Record per ID nachschlagen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "kompiliert, stürzt dann zur Laufzeit ab"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b><code>!</code> tells the compiler \"trust me\".</b> At run time it does nothing.",
+        "tr": "<b><code>!</code> sagt dem Compiler \"vertrau mir\".</b> Zur Laufzeit tut es nichts."
+      },
+      "glyph_result": {
+        "en": "<b><code>find</code> returns an <code>Option</code>,</b> so the empty case must be handled.",
+        "tr": "<b><code>find</code> gibt ein <code>Option</code> zurück,</b> also muss der leere Fall behandelt werden."
+      },
+      "page_note": {
+        "en": "Without the <code>!</code>, <code>tsc --strict</code> refuses this line. The <code>!</code> is what switches that check off, and it does nothing at run time. Glyph has no <code>!</code>.",
+        "tr": "Ohne das <code>!</code> lehnt <code>tsc --strict</code> diese Zeile ab. Das <code>!</code> ist genau das, was diese Prüfung abschaltet, und zur Laufzeit tut es nichts. Glyph hat kein <code>!</code>."
+      }
+    },
+    "two-types-same-shape": {
+      "page_title": {
+        "en": "Two types with the same shape",
+        "tr": "Zwei Typen mit derselben Form"
+      },
+      "why": {
+        "en": "Verified and unverified email addresses.",
+        "tr": "Verifizierte und nicht verifizierte E-Mail-Adressen."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "kompiliert ohne Warnung"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>An unverified address gets the invoice.</b>",
+        "tr": "<b>Eine nicht verifizierte Adresse bekommt die Rechnung.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Two named types are different types.</b>",
+        "tr": "<b>Zwei benannte Typen sind verschiedene Typen.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript compares object types by shape, so same-shaped types are interchangeable whatever they are called.",
+        "tr": "TypeScript vergleicht Objekttypen nach ihrer Form, also sind gleich geformte Typen austauschbar, egal wie sie heißen."
+      }
+    },
+    "type-guard-that-checks-less": {
+      "page_title": {
+        "en": "A type guard that checks less than it claims",
+        "tr": "Ein Type Guard, der weniger prüft, als er behauptet"
+      },
+      "why": {
+        "en": "Validating a request body by hand.",
+        "tr": "Einen Request-Body von Hand validieren."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "kompiliert, stürzt dann zur Laufzeit ab"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "beim Eintreffen der Daten geprüft"
+      },
+      "ts_result": {
+        "en": "<b>The guard says \"User\" after checking one field.</b>",
+        "tr": "<b>Der Guard sagt \"User\", nachdem er ein einziges Feld geprüft hat.</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>User.is</code> checks every field.</b> Glyph has no hand-written guards.",
+        "tr": "<b><code>User.is</code> prüft jedes Feld.</b> Glyph hat keine handgeschriebenen Guards."
+      },
+      "page_note": {
+        "en": "TypeScript trusts a <code>x is User</code> function completely, whatever its body actually checks.",
+        "tr": "TypeScript vertraut einer <code>x is User</code>-Funktion vollständig, egal was ihr Rumpf tatsächlich prüft."
+      }
+    },
+    "typo-in-an-options-object": {
+      "page_title": {
+        "en": "A typo in an options object",
+        "tr": "Ein Tippfehler in einem Options-Objekt"
+      },
+      "why": {
+        "en": "Building the options in a variable, then passing them.",
+        "tr": "Die Optionen in einer Variablen aufbauen und dann übergeben."
+      },
+      "ts_verdict": {
+        "en": "compiles, then uses the wrong setting",
+        "tr": "kompiliert, verwendet dann die falsche Einstellung"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>The misspelled option is silently dropped.</b>",
+        "tr": "<b>Die falsch geschriebene Option wird stillschweigend verworfen.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The wrong name is an error.</b>",
+        "tr": "<b>Der falsche Name ist ein Fehler.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only checks for unknown keys on a literal written directly in the call, not on one built in a variable first.",
+        "tr": "TypeScript prüft unbekannte Schlüssel nur bei einem Literal, das direkt im Aufruf steht, nicht bei einem, das vorher in einer Variablen aufgebaut wurde."
+      }
+    },
+    "typo-nobody-sees": {
+      "page_title": {
+        "en": "A typo nobody sees",
+        "tr": "Ein Tippfehler, den niemand sieht"
+      },
+      "why": {
+        "en": "Reading a field from a response.",
+        "tr": "Ein Feld aus einer Antwort lesen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then fails at run time",
+        "tr": "kompiliert, schlägt dann zur Laufzeit fehl"
+      },
+      "glyph_verdict": {
+        "en": "refused by glyph check",
+        "tr": "von glyph check abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b><code>res.json()</code> is <code>any</code>,</b> so nothing about it is checked.",
+        "tr": "<b><code>res.json()</code> ist <code>any</code>,</b> also wird daran nichts geprüft."
+      },
+      "glyph_result": {
+        "en": "<b>There is no <code>any</code>.</b> Data nobody has checked is <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gives it a type.",
+        "tr": "<b>Es gibt kein <code>any</code>.</b> Ungeprüfte Daten sind <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gibt ihnen einen Typ."
+      },
+      "page_note": {
+        "en": "<code>any</code> switches type checking off for everything it touches, and it spreads: <code>data.usr</code> is <code>any</code> too. Glyph has no <code>any</code>. The refusal here comes from the <code>tsc</code> step that <code>glyph check</code> and <code>glyph build</code> run; Glyph's own checker does not see it yet (G381).",
+        "tr": "<code>any</code> schaltet die Typprüfung für alles ab, was es berührt, und es breitet sich aus: <code>data.usr</code> ist ebenfalls <code>any</code>. Glyph hat kein <code>any</code>. Die Ablehnung hier kommt aus dem <code>tsc</code>-Schritt, den <code>glyph check</code> und <code>glyph build</code> ausführen; Glyphs eigener Checker sieht es noch nicht (G381)."
+      }
+    },
+    "unvalidated-boundary-read": {
+      "page_title": {
+        "en": "A parsed body given a type without a check",
+        "tr": "Ein geparster Body, der ohne Prüfung einen Typ bekommt"
+      },
+      "why": {
+        "en": "Reading a request body into a typed variable.",
+        "tr": "Einen Request-Body in eine typisierte Variable lesen."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "kompiliert, läuft dann mit fehlerhaften Daten"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>The annotation is a promise nothing keeps.</b> <code>JSON.parse</code> returns <code>any</code>, so a body of any shape gets through.",
+        "tr": "<b>Die Annotation ist ein Versprechen, das nichts einhält.</b> <code>JSON.parse</code> gibt <code>any</code> zurück, also kommt ein Body jeder Form durch."
+      },
+      "glyph_result": {
+        "en": "<b><code>json.parse</code> returns a <code>Result</code> of <code>unknown</code>,</b> and that is not a <code>User</code>.",
+        "tr": "<b><code>json.parse</code> gibt ein <code>Result</code> von <code>unknown</code> zurück,</b> und das ist kein <code>User</code>."
+      },
+      "page_note": {
+        "en": "Writing <code>const user: User</code> looks like a check and is not one. In Glyph, <code>json.parse&lt;User&gt;(body)</code> checks the body and returns a <code>Result</code> to match on.",
+        "tr": "<code>const user: User</code> zu schreiben sieht wie eine Prüfung aus und ist keine. In Glyph prüft <code>json.parse&lt;User&gt;(body)</code> den Body und gibt ein <code>Result</code> zurück, auf das du matchst."
+      }
+    },
+    "unverifiable-parse": {
+      "page_title": {
+        "en": "A validator that cannot check what it claims",
+        "tr": "Ein Validator, der nicht prüfen kann, was er behauptet"
+      },
+      "why": {
+        "en": "A record holding a socket, checked by a hand-written guard.",
+        "tr": "Ein Record mit einem Socket, geprüft von einem handgeschriebenen Guard."
+      },
+      "ts_verdict": {
+        "en": "compiles, then accepts a string as a socket",
+        "tr": "kompiliert, akzeptiert dann einen String als Socket"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "beim Build abgelehnt"
+      },
+      "ts_result": {
+        "en": "<b>The guard says <code>Conn</code> after checking that <code>sock</code> exists.</b> A string passes as a socket.",
+        "tr": "<b>Der Guard sagt <code>Conn</code>, nachdem er geprüft hat, dass <code>sock</code> existiert.</b> Ein String geht als Socket durch."
+      },
+      "glyph_result": {
+        "en": "<b>A socket has no runtime check,</b> so Glyph refuses <code>Conn.parse</code> instead of generating a check that cannot hold.",
+        "tr": "<b>Für einen Socket gibt es keine Laufzeitprüfung,</b> also lehnt Glyph <code>Conn.parse</code> ab, statt eine Prüfung zu generieren, die nicht halten kann."
+      },
+      "page_note": {
+        "en": "Split the wire type from the domain type: parse the fields that can be checked, then build the record around the socket.",
+        "tr": "Trenne den Wire-Typ vom Domänentyp: Parse die Felder, die sich prüfen lassen, und baue dann den Record um den Socket herum."
+      }
+    },
+    "value-outside-the-list": {
+      "page_title": {
+        "en": "A value outside the list",
+        "tr": "Ein Wert außerhalb der Liste"
+      },
+      "why": {
+        "en": "An API starts sending a status your code has never seen.",
+        "tr": "Eine API schickt plötzlich einen Status, den dein Code noch nie gesehen hat."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "kompiliert, läuft dann mit fehlerhaften Daten"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "beim Eintreffen der Daten geprüft"
+      },
+      "ts_result": {
+        "en": "<b><code>\"deleted\"</code> is treated as one of the two.</b> Every check on <code>status</code> is now wrong.",
+        "tr": "<b><code>\"deleted\"</code> wird als einer der beiden behandelt.</b> Jede Prüfung auf <code>status</code> ist jetzt falsch."
+      },
+      "glyph_result": {
+        "en": "<b>Only the listed values get through.</b>",
+        "tr": "<b>Nur die aufgeführten Werte kommen durch.</b>"
+      },
+      "page_note": {
+        "en": "In TypeScript a union like <code>\"active\" | \"banned\"</code> exists only while compiling. At run time nothing stops a third value. Glyph checks it when the data comes in.",
+        "tr": "In TypeScript existiert eine Union wie <code>\"active\" | \"banned\"</code> nur beim Kompilieren. Zur Laufzeit hält nichts einen dritten Wert auf. Glyph prüft ihn, wenn die Daten hereinkommen."
+      }
+    }
+  }
+}

@@ -1,0 +1,230 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/generated-docs/index.html",
+  "locale": "de",
+  "source_hash": "31b76a81a51f0211",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Is the documentation my agent reads generated? · Glyph",
+      "tr": "Wird die Dokumentation, die mein Agent liest, generiert? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph llms --json emits the diagnostics, the prelude, the stdlib signatures and the language decisions from the compiler's own tables, so they cannot drift.",
+      "tr": "glyph llms --json gibt die Diagnosen, das Prelude, die Stdlib-Signaturen und die Sprachentscheidungen aus den eigenen Tabellen des Compilers aus, also können sie nicht veralten."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Zurück"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "Wenn der Build fehlschlägt, sagt der Compiler meinem Agenten, wie er es behebt?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Weiter &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "Wie sieht es mit Editor, Debugging und Fehlermeldungen aus?"
+    },
+    {
+      "id": "h-594c6826",
+      "kind": "html",
+      "en": "24 &middot; Docs that can't drift",
+      "tr": "24 &middot; Doku, die nicht veraltet"
+    },
+    {
+      "id": "h-bbccff1f",
+      "kind": "html",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "Ist die Dokumentation, die mein Agent liest, generiert oder von Hand geschrieben und veraltet?"
+    },
+    {
+      "id": "h-c50aeece",
+      "kind": "html",
+      "en": "Generated. <code>glyph llms --json</code> emits the diagnostic catalogue, the prelude, the stdlib signatures, the language decisions and the tool manual out of the compiler's own tables, and a gate fails the build when a hand-written copy disagrees. Every Glyph example in the document an agent bootstraps from is compiled, including the wrong ones.",
+      "tr": "Generiert. <code>glyph llms --json</code> gibt den Diagnosekatalog, das Prelude, die Stdlib-Signaturen, die Sprachentscheidungen und das Tool-Handbuch aus den eigenen Tabellen des Compilers aus, und ein Gate lässt den Build fehlschlagen, wenn eine handgeschriebene Kopie abweicht. Jedes Glyph-Beispiel in dem Dokument, mit dem ein Agent einsteigt, wird kompiliert, auch die falschen."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Warum das wichtig ist"
+    },
+    {
+      "id": "h-c74ff5a4",
+      "kind": "html",
+      "en": "The question is not rhetorical, because the honest answer used to be \"written by hand, and yes.\" The agent bootstrap said the MCP server \"exposes five tools\" and listed five. The server served seven. The two the server's own instructions tell an agent to reach for first appeared in it zero times. The 58 error codes lived in three hand-maintained copies, checked only for whether the code string was present. Of 19 Glyph examples in that document, 2 were compiled and 17 were skipped as fragments.",
+      "tr": "Die Frage ist nicht rhetorisch, denn die ehrliche Antwort lautete früher \"von Hand geschrieben, und ja\". Das Einstiegsdokument für Agenten sagte, der MCP-Server \"stellt fünf Tools bereit\", und listete fünf. Der Server stellte sieben bereit. Die zwei, zu denen die eigenen Anweisungen des Servers einem Agenten zuerst raten, kamen darin kein einziges Mal vor. Die 58 Fehlercodes lebten in drei von Hand gepflegten Kopien, nur daraufhin geprüft, ob der Code-String vorhanden war. Von 19 Glyph-Beispielen in diesem Dokument wurden 2 kompiliert und 17 als Fragmente übersprungen."
+    },
+    {
+      "id": "h-b65fc913",
+      "kind": "html",
+      "en": "Every one of those is the same defect. A document about a compiler, maintained beside the compiler, by people who meant well. An agent that reads it cannot tell which sentences are still true, and neither could we.",
+      "tr": "Jedes davon ist derselbe Mangel. Ein Dokument über einen Compiler, neben dem Compiler gepflegt, von Leuten, die es gut meinten. Ein Agent, der es liest, kann nicht erkennen, welche Sätze noch stimmen, und wir konnten es auch nicht."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "So sieht es aus"
+    },
+    {
+      "id": "h-b81e3a56",
+      "kind": "html",
+      "en": "Seven sections, each read off a table the compiler already has. A diagnostic entry carries the catalogue sentence, the one-line fix, the long explanation, and the help and note taken from a diagnostic the compiler drew. 51 of the 77 codes also carry a wrong program that draws the code, compiled at the moment you ask; the other 26 say the corpus has no case for it.",
+      "tr": "Sieben Abschnitte, jeder aus einer Tabelle gelesen, die der Compiler schon hat. Ein Diagnoseeintrag enthält den Satz aus dem Katalog, den einzeiligen Fix, die ausführliche Erklärung und die Hilfe und den Hinweis aus einer Diagnose, die der Compiler ausgelöst hat. 51 der 77 Codes enthalten außerdem ein fehlerhaftes Programm, das den Code auslöst, kompiliert in dem Moment, in dem du fragst; die anderen 26 sagen, dass der Korpus keinen Fall dafür hat."
+    },
+    {
+      "id": "h-25ad2c9c",
+      "kind": "html",
+      "en": "glyph llms --json, the E0200 entry (trimmed)",
+      "tr": "glyph llms --json, der Eintrag E0200 (gekürzt)"
+    },
+    {
+      "id": "h-3b207613",
+      "kind": "html",
+      "en": "77 codes come out of one table in the compiler, and <code>docs/error-codes.md</code> and the catalogue table in the agent bootstrap are written from it by a script that fails on drift. Merging the three copies that used to exist turned up a code with an explanation and no place in the list, and a row whose escaped pipe had quietly broken the table it sat in.",
+      "tr": "77 Codes kommen aus einer Tabelle im Compiler, und <code>docs/error-codes.md</code> und die Katalogtabelle im Einstiegsdokument werden daraus von einem Skript geschrieben, das bei Abweichungen fehlschlägt. Beim Zusammenführen der drei Kopien, die es früher gab, tauchten ein Code mit Erklärung, aber ohne Platz in der Liste, und eine Zeile auf, deren escapte Pipe stillschweigend die Tabelle kaputtgemacht hatte, in der sie stand."
+    },
+    {
+      "id": "h-7e62b4b3",
+      "kind": "html",
+      "en": "The prelude, the stdlib, and the decisions",
+      "tr": "Das Prelude, die Stdlib und die Entscheidungen"
+    },
+    {
+      "id": "h-527db667",
+      "kind": "html",
+      "en": "The prelude is the 24 names the resolver resolves against, with what each one is. The stdlib is 40 modules and 340 exports, and each signature is read out of the checker's own tables and printed by the same type printer a diagnostic uses, so the signature in the document is the signature the checker will hold you to. The exports split three ways and never two: 129 signatures are modeled in every position, 46 carry a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code> with a line saying how many positions are left, and 165 have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is never published as a complete signature.",
+      "tr": "Das Prelude sind die 24 Namen, gegen die der Resolver auflöst, mit dem, was jeder davon ist. Die Stdlib sind 40 Module und 340 Exports, und jede Signatur wird aus den eigenen Tabellen des Checkers gelesen und vom selben Typ-Printer ausgegeben, den eine Diagnose verwendet, also ist die Signatur im Dokument die Signatur, an die dich der Checker hält. Die Exports teilen sich in drei Gruppen und nie in zwei: 129 Signaturen sind an jeder Position modelliert, 46 haben ein <code>?</code>, wo ein Parametertyp hingehört, und werden als <code>partially_modeled</code> gezählt, mit einer Zeile, die sagt, wie viele Positionen noch offen sind, und 165 haben überhaupt keine Signatur. Ein <code>?</code> ist gerendertes <code>unknown</code>, also wird es nie als vollständige Signatur veröffentlicht."
+    },
+    {
+      "id": "h-1016682f",
+      "kind": "html",
+      "en": "\"stdlib\"",
+      "tr": "\"stdlib\""
+    },
+    {
+      "id": "h-7b998f67",
+      "kind": "html",
+      "en": "\"prelude\" and \"decisions\"",
+      "tr": "\"prelude\" und \"decisions\""
+    },
+    {
+      "id": "h-d02a769f",
+      "kind": "html",
+      "en": "<code>duplicate_numbers</code> is there because the generator reads the spec's own list, and the first time it ran it found two different decisions both numbered D43 and printed <code>\"duplicate_numbers\": [43]</code>. It reports a collision rather than deduplicating it, which is how anyone found out. Nothing in the compiler keys on a D number, so no program was affected; a reader following a citation was. That one is fixed: D43 is the <code>mut</code>-across-<code>await</code> rule and <code>never</code> is D47, so the list comes back empty. There are 49 decisions today, D1 to D49.",
+      "tr": "<code>duplicate_numbers</code> gibt es, weil der Generator die eigene Liste der Spezifikation liest, und beim ersten Lauf fand er zwei verschiedene Entscheidungen, beide als D43 nummeriert, und gab <code>\"duplicate_numbers\": [43]</code> aus. Er meldet eine Kollision, statt sie zu bereinigen, und nur so hat es überhaupt jemand bemerkt. Nichts im Compiler hängt an einer D-Nummer, also war kein Programm betroffen; ein Leser, der einem Verweis folgte, schon. Das ist behoben: D43 ist die Regel zu <code>mut</code> über <code>await</code> hinweg und <code>never</code> ist D47, also kommt die Liste leer zurück. Heute gibt es 49 Entscheidungen, D1 bis D49."
+    },
+    {
+      "id": "h-8539cac7",
+      "kind": "html",
+      "en": "The wrong programs are readable too",
+      "tr": "Auch die fehlerhaften Programme lassen sich lesen"
+    },
+    {
+      "id": "h-b2d0bb7d",
+      "kind": "html",
+      "en": "The compiler's negative corpus is a set of programs that must fail, with the code each one must draw. It used to be visible only to <code>cargo test</code>. An agent learning what a rule refuses is exactly the reader it was written for, so it answers now, and each case is compiled when you ask so the diagnostic beside it is this compiler's.",
+      "tr": "Der Negativ-Korpus des Compilers ist eine Menge von Programmen, die fehlschlagen müssen, mit dem Code, den jedes auslösen muss. Früher war er nur für <code>cargo test</code> sichtbar. Ein Agent, der lernt, was eine Regel ablehnt, ist genau der Leser, für den er geschrieben wurde, also antwortet er jetzt, und jeder Fall wird kompiliert, wenn du fragst, damit die Diagnose daneben die dieses Compilers ist."
+    },
+    {
+      "id": "h-eb5a2b6c",
+      "kind": "html",
+      "en": "glyph llms --negative E0008",
+      "tr": "glyph llms --negative E0008"
+    },
+    {
+      "id": "h-0eeb8564",
+      "kind": "html",
+      "en": "With no code it lists 117 cases over 53 of the 77 codes in 0.1.149, and names the 24 that have none rather than leaving you to infer coverage from what came back. A second corpus, <code>catches/</code>, pairs a program <code>tsc --strict</code> accepts with the Glyph that refuses it, and those come back on the same answer where they exist. Both are embedded from the directories themselves, so a case added to either is in the answer with no second edit to remember.",
+      "tr": "Ohne Code listet es in 0.1.149 117 Fälle über 53 der 77 Codes und nennt die 24, die keinen haben, statt dich die Abdeckung aus dem ableiten zu lassen, was zurückkam. Ein zweiter Korpus, <code>catches/</code>, paart ein Programm, das <code>tsc --strict</code> akzeptiert, mit dem Glyph, das es ablehnt, und wo es solche gibt, kommen sie in derselben Antwort zurück. Beide sind direkt aus den Verzeichnissen eingebettet, also ist ein Fall, der zu einem davon hinzukommt, in der Antwort, ohne dass man an eine zweite Änderung denken muss."
+    },
+    {
+      "id": "h-94746f75",
+      "kind": "html",
+      "en": "Every example compiles, including the wrong ones",
+      "tr": "Jedes Beispiel kompiliert, auch die falschen"
+    },
+    {
+      "id": "h-31753a2c",
+      "kind": "html",
+      "en": "Generating the reference is half of it. The other half is the prose an agent bootstraps from, where the examples are the part it copies. Every Glyph fence in that document is either a complete program that compiles, or is marked as a fragment of a named complete example whose lines it has to appear in. It was 19 fences with 2 compiled; it is 24 with 20 compiled and 4 marked, and none skipped. The stdlib reference went from 4 of 8 to 8 of 8.",
+      "tr": "Die Referenz zu generieren ist die eine Hälfte. Die andere Hälfte ist der Fließtext, mit dem ein Agent einsteigt, in dem die Beispiele der Teil sind, den er kopiert. Jeder Glyph-Codeblock in diesem Dokument ist entweder ein vollständiges Programm, das kompiliert, oder als Fragment eines benannten vollständigen Beispiels markiert, in dessen Zeilen es vorkommen muss. Es waren 19 Codeblöcke, davon 2 kompiliert; jetzt sind es 24, davon 20 kompiliert und 4 markiert, und keiner übersprungen. Die Stdlib-Referenz ging von 4 von 8 auf 8 von 8."
+    },
+    {
+      "id": "h-d4615d6d",
+      "kind": "html",
+      "en": "A fence can also be marked as a program that must fail, naming the code it draws, which is how the document carries the five wrong forms it warns you about: the one that draws <code>E0228</code>, the one that draws <code>E0008</code>, and three more. A warning paired with the diagnostic is checkable. A warning written in prose is a promise.",
+      "tr": "Ein Codeblock kann auch als Programm markiert werden, das fehlschlagen muss, mit dem Code, den es auslöst, und so enthält das Dokument die fünf falschen Formen, vor denen es dich warnt: die, die <code>E0228</code> auslöst, die, die <code>E0008</code> auslöst, und drei weitere. Eine Warnung, die mit der Diagnose gepaart ist, lässt sich prüfen. Eine Warnung im Fließtext ist ein Versprechen."
+    },
+    {
+      "id": "h-10fd6248",
+      "kind": "html",
+      "en": "Compiling the documents found two things reading them was never going to find. An inline triple backtick had read as a fence opener, so 250 lines counted as one snippet and nothing inside them was checked. And a worked server in the stdlib reference called <code>http.serve</code>, which <code>std/http</code> does not export. The function is <code>listen</code>.",
+      "tr": "Das Kompilieren der Dokumente fand zwei Dinge, die beim Lesen nie aufgefallen wären. Ein inline geschriebenes dreifaches Backtick war als Beginn eines Codeblocks gelesen worden, also zählten 250 Zeilen als ein einziger Schnipsel, und nichts darin wurde geprüft. Und ein durchgearbeiteter Server in der Stdlib-Referenz rief <code>http.serve</code> auf, das <code>std/http</code> nicht exportiert. Die Funktion heißt <code>listen</code>."
+    },
+    {
+      "id": "h-f2abc397",
+      "kind": "html",
+      "en": "What it costs to hand over, and what it stopped costing",
+      "tr": "Was die Übergabe kostet, und was sie nicht mehr kostet"
+    },
+    {
+      "id": "h-2dc5770c",
+      "kind": "html",
+      "en": "The eleven MCP tools used to carry their whole manual in the <code>tools/list</code> reply, which every session pays for on connect: 31,446 bytes of description in a 45,509-byte reply. The same eleven tools carry 8,627 in a 20,386-byte reply now. Nothing was deleted. The previous text is held verbatim, keyed by tool name, and published inside <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away instead of in every session's first reply. A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a count that disagrees with the list, fails the build. That is the check \"exposes five tools\" needed.",
+      "tr": "Die elf MCP-Tools trugen früher ihr ganzes Handbuch in der Antwort auf <code>tools/list</code>, die jede Session beim Verbinden bezahlt: 31.446 Bytes Beschreibung in einer Antwort von 45.509 Bytes. Dieselben elf Tools tragen jetzt 8.627 in einer Antwort von 20.386 Bytes. Nichts wurde gelöscht. Der bisherige Text wird wörtlich aufbewahrt, nach Toolnamen geordnet, und in <code>glyph llms --json</code> veröffentlicht, also steht der Vertrag, den du im Moment des Aufrufs brauchst, in der Beschreibung, und der Rest ist einen Befehl entfernt statt in der ersten Antwort jeder Session. Ein Test liest die Toolliste und das Dokument zusammen, also lässt ein Dokument, das ein Tool nennt, das der Server nicht anbietet, oder eine Zahl, die nicht zur Liste passt, den Build fehlschlagen. Genau diese Prüfung hätte \"stellt fünf Tools bereit\" gebraucht."
+    },
+    {
+      "id": "h-ebc0730a",
+      "kind": "html",
+      "en": "All of this is offline and local. <code>glyph llms</code> prints the prose, <code>glyph llms --json</code> the data, <code>glyph llms --negative</code> the wrong programs. The same prose is served at <a href=\"/llms.txt\">llms.txt</a> for an agent with a network and no binary. What an agent asks about <em>your</em> code, rather than about the language, is the <a href=\"/answers/ask-the-compiler/\">query tools</a>.",
+      "tr": "All das ist offline und lokal. <code>glyph llms</code> gibt den Fließtext aus, <code>glyph llms --json</code> die Daten, <code>glyph llms --negative</code> die fehlerhaften Programme. Derselbe Fließtext wird unter <a href=\"/llms.txt\">llms.txt</a> für einen Agenten mit Netzwerk und ohne Binary ausgeliefert. Was ein Agent über <em>deinen</em> Code fragt statt über die Sprache, beantworten die <a href=\"/answers/ask-the-compiler/\">Abfrage-Tools</a>."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Wo es steht"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Heute verfügbar"
+    },
+    {
+      "id": "h-ef7b0c9f",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler: 77 diagnostic codes, 51 of them with a compiled counter-example, the 32 reserved words, the 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.",
+      "tr": "<code>glyph llms --json</code> gibt sieben Abschnitte aus dem Compiler aus: 77 Diagnosecodes, 51 davon mit einem kompilierten Gegenbeispiel, die 32 reservierten Wörter, die 24 Prelude-Namen, 40 Stdlib-Module mit 340 Exports, 49 aus der Spezifikation geparste Sprachentscheidungen und die elf Tools mit ihren Verben von <code>glyph query</code> und vollständigen Handbüchern. <code>docs/error-codes.md</code> und die Diagnosetabelle des Einstiegsdokuments werden aus der eigenen Code-Tabelle des Compilers von einem Skript geschrieben, das bei Abweichungen fehlschlägt und <code>llms.txt</code> gleich mit spiegelt. Ein Test hält den Tool-Katalog an das, was der Server anbietet. Jeder Glyph-Codeblock im Einstiegsdokument und in der Stdlib-Referenz kompiliert oder ist ein markiertes Fragment eines Blocks, der kompiliert, und fünf falsche Formen sind Programme, die mit dem Code gepaart sind, den jedes auslöst. <code>glyph llms --negative</code> antwortet aus denselben Korpora, die <code>cargo test</code> ausführt."
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "Wo es aufhört"
+    },
+    {
+      "id": "h-5c7219d3",
+      "kind": "html",
+      "en": "Two counts of the wrong programs appear in this document and they count different things: 51 of the 77 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 117 cases over 53 codes in 0.1.149 because it reads the refusals in <code>catches/</code> as well; the next release adds the 22 refusals added to <code>catches/</code> since, for 139 cases over 55 codes. In 0.1.149, 24 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 165 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 175 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.",
+      "tr": "In diesem Dokument erscheinen zwei Zählungen der fehlerhaften Programme, und sie zählen verschiedene Dinge: 51 der 77 Codes haben ein Gegenbeispiel aus <code>tests/negative/</code>, und <code>glyph llms --negative</code> listet in 0.1.149 117 Fälle über 53 Codes, weil es auch die Ablehnungen in <code>catches/</code> liest; das nächste Release ergänzt die 22 Ablehnungen, die seitdem zu <code>catches/</code> hinzugekommen sind, auf 139 Fälle über 55 Codes. In 0.1.149 haben 24 Codes in keinem der beiden Korpora ein fehlerhaftes Programm, und die Antwort nennt sie, statt eins zu erfinden. 165 der 340 Stdlib-Exports kommen ohne Signatur zurück: Die Implementierung ist TypeScript, das <code>tsc</code> prüft, und die eigenen Tabellen des Compilers modellieren nichts dafür, also meldet <code>glyph_symbol</code> auf <code>std/result::all</code> oder <code>std/io::println</code> <code>kind: null</code> mit diesem Grund. Von den 175, die eine haben, tragen 46 noch ein <code>?</code>, wo ein Parametertyp hingehört. Und das Dokument ist ein Schnappschuss, den du abrufst, kein Dienst: Es gibt keine Retrieval-Schicht, keine Embeddings und keine Chat-Oberfläche darüber."
+    }
+  ]
+}

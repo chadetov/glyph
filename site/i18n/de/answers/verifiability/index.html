@@ -1,0 +1,634 @@
+---
+title: Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen? · Glyph
+description: Änderungen, die in TypeScript kompilieren und dann kaputtgehen, wie ein fehlender Fall, ein unbehandelter Fehler oder ein umbenanntes Feld, sind in Glyph Compile-Fehler, die der Agent beheben muss.
+source_hash: debac5501878fd3d
+next: /answers/diff-stability/ | Weiter &rarr; | Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?
+---
+      <p class="q-eyebrow">01 &middot; Das Kernversprechen</p>
+      <h1 class="q-title">Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?</h1>
+
+      <p class="short-answer">
+        Eine ganze Klasse von Änderungen, die in TypeScript <strong>still kompilieren</strong> (ein fehlender Fall, ein unbehandelter Fehler, ein umbenanntes Feld), wird zu einem <strong>Compile-Fehler, den der Agent beheben muss, bevor er ausliefern kann</strong>.
+      </p>
+
+      <figure class="ak-hero" id="see-it">
+        <div class="ak-compare">
+          <div class="ak-pane bad">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.ts</span> ein neuer Zustand, keine andere Änderung <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg> tsc --strict: besteht, gibt undefined aus</span></span>
+<pre>type Status =
+  | { tag: "Loading" }
+  | { tag: "Ready" }
+  | { tag: "Failed"; msg: string }
+<span class="add">  | { tag: "Cancelled" };</span>
+
+function label(s: Status) {
+  switch (s.tag) {
+    case "Loading": return "…";
+    case "Ready": return "done";
+    case "Failed": return s.msg;
+  }
+}</pre>
+            </div>
+          </div>
+          <div class="ak-pane good">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.glyph</span> eine neue Variante, und der Compiler findet jede Lücke <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 8.4l3 3 6-6.6"/></svg> abgelehnt: E0200</span></span>
+<pre><span class="dim">type Status = Loading | Ready | Failed(string)<span class="cm">   // + Cancelled</span></span>
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Loading =&gt; "…",
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+<span class="add">    // no arm for Cancelled ⇒ this match no longer compiles</span>
+  }
+}</pre>
+            </div>
+            <div class="code term">
+              <span class="cap">glyph check --no-tsc, 0.1.149 (Auszug)</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Cancelled`</span>
+    ╭─[ status:6:10 ]
+  6 │ ╭─▶   return match s {
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Status`: missing variants `Cancelled`
+    │     Help: Add an arm for each missing variant.</pre>
+            </div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Füg einer Union einen Zustand hinzu, und jede Stelle, die die alte Menge behandelt hat, kompiliert nicht mehr und zeigt auf genau die Stelle, die aktualisiert werden muss. Der entsprechende TypeScript-<code>switch</code> kompiliert sauber und gibt zur Laufzeit <code>undefined</code> zurück.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#why-it-matters">Warum das wichtig ist</a></li>
+          <li><a href="#errors">Fehler</a></li>
+          <li><a href="#typos">Tippfehler in Armen</a></li>
+          <li><a href="#imports">Über Module hinweg</a></li>
+          <li><a href="#refinements">Verfeinerungen</a></li>
+          <li><a href="#examples">Tests im Build</a></li>
+          <li><a href="#four-more-found-by-building-with-it">Beim Bauen gefunden</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Agenten machen Code meistens nicht laut kaputt. Sie machen ihn <strong>selbstsicher</strong> kaputt: Sie fügen einen Zustand hinzu, lassen einen Zweig weg oder benennen ein Feld um, alles besteht weiterhin die Typprüfung, und der Bug taucht in Produktion auf.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Die teuren Fehlschläge sind die, die <em>kompiliert haben und falsch waren</em>. Glyph schließt diese Lücke, indem es aus &ldquo;du hast das wahrscheinlich behandelt&rdquo; ein &ldquo;der Compiler hat bewiesen, dass du es behandelt hast&rdquo; macht.</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Abgeschlossene Unions</b>Tagged Unions sind <strong>abgeschlossen</strong>, also muss <code>match</code> jeden Fall abdecken.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>Fehler als Werte</b>Fehler sind <strong>Werte</strong>, die du auspacken musst, keine Exceptions, die verschwinden.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Geprüfte Grenzen</b>Und jeder Typ trägt einen Laufzeit-Deskriptor, also werden Daten, die eine Grenze überqueren, gegen ihre Form geprüft.</li>
+      </ul>
+
+      <h2 class="ak-h" id="errors">Ein verworfener Fehler ist eine Warnung<a class="ak-anchor" href="#errors" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Dasselbe gilt für Fehler: Eine Funktion, die <code>Result&lt;T, E&gt;</code> zurückgibt, soll mit <code>match</code> behandelt oder mit <code>?</code> weitergereicht werden (und der Compiler prüft, dass der Fehlertyp passt). Und wenn du ein <code>Result</code> einfach <em>fallen lässt</em> (es als Anweisung aufrufst und ignorierst, was es zurückgegeben hat), warnt Glyph dich (<code>E0217</code>), weil ein verworfener Fehler ein verschluckter Fehlschlag ist.
+      </p>
+      <div class="code term wraps">
+        <span class="cap">glyph check --no-tsc, 0.1.149 (Auszug)</span>
+<pre><span class="p">13 │</span>   save("a")
+<span class="del">[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored</span>
+    │ Help: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional.</pre>
+      </div>
+      <p class="ak-lede">Du bringst die Warnung bewusst mit <code>let _ = ...</code> zum Schweigen, nie versehentlich.</p>
+
+      <h2 class="ak-h" id="stdlib">Auch die Unions der Standardbibliothek sind abgeschlossen<a class="ak-anchor" href="#stdlib" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Für eine Union, die der Standardbibliothek gehört, gilt derselbe Maßstab. <code>fs.ErrorKind</code> ist eine abgeschlossene Menge von sechs Arten, und der Checker kennt ihre Form, also braucht <code>match e.kind</code> auf einem Dateisystemfehler keinen <code>else</code>-Arm und schlägt mit <code>E0200</code> fehl, wenn du eine Art weglässt.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200 fehlende Art</span><span class="chip code">E0210 unbekanntes Feld</span><span class="chip code">E0218 braucht else</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">Tippfehler in Feldern, Rückgabetypen, matches über number und string</span></summary><div class="body">
+        <p>
+          <code>e.mesage</code> ist <code>E0210</code> statt etwas, das <code>tsc</code> weiter hinten findet. Auch Rückgabetypen reisen mit: <code>string.split(text, ",")</code> ist ein <code>Array&lt;string&gt;</code>, also bindet <code>for i, part in string.split(text, ",")</code> <code>i</code> als Zahl statt als String-Schlüssel, den du bei einem untypisierten Iterierten bekämst.
+        </p>
+        <p>
+          Erschöpfendheit gilt nicht nur für Unions. Ein <code>match</code> über einer <code>number</code> oder einem <code>string</code> mit reinen Literal-Armen kann einen unbegrenzten Wertebereich nicht abdecken, also verlangt Glyph ein <code>else</code> (<code>E0218</code>), statt den nicht abgedeckten Wert zu einem Wurf zur Laufzeit durchfallen zu lassen.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Die Regel ist überall dieselbe: Ein <code>match</code>, das einen Fall nicht berücksichtigt, kompiliert nicht.</p></div>
+
+      <h2 class="ak-h" id="typos">Ein falsch geschriebener Arm ist eine Lücke, kein Catch-all<a class="ak-anchor" href="#typos" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Auch ein Tippfehler kann eine Lücke nicht still überdecken. Ein großgeschriebener Arm-Kopf ist eine <strong>Referenz auf eine Variante</strong>, kein neues Binding.
+      </p>
+      <div class="code">
+        <span class="cap">status.glyph: Ein falsch geschriebener Arm ist eine Lücke, kein Catch-all</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+<span class="del">    Loadign =&gt; "…",        // typo for Loading, read as a variant, not a binding</span>
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+  }
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0220] `Loadign` is not a variant of `Status`; did you mean `Loading`?</span>
+   ╰─ a lowercase name would be a binding; a PascalCase name is read as a variant
+<span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Loading`</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">was älteres Glyph mit dem Tippfehler gemacht hat</span></summary><div class="body">
+        <p>
+          Ein großgeschriebener Arm-Kopf ist eine <strong>Referenz auf eine Variante</strong>, kein neues Binding, also las älteres Glyph, wenn du <code>Loading</code> als <code>Loadign</code> falsch schriebst, den Tippfehler als Catch-all, der jeden Wert band und das match vollständig aussehen ließ. Jetzt muss der Kopf eine echte Variante der Union nennen, über die du matchst. Wenn er das nicht tut, bricht der Build mit <code>E0220</code> ab und zeigt auf den nächstliegenden echten Namen, und die Variante, die du tatsächlich übersprungen hast, erscheint weiterhin als <code>E0200</code> direkt daneben.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="payload">Varianten innerhalb eines Payloads<a class="ak-anchor" href="#payload" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Diese Lesart gilt auch eine Ebene tiefer, wo die Variante der Payload einer anderen ist. Der Arm verzweigt jetzt über den eigenen Tag des Payloads, egal welche äußere Variante es ist.
+      </p>
+      <div class="code">
+        <span class="cap">repl.glyph: Der innere Arm testet den Payload, er bindet ihn nicht</span>
+<pre>fn step(z: Zipper, line: string) -&gt; Zipper {
+  return match parse_command(line) {
+    Err(Blank) =&gt; z,                          // a comment or an empty line
+    Err(e) =&gt; { io.println(explain(e)) z },   // every other parse error
+    Ok(command) =&gt; execute(z, command),
+  }
+}</pre>
+      </div>
+      <div class="ak-chips"><span class="chip code">E0305 doppeltes case-Label</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">der tote Arm vor 0.1.93 und der E0305-Schutz</span></summary><div class="body">
+        <p>
+          <code>Err(Blank)</code> neben <code>Err(e)</code> liest sich als "eine leere Zeile ignorieren, jeden anderen Parse-Fehler ausgeben", und bis 0.1.93 wurde es zu zwei <code>case "Err":</code>-Labels auf dem äußeren Tag kompiliert, deren erstes den ganzen Payload unter dem Namen <code>Blank</code> band. Jeder Fehler nahm den ersten Arm, der zweite war toter Code, und nichts sagte das: Glyph meldete keine Diagnosen, und <code>tsc --strict</code> akzeptiert ein doppeltes case-Label. Der Arm verzweigt jetzt über den eigenen Tag des Payloads, egal welche äußere Variante es ist, und der Compiler liest den Namen so, wie es der Typchecker tut: Die eigene Variantenliste der Payload-Union entscheidet, und nur wenn diese Liste nicht erreichbar ist, entscheidet die Form des Namens. Bei einer Union, die in derselben Datei deklariert ist, spielt die Großschreibung keine Rolle mehr. Bei einer aus einem anderen Modul importierten ist die Variantenliste heute nicht erreichbar, also verzweigt eine großgeschriebene Variante, und eine kleingeschriebene stoppt den Build.
+        </p>
+        <p>
+          Er stoppt, weil der switch jetzt geschützt ist. Zwei Arme, die dasselbe <code>case</code>-Label schreiben würden, sind <code>E0305</code>, kein switch, dessen zweites Label nie laufen kann. Das macht die Klasse laut statt still: Eine Übersetzung, die zweimal zum selben Tag greift, lässt den Build scheitern, statt zur Laufzeit den falschen Arm zu wählen.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="imports">Die Import-Schreibweise schaltet die Prüfung nie ab<a class="ak-anchor" href="#imports" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Wie die Union in den Scope gekommen ist, ändert nichts daran. Glyph lässt dich einen Varianten-Arm auf zwei Arten schreiben, und beide werden gleich geprüft: <code>import model { Cond, Yes, No }</code> mit bloßen Armen oder <code>import model</code> (oder <code>import model as m</code>) mit <code>model.Yes(_)</code>.
+      </p>
+      <div class="code">
+        <span class="cap">interp.glyph: Die Importliste ist weg, das match wird weiterhin geprüft</span>
+<pre><span class="del">import model { Action, All, Any, AtLeast, Clear, Condition, Context, Counter,</span>
+<span class="del">               Equals, Flag, FlagSet, Increment, Not, Set, Slot, Text }</span>
+import model
+import std/result
+
+pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;bool, SlotError&gt; {
+  return match c {
+    model.Equals({ key, value }) =&gt; result.Ok(read_text(ctx, key, "equals")? == value),
+    model.AtLeast({ key, least }) =&gt; result.Ok(read_count(ctx, key, "at-least")? &gt;= least),
+    model.FlagSet({ key }) =&gt; result.Ok(read_flag(ctx, key, "flag-set")?),
+    model.All({ of }) =&gt; all_of(ctx, of),
+    model.Any({ of }) =&gt; any_of(ctx, of),
+    model.Not({ of }) =&gt; result.Ok(!(evaluate(ctx, of)?)),
+  }
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build, nach dem Löschen des letzten Arms</span>
+<pre><span class="del">[E0200] non-exhaustive match on `Condition`: missing variants Not</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">Unions der Standardbibliothek, String-Enums und warum es die Liste gab</span></summary><div class="body">
+        <p>
+          Das gilt auch für die Unions der Standardbibliothek, also ist <code>match o { option.Some(s) =&gt; … }</code> auf einem <code>option.Option&lt;string&gt;</code> <code>E0200</code> für das fehlende <code>None</code>, genau wie die bloße Schreibweise <code>Some</code>/<code>None</code>. Bis 0.1.56 übersprang die qualifizierte Schreibweise die Prüfung ganz, und der Build meldete keine Diagnosen für ein match, das zur Laufzeit warf.
+        </p>
+        <p>
+          Auch ein String-Enum überquert die Grenze. <code>type ColType = "text" | "int" | "real" | "bool"</code>, deklariert in <code>catalog.glyph</code> und in ein anderes Modul importiert, behält seine vier Werte, also kompiliert ein match, das alle vier abdeckt, ohne <code>else</code>, und einen wegzulassen ist <code>E0200</code> mit dem weggelassenen Wert. Bis 0.1.57 war es <code>E0218</code>, mit einem Hilfetext, der sagte, du sollst einen <code>else</code>-Arm hinzufügen. Diese Hilfe lag beim vorliegenden Code falsch, und ihr zu folgen machte aus einem Compile-Fehler ein Durchfallen zur Laufzeit. Alle drei Import-Schreibweisen funktionieren: <code>import catalog { ColType }</code>, <code>import catalog</code> mit <code>catalog.ColType</code> und <code>import catalog as c</code> mit <code>c.ColType</code>.
+        </p>
+        <p>
+          Aus dieser Importliste stammt das Ganze. Sie wurde in jedem Modul einer Statechart-Engine von Hand geschrieben, mit einem Kommentar darüber, der sagte, dass die Konstruktoren einer Union nicht mit ihrem Typ mitkommen. Der Kommentar lag bei der Syntax richtig und beim Grund falsch: Die Liste war da, weil die kürzere Schreibweise die Prüfung abschaltete, und niemand hatte es bemerkt, weil das Abschalten still passiert. Welche Form du wählst, ist jetzt eine echte Wahl und keine Falle. Die benannte setzt jede Variante, die du behandelst, in die Importliste, und genau das findet ein <code>grep</code> nach <code>Equals</code>. Die qualifizierte sagt an jedem Arm, aus welchem Modul die Variante kam. Keine von beiden kostet dich die Prüfung.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="records">Importierte Records behalten ihre Felder<a class="ak-anchor" href="#records" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Records überqueren die Grenze jetzt auch, und bis 0.1.58 taten sie das nicht. Ein Record behält also seine Feldmenge, und ein falsches Feld ist <code>E0210</code> mit dem Namen des Records statt eines <code>tsc</code>-Fehlers über eine anonyme Form.
+      </p>
+      <div class="code term">
+        <span class="cap">glyph build, bei einem Tippfehler in einem Feld eines importierten Records</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
+<span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
+      </div>
+      <div class="code">
+        <span class="cap">table.glyph: Die herausgezogenen Bindings und der Kommentar, der sie erklärte, sind weg</span>
+<pre><span class="del">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span>
+<span class="del">// lowering from the iterand's type as the checker knows it, and a field</span>
+<span class="del">// access is not enough: without the `let`, `i` and `j` come out as strings</span>
+<span class="del">// and the row/column numbers in a `BadCell` are wrong.</span>
+<span class="del">let raw_rows: Array&lt;Array&lt;string&gt;&gt; = sheet.rows</span>
+<span class="del">for i, raw_row in raw_rows {</span>
+<span class="add">for i, raw_row in sheet.rows {</span>
+  let typed: Array&lt;Value&gt; = []
+<span class="del">  let cols: Array&lt;ColumnSpec&gt; = spec.columns</span>
+<span class="del">  for j, col in cols {</span>
+<span class="add">  for j, col in spec.columns {</span>
+    …
+  }
+}
+
+<span class="cm">// sheet: Sheet, declared in catalog.glyph and imported here.</span>
+<span class="cm">// Emitted TypeScript: sheet.rows.entries(), not Object.entries(sheet.rows).</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">der Bug mit Zeile 11, was tsc übersieht, wie die Identität die Grenze überquert</span></summary><div class="body">
+        <p>
+          Ein Typ, der in einer Datei deklariert und in einer anderen verwendet wurde, kam an, ohne dass etwas über ihn bekannt war, und das kostete zwei separate Prüfungen. Ein falsch geschriebenes Feld darauf löste überhaupt keinen Glyph-Fehler aus, also fiel <code>sheet.rowz</code> zu <code>tsc</code> durch und kam als TypeScript-Meldung über eine Form zurück, die du nie geschrieben hast. Und <code>for i, r in sheet.rows</code> konnte nicht erkennen, dass <code>rows</code> ein Array war, also erzeugte es <code>Object.entries(sheet.rows)</code> statt <code>sheet.rows.entries()</code>. Das bindet <code>i</code> an den String <code>"0"</code>. <code>i + 1</code> verkettet dann, statt zu addieren, und eine Zeile, die als <code>line 2</code> gemeldet werden sollte, wird als <code>line 11</code> gemeldet.
+        </p>
+        <p>
+          Wissenswert ist, welche Hälfte <code>tsc</code> findet. Arithmetik auf diesem Index findet es, meldet den Fehler aber am erzeugten TypeScript für eine Variable, die Glyph in deinem Namen gebunden hat. Was es nicht finden kann, ist jede Stelle, an der ein String akzeptiert wird, wo eine Zahl gemeint war: String-Interpolation, Verkettung, ein Schlüssel für <code>record.get</code>. Diese kompilieren unter beiden Checkern sauber und geben die falsche Zahl aus. Das ist genau die Art von Bug, die dieses Projekt beseitigen soll, also ist eine Modulgrenze, die ihn wieder einführt, keine Grenze, die Glyph in Ruhe lassen kann.
+        </p>
+        <p>
+          Ein importierter Typ trägt jetzt eine Identität über die Grenze, festgemacht an dem Modul, das ihn deklariert, und dem Namen, den es deklariert, also lösen sich alle drei Import-Schreibweisen zum selben Typ auf. Die Deklaration selbst wird bei Bedarf geholt und auf der Seite des deklarierenden Moduls übersetzt, und das ist die Hälfte, die ein Konsument nicht leisten kann: Die Auflösung arbeitet über Spans, und die Spans einer importierten Deklaration gehören zu einer anderen Datei.
+        </p>
+        <p>
+          Aufgefallen ist das in der Abfrage-Engine in <code>examples/apps/csvql</code>. Sie hatte drei herausgezogene <code>let</code>-Bindings, deren einzige Aufgabe es war, den Typ eines importierten Feldes für den Emitter zu wiederholen, unter einem vierzeiligen Kommentar, der erklärte, dass ohne sie die Zeilen- und Spaltennummern in einer Fehlermeldung falsch herauskommen. Alle drei sind gelöscht, und die App gibt für alle zwölf Abfragen byteidentische Ausgabe aus.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Eine Sache endet noch an der Grenze. Ein <code>catalog.Sheet</code> zu übergeben, wo ein <code>table.Row</code> erwartet wird, ist E0211 mit beiden Typen, aber die Member-Liste eines <code>interface</code> überquert die Grenze nicht, also wird ein Record, der übergeben wird, wo ein importiertes Interface erwartet wird, mit nichts verglichen. Ihm dieselbe Behandlung wie der Feldmenge eines Records zu geben, würde still ändern, was strukturelle Erfüllung bedeutet, und das ist eine Sprachentscheidung und kein Fix.</p></div>
+
+      <h2 class="ak-h" id="redact">Das Maskieren personenbezogener Daten lebt am Typ<a class="ak-anchor" href="#redact" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Derselbe Instinkt, "mach es zur Typfrage, nicht zur Konvention", deckt personenbezogene Daten ab. Setz <code>@redact fields: [ssn, dob]</code> an einen Typ, und der Compiler erzeugt an seinem Deskriptor ein <code>redact()</code>, das diese Felder maskiert, also kann <code>json.stringify(User.redact(u))</code> sie nicht preisgeben.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0219 unbekanntes Feld in @redact</span></div>
+      <p class="ak-lede">Nenn ein Feld, das der Typ nicht hat, und es ist ein Compile-Fehler (<code>E0219</code>), keine Schwärzung, die still nichts tut.</p>
+
+      <h2 class="ak-h" id="refinements">Verfeinerungen werden bis ganz unten geprüft<a class="ak-anchor" href="#refinements" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ein Deskriptor ist nur etwas wert, wenn er die Prüfung ist, die der Typ deklariert, bis ganz unten. Eine <code>where</code>-Verfeinerung führt ihr Prädikat überall aus, wo der Typ vorkommt, nicht nur bei einem direkten <code>Instant.parse</code>: als Record-Feld, als <code>Array</code>-Element, als <code>Option</code>-Payload, innerhalb einer Union-Variante und über <code>json.parse&lt;T&gt;</code>.
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="Wo das Prädikat läuft">
+          <li><span>Calendar</span></li>
+          <li><span>Array&lt;WireParticipant&gt;</span></li>
+          <li><span>busy</span></li>
+          <li><span>start</span></li>
+          <li><span>is_instant(value)</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Der Fix liegt vier Ebenen unter der Grenze: <code>Calendar</code> zu <code>Array&lt;WireParticipant&gt;</code> zu <code>busy</code> zu <code>start</code> zum Prädikat.</span></figcaption>
+      </figure>
+      <div class="code">
+        <span class="cap">schedule.glyph: Das Prädikat folgt dem Typ in das Feld</span>
+<pre>fn is_instant(value: string) -&gt; bool {
+  return match time.parse_iso(value) {
+    Some(_) =&gt; true,
+    None =&gt; false,
+  }
+}
+
+type Instant = string where is_instant(value)
+
+type WireBlock = { start: Instant, end: Instant }
+type WireParticipant = { name: string, busy: Array&lt;WireBlock&gt; }
+type Calendar = { participants: Array&lt;WireParticipant&gt; }
+
+<span class="cm">// json.parse&lt;Calendar&gt;(text) on a file holding "start": "no"</span>
+<span class="cm">//   =&gt; Err. It returned Ok before 0.1.41.</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">der selbstsichere falsche Zeitplan vor 0.1.41</span></summary><div class="body">
+        <p>
+          Dasselbe gilt für einen Record, der aus einem anderen Modul importiert wird. Bis 0.1.41 fielen beide darauf zurück, nur zu prüfen, ob der Schlüssel vorhanden war, und das ist keine Prüfung von irgendetwas.
+        </p>
+        <p>
+          Aufgefallen ist das in der Planungs-App unten. Sie liest Kalender aus einer JSON-Datei und braucht jeden Zeitstempel als echten ISO-8601-Zeitpunkt. Vorher hörte die Verfeinerung auf oberster Ebene auf, also wurde eine von Hand bearbeitete Datei mit <code>"start": "no"</code> problemlos geparst, der Zeitpunkt las sich als 0, und die App gab selbstsicher einen Zeitplan aus und endete mit 0.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="examples">Tests laufen als Teil des Builds<a class="ak-anchor" href="#examples" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Tests stehen neben dem Code und laufen als Teil des Kompilierens. Ein <code>@example</code> über einer Funktion oder ein <code>```glyph @run```</code>-Block innerhalb eines <code>@doc</code> wird von <code>glyph build</code> ausgeführt, ohne Flag, an das man denken muss.
+      </p>
+      <div class="code term">
+        <span class="cap">bracket.glyph: Mach die Setzliste kaputt, und der Build bricht ab</span>
+<pre>@example seed_order(2) == [1, 2]
+@example seed_order(4) == [1, 4, 2, 3]
+@example seed_order(8) == [1, 8, 4, 5, 2, 7, 3, 6]
+fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
+
+<span class="cm">// glyph build src --out dist</span>
+<span class="del">example failed: bracket example #16:</span>
+<span class="del">  (seed_order(8)) != ([1, 2, 3, 4, 5, 6, 7, 8])</span>
+<span class="del">1 of 23 example(s) failed.            # exit 1, no "tsc passed" line</span>
+
+<span class="cm">// glyph build src --out dist --json</span>
+<span class="del">{ "ok": false, "errors": 1, "tsc": "passed",</span>
+<span class="del">  "examples": { "total": 23, "ran": true, "skipped": false,</span>
+<span class="del">    "failures": ["bracket example #16: …"] } }</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">warum es sich nicht still überspringen lässt, und der JSON-Kanal</span></summary><div class="body">
+        <p>
+          Ein falsches Beispiel lässt den Build genauso scheitern wie ein Typfehler, und darum geht es: Ein Agent, der einen Funktionsrumpf umschreibt, kann den Build nicht bestehen, indem er die Zusicherung zurücklässt. <code>--no-test</code> schaltet es ab und gibt aus, wie viele Tests übersprungen wurden, also ist die Umgehung im Log sichtbar.
+        </p>
+        <p>
+          Die JSON-Ausgabe, die Agenten lesen, meldet dasselbe Urteil. <code>glyph build --json</code> enthält neben den Diagnosen ein Objekt <code>examples</code>, und ein fehlschlagendes Beispiel macht <code>ok</code> zu false und den Exit-Code ungleich null. Bis 0.1.43 liefen die Beispiele nur unter <code>--test</code>, und der JSON-Pfad kehrte zurück, bevor sie überhaupt liefen, also gab der eine Kanal, den ein Agent lesen kann, <code>"ok": true</code> für ein Projekt aus, dessen eigene Zusicherung falsch war. Wenn <code>tsx</code> nicht im <code>PATH</code> ist, schlägt der Build fehl, statt einen Erfolg zu melden, den er nie geprüft hat.
+        </p>
+        <p>
+          Die Turnier-App unten enthält 23 davon. <code>seed_order</code> baut die übliche Setzreihenfolge durch Verdoppeln, die Art von Funktion, die man leicht subtil falsch macht und leicht exakt beschreiben kann. Ändere die Verdopplungsregel, und der Build bricht ab, ohne Testdatei, ohne Runner, ohne Flag.
+        </p>
+      </div></details>
+
+      <p class="ak-kicker">Beim Bauen gefunden</p>
+      <h2 class="ak-h" id="four-more-found-by-building-with-it">Vier weitere, beim Bauen damit gefunden<a class="ak-anchor" href="#four-more-found-by-building-with-it" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Jede davon kompilierte sauber und bestand <code>tsc --strict</code>, und jede wurde beim Schreiben einer Anwendung gefunden statt beim Lesen des Compilers. Es ist derselbe Fehlschlag an drei Stellen: Die Typen sagten das eine, und das Programm tat etwas anderes.
+      </p>
+
+      <h3 class="ak-h3" id="map-keys">Einen Schlüssel lesen, der vielleicht nicht da ist<a class="ak-anchor" href="#map-keys" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">einen Schlüssel lesen, der vielleicht nicht da ist: jetzt E0224</span>
+<pre>fn name_of(row: Record&lt;string, string&gt;) -&gt; string {
+  return row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
+}</pre>
+      </div>
+      <p class="ak-lede">Das ist jetzt ein Compile-Fehler, der auf <code>record.get</code> verweist, das <code>Option&lt;V&gt;</code> zurückgibt, damit der fehlende Fall irgendwohin kann.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">warum ein Lesezugriff auf eine Map anders ist als Array-Indizierung</span></summary><div class="body">
+        <p>
+          Die Schlüssel einer Map sind beliebig, also kann der Compiler nicht wissen, dass der Schlüssel da ist. Den Lesezugriff als <code>string</code> zu typisieren, behauptete etwas, das nicht geprüft war, und der Wert wurde als Text "undefined" ausgegeben. Das Schreiben eines Schlüssels ist unberührt, und ebenso die Array-Indizierung: Eine Grenze ist ein Wert, den ein Programm prüfen kann, ein Map-Schlüssel nicht.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="equality"><code>==</code> ist überall Wertgleichheit<a class="ak-anchor" href="#equality" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">ein Test, der bestand, während der Code scheiterte</span>
+<pre><span class="cm">@example wrap("a") == wrap("a")   // passed: deep equality</span>
+fn same() -&gt; bool {
+  return wrap("a") == wrap("a")   <span class="cm">// false. no diagnostic</span>
+}</pre>
+      </div>
+      <p class="ak-lede"><code>==</code> ist jetzt überall Wertgleichheit; Primitive kompilieren weiterhin zu <code>===</code>, also bleiben gewöhnliche Vergleiche unverändert.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">wie ein Test bei kaputtem Code bestehen konnte</span></summary><div class="body">
+        <p>
+          <code>==</code> war als Wertgleichheit dokumentiert und wurde zu <code>===</code> übersetzt, was <em>Referenz</em>gleichheit ist, sobald eine der Seiten ein Record, eine Tagged Union oder ein Array ist. Derselbe Ausdruck verglich in einem Test strukturell und im Programm daneben nach Identität, also konnte ein Test Erfolg für Code melden, der nicht funktionierte.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="loop-binding">Ein Schleifen-Binding behält seinen Elementtyp<a class="ak-anchor" href="#loop-binding" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">Erschöpfendheit, die sich in einer Schleife verflüchtigte</span>
+<pre>for t in tiers {
+  match t {
+    "free" =&gt; ...          <span class="cm">// "pro" unhandled: once merely a warning to add `else`</span>
+  }
+}</pre>
+      </div>
+      <p class="ak-lede">Es nennt jetzt die Variante, die du nicht behandelt hast, also einen Rat, die Prüfung zu erfüllen, statt sie abzuschalten.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">der Catch-all-Rat, den es früher gab</span></summary><div class="body">
+        <p>
+          Das Schleifen-Binding hatte keinen Elementtyp, also verfiel ein <code>match</code> über einer Union aus String-Literalen zu einem match über <code>string</code>, und der Compiler riet dazu, einen Catch-all hinzuzufügen.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="imported-generic">Importierte generische Unions werden geprüft<a class="ak-anchor" href="#imported-generic" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">eine Variante, die in einem match über eine importierte generische Union fehlt</span>
+<pre>import tree { Tree, Node }
+
+fn label(t: Tree&lt;string&gt;) -&gt; string {
+  return match t {
+    Node({ key: k }) =&gt; k    <span class="cm">// Leaf unhandled: built clean, threw at run time</span>
+  }
+}</pre>
+      </div>
+      <p class="ak-lede">Jetzt ist es so oder so <code>E0200</code>, bei beiden Import-Schreibweisen und bei einem offenen Parameter wie bei einer konkreten Instanziierung.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">warum die Prüfung nie startete</span></summary><div class="body">
+        <p>
+          Eine Union, die dein eigenes Modul deklariert, wird geprüft, ob sie Typparameter nimmt oder nicht. Eine, die aus einem Geschwistermodul importiert wurde, wurde nur geprüft, wenn sie keine nahm. <code>Tree&lt;string&gt;</code> erreicht den Pfad für modulübergreifende Abdeckung als Anwendung einer importierten Union statt als eine solche Union, und die Bedingung, die die Prüfung startet, suchte nach Letzterem, also wurde das <code>match</code> überhaupt nicht gezählt: <code>tsc --strict</code> bestand, und ein <code>Leaf</code> warf. Lösch <code>&lt;K&gt;</code> aus beiden Dateien, und dasselbe Programm war <code>E0200</code>.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="unchecked-parse">Ein <code>parse</code> kann keine Prüfung behaupten, die es nicht gemacht hat<a class="ak-anchor" href="#unchecked-parse" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">ein <code>parse</code>, das ohne Prüfung Erfolg meldete: jetzt E0304</span>
+<pre>type Conn = { id: number, sock: Socket }
+
+Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the message said it was</span></pre>
+      </div>
+      <p class="ak-lede">Einen Socket in einem Record zu halten ist normal und kompiliert weiterhin. Einen zu validieren wird jetzt dort abgelehnt, wo es geschrieben ist, und in jedem Modul, das den Record importiert, mit Nennung des Feldes und seines Typs, und die Ablehnung folgt der Form: durch einen verschachtelten Record, ein <code>Array</code>, ein <code>Option</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">warum Vorhandensein keine Prüfung ist, und der Fix, den es verlangt</span></summary><div class="body">
+        <p>
+          Jeder Record-Typ trägt einen Laufzeit-Deskriptor. Für ein Feld, in dessen Typ der Compiler nicht hineinsehen kann, einen Socket oder alles, was über <code>extern_ts</code> erreicht wird, lautete die erzeugte Prüfung "ist es vorhanden", während die gemeldete Meldung <code>field `sock` must be Socket</code> lautete. Ein Boolean, das immer wahr ist, ist nutzlos. Eins, das immer wahr ist, unter einer Meldung, die einen Typ nennt, den nichts geprüft hat, ist schlimmer, weil <code>parse</code> genau das ist, dem eine Grenze vertrauen soll.
+        </p>
+        <p>
+          Der Fix, den es verlangt, ist die Aufteilung, die du sowieso geschrieben hättest: ein Wire-Typ, dessen Felder alle prüfbar sind, und dann ein Domänen-Record, den du daraus baust. <code>unknown</code> fällt nicht darunter, weil es nichts behauptet und Vorhandensein wirklich die ganze Prüfung ist.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-signature-change-invisible-at-the-call-site-closed-in-0-1">Eine Signaturänderung, unsichtbar an der Aufrufstelle: geschlossen in 0.1.116<a class="ak-anchor" href="#a-signature-change-invisible-at-the-call-site-closed-in-0-1" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ändere eine Funktion so, dass sie einen Payload statt eines rohen Strings nimmt, und jeder Aufruf, der noch die alte Form übergab, baute sauber.
+      </p>
+      <div class="code">
+        <span class="cap">billing.glyph: Eine Union passiert einen `string`-Parameter unbemerkt</span>
+<pre>type PaymentResult = Settled(string) | Declined(string)
+
+fn takes_string(s: string) -&gt; number { return s.length }
+
+fn charge(r: PaymentResult) -&gt; number {
+  return takes_string(r)   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build, jetzt</span>
+<pre><span class="del">[E0211] argument type mismatch: expected `string`, found `PaymentResult`</span>
+   ╰─ Pass a value of the expected type, or change the parameter's type.</pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">wo die Prüfung anschlägt und wo sie still bleibt</span></summary><div class="body">
+        <p>
+          Ein Parameter vom Typ <code>string</code>, <code>number</code> oder <code>bool</code> akzeptierte früher einen Wert einer deklarierten Union oder eines Records ganz ohne Beschwerde, obwohl derselbe Aufruf mit einem unpassenden <code>bool</code>-Argument schon <code>E0211</code> war.
+        </p>
+        <p>
+          Die Prüfung liest die Deklaration, also schlägt sie nur an, wo die Antwort sicher ist. Ein primitiver Alias, eine Union aus String-Literalen (D30), ein <code>extern_ts</code>- oder <code>typeof</code>-Rumpf und ein <code>interface</code> sagen weiterhin nichts, weil keins davon nachweislich kein <code>string</code> ist, so wie es eine Tagged Union oder ein Record ist; <code>void</code> ist ebenfalls ausgenommen. Sie erreicht ein Argument, ein <code>return</code> und eine <code>let</code>-Annotation gleichermaßen, da alle drei eine Relation teilen.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="const">Eine annotierte <code>const</code> ist typisiert<a class="ak-anchor" href="#const" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Eine <code>const</code> hatte die passende Lücke auf der empfangenden Seite.
+      </p>
+      <div class="code">
+        <span class="cap">catalog.glyph: eine annotierte const und das Feld, das sie nicht hat</span>
+<pre>type Sheet = { rows: number, cols: number }
+const ORIGIN: Sheet = { rows: 0, cols: 0 }
+
+fn f() -&gt; number {
+  return ORIGIN.rowz   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build, jetzt</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">nicht annotierte consts, und warum beide Fixes Breaking sind</span></summary><div class="body">
+        <p>
+          Eine <code>const</code> auf Modulebene mit Typannotation wurde zu <code>Ty::Unknown</code> übersetzt, egal was die Annotation sagte, also war ein Tippfehler in einem Feld darauf genau dort unsichtbar, wo dasselbe annotierte <code>let</code> innerhalb einer Funktion ihn schon meldete.
+        </p>
+        <p>
+          Eine nicht annotierte <code>const</code> behauptet nichts und bleibt absichtlich <code>Unknown</code>: Den Typ aus dem Initialisierer abzuleiten ist eine andere Frage mit einer anderen Angriffsfläche für Fehlalarme. Beide Fixes sind Breaking unter <code>glyph check --no-tsc</code>, dem Language Server und dem Playground, da jeder anfängt, ein Programm zu finden, das das vorherige Release akzeptiert hat; ein vollständiger <code>glyph build</code> war in beiden Fällen über <code>tsc</code> schon rot.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="extra-field">Ein zusätzliches Feld zu finden bleibt Sache von <code>tsc</code><a class="ak-anchor" href="#extra-field" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Eine Prüfung von Record-Literalen gehört weiterhin <code>tsc</code> und nicht Glyph. <code>glyph build</code> bricht daran ab; <code>glyph check --no-tsc</code>, der Language Server und der Playground sagen nichts (G273).
+      </p>
+      <div class="code">
+        <span class="cap">point.glyph: ein zusätzliches Feld, tsc überlassen</span>
+<pre data-check="expect-error TS2353">module point
+
+pub type Point = {
+  x: number,
+  y: number,
+}
+
+pub fn origin() -&gt; Point {
+  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+}</pre>
+      </div>
+      <div class="ak-chips"><span class="chip ts">TS2353 von tsc</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">wie tsc es meldet</span></summary><div class="body">
+        <p>
+          Ein Literal mit einem Feld, das der deklarierte Record nicht hat, besteht Glyphs Checker, und <code>tsc</code> lehnt es am erzeugten TypeScript als <code>TS2353</code> ab, zurückgebildet auf das Literal.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar <span class="count">18</span></h3>
+
+          <p class="ak-st-group">Matching</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Erschöpfendes <code>match</code> über abgeschlossene Unions: deine oder die eines Geschwistermoduls, generisch oder nicht, und die der Standardbibliothek, wie <code>fs.ErrorKind</code></span><span class="chip code">E0200</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Erschöpfendes <code>match</code> über <code>number</code>/<code>string</code></span><span class="chip code">E0218</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Varianten-Arm mit Tippfehler wird als Compile-Fehler mit Vorschlag der nächstliegenden Variante erkannt statt als stiller Catch-all</span><span class="chip code">E0220</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine Variante an Payload-Position verzweigt über den eigenen Tag des Payloads, statt ihn zu binden</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Zwei Arme, die auf denselben Tag antworten würden, werden als <code>E0305</code> abgelehnt, statt dass einer still gewinnt</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein <code>for</code>-Binding, das seinen Elementtyp behält</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Fehler und Tests</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>Result</code> + der Operator <code>?</code> mit Prüfung des Fehlertyps</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine Warnung, wenn ein <code>Result</code> verworfen wird</span><span class="chip code">E0217</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>@example</code>- / <code>@doc @run</code>-Tests, die bei jedem Build laufen, auch mit <code>--json</code></span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Typen, Records und Literale</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine deklarierte Union oder ein Record, übergeben, wo ein <code>string</code>/<code>number</code>/<code>bool</code> erwartet wird</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Tippfehler in einem Feld einer annotierten <code>const</code> auf Modulebene</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> als Wertgleichheit für jeden Typ</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Das Lesen eines Schlüssels aus einer Map wird abgelehnt</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Objektliterale und JSX-Attribute werden gegen den deklarierten Typ geprüft</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">seit 0.1.124</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Seit 0.1.124 hat ein Objektliteral den Record-Typ, den seine Felder ausdrücken, also sind <code>let g: string = { x: 1 }</code>, ein Literal, dem ein Feld fehlt, das der deklarierte Record verlangt, und ein Literal, das übergeben wird, wo es nicht passt, E0204 oder E0211 mit Nennung des deklarierten Typs, bei einem <code>let</code>, einer <code>const</code>, einem <code>return</code> und einem Aufrufargument; und ein JSX-Attribut wird gegen den Props-Record der Komponente geprüft, also löst <code>&lt;Button variant="nope" /&gt;</code> E0211 mit den akzeptierten Werten aus, und ein Attribut, das der Record nicht deklariert, löst E0210 aus, das <code>glyph fix</code> umbenennt.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein fehlendes Pflichtfeld oder Pflicht-Prop wird genannt</span><span class="chip code">E0211</span><span class="chip code">E0229</span><span class="chip since">seit 0.1.125</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Seit 0.1.125 nennt ein Record-Literal oder ein Komponentenelement, das ein Pflichtfeld weglässt, dieses, in der Meldung und in <code>missing_fields</code> bei <code>--json</code>, und ein Element, dem ein Pflicht-Prop fehlt, ist E0211, auch wenn es gar keine Attribute schreibt; eine Komponente, deren einziger Parameter kein Record ist, ist E0229.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Jedes Feld eines Records wird nach derselben Regel verglichen wie der Record</span><span class="chip since">seit 0.1.127</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Seit 0.1.127 wird jedes Feld eines Records nach derselben Regel verglichen wie der Record, also werden ein verschachtelter Record, ein deklarierter Typ oder eine Union aus String-Literalen darin abgelehnt, wo <code>tsc</code> sie ablehnt, und ebenso ein optionales Feld, wo ein Pflichtfeld deklariert ist, eine Funktion, deren Rückgabe nicht passt, und die Member eines lokalen Interfaces. Ein Record, dessen Felder alle optional sind, lehnt einen Wert ab, der keins davon teilt, wie es TS2559 tut. Die Parameter einer Funktion werden weiterhin nicht verglichen.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Datengrenzen</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Laufzeit-Typdeskriptoren</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>@redact</code>-Maskierung personenbezogener Daten am Typdeskriptor</span><span class="chip code">E0219</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wird schärfer <span class="count">13</span></h3>
+
+          <p class="ak-st-group">Matching</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Die Abdeckung einer importierten Union schaut noch nicht in den Payload einer Variante</span><span class="chip">als Nächstes zu vertiefen</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Ein Typparameter schaltete die Prüfung früher ab: Bis 0.1.90 konnte ein <code>match</code> auf <code>Tree&lt;K&gt;</code> eine Variante weglassen, sauber bauen, <code>tsc --strict</code> bestehen und zur Laufzeit werfen, wo dasselbe match auf <code>Tree</code> <code>E0200</code> war. Das ist für eine Union, die dein eigenes Modul deklariert, geschlossen und seit 0.1.95 auch für eine, die einen Import entfernt ist. Was auf dem Importpfad noch flacher ist, ist die Tiefe und nicht die Bedingung: Die Prüfung, die für eine importierte Union läuft, schaut nie in den Payload einer Variante, also matcht <code>B(X)</code> über einer importierten Union, deren Payload selbst eine Union ist, jedes <code>B</code>, statt das fehlende <code>Y</code> zu melden, und dabei ist kein Typparameter im Spiel. Das ist das Nächste, was vertieft wird.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Eine kleingeschriebene Payload-Variante einer importierten Union stoppt den Build</span><span class="chip code">E0305</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Eine Variante an Payload-Position wird jetzt aus der Variantenliste der Payload-Union gelesen, also spielt die Großschreibung des Namens bei einer Union, die dein Modul deklariert, keine Rolle mehr. Bei einer aus einem anderen Modul importierten gibt es keine Liste zu lesen, und die Form des Namens entscheidet weiterhin, was heißt, dass <code>Err(Blank)</code> verzweigt und <code>Err(blank)</code> den Build mit <code>E0305</code> stoppt: ein lauter Fehlschlag bei einem gültigen Programm, und es braucht dieselbe Registry importierter Unions, die die flache Abdeckungsprüfung oben braucht.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Konstruktor-Pattern über einem Record-Payload (<code>Ok(Point)</code>) scheitert in <code>tsc</code>, nicht in Glyph</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Ein Konstruktor-Pattern über einem Payload, der ein Record statt einer Union ist (<code>Ok(Point)</code>), scheitert über <code>tsc</code> mit Nennung eines <code>.tag</code>, das du nie geschrieben hast, wo es eine Glyph-Diagnose sein sollte, die den Typ und das Pattern nennt.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein falsch geschriebener bloßer Arm meldet zwei Zeilen für denselben Namen</span><span class="chip code">E0220</span><span class="chip code">E0103</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Die Tippfehlerprüfung (<code>E0220</code>) deckt jetzt eine im Modul deklarierte Union und eine über einen Namespace-Import erreichte (<code>model.Nooo(_)</code>) gleichermaßen ab, in Konstruktorform oder bloß: Bis 0.1.115 wurde ein bloßer falsch geschriebener Kopf über einer importierten Union (<code>Loadign</code>, ohne Argumente) als Abdeckung einer Variante gewertet und sagte nichts, wo derselbe Tippfehler bei einer lokalen Union schon <code>E0220</code> meldete; beide Schreibweisen melden es jetzt. Ein falsch geschriebener bloßer Arm löst außerdem <code>E0103</code> aus, eine Stufe früher, also bekommst du beide Zeilen für denselben Namen.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Typen, Records und Literale</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Literal mit einem Spread hat keinen Typ, und ein zusätzliches Feld wird weiterhin akzeptiert</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Ein Literal mit einem Spread hat keinen Typ, und ein zusätzliches Feld wird weiterhin akzeptiert, wo <code>tsc</code> eins bei einem frischen Literal als TS2353 ablehnt (G273).</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Die Member eines importierten <code>interface</code> und der Typ einer importierten <code>const</code> überqueren die Grenze noch nicht</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Typen überqueren eine Modulgrenze jetzt intakt: Unions behalten ihre Erschöpfendheit, Tagged Unions wie solche aus String-Literalen, und ein Record behält seine Feldmenge, also ist ein Tippfehler in einem Feld eines importierten Records <code>E0210</code> mit Nennung des eigenen Typs dieses Records, und <code>for i, x</code> über eines seiner Array-Felder bindet ohne Annotation eine Zahl. Was die Grenze noch nicht überquert, ist die Member-Liste eines <code>interface</code>, also wird ein Record, der übergeben wird, wo ein importiertes Interface erwartet wird, mit nichts verglichen; eine importierte <code>const</code> hat dieselbe Form eine Ebene weiter: Sie ist weiterhin <code>Ty::Unknown</code>, also bleibt ein Tippfehler in einem Feld über einen benannten oder Namespace-Import still, egal ob das Quellmodul sie annotiert hat.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Tieferes Flow-Narrowing steht auf der Roadmap</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Datengrenzen</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Maps aus einem anderen Modul oder der Standardbibliothek werden ungeprüft gelesen</span><span class="chip code">E0224</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Eine Map, die aus einem anderen Modul oder der Standardbibliothek kommt, wird weiterhin ungeprüft gelesen, also deckt E0224 noch kein <code>sqlite.Row</code> ab, und das <code>for i, x in xs</code> mit zwei Bindings verliert weiterhin seine Typen.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Typ aus einer einfachen <code>.d.ts</code> hat keinen Deskriptor; materialisiere ihn mit <code>glyph gen dts</code></span><span class="chip code">E0304</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Ein Typ, der aus einem anderen Glyph-Modul importiert wird, validiert jetzt über seinen eigenen Deskriptor, ebenso eine <code>where</code>-Verfeinerung an Feldposition; ein Typ, der aus einer einfachen <code>.d.ts</code> importiert wird, hat keinen Deskriptor, über den validiert werden könnte, und <code>parse</code> auf einem Record, der einen solchen enthält, wird jetzt abgelehnt (<code>E0304</code>), statt einen Erfolg zu melden, den es nicht geprüft hat; materialisiere ihn mit <code>glyph gen dts</code>, um einen Typ zu bekommen, der validiert.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Tooling und die Standardbibliothek</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Neun Funktionen aus <code>std/string</code> und <code>std/array</code> geben weiterhin untypisierte Werte zurück</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Die Stdlib-Rückgabetypen, die der Checker modelliert, decken die Hälfte von <code>std/string</code> und <code>std/array</code> mit fester Argumentanzahl ab; die sechs Funktionen mit optionalem letztem Argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) und <code>array.map</code>/<code>flat_map</code>/<code>zip</code> sind weiterhin untypisiert, also braucht ein Wert direkt aus einer davon eine Annotation, bevor du ihn mit einem Index durchläufst.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Member-Zugriffe auf Primitive und Arrays haben keine Diagnose, wo <code>tsc</code> nicht läuft</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Member-Zugriffe und Aufrufe auf <code>string</code>, <code>number</code>, <code>bool</code> und <code>Array&lt;T&gt;</code> werden absichtlich <code>tsc</code> überlassen, nicht wegen einer Lücke; Glyph erlaubt dort rohe JS-Member, also kompilieren <code>s.length</code> und <code>xs.length</code> und bestehen <code>tsc --strict</code>, und was fehlt, ist eine Diagnose für die vier Schnittstellen, die nie <code>tsc</code> ausführen: <code>glyph check --no-tsc</code>, den Language Server, den MCP-Server und den Playground.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Offline-Build mit Beispielen braucht <code>tsx</code> oder <code>--no-test</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Der Beispiel-Runner ruft <code>tsx</code> auf, also scheitert der Build eines Projekts, das Beispiele hat und kein <code>tsx</code> im <code>PATH</code>, statt still zu überspringen; das ist Absicht, heißt aber, dass ein Offline-Build ein installiertes <code>tsx</code> oder <code>--no-test</code> braucht.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein <code>await</code> in einer einfachen <code>fn</code> wird an deinem eigenen Quellcode gefunden</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Der async-Kontext war früher die eine Regel, die Glyph <code>tsc</code> überließ; ein <code>await</code> in einer einfachen <code>fn</code> ist jetzt <code>E0222</code> an deinem eigenen Quellcode, wobei der <code>const</code>-Initialisierer auf oberster Ebene der einzige Fall ist, der noch erlaubt ist. Das und zwei weitere Regeln, die eine Stufe nach vorn gerückt sind, stehen unter <a href="/answers/early-errors/">früher gefunden</a>.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="detail">
+        <p>
+          Warum das die erste der vier Säulen von Glyph ist und wo ihre Garantie aufhört, steht auf der <a href="/pillars/verifiability/">Seite zur Säule Überprüfbarkeit</a>.
+        </p>
+      </div>

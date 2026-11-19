@@ -1,0 +1,122 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/why-typescript/index.html",
+  "locale": "de",
+  "source_hash": "9f7bf2e8baaad5d9",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why TypeScript, and not Go or a new language? · Glyph",
+      "tr": "Warum TypeScript und nicht Go oder eine neue Sprache? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "TypeScript is where agents already write the most code and where npm, React, and Node live. Glyph is adoptable one file at a time only because its target is TS.",
+      "tr": "In TypeScript schreiben Agenten schon den meisten Code, und dort leben npm, React und Node. Glyph lässt sich nur deshalb Datei für Datei einführen, weil sein Ziel TS ist."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Zurück"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "Kann ein Agent (oder ich) finden, wo etwas definiert ist?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Weiter &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "Warum nicht einfach striktes TypeScript + zod + eslint + ts-pattern?"
+    },
+    {
+      "id": "h-69c9c9dc",
+      "kind": "html",
+      "en": "04 &middot; Positioning",
+      "tr": "04 &middot; Positionierung"
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "Warum TypeScript und nicht Go oder eine neue Sprache?"
+    },
+    {
+      "id": "h-4242272e",
+      "kind": "html",
+      "en": "Because TypeScript is where agents already write the most code and where your ecosystem (npm, React, Node) lives. Glyph is adoptable one file at a time <strong>only because its target is TS</strong>.",
+      "tr": "Weil Agenten in TypeScript schon den meisten Code schreiben und dort dein Ökosystem (npm, React, Node) lebt. Glyph lässt sich Datei für Datei einführen, <strong>nur weil sein Ziel TS ist</strong>."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Warum das wichtig ist"
+    },
+    {
+      "id": "h-0a5dbd26",
+      "kind": "html",
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
+      "tr": "Eine neue Sprache steht und fällt damit, wie du von null bis zur Auslieferung kommst. Zu TypeScript zu kompilieren heißt, dass du nie deine Codebasis, deinen Bundler, deinen Test-Runner oder dein Deployment verlässt. Glyph passt neben die <code>.ts</code>-Dateien, die du schon hast, und Imports funktionieren sauber in beide Richtungen:"
+    },
+    {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "dasselbe Projekt: .glyph und .ts nebeneinander"
+    },
+    {
+      "id": "h-4eb97fa1",
+      "kind": "html",
+      "en": "You cannot drop Go into a TypeScript codebase file by file: it's a different runtime, a different module system, a different ecosystem. That single fact is why the target is TS.",
+      "tr": "Go lässt sich nicht Datei für Datei in eine TypeScript-Codebasis einbauen: andere Laufzeit, anderes Modulsystem, anderes Ökosystem. Allein deshalb ist das Ziel TS."
+    },
+    {
+      "id": "h-b0743097",
+      "kind": "html",
+      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "<strong>Der berechtigte Punkt zu Go:</strong> Sein kleiner, stabiler Sprachumfang gibt einem Agenten weniger Möglichkeiten, falsch zu liegen. Da stimmen wir zu: Genau deshalb hält Glyph bewusst einen kleinen Kern mit einem Weg für jede Sache. Go ist in unserem <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">Dichte-Benchmark</a> für einen direkten Vergleich enthalten."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Wo es steht"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Heute verfügbar"
+    },
+    {
+      "id": "h-93871ba6",
+      "kind": "html",
+      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
+      "tr": "Sauberes TypeScript als Ausgabe, Imports in beide Richtungen mit deinen bestehenden <code>.ts</code>-Dateien und ein kleiner Kern, der überall läuft, wo Node oder ein Browser-Bundle läuft."
+    },
+    {
+      "id": "h-0abde815",
+      "kind": "html",
+      "en": "Being measured",
+      "tr": "Wird gemessen"
+    },
+    {
+      "id": "h-5cb4379c",
+      "kind": "html",
+      "en": "The cross-language benchmark (Glyph, TS, Go, Python, Rust) grows as the corpus does, so the &ldquo;small surface&rdquo; claim stays a number, not an assertion.",
+      "tr": "Der sprachübergreifende Benchmark (Glyph, TS, Go, Python, Rust) wächst mit dem Korpus, damit die Aussage &ldquo;kleiner Sprachumfang&rdquo; eine Zahl bleibt und keine Behauptung."
+    }
+  ]
+}

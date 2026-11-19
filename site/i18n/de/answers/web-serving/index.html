@@ -1,0 +1,85 @@
+---
+title: Kann ich eine Webseite ausliefern oder nur eine JSON-API? · Glyph
+description: std/http liefert HTML-Seiten, Redirects, eigene Response-Header und Formular-Posts aus, nicht nur JSON, und die Response-Header sind im Typchecker modelliert.
+source_hash: 3919e268d4a46ec8
+prev: /answers/finance/ | &larr; Zurück | Kann ich ihm Geld anvertrauen und Eingaben, die ich nicht kontrolliere?
+next: /answers/interactive-cli/ | Weiter &rarr; | Kann ich ein Programm schreiben, in das jemand etwas eintippt?
+---
+      <p class="q-eyebrow">17 &middot; Webserver</p>
+      <h1 class="q-title">Kann ich eine Webseite ausliefern oder nur eine JSON-API?</h1>
+
+      <p class="short-answer">
+        Eine Webseite. <code>std/http</code> setzt Response-Header, also sind eine <code>text/html</code>-Seite, ein 302-Redirect, ein Cache-Header und ein HTML-Formular-Post ganz normales Glyph. Kein Express, kein handgeschriebener TypeScript-Shim.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Bis 0.1.46 war eine Response <code>{ status, body }</code>, und der Server wählte den Content-Type anhand der Form des Bodys: Ein String war <code>text/plain</code>, alles andere JSON. Für eine API ist das in Ordnung, für alles, was ein Browser rendert, nutzlos. Der Ausweg war, einen eigenen Server auf <code>node:http</code> in einer handgeschriebenen <code>.ts</code>-Datei zu schreiben, was deinen ganzen Request-Pfad außerhalb des Typcheckers legt. Zwei fehlende Konstruktoren kosteten eine ganze Anwendungsgrenze.
+        </p>
+
+        <h2 class="block-label">So sieht es aus</h2>
+        <p>
+          Das ist der Router von <code>examples/apps/shortlink/main.glyph</code>, einem URL-Shortener, der im Repo liegt. Ein HTML-Formular erzeugt einen Code, ein POST antwortet mit einem Redirect, damit ein Neuladen im Browser nie erneut postet, und das Aufrufen eines Codes ist ein 302 zum Ziel:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">shortlink.glyph: eine HTML-Seite, ein Formular-Post und der 302</span>
+<pre>fn handle_home(req: Request) -&gt; Response {
+  return match req.method {
+    "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
+    "POST" =&gt; {
+      let fields = form(req)
+      match create_link(form_field(fields, "url"), form_field(fields, "alias")) {
+        Ok(link) =&gt; redirect(303, "/${link.code}+"),
+        Err(message) =&gt; redirect(303, "/?error=${url_encode(message)}"),
+      }
+    },
+    else =&gt; html(405, page("405", "&lt;h1&gt;405&lt;/h1&gt;")),
+  }
+}
+
+fn route(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match segments(req) {
+    [] =&gt; Ok(handle_home(req)),
+    [one] =&gt; match stats_code(percent_decode(one)) {
+      Some(code) =&gt; Ok(handle_stats(code)),
+      None =&gt; Ok(handle_code(percent_decode(one))),
+    },
+    else =&gt; Ok(html(404, not_found_page(path(req)))),
+  }
+}
+
+async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let outcome = await serve(8138, route)
+  return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Dieselbe App lag ein Release vorher mit 615 Zeilen im Repo, 121 davon ein handgeschriebener <code>node:http</code>-Server in einer <code>.ts</code>-Datei daneben, weil sich ein <code>Location</code> und ein <code>text/html</code>-Body nicht ausdrücken ließen. Jetzt sind es 494 Zeilen, und sie importiert nichts außerhalb von <code>std</code>. Ein Handler gibt <code>Result&lt;Response, string&gt;</code> zurück, also ist ein 404 ein ganz normales <code>Ok</code>, und ein <code>Err</code> ist für das reserviert, was die App nicht beantworten kann, und der Server macht daraus ein 500. <code>serve</code> bleibt ausstehend, solange er lauscht, also muss nichts den Prozess von Hand am Leben halten, und ein fehlgeschlagenes Binden kommt als Wert zurück.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Response</code> hat ein Pflichtfeld <code>headers: Record&lt;string, string&gt;</code>. Pflicht, nicht optional: Jeder Konstruktor füllt es, also braucht das Lesen von <code>resp.headers</code> nie eine Prüfung auf Fehlen, und der Kanal kann nicht vergessen werden. <code>with_header(resp, "cache-control", "no-store")</code> gibt eine neue Response zurück, statt eine zu verändern, weil Glyph keine Mutation von Record-Feldern hat. Der Typchecker weiß, dass alle drei Konstruktoren eine <code>Response</code> zurückgeben, also wird ein Handler, dessen deklarierter Rückgabetyp <code>Result&lt;Response, string&gt;</code> ist, in Glyph geprüft und nicht von <code>tsc</code> an der erzeugten Ausgabe.
+        </p>
+        <p>
+          Zwei Details, die du von Hand sonst falsch machen würdest. Jedes Zeichen, das Node in einem Header nicht schreiben will, wird beim Hinausgehen aus dem Wert entfernt, also kann ein <code>location</code>, das aus einem Query-Parameter gebaut wird, keinen zweiten Header oder eine zweite Response einschleusen, und ein Emoji in einer gekürzten URL kann den Server nicht lahmlegen. Und <code>form(req)</code> dekodiert <code>+</code> als Leerzeichen zusammen mit Prozent-Escapes, das Paar, das selbstgebautes Formular-Parsing meistens übersieht; es liest den rohen Body, also bleibt <code>req.body</code> für Handler, die selbst parsen, unberührt.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> und <code>form</code>; Response-Header auf der Leitung, wobei der Content-Type nur abgeleitet wird, wenn du keinen gesetzt hast; Request-Header, Query-Parameter, Pfadsegmente und der rohe Body auf dem Weg hinein; der Client meldet die Response-Header, die er empfangen hat.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">In Arbeit</h3>
+          <p>Prozentkodierung ist die Lücke, die der Schnipsel oben zeigt: <code>form</code> dekodiert einen Formular-Body, aber es gibt kein <code>encode_component</code> zum Bauen einer URL, also schreibt der Shortener sein eigenes. Auf der Client-Seite fehlen außerdem: ein Timeout, eine Redirect-Policy, <code>head</code> und die endgültige URL, auf der ein Redirect gelandet ist. Es gibt keinen Server für statische Dateien und keine Template-Engine, und für beides gibt es keinen Plan.</p>
+        </div>
+      </div>

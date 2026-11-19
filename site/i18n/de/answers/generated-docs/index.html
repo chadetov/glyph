@@ -1,0 +1,172 @@
+---
+title: Wird die Dokumentation, die mein Agent liest, generiert? · Glyph
+description: glyph llms --json gibt die Diagnosen, das Prelude, die Stdlib-Signaturen und die Sprachentscheidungen aus den eigenen Tabellen des Compilers aus, also können sie nicht veralten.
+source_hash: 31b76a81a51f0211
+prev: /answers/repair-protocol/ | &larr; Zurück | Wenn der Build fehlschlägt, sagt der Compiler meinem Agenten, wie er es behebt?
+next: /answers/tooling/ | Weiter &rarr; | Wie sieht es mit Editor, Debugging und Fehlermeldungen aus?
+---
+      <p class="q-eyebrow">24 &middot; Doku, die nicht veraltet</p>
+      <h1 class="q-title">Ist die Dokumentation, die mein Agent liest, generiert oder von Hand geschrieben und veraltet?</h1>
+
+      <p class="short-answer">
+        Generiert. <code>glyph llms --json</code> gibt den Diagnosekatalog, das Prelude, die Stdlib-Signaturen, die Sprachentscheidungen und das Tool-Handbuch aus den eigenen Tabellen des Compilers aus, und ein Gate lässt den Build fehlschlagen, wenn eine handgeschriebene Kopie abweicht. Jedes Glyph-Beispiel in dem Dokument, mit dem ein Agent einsteigt, wird kompiliert, auch die falschen.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Die Frage ist nicht rhetorisch, denn die ehrliche Antwort lautete früher "von Hand geschrieben, und ja". Das Einstiegsdokument für Agenten sagte, der MCP-Server "stellt fünf Tools bereit", und listete fünf. Der Server stellte sieben bereit. Die zwei, zu denen die eigenen Anweisungen des Servers einem Agenten zuerst raten, kamen darin kein einziges Mal vor. Die 58 Fehlercodes lebten in drei von Hand gepflegten Kopien, nur daraufhin geprüft, ob der Code-String vorhanden war. Von 19 Glyph-Beispielen in diesem Dokument wurden 2 kompiliert und 17 als Fragmente übersprungen.
+        </p>
+        <p>
+          Jedes davon ist derselbe Mangel. Ein Dokument über einen Compiler, neben dem Compiler gepflegt, von Leuten, die es gut meinten. Ein Agent, der es liest, kann nicht erkennen, welche Sätze noch stimmen, und wir konnten es auch nicht.
+        </p>
+
+        <h2 class="block-label">So sieht es aus</h2>
+        <p>
+          Sieben Abschnitte, jeder aus einer Tabelle gelesen, die der Compiler schon hat. Ein Diagnoseeintrag enthält den Satz aus dem Katalog, den einzeiligen Fix, die ausführliche Erklärung und die Hilfe und den Hinweis aus einer Diagnose, die der Compiler ausgelöst hat. 51 der 77 Codes enthalten außerdem ein fehlerhaftes Programm, das den Code auslöst, kompiliert in dem Moment, in dem du fragst; die anderen 26 sagen, dass der Korpus keinen Fall dafür hat.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --json, der Eintrag E0200 (gekürzt)</span>
+<pre>{
+  "code": "E0200",
+  "phase": "typechecker",
+  "meaning": "Non-exhaustive `match` on a tagged union (yours, a prelude
+    `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a
+    string-literal union (`\"free\" | \"pro\"`, D30) missing a literal ...",
+  "fix": "Add an arm for each missing variant",
+  "help": "Add an arm for each missing variant.",
+  "note": "Tagged unions are sealed (D9): adding a variant forces every
+           match to be updated. A `_`/`else` catch-all is allowed but
+           forfeits that guarantee.",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "files": [ { "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+      "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+      "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a
+      case: an entry is a wrong program and the code it draws. A fix
+      invented here would compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          77 Codes kommen aus einer Tabelle im Compiler, und <code>docs/error-codes.md</code> und die Katalogtabelle im Einstiegsdokument werden daraus von einem Skript geschrieben, das bei Abweichungen fehlschlägt. Beim Zusammenführen der drei Kopien, die es früher gab, tauchten ein Code mit Erklärung, aber ohne Platz in der Liste, und eine Zeile auf, deren escapte Pipe stillschweigend die Tabelle kaputtgemacht hatte, in der sie stand.
+        </p>
+
+        <h2 class="block-label">Das Prelude, die Stdlib und die Entscheidungen</h2>
+        <p>
+          Das Prelude sind die 24 Namen, gegen die der Resolver auflöst, mit dem, was jeder davon ist. Die Stdlib sind 40 Module und 340 Exports, und jede Signatur wird aus den eigenen Tabellen des Checkers gelesen und vom selben Typ-Printer ausgegeben, den eine Diagnose verwendet, also ist die Signatur im Dokument die Signatur, an die dich der Checker hält. Die Exports teilen sich in drei Gruppen und nie in zwei: 129 Signaturen sind an jeder Position modelliert, 46 haben ein <code>?</code>, wo ein Parametertyp hingehört, und werden als <code>partially_modeled</code> gezählt, mit einer Zeile, die sagt, wie viele Positionen noch offen sind, und 165 haben überhaupt keine Signatur. Ein <code>?</code> ist gerendertes <code>unknown</code>, also wird es nie als vollständige Signatur veröffentlicht.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">"stdlib"</span>
+<pre>{ "path": "std/array", "exports": [
+  { "name": "filter",
+    "signature":
+      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;" },
+  { "name": "find",
+    "signature":
+      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;" },
+  { "name": "fold",
+    "signature":
+      "fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U" } ] }
+
+"modeled": 129, "partially_modeled": 46,
+"unmodeled": 165</pre>
+        </div>
+        <div class="code">
+          <span class="cap">"prelude" und "decisions"</span>
+<pre>"prelude": { "count": 24, "names": [
+  { "name": "int", "role": "type" },
+  { "name": "Ok",  "role": "value" },
+  { "name": "par", "role": "namespace" }, ... ] }
+
+"decisions": { "count": 49,
+  "duplicate_numbers": [],
+  "decisions": [
+    { "id": "D9",
+      "section": "Control flow &amp; expressions",
+      "title": "`else` is a catch-all arm; `_` is a
+        position-level wildcard; a PascalCase arm
+        head is a variant reference ..." }, ... ] }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>duplicate_numbers</code> gibt es, weil der Generator die eigene Liste der Spezifikation liest, und beim ersten Lauf fand er zwei verschiedene Entscheidungen, beide als D43 nummeriert, und gab <code>"duplicate_numbers": [43]</code> aus. Er meldet eine Kollision, statt sie zu bereinigen, und nur so hat es überhaupt jemand bemerkt. Nichts im Compiler hängt an einer D-Nummer, also war kein Programm betroffen; ein Leser, der einem Verweis folgte, schon. Das ist behoben: D43 ist die Regel zu <code>mut</code> über <code>await</code> hinweg und <code>never</code> ist D47, also kommt die Liste leer zurück. Heute gibt es 49 Entscheidungen, D1 bis D49.
+        </p>
+
+        <h2 class="block-label">Auch die fehlerhaften Programme lassen sich lesen</h2>
+        <p>
+          Der Negativ-Korpus des Compilers ist eine Menge von Programmen, die fehlschlagen müssen, mit dem Code, den jedes auslösen muss. Früher war er nur für <code>cargo test</code> sichtbar. Ein Agent, der lernt, was eine Regel ablehnt, ist genau der Leser, für den er geschrieben wurde, also antwortet er jetzt, und jeder Fall wird kompiliert, wenn du fragst, damit die Diagnose daneben die dieses Compilers ist.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --negative E0008</span>
+<pre>{
+  "code": "E0008",
+  "meaning": "Assignment without `mut` (`x = e` should be `mut x = e`, or
+              `let x = e` for a new binding; D5)",
+  "fix": "Write `mut x = e`, or `let x = e` for a new binding",
+  "negative": [ {
+    "name": "bare_assignment_without_mut",
+    "files": [ { "path": "bare_assignment_without_mut.glyph",
+      "source": "module neg\n\nfn count() -&gt; number {\n  let total = 0\n
+                 total = total + 1\n  return total\n}\n" } ],
+    "diagnostic": { "code": "E0008", "stage": "parse",
+      "message": "assignment requires `mut`",
+      "help": "Glyph marks every mutation (D5): write `mut x = ...` to
+               reassign an existing binding, or `let x = ...` to
+               introduce a new one.",
+      "range": { "start": { "line": 5, "col": 3, "offset": 53 }, ... } } } ],
+  "catches": [],
+  "catches_absent": "`catches/` pairs no TypeScript-accepted program with E0008"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Ohne Code listet es in 0.1.149 117 Fälle über 53 der 77 Codes und nennt die 24, die keinen haben, statt dich die Abdeckung aus dem ableiten zu lassen, was zurückkam. Ein zweiter Korpus, <code>catches/</code>, paart ein Programm, das <code>tsc --strict</code> akzeptiert, mit dem Glyph, das es ablehnt, und wo es solche gibt, kommen sie in derselben Antwort zurück. Beide sind direkt aus den Verzeichnissen eingebettet, also ist ein Fall, der zu einem davon hinzukommt, in der Antwort, ohne dass man an eine zweite Änderung denken muss.
+        </p>
+
+        <h2 class="block-label">Jedes Beispiel kompiliert, auch die falschen</h2>
+        <p>
+          Die Referenz zu generieren ist die eine Hälfte. Die andere Hälfte ist der Fließtext, mit dem ein Agent einsteigt, in dem die Beispiele der Teil sind, den er kopiert. Jeder Glyph-Codeblock in diesem Dokument ist entweder ein vollständiges Programm, das kompiliert, oder als Fragment eines benannten vollständigen Beispiels markiert, in dessen Zeilen es vorkommen muss. Es waren 19 Codeblöcke, davon 2 kompiliert; jetzt sind es 24, davon 20 kompiliert und 4 markiert, und keiner übersprungen. Die Stdlib-Referenz ging von 4 von 8 auf 8 von 8.
+        </p>
+        <p>
+          Ein Codeblock kann auch als Programm markiert werden, das fehlschlagen muss, mit dem Code, den es auslöst, und so enthält das Dokument die fünf falschen Formen, vor denen es dich warnt: die, die <code>E0228</code> auslöst, die, die <code>E0008</code> auslöst, und drei weitere. Eine Warnung, die mit der Diagnose gepaart ist, lässt sich prüfen. Eine Warnung im Fließtext ist ein Versprechen.
+        </p>
+        <p>
+          Das Kompilieren der Dokumente fand zwei Dinge, die beim Lesen nie aufgefallen wären. Ein inline geschriebenes dreifaches Backtick war als Beginn eines Codeblocks gelesen worden, also zählten 250 Zeilen als ein einziger Schnipsel, und nichts darin wurde geprüft. Und ein durchgearbeiteter Server in der Stdlib-Referenz rief <code>http.serve</code> auf, das <code>std/http</code> nicht exportiert. Die Funktion heißt <code>listen</code>.
+        </p>
+
+        <h2 class="block-label">Was die Übergabe kostet, und was sie nicht mehr kostet</h2>
+        <p>
+          Die elf MCP-Tools trugen früher ihr ganzes Handbuch in der Antwort auf <code>tools/list</code>, die jede Session beim Verbinden bezahlt: 31.446 Bytes Beschreibung in einer Antwort von 45.509 Bytes. Dieselben elf Tools tragen jetzt 8.627 in einer Antwort von 20.386 Bytes. Nichts wurde gelöscht. Der bisherige Text wird wörtlich aufbewahrt, nach Toolnamen geordnet, und in <code>glyph llms --json</code> veröffentlicht, also steht der Vertrag, den du im Moment des Aufrufs brauchst, in der Beschreibung, und der Rest ist einen Befehl entfernt statt in der ersten Antwort jeder Session. Ein Test liest die Toolliste und das Dokument zusammen, also lässt ein Dokument, das ein Tool nennt, das der Server nicht anbietet, oder eine Zahl, die nicht zur Liste passt, den Build fehlschlagen. Genau diese Prüfung hätte "stellt fünf Tools bereit" gebraucht.
+        </p>
+        <p>
+          All das ist offline und lokal. <code>glyph llms</code> gibt den Fließtext aus, <code>glyph llms --json</code> die Daten, <code>glyph llms --negative</code> die fehlerhaften Programme. Derselbe Fließtext wird unter <a href="/llms.txt">llms.txt</a> für einen Agenten mit Netzwerk und ohne Binary ausgeliefert. Was ein Agent über <em>deinen</em> Code fragt statt über die Sprache, beantworten die <a href="/answers/ask-the-compiler/">Abfrage-Tools</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p><code>glyph llms --json</code> gibt sieben Abschnitte aus dem Compiler aus: 77 Diagnosecodes, 51 davon mit einem kompilierten Gegenbeispiel, die 32 reservierten Wörter, die 24 Prelude-Namen, 40 Stdlib-Module mit 340 Exports, 49 aus der Spezifikation geparste Sprachentscheidungen und die elf Tools mit ihren Verben von <code>glyph query</code> und vollständigen Handbüchern. <code>docs/error-codes.md</code> und die Diagnosetabelle des Einstiegsdokuments werden aus der eigenen Code-Tabelle des Compilers von einem Skript geschrieben, das bei Abweichungen fehlschlägt und <code>llms.txt</code> gleich mit spiegelt. Ein Test hält den Tool-Katalog an das, was der Server anbietet. Jeder Glyph-Codeblock im Einstiegsdokument und in der Stdlib-Referenz kompiliert oder ist ein markiertes Fragment eines Blocks, der kompiliert, und fünf falsche Formen sind Programme, die mit dem Code gepaart sind, den jedes auslöst. <code>glyph llms --negative</code> antwortet aus denselben Korpora, die <code>cargo test</code> ausführt.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Wo es aufhört</h3>
+          <p>In diesem Dokument erscheinen zwei Zählungen der fehlerhaften Programme, und sie zählen verschiedene Dinge: 51 der 77 Codes haben ein Gegenbeispiel aus <code>tests/negative/</code>, und <code>glyph llms --negative</code> listet in 0.1.149 117 Fälle über 53 Codes, weil es auch die Ablehnungen in <code>catches/</code> liest; das nächste Release ergänzt die 22 Ablehnungen, die seitdem zu <code>catches/</code> hinzugekommen sind, auf 139 Fälle über 55 Codes. In 0.1.149 haben 24 Codes in keinem der beiden Korpora ein fehlerhaftes Programm, und die Antwort nennt sie, statt eins zu erfinden. 165 der 340 Stdlib-Exports kommen ohne Signatur zurück: Die Implementierung ist TypeScript, das <code>tsc</code> prüft, und die eigenen Tabellen des Compilers modellieren nichts dafür, also meldet <code>glyph_symbol</code> auf <code>std/result::all</code> oder <code>std/io::println</code> <code>kind: null</code> mit diesem Grund. Von den 175, die eine haben, tragen 46 noch ein <code>?</code>, wo ein Parametertyp hingehört. Und das Dokument ist ein Schnappschuss, den du abrufst, kein Dienst: Es gibt keine Retrieval-Schicht, keine Embeddings und keine Chat-Oberfläche darüber.</p>
+        </div>
+      </div>

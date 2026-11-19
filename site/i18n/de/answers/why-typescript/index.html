@@ -1,0 +1,50 @@
+---
+title: Warum TypeScript und nicht Go oder eine neue Sprache? · Glyph
+description: In TypeScript schreiben Agenten schon den meisten Code, und dort leben npm, React und Node. Glyph lässt sich nur deshalb Datei für Datei einführen, weil sein Ziel TS ist.
+source_hash: 9f7bf2e8baaad5d9
+prev: /answers/greppability/ | &larr; Zurück | Kann ein Agent (oder ich) finden, wo etwas definiert ist?
+next: /answers/vs-tooled-ts/ | Weiter &rarr; | Warum nicht einfach striktes TypeScript + zod + eslint + ts-pattern?
+---
+      <p class="q-eyebrow">04 &middot; Positionierung</p>
+      <h1 class="q-title">Warum TypeScript und nicht Go oder eine neue Sprache?</h1>
+
+      <p class="short-answer">
+        Weil Agenten in TypeScript schon den meisten Code schreiben und dort dein Ökosystem (npm, React, Node) lebt. Glyph lässt sich Datei für Datei einführen, <strong>nur weil sein Ziel TS ist</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Eine neue Sprache steht und fällt damit, wie du von null bis zur Auslieferung kommst. Zu TypeScript zu kompilieren heißt, dass du nie deine Codebasis, deinen Bundler, deinen Test-Runner oder dein Deployment verlässt. Glyph passt neben die <code>.ts</code>-Dateien, die du schon hast, und Imports funktionieren sauber in beide Richtungen:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">dasselbe Projekt: .glyph und .ts nebeneinander</span>
+<pre><span class="cm">// cart.glyph: new, written in Glyph</span>
+import { formatPrice } from "./format.ts"
+
+<span class="cm">// checkout.ts: existing, untouched</span>
+import { total } from "./cart.glyph"</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Go lässt sich nicht Datei für Datei in eine TypeScript-Codebasis einbauen: andere Laufzeit, anderes Modulsystem, anderes Ökosystem. Allein deshalb ist das Ziel TS.
+        </p>
+        <p>
+          <strong>Der berechtigte Punkt zu Go:</strong> Sein kleiner, stabiler Sprachumfang gibt einem Agenten weniger Möglichkeiten, falsch zu liegen. Da stimmen wir zu: Genau deshalb hält Glyph bewusst einen kleinen Kern mit einem Weg für jede Sache. Go ist in unserem <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">Dichte-Benchmark</a> für einen direkten Vergleich enthalten.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Sauberes TypeScript als Ausgabe, Imports in beide Richtungen mit deinen bestehenden <code>.ts</code>-Dateien und ein kleiner Kern, der überall läuft, wo Node oder ein Browser-Bundle läuft.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Wird gemessen</h3>
+          <p>Der sprachübergreifende Benchmark (Glyph, TS, Go, Python, Rust) wächst mit dem Korpus, damit die Aussage &ldquo;kleiner Sprachumfang&rdquo; eine Zahl bleibt und keine Behauptung.</p>
+        </div>
+      </div>

@@ -53,8 +53,17 @@ without them. A run takes about half a minute after the install.
 ## What a case says
 
 `case.toml` is TOML, read with Python's `tomllib`. Every string is a one-line
-`key = "value"`, because `glyph-cli/build.rs` reads `code`, `pillar` and
-`title`, and a `glyph-wasm` test reads `code`, with a one-line rule.
+`key = "value"`, because `glyph-cli/build.rs` reads `kind`, `code`, `pillar`
+and `title`, and a `glyph-wasm` test reads `kind` and `code`, with a one-line
+rule.
+
+Only refusals leave this directory. `glyph llms --negative`, `glyph --explain`
+and the playground's picker take a case when its `kind` is missing or
+`refused` and its code starts with `E`; the picker also needs exactly one
+`.glyph` file. Warnings, boundary checks, run-time stops and gaps are evidence
+for the page and the gate, not wrong programs the compiler refuses. An unknown
+`kind` fails the compiler build and the playground generator rather than being
+skipped.
 
 The fields every case has:
 

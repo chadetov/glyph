@@ -15,7 +15,9 @@
 //! project accepts, and the Glyph that refuses it. That pairing is the evidence
 //! behind every claim Glyph makes about catching what TypeScript does not, and
 //! it was visible to `scripts/check_catches.py` and to nothing an agent can
-//! run.
+//! run. Only its refusals are embedded: a case whose `kind` is `warned`,
+//! `boundary`, `runtime` or `gap` documents something other than a program
+//! Glyph refuses, and is left out.
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -146,14 +148,29 @@ fn read_catch(dir: &Path) -> Option<Catch> {
     let meta_path = dir.join("case.toml");
     let meta = std::fs::read_to_string(&meta_path).ok()?;
     println!("cargo:rerun-if-changed={}", meta_path.display());
-    // `case.toml` is three `key = "value"` lines and nothing else; the gate
-    // script reads it with the same one-line rule.
+    // `case.toml` is TOML, but the fields read here are one-line
+    // `key = "value"` strings with no escapes; `scripts/check_catches.py`
+    // refuses a case where they are anything else.
     let field = |key: &str| -> Option<String> {
         meta.lines()
             .filter_map(|l| l.split_once('='))
             .find(|(k, _)| k.trim() == key)
             .map(|(_, v)| v.trim().trim_matches('"').to_string())
     };
+    // A case is a refusal only when its `kind` is missing or `refused` and its
+    // code is one of Glyph's own. A warning, a boundary check, a run-time stop
+    // or a known gap is not a wrong program the compiler refuses, so it never
+    // enters `--negative` or `--explain`. The same rule decides the
+    // playground's picker (`scripts/gen_playground_examples.py`).
+    let kind = field("kind").unwrap_or_else(|| "refused".to_string());
+    match kind.as_str() {
+        "refused" => {}
+        "warned" | "boundary" | "runtime" | "gap" => return None,
+        other => panic!(
+            "{}: unknown `kind = \"{other}\"`; it is one of refused, warned, boundary, runtime, gap",
+            meta_path.display()
+        ),
+    }
     let code = field("code")?;
     if code.len() != 5 || !code.starts_with('E') {
         return None;

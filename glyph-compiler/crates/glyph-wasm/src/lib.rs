@@ -501,8 +501,10 @@ mod tests {
     #[test]
     fn every_catch_the_playground_picker_shows_is_refused_here_with_its_code() {
         // `scripts/gen_playground_examples.py` puts a `catches/` case in the
-        // playground's picker when its code is an `E` code and it is one
-        // module. This applies the same rule and compiles each such case
+        // playground's picker when it is a refusal (`kind` missing or
+        // `refused`), its code is an `E` code, and it is one module. A
+        // warning, boundary, run-time or gap case is never in the picker.
+        // This applies the same rule and compiles each such case
         // through the `compile` the page calls, so a case the picker offers as
         // a refusal is one this surface refuses, with the code the case names.
         let catches = repo_root().join("catches");
@@ -515,14 +517,20 @@ mod tests {
         let mut shown = 0;
         for d in dirs {
             let meta = std::fs::read_to_string(d.join("case.toml")).unwrap();
-            let code = meta
-                .lines()
-                .find_map(|l| {
+            let field = |key: &str| {
+                meta.lines().find_map(|l| {
                     let (k, v) = l.split_once('=')?;
-                    (k.trim() == "code").then(|| v.trim().trim_matches('"').to_string())
+                    (k.trim() == key).then(|| v.trim().trim_matches('"').to_string())
                 })
-                .unwrap_or_default();
-            if !code.starts_with('E') || glyph_files(&d).len() != 1 {
+            };
+            let kind = field("kind").unwrap_or_else(|| "refused".to_string());
+            assert!(
+                ["refused", "warned", "boundary", "runtime", "gap"].contains(&kind.as_str()),
+                "{}: unknown kind `{kind}`",
+                d.display()
+            );
+            let code = field("code").unwrap_or_default();
+            if kind != "refused" || !code.starts_with('E') || glyph_files(&d).len() != 1 {
                 continue;
             }
             shown += 1;

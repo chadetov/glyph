@@ -29,7 +29,7 @@ next_steps: |
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd>An exhaustive <code>switch</code>: the compiler makes you handle every case. There is no <code>if</code>/<code>else</code>; <code>match</code> is the only conditional, so a case can't be silently forgotten.</dd>
+          <dd>An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href="#there-is-no-if">explained below</a>.</dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -51,6 +51,57 @@ next_steps: |
           Glyph helps them most, but the checks are the same whether a person or a model wrote the
           code. If you already run strict TypeScript with zod and eslint,
           <a href="/answers/vs-tooled-ts/">here is what a language adds over that</a>.
+        </p>
+
+        <h2 class="block-label">There is no if</h2>
+        <p>
+          A branch on a boolean is a <code>match</code> on <code>true</code> and
+          <code>false</code>. Where you only act on one side, the other arm is an empty block.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript</span>
+<pre>function label(admin: boolean): string {
+  return admin ? "admin" : "member";
+}
+
+if (verbose) {
+  console.log("starting");
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph</span>
+<pre>fn label(admin: bool) -&gt; string {
+  return match admin {
+    true =&gt; "admin",
+    false =&gt; "member",
+  }
+}
+
+match verbose {
+  true =&gt; io.println("starting"),
+  false =&gt; {},
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The reason is decision D3 in the spec: one construct for branching on a value, so
+          there is one shape to read, write and search for. A value that comes out of a branch
+          always comes out of a <code>match</code>, whose result type Glyph's own checker works
+          out instead of handing it to <code>tsc</code>. For a union, the same construct is the one
+          that must cover every case (<code>E0200</code>). For a boolean that buys little, since
+          <code>false =&gt; {}</code> says no more than leaving out an <code>else</code>.
+        </p>
+        <p>
+          It costs you something. A one-line ternary becomes a four-line <code>match</code>, an early
+          return on a condition is a <code>match</code> with an empty arm, and it is the first
+          thing that looks wrong to a TypeScript reader. The spec records the verbosity as an
+          accepted cost. Writing <code>if</code> anyway is error <code>E0006</code>, whose help shows
+          the <code>match</code> form; a ternary is <code>E0013</code> with the same help.
         </p>
 
         <h2 class="block-label">The tax you already pay</h2>

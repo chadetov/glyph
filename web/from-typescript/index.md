@@ -12,7 +12,7 @@ You don't learn a new language, just these four. They are the ones in every samp
 
 `match`
 
-An exhaustive `switch`: the compiler makes you handle every case. There is no `if`/`else`; `match` is the only conditional, so a case can't be silently forgotten.
+An exhaustive `switch`: over a union, the compiler makes you handle every case. It is also the only conditional: there is no `if`/`else` and no ternary, explained below.
 
 `Result<T, E>`
 
@@ -27,6 +27,42 @@ A function; the `->` is its return type. A `type X = {...}` is a record, and a `
 Reassignment is explicit and greppable. A plain `let` binding never changes under you; you write `mut` to change one.
 
 "Agents" on this site means AI coding assistants such as Claude, Copilot and Cursor. Glyph helps them most, but the checks are the same whether a person or a model wrote the code. If you already run strict TypeScript with zod and eslint, [here is what a language adds over that](https://glyphlang.io/answers/vs-tooled-ts/).
+
+## There is no if
+
+A branch on a boolean is a `match` on `true` and `false`. Where you only act on one side, the other arm is an empty block.
+
+TypeScript
+
+```
+function label(admin: boolean): string {
+  return admin ? "admin" : "member";
+}
+
+if (verbose) {
+  console.log("starting");
+}
+```
+
+Glyph
+
+```
+fn label(admin: bool) -> string {
+  return match admin {
+    true => "admin",
+    false => "member",
+  }
+}
+
+match verbose {
+  true => io.println("starting"),
+  false => {},
+}
+```
+
+The reason is decision D3 in the spec: one construct for branching on a value, so there is one shape to read, write and search for. A value that comes out of a branch always comes out of a `match`, whose result type Glyph's own checker works out instead of handing it to `tsc`. For a union, the same construct is the one that must cover every case (`E0200`). For a boolean that buys little, since `false => {}` says no more than leaving out an `else`.
+
+It costs you something. A one-line ternary becomes a four-line `match`, an early return on a condition is a `match` with an empty arm, and it is the first thing that looks wrong to a TypeScript reader. The spec records the verbosity as an accepted cost. Writing `if` anyway is error `E0006`, whose help shows the `match` form; a ternary is `E0013` with the same help.
 
 ## The tax you already pay
 

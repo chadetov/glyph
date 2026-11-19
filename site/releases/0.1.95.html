@@ -1,6 +1,7 @@
 ---
 version: 0.1.95
 month: 2026-08
+date: 2026-08-30
 ---
             <h3>An imported union is checked whether or not it is generic</h3>
             <p>A <code>match</code> over a union imported from another module could leave a variant out, build clean, pass <code>tsc --strict</code>, and throw at run time. It took the type parameter to do it: delete <code>&lt;K&gt;</code> from both files and the identical program was <code>E0200</code>. A scrutinee from another module goes down its own coverage path, and the gate that reaches it asked whether the type was an imported union. <code>Tree&lt;string&gt;</code> is an <em>application</em> of one, so it matched nothing, the coverage check never ran, and the match went uncounted. The gate reads through the application now, which puts a union&rsquo;s arity out of reach of the answer.</p>

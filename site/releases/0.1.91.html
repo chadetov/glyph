@@ -1,6 +1,7 @@
 ---
 version: 0.1.91
 month: 2026-08
+date: 2026-08-27
 ---
             <h3>A type parameter no longer switches the checks off</h3>
             <p>Add a <code>&lt;K&gt;</code> to a union and two things stopped working, both quietly. A nested pattern under one of its payloads was refused with <code>E0300</code>, so the rebalance arm 0.1.90 made writable had no spelling over a tree that carries a key type. And a <code>match</code> on that union was not checked for exhaustiveness at all: omit a variant and the program built, passed <code>tsc --strict</code>, and threw at run time, where the same program on <code>Tree</code> is <code>E0200</code>. One function answered both questions and it only looked at the bare form of the type, never the applied one. It unwraps the application now, so a union's arity stops being something an arm can feel.</p>

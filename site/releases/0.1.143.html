@@ -1,6 +1,7 @@
 ---
 version: 0.1.143
 month: 2026-11
+date: 2026-11-18
 tags: breaking
 ---
             <p>An <code>is</code> pattern is now checked the same way <code>T.is(v)</code> is. Before, <code>match v { is Doc =&gt; … }</code> compiled even when <code>Doc</code> had a field nothing could check at run time, such as an <code>extern_ts</code> type, and the arm then matched any value with that key present. <code>Doc.is(v)</code> refused the same type. Now both are E0304 with the same message, naming the field. This covers records, unions, nested records, generics like <code>is Page&lt;User&gt;</code>, and <code>&lt;case is T&gt;</code> in JSX.</p>

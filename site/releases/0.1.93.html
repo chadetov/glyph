@@ -1,6 +1,7 @@
 ---
 version: 0.1.93
 month: 2026-08
+date: 2026-08-27
 ---
             <h3>A nested variant tests the payload instead of binding it</h3>
             <p><code>Err(Blank)</code> beside <code>Err(e)</code> reads as &ldquo;skip a blank line, report every other parse error&rdquo;. It compiled to two <code>case "Err":</code> labels on the outer tag, and the first one bound the whole payload under the name <code>Blank</code>. Every error took the first arm and the second was dead code the compiler still wrote out. Nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> has nothing to say about a duplicate case label, so the build was green and the wrong arm answered. The typechecker had the right reading the whole time. Delete the second arm and it reports a non-exhaustive match on the payload union, which means the checker read <code>Blank</code> as a variant while the emitter read it as a new binding. The arm dispatches on the payload&rsquo;s own tag now, under any outer variant.</p>

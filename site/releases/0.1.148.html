@@ -1,6 +1,7 @@
 ---
 version: 0.1.148
 month: 2026-11
+date: 2026-11-19
 tags: breaking
 ---
             <p>A map's keys are checked at run time now. With <code>type Tier = "free" | "pro"</code>, <code>json.parse&lt;Record&lt;Tier, int&gt;&gt;</code> returns <code>Ok</code> only for an object whose keys are exactly <code>free</code> and <code>pro</code>. A stray key or a missing one is an <code>Err</code>; before, both came back <code>Ok</code>, and the program went on believing every member was there.</p>

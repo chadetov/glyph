@@ -1,6 +1,7 @@
 ---
 version: 0.1.115
 month: 2026-09
+date: 2026-09-06
 ---
             <h3>The language server stopped running a second compiler</h3>
             <p>Every request to <code>glyph lsp</code>, a keystroke, a hover, a find-references, re-ran the whole front end on a bare string: parse, symbol collection, prelude construction, resolution, and type assignment, every time. A hover cost the same as a fresh diagnostics pass. The server now owns its own <code>CompilerDb</code>, fed by the editor's buffers rather than disk, and a second request over an unchanged buffer executes zero queries.</p>

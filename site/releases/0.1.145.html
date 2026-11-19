@@ -1,6 +1,7 @@
 ---
 version: 0.1.145
 month: 2026-11
+date: 2026-11-18
 tags: breaking
 ---
             <p><code>is Record&lt;K, V&gt;</code> and <code>is Array&lt;X&gt;</code> now check what the container holds. Before, <code>match v { is Record&lt;string, int&gt; =&gt; … }</code> took the arm for any object, including <code>{"a": "x"}</code>, and <code>is Array&lt;int&gt;</code> took it for any array. Now every value or element is checked against <code>V</code> or <code>X</code>, at any depth. A pattern whose part type has no runtime check, such as <code>is Array&lt;H&gt;</code> with <code>H</code> an <code>extern_ts</code> type, is E0304. <code>is Record&lt;string, unknown&gt;</code> and <code>is Array&lt;unknown&gt;</code> work as before.</p>

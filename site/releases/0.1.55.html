@@ -1,6 +1,7 @@
 ---
 version: 0.1.55
 month: 2026-08
+date: 2026-08-07
 ---
             <h3>A loop index that was a string</h3>
             <p>Read a <code>Record</code>, <code>match</code> the <code>Option</code> it hands back, walk the array inside it with an index. Three ordinary things, and the chain miscompiled: the two-binding <code>for</code> took the record lowering, so the index bound the string key <code>"0"</code> instead of the number <code>0</code>, and the program printed <code>01:x</code> where it should print <code>1:x</code>. No diagnostics, and <code>tsc --strict</code> passed. This came out of writing a dependency resolver, where the fix for it had been a <code>let path: Array&lt;string&gt;</code> annotation with a comment saying the annotation was load-bearing.</p>

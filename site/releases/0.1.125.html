@@ -1,6 +1,7 @@
 ---
 version: 0.1.125
 month: 2026-10
+date: 2026-10-11
 tags: breaking
 ---
             <p>This release is about React components. Three programs passed <code>glyph check</code> with <code>tsc</code> in the loop under 0.1.124 and were broken when they ran: a component reached through <code>import ui</code> was emitted as a string tag and never called, an element with no attributes passed <code>null</code> as its props, and an unexported component reached through a namespace was accepted. All three are Glyph diagnostics now. It is breaking for that reason, and for two more programs that 0.1.124 left to <code>tsc</code>: a component whose parameter is not a record, and an element missing a required prop. Each was established by running 0.1.124 and this build on the same program.</p>

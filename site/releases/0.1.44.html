@@ -1,6 +1,7 @@
 ---
 version: 0.1.44
 month: 2026-08
+date: 2026-08-05
 ---
             <h3>Editing a hand-written shim rebuilds instead of running the old one</h3>
             <p><code>glyph run</code> caches a build under a fingerprint of your sources so a repeated run of unchanged code just executes. The fingerprint hashed every <code>.glyph</code> file and every <code>.d.ts</code> under <code>.types/</code>, and stopped there. A <code>.ts</code> you wrote yourself under <code>&lt;src&gt;/extern/</code> was left out, even though the build stages it into the output and <code>tsc</code> checks it with the rest of your code. So you edited your shim, ran the program, and got a clean type-checked build of the version you had before the edit. A URL shortener found it: the app declared its response shape twice, once in Glyph and once in the shim, and the <code>tsc</code> pass that was supposed to keep the two in agreement was reading the stale copy.</p>

@@ -1,6 +1,7 @@
 ---
 version: 0.1.87
 month: 2026-08
+date: 2026-08-25
 ---
             <h3>The exit code your program recorded is the one it leaves with</h3>
             <p>A CLI that computes a verdict inside <code>main</code> and records it, rather than returning it, exited 0 regardless. The wrapper we generate assigned <code>process.exitCode</code> unconditionally after <code>main</code> returned, so a <code>main</code> declared <code>-&gt; void</code> had whatever it recorded written back to zero on the way out. Every shell and CI check reading that code saw success.</p>

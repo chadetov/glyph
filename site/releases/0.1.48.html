@@ -1,6 +1,7 @@
 ---
 version: 0.1.48
 month: 2026-08
+date: 2026-08-06
 ---
             <h3>The link checker stops working around the standard library</h3>
             <p>One app in this repo walks a directory, scans Markdown for links, and checks them over HTTP. It could not do any of those three things with the standard library alone. It imported node's <code>readdirSync</code> directly, worked out which paths were directories by reading them and inspecting the <code>errno</code>, hand-wrote a 180-line character scanner because <code>regex.find_all</code> drops capture groups, and used a fail-fast pool that threw away every result when one host went down. This release adds the four missing pieces and then rewrites the app until none of the workarounds are left.</p>

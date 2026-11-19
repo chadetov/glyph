@@ -1,6 +1,7 @@
 ---
 version: 0.1.146
 month: 2026-11
+date: 2026-11-19
 tags: breaking
 ---
             <p>A <code>{</code> on the line where a statement just ended is now a parse error, E0013. Before, <code>return h() { k: 2 }</code> compiled as <code>return h()</code> followed by an object literal that never ran, and the only hint was an unreachable-code warning. The value the line was written to return was silently dropped.</p>

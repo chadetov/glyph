@@ -1,6 +1,7 @@
 ---
 version: 0.1.45
 month: 2026-08
+date: 2026-08-05
 ---
             <h3>A value that came out of a <code>match</code> keeps its type</h3>
             <p>Glyph has no <code>if</code>, so <code>match</code> is how you branch, and the type checker recorded nothing for it: every <code>match</code> expression in every program typed as unknown. Bind one to a <code>let</code> and everything after that point was flying blind. A field typo on the binding came back as a <code>TS2339</code> on generated TypeScript instead of Glyph's own <code>E0210</code>, and a two-binding <code>for</code> over one of its fields picked the wrong lowering: <code>i</code> came out as the string <code>"0"</code>, the build was clean, <code>tsc --strict</code> was clean, and the program printed <code>01:a</code> where it should print <code>1:a</code>. An expense splitter found it, and was carrying an <code>Array&lt;T&gt;</code> annotation with a comment above it explaining why the annotation could not be deleted.</p>

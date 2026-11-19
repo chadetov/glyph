@@ -1,6 +1,7 @@
 ---
 version: 0.1.58
 month: 2026-08
+date: 2026-08-07
 ---
             <h3>An imported record arrived without its fields, and the loop over it counted in strings</h3>
             <p>Splitting a program into modules used to cost you two checks. A record type declared in one file and used in another arrived with nothing known about it, so <code>sheet.rowz</code> on an imported <code>Sheet</code> drew no Glyph error at all, and <code>for i, r in sheet.rows</code> emitted <code>Object.entries(sheet.rows)</code> instead of <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string <code>"0"</code>, so <code>i + 1</code> concatenates: a row labelled <code>line 01</code> where it should read <code>line 1</code>, and <code>line 11</code> for row 2. <code>tsc</code> catches the arithmetic uses of that index and reports them against a variable Glyph bound for you. It cannot catch the ones where a string works and is wrong, which is interpolation, concatenation, and <code>record.get</code> keys. The query engine in <code>examples/apps/csvql</code> carried three <code>let</code> hoists and a four-line comment whose only job was to tell the emitter what an imported field's type was.</p>

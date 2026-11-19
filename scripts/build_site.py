@@ -531,6 +531,17 @@ def mark_wrapping_blocks(body: str) -> str:
     return "".join(out) + body[pos:]
 
 
+def attr(text: str) -> str:
+    """Front-matter text (which may hold entities) as an attribute value."""
+    return html.escape(html.unescape(text), quote=True)
+
+
+def short_title(title: str) -> str:
+    """A page title without the " · Glyph" every <title> ends with: the
+    preview names the site separately (og:site_name)."""
+    return re.sub(r"\s*·\s*Glyph$", "", title)
+
+
 def page_url(path: pathlib.Path) -> str:
     rel = path.relative_to(PAGES).parent.as_posix()
     return "/" if rel == "." else f"/{rel}/"
@@ -558,6 +569,10 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
         "title": fm["title"],
         "description": fm["description"],
         "canonical": fm.get("canonical", ORIGIN + ctx.here),
+        "og_title": attr(short_title(fm["title"])),
+        "og_description": attr(fm["description"]),
+        "og_locale": site_i18n.OG_LOCALES[ctx.loc],
+        "og_locale_alternates": site_i18n.og_locale_alternates(ctx),
     }
     head = fill(site_i18n.apply_strings(partial("head.html"), t), head_values, where)
     head += site_i18n.head_extra(ctx)

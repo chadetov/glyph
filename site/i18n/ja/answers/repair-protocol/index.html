@@ -1,0 +1,168 @@
+---
+title: コンパイラはエージェントに直し方を教えてくれるか？ · Glyph
+description: 各診断には、型、問題のシンボル、正しい代替案が含まれます。コンパイラが自力で決められる修正は glyph fix が書き込みます。
+source_hash: 4b15cc7a1cc4e288
+prev: /answers/ask-the-compiler/ | &larr; 前へ | エージェントは、コードを書く前にシンボルが何なのかをコンパイラに聞けますか？
+next: /answers/generated-docs/ | 次へ &rarr; | エージェントが読むドキュメントは生成されたものですか。それとも手書きで、内容が古くなっていますか。
+---
+      <p class="q-eyebrow">23 &middot; 赤いビルドを直す</p>
+      <h1 class="q-title">ビルドが失敗したとき、コンパイラはエージェントに直し方を教えてくれるか？</h1>
+
+      <p class="short-answer">
+        何が間違っているかを、パースが必要な文章ではなくデータとして伝えます。2 つの型、<code>module::name</code> の形の問題のシンボル、そして誤ったものの代わりに正しく置けるものの有限のリストです。<code>glyph check --agent</code> は、修正の編集が壊してはならないものも加えます。答えが完全に決まる場合は、<code>glyph fix</code> がそれを書き込みます。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          コンパイラを相手にしたエージェントのループは、エラーを読み、編集を推測し、ビルドし直す、の繰り返しです。被害が生じるのは推測の段階で、それはエラーが文字列だから起きます。「<code>OrderStatus</code> に対する網羅的でない match」と読んだエージェントは、match にアームが足りないことはわかります。しかし欠けているバリアントが何を持つかはわからないので、<code>Paid("tx_1")</code> と書いて、次の診断で間違いを知ります。あるいは「網羅的」という言葉を読んで <code>else</code> のアームを追加し、診断が守るために存在していた保証を捨てたままビルドを通してしまいます。
+        </p>
+        <p>
+          コンパイラはそのすべてを知っていました。ユニオンのバリアントとそのペイロードを知っていて、<code>else</code> を足せば網羅性の保証を失うことも知っていて、返答の 1 行手前でその両方を捨てていたのです。
+        </p>
+
+        <h2 class="block-label">実例</h2>
+        <p>
+          2 つのモジュールからなるプロジェクトです。<code>orders</code> がユニオンを宣言し、<code>main</code> はそれに対する <code>match</code> を書いて 1 つのケースだけを扱います。<code>glyph check --agent</code> の出力を、ここで重要なキーだけに絞って示します：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --agent --no-tsc src</span>
+<pre>{
+  "code": "E0200",
+  "severity": "error",
+  "stage": "typecheck",
+  "message": "non-exhaustive match on `OrderStatus`: missing variants
+              `Paid`, `Cancelled`",
+  "help": "Add an arm for each missing variant.",
+  "file":   "main.glyph",
+  "module": "main",
+  "entity": "main::describe",
+  "cause":  "orders::OrderStatus",
+  "related": ["Pending", "Paid", "Cancelled"],
+  "missing_variants": ["Paid", "Cancelled"],
+  "expected": null, "actual": null, "alternatives": null,
+
+  "constraints": [
+    "preserve exhaustiveness: this match must name every case of
+     `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
+    "do not add an `else` arm: `OrderStatus` is declared in this project,
+     and a catch-all forfeits the guarantee that adding a variant to it
+     later forces this match to be updated (D9)."
+  ],
+
+  "symbols": [
+    { "entity": "orders::OrderStatus", "kind": "union", "pub": true,
+      "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+      "exhaustive_match": true,
+      "variants": [
+        { "name": "Pending", "payload": null, "construct": "Pending" },
+        { "name": "Paid",    "payload": "{ transaction_id: string }",
+          "construct": "Paid({ transaction_id: string })" },
+        { "name": "Cancelled", "payload": null, "construct": "Cancelled" }
+      ] }
+  ],
+  "symbols_absent": [],
+
+  "explain": { "command": "glyph --explain E0200",
+               "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200" }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          取り上げるべき点が 3 つあります。<code>cause</code> は問題のシンボルで、診断が置かれている宣言である <code>entity</code> とは別のものです。ここでは編集は <code>main::describe</code> で行われ、合わせるべき形は <code>orders::OrderStatus</code> から来ています。どちらも他のツールが受け取るアドレスなので、何も導き直さずに答えをつなげられます。
+        </p>
+        <p>
+          <code>constraints</code> は修正ではありません。それぞれはコンパイラがすでに強制していることで、診断を満たす編集がその背後にある保証を壊さないように書き出されています。2 つ目の制約こそ、このキーが存在する理由です。<code>else</code> のアームは正当で、ビルドを通すことはできますが、制約はそれを選んだときに何を失うかを述べています。
+        </p>
+        <p>
+          <code>symbols</code> は、診断が名前を挙げたすべてのシンボルに対する <code>glyph_symbol</code> の答えなので、エージェントの次の編集に 2 回目の呼び出しは要りません。ツールが拒否したシンボルは理由とともに <code>symbols_absent</code> に入るので、「調べなかった」と「調べたが存在しない」が区別されます。
+        </p>
+        <p>
+          キーは常にすべてそろっています。コンパイラが持っていない情報は、キーの欠落ではなく明示的な <code>null</code> として届くので、「ない」ことの表し方はどのコードでも、CLI と MCP のどちらでも 1 つだけです。
+        </p>
+
+        <h2 class="block-label">答えが決まる場合は、コンパイラが書き込む</h2>
+        <p>
+          <code>glyph fix</code> が適用するのは、コンパイラが自力で決められる修正だけです。使われていない import、型検査器がちょうど 1 つの候補を算出した、バリアントでないアームの先頭、そしてちょうど 1 つの宣言済みフィールドと 1 文字違いの、レコードが宣言していないフィールドです。上の <code>match</code> はこれに当たりません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">上の match に対する glyph fix src</span>
+<pre>glyph fix: removed 0 unused import(s) across 0 file(s).
+glyph fix: declined E0200 in src/main.glyph: the compiler does not
+           determine what a missing arm should do, so `glyph fix`
+           writes none: add an arm for each of `Paid`, `Cancelled`.
+           `glyph check --agent` gives the pattern each case takes.
+
+<span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          コンパイラは、どのケースが欠けていて、それぞれがどんなパターンになるかを知っています。しかし注文が <code>Paid</code> のときにプログラムが何をすべきかは知りません。コンパイラが書く本体は、どれもコンパイルが通るだけの推測になります。0.1.128 までの <code>glyph fix</code> はその推測を書いていました。ケースごとに 1 つのアームを追加し、その本体はケースを出力して <code>process.exit(1)</code> を呼ぶものでした。するとプログラムは <code>check</code>、<code>tsc</code>、<code>build</code> を通り、<code>glyph query variants</code> は match を網羅的と報告したので、欠けたケースはコンパイルエラーから実行時のクラッシュに変わり、それを指摘するものは何も残りませんでした。
+        </p>
+        <p>
+          そこでこのルールは修正を見送り、ケースの名前を挙げます。アームを書くのに必要なものは、すべて上の <code>--agent</code> の答えにあります。<code>missing_variants</code> と、<code>symbols</code> の下にある各バリアントの <code>construct</code> の書き方です。アームを書くのはあなたかエージェントです。コンパイラが振る舞いを推論できない他のコードと同じです。
+        </p>
+        <p>
+          <code>glyph fix</code> が書くものは、推測なしで書かれます。答えを決められないルールはすべて、見送ったことと理由を、適用した内容と同じ出力に表示します。タイポから 1 文字違いのフィールドが 2 つあれば、それは 1 つではなく 2 つであり、どちらかを選ぶのではなくそう伝えます。
+        </p>
+
+        <h2 class="block-label">コード自身の説明を、データとして</h2>
+        <p>
+          <code>glyph --explain &lt;CODE&gt; --json</code> は、詳しい説明、1 行の <code>help</code>、ドキュメントの URL、そしてコンパイラのネガティブコーパスにある誤ったプログラムと、それに対してこのコンパイラが出す診断の組を返します。診断は保存されたものではなく問い合わせのたびにコンパイルされるので、コンパイラが実際に言う内容からずれることはありません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --explain E0200 --json</span>
+<pre>{
+  "code": "E0200",
+  "title": "non-exhaustive match",
+  "explanation": "A `match` over a tagged union must handle every variant.
+    Unions are sealed (D9): adding a variant later forces every match to be
+    updated, so a missing variant cannot silently fall through at runtime ...",
+  "help": "Add an arm for each missing variant.",
+  "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "expected_error": "E0200",
+    "files": [ { "path": "alias_of_local_union_not_exhaustive.glyph",
+                 "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+                    "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+                    "cause": "alias_of_local_union_not_exhaustive::Shape",
+                    "related": ["Circle", "Square", "Tri"],
+                    "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a case:
+      an entry is a wrong program and the code it draws. A fix invented here would
+      compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          コーパスが扱っていないコードには、作り話の例ではなく、<code>counter_example: null</code> と、コーパスにそのケースがないことを述べる文が返ります。コーパスは扱っている範囲を主張し、それ以外については何も主張しません。
+        </p>
+        <p>
+          <code>glyph --explain</code> が渡すのはコードごとに 1 ケースです。コーパス全体も読めます。<code>glyph llms --negative E0200</code> はそのコードを出す誤ったプログラムをすべて、問い合わせのたびにコンパイルして表示します。<code>tsc --strict</code> が受け入れるプログラムと、それを拒否する Glyph を組にした 2 つ目のコーパスがあれば、それも並べて返します。コードを指定しなければ、70 個のコードのうち 46 個にわたる 102 ケースを一覧し、ケースのない 24 個の名前を挙げます。カバー率は返ってきたものから推測するのではなく、明記されます。これを含め、コンパイラが自分自身について公開する内容は<a href="/answers/generated-docs/">専用のページ</a>にあります。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>すべての診断は <code>expected</code>、<code>actual</code>、<code>cause</code>、<code>alternatives</code>（<code>alternatives_kind</code> が、それが <code>fields</code>、<code>members</code>、<code>variants</code>、<code>literals</code>、<code>exports</code> のどれを並べたものかを示し、エラーが発生した場所で設定されます）、<code>related</code>、<code>module</code>、<code>file</code>、<code>explain</code> を持ちます。これらは導き直したものではなく、コンパイラが発生させたエラーから埋められ、コンパイラがその情報を持たない場合はそれぞれ明示的な <code>null</code> になります。<code>file</code> は解決ルートからの相対パスで、レポートはそのルートを <code>project_root</code> に記すので、そのまま開けます。<code>glyph check --agent</code> は診断ごとに <code>constraints</code> と <code>symbols</code> を加えます。<code>glyph fix</code> は 3 つのルール（<code>E0106</code>、<code>E0210</code>、<code>E0220</code>）を適用し、見送ったものはすべて理由とともに示します。<code>E0200</code> もすべてそうで、報告はしますが書き込みはしません。<code>glyph --explain &lt;CODE&gt; --json</code> はコンパイル済みの反例付きで説明を返し、<code>glyph llms --negative &lt;CODE&gt;</code> はそのコードを出す誤ったプログラムのコーパス全体を返します。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">限界</h3>
+          <p><code>E0211</code> の <code>cause</code> は <code>null</code> です。呼び出しの引数で問題となるシンボルはパラメータで、<code>module::fn.param</code> は識別子の語彙で表せないため、この null は抜け漏れではなく意図的なものです。反例の <code>corrected</code> は常に <code>null</code> です。ネガティブコーパスはケースに修正済みのプログラムを組み合わせておらず、70 個のコードのうち 24 個にはケースがまったくないからです。<code>glyph fix</code> が書くのは 3 つのルールだけで、網羅的でない <code>match</code> のアームは書きません。それはケースとそのパターンを診断に載せたうえで、あなたかエージェントに任されます。見送るものは、すべてはっきりと見送ったと伝えます。</p>
+        </div>
+      </div>

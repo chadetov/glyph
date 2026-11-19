@@ -1,0 +1,153 @@
+---
+title: エージェントの編集で差分はきれいなままか、ファイルが整形し直されるのか？ · Glyph
+description: Glyph には正規のレイアウトが 1 つだけあり、末尾カンマが必須なので、1 行の変更は 1 行の差分になります。エージェントが実際の変更を整形のノイズに埋もれさせることはできません。
+source_hash: b0148f7848d7e246
+prev: /answers/verifiability/ | &larr; 前へ | エージェントがコードを気づかれずに壊すのを、何が防ぐのか
+next: /answers/greppability/ | 次へ &rarr; | エージェント（や自分）は、何がどこで定義されているかを見つけられるか
+---
+      <p class="q-eyebrow">02 &middot; レビューしやすい変更</p>
+      <h1 class="q-title">エージェントの編集は差分がきれいなままか、それともファイル全体を整形し直してしまうのか？</h1>
+
+      <p class="short-answer">
+        1 行の変更は、いつでも <strong>1 行の差分</strong>になります。Glyph には正規のレイアウトが 1 つしかないので、エージェントが<strong>実際の変更を大量の整形し直しの下に埋もれさせることはできません</strong>。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          エージェントがプルリクエストを出すとき、レビューの対象は差分<em>そのもの</em>です。本当は 1 行の修正が 200 行の整形し直しとして届いたら、何が変わったのか誰にも見えません。バグが紛れ込むのはまさにそのノイズの中です。差分の安定性とは、差分が変更を示し、<strong>変更以外は何も示さない</strong>ということです。
+        </p>
+        <p>大部分は 2 つのルールで実現しています。それぞれを、レビューするときの差分の形で示します。</p>
+
+        <h2 class="block-label">例 1：末尾カンマと、1 行に 1 要素</h2>
+        <p>ルートを 1 つ追加します。TypeScript でよくある書き方では、カンマを足すためだけに直前の最終行も変わります。1 要素の変更で 2 行が動きます：</p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript："/billing" を追加</span>
+<pre> const routes = [
+   "/home",
+<span class="del">-  "/about"</span>
+<span class="add">+  "/about",</span>
+<span class="add">+  "/billing"</span>
+ ]</pre>
+          <div style="padding:0 16px 14px"><span class="verdict bad">1 つの変更で 3 行が動く</span></div>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph："/billing" を追加</span>
+<pre> let routes = [
+   "/home",
+   "/about",
+<span class="add">+  "/billing",</span>
+ ]</pre>
+          <div style="padding:0 16px 14px"><span class="verdict good">追加は 1 行、変更内容そのもの</span></div>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          末尾カンマは<strong>必須</strong>です。1 行に収まらないリストは詰め直されず 1 行に 1 要素で並ぶので、要素の挿入、削除、並べ替えで隣の行が乱れることはありません。レコードのフィールド、パラメータ、match のアーム、import でも同じです。このしきい値にはコストもあります。名前の変更で呼び出しが 100 桁を超えると、引数リスト全体が 1 行に 1 つの形に展開されます。
+        </p>
+
+        <h2 class="block-label">例 2：正規のレイアウトは 1 つ</h2>
+        <p>
+          正しいフォーマットはただ 1 つで、<code>glyph fmt</code> が生成します。空白、折り返し、揃え位置はエージェントが「整える」ことのできる選択肢ではないので、意味の変更に再フォーマットが付いてくることはありません。フィールドの型を 1 つ変えれば、差分はそれだけです：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">user.glyph：フィールドを 1 つ変え、1 行をレビューする</span>
+<pre> type User = {
+   id: string,
+<span class="del">-  age: string,</span>
+<span class="add">+  age: number,</span>
+   email: string,
+ }</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          レイアウトが固定されているので、同じファイルを編集する 2 つの別々のエージェントは<strong>バイト単位で同一</strong>のフォーマットを出力します。再フォーマットによる差分も、「自分のフォーマッタと相手のフォーマッタ」のノイズもなく、<code>git blame</code> は行を整形し直したコミットではなく、実際に変えたコミットを指します。
+        </p>
+
+        <h2 class="block-label">レイアウトが 1 つに決まっているなら、フォーマッタはコメントを動かすのか？</h2>
+        <p>
+          以前は動かしていて、それは名前を挙げておくべきバグでした。Glyph にはブロックコメントもドキュメントコメントの構文もないので、レコードのフィールド、ユニオンのバリアント、<code>match</code> のアームを説明する方法は <code>//</code> の行しかありません。フォーマッタは保留中のコメントを宣言と文の境界でしか出力しなかったので、構文要素の<em>内側</em>に書いたコメントは次の宣言まで流れていき、たどり着いた先のドキュメントのように読めてしまいました。これが表面化したのは、Glyph で Minesweeper を書いたときです。次の 2 つの宣言は<a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">実際のアプリ</a>から取ったもので（コメントは収まるように短くしています）、古いフォーマッタと新しいフォーマッタにかけた結果です。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">0.1.37：fmt を 1 回かける</span>
+<pre>type Visibility =
+  | Hidden
+  | Flagged
+  | Revealed
+
+<span class="del">// Face down. Prints as `.`.</span>
+<span class="del">// Face down and marked by the player.</span>
+<span class="del">// Face up. `Cell.adjacent` is what gets printed.</span>
+type Cell = { mine: bool, adjacent: int, visibility: Visibility }
+<span class="del">// Number of mined neighbours. Only meaningful</span>
+<span class="del">// once mines are placed.</span></pre>
+          <div style="padding:0 16px 14px"><span class="verdict bad">バリアントの 3 つのコメントがレコードの説明になってしまう</span></div>
+        </div>
+        <div class="code">
+          <span class="cap">0.1.38：同じファイル</span>
+<pre>type Visibility =
+<span class="add">  // Face down. Prints as `.`.</span>
+  | Hidden
+<span class="add">  // Face down and marked by the player.</span>
+  | Flagged
+<span class="add">  // Face up. `Cell.adjacent` is what gets printed.</span>
+  | Revealed
+
+type Cell = {
+  mine: bool,
+<span class="add">  // Number of mined neighbours. Only meaningful</span>
+<span class="add">  // once mines are placed.</span>
+  adjacent: int,
+  visibility: Visibility,
+}</pre>
+          <div style="padding:0 16px 14px"><span class="verdict good">どのコメントも説明対象の上にある</span></div>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          現在のルールでは、コメントは書かれたときに上にあった要素の上に出力し直されます。レコード本体、ユニオンのバリアントの並び、配列やオブジェクトのリテラル、引数やパラメータのリスト、<code>match</code> の中でも同じです。また、内部にコメントを持つ構文要素は、大きさにかかわらず常に 1 行に 1 要素の形になるので、コメントには上に置く要素があります。そのため <code>type Shape = { w: int, h: int }</code> は今も 1 行にまとまりますが、<code>h</code> にコメントを書いた時点でレコードは展開されたままになります。
+        </p>
+        <p>
+          これが見た目の問題ではなく正しさのバグである理由は、何も失敗しなかったことにあります。ビルドは 0 で終了し、<code>tsc</code> も通り、崩れた出力はそれ自体が不動点だったので、CI の <code>glyph fmt --check</code> は、コメントが誤った内容を語るようになったファイルでも成功しました。Glyph が取り除こうとしている失敗と同じ種類のものが、型システムではなくフォーマッタで起きていたわけです。
+        </p>
+
+        <h2 class="block-label"><code>glyph fmt</code> がビルドの通るプログラムを壊すことはあるか？</h2>
+        <p>
+          ありえましたし、1 件はまだ残っています。まず直したほうから。「空のレコード」を意味するアームは <code>true =&gt; ({})</code> と書きます。文法の中で先頭の <code>{</code> が曖昧になるのはアーム本体の位置だけで、パーサーは波括弧の直後に <code>key:</code> か <code>...</code> があることを要求して解決しています。空のオブジェクトにはどちらもないので、フォーマッタが丸括弧を外して <code>true =&gt; {}</code> と出力し直すと、アームは空の<em>ブロック</em>として読まれ、ファイルはビルドできなくなりました。<code>E0223</code>、アームが値を生成しない、というエラーです。動いているコードにフォーマッタをかけたら、コンパイルできないコードが返ってきたのです。
+        </p>
+        <p>
+          現在のプリンタは、先頭のトークンがブロックとして再パースされうる <code>{</code> であるアーム本体を丸括弧で囲みます。空のオブジェクトと、それを基にした式が該当します（<code>({}).size</code> は <code>({}.size)</code> として出力されます）。<code>false =&gt; { a: "x" }</code> のようにもともと曖昧さのないアーム本体はそのままなので、それ以外の場所で読む記号が増えることはありません。結果に対して <code>fmt</code> は不動点であり、出力される TypeScript も変わりません。プログラムが耐えなければならないフォーマッタは、機能がないことよりも悪いものです。すでに動いていたコードを壊すからです。
+        </p>
+        <p>
+          0.1.138 でさらに 2 件を直しました。ブロックの中では、<code>(</code> で始まる行は直前の行の続きになります。0.1.137 までのフォーマッタは、<code>load()?</code> の後に <code>.run()</code> が続くものを <code>(load()?).run()</code> と出力していたので、<code>let a = 1</code> の後では、整形後のファイルが <code>let a = 1(…).run()</code> という意味になっていました。現在は <code>load()?</code> を残して <code>.run()</code> を次の行にインデントして置き、<code>e?(x)</code>、<code>e?[0]</code>、<code>e? ?</code> は丸括弧なしで書きます。もう 1 件はユニオンの <code>where</code> による絞り込みで、フォーマッタがこれを落としていたため、<code>check</code> が拒否していたプログラムが受け入れられるようになっていました。現在はファザーが整形後のファイルをパースし、その構文木を元のファイルのものと比較するので、ファイルの意味を変えてしまうレイアウトは、誰かが気づくのを待たずに最初の実行で失敗します。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          この背後にあるフォーマットのルールと、それが引き換えにしているものは、<a href="/pillars/diff-stability/">差分の安定性の柱のページ</a>にあります。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>末尾カンマの必須化、1 行に 1 要素のリスト、そして <code>glyph fmt</code> による正規のレイアウト。ラウンドトリップでき、冪等で、エディタでは保存時に整形されます。<code>glyph fmt</code> がコメントを場違いな場所に動かすことはありません。コメントは書かれたときに上にあった要素の上に保たれます。レコード、リテラル、引数リスト、<code>match</code> の中、演算子のオペランドの間、メソッドチェーンのステップの間でも同じです。メソッドチェーンはその場合、ドットを先頭にして 1 行に 1 ステップの形になります。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">限界と、次にやること</h3>
+          <p>コメントは常に独立した行に出力されるので、コード行の末尾に書いたコメント（<code>w: int, // width in cells</code>）は次の要素の上の行に移動します。宣言の境界を越えることはもうありませんが、移動はします。行末に残すには、コメントがどの行を共有しているかをプリンタが追跡する必要があります。インデックスの中、チェーンの途中にある呼び出しの引数の後、<code>!</code> や <code>await</code> のオペランドの前など、レイアウト上置き場所のないコメントは、もう動かされません。<code>glyph fmt</code> はそのファイルを拒否して元のまま残し、行番号とコメントを置くべき場所を示します。<code>glyph check</code> も同じ内容を警告 E0500 として報告します。JSX の属性の間や、オブジェクトパターンのフィールドの間にあるコメントも拒否されます。これらは 1 行に 1 つのレイアウトなら置ける場所なので、対応予定のリストに入っています。また、プリンタには長いメソッドチェーンや <code>+</code> の連鎖を折り返すルールがまだないため、長すぎるチェーンは代わりに最も内側の引数リストで折り返されます。これは誤った位置です。同じ編集を TypeScript で行った場合と比べる差分サイズのベンチマークも作っているところなので、この柱は確認できる数値になる予定です。</p>
+        </div>
+      </div>

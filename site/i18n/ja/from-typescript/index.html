@@ -1,0 +1,229 @@
+---
+title: TypeScript から来た人へ · Glyph で何が変わるか · Glyph
+description: Glyph はほぼ TypeScript のように読めて、TypeScript にコンパイルされます。変わるのは、いくつかの構文の違い、any・as・! がないこと、grep できる唯一の抜け道、そして npm の扱い方です。
+source_hash: bc168f89faa5ea6e
+next_steps: |
+  次に読むもの
+  おすすめ | /catches/ | catches | TypeScript が通してしまうものを見る | 各ケースを <code>tsc --strict</code> と Glyph の両方で実行し、エラーとともに示します。 | 検出できるものを見る
+  /start/ | start | 最初のプログラムを書く | インストールし、雛形を作り、実行し、わざと壊してエラーを読みます。約 10 分です。
+  /playground/ | playground | ブラウザで試す | コンパイラがページの中で動くので、何もインストールする必要がありません。
+---
+      <p class="q-eyebrow">TypeScript から来た人へ</p>
+      <h1 class="q-title">すでに TypeScript を書いている人にとって何が変わるか</h1>
+
+      <p class="short-answer">
+        思ったより少しです。Glyph は <code>tsc --strict</code> を通る TypeScript にコンパイルされ、npm もデプロイもそのまま使え、見た目もほとんど同じです。違いはいくつかの差分だけで、どれも間違える余地を、コンパイラが行う検査に置き換えるものです。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">TypeScript を知っていれば、ほとんどはもうわかっている</h2>
+        <p>
+          新しい言語を覚えるのではなく、この 4 つだけです。このサイトのどのサンプルにも出てくるものです。
+        </p>
+      </div>
+
+      <dl class="gloss-list">
+        <div>
+          <dt><code>match</code></dt>
+          <dd>網羅的な <code>switch</code>：ユニオンに対しては、コンパイラがすべてのケースを扱うように求めます。これは唯一の条件分岐でもあります。<code>if</code>/<code>else</code> も三項演算子もありません（理由は<a href="#there-is-no-if">下で説明します</a>）。</dd>
+        </div>
+        <div>
+          <dt><code>Result&lt;T, E&gt;</code></dt>
+          <dd>エラーは throw される例外ではなく戻り値です。<code>match</code> で処理するか、<code>?</code> 演算子で伝播させます。</dd>
+        </div>
+        <div>
+          <dt><code>fn f() -&gt; T</code></dt>
+          <dd>関数です。<code>-&gt;</code> の後が戻り値の型です。<code>type X = {...}</code> はレコードで、<code>type X = A | B</code> はタグ付きユニオンです。</dd>
+        </div>
+        <div>
+          <dt><code>mut x = e</code></dt>
+          <dd>再代入は明示的で、grep できます。普通の <code>let</code> 束縛が知らないうちに変わることはありません。変えるときは <code>mut</code> と書きます。</dd>
+        </div>
+      </dl>
+
+      <div class="detail">
+        <p>
+          このサイトでいう「エージェント」は、Claude、Copilot、Cursor のような AI コーディングアシスタントのことです。Glyph が最も役立つのはこうしたエージェントですが、検査は人が書いたコードでもモデルが書いたコードでも同じです。すでに strict な TypeScript を zod や eslint と一緒に使っているなら、<a href="/answers/vs-tooled-ts/">それに対して言語が何を加えるのか</a>を読んでください。
+        </p>
+
+        <h2 class="block-label">if は存在しない</h2>
+        <p>
+          真偽値での分岐は、<code>true</code> と <code>false</code> に対する <code>match</code> です。片方の場合にだけ処理をするときは、もう一方のアームを空のブロックにします。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript</span>
+<pre>function label(admin: boolean): string {
+  return admin ? "admin" : "member";
+}
+
+if (verbose) {
+  console.log("starting");
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph</span>
+<pre>fn label(admin: bool) -&gt; string {
+  return match admin {
+    true =&gt; "admin",
+    false =&gt; "member",
+  }
+}
+
+match verbose {
+  true =&gt; io.println("starting"),
+  false =&gt; {},
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          理由は仕様の決定 D3 です。値で分岐する構文を 1 つにすれば、読むのも書くのも検索するのも 1 つの形で済みます。分岐から出てくる値は必ず <code>match</code> から出てきて、その結果の型は <code>tsc</code> に任せずに Glyph 自身の型検査器が求めます。ユニオンに対しては、同じ構文がすべてのケースを扱わなければならないものになります（<code>E0200</code>）。真偽値の場合、得られるものはあまりありません。<code>false =&gt; {}</code> は <code>else</code> を省くのと同じことしか言っていないからです。
+        </p>
+        <p>
+          代償はあります。1 行の三項演算子は 4 行の <code>match</code> になり、条件による早期 return は空のアームを持つ <code>match</code> になります。そして TypeScript に慣れた人が最初に違和感を覚えるのがここです。仕様では、この冗長さを受け入れたコストとして記録しています。それでも <code>if</code> と書くとエラー <code>E0006</code> になり、そのヘルプが <code>match</code> の形を示します。三項演算子は同じヘルプ付きの <code>E0013</code> です。
+        </p>
+
+        <h2 class="block-label">すでに払っているコスト</h2>
+        <p>
+          TypeScript のコードベースで AI エージェントと一緒に開発しているなら、これらは毎日のコストです。どれにも Glyph での具体的な答えがあり、リストからリンクしています。
+        </p>
+      </div>
+
+      <ul class="tax-list">
+        <li>エージェントは存在しない API をでっち上げます。TypeScript は型を消去するので、実行時がコンパイル時と一致しなくなるからです。Glyph の型は実行時の検査（<code>T.parse</code>、<code>T.is</code>）を持っています。<a href="/answers/typed-apis/">型付き API</a> を見てください。</li>
+        <li>エージェントは不確かさを <code>any</code> や <code>as unknown as T</code> でごまかし、コンパイラはそれを許します。Glyph にはどちらもありません。下の表を見てください。</li>
+        <li>1 行の変更を頼んだのにファイル全体が書き直されます。編集のたびにフォーマッタの変更が連鎖するからです。<code>glyph fmt</code> にはオプションのない 1 つのレイアウトしかありません。<a href="/answers/diff-stability/">きれいな差分</a>を見てください。</li>
+        <li>型ごとに手書きのバリデータ（zod とシリアライザ）を並べて保守していて、エージェントが片方のフィールド名だけを変え、もう片方を変えなくても、すべてコンパイルが通ります。Glyph では型がバリデータです。</li>
+        <li>シンボルを <code>grep</code> すると、関係のないマッチが 10 件見つかります。オーバーロード、デコレータ、マージされた namespace です。Glyph にはそのどれもありません。<a href="/answers/greppability/">コードを探す</a>を見てください。</li>
+      </ul>
+
+      <div class="detail">
+        <h2 class="block-label">TypeScript が用意している検査のオフスイッチと、Glyph での代わりのもの</h2>
+        <p>
+          下の TypeScript の構文は、どれも型検査器に検査をやめるよう伝えるものです。どれも Glyph の構文にはありません。中央の列は、0.1.149 の <code>glyph check --no-tsc</code> がそれぞれに対して出力したものです。
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>TypeScript</th><th>Glyph では</th><th>代わりに書くもの</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="TypeScript"><code>x!</code></td><td data-label="In Glyph">構文ではない：<code>E0013</code></td><td data-label="What you write instead"><code>match</code> で処理するか、<code>?</code> で上に渡す <code>Option&lt;T&gt;</code></td></tr>
+            <tr><td data-label="TypeScript"><code>x as T</code>, <code>as unknown as T</code></td><td data-label="In Glyph">キャストは存在しない：<code>E0013</code>。ヘルプは検証するよう案内する</td><td data-label="What you write instead"><code>Result</code> を返す <code>T.parse(x)</code></td></tr>
+            <tr><td data-label="TypeScript"><code>any</code></td><td data-label="In Glyph">型ではない：<code>E0103</code>、解決できない名前</td><td data-label="What you write instead"><code>T.parse</code>、<code>T.is</code>、または <code>match</code> のアーム <code>is T</code> で絞り込む <code>unknown</code></td></tr>
+            <tr><td data-label="TypeScript"><code>(v): v is T</code></td><td data-label="In Glyph">ユーザーが書く型ガードはない：<code>E0002</code></td><td data-label="What you write instead">宣言した形を検査する、生成された <code>T.is(v)</code>。そのため、ガードが主張するほど検査しないということは起きない</td></tr>
+            <tr><td data-label="TypeScript"><code>// @ts-ignore</code>, <code>// eslint-disable</code></td><td data-label="In Glyph">ただのコメント。その下のエラーはそのまま出る</td><td data-label="What you write instead">なし。Glyph の診断を無効にするコメントやフラグはない</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph check</code> には、検査の段階を丸ごと飛ばすフラグはあります（<code>--no-tsc</code> は <code>tsc --strict</code> の実行を、<code>--no-test</code> は <code>@example</code> のテストを飛ばします）が、1 つの検査だけを黙らせるフラグはありません。TypeScript のプロジェクトが受け入れて Glyph が拒否するものの全リストは、それぞれを両方のコンパイラで実行した結果とともに、<a href="/catches/">検出できるもののページ</a>にあります。
+        </p>
+
+        <h2 class="block-label">抜け道は 1 つだけで、grep で探せる</h2>
+        <p>
+          Glyph では書けない TypeScript が必要なときは、<code>extern_ts("...")</code> がインラインで 1 つの型か式を受け取り、それも <code>tsc</code> が検査します。モジュール全体なら、<code>.ts</code> を <code>src/extern/</code> の下に置いて <code>import extern/name</code> と書きます。それ以外の相対インポートは認められていないので、このパスが唯一の入口です。どちらの形にも <code>extern</code> という単語が含まれるので、<code>grep -rn extern src/</code> で型検査器が TypeScript に処理を渡すすべての場所を一覧できます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">src/clock.glyph</span>
+<pre>module clock
+
+pub fn now_ms() -&gt; number {
+  return extern_ts("Date.now()")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">出力される TypeScript の見た目</h2>
+        <p>
+          モジュールごとに 1 ファイルの普通の TypeScript で、読むこともコミットすることもできます。ユニオンは判別可能なユニオンと、その実行時の検査を持つ値になり、<code>match</code> はタグに対する <code>switch</code> になります。これは左のモジュールに対する <code>glyph build</code> の出力で、インポートの行は省略しています。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">plan.glyph</span>
+<pre>module plan
+
+pub type Plan = Free | Pro | Team
+
+pub fn seats(p: Plan) -&gt; number {
+  return match p {
+    Free =&gt; 1,
+    Pro =&gt; 5,
+    Team =&gt; 50,
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">plan.ts（出力、一部省略）</span>
+<pre>export type Plan =
+  | { tag: "Free" }
+  | { tag: "Pro" }
+  | { tag: "Team" };
+
+export const Free: Plan = { tag: "Free" };
+export const Pro: Plan = { tag: "Pro" };
+export const Team: Plan = { tag: "Team" };
+export const Plan = {
+  is(value: unknown): value is Plan { ... },
+  parse(value: unknown) { ... },
+  schema: ...,
+};
+
+export function seats(p: Plan): number {
+  const __m0 = p;
+  switch (__m0.tag) {
+    case "Free": { return 1; }
+    case "Pro": { return 5; }
+    case "Team": { return 50; }
+    default: throw new Error("non-exhaustive match");
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Team</code> のアームを削除すると、TypeScript が書き出される前にビルドが止まります。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc（一部省略）</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Plan`: missing variants `Team`</span>
+   ╭─[ plan:6:10 ]
+   │
+ 6 │ ╭─▶   return match p {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── non-exhaustive match on `Plan`: missing variants `Team`
+   │     Help: Add an arm for each missing variant.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph の使用をやめても、出力された <code>.ts</code> は手元に残ります。ビルドがその隣に書き出す小さなサポート用ディレクトリのほかに、実行時の依存はありません。
+        </p>
+
+        <h2 class="block-label">npm と、すでにある TypeScript</h2>
+        <p>
+          <code>.glyph</code> モジュールは npm パッケージを名前でインポートし（<code>import kafkajs { Kafka }</code>）、型はパッケージ自身の宣言から付きます。既存の <code>.ts</code> は、出力された Glyph のモジュールを普通のローカルファイルと同じようにインポートします。そのため、TypeScript のままのアプリの中で 1 つのモジュールから始められます。詳しくは 3 つの Q&A にあります。
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/imports/"><span class="q">既存の TypeScript、JavaScript、npm のライブラリは使えますか。</span><p>パッケージのインポート、<code>.ts</code> のシムの維持、そして <code>.ts</code> から Glyph をインポートし返す方法。</p></a>
+        <a class="a-card" href="/answers/embedding/"><span class="q">既存のアプリの中で Glyph を導入できるか</span><p>標準的な Vite の雛形で、ドメインの中核を Glyph で、残りを TypeScript で書きます。</p></a>
+        <a class="a-card" href="/answers/react/"><span class="q">React で使えるか</span><p>コンポーネント、JSX、hooks、Context、そしてどこで今も <code>tsc</code> が検査しているか。</p></a>
+      </div>

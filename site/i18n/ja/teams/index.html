@@ -1,0 +1,107 @@
+---
+title: チーム向け · Glyph が保証するものと、そのコスト · Glyph
+description: Glyph の導入を検討しているリード向けに：コンパイラが保証するものとその限界、TypeScript アプリへの導入、やめるときの手段、バージョンの固定、1.0 前の現状。
+source_hash: d4a38356fad5c816
+next_steps: |
+  次に読むもの
+  おすすめ | /catches/ | catches | TypeScript が通してしまうものを見る | strict な TypeScript のプロジェクトが受け入れてしまうケースを順位付きで。それぞれ <code>tsc --strict</code> と Glyph の両方で実行しています。 | 検出できるものを見る
+  /start/ | start | 最初のプログラムを書く | インストールし、雛形を作り、実行し、わざと壊してエラーを読みます。約 10 分です。
+  /playground/ | playground | ブラウザで試す | コンパイラがページの中で動くので、何もインストールする必要がありません。
+---
+      <p class="q-eyebrow">チーム向け</p>
+      <h1 class="q-title">何を保証し、導入にどれだけのコストがかかり、どうやめられるか</h1>
+
+      <p class="short-answer">
+        Glyph は、strict な TypeScript のプロジェクトが受け入れてしまうケースのうち、具体的で検証済みのリストにあるものを拒否します。そして TypeScript にコンパイルされるので、使うのをやめてもその出力を手元に残せます。現在はアーリープレビューです。1.0 前で、主に 1 人がメンテナンスしており、週に何度もリリースしています。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">何を保証するか</h2>
+        <p>
+          Glyph が何を検出するかについての主張は、どれもリポジトリの <code>catches/</code> ディレクトリにあるケースです。同じプログラムを TypeScript と Glyph で書いたもので、どちらも CI のゲートが実行します。{{catches:breakdown}} 拒否しないミスのうち、{{catches:warned-all}} 件は警告が出て、{{catches:boundary-all}} 件は実行時の境界での検査で止まる不正なデータで、{{catches:runtime-all}} 件は実行時に止まります。エージェントが書いたコードをレビューする人が最も頼りにするのは次のものです。
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>コード</th><th>拒否されるもの</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Code"><code>E0200</code></td><td data-label="What is refused">ユニオンのケースを 1 つ漏らした <code>match</code>。そのため、ケースを追加すると変更が必要な箇所がすべて一覧される</td></tr>
+            <tr><td data-label="Code"><code>E0013</code></td><td data-label="What is refused">キャスト（<code>as</code>、<code>as unknown as</code>）。キャストも <code>any</code> も存在しない</td></tr>
+            <tr><td data-label="Code"><code>E0204</code></td><td data-label="What is refused">検査されないまま型付きの名前に代入される、パースした JSON</td></tr>
+            <tr><td data-label="Code"><code>E0224</code></td><td data-label="What is refused">キーが常に存在するかのように型付けされたマップからの読み取り</td></tr>
+            <tr><td data-label="Code"><code>E0217</code></td><td data-label="What is refused">捨てられた <code>Result</code>（警告。<code>let _ =</code> と書けば意図したものだと示せる）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="/catches/">検出できるもののページ</a>には、すべてのケースが TypeScript のコード、Glyph のコード、エラーとともに載っており、最も厳しく設定した typescript-eslint でも検出できたものはどれかも書かれています。
+        </p>
+
+        <h2 class="block-label">限界</h2>
+        <p>
+          保証の対象は Glyph で書いたコードです。npm の依存パッケージの中で throw された例外は今も <code>Result</code> を迂回し、パッケージの <code>.d.ts</code> からインポートした型には実行時の検査がありません。Glyph の中では、未解決の穴 {{catches:gap-cases}} 件が gap 番号とともに<a href="/catches/#not-yet">まだ検出できないもの</a>に載っており、完全な一覧は <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> にあります。strict な TypeScript に zod、eslint、ts-pattern を加えた構成との比較は、その構成がまだ優れている点も含めて、<a href="/answers/vs-tooled-ts/">ツールを揃えた TypeScript ではなぜ駄目か</a>を見てください。
+        </p>
+
+        <h2 class="block-label">既存のアプリの中で導入する</h2>
+        <p>
+          書き直しは不要です。間違えるわけにはいかない部分（モデル、権限、状態遷移、お金）を Glyph で書き、アプリの残りは TypeScript のまま、出力されたモジュールを普通のローカルファイルと同じようにインポートします。手順の説明では標準的な Vite の雛形を使っています：<a href="/answers/embedding/">既存のアプリの中で Glyph を導入できるか</a>
+        </p>
+
+        <h2 class="block-label">やめるときの手段</h2>
+        <p>
+          <code>glyph build</code> は、<code>tsc --strict</code> を通る、モジュールごとに 1 ファイルの普通の TypeScript を書き出します。Glyph の使用をやめるなら、その出力をコミットして <code>tsc</code> で開発を続ければよいだけです。ライセンスは MIT または Apache-2.0 なので、いつでもフォークできます。<a href="/from-typescript/">TypeScript から来た人へ</a>では、モジュールと出力されたファイルを並べて示しています。
+        </p>
+
+        <h2 class="block-label">バージョンの固定とアップグレード</h2>
+        <p>
+          <code>glyph init</code> は <code>package.json</code> でコンパイラを <code>^</code> なしの正確なバージョンに固定するので、どのリリースもうっかりビルドに入り込むことはありません。残りは 3 つのコマンドで扱います。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">意図してアップグレードする</span>
+<pre>glyph doctor     <span class="cm"># your version against the latest release; never fails CI for that</span>
+glyph upgrade    <span class="cm"># moves the project's pin, runs npm install, links the notes</span>
+glyph --update   <span class="cm"># moves the installed compiler itself</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          詳しくは <a href="/answers/upgrades/">Glyph の新しいリリースでビルドが壊れることはあるか</a> にあります。
+        </p>
+
+        <h2 class="block-label">リリースの頻度と Breaking の印</h2>
+        <p>
+          <a href="/versions/">バージョンのページ</a>には、0.1.0 から {{releases:latest}} までのすべてのリリース、計 {{releases:count}} 件の項目があり、そのうち 22 件は 2026 年 11 月の 19 日までに出たものです。前のバージョンが受け入れていたプログラムを拒否するリリースには Breaking の印が付きます。正しさに関する修正の多くはこの形で入ります。印が付いている項目は {{releases:breaking}} 件です。印は差分を読んで付けるのではなく、影響を受ける最小のプログラムを両方のバージョンで実行して付けています。0.1.99 より前のリリースはこの方法で確認していないので、印のない古いリリースは安全なのではなく、未確認ということです。
+        </p>
+        <p>
+          Breaking のリリースが実際にどれだけのコストになったか：最近のリリースノートにはそれぞれ、リポジトリのサンプルアプリを古いバージョンと新しいバージョンで実行したときに何が起きたかが書かれています。以下は最新の Breaking リリースのノートからの引用です。
+        </p>
+{{releases:breaking-cost}}
+        <p>
+          サンプルアプリはプロジェクト自身のコードで、リリースごとにコンパイルが通るように保たれているので、新たに拒否されるようになった書き方は、あなたのコードよりも出てきにくいはずです。各ノートには拒否するようになった書き方が書かれているので、アップグレードの前に読んでください。
+        </p>
+
+        <h2 class="block-label">現状</h2>
+        <p>
+          Glyph は 1.0 前です。1.0 までは、構文、標準ライブラリ、出力される TypeScript の形が変わる可能性があり、以前はコンパイルが通ったコードをリリースが拒否することもあります。何が変わりうるか、何を安定に保つかは <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a> に書かれています。<a href="https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md">MAINTAINERS.md</a> には、現在このプロジェクトは主に 1 人でメンテナンスされていると率直に書かれています。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">よくある反論への回答</h2>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/human-value/"><span class="q">AI はあまり使っていません。それでも価値はありますか？</span><p>検査は誰がコードを書いても同じです。実行時の想定外が減り、差分が小さくなり、grep できるコードになります。</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">すでに strict な TypeScript と lint を使っています。</span><p>それらの検査はどれも任意で、1 行で無効にできます。Glyph の検査はできません。</p></a>
+        <a class="a-card" href="/answers/ai-authoring/"><span class="q">エージェントは、ほとんど見たこともない言語を書けますか？</span><p>モデルが TypeScript について知っていることの大半はそのまま通用し、残りはコンパイラが教えてくれます。</p></a>
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">そもそも、なぜ TypeScript にコンパイルするのですか？</span><p>npm も React も Node もそこにあるからです。導入を 1 ファイルずつ進められるのもそのためです。</p></a>
+        <a class="a-card" href="/answers/debugging/"><span class="q">障害が起きたとき、オンコール担当者には何が見えますか？</span><p>読める TypeScript、<code>.glyph</code> ファイルに戻れるソースマップ、そして変わらないエラーコードです。</p></a>
+        <a class="a-card" href="/evidence/"><span class="q">これが本当だと、どうしてわかるのですか？</span><p>このサイトの各主張をどう検証しているか、そして自分で再現する方法。</p></a>
+      </div>

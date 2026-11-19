@@ -1,0 +1,348 @@
+---
+title: これは本物の言語か、それとも穴だらけのおもちゃか · Glyph
+description: モジュールの可視性、ジェネリクスの境界を指定する構造的インターフェース、defer、構造化並行性、値としての match、そして JavaScript から受け継ぐセマンティクス。
+source_hash: 5ef4512407bef58a
+prev: /answers/state/ | &larr; 前へ | 関数の間で可変の状態をどう共有するか
+next: /answers/finance/ | 次へ &rarr; | お金や、自分で制御できない入力を任せられるか
+---
+      <p class="q-eyebrow">15 &middot; 言語としての完成度</p>
+      <h1 class="q-title">これは本物の言語ですか。それとも穴だらけのおもちゃですか。</h1>
+
+      <p class="short-answer">
+        実際のコードベースで必要になるものは揃っています。<strong>モジュールの可視性</strong>、ジェネリクスを制約する<strong>インターフェース</strong>、後始末のための <strong>defer</strong>、そして<strong>並行処理</strong>のヘルパーです。JavaScript に頼っている部分は、そうでないふりをせずにそう明記しています。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          1 ファイルは書けてもプロジェクトを構成できない言語に、コードベースを賭ける人はいません。問題になる穴は特殊なものではありません。ヘルパーを隠せるか、ジェネリクスにある能力を要求できるか、どの終了経路でもファイルハンドルを解放できるか、2 つの処理を同時に走らせて両方を待てるか。Glyph はこの 4 つに答えています。しかも、意図的に捨てたアノテーション中心の方向を蒸し返すことなく答えています。
+        </p>
+
+        <h2 class="block-label">実例</h2>
+        <p>
+          宣言は <code>pub</code> を付けるまでモジュール内で非公開です。そのため公開されている面は一度の検索（<code>grep '^pub'</code>）でわかり、ヘルパーがうっかり漏れることはありません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">可視性：デフォルトで非公開</span>
+<pre><span class="add">pub fn</span> charge(cents: int) -&gt; Result&lt;Receipt, string&gt; { validate(cents)? ... }
+
+<span class="dim">fn</span> validate(cents: int) -&gt; Result&lt;int, string&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>interface</code> は TypeScript と同じく構造的です。ジェネリクスが要求できるメンバーシグネチャの集合です。<code>implements</code> も名前的型付けの儀式もありません。そのメンバーを持つ値ならどれでも当てはまり、<code>tsc</code> がそれを強制します。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">インターフェースでジェネリクスを制約する</span>
+<pre><span class="add">interface</span> Named {
+  fn name() -&gt; string
+}
+
+pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
+  x.name()
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>defer</code> は、ブロックを抜けるときにどの経路でも後始末を実行します。早期 return でも、エラーが投げられた場合でもです。複数の defer は後入れ先出しで実行され、<code>owned</code> ハンドルとも組み合わせられます。また <code>std/task</code> は、切り離された Promise を放置するのではなく、並行処理を 1 つのライフタイムにまとめて待ち合わせます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">defer と構造化並行性</span>
+<pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
+
+let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { fetch_b() }])</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          正直に言っておくと、Glyph は TypeScript にコンパイルされ JavaScript エンジンで動くので、評価順序、値渡しと参照渡し、等価性（<code>==</code> は <code>===</code> で、オーバーロードはありません）、シングルスレッドでガベージコレクションのあるモデルは、新たに作ったものではなく受け継いだものです。仕様書は今これらを、自分で調べて気づくものではなく保証として明記しています。手動のメモリ管理や GC のないモデルはロードマップにありません。それは TypeScript にトランスパイルする言語の範囲外です。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><code>if</code> がないので、<code>match</code> がすべてを担う</h2>
+        <p>
+          網羅性の話を聞いた TypeScript 開発者が最初に聞くのは、<code>match</code> が本当に汎用の条件分岐なのか、それともユニオンを分解する便利な書き方にすぎないのか、ということです。答えは前者で、それを示すのが代入です。<code>let</code> や <code>mut</code> の値全体になっている <code>match</code> は、文が受け取れるものなら何でも受け取れます。アームはブロックにでき、<code>await</code> でき、外側のループから <code>break</code> でき、代入先の束縛を読むこともできます。最後のものを使えば、<code>if</code> なしでループを通して状態を畳み込めます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">リンクチェッカーより：コードブロックの追跡と、await するアーム</span>
+<pre>for raw in lines {
+  let fence = is_fence(raw)
+  <span class="add">mut</span> in_fence = <span class="add">match</span> fence {      <span class="cm"># reads the binding it assigns</span>
+    true =&gt; !in_fence,
+    false =&gt; in_fence,
+  }
+}
+
+let cache = <span class="add">match</span> args.offline {
+  true =&gt; no_cache(),
+  false =&gt; <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          どちらもアームごとに束縛へ代入する素朴な <code>switch</code> にコンパイルされるので、<code>await</code> は外側の async 関数の中に置かれ、累積値は TypeScript が推論できる普通の変数になります。大きな式の<em>中</em>、たとえば引数やオペランドとして使われた <code>match</code> は今もクロージャになるので、そのアームは単一の式でなければなりません。それ自身の <code>let</code> に持ち上げれば、この制限はなくなります。どちらのスニペットも <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a> からのもので、これはまさにこの種の問題を見つけるために書かれた Markdown のリンクチェッカーです。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">パターンで 2 段以上深い形を指定できる</h2>
+        <p>
+          複数のフィールドを持つバリアントはレコードを運ぶので、形を認識したいアームはレコードのフィールドの中まで入り込む必要があります。0.1.90 までは、フィールドの位置には名前しか書けませんでした。名前を変えることはできても、それだけでした。そこでタグをマッチさせるとコンパイルエラーになり、入れ子のコンストラクタはパーサーが扱えませんでした。回避策はすべてのフィールドを束縛して、階層ごとに入れ子の <code>match</code> を書くことで、赤黒木のリバランスのようなものでは別のプログラムになってしまいます。アームがケースと対応しなくなり、各階層で上の束縛を引き回すことになります。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">赤黒木のリバランスの回転ケース 1 つを、1 つのアームで</span>
+<pre>type Tree =
+  | Leaf
+  | Node({ color: Color, left: Tree, value: number, right: Tree })
+
+match t {
+  Node({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) =&gt;
+    Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b }), value: y, right: c }),
+  other =&gt; other,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          今はフィールドにどんなパターンでも書けます。バリアントのタグ、入れ子のコンストラクタ、入れ子の分解、リテラル、配列パターンです。書く前に知っておくべき帰結が 1 つあります。値を検査するフィールドは失敗しうるので、そのアームはもうバリアントを網羅したとは数えられません。<code>Node</code> のアームが <code>Node({ color: Red, ... })</code> だけの match は、兄弟のアームか <code>else</code> が残りを引き受けるまで、網羅的でないと報告されます。チェッカーが網羅性を証明するのはタグの集合についてであって、フィールドの直積についてではないので、<code>Red</code> のアームと <code>Black</code> のアームを合わせれば <code>Node</code> を網羅する、とは判断しません。catch-all を求めるのは、実行時に match が末尾から抜け落ちることを許さない解釈です。数えるバリアントがまったくない場合も同じです。どのアームもフィールドを検査する、素のレコードに対する match には、後ろに <code>else</code> が必要です。
+        </p>
+        <p>
+          意外かもしれない影響が 1 つ、配列の位置に及びます。以前はアーム全体としての <code>[Black]</code> が任意の 1 要素配列にマッチするとみなされていたので、それに頼った match は網羅的と認定され、<code>[Red]</code> でもそのアームに入っていました。ここでも PascalCase の要素はバリアントの参照なので、そうした match は今、長さ 1 の配列に対して <code>E0208</code> になります。要素を束縛して、それ自体を match してください。下の変換処理はまだ古いままで、検査の側が先に提供されたのはそのためです。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">そしてコンパイラは <code>match</code> が何を生んだかを知っている</h2>
+        <p>
+          次の質問が、これが本当に役に立つかどうかを決めます。分岐から値を束縛したとき、Glyph はその型を知っているのか、それとも肩をすくめて後で <code>tsc</code> に任せるのか。0.1.45 までは任せていました。<code>match</code> 式はすべて unknown と型付けされていたので、言語で唯一の分岐構文から出てきた値は、そこから先は型がありませんでした。今は <code>match</code> はアームの型が一致すればその型を取り、<code>T.parse</code> は <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> を返すと分かっています。これは実際のコードの多くが分岐する形です。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">割り勘アプリより：アノテーションなしで、<code>i</code> は number</span>
+<pre>let wire = <span class="add">match</span> WireLedger.parse(decoded) {
+  Ok(w) =&gt; w,
+  Err(issues) =&gt; {
+    return Err(BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }))
+  },
+}
+
+for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", "1", "2"</span>
+  ...
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          どちらの半分も、以前は気づかれずにおかしくなっていたものです。このループは <code>wire.expenses.entries()</code> を出力します。反復対象の型が unknown のときは代わりに <code>Object.entries(...)</code> を出力し、<code>i</code> は<em>文字列</em> <code>"0"</code> になります。これは正しい TypeScript なのでビルドはきれいに通り、プログラムは <code>1:a</code> のつもりで <code>01:a</code> と出力していました。また <code>wire.expensez</code> は今、生成された TypeScript 上の <code>TS2339</code> ではなく、<code>.glyph</code> の行で Glyph から <code>[E0210] type WireLedger has no field expensez</code> として報告されます。型の合流は先頭での等価性です。<code>return</code> で終わるアームは投票せず、型が食い違うアームがあれば結果は以前と同じく unknown のままです。1 段深く見るのは型引数だけなので、<code>None =&gt; []</code> は <code>match</code> 全体を台無しにせず <code>Array&lt;string&gt;</code> のアームと一致し、その後のループも number を束縛します。<code>record.get</code> に対する同じ連鎖も同じ理由で動きます。<code>std/record</code> の 6 つの関数はすべて、渡したレコードから値の型を引き継ぎます。このスニペットは <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a> からのもので、この変更で不要になったアノテーションが付いていました。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">依存関係リゾルバより：検索、空のフォールバック、インデックス付きの走査</span>
+<pre>let path = <span class="add">match</span> record.get(res.reached, name) {
+  Some(p) =&gt; p,
+  None =&gt; [],
+}
+
+for i, hop in path {               <span class="cm"># i is a number, so the indent nests</span>
+  let indent = string.repeat(STEP, i + 1)
+  mut out = array.push(out, "${indent}${hop}")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          これが最もコストの大きかった形です。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>[]</code> は要素の型が特に決まっていない配列です。そのため 2 つのアームは <code>Array</code> で一致し、要素の型は型を持っている方のアームから取られます。0.1.55 までは等価性で比較されていて、<code>[]</code> は不一致とみなされ、下のループは診断が 1 つもなく <code>tsc --strict</code> も通るビルドで <code>01:x</code> と出力していました。コードは <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a> で、以前は冒頭に <code>let path: Array&lt;string&gt;</code> があり、このアノテーションが外せない理由を説明する 3 行のコメントが付いていました。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><code>pad_start</code> は自分で書く必要があるか</h2>
+        <p>
+          実際のプログラムで最初にぶつかる穴は、型システムの機能ではありません。<code>string.slice</code> を使おうとしたら何もない、というものです。ドッグフーディングを 5 回続けて同じ一覧が報告され、0.1.47 までは、このリポジトリの 6 つのアプリが自前の <code>repeat</code> を、5 つが自前の <code>pad_start</code> を持ち、どれも fold を使うべき場所にループを書いていました。この 11 個の名前は今は提供されていて、それを持っていた 7 つのアプリすべてからコピーが削除されています。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">追加されたもの</span>
+<pre>string.<span class="add">repeat</span>(s, n)           string.<span class="add">slice</span>(s, start, end?)       array.<span class="add">fold</span>(xs, init, f)
+string.<span class="add">pad_start</span>(s, w, pad?)   string.<span class="add">index_of</span>(s, needle, from?)  array.<span class="add">index_of</span>(xs, x)
+string.<span class="add">pad_end</span>(s, w, pad?)     string.<span class="add">replace_all</span>(s, from, to)     array.<span class="add">flat_map</span>(xs, f)
+string.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span>(s)
+
+<span class="cm"># the 25-line block six apps each carried, and what replaced it:</span>
+let total = array.<span class="add">fold</span>(expenses, 0, fn(sum, e) { sum + e.cents })
+io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<span class="add">pad_start</span>(amount, 9)}")</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          そのうち 3 つは、意図的に TypeScript の同名の関数と違う動きをします。<code>repeat</code> は負の回数に対して、TS のように例外を投げるのではなく <code>""</code> を返します。そのおかげで、すでに長すぎる文字列に対しても <code>repeat(pad, width - len(s))</code> が安全です。2 つの <code>index_of</code> はどちらも <code>-1</code> ではなく <code>Option&lt;number&gt;</code> を返します。<code>-1</code> は本物のインデックスが通る場所ならどこでも型チェックを通ってしまい、呼び出し位置から遠く離れた場所で失敗する数値だからです。置換は <code>replace_all</code> としてのみ提供されるので、1 か所だけをこっそり置き換える <code>String.prototype.replace</code> と混同する、最初の 1 つだけの形はありません。
+        </p>
+        <p>
+          <code>fold</code> は、タイプ量を減らすのではなく柱の 1 つを支えるものです。<code>mut</code> は状態が変わるすべての場所を grep できる形で記録したものですが、fold がないと、<code>grep mut</code> はレビュアーが気にするものを何も変更しない数え上げのループだらけになります。手書きの実装を削除したことで、<code>examples/apps/</code> の変更箇所は 192 から 161 になりました。この書き換えはレビューではなく出力で確認しました。7 つのアプリすべてを固定の入力で書き換えの前後に実行し、標準出力、終了コード、HTTP レスポンスの 26 ファイルがすべてバイト単位で一致しました。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ディレクトリを走査して、何が壊れたかを判別できるか</h2>
+        <p>
+          <code>std/fs</code> は 6 つの関数を提供していましたが、ディレクトリを一覧するものはありませんでした。このリポジトリのリンクチェッカーは stdlib を飛び越えて node の <code>readdirSync</code> を使い、どのパスがディレクトリかは、読もうとして返ってきた <code>errno</code> を調べて判断していました。どちらも修正済みです。<code>fs.read_dir</code> は 1 階層下のエントリ名を返し、<code>fs.is_dir</code> は <code>fs.exists</code> と同じく <code>bool</code> で答えます。<code>fs.stat</code> は <code>is_dir</code>、<code>is_file</code>、バイト単位の <code>size</code>、エポックミリ秒の <code>modified</code> からなる <code>FileInfo</code> を返し、この時刻は <code>time.format_iso</code> でそのまま表示できます。再帰的な <code>walk</code> や glob はありません。走査はこの 3 つと <code>path.join</code> で 10 行ほどで書けます。
+        </p>
+        <p>
+          失敗の側はもっと大きく変わりました。<code>FsError.kind</code> は <code>{ tag: string }</code> で、分類は <code>NotFound</code> だけでした。そのため「そのパスはディレクトリだ」と「そのパスが存在しない」を区別するには errno の文字列を比較する必要がありました。今は、プログラムが実際に回復処理を行う 5 種類に名前があり、名前のない errno は <code>Other</code> の末尾にそのまま入ります。
+        </p>
+        <p>
+          チェッカーはこの分類が閉じていることを知っているので、<code>err.kind</code> に対する <code>match</code> は、自分で宣言したユニオンと同じ基準で検査されます。6 つすべてを扱えば <code>else</code> は要らず、1 つ漏らせば <code>fs.ErrorKind</code> を名指しした <code>E0200</code> でビルドが失敗します。<code>fs.FsError</code> と <code>fs.FileInfo</code> のフィールドも検査されるので、<code>err.mesage</code> は生成された TypeScript に対する <code>tsc</code> のエラーではなく、Glyph のソースに対する <code>E0210</code> になります。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">ツリーを走査し、何がおかしかったかを名前で示す</span>
+<pre>let names = fs.<span class="add">read_dir</span>(dir)?
+for name in names {
+  let child = path.join([dir, name])
+  match fs.<span class="add">is_dir</span>(child) {
+    true  =&gt; visit(child),
+    false =&gt; {
+      let info = fs.<span class="add">stat</span>(child)?
+      report_size(child, info.size)
+    },
+  }
+}
+
+match err.<span class="add">kind</span> {                        <span class="cm"># no else arm: E0200 if you miss one</span>
+  fs.ErrorKind.<span class="add">NotFound</span>         =&gt; io.eprintln("no such path"),
+  fs.ErrorKind.<span class="add">NotADirectory</span>    =&gt; io.eprintln("that is a file"),
+  fs.ErrorKind.<span class="add">IsADirectory</span>     =&gt; io.eprintln("that is a directory"),
+  fs.ErrorKind.<span class="add">AlreadyExists</span>    =&gt; io.eprintln("already there"),
+  fs.ErrorKind.<span class="add">PermissionDenied</span> =&gt; io.eprintln("cannot read it"),
+  fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          同じアプリから出た小さなものが 2 つ、一緒に入りました。<code>regex.captures_all</code> は、マッチしたテキストだけでなく、すべてのマッチのキャプチャグループを返します。これでフラットな <code>key=value</code> の走査が手書きのループでなくなります。また <code>task.pool_settled</code> は、<code>all_settled</code> の失敗時の振る舞いを持った <code>task.pool</code> です。並行数に上限があり、タスクごとに 1 つの結果が返り、ホストが 1 つ落ちても失うのはそのホストの結果だけで、プールがそれまでに集めた結果をすべて失うことはありません。
+        </p>
+        <p>
+          この検査は実際に動いています。上の <code>match</code> から <code>PermissionDenied</code> のアームを消すと、<code>glyph check --no-tsc</code> は <code>E0200</code> で止まります。<code>fs.ErrorKind</code> に対する網羅的でない match で、欠けているバリアントは <code>PermissionDenied</code> です。stdlib のモデルを最初に書いたときは戻り値の型しか扱っていなかったので、このような match はきれいにコンパイルされ、実行時に例外を投げていました。今は <code>fs.FsError</code>、<code>fs.FileInfo</code>、<code>fs.ErrorKind</code> のフィールドとバリアントの形もモデル化されています。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">それが正しい関数だと、どうしてわかるのか</h2>
+        <p>
+          それを求めたアプリが回避策をやめるまで、リリースを完了とみなさなかったからです。ライブラリ関数を提供することと、回避策がそれより長生きすることは別の話です。そこで、この 4 つを追加した変更で、リンクチェッカーにあったコピーも削除しました。<code>readdirSync</code> の import、2 つの <code>errno</code> 文字列の比較、97 行の手書きスキャナ、そして最初の失敗で止まるプールです。合計 122 行が消えました。
+        </p>
+        <p>
+          そのうち 2 つの削除はプログラムの動作を変えたので、その違いは議論ではなく測定で確かめました。読み取れないディレクトリを含むツリーに旧版と新版を向けると、新版は <code>permission denied</code> と出力してそのパスを読めないものとして数えます。旧版は errno が <code>EISDIR</code> かどうかしか聞けなかったので、そのパスをレポートからまるごと落としていました。3 つの URL のうち 1 つで例外を投げさせると、<code>pool_settled</code> は 3 行すべてを出力して失敗を名指ししましたが、<code>pool</code> は何も出力せずに未処理の reject で終了し、成功した 2 つの結果も道連れにしました。
+        </p>
+        <p>
+          スキャナの書き換えは設計上の懸念も解消しました。参加しなかったキャプチャグループは、空文字列にマッチしたグループと同じく <code>""</code> として読まれるので、<code>captures_all</code> では選択肢のどの分岐がマッチしたのかわからないように見えました。実際にはわかります。各分岐のグループを、欲しい部分ではなく構文全体を囲むように書けばよいのです。マッチしたグループは <code>`</code>、<code>[</code>、<code>!</code>、<code>&lt;</code> のいずれかで始まり、空にはなりません。空になりうる部分、つまりリンク先はその内側に入れ子になり、判定に使うことはありません。これで 180 行の文字単位の走査が、2 つのパターンと 12 行の振り分けになりました。リポジトリ自身のドキュメントと、壊すために作った fixture の両方で、出力はバイト単位で一致しました。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">お金の計算に浮動小数点数は使わない</h2>
+        <p>
+          フィンテックの評価をその場で打ち切らせる穴は、IEEE-754 の <code>number</code> でお金を扱うことです。そこでは <code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は気づかないうちに精度を失います。<code>std/decimal</code> は BigInt の上に作った正確な 10 進固定小数点です。任意精度の整数に固定桁数の小数部を持たせたもので、加算、減算、乗算は正確で、除算にはスケールと丸め方を明示します。不正な金額はパースすると <code>Err</code> になり、黙って <code>NaN</code> になることはありません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", half away from zero</span>
+decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          大きな<em>整数</em>を正確に扱う必要がある場合、たとえばアカウント ID やカウンタには <code>bigint</code> 型があります。リテラルは <code>123n</code> で、TypeScript の本物の <code>bigint</code> として出力されます。<code>bigint</code> 型のレコードフィールドは境界で <code>typeof === "bigint"</code> を検証するので、JSON の <code>number</code> として送られてきた ID は、2<sup>53</sup> を超えて黙って丸められるのではなく拒否されます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">非同期コールバックにようやく型ができた</h2>
+        <p>
+          関数型は <code>fn(A) -&gt; T</code> しかなく、これは <code>(a: A) =&gt; T</code> として出力されます。非同期の本体はこれに合わないので、遅延タスクを返す関数や非同期ハンドラのレコードはアノテーションなしにするしかなく、チェッカーはそこで検査をやめていました。<code>async fn(A) -&gt; T</code> がその欠けていた型です。<code>(a0: A) =&gt; Promise&lt;T&gt;</code> として出力され、戻り値のない <code>async fn()</code> は <code>() =&gt; Promise&lt;void&gt;</code> になります。
+        </p>
+        <p>
+          Glyph は <code>tsc</code> に任せず、自分で両者を区別します。非同期関数が期待される場所に普通の関数を渡すと、return では <code>E0204</code>、呼び出しの引数では <code>E0211</code> になり、メッセージには両方の側が示されます。判定しないのは戻り値が <code>void</code> の場合だけで、TypeScript ではそこにどんな関数でも置けます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">遅延タスクと、ハンドラのマップ</span>
+<pre>fn task_for(url: string) -&gt; <span class="add">async fn() -&gt; Fetched</span> {
+  return async fn() -&gt; Fetched { return { url: url, body: await fetch_one(url) } }
+}
+
+type Handler = <span class="add">async fn(string) -&gt; string</span>
+
+async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: string) -&gt; string {
+  return match record.get(routes, name) {
+    Some(h) =&gt; await h(arg),
+    None    =&gt; "no route",
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">再帰的な型を、最後までマッチする</h2>
+        <p>
+          ユニオンは自身のペイロードの中で、型パラメータ付きで自分自身を指定でき、match のアームはコンストラクタパターンのフィールドの中に別のコンストラクタパターンを入れ子にできます。この 2 つを組み合わせると、赤黒木のバランス規則は 4 つのアームになります。各アームが書き換える形を正確に示し、その形を検査するのは、上に書かれたコメントではなくコンパイラです。<code>examples/apps/leaderboard/main.glyph</code> がプログラム全体で、すべてのスコアを木に保持し、ログを並べ直すのではなく木を走査して順位、上位 N 件、範囲のクエリに答えるリーダーボードです。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">4 つの回転ケースのうちの 1 つ</span>
+<pre>type Tree&lt;K, V&gt; =
+  | Leaf
+  | Node({ color: Color, left: <span class="add">Tree&lt;K, V&gt;</span>, key: K, value: V, size: int, right: <span class="add">Tree&lt;K, V&gt;</span> })
+
+fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
+  return match t {
+    Node({ color: Black, left: <span class="add">Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b })</span>, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) =&gt; node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    <span class="cm">// the other three cases, then:</span>
+    other =&gt; other,
+  }
+}</pre>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>兄弟モジュールの型を指定する 2 つの方法（名前付き import と <code>lib.Secret</code> のアノテーション）の両方で強制される <code>pub</code> の可視性、構造的な <code>interface</code> による境界、<code>defer</code>、<code>std/task</code>（<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>）、型として書ける <code>async fn(A) -&gt; T</code>、自身のペイロードで自分を指定するユニオンと、コンストラクタパターンのフィールドに別のコンストラクタパターンを入れ子にしてそれにマッチするアーム、アームにブロック・<code>await</code>・ループ制御を書ける <code>let</code> や <code>mut</code> の値としての <code>match</code>、アームの型が一致すればその型をプログラムの残りへ持ち越す <code>match</code>、型付きの <code>T.parse</code>、正確なお金の計算のための <code>std/decimal</code>、大きな整数を正確に扱う <code>bigint</code>、数値の桁区切り、JS から受け継ぐセマンティクスを定める仕様書の節、そして <code>string.slice</code>、<code>index_of</code>、<code>repeat</code>、<code>pad_start</code>、<code>pad_end</code>、<code>replace_all</code>、<code>trim_start</code>、<code>trim_end</code> と <code>array.fold</code>、<code>index_of</code>、<code>flat_map</code>、さらに <code>fs.read_dir</code>、<code>fs.is_dir</code>、<code>fs.stat</code>、チェッカーが網羅を求める <code>FsError.kind</code> の分類、<code>regex.captures_all</code> を備えた標準ライブラリです。<code>std/string</code> と <code>std/array</code> の大半は戻り値の型をプログラムに持ち込むようになったので、<code>string.split</code> は <code>Array&lt;string&gt;</code> になり、それを回すループは数値のインデックスを束縛します。<code>std/record</code> もモデル化されていて、値の型は渡したレコードから読み取られます。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get(t, k)</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>record.keys(t)</code> は <code>Array&lt;string&gt;</code> なので、<code>array.sort(record.keys(t), cmp)</code> は要素の型を保ちます。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">限界</h3>
+          <p>非公開のものを import すると、存在しない名前と同じ「not exported by M」というメッセージが出ます。「非公開なので <code>pub</code> を付ける」と「そんな名前はない」を区別するのは、予定済みの改善です。可視性が検査されるのは型アノテーションで、名前空間を通して読む値ではありません。<code>helper</code> が非公開のときの <code>lib.helper()</code> は、今も Glyph ではなく <code>tsc</code> のエラーです。非同期コンテキストは今は検査されます（<code>E0222</code>）が、1 か所だけ例外があります。モジュールレベルの <code>const</code> の初期化式には外側の呼び出し可能なものがないので、そこではトップレベルの <code>await</code> が許され、出力された ESM がそれを実行します。アームの型の合流には、今も型の先頭が一致している必要があります。アームが異なる型を生むと、結果は Glyph にとって unknown になり、それをどう使うかは <code>tsc</code> だけが検査します。stdlib の 9 つの関数も同じ状況です。6 つは省略可能な末尾の引数を取り（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）、引数の個数の検査は 1 つの数値と 1 つの数値を比べるだけなので、これらをモデル化すると最後の引数を省略したすべての呼び出しで誤ったエラーが出てしまいます。<code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、チェッカーが中まで見ないコールバックから要素の型を取ります。この 9 つから直接得た値をインデックス付きで反復するにはアノテーションが必要で、<code>None</code> のアームがない <code>string.index_of</code> への <code>match</code> は、今もきれいにビルドされて実行時に例外を投げます。<code>array.index_of</code> はモデル化されていて、ちゃんと <code>E0200</code> を報告します。チェッカーが型付けできなかった値に対するメンバーや呼び出しの引数の個数は、その境界ではまだエラーにならず検査されません。ライブラリの側では、<code>string</code> は <code>len</code> や <code>split</code> が以前からそうであるように UTF-16 のコード単位でインデックスします。これは確定事項です。<code>chars</code> や <code>char_at</code> はなく、追加の予定もありません。返されたサロゲートペアの片割れは、書き出されるその瞬間まで文字のように見えるからです。<code>encoding.hex_encode</code> でエンコードし、16 進数を 2 桁ずつ読んでください。<code>captures_all</code> はグループを返しますがオフセットは返さないので、行のどこでマッチが始まったかを知る必要のあるスキャナは今もループを自分で書きます。<code>fs.read_dir</code> は OS の順序でエントリを返すので、出力を再現可能にする必要があるときはソートしてください。入れ子のフィールドパターンには 1 つだけ限界が残っています。名前空間 import を通して参照するユニオンの、フィールドに置いたペイロード付きのコンストラクタです。<code>import tree { Node }</code> の後の <code>Node({ left: Node({ key: k }) })</code> はコンパイルされますが、<code>import tree</code> の後の <code>tree.Node({ left: tree.Node({ key: k }) })</code> は、同じユニオンなのに <code>E0300</code> になります。もう 1 つの限界は解消しました。自身のパラメータについてジェネリックなユニオン（<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>）は、パラメータのない同じユニオンなら受け入れる入れ子のアームを以前は拒否していましたが、今は開いた型パラメータでも具体的なインスタンス化でも受け入れます。同じ検索処理が、そもそも match の欠けたバリアントを検査するかどうかも決めていたので、このリリースまでは <code>Tree&lt;K&gt;</code> への <code>match</code> は <code>Leaf</code> を省いてもきれいにビルドされ、<code>tsc --strict</code> も通り、実行時に例外を投げていました。非ジェネリックな書き方なら <code>E0200</code> になっていたのにです。今はどちらの書き方でも報告され、ユニオンを別のモジュールから import しても答えは変わりません。import した <code>Tree&lt;string&gt;</code> への <code>Leaf</code> を省いた <code>match</code> は、import した非ジェネリックな <code>Tree</code> と同じく、<code>Leaf</code> を名指しした <code>E0200</code> になります。これは別々に検査される別のコードパスで、このリリースまでは逆の結果、つまりきれいにビルドされて実行時に例外を投げていました。import したユニオンの網羅性について、頼る前に知っておくべきことがもう 1 つあります。そのバリアントのペイロードも検査されないので、<code>X</code> がペイロード自身のユニオンのバリアントであるとき、<code>B(X)</code> は欠けている <code>Y</code> を報告せずにすべての <code>B</code> にマッチします。これはジェネリクスとは関係ありません。フィールドを束縛すること、あるいはペイロードのないタグをフィールドでマッチすることは、どの場合でも動きます。</p>
+        </div>
+      </div>

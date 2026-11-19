@@ -1,0 +1,110 @@
+---
+title: 変更が何を壊すかをコンパイラは教えてくれるか？ · Glyph
+description: glyph_impact は、これから変更する宣言とその編集を受け取り、ファイルに触れる前に、すべての箇所について判定と理由を返します。
+source_hash: 42e24af1156f67f1
+prev: /answers/binary/ | &larr; 前へ | バイナリデータは扱えるのか、それとも何でも文字列なのか
+next: /answers/ask-the-compiler/ | 次へ &rarr; | エージェントは、コードを書く前にシンボルが何なのかをコンパイラに聞けますか？
+---
+      <p class="q-eyebrow">21 &middot; 編集する前に</p>
+      <h1 class="q-title">変更を加える前に、それが何を壊すかをコンパイラが教えてくれるか？</h1>
+
+      <p class="short-answer">
+        6 種類の編集については、教えてくれます。<code>glyph_impact</code> は、これから変更する宣言と変更の内容（名前の変更、バリアントの削除、パラメータの型の変更、引数の数の変更、削除）を受け取り、決まった選択肢の中から<strong>箇所ごとに 1 つの判定</strong>を返します。それぞれに、なぜ他ではなくその判定なのかという理由が付きます。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          関数の名前を変える、ユニオンを広げる、パラメータが受け付けるものを変える。そういうとき、古い名前を grep してすべての呼び出しを見つけたと願うか、編集してからコンパイラの言うことを読むかのどちらかです。どちらの方法でも、コンパイルが通ったまま黙って誤りになる箇所はわかりません。catch-all のアームを持つ <code>match</code> は、バリアントを追加しても失敗せず、新しいケースを誰も選んでいない行き先へ流し始めるだけです。その箇所はビルドには決して現れません。<code>glyph_impact</code> は、コンパイラが実行するのと同じ解析を使って、編集の前に答えます。
+        </p>
+
+        <h2 class="block-label">返ってくるもの</h2>
+        <p>
+          リクエストでは、<code>module::name</code> の識別子でエンティティを指定し、決まった選択肢から変更を指定します：<code>add_variant</code>、<code>remove_variant</code>、<code>rename</code>、<code>change_arity</code>、<code>change_signature_type</code>、<code>remove</code>。変更の指定は必須です。判定は編集についての事実だからです。編集を指定しなければ、すべての箇所が結果ではなく単なる参照として返ってきてしまいます。答えには、エンティティ、変更、そして <code>impact</code> のリストが含まれます。箇所ごとに 1 エントリで、それぞれに所属する宣言、<code>relation</code>、<code>verdict</code>、<code>because</code>、そして該当するものがちょうど 1 つあればコンパイラが出す診断コードが入ります。判定は決まった選択肢で、それぞれが 1 つの意味を持ちます：<code>WILL_FAIL</code>（その箇所がコンパイルできなくなることをコンパイラが証明できる）、<code>ABSORBS</code>（変更がそこで黙って受け入れられることを証明できる）、<code>SAFE</code>（その箇所が正しいままであることを証明できる）、<code>UNDETERMINED</code>（その箇所を調べたが、結果を確定できない）、<code>NOT_INDEXED</code>（その形の箇所については、そもそもこの質問ができない）。
+        </p>
+
+        <h2 class="block-label">実例</h2>
+        <p>
+          あるモジュールが <code>label(s: string) -&gt; number</code> を宣言しています。3 つの呼び出し元がこれに到達します。1 つは文字列リテラルを渡し、1 つは別のモジュールから import した <code>string</code> のエイリアス型の値を渡し、1 つは <code>label</code> を値として読むだけで呼び出しません。<code>change_signature_type</code> がそれぞれに何をもたらすかを尋ねると、3 つの異なる判定が返ります。3 つは異なる主張だからです：
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">リクエスト</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_impact",
+    "arguments": {
+      "entity": "lib::label",
+      "change": { "kind": "change_signature_type" }
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">結果。3 つの箇所に絞ったもの</span>
+<pre>{
+  "entity": "lib::label",
+  "impact": [
+    {
+      "entity": "literal::probe",
+      "verdict": "WILL_FAIL",
+      "diagnostic": "E0211",
+      "because": "every argument at this site is paired with
+        a parameter the relation reads in full, so a
+        replacement parameter type any of those pairings does
+        not accept is E0211 here. The pairings: argument 1
+        (`\"x\"`, `\"x\"`) against parameter `s: string`: ..."
+    },
+    {
+      "entity": "imported::probe",
+      "verdict": "UNDETERMINED",
+      "diagnostic": null,
+      "because": "argument 1 (`c`, `Cell`) against parameter
+        `s: string`: `Cell` is declared in another module as
+        an alias for a primitive, and the checker compares an
+        imported declaration only when the declaration at the
+        end of its chain of names is a tagged union or a
+        record (G215, G226), so a replacement is compared
+        against nothing here and only `tsc` on a full `glyph
+        build` would see a mismatch"
+    },
+    {
+      "entity": "reader::sizer",
+      "verdict": "NOT_INDEXED",
+      "diagnostic": null,
+      "because": "this site reads the name rather than
+        applying it, so no argument is paired with a
+        parameter here, and Glyph does not compare a
+        function value's parameter types against the type
+        its use context expects"
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          同じ編集、3 つの箇所、3 つの判定。それぞれの <code>because</code> はカテゴリのラベルではなく、コンパイラが実際に出す文です。これはこの変更に対するコンパイラ自身のテスト（<code>glyph-cli/tests/agent_loop.rs</code> の <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>）と同じ内容です。テストはそのあと実際に編集を行い、E0211 が <code>WILL_FAIL</code> の予告どおりの場所にだけ出て、残りの 2 か所ではコンパイラが何も言わないことを確認しています。
+        </p>
+
+        <h2 class="block-label">実際のアプリケーションで</h2>
+        <p>
+          このリポジトリにある 11 ファイルの CSV クエリエンジン <code>examples/apps/csvql</code> には、タグ付きユニオン <code>Value</code> が 1 つあり、現在 4 つのバリアントを持っています。5 つ目（<code>Blob</code>）を追加すると何が起きるかを <code>glyph_impact</code> に尋ねると、4 ファイルにわたる 10 か所の match が見つかります。8 か所はコンパイルに失敗し、2 か所は新しいバリアントを黙って吸収する catch-all のアームを含んでいます。実際にバリアントを追加すると、コンパイラはちょうど 8 件の <code>E0200</code> を、予測どおりの 8 か所で報告し、<code>ABSORBS</code> の 2 か所については前後どちらでも何も言いません。ツールなしでやるとしたら同じアプリで catch-all のアームをテキスト検索することになりますが、それでは同じ 2 か所が 20 件のヒットの中に埋もれ（適合率 0.10）、失敗する 8 か所については何もわかりません。テキスト検索には、<code>match</code> がどの型を調べているかという概念がないからです。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>決まった 6 種類の変更（<code>add_variant</code>、<code>remove_variant</code>、<code>rename</code>、<code>change_arity</code>、<code>change_signature_type</code>、<code>remove</code>）と、決まった 5 種類の判定があり、影響を受ける箇所ごとに理由と診断コード付きのエントリが 1 つ返ります。<code>change_signature_type</code> は呼び出しの引数ごとに型検査器自身の比較ルールで判定され、箇所の判定はその引数の中で最も弱いものになります。JSX 要素は、それが変換される呼び出しとして判定されます。<code>&lt;Card title="x" /&gt;</code> は <code>Card</code> に渡される 1 つの props レコードで、各属性は照合されるフィールドに対して、同じ型の呼び出し引数が受けるのと同じ判定とともに並びます。カバー範囲（検索が読めたものと読めなかったもの）は、答え全体で 1 回ではなく検索ごとに示され、どのノードにも、それが Glyph のソース、<code>extern_ts</code> の抜け道、中身の見えない <code>.d.ts</code> のどれから来たかが付きます。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">限界</h3>
+          <p>深さは 1 ホップまでは正確で、それより先は空です。Glyph は宣言の型を本体から推論しないので、呼び出し先の型が呼び出し元のシグネチャに届くことはなく、X への変更が無効にしうるのは X を名指しする式だけです。深さ 2 を求めると、代わりに正確な質問を示す <code>next_query</code> 付きで答えが返ります。2 ホップ目に必要なのは誰かが 1 つ目の箇所に施す修正であり、その修正はまだ存在しないからです。<code>UNDETERMINED</code> と <code>NOT_INDEXED</code> は異なる主張です。型検査器が型を持たない引数や、どのルールも読まないフィールドとのレコードの対応は <code>UNDETERMINED</code>（調べたが決められなかった）で、呼び出されずに値として読まれる関数は <code>NOT_INDEXED</code>（そこではそもそも質問ができなかった）です。注意すべきは <code>ABSORBS</code> です。その箇所はコンパイルが通り続けるのに、誤りであることは証明されています。ビルドが成功しても、それは決して見えません。</p>
+        </div>
+      </div>

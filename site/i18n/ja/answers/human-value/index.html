@@ -1,0 +1,49 @@
+---
+title: AI を使っていなくても Glyph に価値はあるか · Glyph
+description: あります。AI エージェントが表看板ですが、どの保証（網羅的な match、any がないこと、実行時に検査される型、grep しやすいコード、安定した差分）も人間の役に立ちます。
+source_hash: 353b3dea2a444a3f
+prev: /answers/vs-tooled-ts/ | &larr; 前へ | strict な TypeScript と zod、eslint、ts-pattern の組み合わせではなぜ駄目なのか
+next: /answers/ai-authoring/ | 次へ &rarr; | ほとんど見たことのない言語を、AI は確実に書けるのか
+---
+      <p class="q-eyebrow">06 &middot; 人間にとっても</p>
+      <h1 class="q-title">AI を使っていなくても Glyph に価値はあるか</h1>
+
+      <p class="short-answer">
+        あります。AI エージェントを前面に出しているのは、エージェントがこうしたものを頻繁に壊すからです。しかしその下にある保証はどれも、<strong>人間が直接受け取れる、ふつうのエンジニアリング上の利点</strong>です。実行時の予期しない挙動が減り、差分が小さくなり、コードを grep で探せるようになります。どれも LLM を必要としません。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">これは AI の機能ではなく、言語の機能です</h2>
+        <p>
+          「エージェント」という言葉を抜いてリストを読んでみてください。<code>any</code> がない、網羅的な <code>match</code>、値としてのエラー、実行時に検査される型、名前ごとに宣言の形が 1 つ、差分が安定する正規のフォーマット。Rust、Elm、OCaml を書いたことがある人なら、どれもコードベースを保守しやすくするものだとわかるはずです。AI がコードを書くずっと前から良いとされてきた考え方です。Glyph はそれを、1 ファイルずつ導入できる TypeScript 風の言語に持ち込んでいるだけです。
+        </p>
+
+        <h2 class="block-label">1 人で使っても得られるもの</h2>
+        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>深夜の呼び出しが減ります。</strong>境界のデータは構造上必ず検証され（<code>User.parse</code>）、ケースの漏れは本番で表面化する <code>undefined</code> ではなく、コンパイルエラーになります。</li>
+          <li><strong>レビューが速くなります。</strong>1 行の変更は 1 行の差分になるので、レビュアーは周りの整形の揺れではなく、変更そのものを読めます。</li>
+          <li><strong>何でも見つけられます。</strong><code>grep "fn parseUser"</code> で定義にたどり着きます。オーバーロードやバレルファイル、デコレータで散らばることはありません。</li>
+          <li><strong>新しいメンバーが早く慣れます。</strong>コアが小さく、1 つのことに 1 つのやり方しかないので、次の人が覚えるべき暗黙知が少なくなります。</li>
+        </ul>
+
+        <h2 class="block-label">では、なぜエージェントを前面に出すのか</h2>
+        <p>
+          そちらのほうが効果が<em>大きい</em>からです。人間はいずれ linter を走らせ、ケースを処理することを覚えます。エージェントは <code>any</code> に手を伸ばし、アームを書き忘れ、グリーンのままマージします。オプトインのツールを有効にしたままでいてくれるとも限りません。厳しさを<em>オプションにしない</em>ことの価値は、機械がコードを書くときに何倍にもなります。とはいえ、最低限の利点（上に挙げたもの）は、エージェントを使っても使わなくても得られます。
+        </p>
+
+        <p class="callout">
+          使うならエージェントが必要なツールではなく、結果としてエージェントにも向いている、より厳しい TypeScript だと考えてください。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">トレードオフ</h3>
+          <p>新しく何かを始める場合や、チームがすでに ML 系言語の規律を重視している場合は、利点がすぐに効いてきます。成熟し、ツールも整った TS スタックで 1 人で開発している場合は、判断が微妙になります。Glyph はアーリープレビューであり、それは考慮すべき実際のコストです。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">どちらにしても</h3>
+          <p>抜け道は常に残っています。Glyph は自分のものとして持てる読みやすい TypeScript にコンパイルされるので、1 つのモジュールで試すのは安上がりで、元に戻すこともできます。</p>
+        </div>
+      </div>

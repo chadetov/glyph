@@ -1,0 +1,128 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/embedding/index.html",
+  "locale": "ja",
+  "source_hash": "4dc0a3c1d0f26ab3",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I adopt Glyph inside my existing app? · Glyph",
+      "tr": "既存のアプリの中で Glyph を導入できるか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "No rewrite: keep the app in TypeScript, write the domain core in Glyph, and import the compiled modules like any local file. It works under stock Vite.",
+      "tr": "書き直しは不要です。アプリは TypeScript のまま、ドメインの中核を Glyph で書き、コンパイルされたモジュールをローカルファイルと同じように import します。素の Vite でそのまま動きます。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "既存の TypeScript、JavaScript、npm のライブラリは使えますか。"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "API ごとにバリデータを手書きする必要がありますか？"
+    },
+    {
+      "id": "h-581974ff",
+      "kind": "html",
+      "en": "10 &middot; Inside your app",
+      "tr": "10 &middot; アプリに組み込む"
+    },
+    {
+      "id": "h-68c07ce1",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "既存のアプリの中で Glyph を導入できるか、それとも全面移行しかないのか"
+    },
+    {
+      "id": "h-0e1c0ddb",
+      "kind": "html",
+      "en": "No rewrite. Keep the app in TypeScript and write the part you can't afford to get wrong (models, permissions, state transitions, money math) in Glyph. <code>glyph build</code> emits modules your app imports <strong>like any local file</strong>, with no bundler config and no path aliases.",
+      "tr": "書き直しは不要です。アプリは TypeScript のままにして、間違えるわけにいかない部分（モデル、権限、状態遷移、金額計算）を Glyph で書きます。<code>glyph build</code> が出力するモジュールは、<strong>ローカルファイルと同じように</strong> アプリから import できます。バンドラの設定もパスエイリアスも要りません。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "h-c70d97da",
+      "kind": "html",
+      "en": "Most teams can't rewrite an application, and most of an application doesn't need Glyph. The part that does is the domain core: the rules an AI agent will edit next month and nobody wants silently wrong. Keeping that core in Glyph gives you exhaustive <code>match</code>, no casts, and validated boundaries exactly where they pay, while the React components, the styling, and the infrastructure stay plain TypeScript.",
+      "tr": "たいていのチームはアプリケーションを書き直せませんし、アプリケーションの大部分には Glyph は必要ありません。必要なのはドメインの中核です。来月 AI エージェントが編集することになり、黙って間違っていては誰も困るルールの部分です。その中核を Glyph にしておけば、網羅的な <code>match</code>、キャストのないコード、検証された境界を、効果のある場所にだけ導入できます。React コンポーネント、スタイル、インフラはふつうの TypeScript のままです。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "実例"
+    },
+    {
+      "id": "h-33682851",
+      "kind": "html",
+      "en": "One directory of Glyph sources, compiled into the app, imported by the UI:",
+      "tr": "Glyph のソースを 1 つのディレクトリにまとめ、アプリにコンパイルして、UI から import します。"
+    },
+    {
+      "id": "h-a3eaf0cf",
+      "kind": "html",
+      "en": "A hybrid layout: Glyph domain core, TypeScript everything else",
+      "tr": "ハイブリッド構成：ドメインの中核は Glyph、それ以外はすべて TypeScript"
+    },
+    {
+      "id": "h-abc250a1",
+      "kind": "html",
+      "en": "Everything the emitted code needs travels with it. Imports are relative, including the bundled standard library, so your project's <code>tsconfig.json</code> and bundler need nothing added: a stock Vite scaffold compiles and bundles the output as-is, and the same files pass a host <code>tsc --strict</code>. Mark what the app imports with <code>pub</code>; a declaration without it is private to its module. This isn't a hypothetical: an outside engineer <a href=\"https://github.com/yildizadem/glyph-kanban\">built a React Kanban board this way</a>, with the RBAC matrix, the analytics formulas, and the status transitions in four Glyph modules under a hand-written React UI.",
+      "tr": "出力されたコードが必要とするものは、すべてコードと一緒に運ばれます。import は同梱の標準ライブラリも含めてすべて相対パスなので、プロジェクトの <code>tsconfig.json</code> にもバンドラにも何も追加する必要がありません。素の Vite の雛形がそのまま出力をコンパイル・バンドルでき、同じファイルはホスト側の <code>tsc --strict</code> も通ります。アプリから import するものには <code>pub</code> を付けます。付いていない宣言はそのモジュール内に閉じます。これは仮定の話ではありません。外部のエンジニアが<a href=\"https://github.com/yildizadem/glyph-kanban\">この方法で React のカンバンボードを作りました</a>。RBAC のマトリクス、分析用の計算式、ステータス遷移を 4 つの Glyph モジュールに置き、その上に手書きの React UI を載せています。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "提供中"
+    },
+    {
+      "id": "h-a33b093e",
+      "kind": "html",
+      "en": "Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself, verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>. The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">deployment guide</a> documents the hybrid layout.",
+      "tr": "出力はそのままホストのプロジェクトに組み込めます。指定子はすべて相対パスで、prelude の型はコード自身が持ち運びます。素の Vite の雛形、ホスト側の <code>tsc --strict</code>、esbuild、<code>tsx</code> で検証済みです。ハイブリッド構成は<a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">デプロイガイド</a>に記載しています。"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "予定"
+    },
+    {
+      "id": "h-6f1c79e2",
+      "kind": "html",
+      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script). Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.",
+      "tr": "watch モードはまだありません。<code>.glyph</code> のソースを編集したら <code>glyph build</code> を再実行してください（<code>dev</code> スクリプトに組み込むと便利です）。<code>std/fs</code> や <code>std/net</code> を使うモジュールは、Node に触れる TypeScript と同じく、ホスト側に <code>@types/node</code> が必要です。"
+    }
+  ]
+}

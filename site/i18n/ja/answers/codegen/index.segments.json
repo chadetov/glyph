@@ -1,0 +1,164 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/codegen/index.html",
+  "locale": "ja",
+  "source_hash": "6bd6413e23269b0f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I generate a typed client from my API spec? · Glyph",
+      "tr": "API の仕様から型付きクライアントを生成できるか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.",
+      "tr": "できます。glyph gen openapi は仕様を型付きの HTTP クライアント、またはルーター付きのサーバースタブに変換し、gen zod は zod スキーマから生成します。出力は普通の Glyph です。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "API ごとにバリデータを手書きする必要がありますか？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "React で使えるか。コンポーネント、フック、Context は？"
+    },
+    {
+      "id": "h-2d504cee",
+      "kind": "html",
+      "en": "12 &middot; From your spec",
+      "tr": "12 &middot; 仕様から"
+    },
+    {
+      "id": "h-aacedd15",
+      "kind": "html",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "API の仕様から型付きのクライアントとサーバーを生成できるか"
+    },
+    {
+      "id": "h-b2505a68",
+      "kind": "html",
+      "en": "Yes. Point <code>glyph gen openapi</code> at an OpenAPI spec: <code>--client</code> emits a typed HTTP client, one function per operation; <code>--handlers</code> emits server stubs and a working <code>route</code> dispatcher. If your source of truth is a <code>zod</code> schema, <code>glyph gen zod</code> does the same. Everything comes out as <strong>committed, greppable Glyph</strong> you own and edit, never a hidden codegen step.",
+      "tr": "できます。<code>glyph gen openapi</code> に OpenAPI の仕様を渡します。<code>--client</code> は型付きの HTTP クライアントを、オペレーションごとに 1 つの関数として出力します。<code>--handlers</code> はサーバースタブと、実際に動く <code>route</code> ディスパッチャを出力します。信頼できる情報源が <code>zod</code> スキーマなら、<code>glyph gen zod</code> が同じことをします。出力はすべて、自分のものとして編集できる<strong>コミットされた、grep できる Glyph</strong> で、隠れたコード生成ステップにはなりません。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "h-6e5bdb9e",
+      "kind": "html",
+      "en": "Hand-written API clients and their DTOs drift from the spec, and the drift is a class of bug nobody enjoys. Because Glyph generates <em>real</em> code (typed functions, real <code>type</code> declarations with runtime descriptors), the spec stays the source of truth, and regeneration is an idempotent, reviewable diff, not a black box.",
+      "tr": "手書きの API クライアントと DTO は仕様からずれていきます。このずれは誰にとっても楽しくない種類のバグです。Glyph は<em>本物の</em>コード（型付きの関数、実行時ディスクリプタを持つ本物の <code>type</code> 宣言）を生成するので、仕様が信頼できる情報源であり続け、再生成はブラックボックスではなく、冪等でレビューできる差分になります。"
+    },
+    {
+      "id": "h-a484bd7e",
+      "kind": "html",
+      "en": "See it: the client",
+      "tr": "実例：クライアント"
+    },
+    {
+      "id": "h-009373ae",
+      "kind": "html",
+      "en": "Each operation becomes an <code>async fn</code> with typed path parameters and a typed request body, returning the HTTP <code>Response</code>:",
+      "tr": "各オペレーションは、型付きのパスパラメータと型付きのリクエストボディを持ち、HTTP の <code>Response</code> を返す <code>async fn</code> になります："
+    },
+    {
+      "id": "h-e40c10b9",
+      "kind": "html",
+      "en": "The <code>--handlers</code> router matches the path with array patterns, so <code>/tasks/{id}</code> becomes <code>[\"tasks\", id]</code> and binds the parameter for you. Each stub starts as a <code>501</code> with a comment showing the body-parse; you fill them in and wire it up with <code>await serve(PORT, route)</code>.",
+      "tr": "<code>--handlers</code> のルーターは配列パターンでパスにマッチするので、<code>/tasks/{id}</code> は <code>[\"tasks\", id]</code> になり、パラメータを束縛してくれます。各スタブは最初、ボディのパース方法を示すコメント付きの <code>501</code> になっています。中身を埋めて、<code>await serve(PORT, route)</code> でつなぎます。"
+    },
+    {
+      "id": "h-06875f94",
+      "kind": "html",
+      "en": "From a zod schema instead",
+      "tr": "zod スキーマから生成する"
+    },
+    {
+      "id": "h-6535dfa8",
+      "kind": "html",
+      "en": "If your team already defines shapes with <code>zod</code>, generate from those directly. The schema becomes a first-class Glyph type with its own descriptor:",
+      "tr": "チームがすでに <code>zod</code> で形を定義しているなら、そこから直接生成できます。スキーマは独自のディスクリプタを持つ、Glyph の第一級の型になります："
+    },
+    {
+      "id": "h-e545951d",
+      "kind": "html",
+      "en": "A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>) comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code> that reads the discriminator property and validates into the right variant. Because Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges the wire object to the union for you.",
+      "tr": "多相的な<strong>判別可能ユニオン</strong>（OpenAPI の <code>discriminator</code>）は、本物の Glyph のタグ付きユニオンと、生成された <code>parse_&lt;Name&gt;</code> になります。この関数は判別用のプロパティを読み、正しいバリアントとして検証します。Glyph は任意のプロパティではなくコンストラクタ名でタグ付けするので、生成されたディスパッチャが通信上のオブジェクトとユニオンの間を橋渡しします。"
+    },
+    {
+      "id": "h-b5ade80b",
+      "kind": "html",
+      "en": "Where it falls short: generation is wire-faithful, so it maps the common 80%: objects, primitives, arrays, references, optional and nullable fields, and discriminated unions. It narrows what it can't represent exactly (a string enum, an <em>un</em>discriminated union) with a printed note rather than a validator that would reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen zod</code> need Node plus <code>typescript</code>/<code>zod</code>. <code>gen dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your project first, and they tell you exactly what to install if it's missing.",
+      "tr": "足りない点：生成は通信上の形に忠実なので、よくある 80% をマッピングします。オブジェクト、プリミティブ、配列、参照、省略可能なフィールドと nullable なフィールド、判別可能ユニオンです。正確に表せないもの（文字列の enum、判別子の<em>ない</em>ユニオン）は、実データを拒否してしまうバリデータを作る代わりに、注記を出力したうえで型を狭めます。より豊かな enum が次の対応対象です。また、ツールには実際の依存関係があります。<code>gen dts</code>/<code>gen zod</code> には Node と <code>typescript</code>/<code>zod</code> が必要です。<code>gen dts</code> はどの TypeScript（5、6、7.x のネイティブ移植版）でも動き、まずプロジェクトから解決します。足りないものがあれば、何をインストールすればよいかを正確に教えてくれます。"
+    },
+    {
+      "id": "h-9d3f5fa1",
+      "kind": "html",
+      "en": "Keeping it in sync",
+      "tr": "同期を保つ"
+    },
+    {
+      "id": "h-c8254899",
+      "kind": "html",
+      "en": "Every generated file records the exact command that made it in its header. When a spec changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans for those headers and re-runs each one, rewriting the output. It's idempotent, so a regen with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check that fails if the committed code has drifted from the spec.",
+      "tr": "生成されたファイルは、それを作った正確なコマンドをヘッダに記録しています。仕様が変わっても、どのコマンドを再実行すればよいかを探す必要はありません。<code>glyph regen</code> がそのヘッダを探して各コマンドを再実行し、出力を書き換えます。冪等なので、仕様に変更がなければ何も変わりません。pre-commit フックにも、コミットされたコードが仕様からずれていたら失敗する CI のチェックにも、そのまま組み込めます。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "提供中"
+    },
+    {
+      "id": "h-46515e67",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, <code>glyph gen zod</code>, and <code>glyph regen</code> to refresh it all from source: every command emitting committed, descriptor-bearing, idempotently-regenerated Glyph.",
+      "tr": "<code>glyph gen openapi</code>（型、<code>--client</code>、本物のルーター付きの <code>--handlers</code>）、<code>glyph gen dts</code>、<code>glyph gen zod</code>、そしてソースからすべてを更新する <code>glyph regen</code>。どのコマンドも、コミットされ、ディスクリプタを持ち、冪等に再生成される Glyph を出力します。"
+    },
+    {
+      "id": "h-d9d35e28",
+      "kind": "html",
+      "en": "Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it. That choice is recorded in the generated header, so <code>glyph regen</code> replays it.",
+      "tr": "Glyph で同じ名前になってしまう 2 つの型があると、ジェネレータはコンパイルできないファイルを作る代わりに停止します。衝突しているソースをすべて名指しし、何も書き出さず、<code>--rename Source=GlyphName</code> で解決できます。この選択は生成されたヘッダに記録されるので、<code>glyph regen</code> でも再現されます。"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "予定"
+    },
+    {
+      "id": "h-a232f27a",
+      "kind": "html",
+      "en": "Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved. Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.",
+      "tr": "より豊かな enum のマッピングと、より広い OpenAPI の対応範囲。どちらも、通信上の形に忠実で、型を狭めるときは注記するという同じルールのもとで導入されます。パッケージ自身の <code>.d.ts</code> からの生成は <code>interface</code> と <code>type</code> の宣言を読むので、API がクラスで構成されていたり、フィールドに <code>Omit</code> のような計算された型を使っていたりするライブラリでは、参照が残ります。ジェネレータはそれを注記で名指しし、<code>glyph build</code> は未解決として報告します。そのようなクラスを import して <code>new</code> で生成する場合は生成が不要で、<code>tsc</code> が検査するので、その経路には影響しません。"
+    }
+  ]
+}

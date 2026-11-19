@@ -1,0 +1,284 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/index.html",
+  "locale": "ja",
+  "source_hash": "28891a173ca9e4a0",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Design · the four pillars and the decisions · Glyph",
+      "tr": "設計 · 4 つの柱と設計判断 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "The design argument for Glyph: four pillars every decision is tested against, the numbered decisions in the spec, and what the language leaves out on purpose.",
+      "tr": "Glyph の設計の考え方。すべての判断の基準となる 4 つの柱、仕様にある番号付きの設計判断、そして言語が意図的に入れなかったもの。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "次に読むもの"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "おすすめ"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/language/spec.md.title",
+      "kind": "ns.title",
+      "en": "Read the spec",
+      "tr": "仕様を読む"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/language/spec.md.desc",
+      "kind": "ns.desc",
+      "en": "Every numbered decision, each ending with the pillar it serves.",
+      "tr": "番号付きの設計判断すべて。それぞれの最後に、どの柱に資するかが書かれています。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open the spec",
+      "tr": "仕様を開く"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "Glyph が拒否するもの"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "各ケースを <code>tsc --strict</code> と Glyph の両方で検証しています。"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "最初のプログラムを書く"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "インストールし、雛形を作り、実行し、わざと壊してエラーを読みます。約 10 分です。"
+    },
+    {
+      "id": "h-0072e6b9",
+      "kind": "html",
+      "en": "Design",
+      "tr": "設計"
+    },
+    {
+      "id": "h-32e01c38",
+      "kind": "html",
+      "en": "Four pillars, and a decision record for every rule",
+      "tr": "4 つの柱と、すべてのルールに対する設計判断の記録"
+    },
+    {
+      "id": "h-00bba438",
+      "kind": "html",
+      "en": "Every rule in Glyph is tested against four properties, and each rule is a numbered decision in the spec with the pillar it serves. The pillars are properties of the language rather than of a project's configuration, so an agent opening an unfamiliar Glyph codebase can rely on them without first finding out which settings it chose.",
+      "tr": "Glyph のすべてのルールは 4 つの性質に照らして検討され、各ルールはどの柱に資するかを添えた番号付きの設計判断として仕様に記されています。柱はプロジェクトの設定ではなく言語の性質なので、見慣れない Glyph のコードベースを開いたエージェントは、どの設定が選ばれているかを先に調べることなく、それを前提にできます。"
+    },
+    {
+      "id": "h-9336e2ad",
+      "kind": "html",
+      "en": "The pillars",
+      "tr": "4 つの柱"
+    },
+    {
+      "id": "h-2b73560f",
+      "kind": "html",
+      "en": "In order of what matters most. The first two are the wedge, the problems you feel every day. The last two are the polish that makes it pleasant. When they conflict, the wedge wins.",
+      "tr": "重要な順に並べています。最初の 2 つが核となる部分で、毎日感じている問題に対するものです。後の 2 つは使い心地をよくするための仕上げです。両者が衝突したときは、核となる部分が優先されます。"
+    },
+    {
+      "id": "h-5cbfc52e",
+      "kind": "html",
+      "en": "Pillar 01",
+      "tr": "柱 01"
+    },
+    {
+      "id": "h-a33b81eb",
+      "kind": "html",
+      "en": "Verifiability",
+      "tr": "検証可能性"
+    },
+    {
+      "id": "h-833bdc5b",
+      "kind": "html",
+      "en": "No <code>any</code> and no <code>as</code> you can write; <code>match</code> must cover every case; and your record and union types generate strict runtime validators, so a boundary value is checked, not assumed. A strict layer over <code>tsc</code> that can't be switched off. Many mistakes <code>tsc --strict</code> accepts don't compile here; the ones that still do are listed under <a href=\"/catches/#not-yet\">not caught yet</a>.",
+      "tr": "<code>any</code> も、書ける <code>as</code> もありません。<code>match</code> はすべてのケースを扱わなければならず、レコード型とユニオン型からは厳密な実行時バリデータが生成されるので、境界を越える値は前提とされるのではなく検査されます。<code>tsc</code> の上に載った、無効にできない厳密な層です。<code>tsc --strict</code> が受け入れるミスの多くは、ここではコンパイルが通りません。まだ通ってしまうものは<a href=\"/catches/#not-yet\">まだ検出できないもの</a>に載せています。"
+    },
+    {
+      "id": "h-340b6574",
+      "kind": "html",
+      "en": "Pillar 02",
+      "tr": "柱 02"
+    },
+    {
+      "id": "h-6b14954f",
+      "kind": "html",
+      "en": "Greppability",
+      "tr": "grep しやすさ"
+    },
+    {
+      "id": "h-13800ac1",
+      "kind": "html",
+      "en": "One name, one place. Every symbol has exactly one syntactic form at its declaration, with no overloads, decorators, implicit <code>this</code>, or namespace merging. <code>grep \"fn parseUser\"</code> finds the definition.",
+      "tr": "1 つの名前に 1 つの場所。すべてのシンボルは宣言の場所でただ 1 つの構文形式を持ち、オーバーロードも、デコレータも、暗黙の <code>this</code> も、namespace のマージもありません。<code>grep \"fn parseUser\"</code> で定義が見つかります。"
+    },
+    {
+      "id": "h-7eb86103",
+      "kind": "html",
+      "en": "Pillar 03",
+      "tr": "柱 03"
+    },
+    {
+      "id": "h-93a58670",
+      "kind": "html",
+      "en": "Diff stability",
+      "tr": "差分の安定性"
+    },
+    {
+      "id": "h-0a940571",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
+      "tr": "1 行の変更は 1 行の差分になります。正規のレイアウトは 1 つだけです。リストは収まる間は 1 行に書き、収まらなければ 1 要素 1 行にして、詰め直すことはしません。末尾のカンマがあり、バレルファイルもオプションもないので、同じコードはどのプロジェクトでも同じように出力されます。レビュアーが読むのは変更そのもので、無関係な書き換えではありません。"
+    },
+    {
+      "id": "h-80299b6d",
+      "kind": "html",
+      "en": "Pillar 04",
+      "tr": "柱 04"
+    },
+    {
+      "id": "h-6e4fdd69",
+      "kind": "html",
+      "en": "Abstraction",
+      "tr": "抽象化"
+    },
+    {
+      "id": "h-f3e218e0",
+      "kind": "html",
+      "en": "Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.",
+      "tr": "意図をそのまま書く：switch の連なりではなくパターンマッチ、throw される例外ではなく <code>Result</code>、タプルではなく名前付きのレコード。TypeScript のように積み重なった層ではなく、小さく直交したコアから組み立てます。"
+    },
+    {
+      "id": "h-8bfd62a3",
+      "kind": "html",
+      "en": "The spec is a list of decisions",
+      "tr": "仕様は設計判断の一覧"
+    },
+    {
+      "id": "h-74c34d82",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/language/spec.md\">docs/language/spec.md</a> holds 49 numbered decisions, D1 to D49, each ending with the pillar it serves. The grammar follows the spec: an ambiguity is resolved there first, then encoded in the parser. <code>glyph llms --json</code> parses the list out of the spec, so an agent reads the same decisions you do. One of them, shortened:",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/language/spec.md\">docs/language/spec.md</a> には D1 から D49 まで 49 個の番号付きの設計判断があり、それぞれの最後にどの柱に資するかが書かれています。文法は仕様に従います。曖昧な点はまず仕様で解決し、それからパーサーに反映します。<code>glyph llms --json</code> は仕様からこの一覧を読み出すので、エージェントはあなたと同じ設計判断を読むことになります。その 1 つを短くしたもの："
+    },
+    {
+      "id": "h-943e1539",
+      "kind": "html",
+      "en": "D9, from docs/language/spec.md (shortened)",
+      "tr": "D9（docs/language/spec.md より、短縮版）"
+    },
+    {
+      "id": "h-269321eb",
+      "kind": "html",
+      "en": "What it deliberately leaves out",
+      "tr": "意図的に入れなかったもの"
+    },
+    {
+      "id": "h-256e589c",
+      "kind": "html",
+      "en": "The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/manifesto.md\">manifesto</a> states the stance, and the short version is that each restriction earns its place against a pillar. Glyph has no <code>if</code>/<code>else</code> (<code>match</code> is the only conditional), no classes, no overloads or decorators, no casts, no <code>any</code>, no relative imports and no formatter options. It is also not configurable: one formatter, one module resolution, one strictness level. Annoying restrictions get documentation, not a looser rule.",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/manifesto.md\">マニフェスト</a>に基本姿勢が書かれていますが、要するに、それぞれの制約は柱に照らして存在理由があるということです。Glyph には <code>if</code>/<code>else</code> がなく（条件分岐は <code>match</code> だけです）、クラスも、オーバーロードもデコレータも、キャストも、<code>any</code> も、相対 import も、フォーマッタのオプションもありません。設定もできません。フォーマッタは 1 つ、モジュール解決は 1 つ、厳しさのレベルも 1 つです。煩わしい制約にはドキュメントで応え、ルールを緩めることはしません。"
+    },
+    {
+      "id": "h-3f7ad4a6",
+      "kind": "html",
+      "en": "Comparisons",
+      "tr": "比較"
+    },
+    {
+      "id": "h-e86ec61c",
+      "kind": "html",
+      "en": "Glyph is close to several existing things, and each comparison below names what the other option does better.",
+      "tr": "Glyph は既存のいくつかのものに近く、以下の比較では、それぞれ相手のほうが優れている点も挙げています。"
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "なぜ Go や新しい言語ではなく TypeScript なのか"
+    },
+    {
+      "id": "h-8999c8e3",
+      "kind": "html",
+      "en": "Why the target is TypeScript, and what that makes possible: adoption one file at a time.",
+      "tr": "なぜ出力先が TypeScript なのか、そしてそれで何ができるのか：1 ファイルずつ導入できること。"
+    },
+    {
+      "id": "h-d07c7b07",
+      "kind": "html",
+      "en": "Why not strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "strict な TypeScript + zod + eslint + ts-pattern ではなぜ駄目なのか"
+    },
+    {
+      "id": "h-dd5c3905",
+      "kind": "html",
+      "en": "The same checks as configuration versus as language, and where tooled TypeScript is still ahead.",
+      "tr": "設定としての検査と、言語としての検査の比較。そして、ツールを揃えた TypeScript がまだ優れている点。"
+    },
+    {
+      "id": "h-f04f0272",
+      "kind": "html",
+      "en": "How does it compare with Effect?",
+      "tr": "Effect と比べてどうか"
+    },
+    {
+      "id": "h-6fe0c507",
+      "kind": "html",
+      "en": "A TypeScript library with typed errors and a large ecosystem, against a language that removes the escape hatches.",
+      "tr": "型付きのエラーと大きなエコシステムを持つ TypeScript のライブラリと、抜け道を取り除いた言語の比較。"
+    },
+    {
+      "id": "h-389767f5",
+      "kind": "html",
+      "en": "Why not ReScript, Gleam or Elm?",
+      "tr": "ReScript、Gleam、Elm ではなぜ駄目なのか"
+    },
+    {
+      "id": "h-d8c3b4ac",
+      "kind": "html",
+      "en": "Three older typed languages that compile to JavaScript, where each is ahead, and what Glyph does differently.",
+      "tr": "JavaScript にコンパイルされる、より歴史のある 3 つの型付き言語。それぞれが優れている点と、Glyph が違うやり方をしている点。"
+    },
+    {
+      "id": "h-49ee7f98",
+      "kind": "html",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "これは本物の言語ですか。それとも穴だらけのおもちゃですか。"
+    },
+    {
+      "id": "h-30b39c82",
+      "kind": "html",
+      "en": "Module visibility, interfaces, defer, the standard library, and the edges it still has.",
+      "tr": "モジュールの可視性、インターフェース、defer、標準ライブラリ、そしてまだ残っている制約。"
+    },
+    {
+      "id": "h-c0af297f",
+      "kind": "html",
+      "en": "The hypothesis behind all of it, which is not a result yet: an agent given the same task produces correct code more reliably in Glyph than in TypeScript, and the reviewer spends less time confirming it. That study has not been run, so this site puts no number on it. <a href=\"/benchmarks/\">Benchmarks</a> says what is measured so far.",
+      "tr": "そのすべての裏にある仮説は、まだ結果ではありません。同じタスクを与えられたエージェントは、TypeScript より Glyph のほうが確実に正しいコードを書き、レビュアーがそれを確認する時間も短くなる、というものです。その研究はまだ行っていないので、このサイトではそれに数値を付けていません。これまでに何を測定したかは<a href=\"/benchmarks/\">ベンチマーク</a>に書いてあります。"
+    }
+  ]
+}

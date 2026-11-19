@@ -1,0 +1,123 @@
+---
+title: API の仕様から型付きクライアントを生成できるか · Glyph
+description: できます。glyph gen openapi は仕様を型付きの HTTP クライアント、またはルーター付きのサーバースタブに変換し、gen zod は zod スキーマから生成します。出力は普通の Glyph です。
+source_hash: 6bd6413e23269b0f
+prev: /answers/typed-apis/ | &larr; 前へ | API ごとにバリデータを手書きする必要がありますか？
+next: /answers/react/ | 次へ &rarr; | React で使えるか。コンポーネント、フック、Context は？
+---
+      <p class="q-eyebrow">12 &middot; 仕様から</p>
+      <h1 class="q-title">API の仕様から型付きのクライアントとサーバーを生成できるか</h1>
+
+      <p class="short-answer">
+        できます。<code>glyph gen openapi</code> に OpenAPI の仕様を渡します。<code>--client</code> は型付きの HTTP クライアントを、オペレーションごとに 1 つの関数として出力します。<code>--handlers</code> はサーバースタブと、実際に動く <code>route</code> ディスパッチャを出力します。信頼できる情報源が <code>zod</code> スキーマなら、<code>glyph gen zod</code> が同じことをします。出力はすべて、自分のものとして編集できる<strong>コミットされた、grep できる Glyph</strong> で、隠れたコード生成ステップにはなりません。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          手書きの API クライアントと DTO は仕様からずれていきます。このずれは誰にとっても楽しくない種類のバグです。Glyph は<em>本物の</em>コード（型付きの関数、実行時ディスクリプタを持つ本物の <code>type</code> 宣言）を生成するので、仕様が信頼できる情報源であり続け、再生成はブラックボックスではなく、冪等でレビューできる差分になります。
+        </p>
+
+        <h2 class="block-label">実例：クライアント</h2>
+        <p>
+          各オペレーションは、型付きのパスパラメータと型付きのリクエストボディを持ち、HTTP の <code>Response</code> を返す <code>async fn</code> になります：
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
+<pre>async fn createTask(
+  base: string,
+  body: NewTask,
+) -&gt; Result&lt;Response, HttpError&gt; {
+  return await post(
+    "${base}/tasks",
+    body,
+  )
+}
+
+async fn getTask(base: string, id: number)
+  -&gt; Result&lt;Response, HttpError&gt; {
+  return await get("${base}/tasks/${id}")
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
+<pre>fn route(req: Request)
+  -&gt; Result&lt;Response, string&gt; {
+  return match req.method {
+    "GET" =&gt; match segments(req) {
+      ["tasks"] =&gt; listTasks(req),
+      // id captured from the path:
+      ["tasks", id] =&gt; getTask(req, id),
+      else =&gt; Ok(json(404, {
+        error: "not found",
+      })),
+    },
+    else =&gt; Ok(json(405, {
+      error: "method not allowed",
+    })),
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>--handlers</code> のルーターは配列パターンでパスにマッチするので、<code>/tasks/{id}</code> は <code>["tasks", id]</code> になり、パラメータを束縛してくれます。各スタブは最初、ボディのパース方法を示すコメント付きの <code>501</code> になっています。中身を埋めて、<code>await serve(PORT, route)</code> でつなぎます。
+        </p>
+        <h2 class="block-label">zod スキーマから生成する</h2>
+        <p>
+          チームがすでに <code>zod</code> で形を定義しているなら、そこから直接生成できます。スキーマは独自のディスクリプタを持つ、Glyph の第一級の型になります：
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">schemas.ts</span>
+<pre>export const Task = z.object({
+  id: z.number(),
+  title: z.string(),
+  done: z.boolean(),
+})</pre>
+        </div>
+        <div class="code">
+          <span class="cap">$ glyph gen zod schemas.ts --out src/</span>
+<pre>type Task = {
+  id: number,
+  title: string,
+  done: bool,
+}
+// + a runtime descriptor, so
+// Task.parse(value) validates.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          多相的な<strong>判別可能ユニオン</strong>（OpenAPI の <code>discriminator</code>）は、本物の Glyph のタグ付きユニオンと、生成された <code>parse_&lt;Name&gt;</code> になります。この関数は判別用のプロパティを読み、正しいバリアントとして検証します。Glyph は任意のプロパティではなくコンストラクタ名でタグ付けするので、生成されたディスパッチャが通信上のオブジェクトとユニオンの間を橋渡しします。
+        </p>
+        <p>
+          足りない点：生成は通信上の形に忠実なので、よくある 80% をマッピングします。オブジェクト、プリミティブ、配列、参照、省略可能なフィールドと nullable なフィールド、判別可能ユニオンです。正確に表せないもの（文字列の enum、判別子の<em>ない</em>ユニオン）は、実データを拒否してしまうバリデータを作る代わりに、注記を出力したうえで型を狭めます。より豊かな enum が次の対応対象です。また、ツールには実際の依存関係があります。<code>gen dts</code>/<code>gen zod</code> には Node と <code>typescript</code>/<code>zod</code> が必要です。<code>gen dts</code> はどの TypeScript（5、6、7.x のネイティブ移植版）でも動き、まずプロジェクトから解決します。足りないものがあれば、何をインストールすればよいかを正確に教えてくれます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">同期を保つ</h2>
+        <p>
+          生成されたファイルは、それを作った正確なコマンドをヘッダに記録しています。仕様が変わっても、どのコマンドを再実行すればよいかを探す必要はありません。<code>glyph regen</code> がそのヘッダを探して各コマンドを再実行し、出力を書き換えます。冪等なので、仕様に変更がなければ何も変わりません。pre-commit フックにも、コミットされたコードが仕様からずれていたら失敗する CI のチェックにも、そのまま組み込めます。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p><code>glyph gen openapi</code>（型、<code>--client</code>、本物のルーター付きの <code>--handlers</code>）、<code>glyph gen dts</code>、<code>glyph gen zod</code>、そしてソースからすべてを更新する <code>glyph regen</code>。どのコマンドも、コミットされ、ディスクリプタを持ち、冪等に再生成される Glyph を出力します。</p>
+         Glyph で同じ名前になってしまう 2 つの型があると、ジェネレータはコンパイルできないファイルを作る代わりに停止します。衝突しているソースをすべて名指しし、何も書き出さず、<code>--rename Source=GlyphName</code> で解決できます。この選択は生成されたヘッダに記録されるので、<code>glyph regen</code> でも再現されます。</div>
+        <div class="status-card next">
+          <h3 class="h">予定</h3>
+          <p>より豊かな enum のマッピングと、より広い OpenAPI の対応範囲。どちらも、通信上の形に忠実で、型を狭めるときは注記するという同じルールのもとで導入されます。パッケージ自身の <code>.d.ts</code> からの生成は <code>interface</code> と <code>type</code> の宣言を読むので、API がクラスで構成されていたり、フィールドに <code>Omit</code> のような計算された型を使っていたりするライブラリでは、参照が残ります。ジェネレータはそれを注記で名指しし、<code>glyph build</code> は未解決として報告します。そのようなクラスを import して <code>new</code> で生成する場合は生成が不要で、<code>tsc</code> が検査するので、その経路には影響しません。</p>
+        </div>
+      </div>

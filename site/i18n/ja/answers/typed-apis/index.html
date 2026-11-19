@@ -1,0 +1,545 @@
+---
+title: API ごとにバリデータを手書きする必要がありますか？ · Glyph
+description: いいえ。Glyph では型がそのまま実行時のバリデータになるので、リクエストとレスポンスのボディはバリデータを書かずに検査されます。型は OpenAPI の仕様や .d.ts から作ることもできます。
+source_hash: e5583b6a5d857445
+prev: /answers/embedding/ | &larr; 前へ | 既存のアプリの中で Glyph を導入できるか、それとも全面移行しかないのか
+next: /answers/codegen/ | 次へ &rarr; | API の仕様から型付きのクライアントとサーバーを生成できるか
+---
+      <p class="q-eyebrow">11 &middot; データの境界</p>
+      <h1 class="q-title">API ごとにバリデータを手書きする必要がありますか？</h1>
+
+      <p class="short-answer">
+        いいえ。Glyph では<strong>型がそのままバリデータ</strong>です。<code>type</code> を宣言すると、コンパイラがその横に実行時のディスクリプタを生成します。そのため、信頼できないリクエストやレスポンスのボディは 1 回の呼び出しで検証でき、別途 <code>zod</code> のスキーマを書いて同期させ続ける必要はありません。
+      </p>
+
+      <figure class="ak-hero" id="the-boundary">
+        <div class="ak-flow">
+          <div class="ak-node in"><span class="k">信頼できないボディ</span><span class="v">req.body</span><span class="n">unknown（例：{"title": 123}）</span></div>
+          <div class="ak-arrow" aria-hidden="true"><svg viewBox="0 0 40 16" preserveAspectRatio="none"><path d="M3 8h32M30 3.5l5 4.5-5 4.5"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-node gate"><span class="k">ディスクリプタ</span><span class="v">NewTask.parse</span><span class="n"><code>type NewTask</code> から生成</span></div>
+          <div class="ak-arrow fork" aria-hidden="true"><svg viewBox="0 0 44 100" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M0 50H16M16 24V76M16 24H42M16 76H42"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-outs">
+            <div class="ak-node ok"><span class="k">Ok</span><span class="v">NewTask</span><span class="n">型付きの値。すべてのフィールドが検査済み</span></div>
+            <div class="ak-node err"><span class="k">Err</span><span class="v">Array&lt;Issue&gt;</span><span class="n">不正なボディはここで止まる</span></div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>宣言は 1 つ、検査も 1 つ。ディスクリプタは型から生成されるので両者が食い違うことはなく、<code>NewTask</code> を得る方法はそれを通ることだけです。</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#see-it">実例</a></li>
+          <li><a href="#the-parse-result-is-an-ordinary-result">普通の Result</a></li>
+          <li><a href="#composing-your-own-the-output-type-is-derived-not-trusted">コンビネータ</a></li>
+          <li><a href="#if-i-parse-a-date-do-i-get-a-real-date">日付</a></li>
+          <li><a href="#you-don-t-even-have-to-write-the-types">生成される型</a></li>
+          <li><a href="#the-database-is-a-boundary-too">データベース</a></li>
+          <li><a href="#a-signed-webhook-is-a-boundary-too">Webhook</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ほとんどの TypeScript のスタックでは、すべてのペイロードを<em>2 回</em>記述します。1 回はコンパイラのための <code>type</code> として、もう 1 回は、実行時に値が本当にその形であるようにするための手書きのバリデータとしてです。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>この 2 つはずれていき、そのずれこそが不正なデータが入り込む場所です。Glyph はこれを 1 つの宣言にまとめます。型がバリデータを<em>生み出す</em>ので、両者が食い違うことはありません。</p></div>
+
+      <h2 class="ak-h" id="see-it">実例<a class="ak-anchor" href="#see-it" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        DTO を 1 回宣言します。そのディスクリプタが <code>.parse</code>（信頼できない値をその型に検証する）と <code>.is</code>（型ガード）を提供し、ほかに書くものはありません。
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">api.glyph</span>
+<pre>type NewTask = {
+  title: string,
+  done: bool,
+}
+
+fn create(req: Request)
+  -&gt; Result&lt;Response, string&gt; {
+  return match NewTask.parse(req.body) {
+    Ok(task) =&gt; Ok(json(201, task)),
+    Err(issues) =&gt; Ok(json(400, {
+      error: "invalid task",
+    })),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">書かずに<em>済んだ</em>もの</span>
+<pre>// No zod schema:
+const NewTask = z.object({
+  title: z.string(),
+  done: z.boolean(),
+});
+// No drift between the type and
+// the validator, because there is
+// only one declaration.
+
+// A bad body, {"title": 123},
+// takes the Err arm. Only a
+// well-formed body reaches Ok.</pre>
+        </div>
+      </div>
+
+      <h3 class="ak-h3" id="typed-value"><code>match</code> のあとも型付きの値を保つ<a class="ak-anchor" href="#typed-value" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        アームの中で処理する代わりに、値を取り出すこともできます。
+      </p>
+      <div class="code">
+        <span class="cap">api.glyph：値は型付きのまま match を出る</span>
+<pre>let task = match NewTask.parse(req.body) {
+  Ok(t) =&gt; t,
+  Err(issues) =&gt; { return bad_request(issues) },
+}
+task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; did you mean `title`?</span></pre>
+      </div>
+      <div class="ak-chips"><span class="chip since">0.1.45 から</span><span class="chip">ジェネリック型：未対応</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">型がどう引き継がれるか、そしてジェネリックの例外</span></summary><div class="body">
+        <p>
+          <code>T.parse</code> の型は <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> で、アームの型が一致する <code>match</code> はその型を持ちます。そのため <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> と書けば、関数の残りの部分で <code>NewTask</code> が得られ、フィールド名は生成された TypeScript に対する <code>tsc</code> ではなく Glyph が検査します。これは 0.1.45 で入りました。それ以前は、値は <code>match</code> を出ると型を失っていました。今もそうならないのはジェネリック型の <code>parse</code> だけです。そのディスクリプタは型パラメータごとに実行時のチェッカーを受け取るからです。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-parse-result-is-an-ordinary-result">parse の結果は普通の <code>Result</code><a class="ak-anchor" href="#the-parse-result-is-an-ordinary-result" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph の <code>T.parse</code> は、言語の中で失敗しうるすべての関数が返すのと同じ <code>Result</code> を返します。そのまま返すことも、<code>map_err</code> で検証の問題を自分のエラー型に変えることも、<code>?</code> で伝播させることもできます。
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">boundary.glyph</span>
+<pre>// Hand it straight back.
+fn read_task(body: unknown)
+  -&gt; Result&lt;NewTask, Array&lt;Issue&gt;&gt; {
+  return NewTask.parse(body)
+}
+
+// Or restate the failure in your own terms.
+fn read_checked(body: unknown)
+  -&gt; Result&lt;NewTask, string&gt; {
+  return NewTask.parse(body).map_err(
+    fn(issues: Array&lt;Issue&gt;) -&gt; string {
+      return "invalid task: ${issue_text(issues)}"
+    },
+  )
+}
+
+// Or propagate it and get on with the work.
+fn create(body: unknown) -&gt; Result&lt;Response, string&gt; {
+  let task = read_checked(body)?
+  return Ok(json(201, save(task)))
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">これが置き換えたもの</span>
+<pre>// Until 0.1.52 the generated descriptor
+// returned a bare { tag, value } object,
+// so both of the first two shapes were
+// tsc errors (TS2322 and TS2339) even
+// though Glyph's own checker reported
+// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround
+// was an identity re-wrap:
+
+match NewTask.parse(body) {
+  Ok(t)  =&gt; Ok(t),          // does nothing
+  Err(e) =&gt; Err(reword(e)),
+}
+
+// Four lines to say map_err. bracket.glyph
+// carried this twice until the fix landed.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">ここで Result を使う実行時のコスト</span></summary><div class="body">
+        <p>
+          独自の形で値を返すバリデータは半分しか役に立ちません。残りのエラー処理がそれを扱えないからです。parse の結果に特別なところは何もありません。
+        </p>
+        <p>
+          以前そうでなかった理由は、ディスクリプタが <code>type</code> の横に生成されるため、裸のオブジェクトを出力すれば、型を宣言するモジュールが実行時に <code>std/result</code> に依存せずに済んだからです。今はそのトレードオフを逆にしています。<code>pub type</code> を含むモジュールは、<code>Result</code> と書くかどうかにかかわらず <code>std/result</code> の import を持ち、<code>parse</code> の呼び出しは <code>Ok(...)</code> と同じくコンビネータのクロージャを確保します。その代わりに、検証された境界と残りのエラー処理が同じ API になります。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="composing-your-own-the-output-type-is-derived-not-trusted">自分で組み合わせる：出力の型は信頼するのではなく導出する<a class="ak-anchor" href="#composing-your-own-the-output-type-is-derived-not-trusted" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph の <code>infer_output&lt;Shape&gt;</code> は形から出力の型を<strong>導出</strong>し、<code>tsc</code> があなたの型注釈をそれに対して検査します。主張する型のフィールドを省いた形はコンパイルできません。
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">schema.glyph</span>
+<pre>fn object_schema&lt;Shape: Record&lt;string, Schema&lt;unknown&gt;&gt;&gt;(
+  shape: Shape,
+) -&gt; Schema&lt;infer_output&lt;Shape&gt;&gt; { ... }
+
+type User = { name: string, age: number }
+
+// The shape must produce a User, or this
+// line does not compile:
+const user_schema: Schema&lt;User&gt; =
+  object_schema({
+    name: string_schema(),
+    age: number_schema(),
+  })</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph がなくすずれ</span>
+<pre>// TS/zod: shape and output type are two
+// separate things you keep in sync by hand.
+const s = z.object({ name: z.string() });
+type User = { name: string; age: number };
+// `s` is inferred { name }, but nothing
+// checks it against User. The `age` you
+// forgot is caught at runtime, if ever.
+
+// Glyph: drop `age` from the shape and
+// `Schema&lt;User&gt;` fails to compile. The
+// shape is the single source of truth.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">TypeScript の落とし穴と、0.1.92 から return に追従するキャスト</span></summary><div class="body">
+        <p>
+          <code>zod</code> 風のコンビネータ、つまり小さなバリデータを組み合わせてバリデータを作りたいこともあります。TypeScript での落とし穴は、コンビネータの<em>出力の型</em>と、渡した<em>形</em>がずれていくことです。形を書いたあと、2 つ目の型パラメータで同じことを繰り返し書きますが、両者が一致しているかを検査するものはありません。
+        </p>
+        <p>
+          導出された型は、コンビネータがどう返しても成り立ちます。<code>infer_output</code> には関数の境界で 1 つのキャストが必要です。本体が作る値が、形から導出された型を持つことを型システムが証明できないためで、そのキャストはコンパイラが書きます。0.1.91 までは、それは単純な <code>return &lt;value&gt;</code> に付けられていました。<code>return</code> と値の間に <code>match</code> を挟んだり、本体を <code>r?</code> で終えたりすると、同じ関数がコンパイルできなくなりました。コンパイラがすでに受け入れた Glyph に対して、生成された TypeScript で <code>TS2322</code> が出たのです。0.1.92 からは、キャストは書き方ではなく return そのものに追従するので、<code>return match strict { ... }</code> も、同じ本体を単一の <code>return</code> で書いたものと同じように型検査を通ります。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-rest-of-the-boundary">信頼できない境界の残り<a class="ak-anchor" href="#the-rest-of-the-boundary" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        このディスクリプタは、<code>json.parse&lt;T&gt;</code> を安全にしているのと同じものです。JSON 文字列を渡すと、パース<em>と</em>検証を 1 ステップで行います。
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>入力</th><th>呼び出し</th><th>戻り値</th></tr></thead>
+          <tbody>
+            <tr><td>JSON 文字列</td><td><code>json.parse&lt;T&gt;(text)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>デコード済みのボディ</td><td><code>T.parse(value)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>ヘッダー</td><td><code>header(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+            <tr><td>クエリパラメータ</td><td><code>query_param(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">リクエストボディ、ヘッダー、クエリパラメータ</span></summary><div class="body">
+        <p>
+          リクエストボディはデコード済みの <code>unknown</code> として届くので、そこでは代わりに <code>T.parse(value)</code> を使います。保証は同じで、キャストは不要です。
+        </p>
+        <p>
+          信頼できない境界の残りも同じように型付けされています。<code>header(req, name)</code> と <code>query_param(req, name)</code> は <code>Option&lt;string&gt;</code> を返すので、ヘッダーやクエリパラメータがなければ <code>None</code> になり、<code>match</code> がその処理を<em>強制</em>します。<code>None</code> のアームを省くとコンパイルできません。存在しない入力を、あるかのように読むことはできません。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="does-a-map-keyed-by-an-enum-check-its-keys">enum をキーにしたマップは、キーを検査しますか？<a class="ak-anchor" href="#does-a-map-keyed-by-an-enum-check-its-keys" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        はい、0.1.148 から検査します。<code>type Tier = "free" | "pro"</code> のときの <code>Record&lt;Tier, int&gt;</code> は、キーがちょうど <code>free</code> と <code>pro</code> であるオブジェクトだけをパースします。余分なキーも欠けているキーも <code>Err</code> になり、これは同じオブジェクトをリテラルで書いたときに <code>tsc</code> が言うことと同じです。
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>キーの型</th><th><code>parse</code> が各キーで検査すること</th></tr></thead>
+          <tbody>
+            <tr><td>文字列リテラルユニオン</td><td>列挙されたキーとちょうど一致すること。欠けも余分もなし</td></tr>
+            <tr><td><code>where</code> で絞り込んだ型</td><td>述語</td></tr>
+            <tr><td><code>int</code></td><td>整数の素直な表記であること。<code>"01"</code> や <code>"1.5"</code> は失敗</td></tr>
+            <tr><td><code>string</code></td><td>新しい検査はなし</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">絞り込んだ型と int のキー、そしてまだ tsc に任せていること</span></summary><div class="body">
+        <p>
+          <code>where</code> で絞り込んだキーの型は、すべてのキーで述語を実行します。<code>int</code> のキーは整数の素直な表記でなければならないので、<code>"01"</code> や <code>"1.5"</code> は拒否されます。<code>Record&lt;string, V&gt;</code> は以前とまったく同じように検査されます。コード中に書いた値のキーは、Glyph 自身のチェッカーは今も <code>tsc</code> に任せています。また、自身の型パラメータをキーにしたジェネリックなレコードは、そのパラメータが <code>string</code> でない限り拒否されます。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="if-i-parse-a-date-do-i-get-a-real-date">日付をパースしたら、正しい日付が得られますか？<a class="ak-anchor" href="#if-i-parse-a-date-do-i-get-a-real-date" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        はい。面白いのは、日付でない入力に対して何が返るかです。<code>time.parse_iso</code> は <code>Option&lt;number&gt;</code> を返し、ISO-8601 でないものすべてに対して <code>None</code> になります。
+      </p>
+      <div class="two-up fit">
+        <div class="code">
+          <span class="cap">受け入れる</span>
+<pre>"2026-01-03"              // UTC midnight
+"2026-07-25T18:33:08.000Z"
+"2026-03-15T09:30:00-05:00"
+"2028-02-29"              // a real leap day</pre>
+        </div>
+        <div class="code">
+          <span class="cap">どれも None</span>
+<pre>"January 5 2026"   // not ISO
+"2026-1-3"         // not padded
+"2026-13-01"       // no month 13
+"2026-02-31"       // no such day
+"2026-02-29"       // not a leap year
+"2026-01-03T10:00" // no offset</pre>
+        </div>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>最後のものは意外に思われがちですが、これこそが要点です。<code>Z</code> も <code>+HH:MM</code> のオフセットもない日時は、ECMAScript の文法ではローカル時刻です。それを受け入れると、同じ文字列が、プログラムを実行したマシンによって違う日付を指すことになります。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">Date.parse の挙動と、UTC である理由</span></summary><div class="body">
+        <p>
+          これは JavaScript の <code>Date.parse</code> より強い主張です。こちらは自由形式のテキスト（<code>"January 5 2026"</code>）を受け付け、<code>"2026-1-3"</code> のようなゼロ埋めのない日付をプロセスがたまたま動いているタイムゾーンで読み、存在しない日を繰り上げて成功として扱います。<code>"2026-02-31"</code> は 3 月 3 日になり、何かが起きたことを示すものは何もないまま数値が返ってきます。
+        </p>
+        <p>
+          Glyph のカレンダーのアクセサ（<code>time.year</code>、<code>time.month</code>、<code>time.day</code>）は UTC で、そのことを明示しています。ホストのタイムゾーンを黙って持ち込むバリデータがあれば、これらは嘘をつくことになります。そこで文字列は拒否され、それが何を意味していたかはあなたが決めます。
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="the-guard-moved">ガードはプリミティブの中に移った<a class="ak-anchor" href="#the-guard-moved" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        アプリケーションが標準ライブラリのプリミティブの周りに正しさのためのガードを書いているなら、そのガードはプリミティブに属します。アプリが削除したのは次のコードです。
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">変更前：アプリが stdlib をガードしている</span>
+<pre>const ISO_DATE = "^\\d{4}-\\d{2}-\\d{2}$"
+
+fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match regex.matches(ISO_DATE, value) {
+    false =&gt; Err(BadDate({ line: line, value: value })),
+    true =&gt; match time.parse_iso(value) {
+      Some(ms) =&gt; match string.starts_with(
+        time.format_iso(ms), value
+      ) {
+        true =&gt; Ok(ms),
+        false =&gt; Err(BadDate({ line: line, value: value })),
+      },
+      None =&gt; Err(BadDate({ line: line, value: value })),
+    },
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">変更後：プリミティブが守っている</span>
+<pre>fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match time.parse_iso(value) {
+    Some(ms) =&gt; Ok(ms),
+    None =&gt; Err(BadDate({ line: line, value: value })),
+  }
+}</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        <code>import std/regex</code> も一緒になくなりました。台帳も、拒否される行も、レポートもバイト単位で同じです。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">この変更のきっかけになった経費報告アプリ</span></summary><div class="body">
+        <p>
+          これは <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph">Glyph で書いた経費報告の CLI</a> から生まれました。台帳のどの行にも日付があり、行を間違った月に記録してしまうのが重大なバグです。そこでアプリは以前の <code>parse_iso</code> を信頼せず、まず正規表現で形を検査し、次にタイムスタンプをテキストに戻して、繰り上がった日を検出していました。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="you-don-t-even-have-to-write-the-types">型を書く必要すらない<a class="ak-anchor" href="#you-don-t-even-have-to-write-the-types" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        形がすでに OpenAPI の仕様や TypeScript の宣言ファイルにあるなら、そこから Glyph の型を生成します。推論された実体のないものではなく、コミットされ、grep できる実際の <code>type</code> 宣言で、それぞれにディスクリプタが付きます。
+      </p>
+      <div class="two-up fit">
+        <div class="code term">
+          <span class="cap">OpenAPI / JSON Schema の仕様から</span>
+<pre>glyph gen openapi petstore.yaml \
+  --out src/</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">インストール済みのパッケージから、名前で</span>
+<pre>glyph gen dts api-types \
+  --out src/types</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        ワイヤ型が、何も手書きせずに検証された境界になります。
+      </p>
+      <div class="code">
+        <span class="cap">webhook.glyph</span>
+<pre>import types/api_types { Customer }
+
+match Customer.parse(webhook_body) {
+  Ok(c) =&gt; handle(c),
+  Err(issues) =&gt; reject(issues),
+}</pre>
+      </div>
+      <p class="ak-lede">生成は<strong>ワイヤに忠実</strong>です。仕様が値について述べていることが、そのまま <code>parse</code> の検査内容になります。</p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>仕様または <code>.d.ts</code> での表現</th><th>生成される Glyph</th></tr></thead>
+          <tbody>
+            <tr><td>文字列の enum</td><td>文字列リテラルユニオン。<code>parse</code> がメンバーかどうかを検査</td></tr>
+            <tr><td><code>integer</code> のフィールド</td><td><code>int</code>。ワイヤ上の <code>3.5</code> は失敗</td></tr>
+            <tr><td>オブジェクトのスキーマ</td><td><code>@open</code> を付けたレコード。<code>additionalProperties: false</code> なら厳格</td></tr>
+            <tr><td><code>interface Page&lt;T&gt;</code></td><td><code>type Page&lt;T&gt;</code>。各要素を <code>T</code> として検査</td></tr>
+            <tr><td>判別子のないユニオン</td><td>注記を出力したうえで絞り込む</td></tr>
+            <tr><td>到達可能な 2 つのファイルにある同じ名前</td><td>束縛せず、注記で警告</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">現在生成されるもの、再生成、ジェネリック型</span></summary><div class="body">
+        <p>
+          <code>glyph gen dts</code> には <code>.d.ts</code> ファイルを指定するか、上の例のようにインストール済みの npm パッケージを名前で指定します。<code>node_modules</code> からパッケージ自身の宣言のエントリを解決し、import して使うコミット用の型を書き出します。
+        </p>
+        <p>
+          現在生成されるもの：<code>gen dts</code> は、パッケージが export する <code>interface</code> と <code>type</code> の宣言を読みます。<code>declare namespace</code> の木の中にあるもの（修飾なしの相互参照はスコープを通じて解決されます）や、<code>index</code> のバレルが再 export している隣のファイルにあるもの（エントリの <code>.d.ts</code> と、相対パスで import されるすべての <code>.d.ts</code> をたどります）も含みます。ジェネリックはそのまま第一級として保たれます。<code>interface Page&lt;T&gt;</code> は <code>type Page&lt;T&gt;</code> として生成され、各要素を存在だけでなく型引数の型として検証するディスクリプタが付きます。別名付きの再 export や <code>export * as</code> による再 export は、ファイルごとの束縛マップを通じて解決されます。安全にできない唯一のケース、つまり到達可能な 2 つのファイルで型名が衝突する場合は、間違った形を黙って束縛するのではなく<em>注記で警告</em>します。生成器が届かないものについては、境界をまたぐ形を手書きするか、<code>extern_ts</code> の抜け道を使ってください。
+        </p>
+        <p>
+          再生成は冪等なので、仕様の変更はきれいでレビューしやすい差分になります。生成は<strong>ワイヤに忠実</strong>です。文字列の enum は文字列リテラルユニオン（<code>"free" | "pro"</code>）として生成されるので、<code>parse</code> は値が文字列であることだけでなくメンバーかどうかを検査し、それに対する <code>match</code> は <code>else</code> なしで網羅的になります。<code>integer</code> のフィールドは <code>int</code> になるので、普通の number なら通るワイヤ上の <code>3.5</code> は <code>parse</code> で失敗します。Glyph に正確な対応形がない構文（判別子のないユニオン）は、実際のデータを拒否してしまうバリデータを出力するのではなく、絞り込んで<em>注記を出力</em>します。生成されたレコードには <code>@open</code> も付くので、<code>parse</code> は宣言されたすべてのフィールドを検証しつつ、API があとから追加したフィールドを許容します。<code>additionalProperties: false</code> を指定したスキーマは厳格なままです。Glyph のレコードはデフォルトで厳格で、これは手書きのレコードでも使う、grep できる宣言側のマーカーと同じものです。レコードの意味は何も変わりません。
+        </p>
+        <p>
+          ジェネリック型も検証されます。<code>Paginated&lt;T&gt;</code> には、型引数を受け取る <code>parse</code> を持つディスクリプタが付きます。<code>Paginated.parse&lt;User&gt;(body)</code> は <code>items</code> の各エントリを、存在だけでなく<em><code>User</code> として</em>検査し、<code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> も同じように絞り込みます。これはモジュールの境界をまたいでも成り立ちます。<code>Paginated&lt;T&gt;</code> をあるファイルで定義し、別のファイルに <code>import</code> しても、そこでの <code>Paginated.parse&lt;User&gt;(body)</code> と <code>is Paginated&lt;User&gt;</code> は各要素を <code>User</code> として検査します。コンパイラは呼び出し箇所の型引数から要素ごとの検査を組み立てるので、ジェネリック型がどのファイルにあっても検証内容は変わりません。
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+          できないこと：ディスクリプタが対応するのは、ほとんどのペイロードを構成する形です。オブジェクト、プリミティブ、配列、参照、省略可能なフィールドと null 許容のフィールド、そして特定のインスタンス化をしたジェネリック型です。Glyph が生成していない型（import するだけの外部パッケージや <code>.d.ts</code>）は型検査されますが、生成するまではディスクリプタを持ちません。生成は今ではインストール済みのパッケージに対する 1 つのコマンド（<code>glyph gen dts &lt;package&gt;</code>。パッケージが export するトップレベルのインターフェースと型エイリアスが対象）で済みます。この境界は意図的なものです。Glyph が出力していない型は実行時の検証を約束できないので、パッケージごとにオプトインし、その結果はビルドのたびに作り出されるのではなく、コミットされて grep できます。</p></div>
+
+      <h2 class="ak-h" id="the-database-is-a-boundary-too">データベースも境界<a class="ak-anchor" href="#the-database-is-a-boundary-too" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        データベースから読んだ行は、リクエストボディとまったく同じ意味で信頼できません。リクエストボディに使うのと同じ <code>.parse</code> で行を検証します。
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>type Task    = { id: int, title: string, done: bool }
+type TaskRow = { id: int, title: string, done: int }
+
+fn row_to_task(r: TaskRow) -&gt; Task {
+  return { id: r.id, title: r.title,
+           done: r.done != 0 }
+}
+
+// A row is validated, then mapped. No cast.
+match TaskRow.parse(row) {
+  Ok(r)  =&gt; Ok(row_to_task(r)),
+  Err(_) =&gt; Err("row failed validation"),
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">これでなくなるバグ</span>
+<pre>// TS, better-sqlite3 / node:sqlite:
+const row = stmt.get(id) as Task;
+// `row.done` is really 0 or 1, a number.
+// Nothing complains. Then:
+if (row.done === true) { ... }   // never runs
+
+// The row was `unknown`; the cast invented
+// a type. Glyph makes you validate the row
+// into TaskRow, and the int-to-bool step is
+// a line of code, not a silent lie.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">std/sqlite と、0 か 1 の真偽値</span></summary><div class="body">
+        <p>
+          データベースから読んだ行は、リクエストボディとまったく同じ意味で信頼できません。データベースのスキーマとコードが想定する行の形は食い違うことがあり、キャスト（<code>row as Task</code>）はそれを覆い隠します。Node 組み込みの SQLite の上に作られた DB モジュール <code>std/sqlite</code> は、この点を徹底しています。クエリは <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code> を返すので、まず検証しない限り行を <code>Task</code> として扱う方法はありません。
+        </p>
+        <p>
+          これは本番に出がちなバグを検出します。SQLite には真偽値の型がないので、<code>done</code> 列は整数の <code>0</code> か <code>1</code> として返ってきます。行を <code>bool</code> のフィールドを持つレコードにキャストすると、<code>task.done === true</code> は黙って決して true になりません。Glyph では保存用の形とドメインの形は別の型で、その間の対応付けは目に見える 1 行です。
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="3.8" rx="5" ry="1.9"/><path d="M3 3.8v8.4c0 1 2.2 1.9 5 1.9s5-.9 5-1.9V3.8M3 8c0 1 2.2 1.9 5 1.9s5-.9 5-1.9"/></svg><p>
+          全体は動く例として用意しています。<a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph"><code>examples/apps/tasks/main.glyph</code></a> は永続化されたタスク API で、保存に <code>std/sqlite</code>、ルーティングに <code>std/http</code> を使い、データは再起動しても残り、ワイヤ側とデータベース側の両方で検証します。手書きのバリデータはどこにもありません。</p></div>
+
+      <h2 class="ak-h" id="a-signed-webhook-is-a-boundary-too">署名付き Webhook も境界<a class="ak-anchor" href="#a-signed-webhook-is-a-boundary-too" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Webhook の署名を検証するには、再シリアライズしたコピーではなく、送信側が署名したバイト列そのものが必要です（パースしたボディを文字列化し直すと空白やキーの順序が変わり、HMAC が一致しなくなります）。<code>http.raw(req)</code> はそのバイト列を渡すので、検査を Glyph の中に保てます。
+      </p>
+<pre>fn handle(req: Request) -&gt; Result&lt;Response, string&gt; {
+  let expected = crypto.hmac_sha256(secret, raw(req))
+  return match header(req, "x-hook-signature") {
+    Some(sig) =&gt; match sig == expected {
+      true  =&gt; accept(req),          // then validate req.body with T.parse
+      false =&gt; Ok(text(401, "bad signature")),
+    },
+    None =&gt; Ok(text(401, "missing signature")),
+  }
+}</pre>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">署名には生のバイト列、形にはパースしたボディ</span></summary><div class="body">
+        <p>
+          <code>req.body</code> は引き続き形の検査に使うパース済みの値で、<code>raw</code> は署名の計算対象となる改ざんされていないペイロードです。署名を検証し、ボディを検証する受信側に、手書きの TypeScript は要りません。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-type-can-validate-its-invariants-not-just-its-shape">型は形だけでなく不変条件も検証できる<a class="ak-anchor" href="#a-type-can-validate-its-invariants-not-just-its-shape" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        形の検査でわかるのは、フィールドが number だということです。金額が負でないことや、評価が 1 から 5 の間であることはわかりません。<code>where</code> による絞り込みはその不変条件を型に入れ、ディスクリプタが境界でそれを強制します。
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">refinements.glyph</span>
+<pre>type Amount   = int where value &gt;= 0
+type Rating   = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+type NonEmpty = string where value.length &gt; 0
+
+// Amount.parse(-1)  -&gt; Err   (not just "is a number")
+// Rating.parse(6)   -&gt; Err
+// Amount.parse(3.5) -&gt; Err   (int check too)
+
+type Line = { amount: Amount, }
+// Line.parse({ amount: -1 }) -&gt; Err too:
+// the predicate follows the type into
+// the field, and across modules.</pre>
+        </div>
+        <div class="code">
+          <span class="cap">書かずに済むもの</span>
+<pre>// The check that usually lives three
+// functions away from the boundary,
+// if someone remembers it:
+if (amount &lt; 0) throw new Error(...);
+
+// In Glyph it's the type. A value that
+// fails the predicate never becomes an
+// Amount in the first place.</pre>
+        </div>
+      </div>
+
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 現在提供しているもの <span class="count">10</span></h3>
+
+          <p class="ak-st-group">ディスクリプタ</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">宣言されたすべてのレコードとタグ付きユニオンは、ジェネリックなレコードも含め、実行時のディスクリプタ（<code>.parse</code>、<code>.is</code>、<code>.schema</code>）を持つ</span><span class="chip">ジェネリックなタグ付きユニオンは持たない</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>.parse</code> は言語のほかの部分と同じ <code>Result</code> を返すので、<code>map_err</code>、<code>?</code>、そして Result を返すどの関数とも組み合わせられる</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>where</code> による絞り込み（<code>int where value &gt;= 0</code>）は、形だけでなく不変条件を境界で検証する</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>json.parse&lt;T&gt;</code> は JSON を検証する</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>infer_output&lt;Shape&gt;</code> はコンビネータの出力の型を形から導出するので、両者がずれることはない</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">生成</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code> / <code>glyph gen dts</code> は、仕様、<code>.d.ts</code>、またはインストール済みのパッケージ名から、ディスクリプタ付きのコミット用の型を生成する</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">境界</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/sqlite</code> は行を <code>unknown</code> として返すので、データベースもほかと同じく検証された境界になる</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">署名付き Webhook の受信側を完全に Glyph で書ける</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>http.raw(req)</code> はパース前のリクエストボディを公開するので、Webhook の署名を正確なバイト列に対して検証でき、署名付き Webhook の受信側を完全に Glyph で書けます。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">信頼できない入力は <code>sanitize</code> なしに SQL やシェルの出力先に届かない</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>std/taint</code> の <code>Tainted</code>/<code>Trusted</code> 型は、明示的な <code>sanitize</code> なしに信頼できない入力が SQL やシェルの出力先に届くのを防ぐので、<code>tsc</code> がインジェクションの経路をコンパイル時に拒否します。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>time.parse_iso</code> は ISO-8601 だけを受け付ける</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>より小さな境界のプリミティブも同じ線を守っています。<code>time.parse_iso</code> は ISO-8601 を受け付け、自由形式のテキスト、存在しない日、そしてそのままではホストのローカルタイムゾーンで読まれてしまうオフセットのない日時に対しては <code>None</code> を返します。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 今後の予定 <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">判別子付きユニオンは仕様と <code>.d.ts</code> から生成される。次は enum と mapped type への対応</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>判別子付きユニオンは、OpenAPI の <code>discriminator</code> と TypeScript の <code>.d.ts</code> のユニオンの両方から生成されるようになりました（<code>parse_&lt;Name&gt;</code> のディスパッチャがタグを読み、正しいバリアントに検証します）。次は enum と mapped type への対応を広げます。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">仕様から型付きのクライアントとサーバーのコードを生成する機能はすでに提供済み</span> <a class="chip" href="/answers/codegen/">クライアントとサーバーを見る</a></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">タイムスタンプと期間はどちらも <code>number</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>日付については、厳格さこそが機能のすべてで、それはパースの段階で終わります。<code>parse_iso</code> はエポックからのミリ秒を返すので、タイムスタンプと期間はどちらも <code>number</code> で、一方をもう一方に足すのを止めるものはありません。専用の日付型を入れるかどうかは今後の判断で、小さな判断ではありません。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>

@@ -1,0 +1,173 @@
+---
+title: 堅牢化 · Glyph の負荷テストの方法と、そこで見つかったもの
+description: AI エージェントが懐疑的なエンジニアを演じて Glyph でアプリを作り、その保証を壊そうとします。そのループと、見つかったバグを紹介します。
+source_hash: 39150fb233f95dbe
+---
+      <header class="page-hero">
+        <p class="eyebrow">Glyph を堅牢にする方法</p>
+        <h1>エージェントが壊そうとし、<span class="accent">見つかったものは残しておきます</span>。</h1>
+        <p class="lede">
+          エージェントが気づかれずに壊すことはできないと言う言語は、その主張に対してテストされなければなりません。私たちは、懐疑的なエンジニア（不満を抱えた React 開発者、へそ曲がりのバックエンド開発者、安全性を突く攻撃者）を演じる AI エージェントを動かし、アプリを作らせて保証を壊そうとさせます。そして見つかったものを修正するか、未解決の穴として記録します。そのループと、そこで見つかったものを紹介します。
+        </p>
+      </header>
+
+      <!-- ============ THE REFUSED CASES ============ -->
+      <section>
+        <h2 class="group-head"><code>tsc --strict</code> を通過し、Glyph ではコンパイルできないケース</h2>
+        <p class="group-sub">
+          各ケースは 2 つのファイルです。<code>tsc --strict</code> で問題なく型検査を通る <code>.ts</code> と、コンパイルできない同じ内容の Glyph のプログラムです。ビルドのゲートである <code>scripts/check_catches.py</code> がすべてを再実行し、どちらかが期待どおりに動かなくなると失敗するので、保証が気づかないうちに消えればビルドも止まります。表には、<a href="/catches/">検出できるもののページ</a>にある TypeScript のミス {{catches:count}} 件のうち、このように拒否される {{catches:refused}} 件を載せています。残りは、Glyph がデータの到着時に検査するもの、警告するもの、実行時に止めるもので、そのページに載っています。{{catches:breakdown}}
+        </p>
+{{catches:refused-table}}
+        <p class="group-sub" style="margin-top:24px">
+          TypeScript でも検出できると判明したケースや、2 つのファイルが同じプログラムになっていなかったケースは、手加減して残すのではなく削除しました。<code>catches/README.md</code> にそれぞれとその理由を載せています。
+        </p>
+        <p class="group-sub">
+          マップの読み取りは、キーの綴りが正しくても拒否されます。<code>Record&lt;string, string&gt;</code> は、どのキーが存在するかについて何も言っていないからです。TypeScript では <code>noUncheckedIndexedAccess</code> で検出できますが、<code>--strict</code> はこれを有効にしません。欠けたユニオンのケースも、プロジェクトが採用すれば、typescript-eslint の <code>switch-exhaustiveness-check</code> か <code>assertNever</code> を使った default で TypeScript でも検出できます。Glyph ではどちらの検査も任意ではありません。
+        </p>
+        <p class="group-sub">
+          パースしたボディのケースでは、Glyph の <code>json.parse</code> は <code>User</code> ではなく <code>Result</code> を返すので、ボディを検査するまでは代入が型の不一致になります。TypeScript の <code>JSON.parse</code> は <code>any</code> を返し、<code>user</code> の注釈がそれを素通りさせます。
+        </p>
+      </section>
+
+      <!-- ============ THE LOOP ============ -->
+      <section>
+        <h2 class="group-head">攻撃的なループ</h2>
+        <p class="group-sub">どの発見も、コンパイラに対して再現し、根本から修正し、独立に再検証してはじめて数に入れます。</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>探索</h3>
+            <p>ペルソナを演じるエージェントがプログラム（フォーム、バックエンド、状態を持つ UI）を作り、言語に邪魔された箇所をすべて記録します。</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>再現</h3>
+            <p>各発見を、失敗する最小のプログラムにまで縮め、コンパイラに対して再実行します。再現できないものは捨てます。</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>修正</h3>
+            <p>Rust のコンパイラで根本原因を修正し、修正前に失敗して修正後に通る回帰テストを付けます。テストスイート全体がグリーンのままでなければ、変更は取り消されます。</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h3>検証</h3>
+            <p>独立した確認作業で、ビルドしたばかりのコンパイラに対してすべての再現コードを再実行し、何かを出荷する前に「エージェントは直したつもりだった」という抜けを見つけます。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SILENT CORRECTNESS ============ -->
+      <section>
+        <h2 class="group-head">最も重要だったもの：気づかれない正しさの穴</h2>
+        <p class="group-sub">
+          これらはどれも問題なくコンパイルが通り、<em>型検査を通る誤ったコード</em>を出荷しえました。まさに Glyph が防ぐために存在する種類のバグです。現在はどれもコンパイル時に検出されます。
+        </p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev critical">重大、修正済み</span>
+            <h3><code>Result</code> の match での引数なしのエラーバリアント</h3>
+            <p><code>Result&lt;T, Empty | BadQty(...)&gt;</code> に対する <code>match</code> が、重複する 2 つの <code>case&nbsp;"Err"</code> 分岐に変換されていました。1 つ目がすべてのエラーを飲み込み、黙って誤ったアームに振り分けていました。</p>
+            <p class="now">現在：正しい内側の switch を持つ 1 つにまとめた case になり、各バリアントが正しく振り分けられます。</p>
+          </div>
+          <div class="fix">
+            <span class="sev critical">重大、修正済み</span>
+            <h3>綴りを間違えたコンストラクタが黙って catch-all になる</h3>
+            <p>match のアームでバリアント名を打ち間違えると（<code>Loaded</code> のつもりで <code>Loded</code>）、何の診断もなく、必ずマッチする catch-all の束縛として扱われ、網羅性の不足を隠して実行時に誤った振り分けをしていました。</p>
+            <p class="now">現在：未知のコンストラクタは、本物の名前と同じように、打ち間違えた箇所で拒否されます。</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">高、修正済み</span>
+            <h3><code>bool</code> の不完全な match が網羅性の検査をすり抜けた</h3>
+            <p><code>match n &gt; 0 { true =&gt; ... }</code>（<code>false</code> のアームがない）がコンパイルを通り、<code>tsc</code> も通過し、実行時に例外を投げていました。</p>
+            <p class="now">現在：コンパイル時の網羅性エラーになります。</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">高、修正済み</span>
+            <h3>複数パラメータのコンポーネントが props を誤って束縛した</h3>
+            <p><code>component C(a, b)</code> は位置引数として出力されていましたが、React はコンポーネントを props を第 1 引数として呼び出すので、<code>a</code> が黙って props オブジェクト全体に束縛されていました。<code>tsc</code> も通過していました。</p>
+            <p class="now">現在：単一の props レコードの形を案内する、明確なコンパイルエラーになります。</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">高、修正済み</span>
+            <h3>JSX の <code>&lt;match&gt;</code> が網羅性の検査を飛ばしていた</h3>
+            <p><code>&lt;case&gt;</code> が欠けた JSX の <code>&lt;match&gt;</code> はグリーンでコンパイルが通り、実行時に例外を投げていました。検査されていた値レベルの <code>match</code> とは違っていました。</p>
+            <p class="now">現在：同じ網羅性の検査が適用され、欠けたケースはコンパイルエラーになります。</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">高、修正済み</span>
+            <h3>レコードのペイロードが誤ったフィールドに束縛された</h3>
+            <p>レコードのペイロードを持つバリアントを名前に束縛すると（<code>BadQty(b)</code>）、平坦化されたペイロードから存在しない <code>.value</code> を読んでいました。</p>
+            <p class="now">現在：ペイロードは正しく束縛されるので、<code>b.sku</code> が機能します。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RULES ENFORCED ============ -->
+      <section>
+        <h2 class="group-head">型検査器が新たに強制するようになったルール</h2>
+        <p class="group-sub">以前はコンパイラが <code>tsc</code> に任せていた健全性を、今は Glyph 自身が検出します。</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev high">修正済み</span>
+            <h3>呼び出しの引数の数</h3>
+            <p>引数が少なすぎても多すぎても受け入れられていました（そして <code>NaN</code> になるまで実行されていました）。現在は <code>E0213</code> が誤った引数の数を拒否します。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">修正済み</span>
+            <h3>標準ライブラリの境界をまたぐ <code>?</code> のエラー型</h3>
+            <p>エラーが標準ライブラリのラッパーから来た場合、エラー型が厳密に一致するというルールが飛ばされていました。現在はそこでも強制されます。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">修正済み</span>
+            <h3><code>owned</code> ハンドルの別名</h3>
+            <p>リソースハンドルに対する <code>let g = f</code> は 2 つ目の束縛を作り、二重に閉じる可能性がありました。現在は拒否されます（<code>E0215</code>）。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">修正済み</span>
+            <h3>到達不能なアームとより深い検証</h3>
+            <p>catch-all の後にあるアームを指摘するようになりました。<code>json.parse&lt;T&gt;</code> は、<code>Record</code> のフィールドを存在の確認だけでなく構造的に検証するようになりました。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FIRST CONTACT ============ -->
+      <section>
+        <h2 class="group-head">最初に触れたときの引っかかりを解消</h2>
+        <p class="group-sub">第一印象を悪くしていた小さなことで、どれも何の役にも立っていなかったものです。</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev">修正済み</span>
+            <h3>アクセシビリティ属性と data 属性</h3>
+            <p><code>aria-label</code> と <code>data-*</code> が引き算としてパースされていました。現在は機能し、正しい React の props として出力されます。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">修正済み</span>
+            <h3>npm のパッケージ名</h3>
+            <p>ハイフンを含む指定子やスコープ付きの指定子（<code>react-hook-form</code>、<code>@hookform/resolvers/zod</code>）が拒否されていました。現在はそのままインポートできます。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">修正済み</span>
+            <h3>ブラウザ向けバンドルの初回実行</h3>
+            <p>ブラウザ向けのビルドでランタイムの初期化コードが読み込まれず、初回実行でクラッシュしていました。現在は出力されるすべてのモジュールがそれを読み込みます。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">修正済み</span>
+            <h3>誤った方向に導くエラーメッセージ</h3>
+            <p><code>if</code> と書くと <code>match</code> を案内するようになりました。範囲パターンについてはそのことを直接伝えます。JSX の空白とテキスト中の単独の <code>$</code> も扱えるようになりました。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STILL OPEN ============ -->
+      <section>
+        <h2 class="group-head">未解決のもの：記録として</h2>
+        <p class="group-sub">堅牢化とは、終わっていないものを明らかにすることでもあります。これらは隠さずに把握し、追跡しています。</p>
+        <div class="callout">
+          <p style="margin:0 0 10px;"><strong>意図して先送りしているもの、または設計判断を待っているもの：</strong></p>
+          <p style="margin:0;">
+            暗黙の <code>any</code> になるクロージャを Glyph 自身の型検査器で拒否するには、正しく型付けされたコールバックでの誤検知を避けるために文脈からの推論が必要です。使いやすい FFI、つまり複雑な型を持つ TS ライブラリをライブラリごとのアダプタなしで使うことは、相互運用で最大の未解決の問題で、<a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">未解決の問題</a>で追跡しています。別のモジュールや標準ライブラリから来たマップはまだ検査なしで読まれるので、E0224 はまだ <code>sqlite.Row</code> に届きません。また、2 つの束縛を持つ <code>for i, x in xs</code> は、まだ要素の型を失います。
+            </p>
+        </div>
+        <a href="/answers/" class="backlink">&larr; これらの修正のもとになったエンジニアの質問を見る</a>
+      </section>

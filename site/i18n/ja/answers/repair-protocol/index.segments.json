@@ -1,0 +1,218 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/repair-protocol/index.html",
+  "locale": "ja",
+  "source_hash": "4b15cc7a1cc4e288",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Does the compiler tell my agent how to fix it? · Glyph",
+      "tr": "コンパイラはエージェントに直し方を教えてくれるか？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Each diagnostic carries the types, the symbol at fault and the legal alternatives, and glyph fix writes the repairs the compiler can settle on its own.",
+      "tr": "各診断には、型、問題のシンボル、正しい代替案が含まれます。コンパイラが自力で決められる修正は glyph fix が書き込みます。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can my agent ask the compiler what a symbol is before it writes code?",
+      "tr": "エージェントは、コードを書く前にシンボルが何なのかをコンパイラに聞けますか？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "エージェントが読むドキュメントは生成されたものですか。それとも手書きで、内容が古くなっていますか。"
+    },
+    {
+      "id": "h-4012a25e",
+      "kind": "html",
+      "en": "23 &middot; Fixing a red build",
+      "tr": "23 &middot; 赤いビルドを直す"
+    },
+    {
+      "id": "h-e2d1e436",
+      "kind": "html",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "ビルドが失敗したとき、コンパイラはエージェントに直し方を教えてくれるか？"
+    },
+    {
+      "id": "h-a89b956d",
+      "kind": "html",
+      "en": "It tells you what is wrong as data, not as a sentence to parse: the two types, the symbol at fault as a <code>module::name</code>, and the finite list of things that could legally stand where the wrong thing stands. <code>glyph check --agent</code> adds what the repairing edit must not break. Where the answer is fully determined, <code>glyph fix</code> writes it.",
+      "tr": "何が間違っているかを、パースが必要な文章ではなくデータとして伝えます。2 つの型、<code>module::name</code> の形の問題のシンボル、そして誤ったものの代わりに正しく置けるものの有限のリストです。<code>glyph check --agent</code> は、修正の編集が壊してはならないものも加えます。答えが完全に決まる場合は、<code>glyph fix</code> がそれを書き込みます。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "h-26bdb633",
+      "kind": "html",
+      "en": "An agent's loop around a compiler is read the error, guess the edit, rebuild. The guessing step is where the damage happens, and it happens because the error is a string. An agent that reads \"non-exhaustive match on <code>OrderStatus</code>\" knows a match is short some arms. It does not know what the missing variants carry, so it writes <code>Paid(\"tx_1\")</code> and finds out from the next diagnostic. Or it reads the word \"exhaustive\", adds an <code>else</code> arm, and the build goes green having thrown away the guarantee that the diagnostic existed to protect.",
+      "tr": "コンパイラを相手にしたエージェントのループは、エラーを読み、編集を推測し、ビルドし直す、の繰り返しです。被害が生じるのは推測の段階で、それはエラーが文字列だから起きます。「<code>OrderStatus</code> に対する網羅的でない match」と読んだエージェントは、match にアームが足りないことはわかります。しかし欠けているバリアントが何を持つかはわからないので、<code>Paid(\"tx_1\")</code> と書いて、次の診断で間違いを知ります。あるいは「網羅的」という言葉を読んで <code>else</code> のアームを追加し、診断が守るために存在していた保証を捨てたままビルドを通してしまいます。"
+    },
+    {
+      "id": "h-07118770",
+      "kind": "html",
+      "en": "The compiler knew all of it. It knew the union's variants and their payloads, it knew an <code>else</code> would forfeit the seal, and it dropped both one line before the reply.",
+      "tr": "コンパイラはそのすべてを知っていました。ユニオンのバリアントとそのペイロードを知っていて、<code>else</code> を足せば網羅性の保証を失うことも知っていて、返答の 1 行手前でその両方を捨てていたのです。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "実例"
+    },
+    {
+      "id": "h-1dc2ec59",
+      "kind": "html",
+      "en": "A two-module project. <code>orders</code> declares the union; <code>main</code> writes a <code>match</code> over it and handles one case. <code>glyph check --agent</code>, trimmed to the keys that matter here:",
+      "tr": "2 つのモジュールからなるプロジェクトです。<code>orders</code> がユニオンを宣言し、<code>main</code> はそれに対する <code>match</code> を書いて 1 つのケースだけを扱います。<code>glyph check --agent</code> の出力を、ここで重要なキーだけに絞って示します："
+    },
+    {
+      "id": "h-22f8192a",
+      "kind": "html",
+      "en": "glyph check --agent --no-tsc src",
+      "tr": "glyph check --agent --no-tsc src"
+    },
+    {
+      "id": "h-e83558c5",
+      "kind": "html",
+      "en": "Three things are worth pulling out. <code>cause</code> is the symbol at fault, and it is a different thing from <code>entity</code>, which is the declaration the diagnostic sits in: here the edit happens in <code>main::describe</code> and the shape it has to match comes from <code>orders::OrderStatus</code>. Both are addresses the other tools take, so an answer chains without re-deriving anything.",
+      "tr": "取り上げるべき点が 3 つあります。<code>cause</code> は問題のシンボルで、診断が置かれている宣言である <code>entity</code> とは別のものです。ここでは編集は <code>main::describe</code> で行われ、合わせるべき形は <code>orders::OrderStatus</code> から来ています。どちらも他のツールが受け取るアドレスなので、何も導き直さずに答えをつなげられます。"
+    },
+    {
+      "id": "h-24cad838",
+      "kind": "html",
+      "en": "<code>constraints</code> are not the repair. Each one is something the compiler already enforces, written out so the edit that satisfies the diagnostic does not break the guarantee behind it. The second constraint is why the key exists: an <code>else</code> arm is legal, it would turn the build green, and the constraint says what taking it costs.",
+      "tr": "<code>constraints</code> は修正ではありません。それぞれはコンパイラがすでに強制していることで、診断を満たす編集がその背後にある保証を壊さないように書き出されています。2 つ目の制約こそ、このキーが存在する理由です。<code>else</code> のアームは正当で、ビルドを通すことはできますが、制約はそれを選んだときに何を失うかを述べています。"
+    },
+    {
+      "id": "h-c78e85ef",
+      "kind": "html",
+      "en": "<code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the agent's next edit needs no second call. A symbol the tool refuses appears in <code>symbols_absent</code> with the reason, which keeps \"we did not look\" apart from \"we looked and it is not there\".",
+      "tr": "<code>symbols</code> は、診断が名前を挙げたすべてのシンボルに対する <code>glyph_symbol</code> の答えなので、エージェントの次の編集に 2 回目の呼び出しは要りません。ツールが拒否したシンボルは理由とともに <code>symbols_absent</code> に入るので、「調べなかった」と「調べたが存在しない」が区別されます。"
+    },
+    {
+      "id": "h-e9482ec6",
+      "kind": "html",
+      "en": "Every key is always present. A fact the compiler does not hold arrives as an explicit <code>null</code>, never as a missing key, so absence has one spelling on every code and on both the CLI and the MCP surface.",
+      "tr": "キーは常にすべてそろっています。コンパイラが持っていない情報は、キーの欠落ではなく明示的な <code>null</code> として届くので、「ない」ことの表し方はどのコードでも、CLI と MCP のどちらでも 1 つだけです。"
+    },
+    {
+      "id": "h-d838480e",
+      "kind": "html",
+      "en": "Where the answer is determined, the compiler writes it",
+      "tr": "答えが決まる場合は、コンパイラが書き込む"
+    },
+    {
+      "id": "h-0e5250b5",
+      "kind": "html",
+      "en": "<code>glyph fix</code> applies only the repairs the compiler settles on its own: unused imports, an arm head that is not a variant when the checker computed exactly one suggestion, and a field the record does not declare when exactly one declared field is a character away. The <code>match</code> above is not one of them.",
+      "tr": "<code>glyph fix</code> が適用するのは、コンパイラが自力で決められる修正だけです。使われていない import、型検査器がちょうど 1 つの候補を算出した、バリアントでないアームの先頭、そしてちょうど 1 つの宣言済みフィールドと 1 文字違いの、レコードが宣言していないフィールドです。上の <code>match</code> はこれに当たりません。"
+    },
+    {
+      "id": "h-dd062039",
+      "kind": "html",
+      "en": "glyph fix src, on the match above",
+      "tr": "上の match に対する glyph fix src"
+    },
+    {
+      "id": "h-2f820b6c",
+      "kind": "html",
+      "en": "The compiler knows which cases are missing and the pattern each one takes. It does not know what the program should do when an order is <code>Paid</code>, and any body it wrote would be a guess that compiles. Up to 0.1.128 <code>glyph fix</code> wrote that guess: one arm per case whose body printed the case and called <code>process.exit(1)</code>. The program then passed <code>check</code>, <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code> reported the match as exhaustive, so the missing case had moved from a compile error to a crash at run time with nothing left to flag it.",
+      "tr": "コンパイラは、どのケースが欠けていて、それぞれがどんなパターンになるかを知っています。しかし注文が <code>Paid</code> のときにプログラムが何をすべきかは知りません。コンパイラが書く本体は、どれもコンパイルが通るだけの推測になります。0.1.128 までの <code>glyph fix</code> はその推測を書いていました。ケースごとに 1 つのアームを追加し、その本体はケースを出力して <code>process.exit(1)</code> を呼ぶものでした。するとプログラムは <code>check</code>、<code>tsc</code>、<code>build</code> を通り、<code>glyph query variants</code> は match を網羅的と報告したので、欠けたケースはコンパイルエラーから実行時のクラッシュに変わり、それを指摘するものは何も残りませんでした。"
+    },
+    {
+      "id": "h-3f1cdc48",
+      "kind": "html",
+      "en": "So the rule declines, and names the cases. Everything needed to write the arms is already in the <code>--agent</code> answer above: <code>missing_variants</code>, and the <code>construct</code> spelling of each variant under <code>symbols</code>. The arms are yours or your agent's to write, the same as any other code whose behaviour the compiler cannot infer.",
+      "tr": "そこでこのルールは修正を見送り、ケースの名前を挙げます。アームを書くのに必要なものは、すべて上の <code>--agent</code> の答えにあります。<code>missing_variants</code> と、<code>symbols</code> の下にある各バリアントの <code>construct</code> の書き方です。アームを書くのはあなたかエージェントです。コンパイラが振る舞いを推論できない他のコードと同じです。"
+    },
+    {
+      "id": "h-f50a9d84",
+      "kind": "html",
+      "en": "What <code>glyph fix</code> does write, it writes without guessing, and every rule that cannot settle an answer prints the decline and the reason on the same output as what it applied. Two fields a character away from a typo are two, not one, and it says so rather than picking.",
+      "tr": "<code>glyph fix</code> が書くものは、推測なしで書かれます。答えを決められないルールはすべて、見送ったことと理由を、適用した内容と同じ出力に表示します。タイポから 1 文字違いのフィールドが 2 つあれば、それは 1 つではなく 2 つであり、どちらかを選ぶのではなくそう伝えます。"
+    },
+    {
+      "id": "h-e426e014",
+      "kind": "html",
+      "en": "The code's own explanation, as data",
+      "tr": "コード自身の説明を、データとして"
+    },
+    {
+      "id": "h-c5081b0e",
+      "kind": "html",
+      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form explanation, the one-line <code>help</code>, the docs URL, and a wrong program from the compiler's negative corpus paired with the diagnostic this compiler draws for it. The diagnostic is compiled when you ask, not stored, so it cannot drift from what the compiler actually says.",
+      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code> は、詳しい説明、1 行の <code>help</code>、ドキュメントの URL、そしてコンパイラのネガティブコーパスにある誤ったプログラムと、それに対してこのコンパイラが出す診断の組を返します。診断は保存されたものではなく問い合わせのたびにコンパイルされるので、コンパイラが実際に言う内容からずれることはありません。"
+    },
+    {
+      "id": "h-da4c5d63",
+      "kind": "html",
+      "en": "glyph --explain E0200 --json",
+      "tr": "glyph --explain E0200 --json"
+    },
+    {
+      "id": "h-cb55179b",
+      "kind": "html",
+      "en": "A code the corpus does not cover comes back with <code>counter_example: null</code> and a sentence saying the corpus holds no case for it, rather than a made-up example. The corpus claims what it covers and nothing about the rest.",
+      "tr": "コーパスが扱っていないコードには、作り話の例ではなく、<code>counter_example: null</code> と、コーパスにそのケースがないことを述べる文が返ります。コーパスは扱っている範囲を主張し、それ以外については何も主張しません。"
+    },
+    {
+      "id": "h-dee8d5de",
+      "kind": "html",
+      "en": "<code>glyph --explain</code> hands over one case per code. The whole corpus is readable too: <code>glyph llms --negative E0200</code> prints every wrong program that draws the code, each compiled when you ask, and where a second corpus pairs a program <code>tsc --strict</code> accepts with the Glyph that refuses it, that comes back beside it. With no code it lists 102 cases over 46 of the 70 codes and names the 24 that have none, so coverage is stated rather than inferred from what came back. That and the rest of what the compiler publishes about itself is <a href=\"/answers/generated-docs/\">its own page</a>.",
+      "tr": "<code>glyph --explain</code> が渡すのはコードごとに 1 ケースです。コーパス全体も読めます。<code>glyph llms --negative E0200</code> はそのコードを出す誤ったプログラムをすべて、問い合わせのたびにコンパイルして表示します。<code>tsc --strict</code> が受け入れるプログラムと、それを拒否する Glyph を組にした 2 つ目のコーパスがあれば、それも並べて返します。コードを指定しなければ、70 個のコードのうち 46 個にわたる 102 ケースを一覧し、ケースのない 24 個の名前を挙げます。カバー率は返ってきたものから推測するのではなく、明記されます。これを含め、コンパイラが自分自身について公開する内容は<a href=\"/answers/generated-docs/\">専用のページ</a>にあります。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "提供中"
+    },
+    {
+      "id": "h-206d5f58",
+      "kind": "html",
+      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.",
+      "tr": "すべての診断は <code>expected</code>、<code>actual</code>、<code>cause</code>、<code>alternatives</code>（<code>alternatives_kind</code> が、それが <code>fields</code>、<code>members</code>、<code>variants</code>、<code>literals</code>、<code>exports</code> のどれを並べたものかを示し、エラーが発生した場所で設定されます）、<code>related</code>、<code>module</code>、<code>file</code>、<code>explain</code> を持ちます。これらは導き直したものではなく、コンパイラが発生させたエラーから埋められ、コンパイラがその情報を持たない場合はそれぞれ明示的な <code>null</code> になります。<code>file</code> は解決ルートからの相対パスで、レポートはそのルートを <code>project_root</code> に記すので、そのまま開けます。<code>glyph check --agent</code> は診断ごとに <code>constraints</code> と <code>symbols</code> を加えます。<code>glyph fix</code> は 3 つのルール（<code>E0106</code>、<code>E0210</code>、<code>E0220</code>）を適用し、見送ったものはすべて理由とともに示します。<code>E0200</code> もすべてそうで、報告はしますが書き込みはしません。<code>glyph --explain &lt;CODE&gt; --json</code> はコンパイル済みの反例付きで説明を返し、<code>glyph llms --negative &lt;CODE&gt;</code> はそのコードを出す誤ったプログラムのコーパス全体を返します。"
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "限界"
+    },
+    {
+      "id": "h-a46b5ce4",
+      "kind": "html",
+      "en": "<code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all. <code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic. Everything it declines, it declines out loud.",
+      "tr": "<code>E0211</code> の <code>cause</code> は <code>null</code> です。呼び出しの引数で問題となるシンボルはパラメータで、<code>module::fn.param</code> は識別子の語彙で表せないため、この null は抜け漏れではなく意図的なものです。反例の <code>corrected</code> は常に <code>null</code> です。ネガティブコーパスはケースに修正済みのプログラムを組み合わせておらず、70 個のコードのうち 24 個にはケースがまったくないからです。<code>glyph fix</code> が書くのは 3 つのルールだけで、網羅的でない <code>match</code> のアームは書きません。それはケースとそのパターンを診断に載せたうえで、あなたかエージェントに任されます。見送るものは、すべてはっきりと見送ったと伝えます。"
+    }
+  ]
+}

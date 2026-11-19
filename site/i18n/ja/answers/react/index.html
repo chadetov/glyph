@@ -1,0 +1,174 @@
+---
+title: React、フック、Context で使えるか？ · Glyph
+description: React は組み込みでサポートされています。コンポーネントは関数コンポーネントにコンパイルされ、JSX は createElement に変換され、reducer のアクションは網羅的に match されます。
+source_hash: 7cfdf0dbb16b7eaf
+prev: /answers/codegen/ | &larr; 前へ | API の仕様から型付きのクライアントとサーバーを生成できるか
+next: /answers/state/ | 次へ &rarr; | 関数の間で可変の状態をどう共有するか
+---
+      <p class="q-eyebrow">13 &middot; フロントエンド</p>
+      <h1 class="q-title">React で使えるか。コンポーネント、フック、Context は？</h1>
+
+      <p class="short-answer">
+        使えます。<code>component</code> は React の関数コンポーネントにコンパイルされ、JSX は <code>createElement</code> に変換されます。React 自身のフックは名前で import し、ペアは分割代入で受け取れます。reducer の状態には、素の TypeScript にはない網羅性の検査が付きます。ページそのもの（タイトル、マウント先、保存した状態）には <code>std/dom</code> と <code>std/storage</code> からアクセスします。最初に知っておくべき穴：Glyph 自身の型検査はフックの戻り値を型付けしないので、それらの値は <code>tsc</code> が検査します。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          エージェントが書くコードの多くは React です。Glyph は React を後付けではなく正式なターゲットとして扱います。<code>component</code> は独立したキーワードです（なので <code>grep "^component "</code> で UI 全体を確認できます）。React のフックは <code>react</code> から import して本来の名前と型で呼び出し、<code>tsc</code> が React 自身の型宣言に対して検査します。
+        </p>
+
+        <h2 class="block-label">実例</h2>
+        <p>React 本物の <code>useReducer</code> を、タグ付きユニオンを扱う reducer と組み合わせた例です。すべてのアクションを扱う必要があり、コンパイラがそれを検査します：</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">counter.glyph、react@18 とその型定義に対して</span>
+<pre>import react { useReducer }
+
+type Action = Inc | Dec | Reset
+
+fn reducer(n: number, a: Action) -&gt; number {
+  return match a {
+    Inc =&gt; n + 1,
+    Dec =&gt; n - 1,
+    Reset =&gt; 0,
+<span class="add">    // add an Action variant and this match is E0200</span>
+  }
+}
+
+pub component Counter() {
+  let [count, dispatch] = useReducer(reducer, 0)
+  return &lt;button on_click={fn() { dispatch(Inc) }}&gt;{count}&lt;/button&gt;
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Double</code> アクションを追加すると、reducer はそれを名指しする <code>E0200</code> でコンパイルできなくなります。素の TypeScript の <code>switch</code> なら、そのままリリースされてしまうところです。ペアは <code>let [count, dispatch]</code> で分割代入され、出力される TypeScript には <code>satisfies readonly [unknown, unknown]</code> が付くので、<code>tsc</code> はフックがペアを返したことを証明しつつ、各要素の型を推論します。Glyph 自身の型検査は React から来る値を型付けしないので、<code>dispatch</code> や state のセッターへの誤った引数は、エディタや <code>--no-tsc</code> ではなく、ビルド中の <code>tsc</code> が報告します。React の <strong>Context</strong> は現在 <code>createContext</code> / <code>useContext</code> で使え、メンバー式の要素名（<code>&lt;ThemeContext.Provider&gt;</code>）もそのまま使えます。回避策は要りません。
+        </p>
+        <p>
+          JSX の props スプレッドも使えます。<code>&lt;input {...register("email")} /&gt;</code> は props の中のオブジェクトスプレッドに変換されるので、react-hook-form のイディオムにアダプタは要りません。Zod の値から導出される型も正式にサポートされています。<code>type FormData = z.infer&lt;typeof schema&gt;</code> がそのまま使え、抜け道は要りません。1 つだけ違う点があります。コンポーネントは複数の位置引数ではなく、1 つの props レコードを受け取ります。その境界がどこにあるかは、<a href="/answers/imports/">既存のライブラリを使う</a>と<a href="/hardening/">堅牢化のページ</a>を参照してください。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">props は tsc より前に検査されるか？</h2>
+        <p>
+          されます。Glyph は各要素をそのコンポーネントの props レコードと自分で照合するので、誤った値、綴りを間違えた prop、必須の prop の欠落は、その prop の名前を挙げる Glyph のエラーになります。フルビルドだけでなく、エディタや MCP でも見えます。コンポーネントを名前で import しても、モジュール経由で import しても同じように動きます：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph。<code>Card</code> は <code>ui.glyph</code> で宣言</span>
+<pre>import ui
+
+pub component App() {
+  return &lt;div&gt;
+    &lt;ui.Card title="Q3" /&gt;
+    &lt;ui.Card title="Q4" cout={2} /&gt;
+  &lt;/div&gt;
+}
+
+<span class="add">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`
+// E0210 type `CardProps` has no field `cout`; did you mean `count`?
+// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>--json</code> は欠けている名前を <code>missing_fields</code> のリストとして返すので、エージェントはメッセージをパースせずに props を追加できます。また、コンポーネントは props を 1 つのレコードとして受け取る必要があります。<code>component Greeting(name: string)</code> はパラメータの位置で E0229 になります。React は props オブジェクトしか渡さないので、その要素は決して型検査を通らないからです。レンダリングせずに関数として呼び出すなら、<code>fn</code> で宣言してください。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">JSX の中の &lt;match&gt; は match と同じように検査されるか？</h2>
+        <p>
+          同じものです。各 <code>&lt;case&gt;</code> は <code>match</code> のアームと同じパターンを受け取り、コンパイラはアームに使うのと同じコードでそれを処理します。case が束縛する名前はペイロードの型を持ち、ペイロードのレコードにないフィールドは E0210、欠けているバリアントは E0200 になります。値を判定する case はそのバリアントの一部しか扱わないので、残りを受け持つ兄弟の case か <code>&lt;case else&gt;</code> が必要です：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">results.glyph</span>
+<pre>type Page =
+  | Loading
+  | Loaded({ users: Array&lt;User&gt;, total: number })
+  | Failed(string)
+
+component Results(props: { page: Page }) {
+  return &lt;match value={props.page}&gt;
+    &lt;case Loading&gt;&lt;p&gt;Loading...&lt;/p&gt;&lt;/case&gt;
+    &lt;case Loaded({ users, totl })&gt;&lt;p&gt;{users.length} of {totl}&lt;/p&gt;&lt;/case&gt;
+    &lt;case Failed(message)&gt;&lt;p&gt;{message}&lt;/p&gt;&lt;/case&gt;
+  &lt;/match&gt;
+}
+
+<span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ページからはどう起動するのか？</h2>
+        <p>
+          Glyph にはトップレベルの文がないので、ページがエクスポートされた <code>main</code> を自分で呼び出します。アプリは 2 つのモジュールからなります。コンポーネントを持つモジュールと、<code>std/dom</code> と react-dom の <code>createRoot</code> を使ってそれらを <code>#root</code> にマウントするモジュールです。イベント属性はスネークケースで（<code>on_change</code> は React の <code>onChange</code> として出力されます）、ハンドラはラムダで、入力のテキストは <code>e.currentTarget.value</code> です。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">app.glyph</span>
+<pre data-check="needs-react">module app
+
+import react { useState }
+
+pub component App() {
+  let [name, set_name] = useState("")
+  return &lt;main&gt;
+    &lt;input value={name} on_change={fn(e) { set_name(e.currentTarget.value) }} /&gt;
+    &lt;p&gt;Hello, {name}&lt;/p&gt;
+  &lt;/main&gt;
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-react">module main
+
+import react-dom/client { createRoot }
+import std/dom
+import std/console
+import std/option { Some, None }
+import app { App }
+
+pub fn main() -&gt; void {
+  match dom.element_by_id("root") {
+    Some(root) =&gt; createRoot(root).render(&lt;App /&gt;),
+    None =&gt; console.error("the page has no #root element"),
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">index.html。2 つのモジュールと同じ場所に置く</span>
+<pre>&lt;div id="root"&gt;&lt;/div&gt;
+&lt;script type="module"&gt;
+  import { main } from "./dist/gen/main.ts";
+  main();
+&lt;/script&gt;</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>npx glyph build . --out dist/gen</code> はモジュールを検査し、React の型宣言に対して <code>tsc --strict</code> を実行し、TypeScript を <code>dist/gen</code> に書き出します。続いて <code>npx vite build --outDir dist/web</code> が <code>index.html</code> を読み、import をたどって React とともにバンドルします。この <code>main</code> は何も受け取らず何も返しません。スクリプトが引数なしで呼び出すからです。<code>glyph init</code> が書く <code>main(argv) -&gt; number</code> は、node 上で <code>glyph run</code> が呼び出すものです。<code>package.json</code> とインストールのコマンドを含む手順の全体は、<code>glyph llms</code> が出力するリファレンスの<a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">ブラウザのページで Glyph を動かす</a>にあります。CI は <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> を同じ方法でビルドし、ヘッドレス Chromium でレンダリングしています。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>コンポーネント、JSX、フラグメント（<code>&lt;&gt;...&lt;/&gt;</code>）、メンバー式の要素名（<code>&lt;Ctx.Provider&gt;</code>）、JSX の props スプレッド（<code>{...register()}</code>）、どの import の書き方でも <code>tsc</code> より前にコンポーネントに対して検査される props、名前で import する React 自身のフック（<code>useState</code>、<code>useReducer</code>、<code>useEffect</code>。型は tsc が検査し、ペアは分割代入できます：<code>let [count, set_count] = useState(0)</code>）、網羅的なタグ付きユニオンのアクションを持つ <code>useReducer</code>、アームのパターンを使う <code>match</code> として検査・変換される <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>、<code>createContext</code>/<code>useContext</code> による Context、そして <code>std/dom</code>（タイトル、マウント先、アドレス）、<code>std/storage</code>、<code>std/console</code> を通したページの操作。JSX のテキストは TSX と同じように読まれるので、<code>&lt;p&gt;Don't stop&lt;/p&gt;</code> は普通のテキストです。<code>}</code>、<code>&gt;</code>、<code>//</code>、<code>&amp;amp;</code> のような HTML エンティティはテキスト中では拒否され（E0012）、代わりの書き方が示されます。配列に対するメンバーの読み取りは検査されるので、<code>Array&lt;string&gt;</code> に対する <code>{items.foo}</code> は E0210 です。<a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> は、Vite でバンドルされブラウザでレンダリングされる React 18 のアプリ一式です。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">予定</h3>
+          <p>Glyph の型検査はフックの戻り値を型付けしないので、数値の state に対する <code>set_count("x")</code> は、エディタでの Glyph のエラーではなく、ビルド中の <code>tsc</code> のエラーになります。<code>std/dom</code> にできるのはページの読み取りとタイトルの設定までです。React がレンダリングする DOM は React のものなので、要素のセッターやイベントリスナーはありません。エフェクトは <code>fn() -&gt; void { ... }</code> と書く必要があります。ラムダは最後の式を返すので、React がそれをクリーンアップとして呼んでしまうからです。インラインで書いた props の型は、これらのメッセージでは今も <code>record</code> と表示されます。名前付きの型ならその名前が表示されます。UI を TypeScript で書いた既存の Vite アプリに Glyph の出力を組み込む方法は、<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">デプロイのガイド</a>にあります。</p>
+        </div>
+      </div>

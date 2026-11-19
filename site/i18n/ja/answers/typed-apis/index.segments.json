@@ -1,0 +1,968 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/typed-apis/index.html",
+  "locale": "ja",
+  "source_hash": "e5583b6a5d857445",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Do I have to hand-write a validator for every API? · Glyph",
+      "tr": "API ごとにバリデータを手書きする必要がありますか？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts.",
+      "tr": "いいえ。Glyph では型がそのまま実行時のバリデータになるので、リクエストとレスポンスのボディはバリデータを書かずに検査されます。型は OpenAPI の仕様や .d.ts から作ることもできます。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "既存のアプリの中で Glyph を導入できるか、それとも全面移行しかないのか"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "API の仕様から型付きのクライアントとサーバーを生成できるか"
+    },
+    {
+      "id": "h-58ac443b",
+      "kind": "html",
+      "en": "11 &middot; Data boundaries",
+      "tr": "11 &middot; データの境界"
+    },
+    {
+      "id": "h-01f55cfa",
+      "kind": "html",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "API ごとにバリデータを手書きする必要がありますか？"
+    },
+    {
+      "id": "h-4f149dea",
+      "kind": "html",
+      "en": "No. In Glyph a <strong>type is its own validator</strong>. Declare a <code>type</code> and the compiler generates a runtime descriptor beside it, so an untrusted request or response body validates with one call, no separate <code>zod</code> schema to write and keep in sync.",
+      "tr": "いいえ。Glyph では<strong>型がそのままバリデータ</strong>です。<code>type</code> を宣言すると、コンパイラがその横に実行時のディスクリプタを生成します。そのため、信頼できないリクエストやレスポンスのボディは 1 回の呼び出しで検証でき、別途 <code>zod</code> のスキーマを書いて同期させ続ける必要はありません。"
+    },
+    {
+      "id": "h-54e32a63",
+      "kind": "html",
+      "en": "Untrusted body",
+      "tr": "信頼できないボディ"
+    },
+    {
+      "id": "h-d0cdd397",
+      "kind": "html",
+      "en": "unknown, e.g. {\"title\": 123}",
+      "tr": "unknown（例：{\"title\": 123}）"
+    },
+    {
+      "id": "h-219915ba",
+      "kind": "html",
+      "en": "Descriptor",
+      "tr": "ディスクリプタ"
+    },
+    {
+      "id": "h-f830662c",
+      "kind": "html",
+      "en": "generated from <code>type NewTask</code>",
+      "tr": "<code>type NewTask</code> から生成"
+    },
+    {
+      "id": "h-843ac011",
+      "kind": "html",
+      "en": "Ok",
+      "tr": "Ok"
+    },
+    {
+      "id": "h-0931505e",
+      "kind": "html",
+      "en": "NewTask",
+      "tr": "NewTask"
+    },
+    {
+      "id": "h-d84444a0",
+      "kind": "html",
+      "en": "a typed value, every field checked",
+      "tr": "型付きの値。すべてのフィールドが検査済み"
+    },
+    {
+      "id": "h-f265d4d8",
+      "kind": "html",
+      "en": "Err",
+      "tr": "Err"
+    },
+    {
+      "id": "h-8471a8b6",
+      "kind": "html",
+      "en": "the bad body stops here",
+      "tr": "不正なボディはここで止まる"
+    },
+    {
+      "id": "h-724d7fd8",
+      "kind": "html",
+      "en": "<span>One declaration, one check. The descriptor is generated from the type, so the two can't disagree, and the only way to a <code>NewTask</code> is through it.</span>",
+      "tr": "<span>宣言は 1 つ、検査も 1 つ。ディスクリプタは型から生成されるので両者が食い違うことはなく、<code>NewTask</code> を得る方法はそれを通ることだけです。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-3fca475a",
+      "kind": "html",
+      "en": "<a href=\"#see-it\">See it</a>",
+      "tr": "<a href=\"#see-it\">実例</a>"
+    },
+    {
+      "id": "h-83bec415",
+      "kind": "html",
+      "en": "<a href=\"#the-parse-result-is-an-ordinary-result\">An ordinary Result</a>",
+      "tr": "<a href=\"#the-parse-result-is-an-ordinary-result\">普通の Result</a>"
+    },
+    {
+      "id": "h-9c0a6e93",
+      "kind": "html",
+      "en": "<a href=\"#composing-your-own-the-output-type-is-derived-not-trusted\">Combinators</a>",
+      "tr": "<a href=\"#composing-your-own-the-output-type-is-derived-not-trusted\">コンビネータ</a>"
+    },
+    {
+      "id": "h-c4c8771e",
+      "kind": "html",
+      "en": "<a href=\"#if-i-parse-a-date-do-i-get-a-real-date\">Dates</a>",
+      "tr": "<a href=\"#if-i-parse-a-date-do-i-get-a-real-date\">日付</a>"
+    },
+    {
+      "id": "h-153170fe",
+      "kind": "html",
+      "en": "<a href=\"#you-don-t-even-have-to-write-the-types\">Generated types</a>",
+      "tr": "<a href=\"#you-don-t-even-have-to-write-the-types\">生成される型</a>"
+    },
+    {
+      "id": "h-5a6809fd",
+      "kind": "html",
+      "en": "<a href=\"#the-database-is-a-boundary-too\">Databases</a>",
+      "tr": "<a href=\"#the-database-is-a-boundary-too\">データベース</a>"
+    },
+    {
+      "id": "h-b639c008",
+      "kind": "html",
+      "en": "<a href=\"#a-signed-webhook-is-a-boundary-too\">Webhooks</a>",
+      "tr": "<a href=\"#a-signed-webhook-is-a-boundary-too\">Webhook</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
+      "id": "h-3ee97857",
+      "kind": "html",
+      "en": "In most TypeScript stacks every payload is described <em>twice</em>: once as a <code>type</code> for the compiler, and again as a hand-written validator so the value is actually that shape at runtime.",
+      "tr": "ほとんどの TypeScript のスタックでは、すべてのペイロードを<em>2 回</em>記述します。1 回はコンパイラのための <code>type</code> として、もう 1 回は、実行時に値が本当にその形であるようにするための手書きのバリデータとしてです。"
+    },
+    {
+      "id": "h-4f479c04",
+      "kind": "html",
+      "en": "The two drift, and the drift is exactly where bad data slips in. Glyph collapses them into one declaration: the type <em>produces</em> the validator, so they cannot disagree.",
+      "tr": "この 2 つはずれていき、そのずれこそが不正なデータが入り込む場所です。Glyph はこれを 1 つの宣言にまとめます。型がバリデータを<em>生み出す</em>ので、両者が食い違うことはありません。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "実例"
+    },
+    {
+      "id": "h-17ed9f60",
+      "kind": "html",
+      "en": "Declare the DTO once. Its descriptor gives you <code>.parse</code> (validate an untrusted value into the type) and <code>.is</code> (a type guard), with nothing else to write:",
+      "tr": "DTO を 1 回宣言します。そのディスクリプタが <code>.parse</code>（信頼できない値をその型に検証する）と <code>.is</code>（型ガード）を提供し、ほかに書くものはありません。"
+    },
+    {
+      "id": "h-aed6522a",
+      "kind": "html",
+      "en": "what you did <em>not</em> write",
+      "tr": "書かずに<em>済んだ</em>もの"
+    },
+    {
+      "id": "h-e2d225d4",
+      "kind": "html",
+      "en": "Keep the typed value after the <code>match</code>",
+      "tr": "<code>match</code> のあとも型付きの値を保つ"
+    },
+    {
+      "id": "h-fbc6c868",
+      "kind": "html",
+      "en": "You can also pull the value out instead of doing the work inside the arm.",
+      "tr": "アームの中で処理する代わりに、値を取り出すこともできます。"
+    },
+    {
+      "id": "h-2f288262",
+      "kind": "html",
+      "en": "api.glyph: the value leaves the match typed",
+      "tr": "api.glyph：値は型付きのまま match を出る"
+    },
+    {
+      "id": "h-90be60e1",
+      "kind": "html",
+      "en": "since 0.1.45",
+      "tr": "0.1.45 から"
+    },
+    {
+      "id": "h-896bc2d4",
+      "kind": "html",
+      "en": "generic types: not yet",
+      "tr": "ジェネリック型：未対応"
+    },
+    {
+      "id": "h-8cb9b8d1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the type is carried, and the generic exception</span>",
+      "tr": "詳細 <span class=\"hint\">型がどう引き継がれるか、そしてジェネリックの例外</span>"
+    },
+    {
+      "id": "h-546a2fe9",
+      "kind": "html",
+      "en": "<code>T.parse</code> is typed as <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> and a <code>match</code> whose arms agree carries their type, so <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> gives you a <code>NewTask</code> for the rest of the function, with field names checked by Glyph rather than by <code>tsc</code> on the generated TypeScript. That landed in 0.1.45; before it, the value went untyped once it left the <code>match</code>. A generic type's <code>parse</code> is the one that still doesn't, because its descriptor takes a runtime checker per type parameter.",
+      "tr": "<code>T.parse</code> の型は <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> で、アームの型が一致する <code>match</code> はその型を持ちます。そのため <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> と書けば、関数の残りの部分で <code>NewTask</code> が得られ、フィールド名は生成された TypeScript に対する <code>tsc</code> ではなく Glyph が検査します。これは 0.1.45 で入りました。それ以前は、値は <code>match</code> を出ると型を失っていました。今もそうならないのはジェネリック型の <code>parse</code> だけです。そのディスクリプタは型パラメータごとに実行時のチェッカーを受け取るからです。"
+    },
+    {
+      "id": "h-fcc2b50a",
+      "kind": "html",
+      "en": "The parse result is an ordinary <code>Result</code>",
+      "tr": "parse の結果は普通の <code>Result</code>"
+    },
+    {
+      "id": "h-debf3e49",
+      "kind": "html",
+      "en": "In Glyph <code>T.parse</code> returns the same <code>Result</code> every fallible function in the language returns, so you hand it straight back, run it through <code>map_err</code> to turn validation issues into your own error type, or propagate it with <code>?</code>.",
+      "tr": "Glyph の <code>T.parse</code> は、言語の中で失敗しうるすべての関数が返すのと同じ <code>Result</code> を返します。そのまま返すことも、<code>map_err</code> で検証の問題を自分のエラー型に変えることも、<code>?</code> で伝播させることもできます。"
+    },
+    {
+      "id": "h-d7353c82",
+      "kind": "html",
+      "en": "what this replaced",
+      "tr": "これが置き換えたもの"
+    },
+    {
+      "id": "h-cb13e42e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the runtime cost of using Result here</span>",
+      "tr": "詳細 <span class=\"hint\">ここで Result を使う実行時のコスト</span>"
+    },
+    {
+      "id": "h-b84ab010",
+      "kind": "html",
+      "en": "A validator that gives you back a value in its own private shape is only half useful, because the rest of your error handling can't touch it. Nothing about a parse result is special.",
+      "tr": "独自の形で値を返すバリデータは半分しか役に立ちません。残りのエラー処理がそれを扱えないからです。parse の結果に特別なところは何もありません。"
+    },
+    {
+      "id": "h-202a257e",
+      "kind": "html",
+      "en": "The reason it was ever otherwise: a descriptor is generated next to your <code>type</code>, and emitting the bare object kept a module that declares a type from depending on <code>std/result</code> at runtime. That trade is now made the other way. A module with a <code>pub type</code> in it carries an import of <code>std/result</code> whether or not it ever writes <code>Result</code>, and a <code>parse</code> call allocates the combinator closures any <code>Ok(...)</code> allocates. What you get for it is that the validated boundary and the rest of your error handling are the same API.",
+      "tr": "以前そうでなかった理由は、ディスクリプタが <code>type</code> の横に生成されるため、裸のオブジェクトを出力すれば、型を宣言するモジュールが実行時に <code>std/result</code> に依存せずに済んだからです。今はそのトレードオフを逆にしています。<code>pub type</code> を含むモジュールは、<code>Result</code> と書くかどうかにかかわらず <code>std/result</code> の import を持ち、<code>parse</code> の呼び出しは <code>Ok(...)</code> と同じくコンビネータのクロージャを確保します。その代わりに、検証された境界と残りのエラー処理が同じ API になります。"
+    },
+    {
+      "id": "h-096368d0",
+      "kind": "html",
+      "en": "Composing your own: the output type is derived, not trusted",
+      "tr": "自分で組み合わせる：出力の型は信頼するのではなく導出する"
+    },
+    {
+      "id": "h-53401471",
+      "kind": "html",
+      "en": "Glyph's <code>infer_output&lt;Shape&gt;</code> <strong>derives</strong> the output type from the shape, and <code>tsc</code> checks your annotation against it. A shape that omits a field of the type you claim doesn't compile:",
+      "tr": "Glyph の <code>infer_output&lt;Shape&gt;</code> は形から出力の型を<strong>導出</strong>し、<code>tsc</code> があなたの型注釈をそれに対して検査します。主張する型のフィールドを省いた形はコンパイルできません。"
+    },
+    {
+      "id": "h-cdab955e",
+      "kind": "html",
+      "en": "the drift Glyph removes",
+      "tr": "Glyph がなくすずれ"
+    },
+    {
+      "id": "h-17758042",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the TypeScript trap, and the cast that follows the return since 0.1.92</span>",
+      "tr": "詳細 <span class=\"hint\">TypeScript の落とし穴と、0.1.92 から return に追従するキャスト</span>"
+    },
+    {
+      "id": "h-8f9b11ff",
+      "kind": "html",
+      "en": "Sometimes you want a <code>zod</code>-style combinator: build a validator by composing smaller ones. The trap in TypeScript is that the combinator's <em>output type</em> and the <em>shape</em> you passed it drift apart. You write the shape, then repeat yourself in a second type parameter, and nothing checks that they agree.",
+      "tr": "<code>zod</code> 風のコンビネータ、つまり小さなバリデータを組み合わせてバリデータを作りたいこともあります。TypeScript での落とし穴は、コンビネータの<em>出力の型</em>と、渡した<em>形</em>がずれていくことです。形を書いたあと、2 つ目の型パラメータで同じことを繰り返し書きますが、両者が一致しているかを検査するものはありません。"
+    },
+    {
+      "id": "h-83a7d8e0",
+      "kind": "html",
+      "en": "The derived type holds however the combinator returns. <code>infer_output</code> needs one cast at the function's boundary, because the body builds a value the type system can't prove carries the shape-derived type, and the compiler writes that cast for you. Through 0.1.91 it was attached to a plain <code>return &lt;value&gt;</code>. Put a <code>match</code> between the <code>return</code> and the value, or end the body in <code>r?</code>, and the same function stopped compiling: a <code>TS2322</code> against generated TypeScript, over Glyph the compiler had already accepted. As of 0.1.92 the cast follows the return rather than its spelling, so <code>return match strict { ... }</code> type-checks the same as the single <code>return</code> spelling of the identical body.",
+      "tr": "導出された型は、コンビネータがどう返しても成り立ちます。<code>infer_output</code> には関数の境界で 1 つのキャストが必要です。本体が作る値が、形から導出された型を持つことを型システムが証明できないためで、そのキャストはコンパイラが書きます。0.1.91 までは、それは単純な <code>return &lt;value&gt;</code> に付けられていました。<code>return</code> と値の間に <code>match</code> を挟んだり、本体を <code>r?</code> で終えたりすると、同じ関数がコンパイルできなくなりました。コンパイラがすでに受け入れた Glyph に対して、生成された TypeScript で <code>TS2322</code> が出たのです。0.1.92 からは、キャストは書き方ではなく return そのものに追従するので、<code>return match strict { ... }</code> も、同じ本体を単一の <code>return</code> で書いたものと同じように型検査を通ります。"
+    },
+    {
+      "id": "h-78df86c8",
+      "kind": "html",
+      "en": "The rest of the untrusted boundary",
+      "tr": "信頼できない境界の残り"
+    },
+    {
+      "id": "h-6969498d",
+      "kind": "html",
+      "en": "The descriptor is the same one that makes <code>json.parse&lt;T&gt;</code> safe: give it a JSON string and it parses <em>and</em> validates in one step.",
+      "tr": "このディスクリプタは、<code>json.parse&lt;T&gt;</code> を安全にしているのと同じものです。JSON 文字列を渡すと、パース<em>と</em>検証を 1 ステップで行います。"
+    },
+    {
+      "id": "h-36ecb4f8",
+      "kind": "html",
+      "en": "Input",
+      "tr": "入力"
+    },
+    {
+      "id": "h-d6e645b7",
+      "kind": "html",
+      "en": "Call",
+      "tr": "呼び出し"
+    },
+    {
+      "id": "h-16dcaa92",
+      "kind": "html",
+      "en": "Returns",
+      "tr": "戻り値"
+    },
+    {
+      "id": "h-8dd46ffe",
+      "kind": "html",
+      "en": "A JSON string",
+      "tr": "JSON 文字列"
+    },
+    {
+      "id": "h-f1b6cf5f",
+      "kind": "html",
+      "en": "A decoded body",
+      "tr": "デコード済みのボディ"
+    },
+    {
+      "id": "h-af8848ff",
+      "kind": "html",
+      "en": "A header",
+      "tr": "ヘッダー"
+    },
+    {
+      "id": "h-2c7025a0",
+      "kind": "html",
+      "en": "A query parameter",
+      "tr": "クエリパラメータ"
+    },
+    {
+      "id": "h-eea770a1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">request bodies, headers and query parameters</span>",
+      "tr": "詳細 <span class=\"hint\">リクエストボディ、ヘッダー、クエリパラメータ</span>"
+    },
+    {
+      "id": "h-17daad44",
+      "kind": "html",
+      "en": "A request body arrives already decoded as an <code>unknown</code>, so there you reach for <code>T.parse(value)</code> instead: same guarantee, no cast.",
+      "tr": "リクエストボディはデコード済みの <code>unknown</code> として届くので、そこでは代わりに <code>T.parse(value)</code> を使います。保証は同じで、キャストは不要です。"
+    },
+    {
+      "id": "h-751631d4",
+      "kind": "html",
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
+      "tr": "信頼できない境界の残りも同じように型付けされています。<code>header(req, name)</code> と <code>query_param(req, name)</code> は <code>Option&lt;string&gt;</code> を返すので、ヘッダーやクエリパラメータがなければ <code>None</code> になり、<code>match</code> がその処理を<em>強制</em>します。<code>None</code> のアームを省くとコンパイルできません。存在しない入力を、あるかのように読むことはできません。"
+    },
+    {
+      "id": "h-c5c56180",
+      "kind": "html",
+      "en": "Does a map keyed by an enum check its keys?",
+      "tr": "enum をキーにしたマップは、キーを検査しますか？"
+    },
+    {
+      "id": "h-1343a23f",
+      "kind": "html",
+      "en": "Yes, since 0.1.148. A <code>Record&lt;Tier, int&gt;</code> with <code>type Tier = \"free\" | \"pro\"</code> parses only an object whose keys are exactly <code>free</code> and <code>pro</code>: a stray key and a missing one are both an <code>Err</code>, which is also what <code>tsc</code> says about the same object written as a literal.",
+      "tr": "はい、0.1.148 から検査します。<code>type Tier = \"free\" | \"pro\"</code> のときの <code>Record&lt;Tier, int&gt;</code> は、キーがちょうど <code>free</code> と <code>pro</code> であるオブジェクトだけをパースします。余分なキーも欠けているキーも <code>Err</code> になり、これは同じオブジェクトをリテラルで書いたときに <code>tsc</code> が言うことと同じです。"
+    },
+    {
+      "id": "h-90bb1f8c",
+      "kind": "html",
+      "en": "Key type",
+      "tr": "キーの型"
+    },
+    {
+      "id": "h-d87876b6",
+      "kind": "html",
+      "en": "What <code>parse</code> checks on each key",
+      "tr": "<code>parse</code> が各キーで検査すること"
+    },
+    {
+      "id": "h-3f0b83d0",
+      "kind": "html",
+      "en": "A string-literal union",
+      "tr": "文字列リテラルユニオン"
+    },
+    {
+      "id": "h-ecab195d",
+      "kind": "html",
+      "en": "exactly the listed keys, none missing, none extra",
+      "tr": "列挙されたキーとちょうど一致すること。欠けも余分もなし"
+    },
+    {
+      "id": "h-356bbed3",
+      "kind": "html",
+      "en": "A <code>where</code>-refined type",
+      "tr": "<code>where</code> で絞り込んだ型"
+    },
+    {
+      "id": "h-d1db2150",
+      "kind": "html",
+      "en": "the predicate",
+      "tr": "述語"
+    },
+    {
+      "id": "h-28ded56e",
+      "kind": "html",
+      "en": "the plain spelling of a whole number; <code>\"01\"</code> and <code>\"1.5\"</code> fail",
+      "tr": "整数の素直な表記であること。<code>\"01\"</code> や <code>\"1.5\"</code> は失敗"
+    },
+    {
+      "id": "h-b61a7b5c",
+      "kind": "html",
+      "en": "nothing new",
+      "tr": "新しい検査はなし"
+    },
+    {
+      "id": "h-14b46ac0",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
+      "tr": "詳細 <span class=\"hint\">絞り込んだ型と int のキー、そしてまだ tsc に任せていること</span>"
+    },
+    {
+      "id": "h-906e9c5a",
+      "kind": "html",
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "<code>where</code> で絞り込んだキーの型は、すべてのキーで述語を実行します。<code>int</code> のキーは整数の素直な表記でなければならないので、<code>\"01\"</code> や <code>\"1.5\"</code> は拒否されます。<code>Record&lt;string, V&gt;</code> は以前とまったく同じように検査されます。コード中に書いた値のキーは、Glyph 自身のチェッカーは今も <code>tsc</code> に任せています。また、自身の型パラメータをキーにしたジェネリックなレコードは、そのパラメータが <code>string</code> でない限り拒否されます。"
+    },
+    {
+      "id": "h-efd6b0f9",
+      "kind": "html",
+      "en": "If I parse a date, do I get a real date?",
+      "tr": "日付をパースしたら、正しい日付が得られますか？"
+    },
+    {
+      "id": "h-ba916739",
+      "kind": "html",
+      "en": "Yes, and the interesting part is what you get back for input that isn't one. <code>time.parse_iso</code> returns <code>Option&lt;number&gt;</code>, and it is <code>None</code> for everything that is not ISO-8601.",
+      "tr": "はい。面白いのは、日付でない入力に対して何が返るかです。<code>time.parse_iso</code> は <code>Option&lt;number&gt;</code> を返し、ISO-8601 でないものすべてに対して <code>None</code> になります。"
+    },
+    {
+      "id": "h-070c160a",
+      "kind": "html",
+      "en": "accepted",
+      "tr": "受け入れる"
+    },
+    {
+      "id": "h-164ac8b3",
+      "kind": "html",
+      "en": "None, every one of them",
+      "tr": "どれも None"
+    },
+    {
+      "id": "h-1f74fd41",
+      "kind": "html",
+      "en": "The last one is the one that surprises people, and it is the whole point. A datetime with no <code>Z</code> and no <code>+HH:MM</code> offset is local time by the ECMAScript grammar, so accepting it would mean the same string names a different calendar day depending on which machine ran the program.",
+      "tr": "最後のものは意外に思われがちですが、これこそが要点です。<code>Z</code> も <code>+HH:MM</code> のオフセットもない日時は、ECMAScript の文法ではローカル時刻です。それを受け入れると、同じ文字列が、プログラムを実行したマシンによって違う日付を指すことになります。"
+    },
+    {
+      "id": "h-77b099e1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what Date.parse does instead, and why UTC</span>",
+      "tr": "詳細 <span class=\"hint\">Date.parse の挙動と、UTC である理由</span>"
+    },
+    {
+      "id": "h-9aa02d61",
+      "kind": "html",
+      "en": "That is a stronger claim than JavaScript's <code>Date.parse</code>, which takes free-form text (<code>\"January 5 2026\"</code>), reads an unpadded date like <code>\"2026-1-3\"</code> in whatever timezone the process happens to run in, and reports an impossible day as a success by rolling it forward: <code>\"2026-02-31\"</code> becomes March 3, and you get a number back with no indication anything happened.",
+      "tr": "これは JavaScript の <code>Date.parse</code> より強い主張です。こちらは自由形式のテキスト（<code>\"January 5 2026\"</code>）を受け付け、<code>\"2026-1-3\"</code> のようなゼロ埋めのない日付をプロセスがたまたま動いているタイムゾーンで読み、存在しない日を繰り上げて成功として扱います。<code>\"2026-02-31\"</code> は 3 月 3 日になり、何かが起きたことを示すものは何もないまま数値が返ってきます。"
+    },
+    {
+      "id": "h-b163f00e",
+      "kind": "html",
+      "en": "Glyph's calendar accessors (<code>time.year</code>, <code>time.month</code>, <code>time.day</code>) are UTC and say so, and a validator that quietly imports the host's timezone would make them lie. So the string is rejected instead, and you decide what it meant.",
+      "tr": "Glyph のカレンダーのアクセサ（<code>time.year</code>、<code>time.month</code>、<code>time.day</code>）は UTC で、そのことを明示しています。ホストのタイムゾーンを黙って持ち込むバリデータがあれば、これらは嘘をつくことになります。そこで文字列は拒否され、それが何を意味していたかはあなたが決めます。"
+    },
+    {
+      "id": "h-43b29fed",
+      "kind": "html",
+      "en": "The guard moved into the primitive",
+      "tr": "ガードはプリミティブの中に移った"
+    },
+    {
+      "id": "h-0f07a9cf",
+      "kind": "html",
+      "en": "When an application writes a correctness guard around a standard-library primitive, the guard belongs in the primitive. Here is what the app deleted:",
+      "tr": "アプリケーションが標準ライブラリのプリミティブの周りに正しさのためのガードを書いているなら、そのガードはプリミティブに属します。アプリが削除したのは次のコードです。"
+    },
+    {
+      "id": "h-eb2994d4",
+      "kind": "html",
+      "en": "before: the app guards the stdlib",
+      "tr": "変更前：アプリが stdlib をガードしている"
+    },
+    {
+      "id": "h-5c103d6b",
+      "kind": "html",
+      "en": "after: the primitive holds the line",
+      "tr": "変更後：プリミティブが守っている"
+    },
+    {
+      "id": "h-e6cf6833",
+      "kind": "html",
+      "en": "The <code>import std/regex</code> went with it. Same ledger, same rejected rows, same report byte for byte.",
+      "tr": "<code>import std/regex</code> も一緒になくなりました。台帳も、拒否される行も、レポートもバイト単位で同じです。"
+    },
+    {
+      "id": "h-6219c047",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the expense-report app this came from</span>",
+      "tr": "経緯 <span class=\"hint\">この変更のきっかけになった経費報告アプリ</span>"
+    },
+    {
+      "id": "h-dad8f232",
+      "kind": "html",
+      "en": "This one came out of writing an <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph\">expense-report CLI in Glyph</a>. Every ledger row carries a date, and filing a row under the wrong month is the bug that matters, so the app didn't trust the old <code>parse_iso</code>: it checked the shape with a regex first, then round-tripped the timestamp back to text to catch a rolled-over day.",
+      "tr": "これは <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph\">Glyph で書いた経費報告の CLI</a> から生まれました。台帳のどの行にも日付があり、行を間違った月に記録してしまうのが重大なバグです。そこでアプリは以前の <code>parse_iso</code> を信頼せず、まず正規表現で形を検査し、次にタイムスタンプをテキストに戻して、繰り上がった日を検出していました。"
+    },
+    {
+      "id": "h-48099e52",
+      "kind": "html",
+      "en": "You don't even have to write the types",
+      "tr": "型を書く必要すらない"
+    },
+    {
+      "id": "h-6d14409c",
+      "kind": "html",
+      "en": "If the shape already exists in an OpenAPI spec or a TypeScript declaration file, generate the Glyph types from it: real, committed, greppable <code>type</code> declarations, each with its descriptor, not an inferred phantom:",
+      "tr": "形がすでに OpenAPI の仕様や TypeScript の宣言ファイルにあるなら、そこから Glyph の型を生成します。推論された実体のないものではなく、コミットされ、grep できる実際の <code>type</code> 宣言で、それぞれにディスクリプタが付きます。"
+    },
+    {
+      "id": "h-9b46e0d2",
+      "kind": "html",
+      "en": "from an OpenAPI / JSON Schema spec",
+      "tr": "OpenAPI / JSON Schema の仕様から"
+    },
+    {
+      "id": "h-1cba2c2c",
+      "kind": "html",
+      "en": "from an installed package, by name",
+      "tr": "インストール済みのパッケージから、名前で"
+    },
+    {
+      "id": "h-269e3a1d",
+      "kind": "html",
+      "en": "A wire type becomes a validated boundary, with nothing hand-written:",
+      "tr": "ワイヤ型が、何も手書きせずに検証された境界になります。"
+    },
+    {
+      "id": "h-cd576e8d",
+      "kind": "html",
+      "en": "Generation is <strong>wire-faithful</strong>: what the spec says about a value is what <code>parse</code> checks.",
+      "tr": "生成は<strong>ワイヤに忠実</strong>です。仕様が値について述べていることが、そのまま <code>parse</code> の検査内容になります。"
+    },
+    {
+      "id": "h-fc9a9e39",
+      "kind": "html",
+      "en": "In the spec or <code>.d.ts</code>",
+      "tr": "仕様または <code>.d.ts</code> での表現"
+    },
+    {
+      "id": "h-9b2c9870",
+      "kind": "html",
+      "en": "Generated Glyph",
+      "tr": "生成される Glyph"
+    },
+    {
+      "id": "h-7de6a6c3",
+      "kind": "html",
+      "en": "A string enum",
+      "tr": "文字列の enum"
+    },
+    {
+      "id": "h-7bf9b670",
+      "kind": "html",
+      "en": "a string-literal union; <code>parse</code> checks membership",
+      "tr": "文字列リテラルユニオン。<code>parse</code> がメンバーかどうかを検査"
+    },
+    {
+      "id": "h-8695f5b7",
+      "kind": "html",
+      "en": "An <code>integer</code> field",
+      "tr": "<code>integer</code> のフィールド"
+    },
+    {
+      "id": "h-9597570b",
+      "kind": "html",
+      "en": "<code>int</code>; a wire <code>3.5</code> fails",
+      "tr": "<code>int</code>。ワイヤ上の <code>3.5</code> は失敗"
+    },
+    {
+      "id": "h-616732ba",
+      "kind": "html",
+      "en": "An object schema",
+      "tr": "オブジェクトのスキーマ"
+    },
+    {
+      "id": "h-405b027e",
+      "kind": "html",
+      "en": "a record marked <code>@open</code>; strict with <code>additionalProperties: false</code>",
+      "tr": "<code>@open</code> を付けたレコード。<code>additionalProperties: false</code> なら厳格"
+    },
+    {
+      "id": "h-885a75b0",
+      "kind": "html",
+      "en": "<code>type Page&lt;T&gt;</code>, each item checked as <code>T</code>",
+      "tr": "<code>type Page&lt;T&gt;</code>。各要素を <code>T</code> として検査"
+    },
+    {
+      "id": "h-19a8e439",
+      "kind": "html",
+      "en": "An undiscriminated union",
+      "tr": "判別子のないユニオン"
+    },
+    {
+      "id": "h-6d1b0ba7",
+      "kind": "html",
+      "en": "narrowed, with a printed note",
+      "tr": "注記を出力したうえで絞り込む"
+    },
+    {
+      "id": "h-1f24311f",
+      "kind": "html",
+      "en": "A name in two reachable files",
+      "tr": "到達可能な 2 つのファイルにある同じ名前"
+    },
+    {
+      "id": "h-f876bd7d",
+      "kind": "html",
+      "en": "flagged with a note, not bound",
+      "tr": "束縛せず、注記で警告"
+    },
+    {
+      "id": "h-c79e1805",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what materializes today, regeneration, generic types</span>",
+      "tr": "詳細 <span class=\"hint\">現在生成されるもの、再生成、ジェネリック型</span>"
+    },
+    {
+      "id": "h-c759d75a",
+      "kind": "html",
+      "en": "Point <code>glyph gen dts</code> at a <code>.d.ts</code> file, or, as above, at an installed npm package by name: it resolves the package's own declaration entry from <code>node_modules</code> and writes committed types you import.",
+      "tr": "<code>glyph gen dts</code> には <code>.d.ts</code> ファイルを指定するか、上の例のようにインストール済みの npm パッケージを名前で指定します。<code>node_modules</code> からパッケージ自身の宣言のエントリを解決し、import して使うコミット用の型を書き出します。"
+    },
+    {
+      "id": "h-7d241438",
+      "kind": "html",
+      "en": "What materializes today: <code>gen dts</code> reads the <code>interface</code> and <code>type</code> declarations a package exports, including those inside a <code>declare namespace</code> tree (bare cross-references resolve through the scope) and those in sibling files an <code>index</code> barrel re-exports (the entry <code>.d.ts</code> plus every relatively-imported <code>.d.ts</code> is walked). A generic is kept first-class: <code>interface Page&lt;T&gt;</code> materializes as <code>type Page&lt;T&gt;</code> and gets a descriptor that validates each item as its type argument, not just for presence. Aliased and <code>export * as</code> re-exports resolve through a per-file binding map. The one case it can't make safe, a type name that collides across two reachable files, it <em>flags with a note</em> rather than bind the wrong shape silently. For anything the materializer can't reach, hand-write the shapes you cross the boundary with, or use the <code>extern_ts</code> escape hatch.",
+      "tr": "現在生成されるもの：<code>gen dts</code> は、パッケージが export する <code>interface</code> と <code>type</code> の宣言を読みます。<code>declare namespace</code> の木の中にあるもの（修飾なしの相互参照はスコープを通じて解決されます）や、<code>index</code> のバレルが再 export している隣のファイルにあるもの（エントリの <code>.d.ts</code> と、相対パスで import されるすべての <code>.d.ts</code> をたどります）も含みます。ジェネリックはそのまま第一級として保たれます。<code>interface Page&lt;T&gt;</code> は <code>type Page&lt;T&gt;</code> として生成され、各要素を存在だけでなく型引数の型として検証するディスクリプタが付きます。別名付きの再 export や <code>export * as</code> による再 export は、ファイルごとの束縛マップを通じて解決されます。安全にできない唯一のケース、つまり到達可能な 2 つのファイルで型名が衝突する場合は、間違った形を黙って束縛するのではなく<em>注記で警告</em>します。生成器が届かないものについては、境界をまたぐ形を手書きするか、<code>extern_ts</code> の抜け道を使ってください。"
+    },
+    {
+      "id": "h-9c95f2a9",
+      "kind": "html",
+      "en": "Regeneration is idempotent, so a spec change is a clean, reviewable diff. Generation is <strong>wire-faithful</strong>: a string enum materializes as a string-literal union (<code>\"free\" | \"pro\"</code>), so <code>parse</code> checks membership, not just that the value is a string, and a <code>match</code> over it is exhaustive without an <code>else</code>. An <code>integer</code> field becomes <code>int</code>, so a wire <code>3.5</code> fails <code>parse</code> where a plain number would pass. Where a construct has no exact Glyph form (an undiscriminated union), it narrows and <em>prints a note</em> rather than emit a validator that would reject real data. Generated records also carry <code>@open</code>, so <code>parse</code> tolerates a field the API adds later while still validating every field it declares; a schema that sets <code>additionalProperties: false</code> stays strict. Records are strict by default in Glyph, and this is the same greppable declaration-site marker a hand-written record would use, so nothing about what a record means changes.",
+      "tr": "再生成は冪等なので、仕様の変更はきれいでレビューしやすい差分になります。生成は<strong>ワイヤに忠実</strong>です。文字列の enum は文字列リテラルユニオン（<code>\"free\" | \"pro\"</code>）として生成されるので、<code>parse</code> は値が文字列であることだけでなくメンバーかどうかを検査し、それに対する <code>match</code> は <code>else</code> なしで網羅的になります。<code>integer</code> のフィールドは <code>int</code> になるので、普通の number なら通るワイヤ上の <code>3.5</code> は <code>parse</code> で失敗します。Glyph に正確な対応形がない構文（判別子のないユニオン）は、実際のデータを拒否してしまうバリデータを出力するのではなく、絞り込んで<em>注記を出力</em>します。生成されたレコードには <code>@open</code> も付くので、<code>parse</code> は宣言されたすべてのフィールドを検証しつつ、API があとから追加したフィールドを許容します。<code>additionalProperties: false</code> を指定したスキーマは厳格なままです。Glyph のレコードはデフォルトで厳格で、これは手書きのレコードでも使う、grep できる宣言側のマーカーと同じものです。レコードの意味は何も変わりません。"
+    },
+    {
+      "id": "h-209f2afc",
+      "kind": "html",
+      "en": "Generic types validate too. A <code>Paginated&lt;T&gt;</code> gets a descriptor whose <code>parse</code> takes the type argument: <code>Paginated.parse&lt;User&gt;(body)</code> checks every <code>items</code> entry <em>as a <code>User</code></em>, not just for presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way. This holds across module boundaries: define <code>Paginated&lt;T&gt;</code> in one file, <code>import</code> it into another, and both <code>Paginated.parse&lt;User&gt;(body)</code> and <code>is Paginated&lt;User&gt;</code> there still check each element as a <code>User</code>. The compiler builds the per-element check from the type argument at the call site, so which file the generic type lives in makes no difference to what gets validated.",
+      "tr": "ジェネリック型も検証されます。<code>Paginated&lt;T&gt;</code> には、型引数を受け取る <code>parse</code> を持つディスクリプタが付きます。<code>Paginated.parse&lt;User&gt;(body)</code> は <code>items</code> の各エントリを、存在だけでなく<em><code>User</code> として</em>検査し、<code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> も同じように絞り込みます。これはモジュールの境界をまたいでも成り立ちます。<code>Paginated&lt;T&gt;</code> をあるファイルで定義し、別のファイルに <code>import</code> しても、そこでの <code>Paginated.parse&lt;User&gt;(body)</code> と <code>is Paginated&lt;User&gt;</code> は各要素を <code>User</code> として検査します。コンパイラは呼び出し箇所の型引数から要素ごとの検査を組み立てるので、ジェネリック型がどのファイルにあっても検証内容は変わりません。"
+    },
+    {
+      "id": "h-d242942f",
+      "kind": "html",
+      "en": "Where it stops: descriptors cover the shapes most payloads are made of: objects, primitives, arrays, references, optional and nullable fields, and now generic types at a given instantiation. A type Glyph did not generate (an external package or <code>.d.ts</code> you only import) is type-checked but carries no descriptor until you materialize it, which is now one command against the installed package (<code>glyph gen dts &lt;package&gt;</code>, for the top-level interfaces and type aliases it exports). That boundary is deliberate: a type Glyph didn't emit can't promise runtime validation, so you opt in per package and the result is committed and greppable, not conjured on every build.",
+      "tr": "できないこと：ディスクリプタが対応するのは、ほとんどのペイロードを構成する形です。オブジェクト、プリミティブ、配列、参照、省略可能なフィールドと null 許容のフィールド、そして特定のインスタンス化をしたジェネリック型です。Glyph が生成していない型（import するだけの外部パッケージや <code>.d.ts</code>）は型検査されますが、生成するまではディスクリプタを持ちません。生成は今ではインストール済みのパッケージに対する 1 つのコマンド（<code>glyph gen dts &lt;package&gt;</code>。パッケージが export するトップレベルのインターフェースと型エイリアスが対象）で済みます。この境界は意図的なものです。Glyph が出力していない型は実行時の検証を約束できないので、パッケージごとにオプトインし、その結果はビルドのたびに作り出されるのではなく、コミットされて grep できます。"
+    },
+    {
+      "id": "h-babaa99b",
+      "kind": "html",
+      "en": "The database is a boundary too",
+      "tr": "データベースも境界"
+    },
+    {
+      "id": "h-d85b8f86",
+      "kind": "html",
+      "en": "A row read out of a database is untrusted in exactly the way a request body is. The same <code>.parse</code> you use on a request body validates a row.",
+      "tr": "データベースから読んだ行は、リクエストボディとまったく同じ意味で信頼できません。リクエストボディに使うのと同じ <code>.parse</code> で行を検証します。"
+    },
+    {
+      "id": "h-92b13790",
+      "kind": "html",
+      "en": "the bug this removes",
+      "tr": "これでなくなるバグ"
+    },
+    {
+      "id": "h-542d9186",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">std/sqlite, and the 0-or-1 boolean</span>",
+      "tr": "詳細 <span class=\"hint\">std/sqlite と、0 か 1 の真偽値</span>"
+    },
+    {
+      "id": "h-92b9397f",
+      "kind": "html",
+      "en": "A row read out of a database is untrusted in exactly the way a request body is: the database schema and your code's idea of the row can disagree, and a cast (<code>row as Task</code>) papers over it. <code>std/sqlite</code>, the DB module over Node's built-in SQLite, leans into that. A query returns <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>, so there is no way to treat a row as a <code>Task</code> without validating it first.",
+      "tr": "データベースから読んだ行は、リクエストボディとまったく同じ意味で信頼できません。データベースのスキーマとコードが想定する行の形は食い違うことがあり、キャスト（<code>row as Task</code>）はそれを覆い隠します。Node 組み込みの SQLite の上に作られた DB モジュール <code>std/sqlite</code> は、この点を徹底しています。クエリは <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code> を返すので、まず検証しない限り行を <code>Task</code> として扱う方法はありません。"
+    },
+    {
+      "id": "h-d6878367",
+      "kind": "html",
+      "en": "This catches a bug people ship constantly. SQLite has no boolean type, so a <code>done</code> column comes back as the integer <code>0</code> or <code>1</code>. Cast the row to a record with a <code>bool</code> field and <code>task.done === true</code> is quietly never true. In Glyph the storage shape and the domain shape are separate types, and the mapping between them is one line you actually see:",
+      "tr": "これは本番に出がちなバグを検出します。SQLite には真偽値の型がないので、<code>done</code> 列は整数の <code>0</code> か <code>1</code> として返ってきます。行を <code>bool</code> のフィールドを持つレコードにキャストすると、<code>task.done === true</code> は黙って決して true になりません。Glyph では保存用の形とドメインの形は別の型で、その間の対応付けは目に見える 1 行です。"
+    },
+    {
+      "id": "h-bdebab37",
+      "kind": "html",
+      "en": "The whole thing is a working example: <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph\"><code>examples/apps/tasks/main.glyph</code></a> is a persisted task API, <code>std/sqlite</code> for storage and <code>std/http</code> for routes, with data that survives a restart and validation on both the wire and the database side. No hand-written validators anywhere in it.",
+      "tr": "全体は動く例として用意しています。<a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph\"><code>examples/apps/tasks/main.glyph</code></a> は永続化されたタスク API で、保存に <code>std/sqlite</code>、ルーティングに <code>std/http</code> を使い、データは再起動しても残り、ワイヤ側とデータベース側の両方で検証します。手書きのバリデータはどこにもありません。"
+    },
+    {
+      "id": "h-874af20b",
+      "kind": "html",
+      "en": "A signed webhook is a boundary too",
+      "tr": "署名付き Webhook も境界"
+    },
+    {
+      "id": "h-bae4d501",
+      "kind": "html",
+      "en": "Verifying a webhook signature needs the exact bytes the sender signed, not a re-serialized copy (re-stringifying a parsed body changes whitespace and key order, so the HMAC would never match). <code>http.raw(req)</code> hands you those bytes, so the check stays in Glyph:",
+      "tr": "Webhook の署名を検証するには、再シリアライズしたコピーではなく、送信側が署名したバイト列そのものが必要です（パースしたボディを文字列化し直すと空白やキーの順序が変わり、HMAC が一致しなくなります）。<code>http.raw(req)</code> はそのバイト列を渡すので、検査を Glyph の中に保てます。"
+    },
+    {
+      "id": "h-5eeadc33",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">raw bytes for the signature, parsed body for the shape</span>",
+      "tr": "詳細 <span class=\"hint\">署名には生のバイト列、形にはパースしたボディ</span>"
+    },
+    {
+      "id": "h-7f5b9685",
+      "kind": "html",
+      "en": "<code>req.body</code> is still the parsed value for the shape check; <code>raw</code> is the untampered payload the signature is computed over. A receiver that verifies a signature and validates the body needs no hand-written TypeScript.",
+      "tr": "<code>req.body</code> は引き続き形の検査に使うパース済みの値で、<code>raw</code> は署名の計算対象となる改ざんされていないペイロードです。署名を検証し、ボディを検証する受信側に、手書きの TypeScript は要りません。"
+    },
+    {
+      "id": "h-4516c359",
+      "kind": "html",
+      "en": "A type can validate its invariants, not just its shape",
+      "tr": "型は形だけでなく不変条件も検証できる"
+    },
+    {
+      "id": "h-a7168d78",
+      "kind": "html",
+      "en": "A shape check tells you a field is a number. It does not tell you the amount is non-negative or the rating is between 1 and 5. A <code>where</code> refinement puts that invariant in the type, and the descriptor enforces it at the boundary:",
+      "tr": "形の検査でわかるのは、フィールドが number だということです。金額が負でないことや、評価が 1 から 5 の間であることはわかりません。<code>where</code> による絞り込みはその不変条件を型に入れ、ディスクリプタが境界でそれを強制します。"
+    },
+    {
+      "id": "h-5398192b",
+      "kind": "html",
+      "en": "what you're not writing",
+      "tr": "書かずに済むもの"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-79cfac13",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">10</span>",
+      "tr": "現在提供しているもの <span class=\"count\">10</span>"
+    },
+    {
+      "id": "h-3e77e7bf",
+      "kind": "html",
+      "en": "Descriptors",
+      "tr": "ディスクリプタ"
+    },
+    {
+      "id": "h-495b8283",
+      "kind": "html",
+      "en": "Every declared record and tagged union carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>), generic records included",
+      "tr": "宣言されたすべてのレコードとタグ付きユニオンは、ジェネリックなレコードも含め、実行時のディスクリプタ（<code>.parse</code>、<code>.is</code>、<code>.schema</code>）を持つ"
+    },
+    {
+      "id": "h-922c7825",
+      "kind": "html",
+      "en": "a generic tagged union does not",
+      "tr": "ジェネリックなタグ付きユニオンは持たない"
+    },
+    {
+      "id": "h-14ac7bef",
+      "kind": "html",
+      "en": "<code>.parse</code> returns the same <code>Result</code> the rest of the language uses, so it composes with <code>map_err</code>, with <code>?</code>, and with any function that returns one",
+      "tr": "<code>.parse</code> は言語のほかの部分と同じ <code>Result</code> を返すので、<code>map_err</code>、<code>?</code>、そして Result を返すどの関数とも組み合わせられる"
+    },
+    {
+      "id": "h-d53b22f1",
+      "kind": "html",
+      "en": "A <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape",
+      "tr": "<code>where</code> による絞り込み（<code>int where value &gt;= 0</code>）は、形だけでなく不変条件を境界で検証する"
+    },
+    {
+      "id": "h-e28e5c01",
+      "kind": "html",
+      "en": "<code>json.parse&lt;T&gt;</code> validates JSON",
+      "tr": "<code>json.parse&lt;T&gt;</code> は JSON を検証する"
+    },
+    {
+      "id": "h-d8236d9b",
+      "kind": "html",
+      "en": "<code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift",
+      "tr": "<code>infer_output&lt;Shape&gt;</code> はコンビネータの出力の型を形から導出するので、両者がずれることはない"
+    },
+    {
+      "id": "h-40536dd8",
+      "kind": "html",
+      "en": "Generation",
+      "tr": "生成"
+    },
+    {
+      "id": "h-62ff4789",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name",
+      "tr": "<code>glyph gen openapi</code> / <code>glyph gen dts</code> は、仕様、<code>.d.ts</code>、またはインストール済みのパッケージ名から、ディスクリプタ付きのコミット用の型を生成する"
+    },
+    {
+      "id": "h-b0079f0f",
+      "kind": "html",
+      "en": "Boundaries",
+      "tr": "境界"
+    },
+    {
+      "id": "h-24cc6cd4",
+      "kind": "html",
+      "en": "<code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other",
+      "tr": "<code>std/sqlite</code> は行を <code>unknown</code> として返すので、データベースもほかと同じく検証された境界になる"
+    },
+    {
+      "id": "h-de257c28",
+      "kind": "html",
+      "en": "A signed-webhook receiver stays entirely in Glyph",
+      "tr": "署名付き Webhook の受信側を完全に Glyph で書ける"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
+    },
+    {
+      "id": "h-ba1e90b3",
+      "kind": "html",
+      "en": "<code>http.raw(req)</code> exposes the unparsed request body, so a webhook signature is verified over the exact bytes and a signed-webhook receiver stays entirely in Glyph.",
+      "tr": "<code>http.raw(req)</code> はパース前のリクエストボディを公開するので、Webhook の署名を正確なバイト列に対して検証でき、署名付き Webhook の受信側を完全に Glyph で書けます。"
+    },
+    {
+      "id": "h-9816d858",
+      "kind": "html",
+      "en": "Untrusted input can't reach a SQL or shell sink without <code>sanitize</code>",
+      "tr": "信頼できない入力は <code>sanitize</code> なしに SQL やシェルの出力先に届かない"
+    },
+    {
+      "id": "h-bc0f3aaa",
+      "kind": "html",
+      "en": "<code>std/taint</code>'s <code>Tainted</code>/<code>Trusted</code> types keep untrusted input from reaching a SQL or shell sink without an explicit <code>sanitize</code>, so <code>tsc</code> rejects an injection path at compile time.",
+      "tr": "<code>std/taint</code> の <code>Tainted</code>/<code>Trusted</code> 型は、明示的な <code>sanitize</code> なしに信頼できない入力が SQL やシェルの出力先に届くのを防ぐので、<code>tsc</code> がインジェクションの経路をコンパイル時に拒否します。"
+    },
+    {
+      "id": "h-390c07d2",
+      "kind": "html",
+      "en": "<code>time.parse_iso</code> takes ISO-8601 and nothing else",
+      "tr": "<code>time.parse_iso</code> は ISO-8601 だけを受け付ける"
+    },
+    {
+      "id": "h-d94882d2",
+      "kind": "html",
+      "en": "The smaller boundary primitives hold the same line: <code>time.parse_iso</code> takes ISO-8601 and returns <code>None</code> for free-form text, an impossible day, and an offset-less datetime that would otherwise be read in the host's local timezone.",
+      "tr": "より小さな境界のプリミティブも同じ線を守っています。<code>time.parse_iso</code> は ISO-8601 を受け付け、自由形式のテキスト、存在しない日、そしてそのままではホストのローカルタイムゾーンで読まれてしまうオフセットのない日時に対しては <code>None</code> を返します。"
+    },
+    {
+      "id": "h-50fb9df6",
+      "kind": "html",
+      "en": "On the way <span class=\"count\">3</span>",
+      "tr": "今後の予定 <span class=\"count\">3</span>"
+    },
+    {
+      "id": "h-b84bd62f",
+      "kind": "html",
+      "en": "Discriminated unions generate from a spec and from a <code>.d.ts</code>; enum and mapped-type coverage next",
+      "tr": "判別子付きユニオンは仕様と <code>.d.ts</code> から生成される。次は enum と mapped type への対応"
+    },
+    {
+      "id": "h-7a50add2",
+      "kind": "html",
+      "en": "Discriminated unions now generate from both an OpenAPI <code>discriminator</code> and a TypeScript <code>.d.ts</code> union (a <code>parse_&lt;Name&gt;</code> dispatcher reads the tag and validates into the right variant). Next: richer enum and mapped-type coverage.",
+      "tr": "判別子付きユニオンは、OpenAPI の <code>discriminator</code> と TypeScript の <code>.d.ts</code> のユニオンの両方から生成されるようになりました（<code>parse_&lt;Name&gt;</code> のディスパッチャがタグを読み、正しいバリアントに検証します）。次は enum と mapped type への対応を広げます。"
+    },
+    {
+      "id": "h-5c6a5727",
+      "kind": "html",
+      "en": "Typed client and server code from a spec already ships",
+      "tr": "仕様から型付きのクライアントとサーバーのコードを生成する機能はすでに提供済み"
+    },
+    {
+      "id": "h-2fd0b96e",
+      "kind": "html",
+      "en": "See client &amp; server",
+      "tr": "クライアントとサーバーを見る"
+    },
+    {
+      "id": "h-a0fb7da6",
+      "kind": "html",
+      "en": "A timestamp and a duration are both <code>number</code>",
+      "tr": "タイムスタンプと期間はどちらも <code>number</code>"
+    },
+    {
+      "id": "h-e32f0f0c",
+      "kind": "html",
+      "en": "On dates, the strictness is the whole feature and it stops at the parse: <code>parse_iso</code> hands back epoch milliseconds, so a timestamp and a duration are both <code>number</code> and nothing stops you adding one to the other. A distinct date type is a later decision, not a small one.",
+      "tr": "日付については、厳格さこそが機能のすべてで、それはパースの段階で終わります。<code>parse_iso</code> はエポックからのミリ秒を返すので、タイムスタンプと期間はどちらも <code>number</code> で、一方をもう一方に足すのを止めるものはありません。専用の日付型を入れるかどうかは今後の判断で、小さな判断ではありません。"
+    }
+  ]
+}

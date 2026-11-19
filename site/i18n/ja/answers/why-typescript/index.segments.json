@@ -1,0 +1,122 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/why-typescript/index.html",
+  "locale": "ja",
+  "source_hash": "9f7bf2e8baaad5d9",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why TypeScript, and not Go or a new language? · Glyph",
+      "tr": "なぜ Go や新しい言語ではなく TypeScript なのか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "TypeScript is where agents already write the most code and where npm, React, and Node live. Glyph is adoptable one file at a time only because its target is TS.",
+      "tr": "TypeScript は、エージェントがすでに最も多くのコードを書いている場所であり、npm、React、Node がある場所です。Glyph を 1 ファイルずつ導入できるのは、ターゲットが TS だからこそです。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "エージェント（や自分）は、何がどこで定義されているかを見つけられるか"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "strict な TypeScript と zod、eslint、ts-pattern の組み合わせではなぜ駄目なのか"
+    },
+    {
+      "id": "h-69c9c9dc",
+      "kind": "html",
+      "en": "04 &middot; Positioning",
+      "tr": "04 &middot; 位置づけ"
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "なぜ Go や新しい言語ではなく TypeScript なのか"
+    },
+    {
+      "id": "h-4242272e",
+      "kind": "html",
+      "en": "Because TypeScript is where agents already write the most code and where your ecosystem (npm, React, Node) lives. Glyph is adoptable one file at a time <strong>only because its target is TS</strong>.",
+      "tr": "TypeScript は、エージェントがすでに最も多くのコードを書いている場所であり、あなたのエコシステム（npm、React、Node）がある場所だからです。Glyph を 1 ファイルずつ導入できるのは、<strong>ターゲットが TS だからこそ</strong>です。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "h-0a5dbd26",
+      "kind": "html",
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
+      "tr": "新しい言語が使われるかどうかは、ゼロから出荷までをどう進めるかで決まります。TypeScript にコンパイルされるので、今のコードベース、バンドラ、テストランナー、デプロイ環境から離れる必要がありません。Glyph は手元の <code>.ts</code> ファイルの隣に置けて、どちらの方向にもそのまま import できます。"
+    },
+    {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "同じプロジェクトに .glyph と .ts を並べて置く"
+    },
+    {
+      "id": "h-4eb97fa1",
+      "kind": "html",
+      "en": "You cannot drop Go into a TypeScript codebase file by file: it's a different runtime, a different module system, a different ecosystem. That single fact is why the target is TS.",
+      "tr": "Go を TypeScript のコードベースに 1 ファイルずつ入れることはできません。ランタイムもモジュールシステムもエコシステムも違うからです。ターゲットが TS である理由は、この 1 点に尽きます。"
+    },
+    {
+      "id": "h-b0743097",
+      "kind": "html",
+      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "<strong>Go について認めるべき点：</strong>キーワードが少なく安定しているので、エージェントが間違える余地が少ないことです。これには同意します。Glyph が意図的に小さなコアを保ち、1 つのことに 1 つのやり方しか用意していないのもそのためです。Go は比較のために、記述密度の<a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">ベンチマーク</a>に含めています。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "提供中"
+    },
+    {
+      "id": "h-93871ba6",
+      "kind": "html",
+      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
+      "tr": "読みやすい TypeScript 出力、既存の <code>.ts</code> との双方向 import、そして Node やブラウザのバンドルが動く場所ならどこでも動く小さなコア。"
+    },
+    {
+      "id": "h-0abde815",
+      "kind": "html",
+      "en": "Being measured",
+      "tr": "測定中"
+    },
+    {
+      "id": "h-5cb4379c",
+      "kind": "html",
+      "en": "The cross-language benchmark (Glyph, TS, Go, Python, Rust) grows as the corpus does, so the &ldquo;small surface&rdquo; claim stays a number, not an assertion.",
+      "tr": "言語横断のベンチマーク（Glyph、TS、Go、Python、Rust）はコーパスの成長とともに拡大します。そのため「表面積が小さい」という主張は、主張のままではなく数値として扱われます。"
+    }
+  ]
+}

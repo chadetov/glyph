@@ -1,0 +1,176 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/parse-errors/index.html",
+  "locale": "ja",
+  "source_hash": "7f1a8b2bd45c7f9e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "When a parse fails, do I find out why? · Glyph",
+      "tr": "パースが失敗したとき、その理由はわかるのか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A failing parse names the field, says which rule the value broke, quotes the where predicate it violated, and tags the issue with a code you can branch on.",
+      "tr": "失敗したパースはフィールドを名指しし、値がどのルールに違反したかを示し、違反した where 述語を引用し、分岐に使えるコードを問題に付けます。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "tsc が検出するものを、なぜ Glyph はより早く検出するのか"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "深夜 3 時に本番で壊れたとき、オンコール担当には何が見えるのか"
+    },
+    {
+      "id": "h-24923701",
+      "kind": "html",
+      "en": "27 &middot; Parse failures",
+      "tr": "27 &middot; パースの失敗"
+    },
+    {
+      "id": "h-f32168df",
+      "kind": "html",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "パースが失敗したとき、その理由はわかるのか"
+    },
+    {
+      "id": "h-dc11cff3",
+      "kind": "html",
+      "en": "Yes. Every issue names the field, says <strong>which rule the value broke</strong>, and carries a <code>code</code> you can branch on. A field constrained by a <code>where</code> predicate reports the predicate itself, so the rejection greps back to the line that imposed it.",
+      "tr": "わかります。どの問題もフィールドを名指しし、<strong>値がどのルールに違反したか</strong>を示し、分岐に使える <code>code</code> を持っています。<code>where</code> 述語で制約されたフィールドは述語そのものを報告するので、拒否の内容から grep で、その制約を課した行までたどれます。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "h-2b8c51b7",
+      "kind": "html",
+      "en": "A validator that says \"this payload is bad\" has done half the job. The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
+      "tr": "「このペイロードは不正です」と言うだけのバリデータは、仕事の半分しかしていません。ハンドラはまだ判断しなければなりません。フィールドを入れ忘れたクライアントなのか、4 文字のパスワードを送ってきたクライアントなのか。一方は 400 で、もう一方は 422 です。バリデータが教えてくれなければ、バリデータがすでに持っていた情報を取り戻すために、同じボディを 2 つの異なる型で 2 回パースすることになります。"
+    },
+    {
+      "id": "h-333aed3e",
+      "kind": "html",
+      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
+      "tr": "Glyph で認証 API を作ったときに、まさにそれが起きました。<code>password</code> キーがまったくないサインアップが <code>weak_password</code> として返ってきたのです。キーがない場合と短すぎる場合とで、同じ文字列が生成されていたからです。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "実例"
+    },
+    {
+      "id": "h-bddd14ad",
+      "kind": "html",
+      "en": "One type, one constraint:",
+      "tr": "1 つの型に、1 つの制約："
+    },
+    {
+      "id": "h-66999642",
+      "kind": "html",
+      "en": "Four bad payloads, four different answers. Each is one <code>Issue</code>, shown as <code>code | path | message</code>:",
+      "tr": "4 つの不正なペイロードに、4 つの異なる答え。それぞれが 1 つの <code>Issue</code> で、<code>code | path | message</code> の形で示しています："
+    },
+    {
+      "id": "h-cb372fc2",
+      "kind": "html",
+      "en": "The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim. Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
+      "tr": "肝心なのは 2 つ目です。<code>value.length &gt;= 8</code> は型のところに一度だけ書かれ、拒否はそれをそのまま引用します。HTTP 422 のボディからその文字列を <code>grep</code> に貼り付ければ、それを生んだ宣言にたどり着きます。エラーメッセージの層にルールのコピーを持つ必要は誰にもありません。そのコピーこそが、両者がずれていく原因です。"
+    },
+    {
+      "id": "h-c1b3d39f",
+      "kind": "html",
+      "en": "The fourth one used to be worse than a bad message. An array is an object to <code>typeof</code>, so a record with no required fields accepted one outright, and a posted <code>[1, 2, 3]</code> came back as one confusing issue per declared field, none of them mentioning that you had sent a list.",
+      "tr": "4 つ目は、以前はメッセージが悪いどころではありませんでした。<code>typeof</code> にとって配列はオブジェクトなので、必須フィールドのないレコードは配列をそのまま受け入れていました。また、<code>[1, 2, 3]</code> を送ると、宣言されたフィールドごとに 1 つずつわかりにくい問題が返ってきて、リストを送ったことに触れるものは 1 つもありませんでした。"
+    },
+    {
+      "id": "h-f15fe14d",
+      "kind": "html",
+      "en": "Nested types answer for themselves",
+      "tr": "ネストした型は自分で答える"
+    },
+    {
+      "id": "h-1c1f349a",
+      "kind": "html",
+      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message. You get the location and the reason from the same issue, without re-running anything.",
+      "tr": "型が独自のディスクリプタを持つフィールドは、その型の <code>parse</code> で検証され、問題はパスの先頭にフィールド名が付いて返ってきます。そのため 2 段下にネストした <code>Password</code> は <code>[\"body\", \"password\"]</code> を報告し、しかも自分のメッセージも持っています。何も再実行せずに、同じ問題から場所と理由の両方がわかります。"
+    },
+    {
+      "id": "h-f4063e91",
+      "kind": "html",
+      "en": "The code, not the string",
+      "tr": "文字列ではなくコードで"
+    },
+    {
+      "id": "h-0696faed",
+      "kind": "html",
+      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, or <code>\"unexpected\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
+      "tr": "<code>Issue</code> は省略可能な <code>code</code> を持ちます：<code>\"missing\"</code>、<code>\"type\"</code>、<code>\"refinement\"</code>、<code>\"unexpected\"</code> のいずれかです。分岐にはこれを使ってください。メッセージのテキストでマッチするのは、Glyph が取り除こうとしている脆さそのものです。メッセージはレスポンスボディを読む人間のためのものです。"
+    },
+    {
+      "id": "h-d38a3f61",
+      "kind": "html",
+      "en": "A 400/422 split that does not read the message",
+      "tr": "メッセージを読まずに 400 と 422 を分ける"
+    },
+    {
+      "id": "h-4e6a1d50",
+      "kind": "html",
+      "en": "<code>code</code> is optional, so an <code>Issue</code> you build by hand, and every consumer written before it existed, still compiles unchanged.",
+      "tr": "<code>code</code> は省略可能なので、手で組み立てた <code>Issue</code> も、これが導入される前に書かれた利用側のコードも、変更なしでコンパイルできます。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "提供中"
+    },
+    {
+      "id": "h-7654d152",
+      "kind": "html",
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, and <code>\"unexpected\"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.",
+      "tr": "レコードと <code>where</code> 型は、失敗したフィールドだけでなく、失敗したルールも報告します。必須フィールドがない場合は <code>\"missing\"</code>、形が違う場合（オブジェクトでない、または配列の場合を含む）は <code>\"type\"</code>、基底の型は通ったが述語で失敗した値は <code>\"refinement\"</code>、型が宣言していないキーは <code>\"unexpected\"</code> です。refinement は述語を引用します。型がディスクリプタを持つフィールドはそれに処理を委ねるので、ネストした問題は完全なパス付きで届きます。省略可能なフィールド（<code>f?: T</code>）が missing として報告されることはありません。"
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "改善中"
+    },
+    {
+      "id": "h-7339349c",
+      "kind": "html",
+      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
+      "tr": "限界が 2 つあります。独自のディスクリプタを持たないもの、つまり制約のない型パラメータや、手書きの <code>.d.ts</code> から import した型で型付けされたフィールドは、今も平坦な検査と <code>\"type\"</code> の問題になります。コンパイラはそれらのディスクリプタを合成しないので、その宣言に <code>glyph gen dts</code> を実行するとディスクリプタが得られます。また、<code>Issue</code> という名前の型を独自に宣言したモジュールは、以前は出力されたファイルの中で prelude の型を覆い隠し、そのモジュールのディスクリプタをすべて壊していました。0.1.60 以降、その宣言は型名を書いた行で <code>E0110</code> になるので、生成されたコードについての <code>tsc</code> エラーを読む代わりに、問題の場所がわかります。"
+    }
+  ]
+}

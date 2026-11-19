@@ -1,0 +1,112 @@
+---
+title: お金や信頼できない入力を任せられるか · Glyph
+description: 金額は正確に扱われ（10 進数、そして 2^53 を超える整数）、不変条件は境界で強制される型になり、信頼できない入力はサニタイズされずに SQL やシェルのシンクに届くことはありません。
+source_hash: 890e758a8ba38ece
+prev: /answers/language/ | &larr; 前へ | これは本物の言語ですか。それとも穴だらけのおもちゃですか。
+next: /answers/web-serving/ | 次へ &rarr; | Web ページを配信できるのか、それとも JSON API だけなのか
+---
+      <p class="q-eyebrow">16 &middot; お金と安全性</p>
+      <h1 class="q-title">お金や、自分で制御できない入力を任せられるか</h1>
+
+      <p class="short-answer">
+        任せられます。金額は<strong>正確</strong>に扱われ、「負でない」のような不変条件は<strong>境界で強制される型</strong>になり、信頼できない入力はサニタイズされないかぎり <strong>SQL やシェルのシンクに届きません</strong>。どれも、間違えればコンパイルエラーかパースエラーになります。3 つ離れた関数で誰かが覚えておかなければならない慣習ではありません。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">お金は浮動小数点数ではない</h2>
+        <p>
+          IEEE-754 の <code>number</code> で作った金融システムは、報告されるのを待っているバグです。<code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は黙って精度を失います。<code>std/decimal</code> は BigInt の上に作られた正確な 10 進固定小数点数です。加算、減算、乗算は正確で、除算は明示的なスケールを取り、ちょうど半分の端数は 0 から遠ざかる方向に丸めます。不正な金額は黙って <code>NaN</code> になるのではなく、<code>Err</code> としてパースされます。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from zero</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">取り除かれるバグ</span>
+<pre>// JS number, the default everywhere:
+0.1 + 0.2            // 0.30000000000000004
+1_000_000_000_000.10 * 1.07   // rounding drift
+9007199254740993     // === 9007199254740992
+
+// None of these are your money anymore.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ID やカウンタは 2<sup>53</sup> を超えても正確</h2>
+        <p>
+          アカウント ID や台帳のカウンタが浮動小数点数の範囲を超えて丸められるのは、また別の種類の大惨事です。<code>bigint</code> は <code>123n</code> リテラルを持つ正確な任意精度整数で、<code>bigint</code> 型のレコードフィールドは境界で <code>typeof === "bigint"</code> を検証します。そのため JSON の <code>number</code> として届いた ID は、黙って切り捨てられるのではなく拒否されます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">不変条件はコメントではなく型</h2>
+        <p>
+          「金額は負でない」や「評価は 1 から 5」は、一度書かれてその後忘れられるチェックです。<code>where</code> による絞り込みは不変条件を型に入れ、ディスクリプタがそれを境界で強制します。述語を満たさない値は、そもそも <code>Amount</code> になりません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">refinements.glyph</span>
+<pre>type Amount = int where value &gt;= 0
+type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+
+Amount.parse(-1)   <span class="cm"># Err  (not just "is a number")</span>
+Rating.parse(6)    <span class="cm"># Err</span>
+Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">インジェクションはコンパイルエラー</h2>
+        <p>
+          リモートコード実行の典型的な経路は、信頼できない入力が SQL クエリ、シェルコマンド、HTML テンプレートに届くことです。<code>std/taint</code> はそれを型エラーにします。外部から来た値は <code>Tainted</code> で、保護したいシンクは <code>Trusted</code> を受け取ります。この 2 つは構造的に別物なので、一方から他方へ移る方法は明示的な <code>sanitize</code> しかありません。汚染された値をシンクに直接渡すと、<code>tsc</code> がコンパイルを拒否します。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">安全な経路はコンパイルが通る</span>
+<pre>fn run_query(sql: Trusted&lt;string&gt;) -&gt; void { ... }
+
+let input: Tainted&lt;string&gt; = taint(req.body)
+run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">インジェクションの経路は通らない</span>
+<pre data-check="expect-error TS2345">module query
+
+import std/taint { Tainted, Trusted, taint, expose }
+
+fn run_query(sql: Trusted&lt;string&gt;) -&gt; string {
+  return expose(sql)
+}
+
+pub fn handle(body: string) -&gt; string {
+  let input: Tainted&lt;string&gt; = taint(body)
+  return run_query(input)
+}
+
+// [TS2345] Argument of type 'Tainted&lt;string&gt;'
+//   is not assignable to parameter of type
+//   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
+        </div>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>正確な金額のための <code>std/decimal</code>、正確な大きい整数のための <code>bigint</code>、不変条件を境界で検証する <code>where</code> による絞り込み、そして信頼できない入力が明示的な <code>sanitize</code> なしに保護されたシンクへ届かないようにする <code>std/taint</code>。どれも検査されます。不正な金額や ID は <code>parse</code> で失敗し、不変条件を満たさない値も <code>parse</code> で失敗し、サニタイズされていない値は <code>tsc</code> で失敗します。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">限界</h3>
+          <p><code>where</code> による絞り込みは、現在はプリミティブの基底型に対応しています。レコードやフィールドをまたぐ不変条件（<code>where value.paid &lt;= value.total</code>）は今後の拡張として計画しています。taint は、シンクを <code>Trusted</code> と型付けすることで自分から採用する規律であり、自動的なフロー解析ではありません。コンパイラは宣言した境界を強制しますが、プログラム全体にわたる汚染を推論してくれるわけではありません。</p>
+        </div>
+      </div>

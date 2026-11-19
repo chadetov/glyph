@@ -1,0 +1,136 @@
+---
+title: ツールを揃えた TypeScript（tsc、zod、eslint）ではなぜ駄目なのか · Glyph
+description: ツールを揃えた TypeScript でもかなりのところまで行けますが、どの保証もオプトインで、エージェントはそれを迂回できます。Glyph では厳格さが設定ファイルではなく言語そのものです。
+source_hash: d0694478c32b0491
+prev: /answers/why-typescript/ | &larr; 前へ | なぜ Go や新しい言語ではなく TypeScript なのか
+next: /answers/human-value/ | 次へ &rarr; | AI を使っていなくても Glyph に価値はあるか
+---
+      <p class="q-eyebrow">05 &middot; 比較</p>
+      <h1 class="q-title">strict な TypeScript と zod、eslint、ts-pattern の組み合わせではなぜ駄目なのか</h1>
+
+      <p class="short-answer">
+        それらの保証はどれも<strong>オプトイン</strong>で、エージェントは 1 行でそれぞれを迂回できるからです。Glyph の厳格さは、エージェントが編集できる設定ファイルではありません。言語そのものです。強制のポイントが「このファイルに lint をかけるのを忘れなかったか」から「コンパイルが通るか」に移ります。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ツールを揃えた TypeScript がすでにカバーしているもの</h2>
+        <p>
+          きちんと設定した TypeScript の環境でもかなりのところまで行けますし、チームがそのすべてを CI で実行しているなら、Glyph が狙う穴の大半はすでに塞がっています。真剣に検討する価値のある選択肢なので、対応関係を示します：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">ツールを揃えた TypeScript がすでに与えてくれるもの</span>
+<pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
+exhaustive match    <span class="cm">→ ts-pattern .exhaustive() (compile-time, today)</span>
+errors as values    <span class="cm">→ neverthrow / Effect</span>
+runtime validation  <span class="cm">→ zod at every boundary</span>
+must-handle errors  <span class="cm">→ an eslint rule</span>
+deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          そのすべてを組み込んで強制しているなら、ほとんど目的は達成できています。TypeScript にもこれらの考え方はあります。それを必須にすることで言語が加えるものは、3 つに集約されます。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> オプトインより必須</h2>
+        <p>
+          eslint の設定が守れるのは、エージェントがそれを<em>通す</em>コードだけです。エージェントは <code>as unknown as User</code>、<code>@ts-ignore</code>、<code>// eslint-disable-next-line</code> を書くことも、単に <code>.exhaustive()</code> を忘れることもでき、それでもコンパイルは通ってマージされます。こうした抜け道はどれも、エージェントが編集できる設定です。Glyph には手を伸ばせる抜け道がありません。<code>as</code> も、無視用のプラグマもなく、コンパイラに見える検査なしに <code>unknown</code> から型付きの値を取り出す方法もありません。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript：抜け道が存在する</span>
+          <span class="cap">handler.ts</span>
+<pre>const user = body as unknown as User;
+<span class="cm">// @ts-ignore</span>
+doThing(user.mispelled);
+<span class="cm">// eslint-disable-next-line</span>
+return anything as any;</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph：無効にするものがない</span>
+          <span class="cap">handler.glyph</span>
+<pre>return match User.parse(body) {
+  Ok(user) =&gt; use(user),
+  Err(_) =&gt; fallback(),
+}
+<span class="cm">// no `as`, no ignore pragma,</span>
+<span class="cm">// no lint to switch off.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          エージェントが<strong>設定で無効にできない</strong>厳格さは、無効にできる厳格さとは別の強制ポイントにあります。Glyph はその違いの上に作られています。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> 型がバリデータになる：2 つ目の成果物はない</h2>
+        <p>
+          zod は信頼できる情報源を逆転させます。<em>スキーマ</em>を書き、そこから型を導き出し、型、スキーマ、シリアライザを手で同期させ続けます。それらを揃えておくところこそ、エージェントがずれを持ち込む場所です。型のフィールド名を変えてスキーマは変えず、どちらもコンパイルは通ります。Glyph では型<em>が</em>バリデータです。<code>type User = {...}</code> を宣言すると、それと一緒に <code>User.parse</code> が生成されます。成果物は 1 つで、同期させるものも忘れるものもありません。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> grep できる変更</h2>
+        <p>
+          TypeScript では、状態の変更は <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、セッター、スプレッドの陰に隠れられます。検索できる単一のトークンはなく、これを完全に解決する lint ルールもありません。Glyph では共有状態はストアに置かれ、すべての変更は文字どおりの <code>.set(</code>/<code>.update(</code> です。<code>grep 'mut '</code> でローカルな変更もすべて見つかります。素の TypeScript にはこれに相当するものがありません。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">失敗の仕方の差分</h2>
+        <p>
+          同じタスクで、エージェントがユニオンにバリアントを追加し、3 か所のうち 1 か所で扱うのを忘れた場合：
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">ツールを揃えた TS</span>
+<pre><span class="cm">// ts-pattern .exhaustive() catches it,</span>
+<span class="cm">// IF every site used ts-pattern and</span>
+<span class="cm">// nobody wrote a default: case or a</span>
+<span class="cm">// switch that only logs. Those</span>
+<span class="cm">// compile green and skip the new case.</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Feed`: missing variant `Archived`</span>
+<span class="cm">// every unhandled match, everywhere,</span>
+<span class="cm">// fails the build. No opt-in, no</span>
+<span class="cm">// escape, no forgotten default.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ツールを揃えた TypeScript がまだ勝っているところ</h2>
+        <p>
+          現時点で Glyph より勝っている点が 4 つあります：
+        </p>
+        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>より豊かな検証。</strong>Glyph のディスクリプタはデフォルトで厳格（宣言していないキーを拒否）で、<code>where</code> による refinement はプリミティブに述語を付けられます（<code>type Email = string where value.includes("@")</code>）。ディスクリプタは型が届くすべての境界でそれを実行します。それでも zod が勝っている点が 2 つあります。<code>.email()</code> や <code>.url()</code> のような既製の検査を備えていること（Glyph では自分で書きます）と、オブジェクト全体に refinement をかけられることです。レコードに対する <code>where</code>（2 つのフィールドにまたがる <code>lo &lt;= hi</code>）は、現時点では <code>E0300</code> になります。</li>
+          <li><strong>より深いマッチング。</strong>ts-pattern のガードや深い構造パターンは、Glyph の <code>match</code> で表せる範囲を超えています。</li>
+          <li><strong>「存在しないことの証明」は <code>.ts</code> の境界で止まります。</strong>Glyph の保証は Glyph が書いたコードに対して成り立ちます。npm の依存パッケージから throw された例外は今も <code>Result</code> を迂回しますし、import した <code>.d.ts</code> の型には実行時ディスクリプタがありません。</li>
+          <li><strong>エコシステムと採用。</strong>TypeScript のツール、コミュニティ、採用できる人材ははるかに大きく、何年もの本番での利用実績があります。Glyph はアーリープレビューです。</li>
+        </ul>
+        <p>
+          ツールを揃えた TypeScript を完全に組み込み、エージェントがその中にとどまるなら、これらの大半は手に入っています。Glyph の主張は、「その中にとどまる」こそが要となる言葉であり、エージェントが破るのはまさにその部分だということです。必須であること、1 つの成果物での検証、grep できる変更は、オプトインのツールをいくら追加しても得られない部分です。
+        </p>
+        <p>
+          TypeScript を離れて、JavaScript にコンパイルされる歴史のある型付き言語に移ることも考えているなら、<a href="/design/vs-rescript-gleam-elm/">ReScript、Gleam、Elm ではなぜ駄目なのか</a>で Glyph とそれらを比較しています。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p><code>any</code>/<code>as</code> がないこと、網羅的な <code>match</code>（<code>E0200</code>/<code>E0218</code>）、捨てられた <code>Result</code> への警告（<code>E0217</code>）、型から生成されるバリデータ、grep できる変更。どれも必須で、無効にできる eslint ルールではありません。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">測定中</h3>
+          <p>エージェントが<em>きちんと設定した</em> strict な TS よりも Glyph のほうが見逃される欠陥を少なく生むという主張は、私たちが作っているベンチマークで検証します。比較対象は素の TS ではなく、ツールを揃えた TS です。<a href="/benchmarks/">ベンチマーク</a>を参照してください。</p>
+        </div>
+      </div>

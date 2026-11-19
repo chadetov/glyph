@@ -1,0 +1,132 @@
+---
+title: サーバーは書けるのか、それともプロセスはすぐ終了するのか · Glyph
+description: Glyph のプログラムは、長時間動き続けるサーバーにできます。main は準備をして return し、ソケットやタイマーが待機中の間はプロセスが生き続けます。Node とまったく同じです。
+source_hash: babc2c3ac5bb52bc
+prev: /answers/interactive-cli/ | &larr; 前へ | 人が入力するプログラムは書けるか
+next: /answers/binary/ | 次へ &rarr; | バイナリデータは扱えるのか、それとも何でも文字列なのか
+---
+      <p class="q-eyebrow">19 &middot; サーバーとデーモン</p>
+      <h1 class="q-title">サーバーは書けるのか、それともプロセスはすぐ終了するのか</h1>
+
+      <p class="short-answer">
+        サーバーは書けます。<code>main</code> が準備をして return し、<strong>ソケットやタイマーが待機中の間はプロセスが生き続けます</strong>。Node と同じルールです。0.1.63 より前はそうではありませんでした。<code>main</code> が return した瞬間にランナーがプロセスを終了させていたので、サーバーはポートをバインドしたその tick のうちに終了していました。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          これは、スクリプトを実行できる言語とサービスを実行できる言語の違いです。サーバー、ファイルウォッチャー、ゲートウェイ接続を保持するボット、ジョブランナー。どれも <code>main</code> の中では終わりません。ハンドラを用意し、プロセスをイベントに引き渡します。
+        </p>
+        <p>
+          以前の挙動は最悪の形で失敗していました。黙って失敗するのです。<code>glyph run app.glyph --serve 4100</code> は何も出力せず、<code>listen</code> コールバック内の行すら出さずに、終了コード 0 で終わりました。ソースにはおかしなところがなく、型検査も通りました。これに当たったエージェントには、報告すべきエラーも、何かが失敗したと考える理由もありません。
+        </p>
+
+        <h2 class="block-label">実例</h2>
+        <p>
+          TCP サーバーの全体です。<code>main</code> はすぐに return し、コールバックはプロセスが生きている間ずっと実行されます：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">サーバーの最初から最後まで</span>
+<pre>module main
+
+import std/io
+import std/process
+import net { createServer }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let server = createServer(fn(socket) {
+    mut socket.write("hello\n")
+    mut socket.end()
+  })
+
+  mut server.on("error", fn(err) {
+    io.eprintln("cannot listen: ${err.message}")
+    process.exit(1)
+  })
+
+  mut server.listen(4000, fn() {
+    io.println("listening on 4000")
+  })
+  return 0
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>net</code> は Node の組み込みモジュールなので普通に import できますが、コンパイラがアンビエント型を同梱している 6 つ（<code>fs</code>、<code>http</code>、<code>path</code>、<code>os</code>、<code>crypto</code>、<code>url</code>）には含まれません。<code>@types/node</code> をインストールすればビルドはそちらを優先します。あるいはソースの隣の <code>.types/net.d.ts</code> に宣言を置きます。チャットアプリは後者の方法で、依存関係を一切持たずに済ませています。
+        </p>
+        <p>
+          知っておくべきことが 2 つあります。<code>return 0</code> は最初のクライアントが接続するより前に実行されます。これはプロセスが最終的に終了するときのコードであって、いつ終了するかを表すものではありません。また、<code>main</code> が return した<em>後</em>に失敗した処理は、自分で終了コードを設定しなければなりません。<code>main</code> の戻り値はもう使われてしまっているからです。<code>error</code> ハンドラはそのためにあります。これがないと、ポートをバインドできなかったサーバーはイベントループを空にして終了コード 0 で終わり、成功を報告してしまいます。
+        </p>
+
+        <h2 class="block-label">実際のアプリ</h2>
+        <p>
+          <code>examples/apps/chat</code> は、複数の TCP クライアントを同時に保持するチャットサーバーです。ネットワークに触れない部分は分離され、テスト可能になっています。行の再組み立て、ルーティング、ルームエンジンは <code>@example</code> で検査される純粋関数で、ソケットとやり取りするのは 1 つのファイルだけです。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">3 つのクライアントが同時に接続した状態</span>
+<pre><span class="cm">alice&gt;</span> /join #general
+<span class="cm">bob&gt;</span>   /join #general
+<span class="cm">carol&gt;</span> /join #random
+<span class="cm">alice&gt;</span> hello everyone
+
+alice sees:  1  #general &lt;alice&gt; hello everyone
+bob sees:    1  #general &lt;alice&gt; hello everyone
+carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          TCP が届けるのはメッセージではなくバイトなので、チャンクの末尾はたいてい行の途中で切れています。この再組み立ては純粋関数で、扱いにくいケースはソケット越しに起こすのではなく、例として書き留めてあります：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/chat/framing.glyph</span>
+<pre>@example feed("", "hel").lines == []
+@example feed("hel", "lo\n").lines == ["hello"]
+@example feed("", "a\nb\nc\n").lines == ["a", "b", "c"]
+@example feed("", "a\nb").rest == "b"
+@example feed("", "hi\r\n").lines == ["hi"]
+pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">逆方向：長時間動くクライアント</h2>
+        <p>
+          ボットは同じ形を外向きにしたものです。<code>examples/apps/discord</code> は Discord のゲートウェイクライアントです。WebSocket で接続して identify し、サーバーが指定する間隔でハートビートを送り、シーケンス番号を追跡して接続が切れても最初からではなく resume で再開し、接続が開いているのに死んでいる状態を検知し、再接続の間にバックオフします。
+        </p>
+        <p>
+          真似する価値があるのは、ロジックの置き場所です。<code>RECONNECT</code>、ハートビートの欠落、拒否されたトークンにどう対処するかの判断は、セッションと 1 つのイベントから、新しいセッションとアクションのリストを返す純粋関数です。それらのアクションを実際のソケットで実行するのは 1 つのモジュールです。だからこそ、正しく書くのが難しい再接続ロジックを、ネットワークケーブルを抜くのではなく <code>@example</code> で検査できます：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/discord/session.glyph</span>
+<pre>@example a_close_while_a_reconnect_is_pending_is_ignored()
+@example a_failed_attempt_schedules_another()
+@example a_rejected_token_stops_rather_than_retrying()
+pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          この 3 つの例は、どれも最初はコードに存在したバグです。モックのゲートウェイを書いてボットを向けたところ、そのうち 1 つが見つかりました。残りの 2 つは、クライアントからではなく Discord のドキュメントから書いた 2 つ目のモックで見つかりました。このモックは、協力的なモックなら決して送らないものを送ります。求めていないハートビート要求や、「トークンが間違っているので、もう要求しないでください」という意味のクローズコードです。クライアントの作者が書いたモックは、作者が読んだ部分のプロトコルしかテストしません。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p><code>main</code> から return すると、プロセスを止めずに終了コードが設定されるので、サーバー、ウォッチャー、イベントループが動き続けます。計算するだけのプログラムは従来どおり <code>main</code> が return した瞬間に同じコードで終了するので、短いプログラムの挙動は何も変わっていません。<code>net</code> のような Node の組み込みモジュールは普通に import でき、セットアップ中に throw したプログラムは引き続き終了します。ただし今は、診断がパイプされた stderr に届いてから終了するので、終了によって途中で切れることはありません。<code>std/timers</code> は処理をスケジュールし（<code>after</code>、<code>every</code>、<code>cancel</code>、<code>unref</code>）、<code>std/websocket</code> は接続を開くので、どちらも手書きの宣言は不要です。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">改善中</h3>
+          <p><code>main</code> が return した後にバインドに失敗したリスナーは、プログラムが何も指定しなければ終了コード 0 で終わります。<code>process.set_exit_code(1)</code> は実行中の処理を止めずに失敗を記録し、<code>process.exit(1)</code> は即座に終了します。指定し忘れたことをコンパイラが警告することはまだできません。また、関数が return しないことを書き表す方法もまだないので、サーバーの <code>main</code> には決して到達しない <code>return 0</code> が残ります。</p>
+        </div>
+      </div>

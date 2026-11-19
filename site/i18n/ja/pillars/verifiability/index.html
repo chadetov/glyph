@@ -1,0 +1,219 @@
+---
+title: 検証可能性 · any なし、網羅的な match · Glyph
+description: Glyph の第 1 の柱：any も as もなく、match は網羅的で、宣言した型には実行時のバリデータが付きます。tsc の上に重ねた厳格なレイヤーで、その限界も明記しています。
+source_hash: b8ae04a4b3228182
+prev: / | &larr; ホーム | Glyph が選ばれる理由
+next: /pillars/greppability/ | 次の柱 &rarr; | grep しやすさ：1 つの名前、1 つの場所
+---
+      <p class="q-eyebrow">柱 01 &middot; <span class="wedge">突破口</span></p>
+      <h1 class="q-title">検証可能性</h1>
+
+      <p class="short-answer">
+        Glyph はエージェントが落ちる穴を塞ぎます。<strong>書ける <code>any</code> も <code>as</code> もなく</strong>、<code>match</code> は<strong>網羅的であることが証明され</strong>、宣言した型には<strong>厳格な実行時バリデータ</strong>が付きます。これらはすべて <code>tsc</code> の上に重ねた厳格なレイヤーとして強制されます。Glyph 自身がすべてを検証するわけではなく、保証がどこで止まるかは下で具体的に説明します。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">型がつく嘘</h2>
+        <p class="lede">
+          TypeScript では、型はコンパイル時の約束にすぎず、コードが動く前に消えてしまいます。<code>User</code> という注釈は消去されて何も残りません。ネットワーク呼び出し、JSON のパース、フォームの入力から実際に得られるオブジェクトは、どんな形でもありえます。さらに悪いことに、言語は型検査器に嘘をつく合法的な方法を 3 つも用意しています。<code>any</code>、<code>as</code> によるキャスト、非 null の <code>!</code> です。急いで作業するエージェントは 3 つとも使い、<code>tsc --strict</code> がグリーンのままバグが出荷されます。
+        </p>
+        <p class="lede">
+          Glyph の最初の仕事は、これらの穴を塞ぐことです。注釈を増やすのではなく、抜け道を取り除き、すべての型がその証明を実行時まで持ち運ぶようにします。それが何を意味するのか、保証を 1 つずつ見ていきます。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> <code>any</code> は存在しない</h2>
+        <p>
+          <code>any</code> は TypeScript で最も高くつくキーワードです。ある値<em>と、その値が触れるすべてのもの</em>について型システムを無効にします。境界にある 1 つの <code>any</code> が、下流の呼び出しグラフを気づかないうちに汚染します。Glyph にはそれがありません。トップ型は <code>unknown</code> で、<code>unknown</code> は何もできません。それが何であるかを<em>証明</em>するまで、呼び出すことも、インデックスでアクセスすることも、型付きの場所に渡すこともできません。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript：コンパイルは通り、クラッシュする</span>
+          <span class="cap">handler.ts</span>
+<pre>function handle(body: any) {
+  <span class="cm">// tsc --strict: fine.</span>
+  <span class="cm">// runtime: throws on {}.</span>
+  return body.user.name.toUpperCase();
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph：絞り込みが証明になる</span>
+          <span class="cap">handler.glyph</span>
+<pre>fn handle(body: unknown) -&gt; string {
+  return match User.parse(body) {
+    Ok(u) =&gt; string.upper(u.name),
+    Err(_) =&gt; "unknown",
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          コンパイラから見える検査なしに、<code>unknown</code> から型付きの値を取り出すことはできません。Glyph では、絞り込みそのもの<strong>が</strong>実行時の証明です。それを飛ばす構文はありません。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> 型は実行時にも実在する</h2>
+        <p>
+          <code>User.parse</code> はなぜ存在するのでしょうか。すべてのレコード型と、ジェネリックでないすべてのタグ付きユニオンは、<strong>実行時ディスクリプタ</strong>を一緒に生成するからです。<code>is</code> ガード、<code>unknown</code> を検証して <code>Result</code> にする <code>parse</code>、組み合わせ可能な <code>schema</code> です。レコードの形は想定されるのではなく実行時に実際に調べられるので、<code>is User</code> の検査は消去される空の処理ではなく、本物の検査です。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">書いた型と、そこから生成されるディスクリプタ</span>
+<pre>type User = {
+  id: number,
+  name: string,
+  email: string,
+}
+
+<span class="cm">// generated: User.is(v), User.parse(v) -&gt; Result&lt;User, ...&gt;, User.schema</span>
+
+fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match User.parse(req.body) {   <span class="cm">// untrusted input, validated</span>
+    Ok(user) =&gt; Ok(json(201, user)),
+    Err(issues) =&gt; Ok(json(400, issues)),
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          これが「API ごとに手書きのバリデータが必要」という問題への答えです。型がバリデータです。境界（リクエストボディ、設定ファイル、サードパーティのレスポンス）は、不正なデータを実際に拒否できる検査を通ったときにだけ型付きになります。
+        </p>
+        <p>
+          これが止まる場所：レコードのディスクリプタはデフォルトで厳格です。宣言されたフィールドを確認し、宣言されていないキーを持つ値は拒否します（余分なキーを許すには型に <code>@open</code> を付けます）。ジェネリックなものも含めてレコード型にはディスクリプタが付くので、<code>Paginated&lt;User&gt;</code> は各要素を <code>User</code> として検査し、タグ付きユニオンのディスクリプタはタグを検査したうえで、そのバリアントのペイロードのフィールドを検査します。まだディスクリプタが付かないのは、ジェネリックなタグ付きユニオン（<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> には <code>Box.parse</code> がありません）と、参照するだけの <code>.d.ts</code> からインポートした型です。検査で形の一部しか証明できない場合、コンパイラはそう伝え、できない保証をほのめかすことはしません。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> すべてのケースを扱わなければコンパイルできない</h2>
+        <p>
+          封じられたユニオンに対する <code>match</code> は、すべてのバリアントを扱わなければなりません。後でバリアントを追加すると、それを考慮していない<em>すべての</em> match がコンパイルできなくなります（<code>E0200</code>）。忘れられた <code>switch</code> の分岐のように、新しいケースが黙って <code>undefined</code> に落ちることはありません。ユニオンだけではありません。<code>number</code> や <code>string</code> をリテラル値で match するときは <code>else</code> が必要です（<code>E0218</code>）。これらの値域は無限で、リテラルの集合が完全になることはないからです。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">status.glyph</span>
+<pre>type Status = Active | Paused | Cancelled
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Active =&gt; "on",
+    Paused =&gt; "hold",
+    <span class="cm">// forgot Cancelled...</span>
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-bad">実行時の undefined ではなく、コンパイルエラー</span>
+          <span class="cap">$ glyph build</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Status`: missing variant `Cancelled`</span>
+
+<span class="cm"># the equivalent TS switch returns
+# undefined at runtime and compiles
+# clean. here it does not build.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">04</span> エラーは不意打ちではなく値</h2>
+        <p>
+          失敗しうる関数は <code>Result&lt;T, E&gt;</code> を返します。<code>match</code> で処理するか、<code>?</code> 演算子で伝播させます。エラーの型は一致していなければなりません（不一致を隠す暗黙の変換はありません）。<code>Result</code> をまったく無視すると（副作用のために呼び出して戻り値を捨てると）、Glyph は警告します（<code>E0217</code>）。捨てられたエラーは握りつぶされた失敗だからです。黙らせるには <code>let _ = ...</code> と意図して書く必要があり、うっかり黙ることはありません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">pipeline.glyph</span>
+<pre>fn load(id: string) -&gt; Result&lt;User, AppError&gt; {
+  let raw = fetch_user(id)?           <span class="cm">// Err short-circuits to the caller</span>
+  let user = User.parse(raw.body)?    <span class="cm">// validation Err propagates too</span>
+  return Ok(user)
+}
+
+fn main() -&gt; number {
+  save(user)   <span class="cm">// E0217: this returns a Result whose Err is dropped</span>
+  return 0
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> 個人情報も型のレベルで扱う</h2>
+        <p>
+          「慣習ではなくコンパイラの仕事にする」という同じ考え方は、機密データにまで及びます。型に <code>@redact</code> を付けると、そのディスクリプタにはそれらのフィールドをマスクする <code>redact()</code> が加わり、うっかり書いた <code>json.stringify(User.redact(u))</code> からも漏れません。型にないフィールドを指定するとコンパイルエラー（<code>E0219</code>）になり、何も守らない伏せ字処理が黙って残ることはありません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">patient.glyph</span>
+<pre>@redact fields: [diagnosis, notes]
+type Patient = {
+  name: string,
+  diagnosis: string,
+  notes: string,
+}
+
+<span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
+<span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          5 つの異なる失敗のしかた（検査されない入力、見落としたケース、捨てられたエラー、漏れた秘密情報、検証されないキー）のどれでも、対処の形は同じです。<strong>コンパイラは取り繕うことを拒否します。</strong>
+        </p>
+
+        <h2 class="block-label">どう強制されるか、保証がどこで止まるか</h2>
+        <p>
+          違いが重要なので正確に書きます。Glyph は <strong><code>tsc</code> の上に重ねた、強制される厳格な方言</strong>であり、独立した検証器ではありません。自分で証明するものもあります。網羅性、<code>?</code> のエラー型、ソースに <code>any</code>/<code>as</code> がないこと、厳格なキーの検証です。それ以外の型の互換性は、TypeScript を出力して <code>tsc --strict</code> を実行することで強制し、失敗すればビルドが失敗します。肝心なのは、これらの検査が<em>言語</em>そのものであり、エージェントが無効にできる任意の lint ではないという点です。Glyph が型検査器を作り直しているという点ではありません。
+        </p>
+        <p>
+          ここにあった 2 つの限界は 0.1.10 で解消しました。以前のエミッタは、<em>すべての</em>ジェネリック関数に、<code>tsc</code> ではなく Glyph が検査した前提の戻り値キャストを挿入していました。現在それが入るのは、バリデータのコンビネータが形から導いた型（<code>infer_output&lt;Shape&gt;</code>）の値を組み立てる場所だけで、正直なジェネリックはすべてキャストなしで出力されます。また、バリデータの出力型を信用することもなくなりました。<code>infer_output</code> が渡された形から出力型を導き、<code>tsc</code> が注釈をそれと照合します。主張する型のフィールドが欠けた形は、今ではコンパイルに失敗します。
+        </p>
+        <p>
+          ジェネリック型も深く検証されるようになりました。<code>Paginated&lt;User&gt;</code> のディスクリプタは、各要素を存在するかどうかだけでなく <em><code>User</code> として</em>検査します。限界が 1 つ残っているので、はっきり書きます。参照するだけの外部の <code>.d.ts</code> から<em>インポートした</em>型は、<code>glyph gen dts</code> で具体化するまでディスクリプタを持たないので、その型のフィールドは形ではなく存在だけが検査されます。この境界は意図したものです（Glyph が出力していない型に実行時の検証を約束することはできません）。具体化すればこの限界はなくなります。
+        </p>
+
+        <h2 class="block-label">ベンチマーク：準備中</h2>
+        <p>
+          この主張は経験的なものなので、測定するつもりです。エージェントが実際に書いた変更を集め、それぞれを <code>tsc --strict</code> と Glyph にかけて、それぞれが実際に何を検出するかを数えます。Glyph はまだ実運用で使われていないので、報告できる数値はありません。下のグラフはプレースホルダで、実際の利用が始まり次第、実データで埋まります。
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">エージェントが出荷したバグの検出数 &middot; 多いほど良い</span>
+        <h3>tsc --strict と Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 64%;">未測定</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">tsc --strict</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 34%;">未測定</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">まだ測定していません</span> 方法は決まっていますが、データを集めるには Glyph の実際の利用が必要です。数値が出たら、結果がどうであれここに公開します。
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          これは手間と引き換えに得たものではありません。証明のための注釈も、契約も、満足させるべき検証器もありません。上のコードはごく普通の Glyph です。検証可能性は有効にする機能ではなく、嘘をつく手段がなくなった後に残るものです。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">「strict な TypeScript と lint の設定で同じことができる」</h2>
+        <p>
+          プログラムの内部ならかなり近づけます。<code>strict</code>、<code>noUncheckedIndexedAccess</code>、明示的な <code>any</code> を禁じるルールで、エージェントがすり抜けさせるものの大半は検出できます。ただし端で止まります。<code>JSON.parse(body) as User</code> はどの設定でもコンパイルが通り、よくある対策の zod スキーマは <code>User</code> の 2 つ目の記述で、1 つ目と手作業で同期させ続けなければなりません。Glyph では型がバリデータです。<code>json.parse&lt;User&gt;(body)</code> は <code>User</code> そのものと照合され、Glyph が実行時に検査できない型は信用されずに拒否されます。
+        </p>
+        <p>
+          もう 1 つの違いは、誰がそれを当てにできるかです。lint の設定は 1 つのリポジトリが選んだものです。見知らぬ TypeScript のコードベースを開いたエージェントは、そこで <code>any</code> が禁止されているとは想定できません。Glyph ではどこにも書けません。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          同じ保証を、エージェントが犯すミスとそれを止めるエラーの観点から説明したのが <a href="/answers/verifiability/">エージェントが気づかないうちにコードを壊すのを、何が防ぐのか</a> です。
+        </p>
+      </div>

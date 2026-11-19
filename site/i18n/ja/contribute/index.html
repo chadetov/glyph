@@ -1,0 +1,94 @@
+---
+title: コントリビュート · コンパイラの作りと貢献の方法 · Glyph
+description: Glyph のコンパイラの作り（Rust のワークスペース：字句解析、構文解析、名前解決、型検査、出力）、ビルドとテストの方法、Issue とプルリクエストの扱い。
+source_hash: 98fd22506cb2f943
+next_steps: |
+  次に読むもの
+  ここから始める | https://github.com/chadetov/glyph | github | リポジトリ | ソースコード、Issue、ディスカッション、リリース。 | GitHub で開く
+  /design/ | design | 設計 | 4 つの柱と、あらゆる変更の判断基準になる設計判断の記録。
+---
+      <p class="q-eyebrow">コントリビュート</p>
+      <h1 class="q-title">コンパイラの作りと、貢献の方法</h1>
+
+      <p class="short-answer">
+        コンパイラは、1 つの公開リポジトリにある 12 個のクレートからなる Rust のワークスペースで、ライセンスは MIT または Apache-2.0 です。今いちばん役に立つのは、小さな再現コード付きのバグ報告です。言語への変更は Issue から始めます。どのルールも番号付きの設計判断にさかのぼれるからです。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">パイプライン</h2>
+        <p>
+          <code>glyph build</code> は字句解析、構文解析、名前解決、型検査を行って TypeScript を出力し、書き出したものに対して <code>tsc --strict</code> を実行します。中間の段階は <a href="https://github.com/salsa-rs/salsa">salsa</a> 上のインクリメンタルなクエリとして動くので、再検査では編集で無効にならなかった結果が再利用されます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">1 つの .glyph ファイルがクレートを通る流れ</span>
+<pre>glyph-lexer → glyph-parser → glyph-resolver → glyph-typechecker → glyph-emit → tsc --strict
+                (glyph-ast)        └──────── glyph-db (salsa) ────────┘</pre>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>クレート</th><th>役割</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Crate"><code>glyph-lexer</code></td><td data-label="What it does">トークン、キーワード、意味を持つ改行、テンプレートリテラル</td></tr>
+            <tr><td data-label="Crate"><code>glyph-ast</code></td><td data-label="What it does">構文木の型。すべてのノードにソース上の範囲を持つ</td></tr>
+            <tr><td data-label="Crate"><code>glyph-parser</code></td><td data-label="What it does">仕様のすべての設計判断に対応する Pratt パーサー。JSX も含む</td></tr>
+            <tr><td data-label="Crate"><code>glyph-resolver</code></td><td data-label="What it does">名前解決、モジュールグラフ、モジュール間の import の検査、prelude</td></tr>
+            <tr><td data-label="Crate"><code>glyph-db</code></td><td data-label="What it does">salsa のクエリパイプラインと、ファイルをまたいだ無効化</td></tr>
+            <tr><td data-label="Crate"><code>glyph-typechecker</code></td><td data-label="What it does">網羅性、<code>?</code>、ジェネリクス、<code>owned</code>、実行時ディスクリプタ、標準ライブラリのモデル</td></tr>
+            <tr><td data-label="Crate"><code>glyph-emit</code></td><td data-label="What it does">TypeScript の出力、ディスクリプタの生成、式単位のソースマップ</td></tr>
+            <tr><td data-label="Crate"><code>glyph-formatter</code></td><td data-label="What it does"><code>glyph fmt</code>：レイアウトは 1 通りだけ、コメントを保持し、冪等</td></tr>
+            <tr><td data-label="Crate"><code>glyph-lsp</code></td><td data-label="What it does">言語サーバーと MCP サーバー。1 つの解析層を共有する</td></tr>
+            <tr><td data-label="Crate"><code>glyph-cli</code></td><td data-label="What it does"><code>glyph</code> バイナリとすべてのサブコマンド</td></tr>
+            <tr><td data-label="Crate"><code>glyph-wasm</code></td><td data-label="What it does">WebAssembly 版のコンパイラ。Playground を動かしている</td></tr>
+            <tr><td data-label="Crate"><code>glyph-runtime</code></td><td data-label="What it does">スタブ。テストは代わりに出力器と <code>tsx</code> を通して実行する</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          クレートの詳しい説明と現在のテスト数は <a href="https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md">glyph-compiler/README.md</a> にあります。
+        </p>
+
+        <h2 class="block-label">ビルドとテスト</h2>
+        <p>
+          Rust 1.95 が <code>rust-toolchain.toml</code> で固定されています。一部のテストは <code>tsc</code> と <code>tsx</code> を呼び出すので、これらもインストールしてください。CI は警告をエラーとして clippy を実行しますが、<code>cargo build</code> も <code>cargo test</code> も clippy を実行しないので、push する前にスクリプトを実行してください。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">clone してから</span>
+<pre>npm install -g tsx typescript
+cd glyph-compiler
+cargo build --release -p glyph-cli      <span class="cm"># target/release/glyph</span>
+cargo test --workspace
+cd .. &amp;&amp; python3 scripts/check_clippy.py  <span class="cm"># the exact clippy command CI runs</span>
+
+<span class="cm"># after an intentional syntax-tree change</span>
+INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          新しい診断を追加するときは、そのコードで失敗しなければならないプログラムを <code>tests/negative/</code> に加えます。TypeScript が見逃すものを Glyph が検出するという主張は <code>catches/</code> に置き、そこで<a href="/evidence/">ゲートが両方のプログラムを実行します</a>。
+        </p>
+
+        <h2 class="block-label">予定されていること、壊れていること</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">docs/roadmap/releases.md</a> はリリースのロードマップで、リリース済みの各バージョンで何をしたか、次のリリースが何のためのものかが書かれています。<a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> は穴の台帳で、実際のアプリを作る中で見つかった制約がすべて、番号（<code>G</code> と数字）と状態の印付きで並んでいます。再現コードのある未解決の穴は、始めるのにちょうどよい場所です。
+        </p>
+
+        <h2 class="block-label">Issue とプルリクエスト</h2>
+        <p>
+          ツールチェーンの修正、診断、ドキュメント、サンプルは、直接プルリクエストにして構いません。構文や意味論の変更は Issue から始め、大きなものは <code>docs/rfcs/</code> の RFC プロセスを通します。「便利だから」とルールを緩めるプルリクエストは、おそらく採用されません。その制約こそが要点だからです。プルリクエストは 1 つの穴に絞り、通常はコミット 1 から 3 個にして、各コミットに署名してください（<code>git commit -s</code>）。<code>main</code> は保護されていて、マージは rebase のみです。詳しいルールは <a href="https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md">CONTRIBUTING.md</a> にあり、<a href="https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">good first issue</a> ラベルの付いた Issue は、最初の変更に向くように範囲を絞ってあります。
+        </p>
+
+        <h2 class="block-label">ライセンス</h2>
+        <p>
+          MIT または Apache-2.0 のどちらかを選べます（<a href="https://github.com/chadetov/glyph/blob/main/LICENSE-MIT">LICENSE-MIT</a>、<a href="https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE">LICENSE-APACHE</a>）。コントリビューションも同じデュアルライセンスで受け付け、sign-off の行がそれを証明します。
+        </p>
+      </div>

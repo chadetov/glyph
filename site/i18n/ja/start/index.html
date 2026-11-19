@@ -1,0 +1,154 @@
+---
+title: ここから始める · 10 分で書く最初の Glyph プログラム · Glyph
+description: npx で Glyph のプロジェクトを作り、実行し、わざと壊して、コンパイラのエラーを読んで直します。所要時間は 10 分で、グローバルには何もインストールしません。
+source_hash: 0967efaee1e51c6b
+prev: / | &larr; ホーム | エージェントが気づかれずに壊すことのできない TypeScript
+next: /answers/verifiability/ | 次へ &rarr; | エージェントがコードを気づかれずに壊すのを、何が防ぐのか
+next_steps: |
+  ここから先へ
+  次へ &middot; インストール不要 | /playground/ | playground | Playground | インストールせずに、ブラウザで Glyph を試せます。 | Playground を開く
+  https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md | spec | 5 分でわかるツアー | 言語の全体を手短に。
+  /answers/ | answers | Q&A | React、型付き API、npm、ツールを揃えた TypeScript についての実例付きの回答。
+---
+      <p class="q-eyebrow">ここから始める &middot; 約 10 分</p>
+      <h1 class="q-title">最初の Glyph プログラム</h1>
+
+      <p class="short-answer">
+        プロジェクトを作って実行し、<strong>わざと壊して</strong>、コンパイラが出すエラーを読みます。Glyph の予備知識は不要です。TypeScript を少しでも書いたことがあれば、すべての行を追えます。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; プロジェクトを作る</h2>
+        <p>
+          Glyph は npm で、macOS と Linux（x64 と ARM）、Windows（x64）向けのビルド済みバイナリとして配布されており、Node 18 以降が必要です。この手順ではグローバルには何もインストールしません。<code>npx</code> がプロジェクトの雛形を作るためにコンパイラを取得し、プロジェクトは自分用のコンパイラを <code>tsx</code> と <code>typescript</code> と一緒にバージョン固定します。Glyph はこの 2 つを実行と型検査に使います。
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">ターミナル</span>
+<pre>npx -y @glyphlang/glyph init hello
+cd hello
+npm install</pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph</code> を PATH に置きたい場合は、Glyph が内部で使う 2 つのツールと一緒にグローバルにインストールし、このページのコマンドから <code>npx</code> を外してください。
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">ターミナル（グローバルにインストールする場合）</span>
+<pre>npm install -g @glyphlang/glyph tsx typescript
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span>
+glyph init hello
+cd hello</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">2 &middot; 作られたものを見る</h2>
+        <p><code>glyph init</code> は実行できる雛形を作ります。中身は <code>src/main.glyph</code>、<code>src/.types/README.md</code>（型付きの npm パッケージならここには何も要らず、このディレクトリは型を同梱しないパッケージのためのものだと説明しています）、<code>package.json</code>、<code>.gitignore</code>、そしてコーディングエージェントが自分で読む 2 つのファイルです。<code>AGENTS.md</code> は言語リファレンスの全体として <code>glyph llms</code> を案内し、<code>.mcp.json</code> は <code>glyph mcp</code> を登録します。これでエージェントは、型や参照を検索して探す代わりにコンパイラに問い合わせられます。既存のプロジェクトでは、<code>glyph agents</code> がこの 2 つを書き出します。<code>package.json</code> はコンパイラ、<code>typescript</code>、<code>tsx</code> を <code>devDependencies</code> でバージョン固定しているので、プロジェクトを clone した人は誰でも、グローバルインストールなしに <code>npm install</code> だけでビルドできます。</p>
+        <p><code>src/main.glyph</code> を開いてください。hello world です。</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+import std/io
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  io.println("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          注目する点は 2 つです。プログラムは <code>main(argv)</code> を実行し、<code>main</code> はプロセスの終了コードとなる <code>number</code> を返します。return は終了コードを設定するだけで、プロセスを強制的に止めはしないので、サーバーを起動するプログラムはそのままリクエストを受け付け続けます。
+        </p>
+
+        <h2 class="block-label">3 &middot; 実行する</h2>
+      </div>
+      <div class="code">
+        <span class="cap">ターミナル</span>
+<pre>npx glyph run
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph run</code> は型検査をし、TypeScript にコンパイルして実行しました。このページの残りでは、このループを繰り返します。
+        </p>
+
+        <h2 class="block-label">4 &middot; 実際の処理を足す</h2>
+        <p>
+          本体を小さなロジックに置き換えます。タスクのステータスと、それにラベルを付ける関数です。ここで、これからずっと使う 2 つのものが登場します。<em>タグ付きユニオン</em>（<code>type Status = ...</code>）と、Glyph で唯一の条件分岐である <code>match</code> です。
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">ターミナル</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">5 &middot; わざと壊す</h2>
+        <p>
+          ここで Glyph が<em>何のためにあるのか</em>がわかります。<code>match</code> から <code>Done</code> のアームを削除して（エージェントがどこかにケースを追加して、その処理を忘れたときに起きることです）、もう一度実行してください。
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph（Done のアームを削除したもの）</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          実行されませんでした。TypeScript でも、戻り値の型を書いたこの関数なら同じく拒否されます（TS2366）。しかし、ログを出すだけ、状態を更新するだけの <code>switch</code> や、<code>default:</code> を持つものは問題なくコンパイルが通り、新しいケースを黙って飛ばします。Glyph では、網羅的でない match はすべてコンパイルエラーになり、固定のエラーコード（<code>E0200</code>）、正確な位置、1 行の修正案が示されます。詳しい説明が見たいときは、いつでも <code>glyph --explain E0200</code> を実行してください。
+        </p>
+
+        <h2 class="block-label">6 &middot; 直す</h2>
+        <p>アームを戻す（または <code>else</code> を追加する）と、また実行できます。</p>
+      </div>
+      <div class="code">
+        <span class="cap">ターミナル</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          これが基本のループです。書いて、実行し、何かがおかしければ、コードを出荷した後ではなく出荷する前に、何がどうおかしいのかをコンパイラが正確に教えてくれます。
+        </p>
+      </div>

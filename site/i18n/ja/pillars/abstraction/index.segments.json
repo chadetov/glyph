@@ -1,0 +1,224 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "pillars/abstraction/index.html",
+  "locale": "ja",
+  "source_hash": "e8827b54becde411",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Abstraction · a small, orthogonal core · Glyph",
+      "tr": "抽象化 · 小さく直交したコア · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's fourth pillar: one way per concept. Pattern matching over switch ladders, Result over exceptions, records over tuples, and match as the conditional.",
+      "tr": "Glyph の第 4 の柱：1 つの概念に 1 つのやり方。switch の連なりの代わりにパターンマッチ、例外の代わりに Result、タプルの代わりにレコード、そして条件分岐としての match。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous pillar",
+      "tr": "&larr; 前の柱"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Diff stability: a one-line change is a one-line diff",
+      "tr": "差分の安定性：1 行の変更は 1 行の差分"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Back to the start &rarr;",
+      "tr": "最初に戻る &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Verifiability: true at runtime",
+      "tr": "検証可能性：実行時にも正しい"
+    },
+    {
+      "id": "h-f24d678d",
+      "kind": "html",
+      "en": "Pillar 04 &middot; <span class=\"polish\">The polish</span>",
+      "tr": "柱 04 &middot; <span class=\"polish\">仕上げ</span>"
+    },
+    {
+      "id": "h-6e4fdd69",
+      "kind": "html",
+      "en": "Abstraction",
+      "tr": "抽象化"
+    },
+    {
+      "id": "h-0e2dcb59",
+      "kind": "html",
+      "en": "Say what you mean with a <strong>small, orthogonal core</strong>: pattern matching instead of switch ladders, <code>Result</code> instead of thrown exceptions, named records instead of tuples. One good way per concept, not TypeScript's accreted layers.",
+      "tr": "<strong>小さく直交したコア</strong>で、意図をそのまま書きます。switch の連なりの代わりにパターンマッチ、throw される例外の代わりに <code>Result</code>、タプルの代わりに名前付きレコード。TypeScript のように積み重なった層ではなく、1 つの概念に 1 つの良いやり方です。"
+    },
+    {
+      "id": "h-394d34b1",
+      "kind": "html",
+      "en": "Too many ways to say the same thing",
+      "tr": "同じことを言う方法が多すぎる"
+    },
+    {
+      "id": "h-350fc73d",
+      "kind": "html",
+      "en": "TypeScript grew by accretion, and it kept every layer. You can model a fixed set of cases as an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can describe a shape with an <code>interface</code>, a <code>type</code>, or a <code>class</code>. There are <code>namespace</code>s and modules, decorators and higher-order functions, five idioms for nearly everything, each with its own edge cases.",
+      "tr": "TypeScript は積み重ねで成長し、どの層も残してきました。決まったケースの集合は、<code>enum</code>、文字列リテラルのユニオン、<code>const</code> オブジェクトのどれでも表現できます。形は <code>interface</code>、<code>type</code>、<code>class</code> のどれでも記述できます。<code>namespace</code> とモジュール、デコレータと高階関数があり、ほぼすべてに 5 通りのイディオムがあって、それぞれに独自の落とし穴があります。"
+    },
+    {
+      "id": "h-ea5d3974",
+      "kind": "html",
+      "en": "For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to express a thing means more ways to pick the one with the footgun, and more idioms to keep straight while doing it. Glyph's abstraction pillar is a deliberate subtraction: one sharp tool per job, chosen so the obvious way is also the safe way.",
+      "tr": "人間にとってそれは柔軟性です。<strong>エージェント</strong>にとっては地雷原です。表現方法が多いほど、落とし穴のある方法を選ぶ可能性が増え、その間に覚えておくべきイディオムも増えます。Glyph の抽象化の柱は意図した引き算です。仕事ごとに 1 つの鋭い道具を、わかりやすいやり方がそのまま安全なやり方になるように選んでいます。"
+    },
+    {
+      "id": "h-c576eb56",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> <code>match</code> is the only conditional",
+      "tr": "<span class=\"ex-label\">01</span> 条件分岐は <code>match</code> だけ"
+    },
+    {
+      "id": "h-1a910d0c",
+      "kind": "html",
+      "en": "There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>, everywhere, and <code>match</code> is an expression: it produces a value. One construct covers a boolean test, a union dispatch, and a value table, so there's no decision to make about <em>which</em> branching form to reach for.",
+      "tr": "<code>if</code>/<code>else</code> 文はありません。分岐はどこでも <code>match</code> で、<code>match</code> は値を生む式です。1 つの構文で真偽の判定、ユニオンの振り分け、値の表のすべてを扱うので、<em>どの</em>分岐の形を使うかを決める必要がありません。"
+    },
+    {
+      "id": "h-fd1d8f8e",
+      "kind": "html",
+      "en": "TypeScript: statement, not a value",
+      "tr": "TypeScript：値ではなく文"
+    },
+    {
+      "id": "h-a5763ec7",
+      "kind": "html",
+      "en": "Glyph: one expression",
+      "tr": "Glyph：1 つの式"
+    },
+    {
+      "id": "h-9a3a4109",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">02</span> Tagged unions and pattern matching",
+      "tr": "<span class=\"ex-label\">02</span> タグ付きユニオンとパターンマッチ"
+    },
+    {
+      "id": "h-ad530d74",
+      "kind": "html",
+      "en": "The way to model \"one of these shapes\" is a tagged union, and the way to take it apart is <code>match</code>, which destructures the payload in the same step it selects the case. No discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast inside each branch to recover the shape.",
+      "tr": "「これらの形のどれか 1 つ」を表すにはタグ付きユニオンを使い、それを分解するには <code>match</code> を使います。ケースを選ぶのと同じステップでペイロードを分解します。手で管理する判別用フィールドも、文字列タグに対する <code>switch</code> の連なりも、形を取り戻すために各分岐の中で書くキャストもありません。"
+    },
+    {
+      "id": "h-da9f8a38",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">03</span> <code>Result</code> over exceptions",
+      "tr": "<span class=\"ex-label\">03</span> 例外より <code>Result</code>"
+    },
+    {
+      "id": "h-b227a6fe",
+      "kind": "html",
+      "en": "Failure is a value, not a hidden control-flow jump. A function that can fail says so in its return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code> and hoping the right thing throws the right class. The error path is as visible as the happy path.",
+      "tr": "失敗は隠れた制御フローのジャンプではなく値です。失敗しうる関数はそのことを戻り値の型（<code>Result&lt;T, E&gt;</code>）で示し、呼び出し箇所を <code>try</code>/<code>catch</code> で囲んで正しいものが正しいクラスを throw することを祈る代わりに、<code>?</code> 演算子で失敗を合成します。エラーの経路は正常な経路と同じくらいよく見えます。"
+    },
+    {
+      "id": "h-cbb161e6",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">04</span> Named records over positional tuples",
+      "tr": "<span class=\"ex-label\">04</span> 位置で決まるタプルより名前付きレコード"
+    },
+    {
+      "id": "h-c219a9fc",
+      "kind": "html",
+      "en": "Data is described with named fields, always. There's no object-literal shorthand and no reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to remember. The shape reads the same at the definition, the construction, and the use.",
+      "tr": "データは常に名前付きのフィールドで記述します。オブジェクトリテラルの省略記法はなく、<code>[0]</code> と <code>[1]</code> が何だったかを覚えておかなければならない無名のタプルに頼ることもありません。形は定義でも、構築でも、利用でも同じように読めます。"
+    },
+    {
+      "id": "h-acbd509b",
+      "kind": "html",
+      "en": "TypeScript: what are [0] and [1]?",
+      "tr": "TypeScript：[0] と [1] は何か"
+    },
+    {
+      "id": "h-6ef5629f",
+      "kind": "html",
+      "en": "Glyph: the names travel with the value",
+      "tr": "Glyph：名前が値と一緒に運ばれる"
+    },
+    {
+      "id": "h-403ba4b0",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">05</span> One primitive per job",
+      "tr": "<span class=\"ex-label\">05</span> 仕事ごとに 1 つのプリミティブ"
+    },
+    {
+      "id": "h-bc427179",
+      "kind": "html",
+      "en": "When a concept needs its own tool, Glyph gives it exactly one. Shared mutable state lives in a <code>std/store</code>. A file or socket handle that must be closed once is an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single, named, purpose-built primitive, not a pattern you re-derive from a grab-bag of general parts and get subtly wrong.",
+      "tr": "ある概念に専用の道具が必要なとき、Glyph はちょうど 1 つだけ用意します。共有される変更可能な状態は <code>std/store</code> に置きます。一度だけ閉じなければならないファイルやソケットのハンドルは <code>owned</code> リソースです。反復は <code>for x in xs</code> です。どれも名前の付いた専用のプリミティブで、汎用部品の寄せ集めから毎回組み立て直して微妙に間違えるパターンではありません。"
+    },
+    {
+      "id": "h-73dda756",
+      "kind": "html",
+      "en": "Abstraction here means <strong>fewer, sharper tools</strong>, not more. Every concept has an obvious form, and the obvious form is the one you're meant to use.",
+      "tr": "ここでの抽象化とは、道具を増やすことではなく<strong>少なく鋭くすること</strong>です。どの概念にもわかりやすい形があり、そのわかりやすい形こそが使うべきものです。"
+    },
+    {
+      "id": "h-71727b66",
+      "kind": "html",
+      "en": "The benchmark: coming",
+      "tr": "ベンチマーク：準備中"
+    },
+    {
+      "id": "h-b0f9e141",
+      "kind": "html",
+      "en": "The way to measure this is surface area: how many distinct concepts a reader has to hold to understand a program, and how much code it takes to express a common task cleanly. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's a body of real programs to compare.",
+      "tr": "これを測る方法は表面積です。プログラムを理解するために読む人が頭に置いておくべき概念がいくつあるか、よくあるタスクをきれいに表現するのにどれだけのコードが必要か、です。Glyph はまだ実運用で使われていないので、下のグラフはプレースホルダで、比較できる実際のプログラムがそろったら実測値で埋まります。"
+    },
+    {
+      "id": "h-a10f7a79",
+      "kind": "html",
+      "en": "Distinct concepts to read a typical module &middot; lower is better",
+      "tr": "典型的なモジュールを読むのに必要な概念の数 &middot; 少ないほど良い"
+    },
+    {
+      "id": "h-301f9c4a",
+      "kind": "html",
+      "en": "TypeScript vs Glyph",
+      "tr": "TypeScript と Glyph"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "未測定"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-bbacebb4",
+      "kind": "html",
+      "en": "<span class=\"h\">Not measured yet</span> We'll publish concept-count and lines-to-express-X comparisons from real programs here as soon as there are enough to measure.",
+      "tr": "<span class=\"h\">まだ測定していません</span> 測定できるだけの実際のプログラムがそろい次第、概念の数と、X を表現するのに必要な行数の比較をここに公開します。"
+    },
+    {
+      "id": "h-e129d5c1",
+      "kind": "html",
+      "en": "A smaller core is easier for a person to learn once and easier for a model to get right every time. That's the whole polish layer in one sentence: take away the choices that only added risk, and what's left is a language that says what it means.",
+      "tr": "コアが小さければ、人は一度で覚えやすく、モデルは毎回正しく書きやすくなります。仕上げの層を一言で言えばこうなります。リスクを増やすだけだった選択肢を取り除けば、意図をそのまま表す言語が残ります。"
+    }
+  ]
+}

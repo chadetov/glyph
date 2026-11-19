@@ -1,0 +1,105 @@
+---
+title: パースが失敗したとき、その理由はわかるのか · Glyph
+description: 失敗したパースはフィールドを名指しし、値がどのルールに違反したかを示し、違反した where 述語を引用し、分岐に使えるコードを問題に付けます。
+source_hash: 7f1a8b2bd45c7f9e
+prev: /answers/early-errors/ | &larr; 前へ | tsc が検出するものを、なぜ Glyph はより早く検出するのか
+next: /answers/debugging/ | 次へ &rarr; | 深夜 3 時に本番で壊れたとき、オンコール担当には何が見えるのか
+---
+      <p class="q-eyebrow">27 &middot; パースの失敗</p>
+      <h1 class="q-title">パースが失敗したとき、その理由はわかるのか</h1>
+
+      <p class="short-answer">
+        わかります。どの問題もフィールドを名指しし、<strong>値がどのルールに違反したか</strong>を示し、分岐に使える <code>code</code> を持っています。<code>where</code> 述語で制約されたフィールドは述語そのものを報告するので、拒否の内容から grep で、その制約を課した行までたどれます。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          「このペイロードは不正です」と言うだけのバリデータは、仕事の半分しかしていません。ハンドラはまだ判断しなければなりません。フィールドを入れ忘れたクライアントなのか、4 文字のパスワードを送ってきたクライアントなのか。一方は 400 で、もう一方は 422 です。バリデータが教えてくれなければ、バリデータがすでに持っていた情報を取り戻すために、同じボディを 2 つの異なる型で 2 回パースすることになります。
+        </p>
+        <p>
+          Glyph で認証 API を作ったときに、まさにそれが起きました。<code>password</code> キーがまったくないサインアップが <code>weak_password</code> として返ってきたのです。キーがない場合と短すぎる場合とで、同じ文字列が生成されていたからです。
+        </p>
+
+        <h2 class="block-label">実例</h2>
+        <p>1 つの型に、1 つの制約：</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">signup.glyph</span>
+<pre>pub type Password = string where value.length &gt;= 8
+
+pub type Signup = {
+  email: string,
+  password: Password,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          4 つの不正なペイロードに、4 つの異なる答え。それぞれが 1 つの <code>Issue</code> で、<code>code | path | message</code> の形で示しています：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Signup.parse(...)</span>
+<pre><span class="cm">// { "email": "user@example.com" }</span>
+missing     ["password"]  field `password` is required
+
+<span class="cm">// { "email": "user@example.com", "password": "short" }</span>
+refinement  ["password"]  expected Password (string where value.length &gt;= 8)
+
+<span class="cm">// { "email": 42, "password": "longenough" }</span>
+type        ["email"]     field `email` must be string
+
+<span class="cm">// [1, 2, 3]</span>
+type        []            expected Signup (an object), got an array</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          肝心なのは 2 つ目です。<code>value.length &gt;= 8</code> は型のところに一度だけ書かれ、拒否はそれをそのまま引用します。HTTP 422 のボディからその文字列を <code>grep</code> に貼り付ければ、それを生んだ宣言にたどり着きます。エラーメッセージの層にルールのコピーを持つ必要は誰にもありません。そのコピーこそが、両者がずれていく原因です。
+        </p>
+        <p>
+          4 つ目は、以前はメッセージが悪いどころではありませんでした。<code>typeof</code> にとって配列はオブジェクトなので、必須フィールドのないレコードは配列をそのまま受け入れていました。また、<code>[1, 2, 3]</code> を送ると、宣言されたフィールドごとに 1 つずつわかりにくい問題が返ってきて、リストを送ったことに触れるものは 1 つもありませんでした。
+        </p>
+
+        <h2 class="block-label">ネストした型は自分で答える</h2>
+        <p>
+          型が独自のディスクリプタを持つフィールドは、その型の <code>parse</code> で検証され、問題はパスの先頭にフィールド名が付いて返ってきます。そのため 2 段下にネストした <code>Password</code> は <code>["body", "password"]</code> を報告し、しかも自分のメッセージも持っています。何も再実行せずに、同じ問題から場所と理由の両方がわかります。
+        </p>
+
+        <h2 class="block-label">文字列ではなくコードで</h2>
+        <p>
+          <code>Issue</code> は省略可能な <code>code</code> を持ちます：<code>"missing"</code>、<code>"type"</code>、<code>"refinement"</code>、<code>"unexpected"</code> のいずれかです。分岐にはこれを使ってください。メッセージのテキストでマッチするのは、Glyph が取り除こうとしている脆さそのものです。メッセージはレスポンスボディを読む人間のためのものです。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">メッセージを読まずに 400 と 422 を分ける</span>
+<pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
+  let first = issues[0]
+  return match first.code == "refinement" {
+    true =&gt; 422,
+    false =&gt; 400,
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>code</code> は省略可能なので、手で組み立てた <code>Issue</code> も、これが導入される前に書かれた利用側のコードも、変更なしでコンパイルできます。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>レコードと <code>where</code> 型は、失敗したフィールドだけでなく、失敗したルールも報告します。必須フィールドがない場合は <code>"missing"</code>、形が違う場合（オブジェクトでない、または配列の場合を含む）は <code>"type"</code>、基底の型は通ったが述語で失敗した値は <code>"refinement"</code>、型が宣言していないキーは <code>"unexpected"</code> です。refinement は述語を引用します。型がディスクリプタを持つフィールドはそれに処理を委ねるので、ネストした問題は完全なパス付きで届きます。省略可能なフィールド（<code>f?: T</code>）が missing として報告されることはありません。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">改善中</h3>
+          <p>限界が 2 つあります。独自のディスクリプタを持たないもの、つまり制約のない型パラメータや、手書きの <code>.d.ts</code> から import した型で型付けされたフィールドは、今も平坦な検査と <code>"type"</code> の問題になります。コンパイラはそれらのディスクリプタを合成しないので、その宣言に <code>glyph gen dts</code> を実行するとディスクリプタが得られます。また、<code>Issue</code> という名前の型を独自に宣言したモジュールは、以前は出力されたファイルの中で prelude の型を覆い隠し、そのモジュールのディスクリプタをすべて壊していました。0.1.60 以降、その宣言は型名を書いた行で <code>E0110</code> になるので、生成されたコードについての <code>tsc</code> エラーを読む代わりに、問題の場所がわかります。</p>
+        </div>
+      </div>

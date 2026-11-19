@@ -1,0 +1,82 @@
+---
+title: ベンチマーク · 主張ではなく測定 · Glyph
+description: Glyph の 4 つの柱を数値で：コンパイル時に検出されるエラー、シンボルごとに 1 回の grep、1 行の差分、TypeScript より約 9% 少ないトークン。注意点も添えています。
+source_hash: c2635229de656794
+---
+      <header class="page-hero">
+        <p class="eyebrow">ベンチマーク</p>
+        <h1>2 種類の<span class="accent">根拠</span>。</h1>
+        <p class="lede">
+          測る価値のある問いは 2 つあり、私たちはこれを分けて扱います。<strong>構造面：</strong>TypeScript が受け入れるもののうち、Glyph が構造上拒否するものは何か。これは現時点で証明でき、下に示しています。<strong>信頼性：</strong>エージェントが Glyph で書いたコードは、<em>きちんと設定した</em> strict な TypeScript の構成よりも、実際に出荷される欠陥が少ないのか。導入を決めるのはこの数値ですが、まだありません。構築中の調査で、代わりの指標をその答えであるかのように見せることはしません。（本当の比較は Glyph と素の TS ではなく、Glyph と <a href="/answers/vs-tooled-ts/">strict な TS + zod + eslint + ts-pattern</a> です。）
+        </p>
+      </header>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">構造面：構造上証明できること</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 24px;">
+          統計ではなく、対になった実証です。どれも Glyph が拒否し <code>tsc --strict</code> が受け入れるケースで、<a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> ディレクトリから再現できます。
+        </p>
+        <div class="stat-row">
+          <div class="card stat">
+            <span class="label">検証可能性：高くつくバグ</span>
+            <div class="big"><span class="accent">どちらも</span>コンパイル時に検出</div>
+            <p>
+              エージェントがいつも犯す 2 つのミス（<code>match</code> のバリアントの漏れと、<code>as unknown as</code> を通したキャスト）は、Glyph では拒否され、<code>tsc --strict</code> では受け入れられます。どちらも <code>catches/</code> にある検証済みのケース（<code>non-exhaustive-match</code>、<code>E0200</code>。<code>as-unknown-as</code>、<code>E0013</code>）で、ビルドのゲートが再実行します。コンパイルが通る誤ったコードは高くつく失敗です。Glyph はそれを許しません。
+            </p>
+          </div>
+          <div class="card stat">
+            <span class="label">grep しやすさ：1 つの名前、1 つの場所</span>
+            <div class="big">いつでもマッチは <span class="accent">1</span> 件</div>
+            <p>
+              すべてのシンボルは宣言の形をちょうど 1 つだけ持ちます。それを散らばらせるオーバーロード、デコレータ、マージされた namespace はありません。
+            </p>
+            <div class="grepout">
+              <span class="prompt">$ grep -n "fn welcome" main.glyph</span><br />
+              <span class="ln-no">15:</span> fn welcome(user: User) -&gt; Result&lt;string, string&gt; {
+            </div>
+          </div>
+          <div class="card stat">
+            <span class="label">差分の安定性：最初からレビューしやすい</span>
+            <div class="big"><span class="accent">1 行 &rarr; 1 行</span></div>
+            <p>
+              Glyph での 1 行の編集は、トランスパイラを通しても 1 行の TypeScript の差分になり、<code>glyph fmt</code> は余計な書き換えを加えません。差分は変更そのもので、周りのノイズではありません。
+            </p>
+          </div>
+        </div>
+
+        <div class="chart">
+          <span class="label">そして安全性のためにコードが長くなるわけではない</span>
+          <h3>同じ 3 つの関数のトークン数</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill glyph" style="width: 70%">436</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Python</span><div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div></div>
+          <div class="bar-row"><span class="bar-lang">TypeScript</span><div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Go</span><div class="bar-track"><div class="bar-fill other" style="width: 91%">564</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Rust</span><div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div></div>
+          <p class="bench-note">
+            安全性はふつうコードの長さで払うものです。静的型と明示的なエラー処理を持つほかの行、Go と Rust が最も長くなっています。Glyph はその両方を持ちながら長くなりません。<code>glyph check</code> と <code>tsc</code> を通るプログラムを実際に <code>cl100k_base</code> で数えると、TypeScript の 478 に対して 436 トークンで、約 9% 少なく、Python と同程度、Go より約 23%、Rust より 30% 少なくなります。差がつくのは本当の制御フローを持つ関数（<code>parse_user</code>、132 対 174）で、1 行の <code>slugify</code> では Glyph のほうが長くなります（67 対 47）。正規表現リテラルがないからです。関数 3 つの小さなサンプルです。以前の 341 という数値は、コンパイラが受け入れない fixture で測ったものだったので撤回しました。<a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">方法と注意点を見る &rarr;</a>
+          </p>
+        </div>
+
+      </section>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">信頼性：構築中の調査</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 22px;">
+          上の構造面の結果は、Glyph が役立つと<em>期待する理由</em>であって、役立つことの証明ではありません。証明となるのは差分比較の調査です。同じエージェントが同じ現実的なタスクを、Glyph で 1 回、ツールを完全に揃えた strict な TypeScript の構成（<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod）で 1 回書き、<strong>すり抜けた意味上の欠陥</strong>と、一発でビルドがグリーンになる割合で評価します。5 人の異なるレビュアーが、自分たちを動かすのはこの数値だと言ったので、私たちはこれを構築しています。それができるまで、これらの棒グラフは主張ではなくプレースホルダです。
+        </p>
+        <div class="chart">
+          <span class="label">タスクあたりのすり抜けた欠陥 &middot; 少ないほど良い &middot; <span style="color:var(--amber)">まだ測定していません</span></span>
+          <h3>Glyph とツールを完全に揃えた strict な TypeScript</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill pending" style="width: 30%">未測定</div></div></div>
+          <div class="bar-row"><span class="bar-lang">ツールを揃えた TS</span><div class="bar-track"><div class="bar-fill pending" style="width: 55%">未測定</div></div></div>
+          <p class="bench-note">
+            仕組み（タスクの集合、実行と再生のハーネス、バージョンを固定した、公正で最も強い TS のベースライン）は <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> ディレクトリにあります。最初の本格的な試行は、実行し次第ここに公開します（<em>n</em>、モデル、コストをラベルに明記します）。結果がどうであれ公開します。
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+          <a class="btn" href="/answers/vs-tooled-ts/">比較対象がツールを揃えた TS である理由 &rarr;</a>
+        </div>
+      </section>
+
+      <a href="/" class="backlink">&larr; ホームに戻る</a>

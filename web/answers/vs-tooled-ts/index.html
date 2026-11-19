@@ -384,7 +384,7 @@
     </nav>
     <main id="main">
     <article class="answer-page has-side">
-      <p class="q-eyebrow">05 &middot; The real comparison</p>
+      <p class="q-eyebrow">05 &middot; The comparison</p>
       <h1 class="q-title">Why not just strict TypeScript + zod + eslint + ts-pattern?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Answers">
         <div class="subnav ans-list">
@@ -440,7 +440,7 @@
       </p>
 
       <div class="detail">
-        <h2 class="block-label" id="first-a-concession">First, a concession<a class="h-anchor" href="#first-a-concession" aria-label="Link to this section">#</a></h2>
+        <h2 class="block-label" id="what-tooled-typescript-already-covers">What tooled TypeScript already covers<a class="h-anchor" href="#what-tooled-typescript-already-covers" aria-label="Link to this section">#</a></h2>
         <p>
           A well-configured TypeScript setup gets you a long way, and if your team runs all of it in
           CI you've already closed most of the gaps Glyph targets. It's the alternative worth
@@ -460,9 +460,9 @@ deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
 
       <div class="detail">
         <p>
-          If you have all that wired up and enforced, you're most of the way there. So the question
-          isn't "does TypeScript lack these ideas": it's "what does bundling them into a
-          language, non-optionally, actually buy." Three things.
+          If you have all that wired up and enforced, you're most of the way there. TypeScript
+          has these ideas. What a language adds by making them non-optional comes down to three
+          things.
         </p>
 
         <h2 class="block-label" id="non-optional-beats-opt-in"><span class="ex-label">01</span> Non-optional beats opt-in<a class="h-anchor" href="#non-optional-beats-opt-in" aria-label="Link to this section">#</a></h2>
@@ -521,8 +521,7 @@ doThing(user.mispelled);
           <code>Object.assign</code>, a setter, or a spread. There's no single token to search
           for, and no lint rule fully fixes it. In Glyph shared state lives in a store and every
           change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code>
-          finds every local mutation. That's a property you can't buy for stock TypeScript at any
-          price.
+          finds every local mutation. Stock TypeScript has no equivalent.
         </p>
       </div>
 
@@ -556,8 +555,7 @@ doThing(user.mispelled);
       <div class="detail">
         <h2 class="block-label" id="where-tooled-typescript-is-still-ahead">Where tooled TypeScript is still ahead<a class="h-anchor" href="#where-tooled-typescript-is-still-ahead" aria-label="Link to this section">#</a></h2>
         <p>
-          This cuts both ways, and pretending otherwise would be exactly the dishonesty this page is
-          trying to avoid:
+          Four places where it is ahead of Glyph today:
         </p>
         <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
           <li><strong>Richer validation.</strong> Glyph descriptors are strict by default (they
@@ -574,7 +572,7 @@ doThing(user.mispelled);
             bypasses <code>Result</code>, and an imported <code>.d.ts</code> type carries no runtime
             descriptor.</li>
           <li><strong>Ecosystem and hiring.</strong> The TypeScript tooling, community, and hiring
-            pool are enormous and battle-tested. Glyph is an early preview.</li>
+            pool are far larger, with years of production use behind them. Glyph is an early preview.</li>
         </ul>
         <p>
           If you've fully wired tooled TypeScript and your agents stay inside

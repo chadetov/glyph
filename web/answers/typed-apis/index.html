@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Do I have to hand-write a validator for every API? · Glyph</title>
-    <meta name="description" content="No. In Glyph a type is its own runtime validator, so request and response bodies are checked for free, and the types can come from an OpenAPI spec or a .d.ts." />
+    <meta name="description" content="No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts." />
     <link rel="canonical" href="https://glyphlang.io/answers/typed-apis/" />
     <link rel="alternate" type="text/markdown" href="/answers/typed-apis/index.md" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/answers/typed-apis/" />
     <meta property="og:title" content="Do I have to hand-write a validator for every API?" />
-    <meta property="og:description" content="No. In Glyph a type is its own runtime validator, so request and response bodies are checked for free, and the types can come from an OpenAPI spec or a .d.ts." />
+    <meta property="og:description" content="No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts." />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -35,7 +35,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Do I have to hand-write a validator for every API?","item":"https://glyphlang.io/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/typed-apis/#article","headline":"Do I have to hand-write a validator for every API?","description":"No. In Glyph a type is its own runtime validator, so request and response bodies are checked for free, and the types can come from an OpenAPI spec or a .d.ts.","url":"https://glyphlang.io/answers/typed-apis/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Do I have to hand-write a validator for every API?","item":"https://glyphlang.io/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/typed-apis/#article","headline":"Do I have to hand-write a validator for every API?","description":"No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts.","url":"https://glyphlang.io/answers/typed-apis/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb"}}]}</script>
 
   </head>
   <body>
@@ -480,7 +480,7 @@
       <h2 class="ak-h" id="see-it">See it<a class="ak-anchor" href="#see-it" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
         Declare the DTO once. Its descriptor gives you <code>.parse</code> (validate an untrusted
-        value into the type) and <code>.is</code> (a type guard) for free:
+        value into the type) and <code>.is</code> (a type guard), with nothing else to write:
       </p>
       <div class="two-up">
         <div class="code">

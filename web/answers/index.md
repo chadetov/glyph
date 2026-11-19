@@ -2,9 +2,9 @@
 
 Answers
 
-# The questions engineers actually ask.
+# What engineers ask about Glyph.
 
-Straight, specific answers. Each one names the strength, shows a real example, and states the current edge honestly. Start wherever your doubt is. New to Glyph? The [10-minute Start Here](https://glyphlang.io/start/) is the fastest first run.
+Each answer shows a worked example and ends with what does not work yet. Start wherever your doubt is. New to Glyph? The [10-minute Start Here](https://glyphlang.io/start/) is the fastest first run.
 
 ## The problem it solves
 
@@ -29,8 +29,8 @@ Why a language rather than more tooling, and what taking it on costs.
 npm packages, an existing app, API boundaries, React.
 
 - [09 Can I use my existing TypeScript, JavaScript, and npm libraries? Yes: import any npm package, keep a hand-written .ts shim where you need one, and import Glyph back into .ts.](https://glyphlang.io/answers/imports/)
-- [10 Can I adopt Glyph inside my existing app, or is it all-or-nothing? No rewrite: the domain core in Glyph, the rest in TypeScript. The output drops into a stock Vite scaffold with zero config.](https://glyphlang.io/answers/embedding/)
-- [11 Do I have to hand-write a validator for every API? No. Declare a type, get a validated boundary for free.](https://glyphlang.io/answers/typed-apis/)
+- [10 Can I adopt Glyph inside my existing app, or is it all-or-nothing? No rewrite: the domain core in Glyph, the rest in TypeScript. The emitted TypeScript is imported by a stock Vite app like any other module.](https://glyphlang.io/answers/embedding/)
+- [11 Do I have to hand-write a validator for every API? No. Declaring a type generates its validator.](https://glyphlang.io/answers/typed-apis/)
 - [12 Can I generate a typed client and server from my API spec? glyph gen openapi/zod/dts: committed, greppable code.](https://glyphlang.io/answers/codegen/)
 - [13 Does it work with React: components, hooks, and Context? First-class JSX, hooks, and exhaustive reducer actions.](https://glyphlang.io/answers/react/)
 - [14 How do I share mutable state between functions? A store: a const whose .set/.update are the write-surface.](https://glyphlang.io/answers/state/)
@@ -59,7 +59,7 @@ Questions an agent asks the compiler before and after an edit.
 
 What you see when something is wrong, from the editor to on-call.
 
-- [25 What's the editor, debugging, and error experience? LSP + VS Code extension, and Elm-quality errors with stable codes.](https://glyphlang.io/answers/tooling/)
+- [25 What's the editor, debugging, and error experience? A language server for any LSP editor, and errors with a stable code that name the fix.](https://glyphlang.io/answers/tooling/)
 - [26 Why does Glyph catch what tsc catches, but earlier? await context, a match arm with no value, and a missing mut, reported against your source instead of the emitted TypeScript.](https://glyphlang.io/answers/early-errors/)
 - [27 When a parse fails, do I find out why? Which field, which rule it broke, the where predicate it violated, and a code to branch on.](https://glyphlang.io/answers/parse-errors/)
 - [28 When it breaks in production at 3am, what does on-call see? Readable TS you own, source maps back to your .glyph, and a run that reports what build reports.](https://glyphlang.io/answers/debugging/)

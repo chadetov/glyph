@@ -100,7 +100,7 @@ glyph check: 1 error(s) across 1 module(s)
 
 ## What it does not catch yet
 
-The 11 `gap` cases are on [the catches page](https://glyphlang.io/catches/#not-yet), each with its gap number. Every gap found by building real apps is in the ledger, [docs/dogfooding-gaps.md](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md), where a bracketed marker is the only live status (`[FIXED]`, `[HALF FIXED]`, or none for open) and `scripts/check_gaps.py` fails CI when an open entry was last reproduced more than five releases ago.
+The 11 `gap` cases are on [the catches page](https://glyphlang.io/catches/#not-yet), each with its gap number. Every gap found by building apps in Glyph is in the ledger, [docs/dogfooding-gaps.md](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md), where a bracketed marker is the only live status (`[FIXED]`, `[HALF FIXED]`, or none for open) and `scripts/check_gaps.py` fails CI when an open entry was last reproduced more than five releases ago.
 
 ## How a release is marked Breaking
 

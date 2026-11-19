@@ -395,7 +395,7 @@
       </div>
 
       <div class="ans-cards">
-        <a class="a-card" href="/pillars/verifiability/"><span class="n">Pillar 01</span><span class="q">Verifiability</span><p>No <code>any</code> and no <code>as</code> you can write; <code>match</code> must cover every case; and your record and union types generate strict runtime validators, so a boundary value is checked, not assumed. A strict layer over <code>tsc</code> that can't be switched off: the mistakes an agent ships that <code>tsc --strict</code> waves through don't compile here.</p></a>
+        <a class="a-card" href="/pillars/verifiability/"><span class="n">Pillar 01</span><span class="q">Verifiability</span><p>No <code>any</code> and no <code>as</code> you can write; <code>match</code> must cover every case; and your record and union types generate strict runtime validators, so a boundary value is checked, not assumed. A strict layer over <code>tsc</code> that can't be switched off. Many mistakes <code>tsc --strict</code> accepts don't compile here; the ones that still do are listed under <a href="/catches/#not-yet">not caught yet</a>.</p></a>
         <a class="a-card" href="/pillars/greppability/"><span class="n">Pillar 02</span><span class="q">Greppability</span><p>One name, one place. Every symbol has exactly one syntactic form at its declaration, with no overloads, decorators, implicit <code>this</code>, or namespace merging. <code>grep "fn parseUser"</code> finds the definition.</p></a>
         <a class="a-card" href="/pillars/diff-stability/"><span class="n">Pillar 03</span><span class="q">Diff stability</span><p>A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.</p></a>
         <a class="a-card" href="/pillars/abstraction/"><span class="n">Pillar 04</span><span class="q">Abstraction</span><p>Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.</p></a>
@@ -453,7 +453,7 @@ misroute values at runtime. ...
 
       <div class="detail">
         <p>
-          The bet behind all of it, stated as a hypothesis rather than a result: an agent given the
+          The hypothesis behind all of it, which is not a result yet: an agent given the
           same task produces correct code more reliably in Glyph than in TypeScript, and the
           reviewer spends less time confirming it. That study has not been run, so this site puts
           no number on it. <a href="/benchmarks/">Benchmarks</a> says what is measured so far.

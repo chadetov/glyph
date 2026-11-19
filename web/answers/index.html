@@ -378,10 +378,10 @@
     <div class="ans-index">
       <header class="page-hero">
         <p class="eyebrow">Answers</p>
-        <h1>The questions engineers <span class="accent">actually ask</span>.</h1>
+        <h1>What engineers <span class="accent">ask about Glyph</span>.</h1>
         <p class="lede">
-          Straight, specific answers. Each one names the strength, shows a real example, and
-          states the current edge honestly. Start wherever your doubt is. New to Glyph? The
+          Each answer shows a worked example and ends with what does not work yet. Start
+          wherever your doubt is. New to Glyph? The
           <a href="/start/">10-minute Start Here</a> is the fastest first run.
         </p>
       </header>
@@ -413,8 +413,8 @@
         <p class="ans-group-sub">npm packages, an existing app, API boundaries, React.</p>
         <div class="ans-cards">
           <a class="a-card" href="/answers/imports/"><span class="n">09</span><span class="q">Can I use my existing TypeScript, JavaScript, and npm libraries?</span><p>Yes: import any npm package, keep a hand-written <code>.ts</code> shim where you need one, and import Glyph back into <code>.ts</code>.</p></a>
-          <a class="a-card" href="/answers/embedding/"><span class="n">10</span><span class="q">Can I adopt Glyph inside my existing app, or is it all-or-nothing?</span><p>No rewrite: the domain core in Glyph, the rest in TypeScript. The output drops into a stock Vite scaffold with zero config.</p></a>
-          <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">Do I have to hand-write a validator for every API?</span><p>No. Declare a type, get a validated boundary for free.</p></a>
+          <a class="a-card" href="/answers/embedding/"><span class="n">10</span><span class="q">Can I adopt Glyph inside my existing app, or is it all-or-nothing?</span><p>No rewrite: the domain core in Glyph, the rest in TypeScript. The emitted TypeScript is imported by a stock Vite app like any other module.</p></a>
+          <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">Do I have to hand-write a validator for every API?</span><p>No. Declaring a type generates its validator.</p></a>
           <a class="a-card" href="/answers/codegen/"><span class="n">12</span><span class="q">Can I generate a typed client and server from my API spec?</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: committed, greppable code.</p></a>
           <a class="a-card" href="/answers/react/"><span class="n">13</span><span class="q">Does it work with React: components, hooks, and Context?</span><p>First-class JSX, hooks, and exhaustive reducer actions.</p></a>
           <a class="a-card" href="/answers/state/"><span class="n">14</span><span class="q">How do I share mutable state between functions?</span><p>A store: a <code>const</code> whose <code>.set</code>/<code>.update</code> are the write-surface.</p></a>
@@ -449,7 +449,7 @@
         <h2 class="block-label" id="errors-editors-and-production">Errors, editors and production<a class="h-anchor" href="#errors-editors-and-production" aria-label="Link to this section">#</a></h2>
         <p class="ans-group-sub">What you see when something is wrong, from the editor to on-call.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">What's the editor, debugging, and error experience?</span><p>LSP + VS Code extension, and Elm-quality errors with stable codes.</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">What's the editor, debugging, and error experience?</span><p>A language server for any LSP editor, and errors with a stable code that name the fix.</p></a>
           <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">Why does Glyph catch what tsc catches, but earlier?</span><p><code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.</p></a>
           <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">When a parse fails, do I find out why?</span><p>Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.</p></a>
           <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">When it breaks in production at 3am, what does on-call see?</span><p>Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.</p></a>

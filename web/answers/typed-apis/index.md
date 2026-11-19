@@ -24,7 +24,7 @@ The two drift, and the drift is exactly where bad data slips in. Glyph collapses
 
 ## See it
 
-Declare the DTO once. Its descriptor gives you `.parse` (validate an untrusted value into the type) and `.is` (a type guard) for free:
+Declare the DTO once. Its descriptor gives you `.parse` (validate an untrusted value into the type) and `.is` (a type guard), with nothing else to write:
 
 api.glyph
 

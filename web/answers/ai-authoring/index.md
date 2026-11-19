@@ -4,7 +4,7 @@
 
 # Can an AI reliably write a language it's barely seen?
 
-Yes, because Glyph is a **disciplined subset of TypeScript** with an ML core. Most of what a model already knows about TypeScript carries over, and the compiler names the places it doesn't.
+Mostly. Glyph reads like TypeScript: the same primitive and generic types (`string`, `number`, `Array<T>`), most of the same expressions, and npm packages imported by name. It is not a subset of TypeScript: `match`, `Result` and `fn name(x: T) -> R` are syntax TypeScript does not have, and `if`, the ternary and casts are not Glyph. Most of what a model already knows carries over, and the compiler names the places it doesn't.
 
 ## Why it matters
 
@@ -25,13 +25,13 @@ if user.admin { grant() }
       match user.admin { true => grant(), false => void, }
 ```
 
-The error names the Glyph construct and shows the shape, so the fix is one edit away: no source-diving, no guessing. That tight loop is what compensates for the missing training data. In our own adversarial testing, an agent built a real REST API (typed records, tagged-union validation, auth middleware) to a **green build in about two iterations**. And to remove the last friction, one document ([llms.txt](https://glyphlang.io/llms.txt)) takes an agent from zero to correct, runnable Glyph.
+The error names the Glyph construct and shows the shape, so the fix is one edit away: no source-diving, no guessing. That tight loop is what compensates for the missing training data. One document, [llms.txt](https://glyphlang.io/llms.txt), gives an agent the program shape, the standard library and every diagnostic with its fix, and `glyph llms` prints the same reference offline.
 
 ## Where it stands
 
 ### Shipping today
 
-A subset-of-TypeScript design, Elm-quality errors that name the fix, and `llms.txt` / `glyph llms` one-document onboarding for any agent.
+A TypeScript-shaped syntax, errors with a stable code that name the fix, and `llms.txt` / `glyph llms` as one reference document for any agent.
 
 ### Being proven
 

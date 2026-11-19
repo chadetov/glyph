@@ -1,6 +1,6 @@
 ---
 title: Do I have to hand-write a validator for every API? · Glyph
-description: No. In Glyph a type is its own runtime validator, so request and response bodies are checked for free, and the types can come from an OpenAPI spec or a .d.ts.
+description: No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts.
 layout: article
 article_class: ak
 nav: answers
@@ -61,7 +61,7 @@ head: |
       <h2 class="ak-h" id="see-it">See it<a class="ak-anchor" href="#see-it" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
         Declare the DTO once. Its descriptor gives you <code>.parse</code> (validate an untrusted
-        value into the type) and <code>.is</code> (a type guard) for free:
+        value into the type) and <code>.is</code> (a type guard), with nothing else to write:
       </p>
       <div class="two-up">
         <div class="code">

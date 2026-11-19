@@ -2,8 +2,8 @@
 
 Thanks for looking. Glyph is an early-preview language that transpiles to
 TypeScript, built so code an AI agent writes can be read, checked and changed without guessing. It's
-moving fast and pre-1.0, so this guide is short and honest about what's useful
-right now.
+moving fast and pre-1.0, so this guide is short and says what's useful right
+now.
 
 ## Where to start
 
@@ -22,28 +22,29 @@ By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 ## What helps most today
 
 - **Bug reports.** A `.glyph` program that miscompiles, crashes, or produces
-  TypeScript that `tsc --strict` rejects is gold. Use the bug template; a
+  TypeScript that `tsc --strict` rejects is the most useful report there is.
+  Use the bug template; a
   minimal reproducer plus the exact command and output is ideal.
 - **Rough edges and confusing errors.** If a diagnostic didn't tell you how to
-  fix it, or a feature surprised you, say so. Elm-quality error messages are a
-  goal, not a given.
+  fix it, or a feature surprised you, say so. Every error is meant to name the
+  fix, and one that doesn't is a bug.
 - **Docs and examples.** Fixes to the guide, the spec, `docs/reference/`, or a
   new example program that exercises a real pattern are very welcome.
 
 ## Please open an issue first for language changes
 
 **The grammar is the spec.** Every syntax or semantics rule traces to a numbered
-design decision, and the four pillars — verifiability, greppability, abstraction,
-diff stability — decide every call. Glyph is *deliberately* stricter than
+design decision, and the four pillars (verifiability, greppability, diff
+stability, abstraction) decide every call. Glyph is *deliberately* stricter than
 TypeScript on several axes (no `if`/`else`, `match` must be exhaustive, trailing
 commas required, one declaration form per name). Those restrictions earn their
 keep; the answer to an annoying one is usually documentation, not loosening the
 rule.
 
 So: before writing code that changes the language, open an issue to discuss the
-design. A PR that relaxes syntax "to be helpful" will likely be declined — not
+design. A PR that relaxes syntax "to be helpful" will likely be declined, not
 because the effort isn't appreciated, but because the constraint is the point.
-Toolchain fixes, diagnostics, docs, and examples don't need this — just send them.
+Toolchain fixes, diagnostics, docs, and examples don't need this; just send them.
 
 ## Building and testing
 
@@ -67,7 +68,7 @@ cargo insta review
 ```
 
 New behavior should come with a test: a unit or integration test for the happy
-path, and — for a new diagnostic — a case under `glyph-compiler/tests/negative/`
+path, and, for a new diagnostic, a case under `glyph-compiler/tests/negative/`
 (a program that must fail with the named code). Every example must pass
 `tsc --strict` (CI enforces this).
 
@@ -149,8 +150,8 @@ license as the project.
 ## Stability and scope
 
 Glyph is pre-1.0 and can change between 0.1.x releases; see
-[docs/stability.md](../docs/stability.md). Self-hosting is a v1.0 non-goal — the
-compiler stays Rust for now.
+[docs/stability.md](../docs/stability.md). Self-hosting is a v1.0 non-goal: the
+compiler stays Rust until then.
 
 ## Be kind
 

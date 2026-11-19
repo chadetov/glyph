@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-376 entries, 301 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-56 are open. G144, the D28 boundary cast that never reached the returns a
+377 entries, 301 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+57 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7286,6 +7286,12 @@ and is the owner's to confirm.
   first line); 0.1.141 gives 70.7% overall and the same 71.7% for errors.
   The conclusion below stands.*
 
+  *Reproduced against 0.1.148 (the release build), with the same coarse
+  proxy over `tests/negative`, the 5 `catches/` cases and all 32
+  `examples/apps`: 14,326 diagnostics, 8,642 of them (60.3%) on a line
+  indented two or more spaces; errors alone, 8,054 of 11,190 (72.0%). Both
+  within a point of 0.1.142; the conclusion below stands.*
+
 - **G172. A file's own `module` line and the path the project keys it by can disagree, and nothing says so.**
   `glyph-cli`'s `derive_module_path` and the language server's `module_path_of`
   key a file by where it sits. The typechecker keys a locally declared type by
@@ -7341,6 +7347,11 @@ and is the owner's to confirm.
   `module app/models` and imported from `main` as `models` is `glyph check
   --no-tsc --no-test` with one unused-import warning and exit 0, nothing
   naming the disagreement.*
+
+  *Reproduced against 0.1.148 (the release build): `src/models.glyph` headed
+  `module app/models` and imported from `main` as `models` is `glyph check
+  --no-tsc --no-test` with one warning and exit 0, nothing naming the
+  disagreement.*
 
 - **G173. [FIXED] `glyph fix` welded a pruned import onto the line below it and
   reported success.** Pruning some names out of an `import M { a, b }` spliced
@@ -10218,6 +10229,10 @@ and is the owner's to confirm.
   ``argument type mismatch: expected `record`, found `record`: missing field
   `count` ``.*
 
+  *Reproduced against 0.1.148 (the release build): the same element draws
+  ``argument type mismatch: expected `record`, found `record`: missing field
+  `count` ``.*
+
 - **G246. [FIXED] A component whose one parameter is `unknown` or a bare generic
   passes Glyph and fails `tsc` once it is given attributes.**
   `component Greeting(p: unknown)` with `<Greeting name="x" />`, and
@@ -12387,6 +12402,9 @@ and is the owner's to confirm.
   head` / `.stringify<number>(1)` / `.length` is a fixed point of `glyph
   fmt`.*
 
+  *Reproduced against 0.1.148 (the release build): `json` / `// generic
+  head` / `.stringify<number>(1)` is a fixed point of `glyph fmt`.*
+
 - **G337. A chain broken inside a JSX attribute value glues the closing `}`
   onto its last step.** `title={props` / `.title` / `// attr` / `.trim()}
   class="c">` keeps the brace, the next attribute and the element's `>` on
@@ -12397,6 +12415,9 @@ and is the owner's to confirm.
   *Reproduced against 0.1.136: `.trim()} class="c">{props` on one line.*
 
   *Reproduced against 0.1.142 (the release build): `.trim()} class="c">` stays
+  on the step's line after `glyph fmt`.*
+
+  *Reproduced against 0.1.148 (the release build): `.trim()} class="c">` stays
   on the step's line after `glyph fmt`.*
 
 - **G338. [FIXED] `glyph fmt` deletes a `where` refinement on a tagged union.**
@@ -12706,6 +12727,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.142 (the release build) by reading `glyph-wasm`:
   the emitter is called whatever the error count, unlike `build.rs`.*
 
+  *Reproduced against 0.1.148 (the release build) by reading `glyph-wasm`:
+  `compile_inner` still emits best-effort whatever the error count ("Emit
+  best-effort: the playground shows the TypeScript even when later-phase
+  diagnostics exist").*
+
 - **G353. An applyEdit that writes one of an E0200's missing arms is refused
   as introducing an E0200.** An E0200's identity includes its list of missing
   variants (record 88 §4b), so adding one arm of two leaves an E0200 with a
@@ -12733,6 +12759,9 @@ and is the owner's to confirm.
   *Reproduced against 0.1.142 (the release build): `import std/string` above
   `import std/array` is left in that order by `glyph fmt`, and `fmt --check`
   exits 0.*
+
+  *Reproduced against 0.1.148 (the release build): `import std/string` above
+  `import std/array` is left in that order, and `fmt --check` exits 0.*
 
 - **G359. `glyph fix` removes the imports an E0200 in the same file needs.**
   With a `match` that has only `Pending` and `import orders { OrderStatus,
@@ -12766,6 +12795,10 @@ and is the owner's to confirm.
   `g5_first`.*
 
   Planned for 0.1.151 (record 106).
+
+  *Reproduced against 0.1.148 (the release build) by record 106's probe
+  `g/g5_first`: the decline still says "its arm `other` handles `Loaded`
+  now, so renaming this head to `Loaded` would move that case out of it".*
 
 - **G361. After `glyph fix` applies a rename that completes a match, it still
   declines the E0200 the rename fixed.** With a lowercase variant, `fix`
@@ -12878,6 +12911,9 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.142 and 0.1.143 (the release build) by record 108's
   probes `fa-twoerr` and `twoerr-is`.*
+
+  *Reproduced against 0.1.148 (the release build) by record 108's probe
+  `fa-twoerr`: two refused `is` patterns in two functions draw one E0304.*
 
 - **G364. E0304 names a nested generic application instead of the field
   inside it that has no check.** With a private `Box<T> = { v: T, h: H }`
@@ -13013,7 +13049,8 @@ and is the owner's to confirm.
   `check --no-tsc`, `let r: Record<Tier, int> = { a: 1, }`, `{}`, `{ a: 1, b:
   2, c: 3 }`, `mut r["zzz"] = 3` and `Record<bool, int>` or `Record<Doc,
   int>` exit 0; full `check` refuses each through `tsc` (TS2741, TS2739,
-  TS2353, TS7053, TS2344). Since 0.1.148 the runtime check refuses those
+  TS2353, TS7053, TS2344), as are `Record<Nullable<Tier>, int>` and a `Record`
+  keyed by a tagged union (record 115). Since 0.1.148 the runtime check refuses those
   values, so the checker should decide a literal's keys, a write's key and a
   `K` that is not key-shaped, as the validator does. Breaking under
   `--no-tsc` only. Found by record 113.
@@ -13051,4 +13088,24 @@ and is the owner's to confirm.
   `["m","zzz"]`, codes `unexpected`, `missing`, `type`) would name the key.
   Not breaking. Found by record 113.
 
-  *Reproduced against 0.1.148 (the dev build) by record 113's probe v4.*
+  *Reproduced against 0.1.148 (the release build) by record 115's probe m1:
+  ``field `m` must be Record<Tier, int>``; first seen by record 113's probe
+  v4 on 0.1.146.*
+
+- **G377. A refined string-literal union key is checked by its predicate, not
+  as an exact set.** With `type Tier = "a" | "b" | "c"` and `type T2 = Tier
+  where value != "c"`, `json.parse<Record<T2, int>>` returns `Ok` for `{}` and
+  `{"a":1}` and `Err` for `{"c":1}`, while `T2` is emitted as plain `Tier`, so
+  `tsc` types the result as holding `a`, `b` and `c` (TS2739 on a literal
+  missing them). No value satisfies both: `tsc` requires `"c"` and the check
+  refuses it. Decision 113's reason for totality, on a finite key type it did
+  not name. Options: E0304 for a refined finite key, an exact set over the
+  members that pass the predicate (still disagreeing with `tsc` on `"c"`),
+  emitting `T2` narrowed so both agree, or documenting it predicate-only.
+  Also to record as a decision: `Record<number, V>` accepts `"NaN"`,
+  `"Infinity"` and `"-Infinity"`, and `Record<int, V>` accepts `"1e+21"`, by
+  the canonical-spelling rule. Found by the 0.1.148 release review (record
+  115).
+
+  *Reproduced against 0.1.148 (the release build) by record 115's probes `k2`
+  and `k2t` (`/private/tmp/claude-501/linus115/`).*

@@ -1,0 +1,141 @@
+---
+title: Meu agente pode consultar o compilador sobre um símbolo antes? · Glyph
+description: O glyph_symbol responde em uma chamada: as variantes de uma union, os campos de um record, a assinatura de uma função e se um match sobre ele precisa ser exaustivo.
+source_hash: 49fea6335f3e735f
+prev: /answers/impact/ | &larr; Anterior | O compilador consegue me dizer o que uma mudança vai quebrar antes de eu fazê-la?
+next: /answers/repair-protocol/ | Próxima &rarr; | Quando o build falha, o compilador diz ao meu agente como consertar?
+---
+      <p class="q-eyebrow">22 &middot; Pergunte ao compilador</p>
+      <h1 class="q-title">Meu agente pode perguntar ao compilador o que é um símbolo antes de escrever código?</h1>
+
+      <p class="short-answer">
+        Em uma chamada. O <code>glyph_symbol</code> recebe o <code>module::name</code> que um diagnóstico já imprimiu, ou uma posição em um arquivo, e responde com os campos de um record e seus tipos, as variantes de uma union com seus payloads <em>e a sintaxe que constrói cada uma</em>, os parâmetros e o retorno de algo chamável, os membros de uma interface, e se um <code>match</code> sobre ele precisa ser exaustivo.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por que isso importa</h2>
+        <p>
+          Um agente que precisa tratar um caso novo em uma union que ele não declarou tem que saber o que as variantes carregam. Ler a declaração significa achar o arquivo primeiro. A busca de símbolos dava a ele um nome e um intervalo de bytes, e a listagem de variantes dava <code>["Pending", "Paid", "Cancelled"]</code>. A partir disso o agente escreve <code>Paid("tx_1")</code>, que não é a forma certa, e descobre por um diagnóstico. O compilador tinha o payload o tempo todo. A ferramenta o descartava uma linha antes da resposta.
+        </p>
+        <p>
+          É esse o padrão que a interface para agentes foi feita para eliminar: fatos que o compilador já calcula e memoiza, e que nenhuma ferramenta repassa. Uma auditoria de um projeto com três módulos encontrou o hover respondendo em duas de quatorze posições, e toda union chegando sem seus payloads.
+        </p>
+
+        <h2 class="block-label">Veja na prática</h2>
+        <p>
+          Um projeto com três arquivos, com <code>OrderStatus</code> declarado em <code>orders.glyph</code>. Consultado a partir de <code>main.glyph</code>, que não o importa:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
+<pre>{
+  "entity": "orders::OrderStatus",
+  "kind": "union",
+  "pub": true,
+  "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+  "exhaustive_match": true,
+  "variants": [
+    { "name": "Pending",   "payload": null, "construct": "Pending",
+      "payload_absent": "`Pending` is declared with no payload." },
+    { "name": "Paid",      "payload": "{ transaction_id: string }",
+      "construct": "Paid({ transaction_id: string })" },
+    { "name": "Cancelled", "payload": null, "construct": "Cancelled",
+      "payload_absent": "`Cancelled` is declared with no payload." }
+  ],
+  "fields": null,
+  "fields_absent": "`orders::OrderStatus` is a union and declares no record fields.",
+  "path": "src/orders.glyph",
+  "range": { "start": { "line": 2, "character": 4 },
+             "end":   { "line": 5, "character": 13 } },
+  "origin": "glyph",
+  "origin_detail": "`orders::OrderStatus` is declared in src/orders.glyph, a Glyph
+    module this project holds, and the compiler parsed and resolved that declaration"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Resumido: a resposta também traz <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> e <code>examples</code>. Cada um deles é um par. Uma chave só é null junto com uma frase <code>&lt;key&gt;_absent</code> dizendo por quê, então um agente nunca precisa adivinhar se uma resposta ausente significa que o símbolo não tem aquilo ou que a ferramenta não olhou. Um <code>const</code> sem anotação não informa tipo nenhum por essa regra: o verificador de propósito não infere o tipo de uma declaração a partir do seu inicializador, então imprimir o tipo do inicializador diria a quem chama que os usos do nome são verificados contra algo que não verifica nada.
+        </p>
+
+        <h2 class="block-label">A segunda pergunta que um agente faz</h2>
+        <p>
+          Com a forma em mãos, a próxima coisa que ele quer saber é se o valor que tem pode ir onde ele está prestes a colocá-lo. O <code>glyph_assignable</code> consulta a própria comparação do verificador. Cada lado é um <code>module::name</code> ou um tipo escrito em Glyph, lido no escopo do arquivo que você indicar, e o veredito diz qual de três coisas aconteceu.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
+<pre>{
+  "verdict": "WILL_FAIL",
+  "because": "the checker's own comparison
+    refuses a `Nullable&lt;number&gt;` value where a
+    `number` is declared, so every site that
+    writes this pairing is a diagnostic",
+  "diagnostics": [
+    { "code": "E0204",
+      "at": "an annotated `let` or `const`,
+             and a `return`" },
+    { "code": "E0211", "at": "a call argument" }
+  ],
+  "from": { "asked": "Nullable&lt;int&gt;",
+            "form": "spelling",
+            "read_as": "Nullable&lt;number&gt;" },
+  "to":   { "asked": "int", "form": "spelling",
+            "read_as": "number" }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
+<pre>{
+  "verdict": "COMPATIBLE",
+  "because": "two generic applications are
+    compared by arity, by base and by argument,
+    and every one of those pairings is itself
+    accepted, so the checker accepts a
+    `Option&lt;number&gt;` value where a
+    `Option&lt;number&gt;` is declared. This is a rule
+    accepting rather than a rule staying silent",
+  "diagnostics": null,
+  "diagnostics_absent": "the checker refuses
+    nothing for this pairing, so no code is
+    raised for it anywhere"
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          A palavra é <code>COMPATIBLE</code>, não <code>SAFE</code>, e a diferença vale uma frase. <code>SAFE</code> é a palavra do <code>glyph_impact</code>, e significa que um local específico continua correto depois de uma edição específica. Esta resposta é sobre dois tipos, sem local nem edição na pergunta. O terceiro veredito é <code>UNDETERMINED</code>, dado sempre que nenhuma regra cobre o par: dois tipos de função voltam assim, porque a relação por baixo compara os retornos e não diz nada sobre os parâmetros. O silêncio dela ali não é uma aceitação, e a ferramenta não vai relatá-lo como uma.
+        </p>
+
+        <h2 class="block-label">A outra direção: do que isto depende, e o que aquele módulo me oferece</h2>
+        <p>
+          O <code>glyph_references</code> responde quem usa um símbolo. O <code>glyph_dependencies</code> são as mesmas tabelas lidas pela outra ponta: do que uma declaração depende, todas as declarações que o código dela cita, divididas em <code>CALLS</code>, <code>REFERENCES</code> e <code>FIELD_ACCESS</code>, cada aresta trazendo as duas pontas e onde está. O <code>glyph_exports</code> responde o que um módulo deixa visível para quem o importa, a partir da própria consulta de exports do compilador e não de uma varredura: toda declaração <code>pub</code> e toda variante que uma union <code>pub</code> expõe, cada uma como uma entrada com sua identidade, tipo de declaração e assinatura. Um agente prestes a escrever um import pode perguntar o que há do outro lado em vez de abrir o arquivo.
+        </p>
+        <p>
+          Construir o espelho de uma relação foi o que pegou um bug na original. Toda aresta traz uma procedência, e <code>PROVED</code> deveria dizer que o compilador leu as duas pontas. Ela respondia <code>PROVED</code> para uma aresta que apontava para um módulo cujo parse falha, onde nada tinha sido lido. Agora responde <code>UNDETERMINED</code> com o motivo, e como <code>glyph_references</code> e <code>glyph_impact</code> chamam a mesma função, os dois estavam errados do mesmo jeito e os dois foram corrigidos.
+        </p>
+
+        <h2 class="block-label">Onze ferramentas, e nenhum cliente necessário</h2>
+        <p>
+          O <code>glyph mcp</code> oferece onze: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> e <code>glyph_exports</code>. Cada uma tem um verbo <code>glyph query</code> que recebe os mesmos argumentos como flags e imprime o mesmo JSON, passando pelo mesmo ponto de entrada que um cliente alcança, então um agente que só roda comandos de shell faz as mesmas perguntas. O <code>glyph_diagnostics</code> verifica um arquivo dentro do seu projeto e retorna o diagnóstico que o <code>glyph check --json</code> imprime, a partir do mesmo tipo Rust, com um teste que roda as duas interfaces em seis projetos e compara o JSON chave por chave. Todos os detalhes estão na <a href="/mcp/">página do MCP</a>.
+        </p>
+        <p>
+          Tudo isso é perguntado antes de uma edição. Depois dela, o compilador responde na outra direção: o <code>glyph check --agent</code> imprime cada diagnóstico com os invariantes que uma edição de reparo precisa manter e a descrição <code>glyph_symbol</code> de cada símbolo citado, então a forma de que o agente precisa chega junto com o erro que a pediu. Isso tem <a href="/answers/repair-protocol/">uma página própria</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p>Onze ferramentas de leitura via MCP, cada uma com um verbo <code>glyph query</code>. O <code>glyph_symbol</code> responde por identidade ou por posição, e todo fato que ele não tem é null ao lado da frase dizendo por quê. A identidade chega à stdlib: o <code>Result</code> do prelude é <code>std/result::Result</code>, que é o módulo em que o resolver o registra e o módulo de onde o emissor escreve o import, então <code>glyph query symbol --entity std/result::Result</code> responde com <code>Ok(T)</code> e <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lista a interface, e um <code>E0200</code> sobre ele traz essa identidade em <code>cause</code>. Não há código Glyph por trás, então <code>path</code> e <code>range</code> são null com esse motivo, em vez de ausentes. O hover responde em todas as quatorze posições que uma auditoria testou em um projeto com três módulos, contra duas antes de este trabalho começar: um nome declarado em outro módulo responde a partir da declaração desse módulo, então o binding do import, uma função importada em uma chamada, uma variante importada usada como valor e um campo lido de um record importado têm todos um tipo. <code>glyph_dependencies</code> e <code>glyph_exports</code> completam o conjunto que o G221 pedia. O <code>glyph_variants</code> traz cada payload e sua sintaxe de construção; <code>glyph_definition</code> e <code>glyph_symbols</code> trazem o <code>module::name</code>, então uma resposta se encadeia no <code>glyph_impact</code> sem recalcular nada. A tabela de tipos de assinatura do <code>glyph_impact</code> decide um contêiner contra um contêiner, um record estrutural contra um record estrutural ou declarado (local, importado, genérico ou um segundo nome), um elemento JSX como a chamada em que ele se transforma, e uma union de literais de string em qualquer lado com a mesma comparação que o <code>glyph_assignable</code> faz, então as duas ferramentas não podem discordar sobre um mesmo par. Um argumento cujo par a relação lê por inteiro é <code>WILL_FAIL</code> seja qual for o resultado da comparação, porque <code>change_signature_type</code> não nomeia um tipo substituto e um par aceito é um em que um substituto pode ser recusado; só um par que a relação recusa é <code>UNDETERMINED</code>.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Onde para</h3>
+          <p>Nenhuma ferramenta aqui escreve: sem rename, sem edição aplicada. O lado da escrita é o <code>glyph fix</code> na linha de comando, e ele repara três coisas, não qualquer coisa que você peça: imports não usados, a cabeça de um braço para a qual o verificador tem exatamente uma sugestão, e um nome de campo a um caractere de exatamente um campo declarado. Um export da stdlib para o qual o compilador não modela nem declaração nem assinatura responde <code>kind: null</code> com o motivo: <code>std/result::all</code> e <code>std/io::println</code> são tipados em TypeScript que o compilador prepara e que nenhuma etapa do Glyph lê. O <code>glyph_diagnostics</code> pula três verificações que o <code>glyph check</code> faz: o <code>tsc</code>, a verificação <code>E0104</code> de um import que não aponta para nenhum módulo, que precisa da visão que o build tem de <code>node_modules</code>, e o <code>E0400</code> para um <code>@example</code> que falha, que precisa rodar o projeto gerado. Ele nomeia as três em <code>not_run</code> em vez de responder como se as tivesse feito.</p>
+        </div>
+      </div>

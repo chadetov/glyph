@@ -1,0 +1,217 @@
+---
+title: Posso usar meu código TypeScript, JavaScript e npm? · Glyph
+description: Glyph compila para TypeScript comum e usa o npm: um módulo .glyph importa qualquer pacote e pode ser importado pelo seu .ts existente. Adote um arquivo de cada vez.
+source_hash: 5a2ca99ba7fdb55b
+prev: /answers/upgrades/ | &larr; Anterior | Uma release nova do Glyph vai quebrar meu build?
+next: /answers/embedding/ | Próxima &rarr; | Posso adotar o Glyph dentro da minha aplicação atual, ou é tudo ou nada?
+---
+      <p class="q-eyebrow">09 &middot; Adoção</p>
+      <h1 class="q-title">Posso usar minhas bibliotecas de TypeScript, JavaScript e npm?</h1>
+
+      <p class="short-answer">
+        Sim. Glyph compila para <strong>TypeScript comum</strong> e usa o npm: um módulo <code>.glyph</code> importa de qualquer pacote e pode ser importado pelo seu <code>.ts</code> existente. Você adota <strong>um arquivo de cada vez</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por que isso importa</h2>
+        <p>
+          Ninguém reescreve uma base de código para experimentar uma linguagem. Como a saída do Glyph <em>é</em> TypeScript, um arquivo <code>.glyph</code> entra num canto de um projeto TS/React/Node existente, importa os mesmos pacotes e exporta de volta para o <code>.ts</code> ao redor. Esse caminho gradual é o motivo de ter TypeScript como alvo em vez de lançar um runtime novo.
+        </p>
+
+        <h2 class="block-label">Veja na prática</h2>
+        <p>Você importa pacotes pelo nome (inclusive os com hífen e os com escopo npm) e o Glyph emite o import que você esperaria:</p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">form.glyph</span>
+<pre>import react { useState }
+import react-hook-form { useForm }
+import @hookform/resolvers/zod {
+  zodResolver,
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">form.ts: gerado</span>
+<pre>import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver }
+  from "@hookform/resolvers/zod";</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Se o pacote está instalado e traz seus próprios tipos (ou tem um <code>@types/...</code>), é só isso. Sem stub, sem arquivo adaptador. O <code>glyph build</code> encontra o <code>node_modules</code> do seu projeto e aponta o verificador de tipos para ele, então os tipos reais do pacote verificam seu código e uma chamada errada é um erro de verdade. Imports de subcaminho (<code>pkg/sub</code>) também são resolvidos pelo mapa <code>exports</code> do pacote, então os tipos próprios de um subcaminho são verificados. Aqui está o zod usado diretamente, sem nada escrito à mão:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre>import zod { z }
+
+let user_schema = z.object({
+  name: z.string(),
+  age: z.number(),
+})
+let user = user_schema.parse(input)
+print(user.name)</pre>
+        </div>
+        <div class="code">
+          <span class="cap">uma chamada que o zod não define</span>
+<pre data-check="needs-npm expect-error TS2339">module main
+
+import zod { z }
+
+pub fn main() -&gt; number {
+  // ZodString has no such method:
+  let n = z.string().nonexistent_method()
+  return 0
+}
+
+// [TS2339] Property 'nonexistent_method'
+//   does not exist on type 'ZodString'.
+//   mapped back onto main.glyph:7</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          O <code>glyph run</code> executa o mesmo programa com o zod instalado, então não é só verificação de tipos: a mesma entrada de configuração que resolve o pacote para o verificador de tipos o resolve também para o runtime. Um pacote que não traz <em>nenhum</em> tipo e não tem <code>@types/...</code> ainda precisa de uma declaração escrita por você, e é para isso que serve a pasta <code>.types/</code> (o mesmo mecanismo de <code>.d.ts</code> que o TypeScript já usa). E quando você quer a forma de uma biblioteca como um tipo Glyph de primeira classe e <em>validado</em>, em vez de um import só de tipos, o <code>glyph gen dts</code> materializa um <code>.d.ts</code> em tipos reais com descritores: veja <a href="/answers/typed-apis/">preciso escrever à mão um validador para cada API?</a>
+        </p>
+        <p>
+          Tipos derivados de valores são de primeira classe. <code>type User = z.infer&lt;typeof user_schema&gt;</code> funciona direto: <code>typeof user_schema</code> é uma consulta de tipo sobre uma referência real a um valor (um erro de digitação é um erro de nome não resolvido), e <code>z.infer&lt;...&gt;</code> é um tipo genérico membro comum. Ele é emitido literalmente e o <code>tsc</code> o reduz, então <code>u.name</code> é um <code>string</code>; a validação vem do próprio <code>parse</code> do schema, que é como o zod já funciona. Spread de props em JSX (<code>&lt;input {...register()} /&gt;</code>) também é de primeira classe. Para o raro idioma de TypeScript que o Glyph ainda não consegue expressar, <code>extern_ts("...")</code> é a válvula de escape delimitada e fácil de achar com grep: o <code>tsc</code> o verifica, mas sendo preciso, é uma fronteira de confiança, não uma validada em runtime (opaca para o Glyph, um valor volta como <code>unknown</code> para ser estreitado). Então uma biblioteca nunca obriga você a escrever um arquivo adaptador à mão.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Quando você precisa de TypeScript escrito à mão por inteiro</h2>
+        <p>
+          Às vezes a válvula de escape não é um tipo nem uma expressão, e sim código de runtime de verdade: um loop sobre um stream do node, um <code>new Promise</code>, uma worker thread. Coloque o <code>.ts</code> em <code>&lt;src&gt;/extern/</code> e acesse-o com <code>import extern/&lt;name&gt;</code>.
+        </p>
+<pre>// src/extern/raw_server.ts   (hand-written TypeScript)
+export function serve_raw(port: number, handler: (raw: string) =&gt; string): void { ... }
+
+// src/main.glyph
+import extern/raw_server { serve_raw }   // typed from the .ts; a wrong arg is a real tsc error</pre>
+        <p>
+          O build copia <code>&lt;src&gt;/extern/**</code> para a saída e emite um especificador relativo, então o <code>tsc</code> verifica os tipos do extern junto com seu código Glyph e um rebuild nunca o remove. Imports relativos continuam proibidos no código Glyph (uma regra de buscabilidade), então <code>extern/*</code> é o único caminho reservado, e <code>grep -rn 'import extern/'</code> encontra todos os lugares onde você saiu da linguagem. É o inverso da direção fácil, um arquivo <code>.ts</code> importando seu Glyph compilado, que não precisa de nada. Um extern comum (um servidor http, <code>fs</code>) é verificado contra o shim de node embutido, sem nada instalado.
+        </p>
+
+        <h2 class="block-label">Acompanhando um subprocesso, sem nada instalado</h2>
+        <p>
+          As declarações de node embutidas trazem a metade assíncrona de <code>child_process</code>, não só a bloqueante, então uma ferramenta que mostra a saída de um comando longo enquanto ele roda é Glyph, não um extern:
+        </p>
+<pre>module main
+
+import child_process { spawn }
+import std/io
+
+pub async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let child = spawn(&quot;git&quot;, [&quot;status&quot;, &quot;--short&quot;])
+
+  // Ask for text and node decodes for you, holding back a character whose
+  // bytes straddle two chunks. Decoding a raw chunk yourself does not.
+  child.stdout.setEncoding(&quot;utf8&quot;)
+  child.stdout.on(&quot;data&quot;, fn(chunk) {
+    io.print(&quot;${chunk}&quot;)
+  })
+  child.on(&quot;close&quot;, fn(code) {
+    io.println(&quot;git exited ${code}&quot;)
+  })
+  return 0
+}</pre>
+        <p>
+          <code>io.print</code> e não <code>io.println</code>: um chunk é um pedaço do stream, não uma linha, e uma linha pode chegar dividida entre dois deles. Os overloads seguem o <code>@types/node</code>, então os pipes voltam não nulos de um <code>spawn(command, args)</code> simples e anuláveis quando você passa <code>stdio</code>. Ler <code>child.stdout</code> depois de <code>stdio: "inherit"</code> dá <code>TS18047</code> aqui e <code>TS18047</code> com as tipagens reais, em vez de duas versões diferentes sobre o mesmo valor:
+        </p>
+<pre data-check="expect-error TS18047">module main
+
+import child_process { spawn }
+
+pub fn main() -&gt; void {
+  let child = spawn(&quot;git&quot;, [&quot;status&quot;], { stdio: &quot;inherit&quot; })
+  // [TS18047] 'child.stdout' is possibly 'null'.
+  child.stdout.setEncoding(&quot;utf8&quot;)
+}</pre>
+
+        <h2 class="block-label">Edite o shim, e a próxima execução usa o shim que você editou</h2>
+        <p>
+          Um shim é um arquivo em que você itera, então ele tem que contar como código-fonte. O <code>glyph run</code> guarda um build em cache sob uma impressão digital das suas fontes, e essa impressão cobre todo <code>.ts</code> e <code>.tsx</code> em <code>extern/</code>, pelo caminho e pelo conteúdo. Edite um, renomeie um, adicione um, apague um, e a próxima execução refaz o build e roda o <code>tsc</code> de novo. Um shim que é link simbólico é seguido, então um <code>.ts</code> mantido fora da árvore de código é hasheado pelo que realmente contém.
+        </p>
+        <p>
+          É isso que permite que o shim seja dono de um tipo, em vez de os dois arquivos declararem cada um sua cópia. Exporte a forma a partir do shim, importe-a no módulo Glyph, e o compilador mantém os dois em sincronia a cada execução:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">src/extern/web.ts</span>
+<pre>export type WebResponse = {
+  status: number;
+  content_type: string;
+  location: string;   // "" when not a redirect
+  body: string;
+};</pre>
+        </div>
+        <div class="code">
+          <span class="cap">o shim renomeou um campo, e o build avisa</span>
+<pre>import extern/web { serve_web, WebResponse }
+
+<span class="cm">// location -&gt; redirect_to in web.ts, nothing
+// touched here, and glyph run stops:</span>
+<span class="del">[TS2353]</span> Object literal may only specify
+known properties, and 'location' does not
+exist in type 'WebResponse'.
+   ╰─ server:53:3</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Até a 0.1.44 a impressão digital ignorava <code>extern/</code> por completo, então esse rename produzia um build limpo e com tipos verificados rodando a cópia anterior do shim. Arquivos em <code>extern/</code> que não são <code>.ts</code> nem <code>.tsx</code> continuam sem afetar o cache, e isso é proposital: um <code>README.md</code> ao lado do seu shim é copiado para a saída junto com ele, mas nada o verifica nem o executa, então não há nada para refazer.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Clientes baseados em classes: os de banco de dados e mensageria</h2>
+        <p>
+          A maioria dos clientes de banco de dados e mensageria é baseada em classes: você escreve <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. O Glyph tem <code>new</code> exatamente para isso. Ele emite um <code>new</code> de TypeScript literal e o <code>tsc</code> o verifica contra o construtor real do pacote, então um argumento errado é um erro de verdade e um callee indefinido é detectado pelo nome. Continua sendo só para interop: o Glyph não tem <code>class</code> própria, e <code>new</code> só constrói um tipo que vem de um pacote, de uma declaração em <code>.types</code> ou de <code>extern_ts</code>.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">um cliente baseado em classe (kafkajs)</span>
+<pre>import kafkajs { Kafka }
+
+let kafka = new Kafka({
+  clientId: "app",
+  brokers: ["localhost:9092"],
+})
+let producer = kafka.producer()
+await producer.connect()</pre>
+        </div>
+        <div class="code">
+          <span class="cap">um cliente de factory não precisa de <code>new</code></span>
+<pre>import redis { createClient }
+
+// createClient() is a function, so you
+// just call it. No new, no wrapper.
+let client = createClient()
+await client.connect()
+await client.set("k", "v")</pre>
+        </div>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p>Importe qualquer pacote npm (inclusive nomes com hífen e com escopo). Um pacote instalado que traz seus próprios tipos (ou tem <code>@types/...</code>) é verificado e roda sem stub. Clientes baseados em classes são construídos com <code>new</code>, verificados pelo <code>tsc</code> contra o construtor real; clientes de factory são importados e chamados diretamente. Os builtins do node (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> incluindo o <code>spawn</code> com streaming, e o resto) são verificados sem configuração, com o <code>@types/node</code> carregado automaticamente quando você o instala, e a CI compila o runtime do próprio compilador contra esse pacote na versão <code>latest</code>, então uma declaração da qual a stdlib depende não pode divergir da real do node. Uma declaração que só o seu código usa ainda não é coberta por essa verificação, e algumas ainda são mais amplas que as do node. Declarações ambientes em <code>.types/</code> para todo o resto, <code>glyph gen dts</code> para materializar um <code>.d.ts</code> em tipos Glyph validados, e uma saída <code>.ts</code> limpa que o seu TypeScript existente importa de volta. Quando você precisa de TypeScript escrito à mão por inteiro, <code>import extern/&lt;name&gt;</code> acessa um <code>.ts</code> em <code>&lt;src&gt;/extern/</code>, copiado e verificado junto com seu código, e acompanhado pelo cache do <code>glyph run</code>, então editá-lo refaz o build.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">A caminho</h3>
+          <p>A materialização agora lida com as formas que SDKs reais trazem (namespaces, re-exports entre arquivos, com alias e de namespace, <code>exports</code> de subcaminho, e genéricos de primeira classe), e tipos derivados de valores (<code>z.infer&lt;typeof s&gt;</code>) são de primeira classe. O principal gap que resta é que as saídas de um pacote não materializado são verificadas contra o seu <code>.d.ts</code>, mas não validadas em runtime, a menos que você as materialize. Do lado do <code>extern/</code>, a raiz das fontes difere entre os dois comandos: <code>glyph run app.glyph</code> usa como raiz o diretório do próprio arquivo, <code>glyph build src/</code> usa o diretório que você indica. Um programa em um subdiretório, portanto, procura seu shim em dois lugares diferentes, e até escolhermos uma raiz, um projeto organizado assim precisa que o shim seja acessível a partir dos dois. Quando não é, a falha é explícita.</p>
+        </div>
+      </div>

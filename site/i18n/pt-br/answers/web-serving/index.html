@@ -1,0 +1,85 @@
+---
+title: Posso servir uma página web, ou só uma API JSON? · Glyph
+description: O std/http serve páginas HTML, redirects, headers de resposta personalizados e envios de formulário, não só JSON, com os headers de resposta modelados pelo type checker.
+source_hash: 3919e268d4a46ec8
+prev: /answers/finance/ | &larr; Anterior | Posso confiar nele com dinheiro, e com entrada que eu não controlo?
+next: /answers/interactive-cli/ | Próxima &rarr; | Posso escrever um programa em que alguém digita?
+---
+      <p class="q-eyebrow">17 &middot; Servindo a web</p>
+      <h1 class="q-title">Posso servir uma página web, ou só uma API JSON?</h1>
+
+      <p class="short-answer">
+        Uma página web. O <code>std/http</code> define headers de resposta, então uma página <code>text/html</code>, um redirect 302, um header de cache e o envio de um formulário HTML são Glyph comum. Sem Express, sem shim de TypeScript escrito à mão.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por que isso importa</h2>
+        <p>
+          Até a 0.1.46 uma resposta era <code>{ status, body }</code> e o servidor escolhia o content type pelo formato do body: uma string virava <code>text/plain</code>, qualquer outra coisa virava JSON. Isso serve para uma API e não serve para nada que um navegador renderiza. A saída era escrever seu próprio servidor sobre <code>node:http</code> num arquivo <code>.ts</code> escrito à mão, o que deixa todo o caminho da requisição fora do type checker. Dois construtores faltando custavam uma fronteira inteira da aplicação.
+        </p>
+
+        <h2 class="block-label">Veja na prática</h2>
+        <p>
+          Este é o roteador de <code>examples/apps/shortlink/main.glyph</code>, um encurtador de URLs que vem no repositório. Um formulário HTML cria um código, um POST responde com um redirect para que recarregar a página no navegador nunca reenvie o formulário, e seguir um código é um 302 para o destino:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">shortlink.glyph: uma página HTML, um envio de formulário e o 302</span>
+<pre>fn handle_home(req: Request) -&gt; Response {
+  return match req.method {
+    "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
+    "POST" =&gt; {
+      let fields = form(req)
+      match create_link(form_field(fields, "url"), form_field(fields, "alias")) {
+        Ok(link) =&gt; redirect(303, "/${link.code}+"),
+        Err(message) =&gt; redirect(303, "/?error=${url_encode(message)}"),
+      }
+    },
+    else =&gt; html(405, page("405", "&lt;h1&gt;405&lt;/h1&gt;")),
+  }
+}
+
+fn route(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match segments(req) {
+    [] =&gt; Ok(handle_home(req)),
+    [one] =&gt; match stats_code(percent_decode(one)) {
+      Some(code) =&gt; Ok(handle_stats(code)),
+      None =&gt; Ok(handle_code(percent_decode(one))),
+    },
+    else =&gt; Ok(html(404, not_found_page(path(req)))),
+  }
+}
+
+async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let outcome = await serve(8138, route)
+  return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Uma release atrás, o mesmo app estava no repositório com 615 linhas, 121 delas num servidor <code>node:http</code> escrito à mão num arquivo <code>.ts</code> ao lado, porque um <code>Location</code> e um body <code>text/html</code> não tinham como ser escritos. Hoje ele tem 494 linhas e não importa nada fora do <code>std</code>. Um handler retorna <code>Result&lt;Response, string&gt;</code>, então um 404 é um <code>Ok</code> comum e um <code>Err</code> fica reservado para o que o app não consegue responder, que o servidor transforma em 500. O <code>serve</code> fica pendente enquanto escuta, então nada precisa manter o processo vivo na mão, e uma falha no bind volta como valor.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Response</code> tem um campo obrigatório <code>headers: Record&lt;string, string&gt;</code>. Obrigatório, não opcional: todo construtor o preenche, então ler <code>resp.headers</code> nunca exige checar ausência, e não há como esquecer o canal. <code>with_header(resp, "cache-control", "no-store")</code> retorna uma resposta nova em vez de alterar a existente, porque o Glyph não tem mutação de campo de record. O type checker sabe que os três construtores retornam um <code>Response</code>, então um handler cujo tipo de retorno declarado diz <code>Result&lt;Response, string&gt;</code> é verificado em Glyph, e não pelo <code>tsc</code> sobre a saída gerada.
+        </p>
+        <p>
+          Dois detalhes que você erraria fazendo à mão. Qualquer caractere que o Node se recusa a escrever num header é removido do valor na saída, então um <code>location</code> montado a partir de um parâmetro de query não consegue injetar um segundo header nem uma segunda resposta, e um emoji numa URL encurtada não derruba o servidor. E <code>form(req)</code> decodifica <code>+</code> como espaço junto com os escapes de porcentagem, a dupla que o parse de formulário feito à mão costuma esquecer; ele lê o body bruto, então <code>req.body</code> fica intacto para handlers que fazem o parse por conta própria.
+        </p>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> e <code>form</code>; headers de resposta enviados de fato, com o content type inferido só quando você não definiu um; headers da requisição, parâmetros de query, segmentos do path e o body bruto na entrada; o cliente informa os headers de resposta que recebeu.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">A caminho</h3>
+          <p>Percent encoding é a lacuna que o trecho acima mostra: <code>form</code> decodifica um body de formulário, mas não existe <code>encode_component</code> para montar uma URL, então o encurtador escreve o seu. Também faltam no lado do cliente: timeout, política de redirect, <code>head</code> e a URL final em que um redirect terminou. Não há servidor de arquivos estáticos nem engine de templates, e não há plano para nenhum dos dois.</p>
+        </div>
+      </div>

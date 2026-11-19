@@ -1,0 +1,326 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "teams/index.html",
+  "locale": "pt-br",
+  "source_hash": "d4a38356fad5c816",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "For teams · what Glyph guarantees and costs · Glyph",
+      "tr": "Para times · o que o Glyph garante e quanto custa · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "For a lead weighing Glyph: what the compiler guarantees and where it stops, adopting it in a TypeScript app, the exit story, version pinning and pre-1.0 status.",
+      "tr": "Para quem lidera um time e está avaliando o Glyph: o que o compilador garante e onde para, como adotá-lo num app TypeScript, como sair, versão fixada e status pré-1.0."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "Por onde seguir"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "Recomendado"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "See what TypeScript lets through",
+      "tr": "Veja o que o TypeScript deixa passar"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "The cases a strict TypeScript project accepts, ranked, each run under <code>tsc --strict</code> and under Glyph.",
+      "tr": "Os casos que um projeto TypeScript strict aceita, classificados, cada um rodado com <code>tsc --strict</code> e com Glyph."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "Ver o que ele detecta"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "Escreva seu primeiro programa"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "Instale, crie o projeto, rode, quebre de propósito, leia o erro. Uns dez minutos."
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "Try it in the browser",
+      "tr": "Experimente no navegador"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "The compiler runs in the page, with nothing to install.",
+      "tr": "O compilador roda na página, sem nada para instalar."
+    },
+    {
+      "id": "h-7b11bd08",
+      "kind": "html",
+      "en": "For teams",
+      "tr": "Para times"
+    },
+    {
+      "id": "h-205f7b1f",
+      "kind": "html",
+      "en": "What it guarantees, what adopting it costs, and how you get out",
+      "tr": "O que garante, quanto custa adotar e como sair"
+    },
+    {
+      "id": "h-26a40a38",
+      "kind": "html",
+      "en": "Glyph refuses a specific, checked list of cases that a strict TypeScript project accepts, and it compiles to TypeScript you can keep if you stop using it. It is an early preview: pre-1.0, maintained mainly by one person, and releasing several times a week.",
+      "tr": "O Glyph recusa uma lista específica e verificada de casos que um projeto TypeScript strict aceita, e compila para TypeScript que você pode manter se parar de usá-lo. É uma versão preliminar: pré-1.0, mantida principalmente por uma pessoa e com várias releases por semana."
+    },
+    {
+      "id": "h-8eba8f1c",
+      "kind": "html",
+      "en": "What it guarantees",
+      "tr": "O que garante"
+    },
+    {
+      "id": "h-3cd6a8a0",
+      "kind": "html",
+      "en": "Every claim about what Glyph catches is a case in the repository's <code>catches/</code> directory: the same program in TypeScript and in Glyph, both run by a CI gate. {{catches:breakdown}} Of the mistakes it does not refuse, {{catches:warned-all}} draw a warning, {{catches:boundary-all}} are bad data stopped at a runtime boundary check, and {{catches:runtime-all}} stop at run time. The ones a reviewer of agent-written code leans on most:",
+      "tr": "Toda afirmação sobre o que o Glyph detecta é um caso no diretório <code>catches/</code> do repositório: o mesmo programa em TypeScript e em Glyph, os dois rodados por um gate de CI. {{catches:breakdown}} Dos erros que ele não recusa, {{catches:warned-all}} geram um aviso, {{catches:boundary-all}} são dados ruins barrados numa checagem de fronteira em runtime e {{catches:runtime-all}} param em tempo de execução. Os que mais pesam para quem revisa código escrito por agentes:"
+    },
+    {
+      "id": "h-340f4630",
+      "kind": "html",
+      "en": "Code",
+      "tr": "Código"
+    },
+    {
+      "id": "h-9628cd47",
+      "kind": "html",
+      "en": "What is refused",
+      "tr": "O que é recusado"
+    },
+    {
+      "id": "h-07b6c4ea",
+      "kind": "html",
+      "en": "A <code>match</code> that leaves out a case of a union, so adding a case lists every place that has to change",
+      "tr": "Um <code>match</code> que deixa de fora um caso de uma union, então adicionar um caso lista todos os lugares que precisam mudar"
+    },
+    {
+      "id": "h-84e123b3",
+      "kind": "html",
+      "en": "A cast (<code>as</code>, <code>as unknown as</code>); there is no cast, and no <code>any</code>",
+      "tr": "Um cast (<code>as</code>, <code>as unknown as</code>); não existe cast, nem <code>any</code>"
+    },
+    {
+      "id": "h-5f3dcbe8",
+      "kind": "html",
+      "en": "Parsed JSON assigned to a typed name without being checked",
+      "tr": "JSON parseado atribuído a um nome tipado sem ser verificado"
+    },
+    {
+      "id": "h-0baae682",
+      "kind": "html",
+      "en": "A read from a map typed as if the key were always there",
+      "tr": "Uma leitura de um map tipada como se a chave sempre existisse"
+    },
+    {
+      "id": "h-2284bbcd",
+      "kind": "html",
+      "en": "A <code>Result</code> dropped on the floor (a warning; <code>let _ =</code> says it was deliberate)",
+      "tr": "Um <code>Result</code> ignorado (um aviso; <code>let _ =</code> diz que foi de propósito)"
+    },
+    {
+      "id": "h-109fb606",
+      "kind": "html",
+      "en": "<a href=\"/catches/\">The catches page</a> lists every case with its TypeScript, its Glyph, and the error, and says which ones a fully configured typescript-eslint setup would also have caught.",
+      "tr": "<a href=\"/catches/\">A página de casos</a> lista cada caso com seu TypeScript, seu Glyph e o erro, e diz quais deles uma configuração completa do typescript-eslint também teria pegado."
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "Onde para"
+    },
+    {
+      "id": "h-a3c9c6f6",
+      "kind": "html",
+      "en": "The guarantees cover code written in Glyph. An exception thrown inside an npm dependency still bypasses <code>Result</code>, and a type imported from a package's <code>.d.ts</code> has no runtime check. Inside Glyph, the {{catches:gap-cases}} open holes are listed with their gap numbers in <a href=\"/catches/#not-yet\">what it does not catch yet</a>, and the full ledger is <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>. For a comparison with strict TypeScript plus zod, eslint and ts-pattern, including where that setup is still ahead, see <a href=\"/answers/vs-tooled-ts/\">why not tooled TypeScript</a>.",
+      "tr": "As garantias cobrem código escrito em Glyph. Uma exceção lançada dentro de uma dependência do npm ainda passa por fora do <code>Result</code>, e um tipo importado do <code>.d.ts</code> de um pacote não tem checagem em runtime. Dentro do Glyph, as {{catches:gap-cases}} falhas conhecidas em aberto estão listadas com seus números de gap em <a href=\"/catches/#not-yet\">o que ele ainda não detecta</a>, e o registro completo está em <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>. Para uma comparação com TypeScript strict mais zod, eslint e ts-pattern, incluindo onde essa configuração ainda está na frente, veja <a href=\"/answers/vs-tooled-ts/\">por que não TypeScript com ferramentas</a>."
+    },
+    {
+      "id": "h-5e4dc7dc",
+      "kind": "html",
+      "en": "Adopting it inside an existing app",
+      "tr": "Adotando dentro de um app existente"
+    },
+    {
+      "id": "h-35d77f2f",
+      "kind": "html",
+      "en": "There is no rewrite. You write the part you can't afford to get wrong (models, permissions, state transitions, money) in Glyph, and the rest of the app stays TypeScript and imports the emitted modules like any local file. The walkthrough uses a stock Vite scaffold: <a href=\"/answers/embedding/\">Can I adopt Glyph inside my existing app?</a>",
+      "tr": "Não há reescrita. Você escreve em Glyph a parte que não pode dar errado (modelos, permissões, transições de estado, dinheiro), e o resto do app continua em TypeScript e importa os módulos gerados como qualquer arquivo local. O passo a passo usa um scaffold padrão do Vite: <a href=\"/answers/embedding/\">Posso adotar o Glyph dentro da minha aplicação atual?</a>"
+    },
+    {
+      "id": "h-16ba11f7",
+      "kind": "html",
+      "en": "The exit story",
+      "tr": "Como sair"
+    },
+    {
+      "id": "h-261452ac",
+      "kind": "html",
+      "en": "<code>glyph build</code> writes plain TypeScript, one file per module, that passes <code>tsc --strict</code>. If you stop using Glyph, you commit that output and keep going with <code>tsc</code>. The licence is MIT or Apache-2.0, so a fork is always possible. <a href=\"/from-typescript/\">Coming from TypeScript</a> shows a module next to its emitted file.",
+      "tr": "<code>glyph build</code> gera TypeScript comum, um arquivo por módulo, que passa no <code>tsc --strict</code>. Se você parar de usar o Glyph, faz commit dessa saída e segue com <code>tsc</code>. A licença é MIT ou Apache-2.0, então um fork é sempre possível. <a href=\"/from-typescript/\">Para quem vem do TypeScript</a> mostra um módulo ao lado do arquivo gerado."
+    },
+    {
+      "id": "h-c3485edf",
+      "kind": "html",
+      "en": "Pinning and upgrades",
+      "tr": "Versão fixada e upgrades"
+    },
+    {
+      "id": "h-7a7d8a9d",
+      "kind": "html",
+      "en": "<code>glyph init</code> pins the compiler to an exact version in <code>package.json</code>, with no <code>^</code>, so no release reaches your build by accident. Three commands handle the rest:",
+      "tr": "<code>glyph init</code> fixa o compilador numa versão exata no <code>package.json</code>, sem <code>^</code>, então nenhuma release chega ao seu build por acidente. Três comandos cuidam do resto:"
+    },
+    {
+      "id": "h-c6147f53",
+      "kind": "html",
+      "en": "upgrading on purpose",
+      "tr": "fazendo upgrade de propósito"
+    },
+    {
+      "id": "h-454480a0",
+      "kind": "html",
+      "en": "Details in <a href=\"/answers/upgrades/\">Will a new Glyph release break my build?</a>",
+      "tr": "Detalhes em <a href=\"/answers/upgrades/\">Uma release nova do Glyph vai quebrar meu build?</a>"
+    },
+    {
+      "id": "h-b04fdb5f",
+      "kind": "html",
+      "en": "Release cadence and the Breaking marker",
+      "tr": "Frequência de releases e a marca Breaking"
+    },
+    {
+      "id": "h-228fec82",
+      "kind": "html",
+      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
+      "tr": "A <a href=\"/versions/\">página de versões</a> tem uma entrada para cada release da 0.1.0 à {{releases:latest}}, {{releases:count}} no total, e 22 delas saíram em novembro de 2026 até o dia 19. Uma release é marcada como Breaking quando recusa um programa que a versão anterior aceitava, que é como a maioria das correções de corretude chega. {{releases:breaking}} entradas têm a marca. Ela é aplicada rodando o menor programa afetado nas duas versões, não lendo o diff, e as releases anteriores à 0.1.99 não foram testadas assim, então uma release antiga sem marca não foi testada, o que não quer dizer que seja segura."
+    },
+    {
+      "id": "h-5ee8f8ce",
+      "kind": "html",
+      "en": "What a Breaking release has cost in practice: each recent note says what happened when the old and new versions were run over the repository's example apps. These are the newest Breaking releases, quoted from their notes:",
+      "tr": "O que uma release Breaking custou na prática: cada nota recente diz o que aconteceu quando a versão antiga e a nova foram rodadas sobre os apps de exemplo do repositório. Estas são as releases Breaking mais recentes, citadas das próprias notas:"
+    },
+    {
+      "id": "h-87b572a3",
+      "kind": "html",
+      "en": "The example apps are the project's own code, kept compiling release by release, so a newly refused shape is less likely to turn up in them than in yours. Each note names the shapes it refuses, so read it before upgrading.",
+      "tr": "Os apps de exemplo são código do próprio projeto, mantido compilando release após release, então um formato recém-recusado tem menos chance de aparecer neles do que no seu código. Cada nota diz quais formatos recusa, então leia antes de fazer o upgrade."
+    },
+    {
+      "id": "h-920e413c",
+      "kind": "html",
+      "en": "Status",
+      "tr": "Status"
+    },
+    {
+      "id": "h-33711ac1",
+      "kind": "html",
+      "en": "Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> says what may change and what is held stable. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> says plainly that the project is maintained primarily by one person today.",
+      "tr": "O Glyph é pré-1.0. Antes da 1.0, a sintaxe, a biblioteca padrão e o formato do TypeScript gerado podem mudar, e uma release pode recusar código que compilava antes. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> diz o que pode mudar e o que é mantido estável. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> diz com clareza que hoje o projeto é mantido principalmente por uma pessoa."
+    },
+    {
+      "id": "h-731f8c8c",
+      "kind": "html",
+      "en": "Objections, answered",
+      "tr": "Objeções, respondidas"
+    },
+    {
+      "id": "h-5188f42e",
+      "kind": "html",
+      "en": "We don't use AI much. Is it still worth it?",
+      "tr": "Não usamos muita IA. Ainda vale a pena?"
+    },
+    {
+      "id": "h-367570a5",
+      "kind": "html",
+      "en": "The checks are the same whoever writes the code: fewer runtime surprises, smaller diffs, code you can grep.",
+      "tr": "As checagens são as mesmas não importa quem escreve o código: menos surpresas em runtime, diffs menores, código que dá para buscar com grep."
+    },
+    {
+      "id": "h-9d1e7593",
+      "kind": "html",
+      "en": "We already run strict TypeScript and lint.",
+      "tr": "Já usamos TypeScript strict e lint."
+    },
+    {
+      "id": "h-a311b0b7",
+      "kind": "html",
+      "en": "Every one of those checks is opt-in and can be turned off in one line. Glyph's can't.",
+      "tr": "Cada uma dessas checagens é opcional e pode ser desligada com uma linha. As do Glyph não podem."
+    },
+    {
+      "id": "h-72cdf2bf",
+      "kind": "html",
+      "en": "Can our agents write a language they've barely seen?",
+      "tr": "Nossos agentes conseguem escrever uma linguagem que quase nunca viram?"
+    },
+    {
+      "id": "h-ec32f008",
+      "kind": "html",
+      "en": "Most of what a model knows about TypeScript carries over, and the compiler names the rest.",
+      "tr": "A maior parte do que um modelo sabe de TypeScript se aproveita, e o compilador aponta o resto."
+    },
+    {
+      "id": "h-89f4eb9e",
+      "kind": "html",
+      "en": "Why compile to TypeScript at all?",
+      "tr": "Por que compilar para TypeScript?"
+    },
+    {
+      "id": "h-085a9545",
+      "kind": "html",
+      "en": "That is where npm, React and Node are, and it is why adoption can be one file at a time.",
+      "tr": "É onde estão o npm, o React e o Node, e é por isso que dá para adotar um arquivo de cada vez."
+    },
+    {
+      "id": "h-07402c5a",
+      "kind": "html",
+      "en": "What does on-call see when it breaks?",
+      "tr": "O que o plantão vê quando algo quebra?"
+    },
+    {
+      "id": "h-3cefcf3a",
+      "kind": "html",
+      "en": "Readable TypeScript, source maps back to the <code>.glyph</code> file, and stable error codes.",
+      "tr": "TypeScript legível, source maps de volta para o arquivo <code>.glyph</code> e códigos de erro estáveis."
+    },
+    {
+      "id": "h-9ed9269c",
+      "kind": "html",
+      "en": "How do we know any of this is true?",
+      "tr": "Como sabemos que tudo isso é verdade?"
+    },
+    {
+      "id": "h-e6301226",
+      "kind": "html",
+      "en": "How each claim on this site is checked, and how to reproduce one yourself.",
+      "tr": "Como cada afirmação deste site é verificada, e como reproduzir uma você mesmo."
+    }
+  ]
+}

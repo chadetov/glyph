@@ -1,0 +1,107 @@
+---
+title: Para times · o que o Glyph garante e quanto custa · Glyph
+description: Para quem lidera um time e está avaliando o Glyph: o que o compilador garante e onde para, como adotá-lo num app TypeScript, como sair, versão fixada e status pré-1.0.
+source_hash: d4a38356fad5c816
+next_steps: |
+  Por onde seguir
+  Recomendado | /catches/ | catches | Veja o que o TypeScript deixa passar | Os casos que um projeto TypeScript strict aceita, classificados, cada um rodado com <code>tsc --strict</code> e com Glyph. | Ver o que ele detecta
+  /start/ | start | Escreva seu primeiro programa | Instale, crie o projeto, rode, quebre de propósito, leia o erro. Uns dez minutos.
+  /playground/ | playground | Experimente no navegador | O compilador roda na página, sem nada para instalar.
+---
+      <p class="q-eyebrow">Para times</p>
+      <h1 class="q-title">O que garante, quanto custa adotar e como sair</h1>
+
+      <p class="short-answer">
+        O Glyph recusa uma lista específica e verificada de casos que um projeto TypeScript strict aceita, e compila para TypeScript que você pode manter se parar de usá-lo. É uma versão preliminar: pré-1.0, mantida principalmente por uma pessoa e com várias releases por semana.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">O que garante</h2>
+        <p>
+          Toda afirmação sobre o que o Glyph detecta é um caso no diretório <code>catches/</code> do repositório: o mesmo programa em TypeScript e em Glyph, os dois rodados por um gate de CI. {{catches:breakdown}} Dos erros que ele não recusa, {{catches:warned-all}} geram um aviso, {{catches:boundary-all}} são dados ruins barrados numa checagem de fronteira em runtime e {{catches:runtime-all}} param em tempo de execução. Os que mais pesam para quem revisa código escrito por agentes:
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Código</th><th>O que é recusado</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Code"><code>E0200</code></td><td data-label="What is refused">Um <code>match</code> que deixa de fora um caso de uma union, então adicionar um caso lista todos os lugares que precisam mudar</td></tr>
+            <tr><td data-label="Code"><code>E0013</code></td><td data-label="What is refused">Um cast (<code>as</code>, <code>as unknown as</code>); não existe cast, nem <code>any</code></td></tr>
+            <tr><td data-label="Code"><code>E0204</code></td><td data-label="What is refused">JSON parseado atribuído a um nome tipado sem ser verificado</td></tr>
+            <tr><td data-label="Code"><code>E0224</code></td><td data-label="What is refused">Uma leitura de um map tipada como se a chave sempre existisse</td></tr>
+            <tr><td data-label="Code"><code>E0217</code></td><td data-label="What is refused">Um <code>Result</code> ignorado (um aviso; <code>let _ =</code> diz que foi de propósito)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="/catches/">A página de casos</a> lista cada caso com seu TypeScript, seu Glyph e o erro, e diz quais deles uma configuração completa do typescript-eslint também teria pegado.
+        </p>
+
+        <h2 class="block-label">Onde para</h2>
+        <p>
+          As garantias cobrem código escrito em Glyph. Uma exceção lançada dentro de uma dependência do npm ainda passa por fora do <code>Result</code>, e um tipo importado do <code>.d.ts</code> de um pacote não tem checagem em runtime. Dentro do Glyph, as {{catches:gap-cases}} falhas conhecidas em aberto estão listadas com seus números de gap em <a href="/catches/#not-yet">o que ele ainda não detecta</a>, e o registro completo está em <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>. Para uma comparação com TypeScript strict mais zod, eslint e ts-pattern, incluindo onde essa configuração ainda está na frente, veja <a href="/answers/vs-tooled-ts/">por que não TypeScript com ferramentas</a>.
+        </p>
+
+        <h2 class="block-label">Adotando dentro de um app existente</h2>
+        <p>
+          Não há reescrita. Você escreve em Glyph a parte que não pode dar errado (modelos, permissões, transições de estado, dinheiro), e o resto do app continua em TypeScript e importa os módulos gerados como qualquer arquivo local. O passo a passo usa um scaffold padrão do Vite: <a href="/answers/embedding/">Posso adotar o Glyph dentro da minha aplicação atual?</a>
+        </p>
+
+        <h2 class="block-label">Como sair</h2>
+        <p>
+          <code>glyph build</code> gera TypeScript comum, um arquivo por módulo, que passa no <code>tsc --strict</code>. Se você parar de usar o Glyph, faz commit dessa saída e segue com <code>tsc</code>. A licença é MIT ou Apache-2.0, então um fork é sempre possível. <a href="/from-typescript/">Para quem vem do TypeScript</a> mostra um módulo ao lado do arquivo gerado.
+        </p>
+
+        <h2 class="block-label">Versão fixada e upgrades</h2>
+        <p>
+          <code>glyph init</code> fixa o compilador numa versão exata no <code>package.json</code>, sem <code>^</code>, então nenhuma release chega ao seu build por acidente. Três comandos cuidam do resto:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">fazendo upgrade de propósito</span>
+<pre>glyph doctor     <span class="cm"># your version against the latest release; never fails CI for that</span>
+glyph upgrade    <span class="cm"># moves the project's pin, runs npm install, links the notes</span>
+glyph --update   <span class="cm"># moves the installed compiler itself</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Detalhes em <a href="/answers/upgrades/">Uma release nova do Glyph vai quebrar meu build?</a>
+        </p>
+
+        <h2 class="block-label">Frequência de releases e a marca Breaking</h2>
+        <p>
+          A <a href="/versions/">página de versões</a> tem uma entrada para cada release da 0.1.0 à {{releases:latest}}, {{releases:count}} no total, e 22 delas saíram em novembro de 2026 até o dia 19. Uma release é marcada como Breaking quando recusa um programa que a versão anterior aceitava, que é como a maioria das correções de corretude chega. {{releases:breaking}} entradas têm a marca. Ela é aplicada rodando o menor programa afetado nas duas versões, não lendo o diff, e as releases anteriores à 0.1.99 não foram testadas assim, então uma release antiga sem marca não foi testada, o que não quer dizer que seja segura.
+        </p>
+        <p>
+          O que uma release Breaking custou na prática: cada nota recente diz o que aconteceu quando a versão antiga e a nova foram rodadas sobre os apps de exemplo do repositório. Estas são as releases Breaking mais recentes, citadas das próprias notas:
+        </p>
+{{releases:breaking-cost}}
+        <p>
+          Os apps de exemplo são código do próprio projeto, mantido compilando release após release, então um formato recém-recusado tem menos chance de aparecer neles do que no seu código. Cada nota diz quais formatos recusa, então leia antes de fazer o upgrade.
+        </p>
+
+        <h2 class="block-label">Status</h2>
+        <p>
+          O Glyph é pré-1.0. Antes da 1.0, a sintaxe, a biblioteca padrão e o formato do TypeScript gerado podem mudar, e uma release pode recusar código que compilava antes. <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a> diz o que pode mudar e o que é mantido estável. <a href="https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md">MAINTAINERS.md</a> diz com clareza que hoje o projeto é mantido principalmente por uma pessoa.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Objeções, respondidas</h2>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/human-value/"><span class="q">Não usamos muita IA. Ainda vale a pena?</span><p>As checagens são as mesmas não importa quem escreve o código: menos surpresas em runtime, diffs menores, código que dá para buscar com grep.</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">Já usamos TypeScript strict e lint.</span><p>Cada uma dessas checagens é opcional e pode ser desligada com uma linha. As do Glyph não podem.</p></a>
+        <a class="a-card" href="/answers/ai-authoring/"><span class="q">Nossos agentes conseguem escrever uma linguagem que quase nunca viram?</span><p>A maior parte do que um modelo sabe de TypeScript se aproveita, e o compilador aponta o resto.</p></a>
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">Por que compilar para TypeScript?</span><p>É onde estão o npm, o React e o Node, e é por isso que dá para adotar um arquivo de cada vez.</p></a>
+        <a class="a-card" href="/answers/debugging/"><span class="q">O que o plantão vê quando algo quebra?</span><p>TypeScript legível, source maps de volta para o arquivo <code>.glyph</code> e códigos de erro estáveis.</p></a>
+        <a class="a-card" href="/evidence/"><span class="q">Como sabemos que tudo isso é verdade?</span><p>Como cada afirmação deste site é verificada, e como reproduzir uma você mesmo.</p></a>
+      </div>

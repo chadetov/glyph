@@ -1,0 +1,173 @@
+---
+title: Hardening · como o Glyph é posto à prova, e o que isso encontrou
+description: Agentes de IA fazem o papel de engenheiros céticos, constroem apps em Glyph e tentam quebrar suas garantias. O ciclo, e os bugs que ele encontrou.
+source_hash: 39150fb233f95dbe
+---
+      <header class="page-hero">
+        <p class="eyebrow">Como é feito o hardening do Glyph</p>
+        <h1>Agentes tentam quebrá-lo, <span class="accent">e nós guardamos o que eles encontram</span>.</h1>
+        <p class="lede">
+          Uma linguagem que diz que seus agentes não conseguem quebrá-la sem você perceber precisa ser testada contra isso. Rodamos agentes de IA que fazem o papel de engenheiros céticos (um dev React frustrado, um backend do contra, um adversário focado em segurança), pedimos que construam apps e tentem quebrar as garantias, e então corrigimos o que encontram ou registramos como gap em aberto. Aqui está esse ciclo, e o que ele encontrou.
+        </p>
+      </header>
+
+      <!-- ============ THE REFUSED CASES ============ -->
+      <section>
+        <h2 class="group-head">Casos que passam no <code>tsc --strict</code> e não compilam em Glyph</h2>
+        <p class="group-sub">
+          Cada um são dois arquivos: um <code>.ts</code> que passa limpo na checagem de tipos do <code>tsc --strict</code>, e o mesmo programa em Glyph, que não compila. Um gate de build, <code>scripts/check_catches.py</code>, roda cada um de novo e falha se qualquer das metades deixar de se comportar como esperado, então uma garantia que some sem aviso derruba o build junto. A tabela lista os {{catches:refused}} dos {{catches:count}} erros de TypeScript da <a href="/catches/">página do que detecta</a> que são recusados dessa forma; a página tem o resto, que o Glyph verifica quando os dados chegam, avisa ou interrompe em runtime. {{catches:breakdown}}
+        </p>
+{{catches:refused-table}}
+        <p class="group-sub" style="margin-top:24px">
+          Casos que acabaram sendo detectados pelo TypeScript também, ou cujas duas metades não eram o mesmo programa, foram apagados em vez de amenizados; <code>catches/README.md</code> lista cada um e o motivo.
+        </p>
+        <p class="group-sub">
+          A leitura do map é recusada mesmo quando a chave está escrita certo, porque um <code>Record&lt;string, string&gt;</code> não diz nada sobre quais chaves existem. O TypeScript detecta isso com <code>noUncheckedIndexedAccess</code>, que o <code>--strict</code> não liga. O caso de union faltando também pode ser detectado em TypeScript, com o <code>switch-exhaustiveness-check</code> do typescript-eslint ou um default com <code>assertNever</code>, se o projeto adotar isso. Em Glyph nenhuma das duas checagens é opcional.
+        </p>
+        <p class="group-sub">
+          No caso do body parseado, o <code>json.parse</code> do Glyph retorna um <code>Result</code>, não um <code>User</code>, então a atribuição é um erro de tipo até o body ser verificado. O <code>JSON.parse</code> do TypeScript retorna <code>any</code>, e a anotação em <code>user</code> o lava.
+        </p>
+      </section>
+
+      <!-- ============ THE LOOP ============ -->
+      <section>
+        <h2 class="group-head">O ciclo adversarial</h2>
+        <p class="group-sub">Cada achado é reproduzido contra o compilador, corrigido na raiz e reverificado de forma independente antes de contar.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>Explorar</h3>
+            <p>Agentes com personas constroem programas (formulários, backends, UI com estado) e registram cada ponto em que a linguagem atrapalhou.</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>Reproduzir</h3>
+            <p>Cada achado é reduzido ao menor programa que falha e rodado de novo contra o compilador. O que não se reproduz é descartado.</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>Corrigir</h3>
+            <p>Correção na causa raiz, no compilador Rust, com um teste de regressão que falha antes e passa depois. A suíte inteira precisa continuar verde, ou a mudança é revertida.</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h3>Verificar</h3>
+            <p>Uma passada independente roda cada reprodução de novo contra o compilador recém-compilado, pegando os casos de &ldquo;o agente achou que estava corrigido&rdquo; antes de qualquer coisa sair.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SILENT CORRECTNESS ============ -->
+      <section>
+        <h2 class="group-head">Os que mais importaram: buracos de correção silenciosos</h2>
+        <p class="group-sub">
+          Cada um destes compilava limpo e podia entregar <em>código errado que passava na checagem de tipos</em>: exatamente a classe de bug que o Glyph existe para evitar. Todos agora são detectados em tempo de compilação.
+        </p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev critical">Crítico, corrigido</span>
+            <h3>Variantes de erro sem payload num match de <code>Result</code></h3>
+            <p>Um <code>match</code> sobre <code>Result&lt;T, Empty | BadQty(...)&gt;</code> virava dois branches <code>case&nbsp;"Err"</code> duplicados; o primeiro engolia todos os erros e despachava, sem aviso, para o braço errado.</p>
+            <p class="now">Agora: um case agrupado com um switch interno correto; cada variante vai para o lugar certo.</p>
+          </div>
+          <div class="fix">
+            <span class="sev critical">Crítico, corrigido</span>
+            <h3>Construtor digitado errado virando catch-all silencioso</h3>
+            <p>Uma variante com erro de digitação num braço de match (<code>Loded</code> em vez de <code>Loaded</code>) era tratada, sem aviso, como binding de um catch-all irrefutável, escondendo a falta de exaustividade e roteando errado em runtime, sem nenhum diagnóstico.</p>
+            <p class="now">Agora: um construtor desconhecido é recusado no próprio erro de digitação, como um nome de verdade.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Alto, corrigido</span>
+            <h3>Match parcial em <code>bool</code> escapava da exaustividade</h3>
+            <p><code>match n &gt; 0 { true =&gt; ... }</code> (sem o braço <code>false</code>) compilava e passava no <code>tsc</code>, e depois lançava exceção em runtime.</p>
+            <p class="now">Agora: um erro de match não exaustivo em tempo de compilação.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Alto, corrigido</span>
+            <h3>Componentes com vários parâmetros ligavam as props errado</h3>
+            <p><code>component C(a, b)</code> emitia parâmetros posicionais, mas o React chama componentes passando as props primeiro, então <code>a</code> recebia, sem aviso, o objeto de props inteiro. Passava no <code>tsc</code>.</p>
+            <p class="now">Agora: um erro de compilação claro apontando para a forma com um único record de props.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Alto, corrigido</span>
+            <h3><code>&lt;match&gt;</code> em JSX pulava a exaustividade</h3>
+            <p>Um <code>&lt;match&gt;</code> em JSX com um <code>&lt;case&gt;</code> faltando compilava verde e lançava exceção em runtime, ao contrário do <code>match</code> no nível de valores, que era verificado.</p>
+            <p class="now">Agora: vale a mesma checagem de exaustividade; um case faltando é erro de compilação.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Alto, corrigido</span>
+            <h3>Payload de record ligado ao campo errado</h3>
+            <p>Fazer o binding de uma variante com payload de record a um nome (<code>BadQty(b)</code>) lia um <code>.value</code> inexistente do payload achatado.</p>
+            <p class="now">Agora: o payload é ligado corretamente, então <code>b.sku</code> funciona.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RULES ENFORCED ============ -->
+      <section>
+        <h2 class="group-head">Regras que o checker agora impõe</h2>
+        <p class="group-sub">Garantias de soundness que o compilador deixava para o <code>tsc</code>, agora detectadas pelo próprio Glyph.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev high">Corrigido</span>
+            <h3>Aridade de chamadas</h3>
+            <p>Argumentos de menos ou de mais eram aceitos (e rodavam até dar <code>NaN</code>). Agora o <code>E0213</code> recusa um número errado de argumentos.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Corrigido</span>
+            <h3>O tipo de erro do <code>?</code>, através da fronteira da stdlib</h3>
+            <p>A regra de tipo de erro exato era ignorada quando o erro vinha de um wrapper da stdlib. Agora ela vale ali também.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Corrigido</span>
+            <h3>Alias de um handle <code>owned</code></h3>
+            <p><code>let g = f</code> num handle de recurso criava um segundo binding que podia fechar o recurso duas vezes. Agora é recusado (<code>E0215</code>).</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Corrigido</span>
+            <h3>Braços inalcançáveis e validação mais profunda</h3>
+            <p>Um braço depois de um catch-all agora é sinalizado; <code>json.parse&lt;T&gt;</code> agora valida a estrutura dos campos de um <code>Record</code> em vez de só conferir se estão presentes.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FIRST CONTACT ============ -->
+      <section>
+        <h2 class="group-head">Atrito do primeiro contato, removido</h2>
+        <p class="group-sub">As pequenas coisas que causavam uma primeira impressão ruim, e que não serviam para nada.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev">Corrigido</span>
+            <h3>Acessibilidade e atributos data</h3>
+            <p><code>aria-label</code> e <code>data-*</code> eram interpretados como subtração. Agora funcionam e são emitidos como props React corretas.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Corrigido</span>
+            <h3>Nomes de pacotes npm</h3>
+            <p>Especificadores com hífen e com escopo (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>) eram recusados. Agora são importados diretamente.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Corrigido</span>
+            <h3>Primeira execução de bundle no navegador</h3>
+            <p>O bootstrap do runtime não era carregado num build para navegador, e quebrava na primeira execução. Agora todo módulo emitido o carrega.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Corrigido</span>
+            <h3>Mensagens de erro que desorientavam</h3>
+            <p>Escrever <code>if</code> agora aponta para <code>match</code>; um range pattern diz isso diretamente; espaços em JSX e um <code>$</code> solto no texto são tratados.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STILL OPEN ============ -->
+      <section>
+        <h2 class="group-head">Ainda em aberto: registrado</h2>
+        <p class="group-sub">Hardening também significa dizer o que não está feito. Estes são conhecidos e acompanhados, não escondidos.</p>
+        <div class="callout">
+          <p style="margin:0 0 10px;"><strong>Adiados de propósito ou aguardando uma decisão de design:</strong></p>
+          <p style="margin:0;">
+            Recusar closures com <code>any</code> implícito no checker do próprio Glyph exige inferência contextual para evitar falsos positivos em callbacks tipados corretamente. FFI ergonômico, usar uma biblioteca TS com tipos complexos sem um adaptador por biblioteca, é a maior questão de interop ainda em aberto, acompanhada nas <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">questões em aberto</a>. Um map que vem de outro módulo ou da biblioteca padrão ainda é lido sem checagem, então o E0224 ainda não alcança um <code>sqlite.Row</code>, e o <code>for i, x in xs</code> com dois bindings ainda perde os tipos dos elementos.
+            </p>
+        </div>
+        <a href="/answers/" class="backlink">&larr; Veja as perguntas de engenheiros de onde vieram estas correções</a>
+      </section>

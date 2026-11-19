@@ -1,0 +1,80 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "catches/index.html",
+  "locale": "pt-br",
+  "source_hash": "09d8897c06eb2254",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What TypeScript lets through and Glyph catches · Glyph",
+      "tr": "O que o TypeScript deixa passar e o Glyph detecta · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Code AI agents write that passes tsc --strict, each shown beside the same program in Glyph with the real compiler output. A build gate re-runs every case.",
+      "tr": "Código escrito por agentes de IA que passa no tsc --strict, cada um ao lado do mesmo programa em Glyph com a saída real do compilador. Um gate do build roda cada caso de novo."
+    },
+    {
+      "id": "h-62a67cf6",
+      "kind": "html",
+      "en": "Cases TypeScript lets through",
+      "tr": "Casos que o TypeScript deixa passar"
+    },
+    {
+      "id": "h-e64296aa",
+      "kind": "html",
+      "en": "Caught before it ships",
+      "tr": "Detectado antes de ir para produção"
+    },
+    {
+      "id": "h-2b7258ab",
+      "kind": "html",
+      "en": "Each entry is two programs in <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a>, and the output under each one is what the tools printed. A build gate, <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a>, re-runs every case and fails if either half stops doing what the page says. The full TypeScript configuration it checks against is in that script.",
+      "tr": "Cada entrada são dois programas em <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a>, e a saída embaixo de cada um é o que as ferramentas imprimiram. Um gate do build, <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a>, roda cada caso de novo e falha se qualquer uma das metades deixar de fazer o que a página diz. A configuração completa de TypeScript usada na comparação está nesse script."
+    },
+    {
+      "id": "h-edf64e1e",
+      "kind": "html",
+      "en": "{{catches:count}} TypeScript mistakes",
+      "tr": "{{catches:count}} erros de TypeScript"
+    },
+    {
+      "id": "h-792e25f6",
+      "kind": "html",
+      "en": "{{catches:trap-count}} JavaScript traps that do not exist in Glyph",
+      "tr": "{{catches:trap-count}} armadilhas de JavaScript que não existem em Glyph"
+    },
+    {
+      "id": "h-b2b3836d",
+      "kind": "html",
+      "en": "Older traps that agents still hit now and then. Glyph refuses each program, but not by spotting the mistake: the feature behind it is not in the language, and the replacement is named.",
+      "tr": "Armadilhas mais antigas em que os agentes ainda caem de vez em quando. O Glyph recusa cada um desses programas, mas não porque encontra o erro: o recurso por trás dele não existe na linguagem, e o substituto é indicado."
+    },
+    {
+      "id": "h-2db8dfc2",
+      "kind": "html",
+      "en": "What Glyph does not catch yet",
+      "tr": "O que o Glyph ainda não detecta"
+    },
+    {
+      "id": "h-e0a2f441",
+      "kind": "html",
+      "en": "{{catches:gap-cases}} holes Glyph does not close yet. Each of these compiles in Glyph today and does the same wrong thing as in TypeScript. Every one has a reproduction in <code>catches/</code> and an open gap number, and the gate fails when a fix lands so the entry cannot outlive the hole.",
+      "tr": "{{catches:gap-cases}} falhas que o Glyph ainda não fecha. Cada uma compila em Glyph hoje e faz a mesma coisa errada que em TypeScript. Todas têm uma reprodução em <code>catches/</code> e um número de gap aberto, e o gate falha quando uma correção entra, para que a entrada não sobreviva à falha."
+    },
+    {
+      "id": "h-e0eee93e",
+      "kind": "html",
+      "en": "Logic errors are the largest class in every study of agent-written code, and no type checker sees them: a wrong formula, or a task that was misread, compiles in Glyph as it does in TypeScript.",
+      "tr": "Erros de lógica são a maior categoria em todo estudo sobre código escrito por agentes, e nenhum verificador de tipos os enxerga: uma fórmula errada, ou uma tarefa mal entendida, compila em Glyph assim como compila em TypeScript."
+    },
+    {
+      "id": "h-2343e2b3",
+      "kind": "html",
+      "en": "Glyph has one escape hatch, <code>extern_ts</code>, for TypeScript it cannot express. It is a fixed keyword, so <code>grep extern_ts</code> lists every place the rules are suspended.",
+      "tr": "O Glyph tem uma única válvula de escape, <code>extern_ts</code>, para o TypeScript que ele não consegue expressar. É uma palavra-chave fixa, então <code>grep extern_ts</code> lista todos os lugares onde as regras ficam suspensas."
+    }
+  ]
+}

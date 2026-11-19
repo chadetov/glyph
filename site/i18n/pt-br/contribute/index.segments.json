@@ -1,0 +1,248 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "contribute/index.html",
+  "locale": "pt-br",
+  "source_hash": "98fd22506cb2f943",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Contribute · how the compiler is built, how to help · Glyph",
+      "tr": "Contribuir · como o compilador é feito, como ajudar · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How the Glyph compiler is built (a Rust workspace: lex, parse, resolve, typecheck, emit), how to build and test it, and how issues and pull requests work.",
+      "tr": "Como o compilador do Glyph é feito (um workspace Rust: lex, parse, resolve, typecheck, emit), como compilar e testar, e como funcionam issues e pull requests."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "Por onde seguir"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Start here",
+      "tr": "Comece aqui"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph.title",
+      "kind": "ns.title",
+      "en": "The repository",
+      "tr": "O repositório"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph.desc",
+      "kind": "ns.desc",
+      "en": "Source, issues, discussions and releases.",
+      "tr": "Código-fonte, issues, discussões e releases."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open it on GitHub",
+      "tr": "Abrir no GitHub"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "The design",
+      "tr": "O design"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars and the decision record every change is judged against.",
+      "tr": "Os quatro pilares e o registro de decisões contra o qual toda mudança é avaliada."
+    },
+    {
+      "id": "h-97b0c61b",
+      "kind": "html",
+      "en": "Contribute",
+      "tr": "Contribuir"
+    },
+    {
+      "id": "h-f8152d5e",
+      "kind": "html",
+      "en": "How the compiler is built, and how to help",
+      "tr": "Como o compilador é feito, e como ajudar"
+    },
+    {
+      "id": "h-874a5023",
+      "kind": "html",
+      "en": "The compiler is a Rust workspace of twelve crates in one public repository, licensed MIT or Apache-2.0. Bug reports with a small reproduction help most today. A change to the language starts as an issue, because every rule traces to a numbered design decision.",
+      "tr": "O compilador é um workspace Rust com doze crates num repositório público, com licença MIT ou Apache-2.0. Relatos de bug com uma reprodução pequena são o que mais ajuda hoje. Uma mudança na linguagem começa como uma issue, porque toda regra remete a uma decisão de design numerada."
+    },
+    {
+      "id": "h-940e5ca3",
+      "kind": "html",
+      "en": "The pipeline",
+      "tr": "O pipeline"
+    },
+    {
+      "id": "h-a19553e3",
+      "kind": "html",
+      "en": "<code>glyph build</code> lexes, parses, resolves names, type-checks and emits TypeScript, then runs <code>tsc --strict</code> on what it wrote. The middle stages run as incremental queries on <a href=\"https://github.com/salsa-rs/salsa\">salsa</a>, so a re-check reuses the results an edit did not invalidate.",
+      "tr": "O <code>glyph build</code> faz o lex, o parse, resolve nomes, checa tipos e emite TypeScript, depois roda <code>tsc --strict</code> no que escreveu. As etapas do meio rodam como queries incrementais no <a href=\"https://github.com/salsa-rs/salsa\">salsa</a>, então uma nova checagem reaproveita os resultados que uma edição não invalidou."
+    },
+    {
+      "id": "h-546976e1",
+      "kind": "html",
+      "en": "one .glyph file, through the crates",
+      "tr": "um arquivo .glyph, passando pelos crates"
+    },
+    {
+      "id": "h-ef90fcdd",
+      "kind": "html",
+      "en": "Crate",
+      "tr": "Crate"
+    },
+    {
+      "id": "h-c74ea9dc",
+      "kind": "html",
+      "en": "What it does",
+      "tr": "O que faz"
+    },
+    {
+      "id": "h-0ef08b51",
+      "kind": "html",
+      "en": "Tokens, keywords, significant newlines, template literals",
+      "tr": "Tokens, palavras-chave, quebras de linha significativas, template literals"
+    },
+    {
+      "id": "h-9dcac089",
+      "kind": "html",
+      "en": "Syntax tree types, with a source span on every node",
+      "tr": "Tipos da árvore sintática, com um trecho do código-fonte em cada nó"
+    },
+    {
+      "id": "h-9883c2af",
+      "kind": "html",
+      "en": "Pratt parser for every decision in the spec, JSX included",
+      "tr": "Parser Pratt para cada decisão da especificação, JSX incluído"
+    },
+    {
+      "id": "h-e4e07009",
+      "kind": "html",
+      "en": "Name resolution, the module graph, cross-module import checks, the prelude",
+      "tr": "Resolução de nomes, o grafo de módulos, checagens de import entre módulos, o prelude"
+    },
+    {
+      "id": "h-52d65da7",
+      "kind": "html",
+      "en": "The salsa query pipeline and cross-file invalidation",
+      "tr": "O pipeline de queries do salsa e a invalidação entre arquivos"
+    },
+    {
+      "id": "h-0fbf280c",
+      "kind": "html",
+      "en": "Exhaustiveness, <code>?</code>, generics, <code>owned</code>, runtime descriptors, the stdlib model",
+      "tr": "Exaustividade, <code>?</code>, genéricos, <code>owned</code>, descritores de runtime, o modelo da stdlib"
+    },
+    {
+      "id": "h-12794c13",
+      "kind": "html",
+      "en": "The TypeScript writer, descriptor generation, expression-level source maps",
+      "tr": "O gerador de TypeScript, a geração de descritores, source maps no nível de expressão"
+    },
+    {
+      "id": "h-eea25fb5",
+      "kind": "html",
+      "en": "<code>glyph fmt</code>: one layout, comment-preserving, idempotent",
+      "tr": "<code>glyph fmt</code>: um único layout, preserva comentários, idempotente"
+    },
+    {
+      "id": "h-01d7f937",
+      "kind": "html",
+      "en": "The language server and the MCP server, sharing one analysis layer",
+      "tr": "O language server e o servidor MCP, compartilhando uma camada de análise"
+    },
+    {
+      "id": "h-97f50295",
+      "kind": "html",
+      "en": "The <code>glyph</code> binary and every subcommand",
+      "tr": "O binário <code>glyph</code> e todos os subcomandos"
+    },
+    {
+      "id": "h-7692d295",
+      "kind": "html",
+      "en": "The compiler in WebAssembly, which runs the playground",
+      "tr": "O compilador em WebAssembly, que roda o playground"
+    },
+    {
+      "id": "h-5a430b53",
+      "kind": "html",
+      "en": "A stub; tests run through the emitter and <code>tsx</code> instead",
+      "tr": "Um esboço; os testes rodam pelo emissor e pelo <code>tsx</code>"
+    },
+    {
+      "id": "h-47c936c4",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md\">glyph-compiler/README.md</a> has the full crate notes and the current test count.",
+      "tr": "O <a href=\"https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md\">glyph-compiler/README.md</a> tem as notas completas de cada crate e a contagem atual de testes."
+    },
+    {
+      "id": "h-ae97f6f1",
+      "kind": "html",
+      "en": "Build and test",
+      "tr": "Compilar e testar"
+    },
+    {
+      "id": "h-ad0fde9e",
+      "kind": "html",
+      "en": "Rust 1.95 is pinned in <code>rust-toolchain.toml</code>. Some tests shell out to <code>tsc</code> and <code>tsx</code>, so install those too. CI runs clippy with warnings as errors, and neither <code>cargo build</code> nor <code>cargo test</code> runs it, so run the script before you push.",
+      "tr": "O Rust 1.95 está fixado em <code>rust-toolchain.toml</code>. Alguns testes chamam <code>tsc</code> e <code>tsx</code>, então instale esses também. O CI roda o clippy com warnings tratados como erros, e nem <code>cargo build</code> nem <code>cargo test</code> o rodam, então rode o script antes de dar push."
+    },
+    {
+      "id": "h-07e9fc9b",
+      "kind": "html",
+      "en": "from a clone",
+      "tr": "a partir de um clone"
+    },
+    {
+      "id": "h-b879e6fa",
+      "kind": "html",
+      "en": "A new diagnostic comes with a program under <code>tests/negative/</code> that must fail with that code. A claim that Glyph catches something TypeScript misses goes in <code>catches/</code>, where <a href=\"/evidence/\">a gate runs both halves</a>.",
+      "tr": "Um diagnóstico novo vem com um programa em <code>tests/negative/</code> que precisa falhar com aquele código. Uma afirmação de que o Glyph detecta algo que o TypeScript deixa passar vai em <code>catches/</code>, onde <a href=\"/evidence/\">um gate roda as duas metades</a>."
+    },
+    {
+      "id": "h-ead58161",
+      "kind": "html",
+      "en": "What is planned, and what is broken",
+      "tr": "O que está planejado, e o que está quebrado"
+    },
+    {
+      "id": "h-574361b1",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">docs/roadmap/releases.md</a> is the release roadmap: what each shipped release did and what the next ones are for. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> is the gap ledger, every limitation found by building real apps, each numbered (<code>G</code> plus a number) with a status marker. An open gap with a reproduction is a good place to start.",
+      "tr": "O <a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">docs/roadmap/releases.md</a> é o roadmap de releases: o que cada release publicada fez e para que servem as próximas. O <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> é o registro de gaps, cada limitação encontrada ao construir aplicações reais, cada uma numerada (<code>G</code> mais um número) com um marcador de status. Um gap aberto com reprodução é um bom ponto de partida."
+    },
+    {
+      "id": "h-55f877d3",
+      "kind": "html",
+      "en": "Issues and pull requests",
+      "tr": "Issues e pull requests"
+    },
+    {
+      "id": "h-1be0f32e",
+      "kind": "html",
+      "en": "Toolchain fixes, diagnostics, docs and examples can go straight to a pull request. A change to syntax or semantics starts with an issue, and larger ones go through the RFC process in <code>docs/rfcs/</code>; a PR that relaxes a rule \"to be helpful\" will probably be declined, because the restriction is the point. Keep a pull request to one gap, usually one to three commits, and sign each commit (<code>git commit -s</code>). <code>main</code> is protected and merges are rebase-only. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md\">CONTRIBUTING.md</a> has the full rules, and issues labelled <a href=\"https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22\">good first issue</a> are scoped for a first change.",
+      "tr": "Correções de toolchain, diagnósticos, documentação e exemplos podem ir direto para um pull request. Uma mudança de sintaxe ou semântica começa com uma issue, e as maiores passam pelo processo de RFC em <code>docs/rfcs/</code>; um PR que relaxa uma regra \"para ajudar\" provavelmente será recusado, porque a restrição é o objetivo. Mantenha um pull request em um gap só, normalmente de um a três commits, e assine cada commit (<code>git commit -s</code>). A <code>main</code> é protegida e os merges são só por rebase. O <a href=\"https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md\">CONTRIBUTING.md</a> tem as regras completas, e as issues com o rótulo <a href=\"https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22\">good first issue</a> são pensadas para uma primeira mudança."
+    },
+    {
+      "id": "h-f3ec8e88",
+      "kind": "html",
+      "en": "Licence",
+      "tr": "Licença"
+    },
+    {
+      "id": "h-2e7bb863",
+      "kind": "html",
+      "en": "MIT or Apache-2.0, at your option (<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-MIT\">LICENSE-MIT</a>, <a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE\">LICENSE-APACHE</a>). Contributions are accepted under the same dual licence, certified by the sign-off line.",
+      "tr": "MIT ou Apache-2.0, à sua escolha (<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-MIT\">LICENSE-MIT</a>, <a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE\">LICENSE-APACHE</a>). Contribuições são aceitas sob a mesma licença dupla, certificada pela linha de sign-off."
+    }
+  ]
+}

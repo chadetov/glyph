@@ -1,0 +1,121 @@
+---
+title: Glyph e Effect · uma biblioteca e uma linguagem comparadas · Glyph
+description: Effect é uma biblioteca TypeScript com erros tipados e um ecossistema grande; Glyph é uma linguagem que compila para TypeScript. O que cada um faz melhor, com código.
+source_hash: f62ac4a8fc9859e6
+next_steps: |
+  Por onde seguir
+  Recomendado | /catches/ | catches | O que o Glyph recusa | Cada caso, verificado com <code>tsc --strict</code> e com o Glyph. | Ver o que ele detecta
+  /design/ | design | Voltar ao design | Os quatro pilares, a especificação e as outras comparações.
+---
+      <p class="q-eyebrow">Design &middot; Comparação</p>
+      <h1 class="q-title">Glyph e Effect</h1>
+
+      <p class="short-answer">
+        Os dois buscam um TypeScript em que pessoas e agentes possam confiar. Effect é uma biblioteca: você continua escrevendo TypeScript e ganha erros tipados, dependências rastreadas e uma caixa de ferramentas grande. Glyph é uma linguagem que compila para TypeScript, então pode recusar o que o TypeScript permite, inclusive os casts que desfazem as garantias de uma biblioteca. Effect é bem mais maduro.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Como o Effect se descreve</h2>
+        <p>
+          A página inicial do Effect abre com "Reliable TypeScript for the AI era" e diz que seus "declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code" (<a href="https://effect.website">effect.website</a>). A documentação o chama de "an ecosystem of tools that help you build better applications and libraries", construído em torno de um tipo <code>Effect&lt;Success, Error, Requirements&gt;</code> que registra o que uma computação retorna, como ela pode falhar e do que ela precisa (<a href="https://effect.website/docs/getting-started/why-effect/">Why Effect</a>). Ele exige TypeScript 5.4 ou mais recente com <code>strict</code> ativado (<a href="https://effect.website/docs/getting-started/installation/">Installation</a>). Essas citações foram lidas em 2026-11-19.
+        </p>
+
+        <h2 class="block-label">A diferença que vem de ser biblioteca ou linguagem</h2>
+        <p>
+          Os tipos do Effect são checados pelo <code>tsc</code>, então tudo o que o <code>tsc</code> permite continua permitido ao lado deles. Isto compila com <code>tsc --strict</code> usando effect 4.1.4 e TypeScript 6. O cast tira <code>NotFound</code> do canal de erro, e o programa relata uma falha vinda de um effect tipado como incapaz de falhar.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">eff.ts: tsc --strict sai com 0; ao rodar, imprime "Failure undefined"</span>
+<pre>import { Effect } from "effect"
+
+class NotFound {
+  readonly _tag = "NotFound"
+}
+
+const find = (id: string): Effect.Effect&lt;number, NotFound&gt; =&gt;
+  id === "1" ? Effect.succeed(1) : Effect.fail(new NotFound())
+
+<span class="cm">// The error channel says NotFound can happen. A cast erases it.</span>
+const quiet = find("2") as unknown as Effect.Effect&lt;number, never&gt;
+
+<span class="cm">// And a parsed body still takes any type you name.</span>
+type User = { email: string }
+const user = JSON.parse("{}") as User
+
+console.log(Effect.runSyncExit(quiet)._tag, user.email)</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          A mesma função em Glyph retorna um <code>Result</code>, e não há cast para escrever. O segundo módulo é recusado antes de qualquer TypeScript ser emitido.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">find.glyph: faz o build, passa no tsc --strict</span>
+<pre>module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">adicionando um cast: recusado</span>
+<pre data-check="expect-error E0013">module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}
+
+pub fn quiet() -&gt; number {
+  let n = find("2") as number
+  return n
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          A ajuda do <code>E0013</code> diz: "Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>." Um time consegue chegar perto disso numa base de código com Effect usando regras de lint, e <a href="/answers/vs-tooled-ts/">essa comparação</a> explica por que uma regra que alguém pode desligar é uma garantia diferente.
+        </p>
+
+        <h2 class="block-label">O que o Effect faz melhor</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Área</th><th>Effect</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">Maturidade</td><td data-label="Effect">Usado em produção; a página inicial lista a Cloudflare entre as empresas</td><td data-label="Glyph">Versão preliminar, pré-1.0, mantido principalmente por uma pessoa</td></tr>
+            <tr><td data-label="Area">Ecossistema</td><td data-label="Effect">APIs HTTP, workflows, clustering, schema, agendamento, tracing e injeção de dependência, tudo num só projeto</td><td data-label="Glyph">Uma biblioteca padrão de 40 módulos; o resto vem do npm</td></tr>
+            <tr><td data-label="Area">Dependências no tipo</td><td data-label="Effect">O parâmetro <code>Requirements</code> rastreia do que uma computação precisa</td><td data-label="Glyph">Sem equivalente; a assinatura de uma função registra só o resultado e o erro</td></tr>
+            <tr><td data-label="Area">Adoção</td><td data-label="Effect">Um pacote npm; você envolve o código existente e refatora aos poucos, sem compilador novo</td><td data-label="Glyph">Um segundo compilador no build, adotado um módulo de cada vez</td></tr>
+            <tr><td data-label="Area">Concorrência</td><td data-label="Effect">Concorrência estruturada, retries e agendamento embutidos</td><td data-label="Glyph">Helpers <code>par</code> e <code>std/task</code>, bem menores</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">O que o Glyph faz e uma biblioteca não consegue</h2>
+        <p>
+          Uma linguagem decide o que pode ser escrito. O Glyph não tem <code>any</code>, nem cast, nem asserção de não nulo, nem comentário que silencia um erro, e todo <code>match</code> sobre uma union precisa cobrir todos os casos. Records e unions carregam uma checagem de runtime gerada a partir da declaração, então <code>json.parse&lt;User&gt;(body)</code> valida. O Schema do Effect também deriva um tipo de uma única descrição (<code>Schema.Schema.Type&lt;typeof Person&gt;</code> na <a href="https://effect.website/docs/schema/introduction/">introdução dele</a>), então ali o tipo e o validador também não se desencontram; a diferença é que nada no TypeScript obriga uma base de código a usá-lo. O compilador também responde perguntas sobre um programa para um agente, como o que uma mudança vai quebrar, <a href="/agents/">via MCP ou pela linha de comando</a>.
+        </p>
+        <p>
+          Esta página não testou o uso do Effect dentro de um módulo Glyph, então não afirma nada sobre combinar os dois.
+        </p>
+      </div>

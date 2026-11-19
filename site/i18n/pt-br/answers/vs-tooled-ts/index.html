@@ -1,0 +1,136 @@
+---
+title: Por que não TypeScript com ferramentas: tsc, zod, eslint? · Glyph
+description: TypeScript com ferramentas vai longe, mas cada garantia é opcional e um agente pode contorná-la. No Glyph o rigor é a linguagem, não um arquivo de configuração.
+source_hash: d0694478c32b0491
+prev: /answers/why-typescript/ | &larr; Anterior | Por que TypeScript, e não Go ou uma linguagem nova?
+next: /answers/human-value/ | Próxima &rarr; | O Glyph vale a pena se eu não uso IA?
+---
+      <p class="q-eyebrow">05 &middot; A comparação</p>
+      <h1 class="q-title">Por que não só TypeScript strict + zod + eslint + ts-pattern?</h1>
+
+      <p class="short-answer">
+        Porque cada uma dessas garantias é <strong>opcional</strong>, e um agente pode contornar cada uma delas com uma linha. O rigor do Glyph não é um arquivo de configuração que o agente pode editar. É a linguagem. O ponto de controle deixa de ser "lembramos de rodar o lint neste arquivo?" e passa a ser "compila?".
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">O que o TypeScript com ferramentas já cobre</h2>
+        <p>
+          Uma configuração de TypeScript bem feita leva você longe, e se o seu time roda tudo isso na CI, você já fechou a maioria das brechas que o Glyph mira. É a alternativa que vale levar a sério, então aqui está o mapeamento:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">o que o TypeScript com ferramentas já te dá</span>
+<pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
+exhaustive match    <span class="cm">→ ts-pattern .exhaustive() (compile-time, today)</span>
+errors as values    <span class="cm">→ neverthrow / Effect</span>
+runtime validation  <span class="cm">→ zod at every boundary</span>
+must-handle errors  <span class="cm">→ an eslint rule</span>
+deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Se você tem tudo isso ligado e obrigatório, já percorreu a maior parte do caminho. O TypeScript tem essas ideias. O que uma linguagem acrescenta ao torná-las obrigatórias se resume a três coisas.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> Obrigatório ganha de opcional</h2>
+        <p>
+          Sua config do eslint só protege o código que o agente faz passar <em>por</em> ela, e o agente pode escrever <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, ou simplesmente esquecer o <code>.exhaustive()</code>, e ainda assim compila e é mergeado. Cada uma dessas válvulas de escape é uma config que o agente pode editar. O Glyph não tem nenhuma válvula dessas: não existe <code>as</code>, nem pragma de ignore, nem como tirar um valor tipado de um <code>unknown</code> sem uma checagem que o compilador consiga ver.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: as válvulas existem</span>
+          <span class="cap">handler.ts</span>
+<pre>const user = body as unknown as User;
+<span class="cm">// @ts-ignore</span>
+doThing(user.mispelled);
+<span class="cm">// eslint-disable-next-line</span>
+return anything as any;</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: nada para desligar</span>
+          <span class="cap">handler.glyph</span>
+<pre>return match User.parse(body) {
+  Ok(user) =&gt; use(user),
+  Err(_) =&gt; fallback(),
+}
+<span class="cm">// no `as`, no ignore pragma,</span>
+<span class="cm">// no lint to switch off.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          Um rigor que o agente <strong>não consegue desligar na config</strong> fica num ponto de controle diferente de um rigor que ele consegue. O Glyph é construído sobre essa diferença.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> O tipo é o validador: sem segundo artefato</h2>
+        <p>
+          O zod inverte a sua fonte da verdade: você escreve o <em>schema</em>, deriva o tipo dele e depois mantém o tipo, o schema e qualquer serializador sincronizados à mão. Manter isso alinhado é justamente onde um agente introduz divergência: ele renomeia um campo no tipo e não no schema, e os dois continuam compilando. No Glyph o tipo <em>é</em> o validador: declarar <code>type User = {...}</code> gera <code>User.parse</code> junto. Um artefato, nada para sincronizar, nada para esquecer.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> Mutação buscável</h2>
+        <p>
+          No TypeScript, uma mudança de estado pode se esconder atrás de <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, um setter ou um spread. Não existe um token único para buscar, e nenhuma regra de lint resolve isso por completo. No Glyph, estado compartilhado vive num store e toda mudança é um <code>.set(</code>/<code>.update(</code> literal; <code>grep 'mut '</code> encontra toda mutação local. O TypeScript padrão não tem equivalente.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">O diff do modo de falha</h2>
+        <p>
+          Mesma tarefa: um agente adiciona uma variante a uma union e esquece de tratá-la em um de três lugares:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TS com ferramentas</span>
+<pre><span class="cm">// ts-pattern .exhaustive() catches it,</span>
+<span class="cm">// IF every site used ts-pattern and</span>
+<span class="cm">// nobody wrote a default: case or a</span>
+<span class="cm">// switch that only logs. Those</span>
+<span class="cm">// compile green and skip the new case.</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Feed`: missing variant `Archived`</span>
+<span class="cm">// every unhandled match, everywhere,</span>
+<span class="cm">// fails the build. No opt-in, no</span>
+<span class="cm">// escape, no forgotten default.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Onde o TypeScript com ferramentas ainda está na frente</h2>
+        <p>
+          Quatro pontos em que ele está à frente do Glyph hoje:
+        </p>
+        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>Validação mais rica.</strong> Os descritores do Glyph são strict por padrão (recusam chaves não declaradas), e um refinamento <code>where</code> coloca um predicado sobre um primitivo (<code>type Email = string where value.includes("@")</code>), que o descritor roda em toda fronteira que o tipo alcança. O zod ainda está na frente de dois jeitos: traz checagens prontas como <code>.email()</code> e <code>.url()</code>, que no Glyph você escreve por conta própria, e refina objetos inteiros, enquanto um <code>where</code> num record (<code>lo &lt;= hi</code> entre dois campos) é <code>E0300</code> hoje.</li>
+          <li><strong>Matching mais profundo.</strong> Os guards e os padrões estruturais profundos do ts-pattern vão além do que o <code>match</code> do Glyph expressa.</li>
+          <li><strong>A "ausência comprovável" para na fronteira do <code>.ts</code>.</strong> As garantias do Glyph valem para código escrito em Glyph; uma exceção lançada por uma dependência do npm ainda passa por fora do <code>Result</code>, e um tipo importado de um <code>.d.ts</code> não tem descritor em runtime.</li>
+          <li><strong>Ecossistema e contratação.</strong> O ferramental, a comunidade e o mercado de profissionais de TypeScript são muito maiores, com anos de uso em produção. O Glyph é uma versão preliminar.</li>
+        </ul>
+        <p>
+          Se você ligou por completo o TypeScript com ferramentas e seus agentes ficam dentro dele, você já tem a maior parte disso. O argumento do Glyph é que "ficam dentro dele" é a parte que sustenta tudo, e é justamente a parte que um agente quebra. Obrigatoriedade, validação com um artefato só e mutação buscável são o que você não consegue acrescentando mais ferramentas opcionais.
+        </p>
+        <p>
+          Se você topa sair do TypeScript para uma linguagem tipada mais antiga que compila para JavaScript, <a href="/design/vs-rescript-gleam-elm/">Por que não ReScript, Gleam ou Elm?</a> compara o Glyph com elas.
+        </p>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p>Sem <code>any</code>/<code>as</code>, <code>match</code> exaustivo (<code>E0200</code>/<code>E0218</code>), aviso de <code>Result</code> descartado (<code>E0217</code>), validadores gerados a partir do tipo e mutação buscável: tudo obrigatório, nada que seja uma regra de eslint que dá para desligar.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Em medição</h3>
+          <p>A afirmação de que agentes deixam escapar menos defeitos em Glyph do que em TS strict <em>bem configurado</em> é o benchmark que estamos construindo, contra TS com ferramentas, não TS ingênuo. Veja os <a href="/benchmarks/">benchmarks</a>.</p>
+        </div>
+      </div>

@@ -1,0 +1,122 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/why-typescript/index.html",
+  "locale": "pt-br",
+  "source_hash": "9f7bf2e8baaad5d9",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why TypeScript, and not Go or a new language? · Glyph",
+      "tr": "Por que TypeScript, e não Go ou uma linguagem nova? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "TypeScript is where agents already write the most code and where npm, React, and Node live. Glyph is adoptable one file at a time only because its target is TS.",
+      "tr": "TypeScript é onde os agentes já escrevem mais código e onde ficam o npm, o React e o Node. O Glyph só pode ser adotado um arquivo por vez porque o alvo dele é TS."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "Um agente (ou eu) consegue achar onde qualquer coisa está definida?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Próxima &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "Por que não só TypeScript strict + zod + eslint + ts-pattern?"
+    },
+    {
+      "id": "h-69c9c9dc",
+      "kind": "html",
+      "en": "04 &middot; Positioning",
+      "tr": "04 &middot; Posicionamento"
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "Por que TypeScript, e não Go ou uma linguagem nova?"
+    },
+    {
+      "id": "h-4242272e",
+      "kind": "html",
+      "en": "Because TypeScript is where agents already write the most code and where your ecosystem (npm, React, Node) lives. Glyph is adoptable one file at a time <strong>only because its target is TS</strong>.",
+      "tr": "Porque TypeScript é onde os agentes já escrevem mais código e onde vive o seu ecossistema (npm, React, Node). O Glyph pode ser adotado um arquivo por vez <strong>só porque o alvo dele é TS</strong>."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por que isso importa"
+    },
+    {
+      "id": "h-0a5dbd26",
+      "kind": "html",
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
+      "tr": "Uma linguagem nova vive ou morre pelo caminho entre o zero e a produção. Compilar para TypeScript significa que você nunca sai do seu codebase, do seu bundler, do seu test runner nem do seu deploy. O Glyph se encaixa ao lado dos arquivos <code>.ts</code> que você já tem, e o import funciona sem atrito nas duas direções:"
+    },
+    {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "o mesmo projeto: .glyph e .ts, lado a lado"
+    },
+    {
+      "id": "h-4eb97fa1",
+      "kind": "html",
+      "en": "You cannot drop Go into a TypeScript codebase file by file: it's a different runtime, a different module system, a different ecosystem. That single fact is why the target is TS.",
+      "tr": "Não dá para colocar Go num codebase TypeScript arquivo por arquivo: é outro runtime, outro sistema de módulos, outro ecossistema. Esse fato sozinho é o motivo de o alvo ser TS."
+    },
+    {
+      "id": "h-b0743097",
+      "kind": "html",
+      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "<strong>O argumento justo a favor do Go:</strong> o conjunto pequeno e estável de palavras-chave dá ao agente menos jeitos de errar. Concordamos: é exatamente por isso que o Glyph mantém um núcleo pequeno de propósito, com um único jeito de fazer cada coisa. O Go está no nosso <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> de densidade para uma comparação direta."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Situação atual"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponível hoje"
+    },
+    {
+      "id": "h-93871ba6",
+      "kind": "html",
+      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
+      "tr": "Saída TypeScript limpa, imports nas duas direções com o seu <code>.ts</code> existente e um núcleo pequeno que roda em qualquer lugar onde roda Node ou um bundle de navegador."
+    },
+    {
+      "id": "h-0abde815",
+      "kind": "html",
+      "en": "Being measured",
+      "tr": "Em medição"
+    },
+    {
+      "id": "h-5cb4379c",
+      "kind": "html",
+      "en": "The cross-language benchmark (Glyph, TS, Go, Python, Rust) grows as the corpus does, so the &ldquo;small surface&rdquo; claim stays a number, not an assertion.",
+      "tr": "O benchmark entre linguagens (Glyph, TS, Go, Python, Rust) cresce junto com o corpus, então a afirmação de &ldquo;superfície pequena&rdquo; continua sendo um número, e não uma alegação."
+    }
+  ]
+}

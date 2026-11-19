@@ -1,0 +1,140 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/web-serving/index.html",
+  "locale": "pt-br",
+  "source_hash": "3919e268d4a46ec8",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I serve a web page, or only a JSON API? · Glyph",
+      "tr": "Posso servir uma página web, ou só uma API JSON? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "std/http serves HTML pages, redirects, custom response headers and form posts, not only JSON, with the response headers modeled by the type checker.",
+      "tr": "O std/http serve páginas HTML, redirects, headers de resposta personalizados e envios de formulário, não só JSON, com os headers de resposta modelados pelo type checker."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "Posso confiar nele com dinheiro, e com entrada que eu não controlo?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Próxima &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I write a program someone types into?",
+      "tr": "Posso escrever um programa em que alguém digita?"
+    },
+    {
+      "id": "h-5d50e323",
+      "kind": "html",
+      "en": "17 &middot; Serving the web",
+      "tr": "17 &middot; Servindo a web"
+    },
+    {
+      "id": "h-97be9762",
+      "kind": "html",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "Posso servir uma página web, ou só uma API JSON?"
+    },
+    {
+      "id": "h-9d03ea2d",
+      "kind": "html",
+      "en": "A web page. <code>std/http</code> sets response headers, so a <code>text/html</code> page, a 302 redirect, a cache header, and an HTML form post are all ordinary Glyph. No Express, no hand-written TypeScript shim.",
+      "tr": "Uma página web. O <code>std/http</code> define headers de resposta, então uma página <code>text/html</code>, um redirect 302, um header de cache e o envio de um formulário HTML são Glyph comum. Sem Express, sem shim de TypeScript escrito à mão."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por que isso importa"
+    },
+    {
+      "id": "h-a57473e4",
+      "kind": "html",
+      "en": "Until 0.1.46 a response was <code>{ status, body }</code> and the server picked the content type from the body's shape: a string was <code>text/plain</code>, anything else was JSON. That is fine for an API and useless for anything a browser renders. The way out was to write your own server on <code>node:http</code> in a hand-written <code>.ts</code> file, which puts your whole request path outside the type checker. Two missing constructors were costing an entire application boundary.",
+      "tr": "Até a 0.1.46 uma resposta era <code>{ status, body }</code> e o servidor escolhia o content type pelo formato do body: uma string virava <code>text/plain</code>, qualquer outra coisa virava JSON. Isso serve para uma API e não serve para nada que um navegador renderiza. A saída era escrever seu próprio servidor sobre <code>node:http</code> num arquivo <code>.ts</code> escrito à mão, o que deixa todo o caminho da requisição fora do type checker. Dois construtores faltando custavam uma fronteira inteira da aplicação."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Veja na prática"
+    },
+    {
+      "id": "h-f74a4195",
+      "kind": "html",
+      "en": "This is the router of <code>examples/apps/shortlink/main.glyph</code>, a URL shortener that ships in the repo. An HTML form creates a code, a POST answers with a redirect so a browser reload never re-posts, and following a code is a 302 to the target:",
+      "tr": "Este é o roteador de <code>examples/apps/shortlink/main.glyph</code>, um encurtador de URLs que vem no repositório. Um formulário HTML cria um código, um POST responde com um redirect para que recarregar a página no navegador nunca reenvie o formulário, e seguir um código é um 302 para o destino:"
+    },
+    {
+      "id": "h-917f3204",
+      "kind": "html",
+      "en": "shortlink.glyph: an HTML page, a form post, and the 302",
+      "tr": "shortlink.glyph: uma página HTML, um envio de formulário e o 302"
+    },
+    {
+      "id": "h-78792ee0",
+      "kind": "html",
+      "en": "The same app was in the repo one release ago at 615 lines, 121 of which were a hand-written <code>node:http</code> server in a <code>.ts</code> file next to it, because a <code>Location</code> and a <code>text/html</code> body had no spelling. It is 494 lines now and imports nothing outside <code>std</code>. A handler returns <code>Result&lt;Response, string&gt;</code>, so a 404 is an ordinary <code>Ok</code> and an <code>Err</code> is reserved for what the app cannot answer, which the server turns into a 500. <code>serve</code> stays pending while it listens, so nothing has to keep the process alive by hand and a failed bind comes back as a value.",
+      "tr": "Uma release atrás, o mesmo app estava no repositório com 615 linhas, 121 delas num servidor <code>node:http</code> escrito à mão num arquivo <code>.ts</code> ao lado, porque um <code>Location</code> e um body <code>text/html</code> não tinham como ser escritos. Hoje ele tem 494 linhas e não importa nada fora do <code>std</code>. Um handler retorna <code>Result&lt;Response, string&gt;</code>, então um 404 é um <code>Ok</code> comum e um <code>Err</code> fica reservado para o que o app não consegue responder, que o servidor transforma em 500. O <code>serve</code> fica pendente enquanto escuta, então nada precisa manter o processo vivo na mão, e uma falha no bind volta como valor."
+    },
+    {
+      "id": "h-3d3a95ed",
+      "kind": "html",
+      "en": "<code>Response</code> carries a required <code>headers: Record&lt;string, string&gt;</code>. Required, not optional: every constructor fills it in, so reading <code>resp.headers</code> never needs an absence check, and the channel cannot be forgotten. <code>with_header(resp, \"cache-control\", \"no-store\")</code> returns a new response rather than mutating one, because Glyph has no record-field mutation. The type checker knows all three constructors return a <code>Response</code>, so a handler whose declared return type says <code>Result&lt;Response, string&gt;</code> is checked in Glyph, not by <code>tsc</code> on generated output.",
+      "tr": "<code>Response</code> tem um campo obrigatório <code>headers: Record&lt;string, string&gt;</code>. Obrigatório, não opcional: todo construtor o preenche, então ler <code>resp.headers</code> nunca exige checar ausência, e não há como esquecer o canal. <code>with_header(resp, \"cache-control\", \"no-store\")</code> retorna uma resposta nova em vez de alterar a existente, porque o Glyph não tem mutação de campo de record. O type checker sabe que os três construtores retornam um <code>Response</code>, então um handler cujo tipo de retorno declarado diz <code>Result&lt;Response, string&gt;</code> é verificado em Glyph, e não pelo <code>tsc</code> sobre a saída gerada."
+    },
+    {
+      "id": "h-45380bd8",
+      "kind": "html",
+      "en": "Two details you would otherwise get wrong by hand. Any character Node refuses to write in a header is stripped from the value on the way out, so a <code>location</code> built from a query parameter cannot inject a second header or a second response, and an emoji in a shortened URL cannot take the server down. And <code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
+      "tr": "Dois detalhes que você erraria fazendo à mão. Qualquer caractere que o Node se recusa a escrever num header é removido do valor na saída, então um <code>location</code> montado a partir de um parâmetro de query não consegue injetar um segundo header nem uma segunda resposta, e um emoji numa URL encurtada não derruba o servidor. E <code>form(req)</code> decodifica <code>+</code> como espaço junto com os escapes de porcentagem, a dupla que o parse de formulário feito à mão costuma esquecer; ele lê o body bruto, então <code>req.body</code> fica intacto para handlers que fazem o parse por conta própria."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Situação atual"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponível hoje"
+    },
+    {
+      "id": "h-cc38faef",
+      "kind": "html",
+      "en": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, and <code>form</code>; response headers on the wire with the content type inferred only when you did not set one; request headers, query parameters, path segments, and the raw body on the way in; the client reports the response headers it received.",
+      "tr": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> e <code>form</code>; headers de resposta enviados de fato, com o content type inferido só quando você não definiu um; headers da requisição, parâmetros de query, segmentos do path e o body bruto na entrada; o cliente informa os headers de resposta que recebeu."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "A caminho"
+    },
+    {
+      "id": "h-faa08bc9",
+      "kind": "html",
+      "en": "Percent encoding is the gap the snippet above shows: <code>form</code> decodes a form body, but there is no <code>encode_component</code> for building a URL, so the shortener writes its own. Also missing on the client side: a timeout, a redirect policy, <code>head</code>, and the final URL a redirect landed on. There is no static-file server and no template engine, and there is no plan for either.",
+      "tr": "Percent encoding é a lacuna que o trecho acima mostra: <code>form</code> decodifica um body de formulário, mas não existe <code>encode_component</code> para montar uma URL, então o encurtador escreve o seu. Também faltam no lado do cliente: timeout, política de redirect, <code>head</code> e a URL final em que um redirect terminou. Não há servidor de arquivos estáticos nem engine de templates, e não há plano para nenhum dos dois."
+    }
+  ]
+}

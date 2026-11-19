@@ -1,0 +1,348 @@
+---
+title: Isto é uma linguagem de verdade, ou um brinquedo cheio de buracos? · Glyph
+description: Visibilidade de módulos, interfaces estruturais para restringir genéricos, defer, concorrência estruturada e match como valor, e a semântica de JavaScript que ela herda.
+source_hash: 5ef4512407bef58a
+prev: /answers/state/ | &larr; Anterior | Como compartilho estado mutável entre funções?
+next: /answers/finance/ | Próxima &rarr; | Posso confiar nele com dinheiro, e com entrada que eu não controlo?
+---
+      <p class="q-eyebrow">15 &middot; Completude da linguagem</p>
+      <h1 class="q-title">É uma linguagem de verdade, ou um brinquedo cheio de buracos?</h1>
+
+      <p class="short-answer">
+        Ela tem o que você procura numa base de código real: <strong>visibilidade de módulos</strong>, <strong>interfaces</strong> para restringir genéricos, <strong>defer</strong> para limpeza e helpers de <strong>concorrência</strong>. Onde ela se apoia em JavaScript, ela diz isso em vez de fingir o contrário.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por que isso importa</h2>
+        <p>
+          Uma linguagem em que dá para escrever um arquivo mas não estruturar um projeto não é uma em que você vai apostar uma base de código. Os buracos que importam não são exóticos: dá para esconder um helper, um genérico pode exigir uma capacidade, dá para liberar um handle de arquivo em todo caminho de saída, dá para rodar duas coisas ao mesmo tempo e esperar as duas. O Glyph responde a essas quatro, e faz isso sem reabrir a direção cheia de anotações que abandonou de propósito.
+        </p>
+
+        <h2 class="block-label">Veja na prática</h2>
+        <p>
+          Declarações são privadas ao seu módulo até você marcá-las com <code>pub</code>, então a superfície pública é uma busca só (<code>grep '^pub'</code>) e um helper nunca vaza por acidente:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">visibilidade: privado por padrão</span>
+<pre><span class="add">pub fn</span> charge(cents: int) -&gt; Result&lt;Receipt, string&gt; { validate(cents)? ... }
+
+<span class="dim">fn</span> validate(cents: int) -&gt; Result&lt;int, string&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Uma <code>interface</code> é estrutural, como uma do TypeScript: é um conjunto de assinaturas de membros que um genérico pode exigir. Sem <code>implements</code>, sem cerimônia nominal. Qualquer valor com os membros se qualifica, e o <code>tsc</code> garante isso.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">interfaces restringem genéricos</span>
+<pre><span class="add">interface</span> Named {
+  fn name() -&gt; string
+}
+
+pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
+  x.name()
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          O <code>defer</code> executa a limpeza quando o bloco termina, em todo caminho, inclusive num return antecipado ou num erro lançado. Vários defers rodam na ordem último a entrar, primeiro a sair, e ele se combina com handles <code>owned</code>. E o <code>std/task</code> junta trabalho concorrente sob um só tempo de vida, em vez de deixar promises soltas.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">defer + concorrência estruturada</span>
+<pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
+
+let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { fetch_b() }])</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Sendo honesto: o Glyph compila para TypeScript e roda num motor JavaScript, então a ordem de avaliação, valor versus referência, a igualdade (<code>==</code> é <code>===</code>, sem sobrecarga) e o modelo single-threaded com garbage collector são herdados, não inventados. A especificação agora os declara como garantias, em vez de deixar você descobrir sozinho. Memória manual e um modelo sem GC não estão em nenhum roadmap; estão fora do que uma linguagem que transpila para TypeScript é.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Não existe <code>if</code>, então o <code>match</code> tem de carregar tudo</h2>
+        <p>
+          A primeira coisa que alguém que vem do TypeScript pergunta depois de ouvir sobre exaustividade é se o <code>match</code> é mesmo uma condicional de uso geral ou só um jeito bonito de desestruturar uma union. É a primeira opção, e o lugar que prova isso é a atribuição. Um <code>match</code> que é o valor inteiro de um <code>let</code> ou de um <code>mut</code> aceita tudo o que uma instrução aceita: um braço pode ser um bloco, um braço pode fazer <code>await</code>, um braço pode dar <code>break</code> no loop em volta, e um braço pode ler a variável que está atribuindo, que é como você acumula estado num loop sem <code>if</code>.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">do verificador de links: rastreamento de blocos de código, e um braço com await</span>
+<pre>for raw in lines {
+  let fence = is_fence(raw)
+  <span class="add">mut</span> in_fence = <span class="add">match</span> fence {      <span class="cm"># reads the binding it assigns</span>
+    true =&gt; !in_fence,
+    false =&gt; in_fence,
+  }
+}
+
+let cache = <span class="add">match</span> args.offline {
+  true =&gt; no_cache(),
+  false =&gt; <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Os dois compilam para um <code>switch</code> simples que atribui a variável em cada braço, então o <code>await</code> fica na função async que o envolve e o acumulador é uma variável normal que o TypeScript consegue inferir. Um <code>match</code> usado <em>dentro</em> de uma expressão maior, como argumento ou operando, ainda vira uma closure, o que significa que os braços precisam ser expressões únicas. Levá-lo para um <code>let</code> próprio elimina essa limitação. Os dois trechos são de <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>, um verificador de links em Markdown escrito justamente para encontrar esse tipo de coisa.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Um padrão pode nomear um formato mais de um nível abaixo</h2>
+        <p>
+          Uma variante com vários campos carrega um record, então um braço que quer reconhecer um formato precisa entrar nos campos desse record. Até a 0.1.90, a posição de campo aceitava um nome e mais nada: dava para renomeá-lo, e só. Casar uma tag ali era erro de compilação, e um construtor aninhado derrubava o parser. O contorno era vincular cada campo e escrever um <code>match</code> aninhado por nível, o que, para algo como o rebalanceamento de uma árvore rubro-negra, é outro programa: os braços deixam de se alinhar com os casos e cada nível repassa as variáveis do nível de cima.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">um caso de rotação do rebalanceamento rubro-negro, num braço só</span>
+<pre>type Tree =
+  | Leaf
+  | Node({ color: Color, left: Tree, value: number, right: Tree })
+
+match t {
+  Node({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) =&gt;
+    Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b }), value: y, right: c }),
+  other =&gt; other,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Um campo agora aceita qualquer padrão: uma tag de variante, um construtor aninhado, uma desestruturação aninhada, um literal, um padrão de array. Há uma consequência que vale conhecer antes de escrever um. Um campo que testa um valor pode falhar, então o braço deixa de contar como cobertura da sua variante, e um match cujo único braço <code>Node</code> é <code>Node({ color: Red, ... })</code> é reportado como não exaustivo até que um braço irmão ou um <code>else</code> cuide do resto. O verificador prova cobertura sobre um conjunto de tags, não sobre um produto de campos, então ele não vai deduzir que um braço <code>Red</code> e um braço <code>Black</code> juntos esgotam <code>Node</code>. Exigir o catch-all é a leitura que não deixa um match passar do fim em tempo de execução. O mesmo vale onde não há variantes para contar: um match sobre um record simples em que todo braço testa um campo precisa de um <code>else</code> no final.
+        </p>
+        <p>
+          Um lugar onde isso chega e que talvez você não espere é a posição de array. <code>[Black]</code> como braço inteiro contava como casar com qualquer array de um elemento, então um match que dependia dele era certificado como exaustivo e depois pegava esse braço também para <code>[Red]</code>. Um elemento em PascalCase é uma referência a variante aqui também, então um match assim agora dá <code>E0208</code> em arrays de tamanho 1. Vincule o elemento e faça o match nele separadamente. A tradução por baixo ainda é a antiga, e é por isso que a checagem foi a metade publicada primeiro.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">E o compilador sabe o que o <code>match</code> produziu</h2>
+        <p>
+          A pergunta seguinte é a que decide se algo disso sustenta peso: depois que você extrai um valor de um ramo, o Glyph sabe o tipo dele, ou dá de ombros e deixa o <code>tsc</code> resolver depois? Até a 0.1.45 dava de ombros. Toda expressão <code>match</code> era tipada como desconhecida, então um valor que saía da única construção de ramificação da linguagem ficava sem tipo dali em diante. Um <code>match</code> agora assume o tipo dos braços quando eles concordam, e o compilador sabe que <code>T.parse</code> retorna <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, que é o formato sobre o qual a maior parte do código real ramifica.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">do divisor de despesas: sem anotação, e <code>i</code> é um number</span>
+<pre>let wire = <span class="add">match</span> WireLedger.parse(decoded) {
+  Ok(w) =&gt; w,
+  Err(issues) =&gt; {
+    return Err(BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }))
+  },
+}
+
+for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", "1", "2"</span>
+  ...
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          As duas metades disso são coisas que davam errado em silêncio. O loop emite <code>wire.expenses.entries()</code>; quando o tipo do que é iterado é desconhecido, ele emite <code>Object.entries(...)</code> no lugar e <code>i</code> é a <em>string</em> <code>"0"</code>, o que é TypeScript válido, então o build saía limpo e o programa imprimia <code>01:a</code> quando queria dizer <code>1:a</code>. E <code>wire.expensez</code> agora é <code>[E0210] type WireLedger has no field expensez</code> vindo do Glyph, na linha do <code>.glyph</code>, em vez de um <code>TS2339</code> no TypeScript gerado. A junção é igualdade no topo: um braço que termina em <code>return</code> não vota, e braços cujos tipos discordam deixam o resultado desconhecido, como antes. Ela olha um nível mais fundo só num argumento de tipo, então <code>None =&gt; []</code> concorda com um braço <code>Array&lt;string&gt;</code> em vez de derrubar o <code>match</code> inteiro, e o loop logo depois continua vinculando um number. A mesma cadeia sobre <code>record.get</code> funciona pelo mesmo motivo: as seis funções do <code>std/record</code> levam o tipo do valor do record que você passa. O trecho é de <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>, que carregava a anotação que isso eliminou.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">do resolvedor de dependências: uma busca, um fallback vazio, um percurso por índice</span>
+<pre>let path = <span class="add">match</span> record.get(res.reached, name) {
+  Some(p) =&gt; p,
+  None =&gt; [],
+}
+
+for i, hop in path {               <span class="cm"># i is a number, so the indent nests</span>
+  let indent = string.repeat(STEP, i + 1)
+  mut out = array.push(out, "${indent}${hop}")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Esse é o formato em que isso mais custava. <code>record.get</code> sobre um <code>Record&lt;string, Array&lt;string&gt;&gt;</code> é um <code>Option&lt;Array&lt;string&gt;&gt;</code>, e <code>[]</code> é um array de nada em particular, então os dois braços concordam em <code>Array</code> e o tipo do elemento vem do braço que tem um. Até a 0.1.55 eles eram comparados por igualdade, <code>[]</code> contava como discordância, e o loop abaixo imprimia <code>01:x</code> num build sem diagnósticos em que o <code>tsc --strict</code> passava. O código é <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>, que antes abria com <code>let path: Array&lt;string&gt;</code> sob um comentário de três linhas explicando que a anotação era essencial.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Preciso escrever <code>pad_start</code> eu mesmo?</h2>
+        <p>
+          O primeiro buraco que você encontra num programa real não é um recurso do sistema de tipos. É procurar <code>string.slice</code> e não encontrar nada. Cinco rodadas seguidas de dogfooding registraram a mesma lista, e até a 0.1.47 seis apps neste repositório tinham o seu próprio <code>repeat</code>, cinco o seu próprio <code>pad_start</code>, e todos tinham um loop onde cabia um fold. Esses onze nomes vêm na biblioteca agora, e as cópias foram apagadas de todos os sete apps que as tinham.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">o que entrou</span>
+<pre>string.<span class="add">repeat</span>(s, n)           string.<span class="add">slice</span>(s, start, end?)       array.<span class="add">fold</span>(xs, init, f)
+string.<span class="add">pad_start</span>(s, w, pad?)   string.<span class="add">index_of</span>(s, needle, from?)  array.<span class="add">index_of</span>(xs, x)
+string.<span class="add">pad_end</span>(s, w, pad?)     string.<span class="add">replace_all</span>(s, from, to)     array.<span class="add">flat_map</span>(xs, f)
+string.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span>(s)
+
+<span class="cm"># the 25-line block six apps each carried, and what replaced it:</span>
+let total = array.<span class="add">fold</span>(expenses, 0, fn(sum, e) { sum + e.cents })
+io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<span class="add">pad_start</span>(amount, 9)}")</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Três deles se afastam de propósito dos homônimos do TypeScript. <code>repeat</code> retorna <code>""</code> com uma contagem negativa, onde o TS lança erro, e é isso que torna <code>repeat(pad, width - len(s))</code> seguro numa string que já é longa demais. As duas funções <code>index_of</code> retornam <code>Option&lt;number&gt;</code> em vez de <code>-1</code>, porque <code>-1</code> é um number que passa na checagem de tipos em todo lugar onde um índice real passa e falha bem longe da chamada. A substituição existe só como <code>replace_all</code>, então não há uma forma que troca só a primeira ocorrência para confundir com <code>String.prototype.replace</code>, que troca uma ocorrência só, sem avisar.
+        </p>
+        <p>
+          O <code>fold</code> é o que compra um pilar em vez de só economizar digitação. <code>mut</code> é o registro buscável de todo lugar onde o estado muda, e sem fold, <code>grep mut</code> volta cheio de loops de contagem que não alteram nada que interesse a quem revisa. Apagar as versões feitas à mão levou <code>examples/apps/</code> de 192 pontos de mutação para 161. A reescrita foi conferida pela saída, não por revisão: os sete apps rodaram com entradas fixas antes e depois, 26 arquivos de stdout, códigos de saída e respostas HTTP, todos idênticos byte a byte.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Dá para percorrer um diretório e saber o que quebrou?</h2>
+        <p>
+          O <code>std/fs</code> veio com seis funções e nenhuma listava um diretório. O verificador de links deste repositório passava por cima da stdlib e ia direto no <code>readdirSync</code> do Node, e descobria quais caminhos eram diretórios tentando lê-los e inspecionando o <code>errno</code> que voltava. As duas metades disso foram corrigidas. <code>fs.read_dir</code> retorna os nomes das entradas um nível abaixo, <code>fs.is_dir</code> responde com um <code>bool</code> como o <code>fs.exists</code> faz, e <code>fs.stat</code> retorna um <code>FileInfo</code> com <code>is_dir</code>, <code>is_file</code>, <code>size</code> em bytes e <code>modified</code> em milissegundos desde a epoch, que o <code>time.format_iso</code> formata diretamente. Não há <code>walk</code> recursivo nem glob; um percurso são essas três mais <code>path.join</code> em umas dez linhas.
+        </p>
+        <p>
+          O lado das falhas mudou mais. <code>FsError.kind</code> era <code>{ tag: string }</code>, com <code>NotFound</code> como toda a taxonomia, então distinguir &ldquo;esse caminho é um diretório&rdquo; de &ldquo;esse caminho não existe&rdquo; significava comparar uma string de errno. Agora os cinco tipos de que um programa de fato se recupera têm nome, e um errno sem nome chega intacto na cauda <code>Other</code>.
+        </p>
+        <p>
+          O verificador sabe que essa taxonomia é fechada, então um <code>match</code> sobre <code>err.kind</code> é cobrado no mesmo nível de uma union que você mesmo declarou: cubra os seis e você não precisa de <code>else</code>, deixe um de fora e o build falha com <code>E0200</code> citando <code>fs.ErrorKind</code>. <code>fs.FsError</code> e <code>fs.FileInfo</code> também têm campos verificados, então <code>err.mesage</code> dá <code>E0210</code> no seu código Glyph em vez de um erro do <code>tsc</code> no TypeScript gerado.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">percorrer uma árvore, e dizer o que deu errado</span>
+<pre>let names = fs.<span class="add">read_dir</span>(dir)?
+for name in names {
+  let child = path.join([dir, name])
+  match fs.<span class="add">is_dir</span>(child) {
+    true  =&gt; visit(child),
+    false =&gt; {
+      let info = fs.<span class="add">stat</span>(child)?
+      report_size(child, info.size)
+    },
+  }
+}
+
+match err.<span class="add">kind</span> {                        <span class="cm"># no else arm: E0200 if you miss one</span>
+  fs.ErrorKind.<span class="add">NotFound</span>         =&gt; io.eprintln("no such path"),
+  fs.ErrorKind.<span class="add">NotADirectory</span>    =&gt; io.eprintln("that is a file"),
+  fs.ErrorKind.<span class="add">IsADirectory</span>     =&gt; io.eprintln("that is a directory"),
+  fs.ErrorKind.<span class="add">AlreadyExists</span>    =&gt; io.eprintln("already there"),
+  fs.ErrorKind.<span class="add">PermissionDenied</span> =&gt; io.eprintln("cannot read it"),
+  fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Duas mudanças menores entraram junto, ambas vindas do mesmo app. <code>regex.captures_all</code> dá os grupos de captura de cada correspondência, em vez de só o texto casado, então uma varredura simples de <code>key=value</code> deixa de ser um loop feito à mão. E <code>task.pool_settled</code> é o <code>task.pool</code> com o comportamento de falha do <code>all_settled</code>: concorrência limitada, um resultado por tarefa, e um host fora do ar custa só o resultado daquele host, e não todos os resultados que o pool tinha juntado.
+        </p>
+        <p>
+          Essa checagem está ativa. Apague o braço <code>PermissionDenied</code> do <code>match</code> acima e o <code>glyph check --no-tsc</code> para com <code>E0200</code>: match não exaustivo sobre <code>fs.ErrorKind</code>, faltando as variantes <code>PermissionDenied</code>. Quando o modelo da stdlib foi escrito, ele cobria só tipos de retorno, e um match como este compilava sem erro e lançava exceção em tempo de execução; os formatos de campos e variantes de <code>fs.FsError</code>, <code>fs.FileInfo</code> e <code>fs.ErrorKind</code> agora estão modelados.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Como saber se as funções são as certas?</h2>
+        <p>
+          Porque o app que as pediu teve de parar de contorná-las antes de a release contar como concluída. Uma função de biblioteca publicada e um contorno que sobrevive a ela são afirmações diferentes, então a mesma mudança que adicionou essas quatro apagou as cópias do verificador de links: o import de <code>readdirSync</code>, as duas comparações de string de <code>errno</code>, 97 linhas de scanner feito à mão e o pool que falhava no primeiro erro. Saíram 122 linhas.
+        </p>
+        <p>
+          Duas dessas remoções mudaram o que o programa faz, e a diferença foi medida em vez de discutida. Aponte a versão antiga e a nova para uma árvore com um diretório que você não consegue ler: a nova imprime <code>permission denied</code> e conta o caminho como ilegível, e a antiga, que só conseguia perguntar se o errno era <code>EISDIR</code>, deixava o caminho de fora do relatório. Faça uma de três URLs lançar erro: o <code>pool_settled</code> imprimiu as três linhas e apontou a falha, e o <code>pool</code> não imprimiu nada e morreu numa rejeição não tratada, levando junto os dois resultados bons.
+        </p>
+        <p>
+          A reescrita do scanner também resolveu uma dúvida de design. Como um grupo de captura que não participou aparece como <code>""</code>, igual a um que casou vazio, parecia que o <code>captures_all</code> não conseguia dizer qual ramo de uma alternância disparou. Consegue, se você escrever o grupo de cada ramo em volta da construção inteira, e não em volta da parte que você quer: um grupo que disparou começa então com <code>`</code>, <code>[</code>, <code>!</code> ou <code>&lt;</code>, e não pode estar vazio. A parte que pode ser vazia, o destino do link, fica aninhada dentro e nunca é o que você pergunta. Isso transformou um percurso de 180 linhas, caractere por caractere, em dois padrões e um despacho de 12 linhas, com saída idêntica byte a byte na própria documentação do repositório e numa fixture feita para quebrá-lo.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Dinheiro não roda em float</h2>
+        <p>
+          O buraco que encerraria na hora a avaliação de uma fintech é fazer contas de dinheiro com <code>number</code> IEEE-754, onde <code>0.1 + 0.2</code> não é <code>0.3</code> e valores acima de 2<sup>53</sup> perdem precisão em silêncio. O <code>std/decimal</code> é ponto fixo decimal exato sobre BigInt: um inteiro de precisão arbitrária com um número fixo de casas decimais, então adição, subtração e multiplicação são exatas e a divisão recebe uma escala e um arredondamento explícitos. Um valor malformado vira um <code>Err</code> no parse, nunca um <code>NaN</code> silencioso.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", half away from zero</span>
+decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Para números <em>inteiros</em> grandes e exatos, ids de conta e contadores, existe o tipo <code>bigint</code>: os literais são <code>123n</code>, ele vira um <code>bigint</code> de verdade no TypeScript, e um campo de record tipado como <code>bigint</code> valida <code>typeof === "bigint"</code> na fronteira, então um id enviado como <code>number</code> no JSON é rejeitado em vez de ser arredondado em silêncio acima de 2<sup>53</sup>.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Um callback async finalmente tem um tipo</h2>
+        <p>
+          Um tipo de função era <code>fn(A) -&gt; T</code> e mais nada, o que emite <code>(a: A) =&gt; T</code>. Um corpo async não cabe nisso, então uma função que retornava uma tarefa adiada, ou um record de handlers async, tinha de ficar sem anotação e o verificador deixava de olhar. <code>async fn(A) -&gt; T</code> é esse tipo que faltava. Ele emite <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, e <code>async fn()</code> sem retorno emite <code>() =&gt; Promise&lt;void&gt;</code>.
+        </p>
+        <p>
+          O próprio Glyph separa os dois, em vez de deixar isso para o <code>tsc</code>: uma função comum onde se espera uma async é <code>E0204</code> num return e <code>E0211</code> num argumento de chamada, e a mensagem cita os dois lados. O único caso que ele não julga é um retorno <code>void</code>, em que o TypeScript aceita qualquer função.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">uma tarefa adiada, e um mapa de handlers</span>
+<pre>fn task_for(url: string) -&gt; <span class="add">async fn() -&gt; Fetched</span> {
+  return async fn() -&gt; Fetched { return { url: url, body: await fetch_one(url) } }
+}
+
+type Handler = <span class="add">async fn(string) -&gt; string</span>
+
+async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: string) -&gt; string {
+  return match record.get(routes, name) {
+    Some(h) =&gt; await h(arg),
+    None    =&gt; "no route",
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Um tipo recursivo, casado até o fundo</h2>
+        <p>
+          Uma union pode citar a si mesma dentro do próprio conteúdo, com seus parâmetros de tipo, e um braço de match pode aninhar um padrão de construtor dentro do campo de outro padrão de construtor. Junte as duas coisas e as regras de balanceamento de uma árvore rubro-negra viram quatro braços: cada um nomeia o formato exato que reescreve, e quem verifica o formato é o compilador, não um comentário acima dele afirmando isso. <code>examples/apps/leaderboard/main.glyph</code> é o programa inteiro, um placar que guarda todas as pontuações na árvore e responde consultas de posição, top-N e intervalo percorrendo-a, em vez de reordenar um log.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">um dos quatro casos de rotação</span>
+<pre>type Tree&lt;K, V&gt; =
+  | Leaf
+  | Node({ color: Color, left: <span class="add">Tree&lt;K, V&gt;</span>, key: K, value: V, size: int, right: <span class="add">Tree&lt;K, V&gt;</span> })
+
+fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
+  return match t {
+    Node({ color: Black, left: <span class="add">Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b })</span>, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) =&gt; node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    <span class="cm">// the other three cases, then:</span>
+    other =&gt; other,
+  }
+}</pre>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p>Visibilidade <code>pub</code> aplicada nas duas formas de nomear o tipo de um módulo vizinho (o import nomeado e a anotação <code>lib.Secret</code>), restrições estruturais com <code>interface</code>, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> como tipo escrito, uma union que cita a si mesma no próprio conteúdo casada por um braço que aninha um padrão de construtor dentro do campo de outro, <code>match</code> como valor de um <code>let</code> ou de um <code>mut</code> com blocos, <code>await</code> e controle de loop nos braços, um <code>match</code> cujos braços concordam levando seu tipo para o resto do programa, um <code>T.parse</code> tipado, <code>std/decimal</code> para contas exatas com dinheiro, <code>bigint</code> para inteiros grandes exatos, separadores de dígitos, uma seção da especificação que assume a semântica herdada do JS, e uma biblioteca padrão com <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> e <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, além de <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, uma taxonomia <code>FsError.kind</code> que o verificador cobra de você, e <code>regex.captures_all</code>. A maior parte de <code>std/string</code> e <code>std/array</code> agora leva o tipo de retorno para dentro do seu programa, então <code>string.split</code> é um <code>Array&lt;string&gt;</code> e o loop sobre ele vincula um índice numérico. O <code>std/record</code> também está modelado, com o tipo do valor lido do record que você passa: <code>record.get(t, k)</code> sobre um <code>Record&lt;string, Array&lt;string&gt;&gt;</code> é um <code>Option&lt;Array&lt;string&gt;&gt;</code>, e <code>record.keys(t)</code> é um <code>Array&lt;string&gt;</code>, então <code>array.sort(record.keys(t), cmp)</code> mantém o tipo do elemento.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Onde para</h3>
+          <p>Um import privado relata &ldquo;not exported by M&rdquo;, a mesma mensagem de um nome inexistente; distinguir &ldquo;privado, marque com <code>pub</code>&rdquo; de &ldquo;esse nome não existe&rdquo; é um refinamento na fila. A visibilidade é checada em anotações de tipo, não em valores lidos por um namespace: <code>lib.helper()</code> com <code>helper</code> privado ainda é um erro do <code>tsc</code>, não do Glyph. O contexto async agora é checado (<code>E0222</code>) exceto num ponto: o inicializador de um <code>const</code> no nível do módulo não tem função em volta, então um <code>await</code> no topo ali é permitido e o ESM emitido o executa. A junção dos braços ainda exige que eles concordem no topo do tipo: quando produzem tipos diferentes, o resultado é desconhecido para o Glyph e só o <code>tsc</code> verifica o que você faz com ele. Nove funções da stdlib estão na mesma situação. Seis recebem um argumento final opcional (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) e a checagem de aridade compara um número com um número, então modelá-las daria um erro falso em toda chamada que omite o último argumento; <code>array.map</code>, <code>flat_map</code> e <code>zip</code> tiram o tipo do elemento de um callback em que o verificador não entra. Um valor que sai direto dessas nove precisa de uma anotação antes de você iterá-lo com índice, e um <code>match</code> sobre <code>string.index_of</code> sem braço <code>None</code> ainda faz o build sem erro e lança exceção em tempo de execução. <code>array.index_of</code> está modelada e relata <code>E0200</code>. Membros e aridade de chamada sobre um valor que o verificador não conseguiu tipar continuam sem checagem nessa fronteira, em vez de virar erro. Do lado da biblioteca, <code>string</code> indexa unidades de código UTF-16, como <code>len</code> e <code>split</code> sempre fizeram, e isso está decidido: não existe <code>chars</code> nem <code>char_at</code> e nenhum está planejado, porque uma metade de par substituto devolvida parece um caractere até o momento em que é escrita. Codifique com <code>encoding.hex_encode</code> e leia dois dígitos hex por vez. O <code>captures_all</code> devolve grupos e nenhum offset, então um scanner que precisa saber em que ponto da linha uma correspondência começou ainda escreve o próprio loop, e o <code>fs.read_dir</code> devolve as entradas na ordem do sistema operacional, então ordene-as quando a saída precisar ser reproduzível. Um padrão de campo aninhado ainda tem uma limitação: um construtor que carrega conteúdo, num campo, numa union acessada por um import de namespace. <code>import tree { Node }</code> seguido de <code>Node({ left: Node({ key: k }) })</code> compila, e <code>import tree</code> seguido de <code>tree.Node({ left: tree.Node({ key: k }) })</code> dá <code>E0300</code> na mesma union. A outra limitação acabou: uma union genérica sobre o próprio parâmetro (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) recusava o braço aninhado que a mesma union sem o parâmetro aceita, e agora o aceita, tanto com um parâmetro de tipo aberto quanto numa instanciação concreta. A mesma busca decidia se o match era checado quanto a variantes faltando, então até esta release um <code>match</code> sobre <code>Tree&lt;K&gt;</code> podia omitir <code>Leaf</code>, fazer o build sem erro, passar no <code>tsc --strict</code> e lançar exceção em tempo de execução, enquanto a forma não genérica dava <code>E0200</code>. As duas formas relatam o erro, e mover a union para trás de um import não muda mais a resposta: um <code>match</code> sobre um <code>Tree&lt;string&gt;</code> importado que omite <code>Leaf</code> dá <code>E0200</code> citando <code>Leaf</code>, igual ao <code>Tree</code> não genérico importado. Esse era outro caminho de código, checado separadamente, e até esta release ia no sentido contrário, fazendo o build sem erro e lançando exceção em tempo de execução. Uma coisa sobre a cobertura de uma union importada ainda vale saber antes de confiar nela: o conteúdo das variantes também nunca é checado, então <code>B(X)</code>, onde <code>X</code> é uma variante da própria union do conteúdo, casa com todo <code>B</code> em vez de relatar o <code>Y</code> que falta, e isso não tem nada a ver com genéricos. Vincular um campo, ou casar nele uma tag sem conteúdo, funciona em todos os casos.</p>
+        </div>
+      </div>

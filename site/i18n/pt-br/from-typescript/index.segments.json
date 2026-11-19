@@ -1,0 +1,398 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "from-typescript/index.html",
+  "locale": "pt-br",
+  "source_hash": "bc168f89faa5ea6e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Coming from TypeScript · what changes in Glyph · Glyph",
+      "tr": "Para quem vem do TypeScript · o que muda no Glyph · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph reads almost like TypeScript and compiles to it. What changes: a few syntax deltas, no any, as or !, one greppable escape hatch, and how npm works.",
+      "tr": "Glyph se lê quase como TypeScript e compila para ele. O que muda: algumas diferenças de sintaxe, nada de any, as ou !, uma única válvula de escape que dá para buscar com grep, e como o npm funciona."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "Por onde seguir"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "Recomendado"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "See what TypeScript lets through",
+      "tr": "Veja o que o TypeScript deixa passar"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case run under <code>tsc --strict</code> and under Glyph, with the error.",
+      "tr": "Cada caso rodado no <code>tsc --strict</code> e no Glyph, com o erro."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "Ver o que ele detecta"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "Escreva seu primeiro programa"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "Instale, crie o projeto, rode, quebre de propósito, leia o erro. Uns dez minutos."
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "Try it in the browser",
+      "tr": "Experimente no navegador"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "The compiler runs in the page, with nothing to install.",
+      "tr": "O compilador roda na página, sem nada para instalar."
+    },
+    {
+      "id": "h-1400e396",
+      "kind": "html",
+      "en": "Coming from TypeScript",
+      "tr": "Para quem vem do TypeScript"
+    },
+    {
+      "id": "h-7d374caf",
+      "kind": "html",
+      "en": "What changes when you already write TypeScript",
+      "tr": "O que muda quando você já escreve TypeScript"
+    },
+    {
+      "id": "h-5166948b",
+      "kind": "html",
+      "en": "Less than you'd expect. Glyph compiles to TypeScript that passes <code>tsc --strict</code>, keeps npm and your deploy, and reads almost the same. The differences are a handful of deltas, and each one trades a way to be wrong for a check the compiler makes.",
+      "tr": "Menos do que você imagina. Glyph compila para TypeScript que passa no <code>tsc --strict</code>, mantém o npm e o seu deploy, e se lê quase igual. As diferenças são poucas, e cada uma troca uma forma de errar por uma verificação que o compilador faz."
+    },
+    {
+      "id": "h-380f8519",
+      "kind": "html",
+      "en": "If you know TypeScript, you know most of this",
+      "tr": "Se você conhece TypeScript, já conhece quase tudo isto"
+    },
+    {
+      "id": "h-a355cda9",
+      "kind": "html",
+      "en": "You don't learn a new language, just these four. They are the ones in every sample on this site.",
+      "tr": "Você não aprende uma linguagem nova, só estas quatro coisas. São as que aparecem em todos os exemplos deste site."
+    },
+    {
+      "id": "h-46e350dd",
+      "kind": "html",
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
+      "tr": "Um <code>switch</code> exaustivo: sobre uma union, o compilador obriga você a tratar todos os casos. Também é a única condicional: não existe <code>if</code>/<code>else</code> nem ternário, <a href=\"#there-is-no-if\">como explicado abaixo</a>."
+    },
+    {
+      "id": "h-12d01dfb",
+      "kind": "html",
+      "en": "Errors as return values, not thrown exceptions. You handle one with <code>match</code>, or propagate it with the <code>?</code> operator.",
+      "tr": "Erros como valores de retorno, não como exceções lançadas. Você trata um com <code>match</code> ou o propaga com o operador <code>?</code>."
+    },
+    {
+      "id": "h-d9b07eb7",
+      "kind": "html",
+      "en": "A function; the <code>-&gt;</code> is its return type. A <code>type X = {...}</code> is a record, and a <code>type X = A | B</code> is a tagged union.",
+      "tr": "Uma função; o <code>-&gt;</code> indica o tipo de retorno. Um <code>type X = {...}</code> é um record, e um <code>type X = A | B</code> é uma union etiquetada."
+    },
+    {
+      "id": "h-82ab0a00",
+      "kind": "html",
+      "en": "Reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.",
+      "tr": "Reatribuição é explícita e fácil de buscar. Um <code>let</code> comum nunca muda por baixo de você; para mudar um, você escreve <code>mut</code>."
+    },
+    {
+      "id": "h-40accee4",
+      "kind": "html",
+      "en": "\"Agents\" on this site means AI coding assistants such as Claude, Copilot and Cursor. Glyph helps them most, but the checks are the same whether a person or a model wrote the code. If you already run strict TypeScript with zod and eslint, <a href=\"/answers/vs-tooled-ts/\">here is what a language adds over that</a>.",
+      "tr": "\"Agentes\", neste site, são assistentes de código com IA como Claude, Copilot e Cursor. Glyph ajuda mais a eles, mas as verificações são as mesmas seja o código escrito por uma pessoa ou por um modelo. Se você já usa TypeScript estrito com zod e eslint, <a href=\"/answers/vs-tooled-ts/\">veja o que uma linguagem acrescenta a isso</a>."
+    },
+    {
+      "id": "h-06d12c99",
+      "kind": "html",
+      "en": "There is no if",
+      "tr": "Não existe if"
+    },
+    {
+      "id": "h-aaf8fd69",
+      "kind": "html",
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
+      "tr": "Um desvio sobre um booleano é um <code>match</code> em <code>true</code> e <code>false</code>. Quando você só age em um dos lados, o outro braço é um bloco vazio."
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-63d595e5",
+      "kind": "html",
+      "en": "The reason is decision D3 in the spec: one construct for branching on a value, so there is one shape to read, write and search for. A value that comes out of a branch always comes out of a <code>match</code>, whose result type Glyph's own checker works out instead of handing it to <code>tsc</code>. For a union, the same construct is the one that must cover every case (<code>E0200</code>). For a boolean that buys little, since <code>false =&gt; {}</code> says no more than leaving out an <code>else</code>.",
+      "tr": "O motivo é a decisão D3 da especificação: uma única construção para desviar com base em um valor, então há uma só forma para ler, escrever e buscar. Um valor que sai de um desvio sempre sai de um <code>match</code>, cujo tipo de resultado o próprio verificador do Glyph calcula, em vez de deixar isso para o <code>tsc</code>. Para uma union, é essa mesma construção que precisa cobrir todos os casos (<code>E0200</code>). Para um booleano isso rende pouco, já que <code>false =&gt; {}</code> não diz nada além de omitir um <code>else</code>."
+    },
+    {
+      "id": "h-7765a037",
+      "kind": "html",
+      "en": "It costs you something. A one-line ternary becomes a four-line <code>match</code>, an early return on a condition is a <code>match</code> with an empty arm, and it is the first thing that looks wrong to a TypeScript reader. The spec records the verbosity as an accepted cost. Writing <code>if</code> anyway is error <code>E0006</code>, whose help shows the <code>match</code> form; a ternary is <code>E0013</code> with the same help.",
+      "tr": "Isso tem um custo. Um ternário de uma linha vira um <code>match</code> de quatro linhas, um retorno antecipado sob uma condição é um <code>match</code> com um braço vazio, e é a primeira coisa que parece errada para quem lê TypeScript. A especificação registra a verbosidade como um custo aceito. Escrever <code>if</code> mesmo assim dá o erro <code>E0006</code>, cuja ajuda mostra a forma com <code>match</code>; um ternário dá <code>E0013</code>, com a mesma ajuda."
+    },
+    {
+      "id": "h-5a5cbe2a",
+      "kind": "html",
+      "en": "The tax you already pay",
+      "tr": "O imposto que você já paga"
+    },
+    {
+      "id": "h-73849589",
+      "kind": "html",
+      "en": "If you build with AI agents on a TypeScript codebase, these are the daily costs. Each one has a specific answer in Glyph, linked from the list.",
+      "tr": "Se você desenvolve com agentes de IA em uma base de código TypeScript, estes são os custos do dia a dia. Cada um tem uma resposta específica no Glyph, com link na lista."
+    },
+    {
+      "id": "h-887166ae",
+      "kind": "html",
+      "en": "Agents hallucinate APIs, because TypeScript erases its types and the runtime no longer agrees with compile time. Glyph types carry a runtime check (<code>T.parse</code>, <code>T.is</code>), see <a href=\"/answers/typed-apis/\">typed APIs</a>.",
+      "tr": "Agentes inventam APIs, porque o TypeScript apaga seus tipos e o runtime deixa de concordar com o tempo de compilação. Os tipos do Glyph trazem uma verificação em runtime (<code>T.parse</code>, <code>T.is</code>), veja <a href=\"/answers/typed-apis/\">APIs tipadas</a>."
+    },
+    {
+      "id": "h-31205be6",
+      "kind": "html",
+      "en": "Agents paper over uncertainty with <code>any</code> and <code>as unknown as T</code>, and the compiler lets them. Neither exists in Glyph, see the table below.",
+      "tr": "Agentes disfarçam a incerteza com <code>any</code> e <code>as unknown as T</code>, e o compilador deixa. Nenhum dos dois existe no Glyph, veja a tabela abaixo."
+    },
+    {
+      "id": "h-d3367c49",
+      "kind": "html",
+      "en": "You ask for a one-line change and get a whole file rewritten, because the formatter cascades on every edit. <code>glyph fmt</code> has one layout with no options, see <a href=\"/answers/diff-stability/\">clean diffs</a>.",
+      "tr": "Você pede uma mudança de uma linha e recebe o arquivo inteiro reescrito, porque o formatador se propaga a cada edição. O <code>glyph fmt</code> tem um único layout, sem opções, veja <a href=\"/answers/diff-stability/\">diffs limpos</a>."
+    },
+    {
+      "id": "h-3414000c",
+      "kind": "html",
+      "en": "You keep a hand-written validator next to every type (zod, and a serializer), and an agent renames a field in one but not the others; all of it still compiles. In Glyph the type is the validator.",
+      "tr": "Você mantém um validador escrito à mão ao lado de cada tipo (zod, e um serializador), e um agente renomeia um campo em um deles mas não nos outros; tudo continua compilando. No Glyph, o tipo é o validador."
+    },
+    {
+      "id": "h-ea4184c4",
+      "kind": "html",
+      "en": "You <code>grep</code> for a symbol and find ten unrelated matches: overloads, decorators, merged namespaces. Glyph has none of those, see <a href=\"/answers/greppability/\">finding things</a>.",
+      "tr": "Você faz <code>grep</code> por um símbolo e encontra dez resultados sem relação: overloads, decorators, namespaces mesclados. Glyph não tem nada disso, veja <a href=\"/answers/greppability/\">encontrar as coisas</a>."
+    },
+    {
+      "id": "h-f6530aaf",
+      "kind": "html",
+      "en": "The off-switches TypeScript gives you, and what Glyph has instead",
+      "tr": "Os botões de desligar que o TypeScript oferece, e o que o Glyph tem no lugar"
+    },
+    {
+      "id": "h-0fe3d59b",
+      "kind": "html",
+      "en": "Each TypeScript construct below tells the checker to stop checking. None of them is Glyph syntax. The middle column is what <code>glyph check --no-tsc</code> printed for each one on 0.1.149.",
+      "tr": "Cada construção de TypeScript abaixo manda o verificador parar de verificar. Nenhuma delas é sintaxe Glyph. A coluna do meio é o que o <code>glyph check --no-tsc</code> imprimiu para cada uma na 0.1.149."
+    },
+    {
+      "id": "h-c8db21bc",
+      "kind": "html",
+      "en": "In Glyph",
+      "tr": "No Glyph"
+    },
+    {
+      "id": "h-5d68f239",
+      "kind": "html",
+      "en": "What you write instead",
+      "tr": "O que você escreve no lugar"
+    },
+    {
+      "id": "h-67832a79",
+      "kind": "html",
+      "en": "Not syntax: <code>E0013</code>",
+      "tr": "Não é sintaxe: <code>E0013</code>"
+    },
+    {
+      "id": "h-84f8c408",
+      "kind": "html",
+      "en": "An <code>Option&lt;T&gt;</code> handled with <code>match</code>, or passed up with <code>?</code>",
+      "tr": "Um <code>Option&lt;T&gt;</code> tratado com <code>match</code>, ou repassado com <code>?</code>"
+    },
+    {
+      "id": "h-beb1a8e3",
+      "kind": "html",
+      "en": "No cast exists: <code>E0013</code>, whose help says to validate",
+      "tr": "Não existe cast: <code>E0013</code>, cuja ajuda diz para validar"
+    },
+    {
+      "id": "h-006076f6",
+      "kind": "html",
+      "en": "<code>T.parse(x)</code>, which returns a <code>Result</code>",
+      "tr": "<code>T.parse(x)</code>, que retorna um <code>Result</code>"
+    },
+    {
+      "id": "h-a549d366",
+      "kind": "html",
+      "en": "Not a type: <code>E0103</code>, unresolved name",
+      "tr": "Não é um tipo: <code>E0103</code>, nome não resolvido"
+    },
+    {
+      "id": "h-6fd9cc30",
+      "kind": "html",
+      "en": "<code>unknown</code>, narrowed by <code>T.parse</code>, <code>T.is</code> or a <code>match</code> arm <code>is T</code>",
+      "tr": "<code>unknown</code>, estreitado por <code>T.parse</code>, <code>T.is</code> ou por um braço de <code>match</code> <code>is T</code>"
+    },
+    {
+      "id": "h-3c065f9d",
+      "kind": "html",
+      "en": "No user-written type guards: <code>E0002</code>",
+      "tr": "Sem type guards escritos pelo usuário: <code>E0002</code>"
+    },
+    {
+      "id": "h-039d3bb4",
+      "kind": "html",
+      "en": "The generated <code>T.is(v)</code>, which checks the declared shape, so a guard can't check less than it claims",
+      "tr": "O <code>T.is(v)</code> gerado, que verifica a forma declarada, então um guard não consegue verificar menos do que promete"
+    },
+    {
+      "id": "h-deba3acc",
+      "kind": "html",
+      "en": "An ordinary comment; the error under it still fires",
+      "tr": "Um comentário comum; o erro abaixo dele continua disparando"
+    },
+    {
+      "id": "h-a20798f5",
+      "kind": "html",
+      "en": "Nothing. No comment or flag turns a Glyph diagnostic off",
+      "tr": "Nada. Nenhum comentário ou flag desliga um diagnóstico do Glyph"
+    },
+    {
+      "id": "h-6869a73b",
+      "kind": "html",
+      "en": "<code>glyph check</code> has flags that skip a whole pass (<code>--no-tsc</code> skips the <code>tsc --strict</code> run, <code>--no-test</code> skips the <code>@example</code> tests), and none that silence one check. The full list of what a TypeScript project accepts and Glyph refuses, each case run under both compilers, is on <a href=\"/catches/\">the catches page</a>.",
+      "tr": "O <code>glyph check</code> tem flags que pulam uma etapa inteira (<code>--no-tsc</code> pula a execução do <code>tsc --strict</code>, <code>--no-test</code> pula os testes <code>@example</code>), e nenhuma que silencie uma verificação. A lista completa do que um projeto TypeScript aceita e o Glyph recusa, cada caso rodado nos dois compiladores, está na <a href=\"/catches/\">página de casos detectados</a>."
+    },
+    {
+      "id": "h-ae85dea9",
+      "kind": "html",
+      "en": "One escape hatch, and you can grep for it",
+      "tr": "Uma válvula de escape, e dá para achá-la com grep"
+    },
+    {
+      "id": "h-c32f7ec7",
+      "kind": "html",
+      "en": "When you need TypeScript that Glyph can't spell, <code>extern_ts(\"...\")</code> takes one inline type or expression, and <code>tsc</code> still checks it. For a whole module, put the <code>.ts</code> under <code>src/extern/</code> and write <code>import extern/name</code>; relative imports are otherwise illegal, so that path is the only way in. Both forms contain the word <code>extern</code>, so <code>grep -rn extern src/</code> lists every place the checker hands over to TypeScript.",
+      "tr": "Quando você precisa de TypeScript que o Glyph não consegue expressar, <code>extern_ts(\"...\")</code> recebe um tipo ou expressão inline, e o <code>tsc</code> continua verificando. Para um módulo inteiro, coloque o <code>.ts</code> em <code>src/extern/</code> e escreva <code>import extern/name</code>; imports relativos são proibidos fora isso, então esse caminho é a única entrada. As duas formas contêm a palavra <code>extern</code>, então <code>grep -rn extern src/</code> lista todos os lugares onde o verificador passa o controle para o TypeScript."
+    },
+    {
+      "id": "h-cd5d6b49",
+      "kind": "html",
+      "en": "What the emitted TypeScript looks like",
+      "tr": "Como é o TypeScript gerado"
+    },
+    {
+      "id": "h-169034ff",
+      "kind": "html",
+      "en": "Plain TypeScript, one file per module, that you can read and commit. A union becomes a discriminated union plus a value carrying its runtime check, and a <code>match</code> becomes a <code>switch</code> on the tag. This is <code>glyph build</code>'s output for the module on the left, with the import lines trimmed.",
+      "tr": "TypeScript comum, um arquivo por módulo, que você pode ler e commitar. Uma union vira uma union discriminada mais um valor que carrega sua verificação em runtime, e um <code>match</code> vira um <code>switch</code> na tag. Esta é a saída do <code>glyph build</code> para o módulo da esquerda, sem as linhas de import."
+    },
+    {
+      "id": "h-563a40e0",
+      "kind": "html",
+      "en": "plan.ts (emitted, trimmed)",
+      "tr": "plan.ts (gerado, resumido)"
+    },
+    {
+      "id": "h-3b534e13",
+      "kind": "html",
+      "en": "Delete the <code>Team</code> arm and the build stops before any TypeScript is written:",
+      "tr": "Apague o braço <code>Team</code> e o build para antes de escrever qualquer TypeScript:"
+    },
+    {
+      "id": "h-7077f971",
+      "kind": "html",
+      "en": "glyph check --no-tsc (trimmed)",
+      "tr": "glyph check --no-tsc (resumido)"
+    },
+    {
+      "id": "h-f59e4630",
+      "kind": "html",
+      "en": "If you stop using Glyph, the emitted <code>.ts</code> is what you keep. It has no runtime dependency beyond a small bundled support directory the build writes next to it.",
+      "tr": "Se você parar de usar Glyph, o <code>.ts</code> gerado é o que fica com você. Ele não tem dependência de runtime além de um pequeno diretório de suporte que o build grava ao lado."
+    },
+    {
+      "id": "h-4a394bc5",
+      "kind": "html",
+      "en": "npm, and the TypeScript you already have",
+      "tr": "npm, e o TypeScript que você já tem"
+    },
+    {
+      "id": "h-76fdeb65",
+      "kind": "html",
+      "en": "A <code>.glyph</code> module imports an npm package by name (<code>import kafkajs { Kafka }</code>), typed from the package's own declarations, and your existing <code>.ts</code> imports the emitted Glyph modules like any local file. So you can start with one module inside an app that stays TypeScript. The details are in three answers.",
+      "tr": "Um módulo <code>.glyph</code> importa um pacote npm pelo nome (<code>import kafkajs { Kafka }</code>), tipado pelas declarações do próprio pacote, e o seu <code>.ts</code> existente importa os módulos Glyph gerados como qualquer arquivo local. Então você pode começar com um único módulo dentro de uma aplicação que continua em TypeScript. Os detalhes estão em três respostas."
+    },
+    {
+      "id": "h-e9a25225",
+      "kind": "html",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "Posso usar minhas bibliotecas de TypeScript, JavaScript e npm?"
+    },
+    {
+      "id": "h-f9974c7b",
+      "kind": "html",
+      "en": "Importing packages, keeping a <code>.ts</code> shim, and importing Glyph back into <code>.ts</code>.",
+      "tr": "Importar pacotes, manter um shim <code>.ts</code> e importar Glyph de volta no <code>.ts</code>."
+    },
+    {
+      "id": "h-959b40fe",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app?",
+      "tr": "Posso adotar Glyph dentro da minha aplicação existente?"
+    },
+    {
+      "id": "h-2a8fcb81",
+      "kind": "html",
+      "en": "The domain core in Glyph, the rest in TypeScript, in a stock Vite scaffold.",
+      "tr": "O núcleo de domínio em Glyph, o resto em TypeScript, em um projeto Vite padrão."
+    },
+    {
+      "id": "h-93bd5c12",
+      "kind": "html",
+      "en": "Does it work with React?",
+      "tr": "Funciona com React?"
+    },
+    {
+      "id": "h-0bc7f09f",
+      "kind": "html",
+      "en": "Components, JSX, hooks, Context, and where <code>tsc</code> still does the checking.",
+      "tr": "Componentes, JSX, hooks, Context, e onde o <code>tsc</code> continua fazendo a verificação."
+    }
+  ]
+}

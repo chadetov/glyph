@@ -1,0 +1,83 @@
+---
+title: Como compartilho estado mutável entre funções? · Glyph
+description: O Glyph não tem variáveis globais mutáveis. Estado compartilhado mora num std/store: um const no nível do módulo cujos get, set e update são as únicas escritas, encontradas numa só busca.
+source_hash: 59f9695c32448ee8
+prev: /answers/react/ | &larr; Anterior | Funciona com React: componentes, hooks e Context?
+next: /answers/language/ | Próxima &rarr; | É uma linguagem de verdade, ou um brinquedo cheio de buracos?
+---
+      <p class="q-eyebrow">14 &middot; Estado compartilhado</p>
+      <h1 class="q-title">Como compartilho estado mutável entre funções?</h1>
+
+      <p class="short-answer">
+        Com um <strong>store</strong>. O Glyph não tem variáveis globais mutáveis. Bindings de módulo são <code>const</code>. Estado compartilhado mora num <code>std/store</code>: um <code>const</code> no nível do módulo que guarda um valor que você lê com <code>get()</code> e muda com <code>set()</code>/<code>update()</code>. O binding nunca muda; só o valor dentro dele muda, por meio de uma chamada de método, então toda escrita é literalmente um <code>.set(</code> ou um <code>.update(</code> que dá para achar com grep.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Veja na prática</h2>
+        <p>
+          Declare o store uma vez no escopo do módulo. Todas as funções do módulo o compartilham. Nada de <code>let</code> passado adiante a partir do <code>main</code>, nada de closures capturando variáveis:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>import std/store { create }
+import std/array
+
+type Task = {
+  id: number,
+  title: string,
+}
+
+const tasks = create&lt;Array&lt;Task&gt;&gt;([])
+const next_id = create(0)
+
+fn add(title: string) -&gt; Task {
+  next_id.update(fn(n: number) -&gt; number {
+    return n + 1
+  })
+  let task = { id: next_id.get(), title: title }
+  tasks.update(fn(cur: Array&lt;Task&gt;) -&gt; Array&lt;Task&gt; {
+    return array.push(cur, task)
+  })
+  return task
+}
+
+fn all() -&gt; Array&lt;Task&gt; {
+  return tasks.get()
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">toda a superfície de escrita, num só grep</span>
+<pre>$ grep -rn 'tasks\.\(set\|update\)' src/
+src/tasks.glyph:16:  tasks.update(fn(cur...
+
+# every place the task list can change,
+# enumerated. nothing hides in an
+# ordinary `x = ...` assignment
+# somewhere else in the file.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Por que um store, e não uma global mutável</h2>
+        <p>
+          É uma escolha de design deliberada. O Glyph mantém <code>mut</code> restrito a atribuições locais e os bindings de módulo como <code>const</code>, porque um monte de globais graváveis espalhadas é exatamente o que torna o estado difícil de entender e difícil de <em>encontrar</em>. Um store não exige afrouxar nenhuma das duas regras: o binding <code>const s</code> é imutável, e o valor dentro dele só muda via <code>set</code>/<code>update</code>. Assim o estado compartilhado chega como <strong>biblioteca, e não como sintaxe nova</strong> (sem tipos lineares, sem regras de mutação enfraquecidas), e a mutação fica num único lugar auditado em vez de espalhada pelo programa.
+        </p>
+        <p>
+          Um ponto de atenção, que o TypeScript também tem: uma coleção vazia não consegue inferir o tipo dos elementos, então inicialize com um argumento de tipo explícito: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Um store escalar (<code>create(0)</code>) infere sem problema.
+        </p>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p><code>std/store</code> com <code>create</code>, <code>get</code>, <code>set</code> e <code>update</code>: o lugar único, e que dá para achar com grep, do estado mutável compartilhado.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">A caminho</h3>
+          <p>Conveniências sobre a mesma primitiva (stores derivados/computados, assinaturas), construídas por cima sem mudar a linguagem.</p>
+        </div>
+      </div>

@@ -1,0 +1,50 @@
+---
+title: Por que TypeScript, e não Go ou uma linguagem nova? · Glyph
+description: TypeScript é onde os agentes já escrevem mais código e onde ficam o npm, o React e o Node. O Glyph só pode ser adotado um arquivo por vez porque o alvo dele é TS.
+source_hash: 9f7bf2e8baaad5d9
+prev: /answers/greppability/ | &larr; Anterior | Um agente (ou eu) consegue achar onde qualquer coisa está definida?
+next: /answers/vs-tooled-ts/ | Próxima &rarr; | Por que não só TypeScript strict + zod + eslint + ts-pattern?
+---
+      <p class="q-eyebrow">04 &middot; Posicionamento</p>
+      <h1 class="q-title">Por que TypeScript, e não Go ou uma linguagem nova?</h1>
+
+      <p class="short-answer">
+        Porque TypeScript é onde os agentes já escrevem mais código e onde vive o seu ecossistema (npm, React, Node). O Glyph pode ser adotado um arquivo por vez <strong>só porque o alvo dele é TS</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por que isso importa</h2>
+        <p>
+          Uma linguagem nova vive ou morre pelo caminho entre o zero e a produção. Compilar para TypeScript significa que você nunca sai do seu codebase, do seu bundler, do seu test runner nem do seu deploy. O Glyph se encaixa ao lado dos arquivos <code>.ts</code> que você já tem, e o import funciona sem atrito nas duas direções:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">o mesmo projeto: .glyph e .ts, lado a lado</span>
+<pre><span class="cm">// cart.glyph: new, written in Glyph</span>
+import { formatPrice } from "./format.ts"
+
+<span class="cm">// checkout.ts: existing, untouched</span>
+import { total } from "./cart.glyph"</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Não dá para colocar Go num codebase TypeScript arquivo por arquivo: é outro runtime, outro sistema de módulos, outro ecossistema. Esse fato sozinho é o motivo de o alvo ser TS.
+        </p>
+        <p>
+          <strong>O argumento justo a favor do Go:</strong> o conjunto pequeno e estável de palavras-chave dá ao agente menos jeitos de errar. Concordamos: é exatamente por isso que o Glyph mantém um núcleo pequeno de propósito, com um único jeito de fazer cada coisa. O Go está no nosso <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmark</a> de densidade para uma comparação direta.
+        </p>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p>Saída TypeScript limpa, imports nas duas direções com o seu <code>.ts</code> existente e um núcleo pequeno que roda em qualquer lugar onde roda Node ou um bundle de navegador.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Em medição</h3>
+          <p>O benchmark entre linguagens (Glyph, TS, Go, Python, Rust) cresce junto com o corpus, então a afirmação de &ldquo;superfície pequena&rdquo; continua sendo um número, e não uma alegação.</p>
+        </div>
+      </div>

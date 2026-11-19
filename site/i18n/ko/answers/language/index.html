@@ -1,7 +1,7 @@
 ---
 title: 이것은 진짜 언어인가요, 구멍 많은 장난감인가요? · Glyph
 description: 모듈 가시성, 제네릭 제약을 위한 구조적 인터페이스, defer, 구조적 동시성, 값으로서의 match, 그리고 JavaScript에서 물려받은 의미.
-source_hash: 5ef4512407bef58a
+source_hash: 9a4735d3e9bad608
 prev: /answers/state/ | &larr; 이전 | 함수 사이에서 변경 가능한 상태를 어떻게 공유하나요?
 next: /answers/finance/ | 다음 &rarr; | 돈을 다루거나, 내가 통제하지 못하는 입력을 맡겨도 되나요?
 ---
@@ -63,7 +63,7 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
 
       <div class="detail">
         <p>
-          솔직하게 말할 부분: Glyph는 TypeScript로 컴파일되어 JavaScript 엔진에서 실행되므로, 평가 순서, 값과 참조, 동등성(<code>==</code>는 <code>===</code>이며 오버로딩 없음), 단일 스레드 가비지 컬렉션 모델은 새로 만든 것이 아니라 물려받은 것입니다. 명세는 이제 이를 직접 알아내게 두지 않고 보장으로 명시합니다. 수동 메모리 관리와 GC가 없는 모델은 로드맵에 없습니다. TypeScript로 트랜스파일되는 언어가 할 수 있는 범위 밖입니다.
+          Glyph는 TypeScript로 컴파일되어 JavaScript 엔진에서 실행되므로, 평가 순서, 변경에 대한 참조 의미론, 가비지 컬렉션이 있는 단일 스레드 모델을 그대로 물려받습니다. 다른 점은 동등성입니다. <code>==</code>는 값을 비교하며 레코드는 필드 단위로 비교하지만, JavaScript의 <code>===</code>는 참조를 비교합니다. 사양은 이것들을 나중에 알아내도록 두지 않고 보장으로 명시합니다. 수동 메모리 관리와 GC가 없는 모델은 로드맵에 없습니다. TypeScript로 트랜스파일하는 언어의 범위를 벗어나기 때문입니다.
         </p>
       </div>
 

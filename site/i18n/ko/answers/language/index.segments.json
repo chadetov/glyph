@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/language/index.html",
   "locale": "ko",
-  "source_hash": "5ef4512407bef58a",
+  "source_hash": "9a4735d3e9bad608",
   "segments": [
     {
       "id": "title",
@@ -113,10 +113,10 @@
       "tr": "defer + 구조적 동시성"
     },
     {
-      "id": "h-21d0fec4",
+      "id": "h-d460c21d",
       "kind": "html",
-      "en": "The honest part: Glyph compiles to TypeScript and runs on a JavaScript engine, so evaluation order, value-versus-reference, equality (<code>==</code> is <code>===</code>, no overloading), and the single-threaded garbage-collected model are inherited, not invented. The spec now states them as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
-      "tr": "솔직하게 말할 부분: Glyph는 TypeScript로 컴파일되어 JavaScript 엔진에서 실행되므로, 평가 순서, 값과 참조, 동등성(<code>==</code>는 <code>===</code>이며 오버로딩 없음), 단일 스레드 가비지 컬렉션 모델은 새로 만든 것이 아니라 물려받은 것입니다. 명세는 이제 이를 직접 알아내게 두지 않고 보장으로 명시합니다. 수동 메모리 관리와 GC가 없는 모델은 로드맵에 없습니다. TypeScript로 트랜스파일되는 언어가 할 수 있는 범위 밖입니다."
+      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references. The spec states these as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "Glyph는 TypeScript로 컴파일되어 JavaScript 엔진에서 실행되므로, 평가 순서, 변경에 대한 참조 의미론, 가비지 컬렉션이 있는 단일 스레드 모델을 그대로 물려받습니다. 다른 점은 동등성입니다. <code>==</code>는 값을 비교하며 레코드는 필드 단위로 비교하지만, JavaScript의 <code>===</code>는 참조를 비교합니다. 사양은 이것들을 나중에 알아내도록 두지 않고 보장으로 명시합니다. 수동 메모리 관리와 GC가 없는 모델은 로드맵에 없습니다. TypeScript로 트랜스파일하는 언어의 범위를 벗어나기 때문입니다."
     },
     {
       "id": "h-173a357c",

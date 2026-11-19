@@ -1,7 +1,7 @@
 ---
 title: Isto é uma linguagem de verdade, ou um brinquedo cheio de buracos? · Glyph
 description: Visibilidade de módulos, interfaces estruturais para restringir genéricos, defer, concorrência estruturada e match como valor, e a semântica de JavaScript que ela herda.
-source_hash: 5ef4512407bef58a
+source_hash: 9a4735d3e9bad608
 prev: /answers/state/ | &larr; Anterior | Como compartilho estado mutável entre funções?
 next: /answers/finance/ | Próxima &rarr; | Posso confiar nele com dinheiro, e com entrada que eu não controlo?
 ---
@@ -63,7 +63,7 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
 
       <div class="detail">
         <p>
-          Sendo honesto: o Glyph compila para TypeScript e roda num motor JavaScript, então a ordem de avaliação, valor versus referência, a igualdade (<code>==</code> é <code>===</code>, sem sobrecarga) e o modelo single-threaded com garbage collector são herdados, não inventados. A especificação agora os declara como garantias, em vez de deixar você descobrir sozinho. Memória manual e um modelo sem GC não estão em nenhum roadmap; estão fora do que uma linguagem que transpila para TypeScript é.
+          O Glyph compila para TypeScript e roda em um motor JavaScript, então herda a ordem de avaliação, a semântica de referência para mutação e o modelo de thread única com coleta de lixo. A igualdade é onde ele difere: <code>==</code> compara valores, records campo a campo, enquanto o <code>===</code> do JavaScript compara referências. A especificação afirma isso como garantias em vez de deixar você descobrir sozinho. Memória manual e um modelo sem coleta de lixo não estão no roadmap; ficam fora do que uma linguagem que transpila para TypeScript é.
         </p>
       </div>
 

@@ -1,7 +1,7 @@
 ---
 title: Ist das eine echte Sprache oder ein Spielzeug mit Lücken? · Glyph
 description: Modul-Sichtbarkeit, strukturelle Interfaces für generische Bounds, defer, strukturierte Nebenläufigkeit und match als Wert, und die JavaScript-Semantik, die es erbt.
-source_hash: 5ef4512407bef58a
+source_hash: 9a4735d3e9bad608
 prev: /answers/state/ | &larr; Zurück | Wie teile ich veränderlichen Zustand zwischen Funktionen?
 next: /answers/finance/ | Weiter &rarr; | Kann ich ihm Geld anvertrauen und Eingaben, die ich nicht kontrolliere?
 ---
@@ -63,7 +63,7 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
 
       <div class="detail">
         <p>
-          Der ehrliche Teil: Glyph kompiliert zu TypeScript und läuft auf einer JavaScript-Engine, also sind Auswertungsreihenfolge, Wert- gegenüber Referenzsemantik, Gleichheit (<code>==</code> ist <code>===</code>, kein Überladen) und das single-threaded Modell mit Garbage Collection geerbt, nicht erfunden. Die Spezifikation nennt sie jetzt als Garantien, statt dich das selbst herausfinden zu lassen. Manuelle Speicherverwaltung und ein Modell ohne GC stehen auf keiner Roadmap; sie liegen außerhalb dessen, was eine Sprache ist, die zu TypeScript transpiliert.
+          Glyph kompiliert zu TypeScript und läuft auf einer JavaScript-Engine, übernimmt also die Auswertungsreihenfolge, die Referenzsemantik bei Mutation und das Single-Thread-Modell mit Garbage Collection. Bei der Gleichheit weicht es ab: <code>==</code> vergleicht Werte, Records Feld für Feld, während das <code>===</code> von JavaScript Referenzen vergleicht. Die Spezifikation nennt das als Garantien, statt dich es selbst herausfinden zu lassen. Manuelle Speicherverwaltung und ein Modell ohne GC stehen auf keiner Roadmap; sie liegen außerhalb dessen, was eine Sprache ist, die nach TypeScript transpiliert.
         </p>
       </div>
 

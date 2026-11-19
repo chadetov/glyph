@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/language/index.html",
   "locale": "th",
-  "source_hash": "5ef4512407bef58a",
+  "source_hash": "9a4735d3e9bad608",
   "segments": [
     {
       "id": "title",
@@ -113,10 +113,10 @@
       "tr": "defer + structured concurrency"
     },
     {
-      "id": "h-21d0fec4",
+      "id": "h-d460c21d",
       "kind": "html",
-      "en": "The honest part: Glyph compiles to TypeScript and runs on a JavaScript engine, so evaluation order, value-versus-reference, equality (<code>==</code> is <code>===</code>, no overloading), and the single-threaded garbage-collected model are inherited, not invented. The spec now states them as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
-      "tr": "ส่วนที่ต้องพูดตรงๆ: Glyph คอมไพล์เป็น TypeScript และรันบน JavaScript engine ลำดับการประเมินค่า value กับ reference ความเท่ากัน (<code>==</code> คือ <code>===</code> ไม่มี overloading) และ model แบบ single-thread ที่มี garbage collector จึงสืบทอดมา ไม่ได้คิดขึ้นใหม่ ตอนนี้สเปกระบุสิ่งเหล่านี้เป็นการรับประกัน แทนที่จะปล่อยให้คุณไปรู้เอง การจัดการหน่วยความจำเองและ model ที่ไม่มี GC ไม่อยู่ใน roadmap มันอยู่นอกขอบเขตของภาษาที่ transpile เป็น TypeScript"
+      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references. The spec states these as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "Glyph คอมไพล์เป็น TypeScript และรันบนเอนจิน JavaScript จึงรับลำดับการประเมินผล ความหมายแบบ reference เมื่อมีการแก้ไขค่า และโมเดลเธรดเดียวที่มี garbage collection มาด้วย จุดที่ต่างคือการเปรียบเทียบความเท่ากัน: <code>==</code> เปรียบเทียบค่า โดย record จะเทียบทีละฟิลด์ ส่วน <code>===</code> ของ JavaScript เปรียบเทียบ reference สเปกระบุเรื่องเหล่านี้เป็นการรับประกัน แทนที่จะปล่อยให้คุณค้นพบเอง การจัดการหน่วยความจำเองและโมเดลที่ไม่มี GC ไม่อยู่ในโรดแมป เพราะอยู่นอกขอบเขตของภาษาที่ทรานสไพล์เป็น TypeScript"
     },
     {
       "id": "h-173a357c",

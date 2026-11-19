@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glyph and Effect · a library and a language compared · Glyph</title>
+    <meta name="description" content="Effect pitches reliable TypeScript for the AI era, and so does Glyph. Effect is a TypeScript library with typed errors, dependency tracking and a large ecosystem; Glyph is a language that compiles to TypeScript and removes any, casts and the non-null assertion. What each does better, with code checked under tsc --strict and the Glyph compiler." />
+    <link rel="canonical" href="https://glyphlang.io/design/vs-effect/" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Main">
+        <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+        <div class="nav-links">
+          <a href="/playground/">Playground</a>
+          <a href="/pillars/verifiability/">Why Glyph</a>
+          <a href="/answers/">Answers</a>
+          <a href="/hardening/">Hardening</a>
+          <a href="/benchmarks/">Benchmarks</a>
+          <a href="/llms.txt">For agents</a>
+          <a href="/mcp/">MCP</a>
+          <a href="https://github.com/chadetov/glyph">GitHub</a>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Colour theme: auto (follows your system). Switch to light.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+      </nav>
+    </header>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">Design &middot; Comparison</p>
+      <h1 class="q-title">Glyph and Effect</h1>
+
+      <p class="short-answer">
+        Both aim at TypeScript that people and agents can rely on. Effect is a library: you keep
+        writing TypeScript and get typed errors, tracked dependencies and a large toolbox. Glyph
+        is a language that compiles to TypeScript, so it can refuse what TypeScript allows,
+        including the casts that undo a library's guarantees. Effect is far more mature.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">How Effect describes itself</p>
+        <p>
+          Effect's home page leads with "Reliable TypeScript for the AI era" and says its
+          "declarative patterns and strong type system make it easier for LLMs to generate
+          correct, production-ready code" (<a href="https://effect.website">effect.website</a>).
+          Its docs call it "an ecosystem of tools that help you build better applications and
+          libraries", built around an <code>Effect&lt;Success, Error, Requirements&gt;</code>
+          type that records what a computation returns, how it can fail, and what it needs
+          (<a href="https://effect.website/docs/getting-started/why-effect/">Why Effect</a>). It
+          asks for TypeScript 5.4 or newer with <code>strict</code> on
+          (<a href="https://effect.website/docs/getting-started/installation/">Installation</a>).
+          These quotes were read on 2026-11-19.
+        </p>
+
+        <p class="block-label">The difference that follows from library versus language</p>
+        <p>
+          Effect's types are checked by <code>tsc</code>, so everything <code>tsc</code> allows is
+          still allowed next to them. This compiles under <code>tsc --strict</code> with effect
+          4.1.4 and TypeScript 6. The cast removes <code>NotFound</code> from the error channel,
+          and the program reports a failure from an effect typed as unable to fail.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">eff.ts: tsc --strict exits 0; running it prints "Failure undefined"</span>
+<pre>import { Effect } from "effect"
+
+class NotFound {
+  readonly _tag = "NotFound"
+}
+
+const find = (id: string): Effect.Effect&lt;number, NotFound&gt; =&gt;
+  id === "1" ? Effect.succeed(1) : Effect.fail(new NotFound())
+
+<span class="cm">// The error channel says NotFound can happen. A cast erases it.</span>
+const quiet = find("2") as unknown as Effect.Effect&lt;number, never&gt;
+
+<span class="cm">// And a parsed body still takes any type you name.</span>
+type User = { email: string }
+const user = JSON.parse("{}") as User
+
+console.log(Effect.runSyncExit(quiet)._tag, user.email)</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The same function in Glyph returns a <code>Result</code>, and there is no cast to write.
+          The second module is refused before any TypeScript is emitted.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">find.glyph: builds, passes tsc --strict</span>
+<pre>module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">adding a cast: refused</span>
+<pre data-check="expect-error E0013">module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}
+
+pub fn quiet() -&gt; number {
+  let n = find("2") as number
+  return n
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>E0013</code>'s help reads: "Glyph has no <code>as</code> cast ... to turn an
+          <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it
+          with <code>match</code> and <code>is</code>." A team can get close to this in an Effect
+          codebase with lint rules, and <a href="/answers/vs-tooled-ts/">that comparison</a> covers
+          why a rule someone can turn off is a different guarantee.
+        </p>
+
+        <p class="block-label">What Effect does better</p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Area</th><th>Effect</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">Maturity</td><td data-label="Effect">Used in production; its home page lists Cloudflare among the companies</td><td data-label="Glyph">Early preview, pre-1.0, maintained mainly by one person</td></tr>
+            <tr><td data-label="Area">Ecosystem</td><td data-label="Effect">HTTP APIs, workflows, clustering, schema, scheduling, tracing and dependency injection, all from one project</td><td data-label="Glyph">A standard library of 40 modules; anything else comes from npm</td></tr>
+            <tr><td data-label="Area">Dependencies in the type</td><td data-label="Effect">The <code>Requirements</code> parameter tracks what a computation needs</td><td data-label="Glyph">No equivalent; a function's signature records its result and error only</td></tr>
+            <tr><td data-label="Area">Adoption</td><td data-label="Effect">An npm package; you wrap existing code and refactor upward, with no new compiler</td><td data-label="Glyph">A second compiler in the build, adopted one module at a time</td></tr>
+            <tr><td data-label="Area">Concurrency</td><td data-label="Effect">Structured concurrency, retries and scheduling built in</td><td data-label="Glyph"><code>par</code> and <code>std/task</code> helpers, much smaller</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">What Glyph does that a library can't</p>
+        <p>
+          A language decides what can be written. Glyph has no <code>any</code>, no cast, no
+          non-null assertion and no comment that silences an error, and every <code>match</code>
+          over a union has to cover every case. Records and unions carry a runtime check generated
+          from the declaration, so <code>json.parse&lt;User&gt;(body)</code> validates. Effect's
+          Schema also derives a type from one description
+          (<code>Schema.Schema.Type&lt;typeof Person&gt;</code> in
+          <a href="https://effect.website/docs/schema/introduction/">its introduction</a>), so the type and the validator don't
+          drift there either; what differs is that nothing in TypeScript makes a codebase use it.
+          The compiler also answers questions about a program for an agent, such as what a change
+          will break, <a href="/agents/">over MCP or the command line</a>.
+        </p>
+        <p>
+          This page has not tested using Effect from inside a Glyph module, so it makes no claim
+          about combining the two.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/design/"><span class="q">Back to design</span><p>The four pillars, the spec, and the other comparisons.</p></a>
+        <a class="a-card" href="/catches/"><span class="q">What Glyph refuses</span><p>Each mistake, checked under <code>tsc --strict</code> and under Glyph.</p></a>
+      </div>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>A typed language that transpiles to TypeScript, built so agents can change code without breaking it.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Product</h2>
+            <a href="/playground/">Playground</a>
+            <a href="/versions/">Versions</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases on GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+          </div>
+          <div class="foot-col">
+            <h2>Learn</h2>
+            <a href="/answers/">Answers</a>
+            <a href="/answers/verifiability/">Read the answers in order</a>
+            <a href="/answers/tooling/">Editor &amp; agent tooling</a>
+            <a href="/hardening/">Hardening</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">The five-minute tour</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Language spec</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Source</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/pages/design/vs-effect/index.html">Edit this page</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript your agents can't quietly break.</span>
+          <span>&copy; 2026 Glyph &middot; MIT or Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Light", dark: "Dark" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          var next = order[(order.indexOf(mode) + 1) % order.length];
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute(
+            "aria-label",
+            "Colour theme: " + names[mode].toLowerCase() + (mode === "auto" ? " (follows your system)" : "") + ". Switch to " + names[next].toLowerCase() + "."
+          );
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+  </body>
+</html>

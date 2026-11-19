@@ -327,6 +327,36 @@
       })();
     </script>
     <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
       // The answers list: a sidebar on wide screens needs nothing, and on
       // narrow ones the bar's button opens the same list as a panel.
       document.addEventListener("DOMContentLoaded", function () {
@@ -500,11 +530,11 @@
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
-<pre>10 match sites across 4 files
+<pre class="wraps">10 match sites across 4 files
  <span class="del">8 will fail compilation</span>
  <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
           <span class="cap">그다음 케이스를 추가하고 glyph check 실행</span>
-<pre>8 errors, E0200 non-exhaustive match. The same eight.
+<pre class="wraps">8 errors, E0200 non-exhaustive match. The same eight.
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">

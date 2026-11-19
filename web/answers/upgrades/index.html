@@ -283,6 +283,36 @@
       })();
     </script>
     <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
       // The answers list: a sidebar on wide screens needs nothing, and on
       // narrow ones the bar's button opens the same list as a panel.
       document.addEventListener("DOMContentLoaded", function () {
@@ -436,7 +466,7 @@
 
       <div class="code">
         <span class="cap">glyph doctor</span>
-<pre>glyph &mdash; 0.1.72
+<pre class="wraps">glyph &mdash; 0.1.72
   [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
              what changed: https://glyphlang.io/versions/
 
@@ -466,7 +496,7 @@ All good. `glyph run` and `glyph build --check` are ready.</pre>
 
       <div class="code">
         <span class="cap">One line changes, and you decide when</span>
-<pre>$ glyph upgrade --dry-run
+<pre class="wraps">$ glyph upgrade --dry-run
 glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
 
 $ glyph upgrade
@@ -503,7 +533,7 @@ glyph upgrade: build before you commit; a new release may report diagnostics
 
       <div class="code">
         <span class="cap">glyph --update</span>
-<pre>$ glyph --update
+<pre class="wraps">$ glyph --update
 glyph 0.1.72 is installed; 0.1.73 is published.
 Release notes: https://glyphlang.io/versions/
 A 0.1.x release may reject code that compiled before, so read the notes for anything between these two.

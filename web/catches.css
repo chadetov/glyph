@@ -207,6 +207,11 @@
 .c-code pre {
   font-size: 0.8125rem;
 }
+@media (max-width: 640px) {
+  .c-code pre {
+    font-size: 0.78125rem;
+  }
+}
 .c-code pre.c-out {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

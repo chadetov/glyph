@@ -283,6 +283,36 @@
       })();
     </script>
     <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
       // The answers list: a sidebar on wide screens needs nothing, and on
       // narrow ones the bar's button opens the same list as a panel.
       document.addEventListener("DOMContentLoaded", function () {
@@ -443,7 +473,7 @@
       </div>
       <div class="code">
         <span class="cap">an unused import, added a step before the code that would have used it</span>
-<pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
+<pre class="wraps">$ printf 'look\nquit\n' | glyph run adventure.glyph
 <span class="cm">...the game plays and exits 0...</span>
 
 [E0106] Warning: lint: unused import `math`

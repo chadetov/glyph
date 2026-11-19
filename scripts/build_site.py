@@ -50,7 +50,9 @@ A side-by-side pair of code panes (`<div class="two-up">`, or a case's
 `<div class="c-pair">`) whose longest code line would not fit half the
 column at the narrowest width it is shown side by side gets the class
 `stack`, and site/style.css stacks it rather than letting both halves
-scroll. See stack_wide_pairs().
+scroll. See stack_wide_pairs(). A bare <pre> that holds tool output (a
+diagnostic, an error, a run's output, or a block captioned with a `$` prompt)
+gets the class `wraps`, so a phone wraps it; see mark_wrapping_blocks().
 
 The release notes are the one source page that renders as several.
 site/pages/versions/index.html carries {{versions:...}} placeholders, and
@@ -489,6 +491,39 @@ def stack_wide_pairs(body: str) -> str:
     return "".join(out) + body[pos:]
 
 
+# What a tool printed rather than what someone wrote: a diagnostic, an error, a
+# run's output, or a block captioned with a shell prompt. On a phone these wrap
+# (site/style.css, `pre.wraps`), because a reader needs the end of the message
+# and the line breaks carry no meaning. Source code keeps its lines and scrolls,
+# even where only a comment runs long: a wrapped comment lands at column 0 and
+# reads as code.
+OUTPUT_FIRST_LINE = re.compile(
+    r"^\s*(?:\[[EW]\d{4}\]|(?:\w*Error|error|warning|Warning|rejected):"
+    r"|(?:FAILS?|PASS|ok)\b|\d+ (?:errors?|warnings?|match sites|tests?)\b"
+    r"|\$ |\d*\s*│|\S+:\d+:\d+ - error|glyph — )")
+OUTPUT_CAPTION = re.compile(r"^\$")
+CAPTION_BEFORE = re.compile(r'<span class="cap">((?:(?!</span>).)*)</span>\s*$', re.S)
+
+
+def wraps_on_phone(caption: str, code: str) -> bool:
+    text = html.unescape(re.sub(r"<[^>]+>", "", code))
+    first = next((line for line in text.split("\n") if line.strip()), "")
+    return bool(OUTPUT_CAPTION.match(caption) or OUTPUT_FIRST_LINE.match(first))
+
+
+def mark_wrapping_blocks(body: str) -> str:
+    """Add class `wraps` to each bare <pre> that a phone should wrap. The
+    block's text is untouched; only the opening tag changes."""
+    out, pos = [], 0
+    for m in re.finditer(r"<pre>(.*?)</pre>", body, re.S):
+        cap = CAPTION_BEFORE.search(body[max(0, m.start() - 600):m.start()])
+        caption = html.unescape(re.sub(r"<[^>]+>", "", cap.group(1))).strip() if cap else ""
+        if wraps_on_phone(caption, m.group(1)):
+            out += [body[pos:m.start()], '<pre class="wraps">']
+            pos = m.start() + len("<pre>")
+    return "".join(out) + body[pos:]
+
+
 def page_url(path: pathlib.Path) -> str:
     rel = path.relative_to(PAGES).parent.as_posix()
     return "/" if rel == "." else f"/{rel}/"
@@ -509,6 +544,7 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
     except site_catches.CatchesError as e:
         raise SiteError(str(e)) from None
     body = stack_wide_pairs(body)
+    body = mark_wrapping_blocks(body)
     body = site_i18n.english_island(body, ctx)
     head_values = {
         "title": fm["title"],

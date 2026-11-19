@@ -654,7 +654,8 @@ details.more > .body .code {
 .code.term .cap {
   flex-wrap: nowrap;
 }
-/* a long one-line message can wrap; box-drawing output must not */
+/* a long one-line message can wrap; box-drawing output keeps its lines
+   where there is room for them (a phone wraps every terminal, style.css) */
 .code.term.wraps pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

@@ -283,6 +283,36 @@
       })();
     </script>
     <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
       // The answers list: a sidebar on wide screens needs nothing, and on
       // narrow ones the bar's button opens the same list as a panel.
       document.addEventListener("DOMContentLoaded", function () {
@@ -430,7 +460,7 @@
 
       <div class="code">
         <span class="cap">glyph build</span>
-<pre><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
+<pre class="wraps"><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
    ╰─ End the arm with an expression, or `return` from it. `X =&gt; {}` is a no-op
       only where the `match` is a statement.
    note: A value-position arm lowers to `case X: { break; }` when it yields
@@ -460,7 +490,7 @@
 
       <div class="code">
         <span class="cap">glyph build, on `fn total() -&gt; number { return await fetch_count() }`</span>
-<pre><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
+<pre class="wraps"><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
    ╰─ Mark the enclosing function `async fn`, or call a non-async function here.
 
 <span class="cm">// before: no Glyph diagnostic, then</span>
@@ -512,7 +542,7 @@ within async functions and at the top levels of modules.</span></pre>
 
       <div class="code">
         <span class="cap">glyph build, on a union with an `Error` variant</span>
-<pre><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
+<pre class="wraps"><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
         references the JavaScript global `Error`, and this declaration would
         shadow it</span>
  5 │   | Error(string)
@@ -576,13 +606,13 @@ assignable to parameter of type ...</span></pre>
 
       <div class="code">
         <span class="cap">glyph build, before: fifteen of these, none of them near the cause</span>
-<pre><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
+<pre class="wraps"><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
 specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
       </div>
 
       <div class="code">
         <span class="cap">glyph build, now</span>
-<pre><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
+<pre class="wraps"><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
         references the Glyph prelude global `Issue`, and this declaration
         would shadow it</span>
    ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
@@ -615,7 +645,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <div class="code">
         <span class="cap">glyph build examples/apps, on `import catalog` inside csvql/</span>
-<pre><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
+<pre class="wraps"><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
         root `examples/apps`. There is a `csvql/catalog.glyph` under the
         root; a local import path is resolved from the build root, not from
         the importing file's directory (D15)</span>
@@ -664,7 +694,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <div class="code">
         <span class="cap">glyph check, before and now</span>
-<pre><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
+<pre class="wraps"><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
    ╰─ Add the expected token.</span>
 
 <span class="del">[E0010] a union variant carries one payload, but `Node` lists 6 positional
@@ -723,7 +753,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <div class="code">
         <span class="cap">glyph check, on a record built the TypeScript way</span>
-<pre><span class="del">[E0013] a statement cannot begin on the line where
+<pre class="wraps"><span class="del">[E0013] a statement cannot begin on the line where
         `return Order` ends</span>
    ╰─ Glyph has no `TypeName { ... }` construction form. Write the literal
       alone and put the type on the annotation: `let o: Order = { id: "a" }`.

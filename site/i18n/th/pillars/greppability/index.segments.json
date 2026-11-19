@@ -1,0 +1,230 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "pillars/greppability/index.html",
+  "locale": "th",
+  "source_hash": "dc081d192bed2b9f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Greppability · one name, one place · Glyph",
+      "tr": "ค้นหาได้ด้วย grep · หนึ่งชื่อ หนึ่งที่ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's second pillar: every symbol has one form at its declaration. No overloads, decorators, namespace merging or barrel re-exports, so grep finds it.",
+      "tr": "เสาหลักข้อที่สองของ Glyph: ทุกสัญลักษณ์มีรูปแบบเดียวที่ declaration ของมัน ไม่มี overload, decorator, การ merge namespace หรือ barrel re-export grep จึงเจอมัน"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous pillar",
+      "tr": "&larr; เสาหลักก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Verifiability: true at runtime",
+      "tr": "ตรวจสอบได้: จริงตอนรันด้วย"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next pillar &rarr;",
+      "tr": "เสาหลักถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Diff stability: a one-line change is a one-line diff",
+      "tr": "diff ที่คงที่: การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด"
+    },
+    {
+      "id": "h-e8d9455d",
+      "kind": "html",
+      "en": "Pillar 02 &middot; <span class=\"wedge\">The wedge</span>",
+      "tr": "เสาหลัก 02 &middot; <span class=\"wedge\">จุดหลัก</span>"
+    },
+    {
+      "id": "h-6b14954f",
+      "kind": "html",
+      "en": "Greppability",
+      "tr": "ค้นหาได้ด้วย grep"
+    },
+    {
+      "id": "h-376314fa",
+      "kind": "html",
+      "en": "<strong>One name, one place.</strong> Every symbol has exactly one syntactic form at the spot it's declared, so a plain <code>grep</code> finds the definition, always, with no index, no language server, and no luck required.",
+      "tr": "<strong>หนึ่งชื่อ หนึ่งที่</strong> ทุกสัญลักษณ์มีรูปแบบทาง syntax เพียงแบบเดียวตรงจุดที่ประกาศ <code>grep</code> ธรรมดาจึงเจอนิยามเสมอ ไม่ต้องมี index ไม่ต้องมี language server และไม่ต้องอาศัยโชค"
+    },
+    {
+      "id": "h-cfc911db",
+      "kind": "html",
+      "en": "Why \"where is this defined?\" is hard",
+      "tr": "ทำไม \"สิ่งนี้นิยามไว้ที่ไหน?\" ถึงตอบยาก"
+    },
+    {
+      "id": "h-8a696257",
+      "kind": "html",
+      "en": "In a mature TypeScript codebase, the simplest question, <em>where does this name come from?</em>, is often the hardest. The language offers half a dozen ways to spread one symbol across many places: overloads split a function into several signatures, decorators wrap it in something else, <code>namespace</code> and <code>interface</code> merging scatter a type across files, <code>declare module</code> augments code you don't own, and barrel <code>index.ts</code> files re-export everything so the path you import from isn't where anything actually lives.",
+      "tr": "ใน codebase TypeScript ที่โตแล้ว คำถามที่ง่ายที่สุด <em>ชื่อนี้มาจากไหน?</em> มักตอบยากที่สุด ภาษามีหลายวิธีให้กระจายสัญลักษณ์เดียวไปหลายที่: overload แยกฟังก์ชันเป็นหลาย signature, decorator ครอบมันด้วยอย่างอื่น, การ merge <code>namespace</code> และ <code>interface</code> กระจาย type ไปหลายไฟล์, <code>declare module</code> เสริมโค้ดที่คุณไม่ได้เป็นเจ้าของ และไฟล์ barrel <code>index.ts</code> re-export ทุกอย่าง path ที่คุณ import จึงไม่ใช่ที่ที่อะไรอยู่จริง"
+    },
+    {
+      "id": "h-7ac6182d",
+      "kind": "html",
+      "en": "A human copes with an LSP and muscle memory. An <strong>agent</strong> greps: it reads the repo as text, and every one of those constructs is a place the text lies about where the code is. Glyph removes them. The result is a language where search is a reliable primitive, not a heuristic.",
+      "tr": "คนรับมือได้ด้วย LSP และความเคยชิน <strong>เอเจนต์</strong> ใช้ grep: มันอ่าน repo เป็นข้อความ และทุก construct เหล่านั้นคือจุดที่ข้อความโกหกว่าโค้ดอยู่ที่ไหน Glyph เอาพวกมันออก ผลคือภาษาที่การค้นหาเป็น primitive ที่เชื่อถือได้ ไม่ใช่การเดาแบบ heuristic"
+    },
+    {
+      "id": "h-e0bad820",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> One declaration, one form",
+      "tr": "<span class=\"ex-label\">01</span> หนึ่ง declaration หนึ่งรูปแบบ"
+    },
+    {
+      "id": "h-b1b69e3e",
+      "kind": "html",
+      "en": "A function, type, or component is declared exactly once, with one syntax. There are no overloads to split a signature and no way to redeclare a name: two top-level things with the same name is a hard error (<code>E0100</code>). So the search for a definition has exactly one answer.",
+      "tr": "ฟังก์ชัน type หรือ component ถูกประกาศครั้งเดียวด้วย syntax เดียว ไม่มี overload ที่แยก signature และไม่มีทางประกาศชื่อซ้ำ: สองสิ่งระดับบนสุดที่ชื่อเดียวกันเป็น error ที่หยุด build (<code>E0100</code>) การค้นหานิยามจึงมีคำตอบเดียวพอดี"
+    },
+    {
+      "id": "h-e3252323",
+      "kind": "html",
+      "en": "TypeScript: four hits, one is the body",
+      "tr": "TypeScript: เจอสี่จุด มีจุดเดียวที่เป็น body"
+    },
+    {
+      "id": "h-5df9ace5",
+      "kind": "html",
+      "en": "Glyph: the first hit is the definition",
+      "tr": "Glyph: จุดแรกที่เจอคือนิยาม"
+    },
+    {
+      "id": "h-eb25898c",
+      "kind": "html",
+      "en": "The declaration keyword is part of the name you search for. <code>grep \"fn parseUser\"</code> cannot match a call, an import, or a re-export, only the one place it's <strong>defined</strong>.",
+      "tr": "keyword ของ declaration เป็นส่วนหนึ่งของชื่อที่คุณค้นหา <code>grep \"fn parseUser\"</code> ไม่มีทาง match การเรียก การ import หรือการ re-export มี match แค่ที่เดียวที่มัน<strong>ถูกนิยาม</strong>"
+    },
+    {
+      "id": "h-79996f09",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">02</span> No barrel files: the import path is the location",
+      "tr": "<span class=\"ex-label\">02</span> ไม่มีไฟล์ barrel: path ของ import คือตำแหน่ง"
+    },
+    {
+      "id": "h-f450e21f",
+      "kind": "html",
+      "en": "Glyph imports never re-export, and a module whose only contents are imports is rejected (<code>E0102</code>). There is no <code>index.ts</code> laundering layer. So an import names the module the symbol actually lives in: the path <em>is</em> the address.",
+      "tr": "import ของ Glyph ไม่เคย re-export และ module ที่มีแต่ import จะถูกปฏิเสธ (<code>E0102</code>) ไม่มีชั้น <code>index.ts</code> ที่ฟอกที่มา import จึงระบุ module ที่สัญลักษณ์อยู่จริง: path <em>คือ</em>ที่อยู่"
+    },
+    {
+      "id": "h-f4999a77",
+      "kind": "html",
+      "en": "the import tells you exactly where to look",
+      "tr": "import บอกคุณว่าต้องไปดูที่ไหนพอดี"
+    },
+    {
+      "id": "h-6c9d2ede",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">03</span> No hidden ways to attach behavior",
+      "tr": "<span class=\"ex-label\">03</span> ไม่มีทางแอบผูกพฤติกรรม"
+    },
+    {
+      "id": "h-c09fa1b1",
+      "kind": "html",
+      "en": "There are no decorators wrapping a function in an unseen layer, no <code>namespace</code> merging pooling members from across the tree, no <code>declare module</code> augmenting a third-party type from a file you'd never think to open, and no implicit <code>this</code> rebinding what a method refers to. A name resolves to one declaration, and everything that shapes it is visible at that declaration.",
+      "tr": "ไม่มี decorator ที่ครอบฟังก์ชันด้วยชั้นที่มองไม่เห็น ไม่มีการ merge <code>namespace</code> ที่รวม member จากทั่ว tree ไม่มี <code>declare module</code> ที่เสริม type ของ third-party จากไฟล์ที่คุณไม่มีวันคิดจะเปิด และไม่มี <code>this</code> แบบแฝงที่เปลี่ยนสิ่งที่ method อ้างถึง ชื่อหนึ่ง resolve ไปที่ declaration เดียว และทุกอย่างที่กำหนดรูปของมันมองเห็นได้ที่ declaration นั้น"
+    },
+    {
+      "id": "h-1f8a2312",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">04</span> Even mutation is greppable",
+      "tr": "<span class=\"ex-label\">04</span> แม้แต่การแก้ค่าก็ grep หาได้"
+    },
+    {
+      "id": "h-844b3d63",
+      "kind": "html",
+      "en": "Greppability isn't only about finding definitions, it's about finding <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a literal <code>.set(</code> or <code>.update(</code> call. So one search enumerates the entire write-surface of a piece of state, instead of hunting for assignments scattered through the file.",
+      "tr": "การค้นหาด้วย grep ไม่ได้เกี่ยวแค่การหานิยาม แต่เกี่ยวกับการหา<em>ผลกระทบ</em>ด้วย state ที่ใช้ร่วมกันอยู่ใน <code>std/store</code> และทุกการเปลี่ยนแปลงคือการเรียก <code>.set(</code> หรือ <code>.update(</code> ตรงตัว การค้นหาครั้งเดียวจึงแจกแจงช่องทางเขียนทั้งหมดของ state ได้ แทนที่จะไล่หาการ assign ที่กระจายอยู่ทั่วไฟล์"
+    },
+    {
+      "id": "h-69824f13",
+      "kind": "html",
+      "en": "A codebase is greppable when its <strong>text tells the truth about its structure.</strong> Every restriction here (one form per name, no re-exports, no merging) is there so that a search returns the answer, not a lead.",
+      "tr": "codebase ค้นหาได้ด้วย grep เมื่อ<strong>ข้อความของมันบอกความจริงเกี่ยวกับโครงสร้าง</strong> ทุกข้อจำกัดที่นี่ (รูปแบบเดียวต่อชื่อ ไม่มี re-export ไม่มีการ merge) มีไว้เพื่อให้การค้นหาได้คำตอบ ไม่ใช่แค่เบาะแส"
+    },
+    {
+      "id": "h-71727b66",
+      "kind": "html",
+      "en": "The benchmark: coming",
+      "tr": "benchmark: กำลังมา"
+    },
+    {
+      "id": "h-45b81f92",
+      "kind": "html",
+      "en": "The measurable version of this claim is precision: for a given symbol, what fraction of a plain grep's hits are the thing you were actually looking for, and how many steps does it take an agent to reach a definition? Glyph isn't in real-world use yet, so the chart below is a placeholder, it fills in with real numbers once there's a real codebase to measure.",
+      "tr": "รูปแบบที่วัดได้ของข้อกล่าวอ้างนี้คือ precision: สำหรับสัญลักษณ์หนึ่ง ผลลัพธ์จาก grep ธรรมดากี่เปอร์เซ็นต์ที่เป็นสิ่งที่คุณตามหาจริง และเอเจนต์ต้องใช้กี่ขั้นถึงจะไปถึงนิยาม Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยตัวเลขจริงเมื่อมี codebase จริงให้วัด"
+    },
+    {
+      "id": "h-22a29cf4",
+      "kind": "html",
+      "en": "Grep precision for a definition &middot; higher is better",
+      "tr": "precision ของ grep ในการหานิยาม &middot; ยิ่งสูงยิ่งดี"
+    },
+    {
+      "id": "h-301f9c4a",
+      "kind": "html",
+      "en": "TypeScript vs Glyph",
+      "tr": "TypeScript เทียบกับ Glyph"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "รอผล"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-78ff0968",
+      "kind": "html",
+      "en": "<span class=\"h\">Not measured yet</span> We'll report grep precision and steps-to-definition from a real Glyph codebase as soon as one exists, and publish the numbers here whatever they turn out to be.",
+      "tr": "<span class=\"h\">ยังไม่ได้วัด</span> เราจะรายงาน precision ของ grep และจำนวนขั้นที่ใช้ไปถึงนิยามจาก codebase Glyph จริงทันทีที่มี และเผยแพร่ตัวเลขที่นี่ไม่ว่าจะออกมาเป็นอย่างไร"
+    },
+    {
+      "id": "h-31f8c9a6",
+      "kind": "html",
+      "en": "The payoff compounds with scale and with autonomy. A human learns a codebase's hiding places; an agent starting cold does not. Greppability is what lets a tool (or a new teammate) navigate by reading, the way the repo actually is.",
+      "tr": "ผลตอบแทนทวีขึ้นตามขนาดและความเป็นอิสระ คนจะเรียนรู้ที่ซ่อนของ codebase เอเจนต์ที่เริ่มจากศูนย์ไม่ได้เรียน การค้นหาได้ด้วย grep คือสิ่งที่ทำให้เครื่องมือ (หรือเพื่อนร่วมทีมคนใหม่) นำทางได้ด้วยการอ่าน ตามที่ repo เป็นจริง"
+    },
+    {
+      "id": "h-1ee9e785",
+      "kind": "html",
+      "en": "\"A lint rule can ban overloads and decorators\"",
+      "tr": "\"กฎ lint ห้าม overload และ decorator ได้\""
+    },
+    {
+      "id": "h-054477f5",
+      "kind": "html",
+      "en": "In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to overload. The language still allows all of it, so the guarantee lasts as long as the config does and covers only the code it runs on. A <code>grep</code> over a dependency, a generated file or someone else's repository can't count on it. In Glyph the constructs don't exist, so <code>grep</code> works the same on every Glyph file, including ones nobody on your team configured.",
+      "tr": "ใน repository ของคุณเอง ได้ ESLint ห้าม namespace ได้ และทีมตกลงกันไม่ใช้ overload ได้ ภาษายังอนุญาตทั้งหมด การรับประกันจึงอยู่ได้นานเท่าที่ config อยู่ และครอบคลุมแค่โค้ดที่มันรัน <code>grep</code> บน dependency ไฟล์ที่ generate หรือ repository ของคนอื่นพึ่งพามันไม่ได้ ใน Glyph construct เหล่านั้นไม่มีอยู่ <code>grep</code> จึงทำงานเหมือนกันกับทุกไฟล์ Glyph รวมถึงไฟล์ที่ไม่มีใครในทีมคุณเป็นคนตั้งค่า"
+    },
+    {
+      "id": "h-7ef205c4",
+      "kind": "html",
+      "en": "What this looks like from the agent's side, finding a definition or every write to a value with one search, is answered in <a href=\"/answers/greppability/\">Can an agent (or I) find where anything is defined?</a>",
+      "tr": "สิ่งนี้เป็นอย่างไรจากมุมของเอเจนต์ คือการหานิยามหรือทุกการเขียนค่าด้วยการค้นหาครั้งเดียว ตอบไว้ใน <a href=\"/answers/greppability/\">เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?</a>"
+    }
+  ]
+}

@@ -1,0 +1,326 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "teams/index.html",
+  "locale": "th",
+  "source_hash": "d4a38356fad5c816",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "For teams · what Glyph guarantees and costs · Glyph",
+      "tr": "สำหรับทีม · Glyph รับประกันอะไรและต้องแลกกับอะไร · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "For a lead weighing Glyph: what the compiler guarantees and where it stops, adopting it in a TypeScript app, the exit story, version pinning and pre-1.0 status.",
+      "tr": "สำหรับหัวหน้าทีมที่กำลังพิจารณา Glyph: คอมไพเลอร์รับประกันอะไรและหยุดตรงไหน การนำมาใช้ในแอป TypeScript ทางออกถ้าจะเลิกใช้ การ pin เวอร์ชัน และสถานะก่อน 1.0"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "ไปต่อที่ไหน"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "แนะนำ"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "See what TypeScript lets through",
+      "tr": "ดูว่า TypeScript ปล่อยอะไรผ่าน"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "The cases a strict TypeScript project accepts, ranked, each run under <code>tsc --strict</code> and under Glyph.",
+      "tr": "กรณีที่โปรเจกต์ TypeScript แบบ strict ยอมรับ เรียงอันดับแล้ว แต่ละกรณีรันทั้งใน <code>tsc --strict</code> และใน Glyph"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "ดูสิ่งที่จับได้"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "เขียนโปรแกรมแรก"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "ติดตั้ง สร้างโปรเจกต์ รัน ตั้งใจทำให้พัง แล้วอ่าน error ใช้เวลาประมาณสิบนาที"
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "Try it in the browser",
+      "tr": "ลองในเบราว์เซอร์"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "The compiler runs in the page, with nothing to install.",
+      "tr": "คอมไพเลอร์รันในหน้าเว็บ ไม่ต้องติดตั้งอะไร"
+    },
+    {
+      "id": "h-7b11bd08",
+      "kind": "html",
+      "en": "For teams",
+      "tr": "สำหรับทีม"
+    },
+    {
+      "id": "h-205f7b1f",
+      "kind": "html",
+      "en": "What it guarantees, what adopting it costs, and how you get out",
+      "tr": "รับประกันอะไร การนำมาใช้ต้องแลกกับอะไร และจะออกอย่างไร"
+    },
+    {
+      "id": "h-26a40a38",
+      "kind": "html",
+      "en": "Glyph refuses a specific, checked list of cases that a strict TypeScript project accepts, and it compiles to TypeScript you can keep if you stop using it. It is an early preview: pre-1.0, maintained mainly by one person, and releasing several times a week.",
+      "tr": "Glyph ปฏิเสธรายการกรณีที่เจาะจงและตรวจแล้ว ซึ่งโปรเจกต์ TypeScript แบบ strict ยอมรับ และคอมไพล์เป็น TypeScript ที่คุณเก็บไว้ใช้ต่อได้ถ้าเลิกใช้ ตอนนี้ยังเป็นพรีวิวช่วงแรก: ยังไม่ถึง 1.0 ดูแลหลักๆ โดยคนคนเดียว และออกรุ่นใหม่หลายครั้งต่อสัปดาห์"
+    },
+    {
+      "id": "h-8eba8f1c",
+      "kind": "html",
+      "en": "What it guarantees",
+      "tr": "รับประกันอะไร"
+    },
+    {
+      "id": "h-3cd6a8a0",
+      "kind": "html",
+      "en": "Every claim about what Glyph catches is a case in the repository's <code>catches/</code> directory: the same program in TypeScript and in Glyph, both run by a CI gate. {{catches:breakdown}} Of the mistakes it does not refuse, {{catches:warned-all}} draw a warning, {{catches:boundary-all}} are bad data stopped at a runtime boundary check, and {{catches:runtime-all}} stop at run time. The ones a reviewer of agent-written code leans on most:",
+      "tr": "ทุกข้อกล่าวอ้างว่า Glyph จับอะไรได้ คือกรณีหนึ่งในไดเรกทอรี <code>catches/</code> ของ repository: โปรแกรมเดียวกันใน TypeScript และใน Glyph ซึ่ง CI gate รันทั้งคู่ {{catches:breakdown}} ในบรรดาข้อผิดพลาดที่ไม่ถูกปฏิเสธ {{catches:warned-all}} ข้อได้คำเตือน {{catches:boundary-all}} ข้อเป็นข้อมูลผิดที่ถูกหยุดโดยการตรวจที่ขอบเขตตอนรัน และ {{catches:runtime-all}} ข้อหยุดตอนรัน ข้อที่คนรีวิวโค้ดจากเอเจนต์พึ่งพามากที่สุด:"
+    },
+    {
+      "id": "h-340f4630",
+      "kind": "html",
+      "en": "Code",
+      "tr": "โค้ด"
+    },
+    {
+      "id": "h-9628cd47",
+      "kind": "html",
+      "en": "What is refused",
+      "tr": "สิ่งที่ถูกปฏิเสธ"
+    },
+    {
+      "id": "h-07b6c4ea",
+      "kind": "html",
+      "en": "A <code>match</code> that leaves out a case of a union, so adding a case lists every place that has to change",
+      "tr": "<code>match</code> ที่ขาด case ของ union ไป การเพิ่ม case จึงแสดงรายการทุกจุดที่ต้องแก้"
+    },
+    {
+      "id": "h-84e123b3",
+      "kind": "html",
+      "en": "A cast (<code>as</code>, <code>as unknown as</code>); there is no cast, and no <code>any</code>",
+      "tr": "cast (<code>as</code>, <code>as unknown as</code>) ไม่มี cast และไม่มี <code>any</code>"
+    },
+    {
+      "id": "h-5f3dcbe8",
+      "kind": "html",
+      "en": "Parsed JSON assigned to a typed name without being checked",
+      "tr": "JSON ที่ parse แล้วถูก assign ให้ชื่อที่มี type โดยไม่ได้ตรวจ"
+    },
+    {
+      "id": "h-0baae682",
+      "kind": "html",
+      "en": "A read from a map typed as if the key were always there",
+      "tr": "การอ่านจาก map ที่มี type ราวกับว่า key มีอยู่เสมอ"
+    },
+    {
+      "id": "h-2284bbcd",
+      "kind": "html",
+      "en": "A <code>Result</code> dropped on the floor (a warning; <code>let _ =</code> says it was deliberate)",
+      "tr": "<code>Result</code> ที่ถูกทิ้งไปเฉยๆ (เป็นคำเตือน <code>let _ =</code> บอกว่าตั้งใจ)"
+    },
+    {
+      "id": "h-109fb606",
+      "kind": "html",
+      "en": "<a href=\"/catches/\">The catches page</a> lists every case with its TypeScript, its Glyph, and the error, and says which ones a fully configured typescript-eslint setup would also have caught.",
+      "tr": "<a href=\"/catches/\">หน้าสิ่งที่จับได้</a> แสดงทุกกรณีพร้อม TypeScript, Glyph และ error และบอกว่ากรณีไหนที่ typescript-eslint ที่ตั้งค่าเต็มที่ก็จับได้เช่นกัน"
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "หยุดตรงไหน"
+    },
+    {
+      "id": "h-a3c9c6f6",
+      "kind": "html",
+      "en": "The guarantees cover code written in Glyph. An exception thrown inside an npm dependency still bypasses <code>Result</code>, and a type imported from a package's <code>.d.ts</code> has no runtime check. Inside Glyph, the {{catches:gap-cases}} open holes are listed with their gap numbers in <a href=\"/catches/#not-yet\">what it does not catch yet</a>, and the full ledger is <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>. For a comparison with strict TypeScript plus zod, eslint and ts-pattern, including where that setup is still ahead, see <a href=\"/answers/vs-tooled-ts/\">why not tooled TypeScript</a>.",
+      "tr": "การรับประกันครอบคลุมโค้ดที่เขียนด้วย Glyph exception ที่ throw จากภายใน dependency ของ npm ยังข้าม <code>Result</code> ไปได้ และ type ที่ import จาก <code>.d.ts</code> ของแพ็กเกจไม่มีการตรวจตอนรัน ภายใน Glyph ช่องโหว่ที่ยังเปิดอยู่ {{catches:gap-cases}} ข้อแสดงพร้อมหมายเลข gap ใน<a href=\"/catches/#not-yet\">สิ่งที่ยังจับไม่ได้</a> และบัญชีฉบับเต็มอยู่ที่ <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> สำหรับการเปรียบเทียบกับ TypeScript แบบ strict บวก zod, eslint และ ts-pattern รวมถึงจุดที่ชุดนั้นยังทำได้ดีกว่า ดู<a href=\"/answers/vs-tooled-ts/\">ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ</a>"
+    },
+    {
+      "id": "h-5e4dc7dc",
+      "kind": "html",
+      "en": "Adopting it inside an existing app",
+      "tr": "นำมาใช้ในแอปที่มีอยู่"
+    },
+    {
+      "id": "h-35d77f2f",
+      "kind": "html",
+      "en": "There is no rewrite. You write the part you can't afford to get wrong (models, permissions, state transitions, money) in Glyph, and the rest of the app stays TypeScript and imports the emitted modules like any local file. The walkthrough uses a stock Vite scaffold: <a href=\"/answers/embedding/\">Can I adopt Glyph inside my existing app?</a>",
+      "tr": "ไม่ต้องเขียนใหม่ คุณเขียนส่วนที่พลาดไม่ได้ (model, สิทธิ์, การเปลี่ยนสถานะ, เงิน) ด้วย Glyph ส่วนที่เหลือของแอปยังเป็น TypeScript และ import module ที่ emit ออกมาเหมือนไฟล์ในเครื่องทั่วไป ตัวอย่างทีละขั้นใช้ Vite scaffold แบบมาตรฐาน: <a href=\"/answers/embedding/\">นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม?</a>"
+    },
+    {
+      "id": "h-16ba11f7",
+      "kind": "html",
+      "en": "The exit story",
+      "tr": "ทางออกถ้าจะเลิกใช้"
+    },
+    {
+      "id": "h-261452ac",
+      "kind": "html",
+      "en": "<code>glyph build</code> writes plain TypeScript, one file per module, that passes <code>tsc --strict</code>. If you stop using Glyph, you commit that output and keep going with <code>tsc</code>. The licence is MIT or Apache-2.0, so a fork is always possible. <a href=\"/from-typescript/\">Coming from TypeScript</a> shows a module next to its emitted file.",
+      "tr": "<code>glyph build</code> เขียน TypeScript ธรรมดา หนึ่งไฟล์ต่อหนึ่ง module ที่ผ่าน <code>tsc --strict</code> ถ้าคุณเลิกใช้ Glyph ก็ commit output นั้นแล้วใช้ <code>tsc</code> ต่อไป license เป็น MIT หรือ Apache-2.0 จึง fork ได้เสมอ <a href=\"/from-typescript/\">สำหรับคนที่มาจาก TypeScript</a> แสดง module คู่กับไฟล์ที่ emit ออกมา"
+    },
+    {
+      "id": "h-c3485edf",
+      "kind": "html",
+      "en": "Pinning and upgrades",
+      "tr": "การ pin และการอัปเกรด"
+    },
+    {
+      "id": "h-7a7d8a9d",
+      "kind": "html",
+      "en": "<code>glyph init</code> pins the compiler to an exact version in <code>package.json</code>, with no <code>^</code>, so no release reaches your build by accident. Three commands handle the rest:",
+      "tr": "<code>glyph init</code> pin คอมไพเลอร์เป็นเวอร์ชันที่แน่นอนใน <code>package.json</code> โดยไม่มี <code>^</code> จึงไม่มีรุ่นไหนหลุดเข้ามาใน build ของคุณโดยบังเอิญ ส่วนที่เหลือใช้สามคำสั่ง:"
+    },
+    {
+      "id": "h-c6147f53",
+      "kind": "html",
+      "en": "upgrading on purpose",
+      "tr": "อัปเกรดอย่างตั้งใจ"
+    },
+    {
+      "id": "h-454480a0",
+      "kind": "html",
+      "en": "Details in <a href=\"/answers/upgrades/\">Will a new Glyph release break my build?</a>",
+      "tr": "รายละเอียดใน <a href=\"/answers/upgrades/\">รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?</a>"
+    },
+    {
+      "id": "h-b04fdb5f",
+      "kind": "html",
+      "en": "Release cadence and the Breaking marker",
+      "tr": "ความถี่ในการออกรุ่น และเครื่องหมาย Breaking"
+    },
+    {
+      "id": "h-228fec82",
+      "kind": "html",
+      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
+      "tr": "<a href=\"/versions/\">หน้าเวอร์ชัน</a> มีรายการของทุกรุ่นตั้งแต่ 0.1.0 ถึง {{releases:latest}} รวม {{releases:count}} รุ่น และ 22 รุ่นในนั้นออกในเดือนพฤศจิกายน 2026 จนถึงวันที่ 19 รุ่นจะถูกทำเครื่องหมาย Breaking เมื่อมันปฏิเสธโปรแกรมที่รุ่นก่อนยอมรับ ซึ่งเป็นวิธีที่การแก้ความถูกต้องส่วนใหญ่ลงมา มี {{releases:breaking}} รายการที่มีเครื่องหมายนี้ เครื่องหมายได้มาจากการรันโปรแกรมที่เล็กที่สุดที่ได้รับผลกระทบด้วยทั้งสองรุ่น ไม่ใช่จากการอ่าน diff และรุ่นก่อน 0.1.99 ไม่ได้ทดสอบด้วยวิธีนี้ รุ่นเก่าที่ไม่มีเครื่องหมายจึงหมายถึงยังไม่ได้ทดสอบ ไม่ใช่ปลอดภัย"
+    },
+    {
+      "id": "h-5ee8f8ce",
+      "kind": "html",
+      "en": "What a Breaking release has cost in practice: each recent note says what happened when the old and new versions were run over the repository's example apps. These are the newest Breaking releases, quoted from their notes:",
+      "tr": "รุ่น Breaking มีต้นทุนจริงแค่ไหน: บันทึกของรุ่นล่าสุดแต่ละรุ่นบอกว่าเกิดอะไรขึ้นเมื่อรันรุ่นเก่าและรุ่นใหม่กับแอปตัวอย่างใน repository นี่คือรุ่น Breaking ล่าสุด ยกมาจากบันทึกของแต่ละรุ่น:"
+    },
+    {
+      "id": "h-87b572a3",
+      "kind": "html",
+      "en": "The example apps are the project's own code, kept compiling release by release, so a newly refused shape is less likely to turn up in them than in yours. Each note names the shapes it refuses, so read it before upgrading.",
+      "tr": "แอปตัวอย่างเป็นโค้ดของโปรเจกต์เอง ซึ่งถูกดูแลให้คอมไพล์ผ่านทุกรุ่น รูปแบบที่เพิ่งถูกปฏิเสธจึงมีโอกาสโผล่ในนั้นน้อยกว่าในโค้ดของคุณ บันทึกแต่ละรุ่นระบุรูปแบบที่ปฏิเสธไว้ ควรอ่านก่อนอัปเกรด"
+    },
+    {
+      "id": "h-920e413c",
+      "kind": "html",
+      "en": "Status",
+      "tr": "สถานะ"
+    },
+    {
+      "id": "h-33711ac1",
+      "kind": "html",
+      "en": "Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> says what may change and what is held stable. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> says plainly that the project is maintained primarily by one person today.",
+      "tr": "Glyph ยังไม่ถึง 1.0 ก่อน 1.0 syntax, standard library และรูปร่างของ TypeScript ที่ emit ออกมาอาจเปลี่ยน และรุ่นใหม่อาจปฏิเสธโค้ดที่เคยคอมไพล์ผ่าน <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> บอกว่าอะไรอาจเปลี่ยนและอะไรถูกรักษาให้คงที่ <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> บอกตรงๆ ว่าตอนนี้โปรเจกต์ดูแลหลักๆ โดยคนคนเดียว"
+    },
+    {
+      "id": "h-731f8c8c",
+      "kind": "html",
+      "en": "Objections, answered",
+      "tr": "ข้อโต้แย้งและคำตอบ"
+    },
+    {
+      "id": "h-5188f42e",
+      "kind": "html",
+      "en": "We don't use AI much. Is it still worth it?",
+      "tr": "เราไม่ค่อยใช้ AI ยังคุ้มอยู่ไหม?"
+    },
+    {
+      "id": "h-367570a5",
+      "kind": "html",
+      "en": "The checks are the same whoever writes the code: fewer runtime surprises, smaller diffs, code you can grep.",
+      "tr": "การตรวจเหมือนกันไม่ว่าใครจะเขียนโค้ด: เจอเรื่องไม่คาดคิดตอนรันน้อยลง diff เล็กลง และโค้ดที่ grep หาได้"
+    },
+    {
+      "id": "h-9d1e7593",
+      "kind": "html",
+      "en": "We already run strict TypeScript and lint.",
+      "tr": "เราใช้ TypeScript แบบ strict กับ lint อยู่แล้ว"
+    },
+    {
+      "id": "h-a311b0b7",
+      "kind": "html",
+      "en": "Every one of those checks is opt-in and can be turned off in one line. Glyph's can't.",
+      "tr": "การตรวจพวกนั้นทุกข้อต้องเลือกเปิดเอง และปิดได้ในบรรทัดเดียว ของ Glyph ปิดไม่ได้"
+    },
+    {
+      "id": "h-72cdf2bf",
+      "kind": "html",
+      "en": "Can our agents write a language they've barely seen?",
+      "tr": "เอเจนต์ของเราจะเขียนภาษาที่แทบไม่เคยเห็นได้หรือ?"
+    },
+    {
+      "id": "h-ec32f008",
+      "kind": "html",
+      "en": "Most of what a model knows about TypeScript carries over, and the compiler names the rest.",
+      "tr": "สิ่งที่โมเดลรู้เกี่ยวกับ TypeScript ส่วนใหญ่ใช้ต่อได้ และคอมไพเลอร์บอกชื่อส่วนที่เหลือให้"
+    },
+    {
+      "id": "h-89f4eb9e",
+      "kind": "html",
+      "en": "Why compile to TypeScript at all?",
+      "tr": "ทำไมต้องคอมไพล์เป็น TypeScript?"
+    },
+    {
+      "id": "h-085a9545",
+      "kind": "html",
+      "en": "That is where npm, React and Node are, and it is why adoption can be one file at a time.",
+      "tr": "เพราะ npm, React และ Node อยู่ตรงนั้น และนั่นคือเหตุผลที่นำมาใช้ทีละไฟล์ได้"
+    },
+    {
+      "id": "h-07402c5a",
+      "kind": "html",
+      "en": "What does on-call see when it breaks?",
+      "tr": "คนที่ on-call เห็นอะไรเมื่อมันพัง?"
+    },
+    {
+      "id": "h-3cefcf3a",
+      "kind": "html",
+      "en": "Readable TypeScript, source maps back to the <code>.glyph</code> file, and stable error codes.",
+      "tr": "TypeScript ที่อ่านได้ source map ที่ชี้กลับไปยังไฟล์ <code>.glyph</code> และรหัส error ที่คงที่"
+    },
+    {
+      "id": "h-9ed9269c",
+      "kind": "html",
+      "en": "How do we know any of this is true?",
+      "tr": "เรารู้ได้อย่างไรว่าทั้งหมดนี้เป็นจริง?"
+    },
+    {
+      "id": "h-e6301226",
+      "kind": "html",
+      "en": "How each claim on this site is checked, and how to reproduce one yourself.",
+      "tr": "แต่ละข้อกล่าวอ้างบนเว็บนี้ถูกตรวจอย่างไร และจะทำซ้ำเองได้อย่างไร"
+    }
+  ]
+}

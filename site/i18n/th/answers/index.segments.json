@@ -1,0 +1,452 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/index.html",
+  "locale": "th",
+  "source_hash": "f574b9ebcd22635e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Answers · what engineers ask about Glyph · Glyph",
+      "tr": "คำตอบ · สิ่งที่วิศวกรถามเกี่ยวกับ Glyph · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Specific answers to what engineers ask about Glyph: what stops silent breakage, React and npm, why not tooled TypeScript, and debugging in production.",
+      "tr": "คำตอบเจาะจงสำหรับสิ่งที่วิศวกรถามเกี่ยวกับ Glyph: อะไรกันไม่ให้พังแบบเงียบๆ, React และ npm, ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ และการดีบักบน production"
+    },
+    {
+      "id": "h-4ad0a0a6",
+      "kind": "html",
+      "en": "Answers",
+      "tr": "คำตอบ"
+    },
+    {
+      "id": "h-b8cc598e",
+      "kind": "html",
+      "en": "What engineers <span class=\"accent\">ask about Glyph</span>.",
+      "tr": "สิ่งที่วิศวกร<span class=\"accent\">ถามเกี่ยวกับ Glyph</span>"
+    },
+    {
+      "id": "h-18cc597f",
+      "kind": "html",
+      "en": "Each answer shows a worked example and ends with what does not work yet. Start wherever your doubt is. New to Glyph? The <a href=\"/start/\">10-minute Start Here</a> is the fastest first run.",
+      "tr": "แต่ละคำตอบมีตัวอย่างประกอบ และปิดท้ายด้วยสิ่งที่ยังใช้ไม่ได้ เริ่มจากตรงที่คุณสงสัยได้เลย ถ้าเพิ่งรู้จัก Glyph <a href=\"/start/\">เริ่มที่นี่ใน 10 นาที</a>เป็นทางที่เร็วที่สุดในการลองครั้งแรก"
+    },
+    {
+      "id": "h-041d266f",
+      "kind": "html",
+      "en": "The problem it solves",
+      "tr": "ปัญหาที่แก้"
+    },
+    {
+      "id": "h-7289e459",
+      "kind": "html",
+      "en": "What an agent's edit can break without anyone noticing, and what Glyph does about each.",
+      "tr": "การแก้ของเอเจนต์ทำอะไรพังได้โดยไม่มีใครสังเกต และ Glyph ทำอะไรกับแต่ละเรื่อง"
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?"
+    },
+    {
+      "id": "h-bdd8080c",
+      "kind": "html",
+      "en": "No <code>any</code>, no casts, exhaustive <code>match</code>, runtime-checked types, and colocated tests that run on every build.",
+      "tr": "ไม่มี <code>any</code> ไม่มี cast <code>match</code> ต้องครบทุกกรณี type ที่ถูกตรวจตอนรัน และเทสต์ที่อยู่ข้างโค้ดซึ่งรันทุกครั้งที่ build"
+    },
+    {
+      "id": "h-b91718bd",
+      "kind": "html",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?"
+    },
+    {
+      "id": "h-e84f06e7",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout, nothing repacked.",
+      "tr": "การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด มี layout มาตรฐานแบบเดียว ไม่มีอะไรถูกจัดกลุ่มใหม่"
+    },
+    {
+      "id": "h-546a7b11",
+      "kind": "html",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?"
+    },
+    {
+      "id": "h-9cc9e5b6",
+      "kind": "html",
+      "en": "One name, one declaration form. <code>grep</code> always lands on it.",
+      "tr": "หนึ่งชื่อ หนึ่งรูปแบบ declaration <code>grep</code> เจอมันเสมอ"
+    },
+    {
+      "id": "h-c6330c11",
+      "kind": "html",
+      "en": "Deciding whether to adopt it",
+      "tr": "ตัดสินใจว่าจะใช้หรือไม่"
+    },
+    {
+      "id": "h-22146028",
+      "kind": "html",
+      "en": "Why a language rather than more tooling, and what taking it on costs.",
+      "tr": "ทำไมต้องเป็นภาษาแทนที่จะเป็นเครื่องมือเพิ่ม และการนำมาใช้มีต้นทุนอะไร"
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?"
+    },
+    {
+      "id": "h-851a58c8",
+      "kind": "html",
+      "en": "Because that's where your ecosystem is, and it's why adoption is per-file.",
+      "tr": "เพราะ ecosystem ของคุณอยู่ที่นั่น และนั่นคือเหตุผลที่นำมาใช้ทีละไฟล์ได้"
+    },
+    {
+      "id": "h-32fb06b2",
+      "kind": "html",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "ทำไมไม่ใช้แค่ TypeScript แบบ strict + zod + eslint + ts-pattern?"
+    },
+    {
+      "id": "h-23c639b0",
+      "kind": "html",
+      "en": "Non-optionality: the language the agent can't config-disable.",
+      "tr": "ความเป็นข้อบังคับ: ภาษาที่เอเจนต์ปิดผ่านการตั้งค่าไม่ได้"
+    },
+    {
+      "id": "h-e2f8d2d6",
+      "kind": "html",
+      "en": "Is Glyph worth it if I'm not using AI?",
+      "tr": "Glyph คุ้มไหมถ้าฉันไม่ได้ใช้ AI?"
+    },
+    {
+      "id": "h-9d32c00a",
+      "kind": "html",
+      "en": "Yes: the guarantees are plain engineering wins a human gets directly.",
+      "tr": "คุ้ม: การรับประกันเป็นประโยชน์ทางวิศวกรรมตรงๆ ที่คนได้รับโดยตรง"
+    },
+    {
+      "id": "h-e92baf62",
+      "kind": "html",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "AI เขียนภาษาที่แทบไม่เคยเห็นได้อย่างน่าเชื่อถือหรือ?"
+    },
+    {
+      "id": "h-d8728111",
+      "kind": "html",
+      "en": "Most of what a model knows about TypeScript carries over, and the compiler names the places it doesn't.",
+      "tr": "สิ่งที่โมเดลรู้เกี่ยวกับ TypeScript ส่วนใหญ่ใช้ต่อได้ และคอมไพเลอร์บอกจุดที่ใช้ไม่ได้"
+    },
+    {
+      "id": "h-7af5847c",
+      "kind": "html",
+      "en": "Will a new Glyph release break my build?",
+      "tr": "รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?"
+    },
+    {
+      "id": "h-722022d5",
+      "kind": "html",
+      "en": "Projects pin the compiler exactly, so no release arrives by accident. <code>glyph doctor</code> says one exists; <code>glyph upgrade</code> takes it.",
+      "tr": "โปรเจกต์ pin คอมไพเลอร์ไว้แบบตายตัว จึงไม่มีรุ่นไหนเข้ามาโดยบังเอิญ <code>glyph doctor</code> บอกว่ามีรุ่นใหม่ <code>glyph upgrade</code> อัปเกรดให้"
+    },
+    {
+      "id": "h-3c3ebd0a",
+      "kind": "html",
+      "en": "Using it with your stack",
+      "tr": "ใช้กับ stack ที่คุณมี"
+    },
+    {
+      "id": "h-ec9e0bd8",
+      "kind": "html",
+      "en": "npm packages, an existing app, API boundaries, React.",
+      "tr": "แพ็กเกจ npm แอปที่มีอยู่ ขอบเขตของ API และ React"
+    },
+    {
+      "id": "h-e9a25225",
+      "kind": "html",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?"
+    },
+    {
+      "id": "h-3731bc81",
+      "kind": "html",
+      "en": "Yes: import any npm package, keep a hand-written <code>.ts</code> shim where you need one, and import Glyph back into <code>.ts</code>.",
+      "tr": "ได้: import แพ็กเกจ npm ไหนก็ได้ เก็บ shim <code>.ts</code> ที่เขียนเองไว้ตรงที่จำเป็น และ import Glyph กลับเข้าไปใน <code>.ts</code>"
+    },
+    {
+      "id": "h-68c07ce1",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม หรือต้องเปลี่ยนทั้งหมด?"
+    },
+    {
+      "id": "h-40d4518d",
+      "kind": "html",
+      "en": "No rewrite: the domain core in Glyph, the rest in TypeScript. The emitted TypeScript is imported by a stock Vite app like any other module.",
+      "tr": "ไม่ต้องเขียนใหม่: แกนของโดเมนเป็น Glyph ส่วนที่เหลือเป็น TypeScript แอป Vite แบบมาตรฐาน import TypeScript ที่ emit ออกมาได้เหมือน module อื่นๆ"
+    },
+    {
+      "id": "h-01f55cfa",
+      "kind": "html",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "ต้องเขียน validator ด้วยมือให้ทุก API ไหม?"
+    },
+    {
+      "id": "h-aa1959d8",
+      "kind": "html",
+      "en": "No. Declaring a type generates its validator.",
+      "tr": "ไม่ต้อง การประกาศ type จะ generate validator ให้"
+    },
+    {
+      "id": "h-aacedd15",
+      "kind": "html",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "generate client และ server ที่มี type จากสเปก API ได้ไหม?"
+    },
+    {
+      "id": "h-56e357b7",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: committed, greppable code.",
+      "tr": "<code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: โค้ดที่ commit ได้และ grep หาได้"
+    },
+    {
+      "id": "h-03457be7",
+      "kind": "html",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "ใช้กับ React ได้ไหม: component, hook และ Context?"
+    },
+    {
+      "id": "h-83e1d236",
+      "kind": "html",
+      "en": "First-class JSX, hooks, and exhaustive reducer actions.",
+      "tr": "JSX, hook และ action ของ reducer ที่ต้องครบทุกกรณี รองรับเต็มที่"
+    },
+    {
+      "id": "h-d14ef0f9",
+      "kind": "html",
+      "en": "How do I share mutable state between functions?",
+      "tr": "จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?"
+    },
+    {
+      "id": "h-9a4c4436",
+      "kind": "html",
+      "en": "A store: a <code>const</code> whose <code>.set</code>/<code>.update</code> are the write-surface.",
+      "tr": "store: <code>const</code> ที่มี <code>.set</code>/<code>.update</code> เป็นช่องทางเขียน"
+    },
+    {
+      "id": "h-450a537d",
+      "kind": "html",
+      "en": "What you can build with it",
+      "tr": "สร้างอะไรได้บ้าง"
+    },
+    {
+      "id": "h-a57d1773",
+      "kind": "html",
+      "en": "The language and standard library, by the kind of program.",
+      "tr": "ภาษาและ standard library แยกตามประเภทของโปรแกรม"
+    },
+    {
+      "id": "h-49ee7f98",
+      "kind": "html",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่?"
+    },
+    {
+      "id": "h-6f5d2044",
+      "kind": "html",
+      "en": "Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.",
+      "tr": "การมองเห็นของ module, interface bound, defer, <code>match</code> ที่ใช้เป็นค่าได้ทุกที่และมี type ของมัน และ standard library ที่มี <code>slice</code>, <code>pad_start</code> และ <code>fold</code>"
+    },
+    {
+      "id": "h-a3ec390e",
+      "kind": "html",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "ไว้ใจมันกับเรื่องเงิน และกับ input ที่ควบคุมไม่ได้ได้ไหม?"
+    },
+    {
+      "id": "h-bc5ff3de",
+      "kind": "html",
+      "en": "Exact decimals and ids, invariants as types, injection as a compile error.",
+      "tr": "ทศนิยมและ id ที่แม่นยำ invariant ในรูป type และ injection เป็น compile error"
+    },
+    {
+      "id": "h-97be9762",
+      "kind": "html",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "ให้บริการหน้าเว็บได้ไหม หรือได้แค่ JSON API?"
+    },
+    {
+      "id": "h-a3e56df8",
+      "kind": "html",
+      "en": "HTML, redirects, response headers, and form posts, without a hand-written server.",
+      "tr": "HTML, redirect, response header และ form post โดยไม่ต้องเขียน server เอง"
+    },
+    {
+      "id": "h-e3bd5d73",
+      "kind": "html",
+      "en": "Can I write a program someone types into?",
+      "tr": "เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?"
+    },
+    {
+      "id": "h-b04febf4",
+      "kind": "html",
+      "en": "<code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.",
+      "tr": "<code>io.read_line</code> ตอบกลับทีละบรรทัดที่เข้ามา แทนที่จะรอให้ stdin ปิด REPL หรือ game loop จึงใช้ได้"
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "เขียน server ได้ไหม หรือ process จะจบไปเลย?"
+    },
+    {
+      "id": "h-d69c3e64",
+      "kind": "html",
+      "en": "<code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.",
+      "tr": "<code>main</code> เตรียมการแล้ว return process ยังทำงานต่อตราบที่ยังมี socket และ timer ค้างอยู่ ซึ่งเป็นกฎเดียวกับที่ Node ใช้"
+    },
+    {
+      "id": "h-0a58139d",
+      "kind": "html",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?"
+    },
+    {
+      "id": "h-56281a97",
+      "kind": "html",
+      "en": "<code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.",
+      "tr": "<code>std/bytes</code> คือลำดับของ octet พร้อม codec ที่ปฏิเสธ input ที่ผิดรูปแทนที่จะข้ามไป และ HMAC ที่ใช้ key จริง"
+    },
+    {
+      "id": "h-966247fe",
+      "kind": "html",
+      "en": "Working with an agent",
+      "tr": "ทำงานกับเอเจนต์"
+    },
+    {
+      "id": "h-7495dd12",
+      "kind": "html",
+      "en": "Questions an agent asks the compiler before and after an edit.",
+      "tr": "คำถามที่เอเจนต์ถามคอมไพเลอร์ก่อนและหลังการแก้"
+    },
+    {
+      "id": "h-f56d1cc7",
+      "kind": "html",
+      "en": "Can the compiler tell me what a change will break before I make it?",
+      "tr": "คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง ก่อนที่ฉันจะแก้?"
+    },
+    {
+      "id": "h-6e99d2f9",
+      "kind": "html",
+      "en": "<code>glyph_impact</code>: one verdict per site, from a closed list, with the reason, before you touch the file.",
+      "tr": "<code>glyph_impact</code>: คำตัดสินหนึ่งข้อต่อจุด จากรายการที่ปิดไว้ พร้อมเหตุผล ก่อนที่คุณจะแตะไฟล์"
+    },
+    {
+      "id": "h-d339a2b7",
+      "kind": "html",
+      "en": "Can my agent ask the compiler what a symbol is before it writes code?",
+      "tr": "เอเจนต์ของฉันถามคอมไพเลอร์ได้ไหมว่าสัญลักษณ์คืออะไร ก่อนเขียนโค้ด?"
+    },
+    {
+      "id": "h-e85a7e3e",
+      "kind": "html",
+      "en": "<code>glyph_symbol</code>: a union's variants with the syntax that constructs each, in one call. Eleven tools, each with a <code>glyph query</code> verb.",
+      "tr": "<code>glyph_symbol</code>: variant ของ union พร้อม syntax ที่ใช้สร้างแต่ละตัว ในการเรียกครั้งเดียว มีสิบเอ็ดเครื่องมือ แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code>"
+    },
+    {
+      "id": "h-e2d1e436",
+      "kind": "html",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "เมื่อ build ล้มเหลว คอมไพเลอร์บอกเอเจนต์ไหมว่าต้องแก้อย่างไร?"
+    },
+    {
+      "id": "h-9f5626a6",
+      "kind": "html",
+      "en": "The diagnostic carries the symbol at fault, the legal alternatives, and what a repairing edit must not break. <code>glyph fix</code> writes the ones the compiler settles on its own.",
+      "tr": "diagnostic มีสัญลักษณ์ที่ผิด ทางเลือกที่ถูกต้อง และสิ่งที่การแก้ต้องไม่ทำพัง <code>glyph fix</code> เขียนการแก้ที่คอมไพเลอร์ตัดสินได้เอง"
+    },
+    {
+      "id": "h-bbccff1f",
+      "kind": "html",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมา หรือเขียนด้วยมือและล้าสมัย?"
+    },
+    {
+      "id": "h-f3a7c0f2",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits the diagnostics, the prelude, the stdlib signatures and the tool manual out of the compiler's own tables, and a gate fails when a hand-written copy disagrees.",
+      "tr": "<code>glyph llms --json</code> emit diagnostic, prelude, signature ของ stdlib และคู่มือเครื่องมือ ออกมาจากตารางของคอมไพเลอร์เอง และมี gate ที่ fail เมื่อสำเนาที่เขียนด้วยมือไม่ตรงกัน"
+    },
+    {
+      "id": "h-8479d742",
+      "kind": "html",
+      "en": "Errors, editors and production",
+      "tr": "error, editor และ production"
+    },
+    {
+      "id": "h-2c63defe",
+      "kind": "html",
+      "en": "What you see when something is wrong, from the editor to on-call.",
+      "tr": "สิ่งที่คุณเห็นเมื่อมีอะไรผิด ตั้งแต่ใน editor จนถึงตอน on-call"
+    },
+    {
+      "id": "h-173622d8",
+      "kind": "html",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?"
+    },
+    {
+      "id": "h-dae86273",
+      "kind": "html",
+      "en": "A language server for any LSP editor, and errors with a stable code that name the fix.",
+      "tr": "language server สำหรับ editor ที่รองรับ LSP และ error ที่มีรหัสคงที่ซึ่งบอกวิธีแก้"
+    },
+    {
+      "id": "h-d7091fd1",
+      "kind": "html",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?"
+    },
+    {
+      "id": "h-81b11c93",
+      "kind": "html",
+      "en": "<code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.",
+      "tr": "บริบทของ <code>await</code>, arm ของ <code>match</code> ที่ไม่มีค่า และ <code>mut</code> ที่ขาดไป รายงานเทียบกับซอร์สของคุณแทนที่จะเป็น TypeScript ที่ emit ออกมา"
+    },
+    {
+      "id": "h-f32168df",
+      "kind": "html",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?"
+    },
+    {
+      "id": "h-b7a930d1",
+      "kind": "html",
+      "en": "Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.",
+      "tr": "field ไหน ผิดกฎข้อไหน ขัดกับ predicate <code>where</code> ตัวไหน และ <code>code</code> สำหรับแตก branch"
+    },
+    {
+      "id": "h-2a9e070d",
+      "kind": "html",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "เมื่อพังบน production ตอนตีสาม คนที่ on-call เห็นอะไร?"
+    },
+    {
+      "id": "h-ba5d5c26",
+      "kind": "html",
+      "en": "Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.",
+      "tr": "TS ที่อ่านได้และเป็นของคุณ source map ที่ชี้กลับไปยัง <code>.glyph</code> และ <code>run</code> ที่รายงานแบบเดียวกับ <code>build</code>"
+    },
+    {
+      "id": "h-366d0e89",
+      "kind": "html",
+      "en": "Read them in order &rarr;",
+      "tr": "อ่านตามลำดับ &rarr;"
+    }
+  ]
+}

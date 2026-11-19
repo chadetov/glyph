@@ -1,0 +1,266 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/vs-effect/index.html",
+  "locale": "th",
+  "source_hash": "f62ac4a8fc9859e6",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Glyph and Effect · a library and a language compared · Glyph",
+      "tr": "Glyph และ Effect · เปรียบเทียบไลบรารีกับภาษา · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Effect is a TypeScript library with typed errors and a large ecosystem; Glyph is a language that compiles to TypeScript. What each does better, with code.",
+      "tr": "Effect เป็นไลบรารี TypeScript ที่มี error แบบมี type และ ecosystem ขนาดใหญ่ ส่วน Glyph เป็นภาษาที่คอมไพล์เป็น TypeScript แต่ละตัวทำอะไรได้ดีกว่า พร้อมโค้ด"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "ไปต่อที่ไหน"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "แนะนำ"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "สิ่งที่ Glyph ปฏิเสธ"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "แต่ละกรณี ตรวจทั้งใน <code>tsc --strict</code> และใน Glyph"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "ดูสิ่งที่จับได้"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "Back to design",
+      "tr": "กลับไปที่การออกแบบ"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars, the spec, and the other comparisons.",
+      "tr": "สี่เสาหลัก สเปก และการเปรียบเทียบอื่นๆ"
+    },
+    {
+      "id": "h-33d40d52",
+      "kind": "html",
+      "en": "Design &middot; Comparison",
+      "tr": "การออกแบบ &middot; การเปรียบเทียบ"
+    },
+    {
+      "id": "h-2ce1c395",
+      "kind": "html",
+      "en": "Glyph and Effect",
+      "tr": "Glyph และ Effect"
+    },
+    {
+      "id": "h-d66fd4f3",
+      "kind": "html",
+      "en": "Both aim at TypeScript that people and agents can rely on. Effect is a library: you keep writing TypeScript and get typed errors, tracked dependencies and a large toolbox. Glyph is a language that compiles to TypeScript, so it can refuse what TypeScript allows, including the casts that undo a library's guarantees. Effect is far more mature.",
+      "tr": "ทั้งคู่มุ่งไปที่ TypeScript ที่คนและเอเจนต์พึ่งพาได้ Effect เป็นไลบรารี: คุณยังเขียน TypeScript ต่อไปและได้ error แบบมี type, dependency ที่ถูกติดตาม และชุดเครื่องมือขนาดใหญ่ Glyph เป็นภาษาที่คอมไพล์เป็น TypeScript จึงปฏิเสธสิ่งที่ TypeScript ยอมได้ รวมถึง cast ที่ทำลายการรับประกันของไลบรารี Effect เติบโตเต็มที่กว่ามาก"
+    },
+    {
+      "id": "h-d661be43",
+      "kind": "html",
+      "en": "How Effect describes itself",
+      "tr": "Effect อธิบายตัวเองอย่างไร"
+    },
+    {
+      "id": "h-32344d48",
+      "kind": "html",
+      "en": "Effect's home page leads with \"Reliable TypeScript for the AI era\" and says its \"declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code\" (<a href=\"https://effect.website\">effect.website</a>). Its docs call it \"an ecosystem of tools that help you build better applications and libraries\", built around an <code>Effect&lt;Success, Error, Requirements&gt;</code> type that records what a computation returns, how it can fail, and what it needs (<a href=\"https://effect.website/docs/getting-started/why-effect/\">Why Effect</a>). It asks for TypeScript 5.4 or newer with <code>strict</code> on (<a href=\"https://effect.website/docs/getting-started/installation/\">Installation</a>). These quotes were read on 2026-11-19.",
+      "tr": "หน้าแรกของ Effect เปิดด้วย \"Reliable TypeScript for the AI era\" และบอกว่า \"declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code\" (<a href=\"https://effect.website\">effect.website</a>) เอกสารของมันเรียกตัวเองว่า \"an ecosystem of tools that help you build better applications and libraries\" ซึ่งสร้างขึ้นรอบ type <code>Effect&lt;Success, Error, Requirements&gt;</code> ที่บันทึกว่าการคำนวณคืนอะไร ล้มเหลวได้อย่างไร และต้องการอะไร (<a href=\"https://effect.website/docs/getting-started/why-effect/\">Why Effect</a>) มันต้องใช้ TypeScript 5.4 ขึ้นไปและเปิด <code>strict</code> (<a href=\"https://effect.website/docs/getting-started/installation/\">Installation</a>) ข้อความที่ยกมานี้อ่านเมื่อวันที่ 2026-11-19"
+    },
+    {
+      "id": "h-e150de4d",
+      "kind": "html",
+      "en": "The difference that follows from library versus language",
+      "tr": "ความต่างที่ตามมาจากการเป็นไลบรารีกับการเป็นภาษา"
+    },
+    {
+      "id": "h-2feec0a8",
+      "kind": "html",
+      "en": "Effect's types are checked by <code>tsc</code>, so everything <code>tsc</code> allows is still allowed next to them. This compiles under <code>tsc --strict</code> with effect 4.1.4 and TypeScript 6. The cast removes <code>NotFound</code> from the error channel, and the program reports a failure from an effect typed as unable to fail.",
+      "tr": "type ของ Effect ถูกตรวจโดย <code>tsc</code> ทุกอย่างที่ <code>tsc</code> ยอมจึงยังใช้ได้ข้างๆ มัน โค้ดนี้คอมไพล์ผ่าน <code>tsc --strict</code> กับ effect 4.1.4 และ TypeScript 6 cast เอา <code>NotFound</code> ออกจาก error channel และโปรแกรมรายงานความล้มเหลวจาก effect ที่มี type บอกว่าล้มเหลวไม่ได้"
+    },
+    {
+      "id": "h-97156b3d",
+      "kind": "html",
+      "en": "eff.ts: tsc --strict exits 0; running it prints \"Failure undefined\"",
+      "tr": "eff.ts: tsc --strict exit 0 และเมื่อรันจะพิมพ์ \"Failure undefined\""
+    },
+    {
+      "id": "h-352c43b9",
+      "kind": "html",
+      "en": "The same function in Glyph returns a <code>Result</code>, and there is no cast to write. The second module is refused before any TypeScript is emitted.",
+      "tr": "ฟังก์ชันเดียวกันใน Glyph คืนค่าเป็น <code>Result</code> และไม่มี cast ให้เขียน module ที่สองถูกปฏิเสธก่อนที่จะ emit TypeScript ใดๆ ออกมา"
+    },
+    {
+      "id": "h-720a02dd",
+      "kind": "html",
+      "en": "find.glyph: builds, passes tsc --strict",
+      "tr": "find.glyph: build ผ่าน ผ่าน tsc --strict"
+    },
+    {
+      "id": "h-f1ea6b0b",
+      "kind": "html",
+      "en": "adding a cast: refused",
+      "tr": "เพิ่ม cast: ถูกปฏิเสธ"
+    },
+    {
+      "id": "h-3390a257",
+      "kind": "html",
+      "en": "<code>E0013</code>'s help reads: \"Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>.\" A team can get close to this in an Effect codebase with lint rules, and <a href=\"/answers/vs-tooled-ts/\">that comparison</a> covers why a rule someone can turn off is a different guarantee.",
+      "tr": "ข้อความช่วยเหลือของ <code>E0013</code> อ่านว่า: \"Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>.\" ทีมหนึ่งทำให้ใกล้เคียงแบบนี้ได้ใน codebase ที่ใช้ Effect ด้วยกฎ lint และ<a href=\"/answers/vs-tooled-ts/\">การเปรียบเทียบนั้น</a>อธิบายว่าทำไมกฎที่ใครก็ปิดได้จึงเป็นการรับประกันคนละแบบ"
+    },
+    {
+      "id": "h-e5e2ffaf",
+      "kind": "html",
+      "en": "What Effect does better",
+      "tr": "สิ่งที่ Effect ทำได้ดีกว่า"
+    },
+    {
+      "id": "h-024dc204",
+      "kind": "html",
+      "en": "Area",
+      "tr": "ด้าน"
+    },
+    {
+      "id": "h-2252d5cf",
+      "kind": "html",
+      "en": "Effect",
+      "tr": "Effect"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-25e271b6",
+      "kind": "html",
+      "en": "Maturity",
+      "tr": "ความเติบโตเต็มที่"
+    },
+    {
+      "id": "h-bc464212",
+      "kind": "html",
+      "en": "Used in production; its home page lists Cloudflare among the companies",
+      "tr": "ใช้งานจริงใน production หน้าแรกของมันมี Cloudflare อยู่ในรายชื่อบริษัท"
+    },
+    {
+      "id": "h-2f439494",
+      "kind": "html",
+      "en": "Early preview, pre-1.0, maintained mainly by one person",
+      "tr": "พรีวิวช่วงแรก ยังไม่ถึง 1.0 ดูแลหลักๆ โดยคนคนเดียว"
+    },
+    {
+      "id": "h-e2194392",
+      "kind": "html",
+      "en": "Ecosystem",
+      "tr": "Ecosystem"
+    },
+    {
+      "id": "h-cd8308af",
+      "kind": "html",
+      "en": "HTTP APIs, workflows, clustering, schema, scheduling, tracing and dependency injection, all from one project",
+      "tr": "HTTP API, workflow, clustering, schema, scheduling, tracing และ dependency injection ทั้งหมดจากโปรเจกต์เดียว"
+    },
+    {
+      "id": "h-e955c3b4",
+      "kind": "html",
+      "en": "A standard library of 40 modules; anything else comes from npm",
+      "tr": "standard library 40 module ที่เหลือมาจาก npm"
+    },
+    {
+      "id": "h-b094b436",
+      "kind": "html",
+      "en": "Dependencies in the type",
+      "tr": "dependency ใน type"
+    },
+    {
+      "id": "h-ac81bf68",
+      "kind": "html",
+      "en": "The <code>Requirements</code> parameter tracks what a computation needs",
+      "tr": "parameter <code>Requirements</code> ติดตามว่าการคำนวณต้องการอะไร"
+    },
+    {
+      "id": "h-284ebc0e",
+      "kind": "html",
+      "en": "No equivalent; a function's signature records its result and error only",
+      "tr": "ไม่มีสิ่งที่เทียบเท่า signature ของฟังก์ชันบันทึกแค่ผลลัพธ์และ error"
+    },
+    {
+      "id": "h-9b331283",
+      "kind": "html",
+      "en": "Adoption",
+      "tr": "การนำมาใช้"
+    },
+    {
+      "id": "h-2b1a373b",
+      "kind": "html",
+      "en": "An npm package; you wrap existing code and refactor upward, with no new compiler",
+      "tr": "เป็นแพ็กเกจ npm คุณครอบโค้ดที่มีอยู่แล้ว refactor ขึ้นไปเรื่อยๆ โดยไม่มีคอมไพเลอร์ใหม่"
+    },
+    {
+      "id": "h-68261cc3",
+      "kind": "html",
+      "en": "A second compiler in the build, adopted one module at a time",
+      "tr": "คอมไพเลอร์ตัวที่สองใน build นำมาใช้ทีละ module"
+    },
+    {
+      "id": "h-8708492f",
+      "kind": "html",
+      "en": "Concurrency",
+      "tr": "Concurrency"
+    },
+    {
+      "id": "h-61a7c131",
+      "kind": "html",
+      "en": "Structured concurrency, retries and scheduling built in",
+      "tr": "มี structured concurrency, retry และ scheduling ในตัว"
+    },
+    {
+      "id": "h-24628f52",
+      "kind": "html",
+      "en": "<code>par</code> and <code>std/task</code> helpers, much smaller",
+      "tr": "helper <code>par</code> และ <code>std/task</code> ซึ่งเล็กกว่ามาก"
+    },
+    {
+      "id": "h-5e1868a7",
+      "kind": "html",
+      "en": "What Glyph does that a library can't",
+      "tr": "สิ่งที่ Glyph ทำได้แต่ไลบรารีทำไม่ได้"
+    },
+    {
+      "id": "h-bd1481c3",
+      "kind": "html",
+      "en": "A language decides what can be written. Glyph has no <code>any</code>, no cast, no non-null assertion and no comment that silences an error, and every <code>match</code> over a union has to cover every case. Records and unions carry a runtime check generated from the declaration, so <code>json.parse&lt;User&gt;(body)</code> validates. Effect's Schema also derives a type from one description (<code>Schema.Schema.Type&lt;typeof Person&gt;</code> in <a href=\"https://effect.website/docs/schema/introduction/\">its introduction</a>), so the type and the validator don't drift there either; what differs is that nothing in TypeScript makes a codebase use it. The compiler also answers questions about a program for an agent, such as what a change will break, <a href=\"/agents/\">over MCP or the command line</a>.",
+      "tr": "ภาษาเป็นตัวกำหนดว่าอะไรเขียนได้ Glyph ไม่มี <code>any</code> ไม่มี cast ไม่มี non-null assertion และไม่มี comment ที่ปิดปาก error และทุก <code>match</code> บน union ต้องครอบคลุมทุก case record และ union มีการตรวจตอนรันที่ generate จาก declaration <code>json.parse&lt;User&gt;(body)</code> จึง validate ได้ Schema ของ Effect ก็ derive type จากคำอธิบายเดียวเช่นกัน (<code>Schema.Schema.Type&lt;typeof Person&gt;</code> ใน<a href=\"https://effect.website/docs/schema/introduction/\">บทนำของมัน</a>) type กับ validator จึงไม่เพี้ยนออกจากกันเหมือนกัน สิ่งที่ต่างคือไม่มีอะไรใน TypeScript บังคับให้ codebase ใช้มัน คอมไพเลอร์ยังตอบคำถามเกี่ยวกับโปรแกรมให้เอเจนต์ได้ด้วย เช่นการเปลี่ยนแปลงจะทำอะไรพัง <a href=\"/agents/\">ผ่าน MCP หรือ command line</a>"
+    },
+    {
+      "id": "h-3b2c6b8a",
+      "kind": "html",
+      "en": "This page has not tested using Effect from inside a Glyph module, so it makes no claim about combining the two.",
+      "tr": "หน้านี้ยังไม่ได้ทดสอบการใช้ Effect จากภายใน module ของ Glyph จึงไม่อ้างอะไรเกี่ยวกับการใช้สองอย่างร่วมกัน"
+    }
+  ]
+}

@@ -1,0 +1,398 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "from-typescript/index.html",
+  "locale": "th",
+  "source_hash": "bc168f89faa5ea6e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Coming from TypeScript · what changes in Glyph · Glyph",
+      "tr": "สำหรับคนที่มาจาก TypeScript · อะไรเปลี่ยนใน Glyph · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph reads almost like TypeScript and compiles to it. What changes: a few syntax deltas, no any, as or !, one greppable escape hatch, and how npm works.",
+      "tr": "Glyph อ่านแล้วแทบเหมือน TypeScript และคอมไพล์เป็น TypeScript สิ่งที่เปลี่ยน: syntax ต่างกันไม่กี่จุด ไม่มี any, as หรือ ! มีทางออกฉุกเฉินทางเดียวที่ grep หาได้ และวิธีใช้ npm"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "ไปต่อที่ไหน"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "แนะนำ"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "See what TypeScript lets through",
+      "tr": "ดูว่า TypeScript ปล่อยอะไรผ่าน"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case run under <code>tsc --strict</code> and under Glyph, with the error.",
+      "tr": "แต่ละกรณีรันทั้งใน <code>tsc --strict</code> และใน Glyph พร้อม error"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "ดูสิ่งที่จับได้"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "เขียนโปรแกรมแรก"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "ติดตั้ง สร้างโปรเจกต์ รัน ตั้งใจทำให้พัง แล้วอ่าน error ใช้เวลาประมาณสิบนาที"
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "Try it in the browser",
+      "tr": "ลองในเบราว์เซอร์"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "The compiler runs in the page, with nothing to install.",
+      "tr": "คอมไพเลอร์รันในหน้าเว็บ ไม่ต้องติดตั้งอะไร"
+    },
+    {
+      "id": "h-1400e396",
+      "kind": "html",
+      "en": "Coming from TypeScript",
+      "tr": "สำหรับคนที่มาจาก TypeScript"
+    },
+    {
+      "id": "h-7d374caf",
+      "kind": "html",
+      "en": "What changes when you already write TypeScript",
+      "tr": "อะไรเปลี่ยนไปเมื่อคุณเขียน TypeScript อยู่แล้ว"
+    },
+    {
+      "id": "h-5166948b",
+      "kind": "html",
+      "en": "Less than you'd expect. Glyph compiles to TypeScript that passes <code>tsc --strict</code>, keeps npm and your deploy, and reads almost the same. The differences are a handful of deltas, and each one trades a way to be wrong for a check the compiler makes.",
+      "tr": "น้อยกว่าที่คิด Glyph คอมไพล์เป็น TypeScript ที่ผ่าน <code>tsc --strict</code> ใช้ npm และวิธี deploy เดิมได้ และอ่านแล้วแทบเหมือนกัน ความต่างมีอยู่ไม่กี่จุด และแต่ละจุดแลกช่องทางที่จะเขียนผิดกับการตรวจที่คอมไพเลอร์ทำให้"
+    },
+    {
+      "id": "h-380f8519",
+      "kind": "html",
+      "en": "If you know TypeScript, you know most of this",
+      "tr": "ถ้ารู้ TypeScript คุณก็รู้เกือบทั้งหมดแล้ว"
+    },
+    {
+      "id": "h-a355cda9",
+      "kind": "html",
+      "en": "You don't learn a new language, just these four. They are the ones in every sample on this site.",
+      "tr": "คุณไม่ต้องเรียนภาษาใหม่ แค่สี่อย่างนี้ ซึ่งเป็นสิ่งที่อยู่ในทุกตัวอย่างบนเว็บนี้"
+    },
+    {
+      "id": "h-46e350dd",
+      "kind": "html",
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
+      "tr": "<code>switch</code> ที่ต้องครบทุกกรณี: เมื่อใช้กับ union คอมไพเลอร์บังคับให้คุณจัดการทุก case และมันเป็นเงื่อนไขแบบเดียวที่มี: ไม่มี <code>if</code>/<code>else</code> และไม่มี ternary <a href=\"#there-is-no-if\">อธิบายไว้ด้านล่าง</a>"
+    },
+    {
+      "id": "h-12d01dfb",
+      "kind": "html",
+      "en": "Errors as return values, not thrown exceptions. You handle one with <code>match</code>, or propagate it with the <code>?</code> operator.",
+      "tr": "error เป็นค่าที่ return ออกมา ไม่ใช่ exception ที่ throw คุณจัดการด้วย <code>match</code> หรือส่งต่อขึ้นไปด้วย operator <code>?</code>"
+    },
+    {
+      "id": "h-d9b07eb7",
+      "kind": "html",
+      "en": "A function; the <code>-&gt;</code> is its return type. A <code>type X = {...}</code> is a record, and a <code>type X = A | B</code> is a tagged union.",
+      "tr": "ฟังก์ชัน โดย <code>-&gt;</code> คือ return type ของมัน <code>type X = {...}</code> คือ record และ <code>type X = A | B</code> คือ tagged union"
+    },
+    {
+      "id": "h-82ab0a00",
+      "kind": "html",
+      "en": "Reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.",
+      "tr": "การ assign ค่าใหม่ต้องเขียนให้ชัดและ grep หาได้ binding แบบ <code>let</code> ธรรมดาจะไม่เปลี่ยนค่าลับหลังคุณ ถ้าจะเปลี่ยนต้องเขียน <code>mut</code>"
+    },
+    {
+      "id": "h-40accee4",
+      "kind": "html",
+      "en": "\"Agents\" on this site means AI coding assistants such as Claude, Copilot and Cursor. Glyph helps them most, but the checks are the same whether a person or a model wrote the code. If you already run strict TypeScript with zod and eslint, <a href=\"/answers/vs-tooled-ts/\">here is what a language adds over that</a>.",
+      "tr": "\"เอเจนต์\" ในเว็บนี้หมายถึงผู้ช่วยเขียนโค้ดด้วย AI อย่าง Claude, Copilot และ Cursor Glyph ช่วยพวกมันได้มากที่สุด แต่การตรวจเหมือนกันไม่ว่าคนหรือโมเดลจะเป็นคนเขียนโค้ด ถ้าคุณใช้ TypeScript แบบ strict ร่วมกับ zod และ eslint อยู่แล้ว <a href=\"/answers/vs-tooled-ts/\">นี่คือสิ่งที่ภาษาเพิ่มให้จากตรงนั้น</a>"
+    },
+    {
+      "id": "h-06d12c99",
+      "kind": "html",
+      "en": "There is no if",
+      "tr": "ไม่มี if"
+    },
+    {
+      "id": "h-aaf8fd69",
+      "kind": "html",
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
+      "tr": "การแตก branch ตาม boolean คือ <code>match</code> บน <code>true</code> และ <code>false</code> ถ้าต้องทำอะไรแค่ฝั่งเดียว arm อีกฝั่งก็เป็น block ว่าง"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-63d595e5",
+      "kind": "html",
+      "en": "The reason is decision D3 in the spec: one construct for branching on a value, so there is one shape to read, write and search for. A value that comes out of a branch always comes out of a <code>match</code>, whose result type Glyph's own checker works out instead of handing it to <code>tsc</code>. For a union, the same construct is the one that must cover every case (<code>E0200</code>). For a boolean that buys little, since <code>false =&gt; {}</code> says no more than leaving out an <code>else</code>.",
+      "tr": "เหตุผลคือ decision D3 ในสเปก: มี construct เดียวสำหรับแตก branch ตามค่า จึงมีรูปแบบเดียวให้อ่าน เขียน และค้นหา ค่าที่ออกมาจาก branch จะออกมาจาก <code>match</code> เสมอ ซึ่งตัวตรวจของ Glyph เองหา result type ให้ แทนที่จะโยนให้ <code>tsc</code> สำหรับ union construct เดียวกันนี้ต้องครอบคลุมทุก case (<code>E0200</code>) สำหรับ boolean ได้ประโยชน์ไม่มาก เพราะ <code>false =&gt; {}</code> ก็ไม่ได้บอกอะไรมากกว่าการไม่เขียน <code>else</code>"
+    },
+    {
+      "id": "h-7765a037",
+      "kind": "html",
+      "en": "It costs you something. A one-line ternary becomes a four-line <code>match</code>, an early return on a condition is a <code>match</code> with an empty arm, and it is the first thing that looks wrong to a TypeScript reader. The spec records the verbosity as an accepted cost. Writing <code>if</code> anyway is error <code>E0006</code>, whose help shows the <code>match</code> form; a ternary is <code>E0013</code> with the same help.",
+      "tr": "มันมีต้นทุน ternary บรรทัดเดียวกลายเป็น <code>match</code> สี่บรรทัด การ return ก่อนเวลาตามเงื่อนไขคือ <code>match</code> ที่มี arm ว่าง และเป็นสิ่งแรกที่คนอ่าน TypeScript รู้สึกว่าแปลก สเปกบันทึกความยืดยาวนี้ไว้ว่าเป็นต้นทุนที่ยอมรับ ถ้ายังเขียน <code>if</code> จะได้ error <code>E0006</code> ซึ่งข้อความช่วยเหลือแสดงรูปแบบ <code>match</code> ให้ ส่วน ternary จะได้ <code>E0013</code> พร้อมข้อความช่วยเหลือแบบเดียวกัน"
+    },
+    {
+      "id": "h-5a5cbe2a",
+      "kind": "html",
+      "en": "The tax you already pay",
+      "tr": "ภาษีที่คุณจ่ายอยู่แล้ว"
+    },
+    {
+      "id": "h-73849589",
+      "kind": "html",
+      "en": "If you build with AI agents on a TypeScript codebase, these are the daily costs. Each one has a specific answer in Glyph, linked from the list.",
+      "tr": "ถ้าคุณใช้เอเจนต์ AI สร้างโค้ดบน codebase ที่เป็น TypeScript นี่คือต้นทุนรายวัน แต่ละข้อมีคำตอบเฉพาะใน Glyph ลิงก์ไว้จากรายการ"
+    },
+    {
+      "id": "h-887166ae",
+      "kind": "html",
+      "en": "Agents hallucinate APIs, because TypeScript erases its types and the runtime no longer agrees with compile time. Glyph types carry a runtime check (<code>T.parse</code>, <code>T.is</code>), see <a href=\"/answers/typed-apis/\">typed APIs</a>.",
+      "tr": "เอเจนต์มโน API ขึ้นมา เพราะ TypeScript ลบ type ทิ้งและ runtime ก็ไม่ตรงกับตอนคอมไพล์อีกต่อไป type ของ Glyph มีการตรวจตอนรันติดมาด้วย (<code>T.parse</code>, <code>T.is</code>) ดู<a href=\"/answers/typed-apis/\">API ที่มี type</a>"
+    },
+    {
+      "id": "h-31205be6",
+      "kind": "html",
+      "en": "Agents paper over uncertainty with <code>any</code> and <code>as unknown as T</code>, and the compiler lets them. Neither exists in Glyph, see the table below.",
+      "tr": "เอเจนต์กลบความไม่แน่ใจด้วย <code>any</code> และ <code>as unknown as T</code> และคอมไพเลอร์ก็ยอม ทั้งสองอย่างไม่มีใน Glyph ดูตารางด้านล่าง"
+    },
+    {
+      "id": "h-d3367c49",
+      "kind": "html",
+      "en": "You ask for a one-line change and get a whole file rewritten, because the formatter cascades on every edit. <code>glyph fmt</code> has one layout with no options, see <a href=\"/answers/diff-stability/\">clean diffs</a>.",
+      "tr": "คุณขอให้แก้บรรทัดเดียว แต่ได้ไฟล์ที่ถูกเขียนใหม่ทั้งไฟล์ เพราะ formatter ลามไปทุกครั้งที่แก้ <code>glyph fmt</code> มี layout เดียวและไม่มีตัวเลือก ดู<a href=\"/answers/diff-stability/\">diff ที่สะอาด</a>"
+    },
+    {
+      "id": "h-3414000c",
+      "kind": "html",
+      "en": "You keep a hand-written validator next to every type (zod, and a serializer), and an agent renames a field in one but not the others; all of it still compiles. In Glyph the type is the validator.",
+      "tr": "คุณดูแล validator ที่เขียนด้วยมือไว้ข้างทุก type (zod และ serializer) แล้วเอเจนต์เปลี่ยนชื่อ field ในที่หนึ่งแต่ไม่เปลี่ยนในที่อื่น ทุกอย่างยังคอมไพล์ผ่าน ใน Glyph type คือ validator"
+    },
+    {
+      "id": "h-ea4184c4",
+      "kind": "html",
+      "en": "You <code>grep</code> for a symbol and find ten unrelated matches: overloads, decorators, merged namespaces. Glyph has none of those, see <a href=\"/answers/greppability/\">finding things</a>.",
+      "tr": "คุณ <code>grep</code> หาสัญลักษณ์แล้วเจอสิบจุดที่ไม่เกี่ยวข้อง: overload, decorator, namespace ที่ merge กัน Glyph ไม่มีสิ่งเหล่านั้นเลย ดู<a href=\"/answers/greppability/\">การค้นหาโค้ด</a>"
+    },
+    {
+      "id": "h-f6530aaf",
+      "kind": "html",
+      "en": "The off-switches TypeScript gives you, and what Glyph has instead",
+      "tr": "สวิตช์ปิดการตรวจที่ TypeScript ให้มา และสิ่งที่ Glyph มีแทน"
+    },
+    {
+      "id": "h-0fe3d59b",
+      "kind": "html",
+      "en": "Each TypeScript construct below tells the checker to stop checking. None of them is Glyph syntax. The middle column is what <code>glyph check --no-tsc</code> printed for each one on 0.1.149.",
+      "tr": "construct ของ TypeScript แต่ละตัวด้านล่างสั่งให้ตัวตรวจหยุดตรวจ ไม่มีตัวไหนเป็น syntax ของ Glyph คอลัมน์กลางคือสิ่งที่ <code>glyph check --no-tsc</code> พิมพ์ออกมาสำหรับแต่ละตัวบน 0.1.149"
+    },
+    {
+      "id": "h-c8db21bc",
+      "kind": "html",
+      "en": "In Glyph",
+      "tr": "ใน Glyph"
+    },
+    {
+      "id": "h-5d68f239",
+      "kind": "html",
+      "en": "What you write instead",
+      "tr": "สิ่งที่เขียนแทน"
+    },
+    {
+      "id": "h-67832a79",
+      "kind": "html",
+      "en": "Not syntax: <code>E0013</code>",
+      "tr": "ไม่ใช่ syntax: <code>E0013</code>"
+    },
+    {
+      "id": "h-84f8c408",
+      "kind": "html",
+      "en": "An <code>Option&lt;T&gt;</code> handled with <code>match</code>, or passed up with <code>?</code>",
+      "tr": "<code>Option&lt;T&gt;</code> ที่จัดการด้วย <code>match</code> หรือส่งต่อขึ้นไปด้วย <code>?</code>"
+    },
+    {
+      "id": "h-beb1a8e3",
+      "kind": "html",
+      "en": "No cast exists: <code>E0013</code>, whose help says to validate",
+      "tr": "ไม่มี cast: <code>E0013</code> ซึ่งข้อความช่วยเหลือบอกให้ validate"
+    },
+    {
+      "id": "h-006076f6",
+      "kind": "html",
+      "en": "<code>T.parse(x)</code>, which returns a <code>Result</code>",
+      "tr": "<code>T.parse(x)</code> ซึ่งคืนค่าเป็น <code>Result</code>"
+    },
+    {
+      "id": "h-a549d366",
+      "kind": "html",
+      "en": "Not a type: <code>E0103</code>, unresolved name",
+      "tr": "ไม่ใช่ type: <code>E0103</code> ชื่อที่ resolve ไม่ได้"
+    },
+    {
+      "id": "h-6fd9cc30",
+      "kind": "html",
+      "en": "<code>unknown</code>, narrowed by <code>T.parse</code>, <code>T.is</code> or a <code>match</code> arm <code>is T</code>",
+      "tr": "<code>unknown</code> ที่ถูก narrow ด้วย <code>T.parse</code>, <code>T.is</code> หรือ arm ของ <code>match</code> แบบ <code>is T</code>"
+    },
+    {
+      "id": "h-3c065f9d",
+      "kind": "html",
+      "en": "No user-written type guards: <code>E0002</code>",
+      "tr": "ไม่มี type guard ที่ผู้ใช้เขียนเอง: <code>E0002</code>"
+    },
+    {
+      "id": "h-039d3bb4",
+      "kind": "html",
+      "en": "The generated <code>T.is(v)</code>, which checks the declared shape, so a guard can't check less than it claims",
+      "tr": "<code>T.is(v)</code> ที่ถูก generate ขึ้นมา ซึ่งตรวจตามรูปร่างที่ประกาศไว้ guard จึงตรวจน้อยกว่าที่อ้างไม่ได้"
+    },
+    {
+      "id": "h-deba3acc",
+      "kind": "html",
+      "en": "An ordinary comment; the error under it still fires",
+      "tr": "comment ธรรมดา error ใต้มันยังทำงานอยู่"
+    },
+    {
+      "id": "h-a20798f5",
+      "kind": "html",
+      "en": "Nothing. No comment or flag turns a Glyph diagnostic off",
+      "tr": "ไม่มี ไม่มี comment หรือ flag ไหนปิด diagnostic ของ Glyph ได้"
+    },
+    {
+      "id": "h-6869a73b",
+      "kind": "html",
+      "en": "<code>glyph check</code> has flags that skip a whole pass (<code>--no-tsc</code> skips the <code>tsc --strict</code> run, <code>--no-test</code> skips the <code>@example</code> tests), and none that silence one check. The full list of what a TypeScript project accepts and Glyph refuses, each case run under both compilers, is on <a href=\"/catches/\">the catches page</a>.",
+      "tr": "<code>glyph check</code> มี flag ที่ข้ามทั้ง pass (<code>--no-tsc</code> ข้ามการรัน <code>tsc --strict</code> และ <code>--no-test</code> ข้ามเทสต์ <code>@example</code>) แต่ไม่มีตัวไหนปิดการตรวจเพียงข้อเดียว รายการเต็มของสิ่งที่โปรเจกต์ TypeScript ยอมรับแต่ Glyph ปฏิเสธ โดยแต่ละกรณีรันกับคอมไพเลอร์ทั้งสองตัว อยู่ใน<a href=\"/catches/\">หน้าสิ่งที่จับได้</a>"
+    },
+    {
+      "id": "h-ae85dea9",
+      "kind": "html",
+      "en": "One escape hatch, and you can grep for it",
+      "tr": "ทางออกฉุกเฉินทางเดียว และคุณ grep หาได้"
+    },
+    {
+      "id": "h-c32f7ec7",
+      "kind": "html",
+      "en": "When you need TypeScript that Glyph can't spell, <code>extern_ts(\"...\")</code> takes one inline type or expression, and <code>tsc</code> still checks it. For a whole module, put the <code>.ts</code> under <code>src/extern/</code> and write <code>import extern/name</code>; relative imports are otherwise illegal, so that path is the only way in. Both forms contain the word <code>extern</code>, so <code>grep -rn extern src/</code> lists every place the checker hands over to TypeScript.",
+      "tr": "เมื่อต้องการ TypeScript ที่ Glyph เขียนไม่ได้ <code>extern_ts(\"...\")</code> รับ type หรือ expression แบบ inline หนึ่งตัว และ <code>tsc</code> ยังตรวจมันอยู่ ถ้าเป็นทั้ง module ให้วางไฟล์ <code>.ts</code> ไว้ใต้ <code>src/extern/</code> แล้วเขียน <code>import extern/name</code> นอกจากนี้ import แบบ relative ใช้ไม่ได้ เส้นทางนี้จึงเป็นทางเข้าทางเดียว ทั้งสองแบบมีคำว่า <code>extern</code> อยู่ <code>grep -rn extern src/</code> จึงแสดงทุกจุดที่ตัวตรวจส่งต่อให้ TypeScript"
+    },
+    {
+      "id": "h-cd5d6b49",
+      "kind": "html",
+      "en": "What the emitted TypeScript looks like",
+      "tr": "TypeScript ที่ถูก emit ออกมาหน้าตาเป็นอย่างไร"
+    },
+    {
+      "id": "h-169034ff",
+      "kind": "html",
+      "en": "Plain TypeScript, one file per module, that you can read and commit. A union becomes a discriminated union plus a value carrying its runtime check, and a <code>match</code> becomes a <code>switch</code> on the tag. This is <code>glyph build</code>'s output for the module on the left, with the import lines trimmed.",
+      "tr": "TypeScript ธรรมดา หนึ่งไฟล์ต่อหนึ่ง module ที่คุณอ่านและ commit ได้ union กลายเป็น discriminated union บวกกับค่าที่ถือการตรวจตอนรันของมัน และ <code>match</code> กลายเป็น <code>switch</code> บน tag นี่คือ output ของ <code>glyph build</code> สำหรับ module ทางซ้าย โดยตัดบรรทัด import ออก"
+    },
+    {
+      "id": "h-563a40e0",
+      "kind": "html",
+      "en": "plan.ts (emitted, trimmed)",
+      "tr": "plan.ts (emit ออกมา ตัดบางส่วน)"
+    },
+    {
+      "id": "h-3b534e13",
+      "kind": "html",
+      "en": "Delete the <code>Team</code> arm and the build stops before any TypeScript is written:",
+      "tr": "ลบ arm <code>Team</code> แล้ว build จะหยุดก่อนที่จะเขียน TypeScript ใดๆ ออกมา:"
+    },
+    {
+      "id": "h-7077f971",
+      "kind": "html",
+      "en": "glyph check --no-tsc (trimmed)",
+      "tr": "glyph check --no-tsc (ตัดบางส่วน)"
+    },
+    {
+      "id": "h-f59e4630",
+      "kind": "html",
+      "en": "If you stop using Glyph, the emitted <code>.ts</code> is what you keep. It has no runtime dependency beyond a small bundled support directory the build writes next to it.",
+      "tr": "ถ้าคุณเลิกใช้ Glyph ไฟล์ <code>.ts</code> ที่ emit ออกมาคือสิ่งที่คุณเก็บไว้ มันไม่มี dependency ตอนรันนอกจากไดเรกทอรี support เล็กๆ ที่ build เขียนไว้ข้างๆ"
+    },
+    {
+      "id": "h-4a394bc5",
+      "kind": "html",
+      "en": "npm, and the TypeScript you already have",
+      "tr": "npm และ TypeScript ที่คุณมีอยู่แล้ว"
+    },
+    {
+      "id": "h-76fdeb65",
+      "kind": "html",
+      "en": "A <code>.glyph</code> module imports an npm package by name (<code>import kafkajs { Kafka }</code>), typed from the package's own declarations, and your existing <code>.ts</code> imports the emitted Glyph modules like any local file. So you can start with one module inside an app that stays TypeScript. The details are in three answers.",
+      "tr": "module <code>.glyph</code> import แพ็กเกจ npm ด้วยชื่อ (<code>import kafkajs { Kafka }</code>) โดยได้ type จาก declaration ของแพ็กเกจเอง และไฟล์ <code>.ts</code> ที่มีอยู่ก็ import module Glyph ที่ emit ออกมาได้เหมือนไฟล์ในเครื่องทั่วไป คุณจึงเริ่มจาก module เดียวในแอปที่ยังเป็น TypeScript ได้ รายละเอียดอยู่ในสามคำตอบ"
+    },
+    {
+      "id": "h-e9a25225",
+      "kind": "html",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?"
+    },
+    {
+      "id": "h-f9974c7b",
+      "kind": "html",
+      "en": "Importing packages, keeping a <code>.ts</code> shim, and importing Glyph back into <code>.ts</code>.",
+      "tr": "การ import แพ็กเกจ การเก็บ shim ที่เป็น <code>.ts</code> ไว้ และการ import Glyph กลับเข้าไปใน <code>.ts</code>"
+    },
+    {
+      "id": "h-959b40fe",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app?",
+      "tr": "นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม?"
+    },
+    {
+      "id": "h-2a8fcb81",
+      "kind": "html",
+      "en": "The domain core in Glyph, the rest in TypeScript, in a stock Vite scaffold.",
+      "tr": "แกนของโดเมนเป็น Glyph ส่วนที่เหลือเป็น TypeScript ใน Vite scaffold แบบมาตรฐาน"
+    },
+    {
+      "id": "h-93bd5c12",
+      "kind": "html",
+      "en": "Does it work with React?",
+      "tr": "ใช้กับ React ได้ไหม?"
+    },
+    {
+      "id": "h-0bc7f09f",
+      "kind": "html",
+      "en": "Components, JSX, hooks, Context, and where <code>tsc</code> still does the checking.",
+      "tr": "component, JSX, hook, Context และจุดที่ <code>tsc</code> ยังเป็นคนตรวจ"
+    }
+  ]
+}

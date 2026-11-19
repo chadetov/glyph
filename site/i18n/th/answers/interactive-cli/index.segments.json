@@ -1,0 +1,164 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/interactive-cli/index.html",
+  "locale": "th",
+  "source_hash": "a2332eec4a663662",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I write a program someone types into? · Glyph",
+      "tr": "เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "io.read_line returns as soon as a line arrives instead of waiting for stdin to close, so a REPL, a game loop or a chat client answers while you type.",
+      "tr": "io.read_line คืนค่าทันทีที่มีบรรทัดเข้ามา แทนที่จะรอให้ stdin ปิด REPL, game loop หรือ chat client จึงตอบกลับขณะที่คุณพิมพ์"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "ให้บริการหน้าเว็บได้ไหม หรือได้แค่ JSON API?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "เขียน server ได้ไหม หรือ process จะจบไปเลย?"
+    },
+    {
+      "id": "h-130f3b5f",
+      "kind": "html",
+      "en": "18 &middot; Programs you type into",
+      "tr": "18 &middot; โปรแกรมที่พิมพ์โต้ตอบ"
+    },
+    {
+      "id": "h-e3bd5d73",
+      "kind": "html",
+      "en": "Can I write a program someone types into?",
+      "tr": "เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?"
+    },
+    {
+      "id": "h-3c9a580a",
+      "kind": "html",
+      "en": "Yes. <code>io.read_line</code> returns <strong>as soon as a full line arrives</strong> and does not wait for stdin to close, so a REPL, a game loop, or a chat client answers each line before it reads the next one. Until 0.1.62 it did wait, and that is worth saying out loud, because it made every interactive program impossible.",
+      "tr": "ได้ <code>io.read_line</code> คืนค่า<strong>ทันทีที่บรรทัดเต็มเข้ามา</strong> และไม่รอให้ stdin ปิด REPL, game loop หรือ chat client จึงตอบแต่ละบรรทัดก่อนอ่านบรรทัดถัดไป จนถึง 0.1.62 มันเคยรอ และเรื่องนี้ควรพูดออกมาตรงๆ เพราะมันทำให้โปรแกรมแบบโต้ตอบทุกตัวเป็นไปไม่ได้"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-4473016d",
+      "kind": "html",
+      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name. Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
+      "tr": "ตัวอ่านบรรทัดที่คืนค่าเฉพาะตอนจบ input คือตัวอ่านไฟล์ที่ใช้ชื่อตัวอ่านบรรทัด การ pipe ไฟล์ผ่านมันใช้ได้สมบูรณ์ ซึ่งเป็นเหตุผลที่ไม่มีอะไรจับได้: ทุกแอปใน repository ที่อ่าน stdin อ่านจาก pipe แล้ววันหนึ่งมีคนเขียน chat client และมันเงียบไปขณะที่เขาพิมพ์ แล้วพิมพ์คำตอบทั้งหมดออกมาพร้อมกันหลัง Ctrl-D"
+    },
+    {
+      "id": "h-02cdf3c6",
+      "kind": "html",
+      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
+      "tr": "แอปนั้นถูกปล่อยออกไปเป็นตัวเล่นซ้ำ session จากไฟล์ JSON ที่บันทึกไว้ พร้อม comment ในซอร์สบอกเหตุผล อีกสามแอปถูกปรับรูปให้หลบเรื่องเดียวกันโดยไม่มีใครเรียกชื่อมัน: minesweeper วาดใหม่ระหว่างการเดินไม่ได้ เกมผจญภัยแบบข้อความตอบ <code>look</code> ไม่ได้ และ REPL ไม่ประมวลผลอะไรเลยจนกว่าคุณจะวางสาย"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-b3adfa1a",
+      "kind": "html",
+      "en": "The whole live-session loop of the chat app. Read, apply, print, repeat:",
+      "tr": "loop ของ session สดทั้งหมดของแอป chat อ่าน ประมวลผล พิมพ์ ทำซ้ำ:"
+    },
+    {
+      "id": "h-3e921737",
+      "kind": "html",
+      "en": "Driven at a real terminal, with each line typed about 0.6 seconds apart and stdin left open. The left column is milliseconds since the process started:",
+      "tr": "ขับด้วย terminal จริง พิมพ์แต่ละบรรทัดห่างกันประมาณ 0.6 วินาที และเปิด stdin ค้างไว้ คอลัมน์ซ้ายคือมิลลิวินาทีนับจาก process เริ่ม:"
+    },
+    {
+      "id": "h-cb315554",
+      "kind": "html",
+      "en": "glyph run examples/apps/chat/main.glyph --stdin",
+      "tr": "glyph run examples/apps/chat/main.glyph --stdin"
+    },
+    {
+      "id": "h-c4443d66",
+      "kind": "html",
+      "en": "One to two milliseconds from typed line to answer. Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
+      "tr": "หนึ่งถึงสองมิลลิวินาทีจากบรรทัดที่พิมพ์ถึงคำตอบ ก่อนแก้ ไม่มีอะไรพิมพ์ออกมาจนถึง 6460ms ซึ่งเป็นตอนที่ stdin ปิด คำตอบแรกในการรันเต็มมาถึงประมาณ 1.6 วินาที และนั่นคือเวลาเริ่มต้นของ <code>tsx</code> ไม่ใช่ความหน่วงในการอ่าน"
+    },
+    {
+      "id": "h-a2b1ea84",
+      "kind": "html",
+      "en": "The parts that bite in practice",
+      "tr": "ส่วนที่มักเจอปัญหาจริง"
+    },
+    {
+      "id": "h-92f12884",
+      "kind": "html",
+      "en": "A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input. Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped. Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
+      "tr": "<code>\\r</code> ท้ายบรรทัดถูกตัดออก ไฟล์ CRLF กับไฟล์ LF จึงให้บรรทัดเหมือนกัน และคุณไม่ต้องมาดีบักอักขระที่มองไม่เห็นจาก input บน Windows input ที่จบโดยไม่มีขึ้นบรรทัดใหม่ตัวสุดท้ายยังคืนบรรทัดสุดท้ายนั้นหนึ่งครั้งก่อน <code>None</code> แถวสุดท้ายของไฟล์ที่ไม่มีขึ้นบรรทัดใหม่ปิดท้ายจึงไม่หายไปเงียบๆ UTF-8 แบบหลายไบต์ที่ถูกแบ่งข้ามขอบเขตการอ่านจะถูกเก็บไว้และต่อให้ครบ แทนที่จะกลายเป็นอักขระแทนที่"
+    },
+    {
+      "id": "h-734ae2bb",
+      "kind": "html",
+      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin. 200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
+      "tr": "<code>read_to_string</code> ดึงจาก buffer เดียวกัน ทั้งสองจึงใช้ร่วมกันได้: <code>read_line</code> สำหรับบรรทัด header แล้ว <code>read_to_string</code> สำหรับ body จะได้ส่วนที่เหลือ ไม่ใช่สำเนาที่สอง และไม่ใช่ string ว่าง ถ้าเรียกมันก่อน ก็ยังคืน stdin ทั้งหมด การนับ 200,000 บรรทัดที่ pipe เข้ามาใช้เวลาประมาณ 20ms การอ่านทีละบรรทัดจึงไม่ได้แลกกับ throughput"
+    },
+    {
+      "id": "h-dbb27136",
+      "kind": "html",
+      "en": "A header line, then the body",
+      "tr": "บรรทัด header แล้วตามด้วย body"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-d2b638c8",
+      "kind": "html",
+      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike. CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer. A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too. <code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
+      "tr": "<code>io.read_line</code> คืนค่าเมื่อบรรทัดเข้ามา ไม่ใช่เมื่อ stream ปิด loop แบบถาม อ่าน ตอบ จึงใช้ได้ทั้งใน terminal และผ่าน pipe CRLF ถูกปรับให้เป็นมาตรฐาน บรรทัดสุดท้ายที่ไม่มีตัวจบถูกส่งหนึ่งครั้ง อักขระหลายไบต์รอดข้ามขอบ chunk และ <code>read_to_string</code> รับส่วนที่เหลือของ buffer เดียวกัน regression test เปิด stdin ค้างไว้และต้องได้ echo กลับมา เพราะเทสต์ที่ pipe ไฟล์เข้าไปก็ผ่านกับ implementation ที่พังได้เหมือนกัน <code>io.print</code> และ <code>io.eprint</code> เขียนโดยไม่ขึ้นบรรทัดใหม่ prompt <code>&gt; </code> ของ REPL จึงอยู่บนบรรทัดเดียวกับที่พิมพ์คำตอบ และ <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> บอกโปรแกรมว่ากำลังคุยกับคนหรือ pipe flag อย่าง <code>--stdin</code> ของแอป chat จึงไม่ใช่วิธีเดียวที่จะถามอีกต่อไป"
+    },
+    {
+      "id": "h-43278834",
+      "kind": "html",
+      "en": "Still rough",
+      "tr": "ยังหยาบอยู่"
+    },
+    {
+      "id": "h-ec1da8e1",
+      "kind": "html",
+      "en": "A program that wants to redraw a screen has no cursor control: <code>std/io</code> has no cursor or screen functions and no other stdlib module adds them, so a full-screen terminal UI still means writing the escape codes yourself.",
+      "tr": "โปรแกรมที่ต้องการวาดหน้าจอใหม่ไม่มีการควบคุมเคอร์เซอร์: <code>std/io</code> ไม่มีฟังก์ชันเกี่ยวกับเคอร์เซอร์หรือหน้าจอ และไม่มี module อื่นใน stdlib เพิ่มให้ terminal UI แบบเต็มจอจึงยังต้องเขียน escape code เอง"
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/tooling/index.html",
+  "locale": "th",
+  "source_hash": "d0791fdb41f61a1e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What's the editor, debugging, and error experience? · Glyph",
+      "tr": "ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A language server for any editor, a VS Code extension, error messages with stable codes and glyph --explain. You debug the readable TypeScript it emits.",
+      "tr": "language server สำหรับทุก editor, extension ของ VS Code, ข้อความ error ที่มีรหัสคงที่ และ glyph --explain คุณดีบัก TypeScript ที่อ่านได้ซึ่งมัน emit ออกมา"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมา หรือเขียนด้วยมือและล้าสมัย?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?"
+    },
+    {
+      "id": "h-ccc1ce81",
+      "kind": "html",
+      "en": "25 &middot; Day-to-day",
+      "tr": "25 &middot; การใช้งานประจำวัน"
+    },
+    {
+      "id": "h-173622d8",
+      "kind": "html",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?"
+    },
+    {
+      "id": "h-cfd8c6fd",
+      "kind": "html",
+      "en": "<code>glyph lsp</code> speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. A VS Code extension is in the repository; it is not on the Marketplace yet, so you build it from source. Every error carries a stable code, the fix, and the reason.",
+      "tr": "<code>glyph lsp</code> สื่อสาร Language Server Protocol ผ่าน stdio ทุก editor ที่มี LSP client จึงได้ diagnostic, type ตอน hover, go-to-definition, completion และ format-on-save มี extension ของ VS Code อยู่ใน repository ยังไม่ได้ขึ้น Marketplace คุณจึงต้อง build จากซอร์ส ทุก error มีรหัสคงที่ วิธีแก้ และเหตุผล"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-ff6f4a0b",
+      "kind": "html",
+      "en": "Editing a language your editor doesn't understand feels like a step backward, and early on that was a fair complaint. It isn't anymore: your editor gives you the modern niceties, and the errors are written to teach, not just to reject.",
+      "tr": "การแก้ภาษาที่ editor ไม่เข้าใจให้ความรู้สึกเหมือนถอยหลัง และช่วงแรกนั่นเป็นข้อตำหนิที่ยุติธรรม ตอนนี้ไม่ใช่แล้ว: editor ให้ความสะดวกสมัยใหม่ครบ และ error ถูกเขียนมาเพื่อสอน ไม่ใช่แค่ปฏิเสธ"
+    },
+    {
+      "id": "h-0fcb8516",
+      "kind": "html",
+      "en": "Is it a real LSP, or just a VS Code plugin?",
+      "tr": "เป็น LSP จริง หรือแค่ plugin ของ VS Code?"
+    },
+    {
+      "id": "h-45403764",
+      "kind": "html",
+      "en": "A real one. The compiler ships a language server you launch as <code>glyph lsp</code>, which speaks the Language Server Protocol over stdio (the standard JSON-RPC transport every LSP client understands). The bundled VS Code extension is a thin client around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor, Neovim, Helix, Zed, Emacs (eglot), at <code>glyph lsp</code> and it behaves the same. It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
+      "tr": "เป็นของจริง คอมไพเลอร์มาพร้อม language server ที่คุณเปิดด้วย <code>glyph lsp</code> ซึ่งสื่อสาร Language Server Protocol ผ่าน stdio (transport JSON-RPC มาตรฐานที่ LSP client ทุกตัวเข้าใจ) extension ของ VS Code ที่มาด้วยเป็นแค่ client บางๆ ครอบมัน แต่ไม่มีอะไรผูกกับ VS Code: ชี้ editor <strong>ใดก็ได้</strong>ที่รองรับ LSP เช่น Neovim, Helix, Zed, Emacs (eglot) ไปที่ <code>glyph lsp</code> แล้วมันทำงานเหมือนกัน มันคือ binary ตัวเดียวกับที่คุณติดตั้งไว้แล้ว (<code>npx @glyphlang/glyph lsp</code>) จึงไม่มี server แยกให้ดึงมา"
+    },
+    {
+      "id": "h-83dcf965",
+      "kind": "html",
+      "en": "The server implements what an editor needs: live diagnostics with the stable codes below, hover types, go-to-definition (across modules through a named import; through a namespace, <code>ui.Button</code> still answers nothing), completion, document and workspace symbols for outline and symbol search, workspace-wide find-references, rename, and formatting in the canonical <code>glyph fmt</code> layout for format-on-save. Rename is complete: renaming a module-level declaration edits its definition, every reference, and each importing module's <code>import</code> binding across the workspace, and it checks the new name (a real identifier, not a keyword) before touching anything. Two limits worth knowing: the cross-file index is rebuilt on each request rather than cached (fine for a normal project, worth speeding up later), and a file that doesn't currently parse is skipped, so a rename won't reach references inside a file that's itself broken.",
+      "tr": "server ทำสิ่งที่ editor ต้องการ: diagnostic สดพร้อมรหัสคงที่ด้านล่าง, type ตอน hover, go-to-definition (ข้าม module ผ่าน import ด้วยชื่อ ส่วนผ่าน namespace อย่าง <code>ui.Button</code> ยังไม่ตอบอะไร), completion, symbol ของเอกสารและของ workspace สำหรับ outline และการค้นหาสัญลักษณ์, find-references ทั้ง workspace, rename และการจัดรูปแบบตาม layout มาตรฐานของ <code>glyph fmt</code> สำหรับ format-on-save rename ครบถ้วน: การเปลี่ยนชื่อ declaration ระดับ module แก้นิยามของมัน ทุก reference และ binding ของ <code>import</code> ในแต่ละ module ที่ import มันทั่ว workspace และตรวจชื่อใหม่ (ต้องเป็น identifier จริง ไม่ใช่ keyword) ก่อนจะแตะอะไร มีสองข้อจำกัดที่ควรรู้: index ข้ามไฟล์ถูกสร้างใหม่ทุก request แทนที่จะ cache ไว้ (ใช้ได้ดีกับโปรเจกต์ปกติ ควรทำให้เร็วขึ้นทีหลัง) และไฟล์ที่ตอนนี้ parse ไม่ผ่านจะถูกข้าม rename จึงไปไม่ถึง reference ในไฟล์ที่พังอยู่เอง"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-f168aa2b",
+      "kind": "html",
+      "en": "Every diagnostic carries a stable code, a one-line fix, and often the design reason. <code>glyph --explain</code> prints the long form for any of them:",
+      "tr": "ทุก diagnostic มีรหัสคงที่ วิธีแก้หนึ่งบรรทัด และบ่อยครั้งมีเหตุผลด้านการออกแบบ <code>glyph --explain</code> พิมพ์ฉบับยาวของตัวไหนก็ได้:"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-f4269bfb",
+      "kind": "html",
+      "en": "We tightened the messages exactly where agents and newcomers stumble most: writing <code>if</code> now points you at <code>match</code> instead of a generic &ldquo;unexpected token,&rdquo; and a wrong argument count, a non-exhaustive <code>match</code>, or a mistyped variant each get their own coded, fixable error.",
+      "tr": "เราปรับข้อความให้คมขึ้นตรงจุดที่เอเจนต์และคนใหม่สะดุดบ่อยที่สุด: การเขียน <code>if</code> ตอนนี้ชี้คุณไปที่ <code>match</code> แทนที่จะเป็น &ldquo;unexpected token&rdquo; ทั่วไป และจำนวน argument ที่ผิด <code>match</code> ที่ไม่ครบ หรือ variant ที่พิมพ์ผิด ต่างก็ได้ error ที่มีรหัสและแก้ได้ของตัวเอง"
+    },
+    {
+      "id": "h-6fe35c75",
+      "kind": "html",
+      "en": "Type errors that only the TypeScript back-end can catch used to point at the generated <code>.ts</code>. Now they're <strong>mapped back onto your <code>.glyph</code></strong> (same ariadne caret, same stable code), so a <code>tsc</code> error reads like a native Glyph one.",
+      "tr": "type error ที่ back-end TypeScript เท่านั้นจับได้เคยชี้ไปที่ <code>.ts</code> ที่ generate ตอนนี้มัน<strong>ถูก map กลับไปยัง <code>.glyph</code> ของคุณ</strong> (เครื่องหมายชี้ของ ariadne แบบเดียวกัน รหัสคงที่เดียวกัน) error ของ <code>tsc</code> จึงอ่านเหมือนเป็นของ Glyph เอง"
+    },
+    {
+      "id": "h-6896e18a",
+      "kind": "html",
+      "en": "<strong>Debugging:</strong> you debug the emitted TypeScript with the tools you already use, like Node's inspector, browser devtools, or your IDE's JS/TS debugger. Every build ships a standard <strong>v3 source map</strong> beside each <code>.ts</code> (with the Glyph source embedded), so a debugger or a bundler that chains maps steps back into your <code>.glyph</code> line numbers. One thing it doesn't cover yet: <code>glyph run</code>'s own crash stack still prints <code>.ts</code> lines, because <code>tsx</code> doesn't chain the map through its transform. Remapping that stack is next.",
+      "tr": "<strong>การดีบัก:</strong> คุณดีบัก TypeScript ที่ emit ออกมาด้วยเครื่องมือที่ใช้อยู่แล้ว อย่าง inspector ของ Node, devtools ของเบราว์เซอร์ หรือ debugger JS/TS ของ IDE ทุก build มี<strong>source map มาตรฐาน v3</strong>ข้างแต่ละ <code>.ts</code> (พร้อมฝังซอร์ส Glyph) debugger หรือ bundler ที่ไล่ map ต่อกันจึงก้าวกลับไปยังเลขบรรทัดใน <code>.glyph</code> ได้ มีอย่างหนึ่งที่ยังไม่ครอบคลุม: stack ตอน crash ของ <code>glyph run</code> เองยังพิมพ์บรรทัดของ <code>.ts</code> เพราะ <code>tsx</code> ไม่ได้ไล่ map ต่อผ่านการแปลงของมัน การ remap stack นั้นคือสิ่งถัดไป"
+    },
+    {
+      "id": "h-27214eb4",
+      "kind": "html",
+      "en": "<strong>Asking &ldquo;does this compile?&rdquo; without running it:</strong> <code>glyph check path.glyph</code> type-checks one file, or a whole directory, and exits. It writes nothing into your tree, which <code>glyph run</code> could not promise and <code>glyph build</code> would not do at all (it refused anything that wasn't a directory). It runs the same pipeline a build runs, including <code>tsc --strict</code> over the emitted TypeScript, into a temp directory it deletes on the way out. <code>--no-tsc</code> stops after the Glyph stages when you want the fast answer; <code>--json</code> gives an agent the same diagnostic shape <code>glyph build --json</code> does. A file is checked in the context of its own directory, so a broken sibling still fails the check. Your <code>@example</code> and <code>@doc @run</code> tests run here too, the same gate <code>glyph build</code> uses, so a check cannot report a clean tree that a build would fail; <code>--no-test</code> skips them when you want an answer that executes nothing.",
+      "tr": "<strong>ถามว่า &ldquo;มันคอมไพล์ผ่านไหม?&rdquo; โดยไม่ต้องรัน:</strong> <code>glyph check path.glyph</code> ตรวจ type ไฟล์เดียวหรือทั้งไดเรกทอรีแล้วจบ มันไม่เขียนอะไรลง tree ของคุณ ซึ่ง <code>glyph run</code> สัญญาไม่ได้ และ <code>glyph build</code> ก็ไม่ทำเลย (มันปฏิเสธทุกอย่างที่ไม่ใช่ไดเรกทอรี) มันรัน pipeline เดียวกับที่ build รัน รวมถึง <code>tsc --strict</code> บน TypeScript ที่ emit ออกมา ลงในไดเรกทอรีชั่วคราวที่มันลบตอนออก <code>--no-tsc</code> หยุดหลังขั้นของ Glyph เมื่อคุณต้องการคำตอบเร็ว <code>--json</code> ให้เอเจนต์ได้รูปแบบ diagnostic เดียวกับที่ <code>glyph build --json</code> ให้ ไฟล์ถูกตรวจในบริบทของไดเรกทอรีของมันเอง ไฟล์ข้างเคียงที่พังจึงยังทำให้การตรวจ fail เทสต์ <code>@example</code> และ <code>@doc @run</code> ก็รันที่นี่ด้วย เป็น gate เดียวกับที่ <code>glyph build</code> ใช้ การตรวจจึงรายงานว่า tree สะอาดในขณะที่ build จะ fail ไม่ได้ <code>--no-test</code> ข้ามมันเมื่อคุณต้องการคำตอบที่ไม่รันอะไรเลย"
+    },
+    {
+      "id": "h-1608da85",
+      "kind": "html",
+      "en": "<strong>The transcript doesn't lie to you either.</strong> A failing build used to open with &ldquo;no diagnostics&rdquo; and then print <code>tsc</code> errors underneath it, because the Glyph-stage summary was written before the TypeScript stage ran. The summary now prints after every stage that can turn the build red, so a red build never shows a green line. In the same pass, <code>glyph run app.glyph --min -12.50</code> started working: a leading hyphen used to make clap reject the argument before your <code>main</code> ever saw it. Flags glyph owns still bind to glyph, so put <code>--</code> in front of a program flag that collides with one of them.",
+      "tr": "<strong>transcript ก็ไม่โกหกคุณเช่นกัน</strong> build ที่ fail เคยเปิดด้วย &ldquo;no diagnostics&rdquo; แล้วพิมพ์ error ของ <code>tsc</code> ข้างใต้ เพราะสรุปของขั้น Glyph ถูกเขียนก่อนที่ขั้น TypeScript จะรัน ตอนนี้สรุปพิมพ์หลังทุกขั้นที่อาจทำให้ build แดง build ที่แดงจึงไม่มีวันแสดงบรรทัดสีเขียว ในรอบเดียวกัน <code>glyph run app.glyph --min -12.50</code> ก็เริ่มใช้ได้: ขีดนำหน้าเคยทำให้ clap ปฏิเสธ argument ก่อนที่ <code>main</code> ของคุณจะได้เห็น flag ที่ glyph เป็นเจ้าของยังผูกกับ glyph จึงต้องใส่ <code>--</code> หน้า flag ของโปรแกรมที่ชนกับตัวใดตัวหนึ่ง"
+    },
+    {
+      "id": "h-c48aa55b",
+      "kind": "html",
+      "en": "<strong>And for the agent in the loop:</strong> <code>glyph build --json</code> emits every diagnostic as structured JSON: a stable code, severity, message, file, and 1-based line/column range, plus the help and note, including <code>tsc</code> errors mapped onto your Glyph source. An agent reads and acts on them directly instead of scraping terminal text.",
+      "tr": "<strong>และสำหรับเอเจนต์ใน loop:</strong> <code>glyph build --json</code> emit ทุก diagnostic เป็น JSON ที่มีโครงสร้าง: รหัสคงที่ severity ข้อความ ไฟล์ และช่วง line/column เริ่มจาก 1 พร้อม help และ note รวมถึง error ของ <code>tsc</code> ที่ map ไปยังซอร์ส Glyph เอเจนต์อ่านและใช้ได้โดยตรงแทนที่จะขูดข้อความจาก terminal"
+    },
+    {
+      "id": "h-4f44d56b",
+      "kind": "html",
+      "en": "For interactive agents there's more than batch diagnostics: <a href=\"/mcp/\"><code>glyph mcp</code></a> runs a <strong>Model Context Protocol server</strong> over stdio (the same binary, the same analysis the editor uses), exposing the language server's queries as MCP tools. An agent can ask for a file's <strong>diagnostics</strong>, the <strong>type</strong> at a position, where a name is <strong>defined</strong> (following imports), every <strong>reference</strong> to a symbol across the whole project, or a <strong>symbol search</strong>, without running a full build or reading every file. It's a thin adapter over the same pure analysis layer, not a second implementation, so it can't drift from what the compiler and editor see.",
+      "tr": "สำหรับเอเจนต์แบบโต้ตอบ มีมากกว่า diagnostic แบบ batch: <a href=\"/mcp/\"><code>glyph mcp</code></a> รัน<strong>เซิร์ฟเวอร์ Model Context Protocol</strong>ผ่าน stdio (binary ตัวเดียวกัน การวิเคราะห์เดียวกับที่ editor ใช้) เปิดคิวรีของ language server ให้เป็นเครื่องมือ MCP เอเจนต์ถามได้ทั้ง<strong>diagnostic</strong>ของไฟล์, <strong>type</strong>ที่ตำแหน่งหนึ่ง, ชื่อหนึ่ง<strong>ถูกนิยาม</strong>ไว้ที่ไหน (ตาม import ไป), ทุก<strong>การอ้างอิง</strong>ถึงสัญลักษณ์ทั่วทั้งโปรเจกต์ หรือ<strong>การค้นหาสัญลักษณ์</strong> โดยไม่ต้องรัน build เต็มหรืออ่านทุกไฟล์ มันเป็น adapter บางๆ บนชั้นวิเคราะห์ที่บริสุทธิ์ชั้นเดียวกัน ไม่ใช่ implementation ตัวที่สอง จึงเพี้ยนจากสิ่งที่คอมไพเลอร์และ editor เห็นไม่ได้"
+    },
+    {
+      "id": "h-b7132d5c",
+      "kind": "html",
+      "en": "<strong>Not everything is a hard error.</strong> Glyph has a warning tier that flags dead weight without failing the build: an <em>unused import</em> (<code>E0106</code>), an <em>unused</em> <code>let</code> (<code>E0107</code>, exempting names led by <code>_</code>), and <em>unreachable code</em> after a <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>). These keep a module honest: a dead import is exactly the kind of greppability noise that makes a reader hunt for a dependency the code doesn't really have. Warnings surface in the same rendered and <code>--json</code> output, marked by severity, and still emit TypeScript.",
+      "tr": "<strong>ไม่ใช่ทุกอย่างเป็น error ที่หยุด build</strong> Glyph มีระดับคำเตือนที่ชี้ส่วนที่ไม่มีประโยชน์โดยไม่ทำให้ build fail: <em>import ที่ไม่ได้ใช้</em> (<code>E0106</code>), <code>let</code> <em>ที่ไม่ได้ใช้</em> (<code>E0107</code> ยกเว้นชื่อที่ขึ้นต้นด้วย <code>_</code>) และ<em>โค้ดที่ไปไม่ถึง</em>หลัง <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>) สิ่งเหล่านี้รักษา module ให้ซื่อตรง: import ที่ไม่ได้ใช้คือความรกที่ขัดกับการค้นหาด้วย grep ซึ่งทำให้คนอ่านต้องไล่หา dependency ที่โค้ดไม่ได้มีจริง คำเตือนแสดงใน output แบบ render และแบบ <code>--json</code> เหมือนกัน ทำเครื่องหมายด้วย severity และยัง emit TypeScript ออกมา"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-090dcbbc",
+      "kind": "html",
+      "en": "A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save, answering across a module boundary since 0.1.124: the server holds one database per project with your open buffers layered over the files on disk, so hovering an imported function or a field of an imported record gives the answer <code>glyph query hover</code> gives, an unsaved edit in one file is seen from another, and a keystroke costs one to nine percent more than it did single-file; a <code>glyph mcp</code> Model Context Protocol server with eleven tools, the editor's queries plus <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>, each with a <code>glyph query</code> verb printing the same JSON for an agent with no MCP client; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics. <code>glyph check [path]</code> type-checks a single file or a tree without running it or writing output. <code>glyph fmt --check</code> gates formatting in CI: it writes nothing and exits non-zero when a file is not already in the one canonical layout.",
+      "tr": "language server (<code>glyph lsp</code> ผ่าน stdio ใช้ได้กับทุก editor มี extension ของ VS Code มาด้วย) ที่มี highlighting, diagnostic, hover, go-to-def, completion, symbol, find-references และ rename ทั้ง workspace และ format-on-save ตอบข้ามขอบเขต module ได้ตั้งแต่ 0.1.124: server ถือ database หนึ่งชุดต่อโปรเจกต์ โดยมี buffer ที่เปิดอยู่ซ้อนบนไฟล์ในดิสก์ การ hover ฟังก์ชันที่ import มาหรือ field ของ record ที่ import มาจึงได้คำตอบเดียวกับ <code>glyph query hover</code> การแก้ที่ยังไม่บันทึกในไฟล์หนึ่งมองเห็นได้จากอีกไฟล์ และการกดแป้นแต่ละครั้งใช้เวลามากขึ้นหนึ่งถึงเก้าเปอร์เซ็นต์จากตอนที่ทำงานไฟล์เดียว; เซิร์ฟเวอร์ Model Context Protocol <code>glyph mcp</code> ที่มีสิบเอ็ดเครื่องมือ คือคิวรีของ editor บวก <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> และ <code>glyph_exports</code> แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code> ที่พิมพ์ JSON เดียวกันให้เอเจนต์ที่ไม่มี MCP client; รหัส error ที่คงที่, <code>glyph --explain</code>, error จาก back-end <code>tsc</code> ที่ map ไปยังซอร์ส <code>.glyph</code>, ระดับคำเตือน (import/binding ที่ไม่ได้ใช้, โค้ดที่ไปไม่ถึง) และ diagnostic แบบมีโครงสร้าง <code>--json</code> <code>glyph check [path]</code> ตรวจ type ไฟล์เดียวหรือทั้ง tree โดยไม่รันและไม่เขียน output <code>glyph fmt --check</code> เป็น gate การจัดรูปแบบใน CI: ไม่เขียนอะไรและ exit ไม่เป็นศูนย์เมื่อไฟล์ยังไม่อยู่ใน layout มาตรฐานแบบเดียว"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "กำลังมา"
+    },
+    {
+      "id": "h-ad09c9c6",
+      "kind": "html",
+      "en": "Caching the cross-file index instead of rebuilding it per request (a speed win on large trees), and remapping <code>glyph run</code>'s own crash stack, since <code>tsx</code> does not chain the emitted map through its transform, so that stack still names the emitted <code>.ts</code> rather than your <code>.glyph</code>.",
+      "tr": "cache index ข้ามไฟล์แทนที่จะสร้างใหม่ทุก request (เร็วขึ้นบน tree ขนาดใหญ่) และ remap stack ตอน crash ของ <code>glyph run</code> เอง เพราะ <code>tsx</code> ไม่ได้ไล่ map ที่ emit ต่อผ่านการแปลงของมัน stack นั้นจึงยังอ้างถึง <code>.ts</code> ที่ emit แทนที่จะเป็น <code>.glyph</code> ของคุณ"
+    }
+  ]
+}

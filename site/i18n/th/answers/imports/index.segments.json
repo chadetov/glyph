@@ -1,0 +1,236 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/imports/index.html",
+  "locale": "th",
+  "source_hash": "5a2ca99ba7fdb55b",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I use my TypeScript, JavaScript and npm code? · Glyph",
+      "tr": "ใช้โค้ด TypeScript, JavaScript และ npm ที่มีอยู่ได้ไหม? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph compiles to ordinary TypeScript and rides npm: a .glyph module imports any package and is importable from your existing .ts. Adopt it one file at a time.",
+      "tr": "Glyph คอมไพล์เป็น TypeScript ธรรมดาและใช้ npm ได้: module .glyph import แพ็กเกจไหนก็ได้ และ .ts ที่มีอยู่ import มันได้ นำมาใช้ทีละไฟล์"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Will a new Glyph release break my build?",
+      "tr": "รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม หรือต้องเปลี่ยนทั้งหมด?"
+    },
+    {
+      "id": "h-913a7743",
+      "kind": "html",
+      "en": "09 &middot; Adoption",
+      "tr": "09 &middot; การนำมาใช้"
+    },
+    {
+      "id": "h-e9a25225",
+      "kind": "html",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?"
+    },
+    {
+      "id": "h-e3b7a129",
+      "kind": "html",
+      "en": "Yes. Glyph compiles to <strong>ordinary TypeScript</strong> and rides npm: a <code>.glyph</code> module imports from any package and is itself importable from your existing <code>.ts</code>. You adopt it <strong>one file at a time</strong>.",
+      "tr": "ได้ Glyph คอมไพล์เป็น <strong>TypeScript ธรรมดา</strong>และใช้ npm ได้: module <code>.glyph</code> import จากแพ็กเกจไหนก็ได้ และตัวมันเองก็ถูก import จาก <code>.ts</code> ที่คุณมีอยู่ได้ คุณนำมาใช้<strong>ทีละไฟล์</strong>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-a0424c1d",
+      "kind": "html",
+      "en": "Nobody rewrites a codebase to try a language. Because Glyph's output <em>is</em> TypeScript, a <code>.glyph</code> file drops into the corner of an existing TS/React/Node project, imports the same packages, and exports back to the <code>.ts</code> around it. That gradual path is the whole reason to target TypeScript instead of shipping a new runtime.",
+      "tr": "ไม่มีใครเขียน codebase ใหม่ทั้งหมดเพื่อลองภาษา เพราะ output ของ Glyph <em>คือ</em> TypeScript ไฟล์ <code>.glyph</code> จึงวางลงในมุมหนึ่งของโปรเจกต์ TS/React/Node ที่มีอยู่ได้ import แพ็กเกจเดียวกัน และ export กลับไปให้ <code>.ts</code> รอบๆ เส้นทางแบบค่อยเป็นค่อยไปนี้คือเหตุผลทั้งหมดที่เลือก TypeScript เป็นเป้าหมายแทนที่จะสร้าง runtime ใหม่"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-14807471",
+      "kind": "html",
+      "en": "You import packages by name (including hyphenated and npm-scoped ones) and Glyph emits the import you'd expect:",
+      "tr": "คุณ import แพ็กเกจด้วยชื่อ (รวมถึงชื่อที่มีขีดและมี scope ของ npm) และ Glyph emit import ตามที่คุณคาดไว้:"
+    },
+    {
+      "id": "h-9ddeefdb",
+      "kind": "html",
+      "en": "form.ts: emitted",
+      "tr": "form.ts: ที่ emit ออกมา"
+    },
+    {
+      "id": "h-6805488a",
+      "kind": "html",
+      "en": "If the package is installed and ships its own types (or has an <code>@types/...</code>), that is all you do. No stub, no adapter file. <code>glyph build</code> finds your project's <code>node_modules</code> and points the type-checker at it, so the package's real types check your code and a wrong call is a real error. Subpath imports (<code>pkg/sub</code>) resolve through the package's <code>exports</code> map too, so a subpath's own types are checked. Here is zod used inline, with nothing hand-written:",
+      "tr": "ถ้าแพ็กเกจติดตั้งแล้วและมี type มาด้วย (หรือมี <code>@types/...</code>) ก็แค่นั้น ไม่มี stub ไม่มีไฟล์ adapter <code>glyph build</code> หา <code>node_modules</code> ของโปรเจกต์และชี้ type-checker ไปที่นั่น type จริงของแพ็กเกจจึงตรวจโค้ดของคุณ และการเรียกที่ผิดเป็น error จริง import แบบ subpath (<code>pkg/sub</code>) resolve ผ่าน map <code>exports</code> ของแพ็กเกจด้วย type ของ subpath จึงถูกตรวจ นี่คือการใช้ zod แบบ inline โดยไม่มีอะไรเขียนเอง:"
+    },
+    {
+      "id": "h-dc9d8579",
+      "kind": "html",
+      "en": "a call zod doesn't define",
+      "tr": "การเรียกที่ zod ไม่ได้นิยามไว้"
+    },
+    {
+      "id": "h-21f4ad4e",
+      "kind": "html",
+      "en": "<code>glyph run</code> executes the same program against the installed zod, so it is not only a type-check: the one config entry that resolves the package for the type-checker resolves it for the runtime too. A package that ships <em>no</em> types and has no <code>@types/...</code> still needs a declaration you write, which is what the <code>.types/</code> folder is for (the same <code>.d.ts</code> mechanism TypeScript already uses). And when you want a library's shape as a first-class, <em>validated</em> Glyph type rather than a type-only import, <code>glyph gen dts</code> materializes a <code>.d.ts</code> into real descriptor-bearing types: see <a href=\"/answers/typed-apis/\">do I have to hand-write a validator for every API?</a>",
+      "tr": "<code>glyph run</code> รันโปรแกรมเดียวกันกับ zod ที่ติดตั้งไว้ จึงไม่ใช่แค่การตรวจ type: รายการ config เดียวที่ resolve แพ็กเกจให้ type-checker ก็ resolve ให้ runtime ด้วย แพ็กเกจที่<em>ไม่มี</em> type มาและไม่มี <code>@types/...</code> ยังต้องมี declaration ที่คุณเขียนเอง ซึ่งเป็นหน้าที่ของโฟลเดอร์ <code>.types/</code> (กลไก <code>.d.ts</code> เดียวกับที่ TypeScript ใช้อยู่แล้ว) และเมื่อคุณต้องการรูปร่างของไลบรารีเป็น type ของ Glyph เต็มตัวที่<em>ถูก validate</em> แทนที่จะเป็น import แค่ type <code>glyph gen dts</code> จะเปลี่ยน <code>.d.ts</code> เป็น type จริงที่มี descriptor ดู<a href=\"/answers/typed-apis/\">ต้องเขียน validator ด้วยมือให้ทุก API ไหม?</a>"
+    },
+    {
+      "id": "h-b452280f",
+      "kind": "html",
+      "en": "Value-derived types are first-class. <code>type User = z.infer&lt;typeof user_schema&gt;</code> works directly: <code>typeof user_schema</code> is a type query over a real value reference (a typo is an unresolved-name error), and <code>z.infer&lt;...&gt;</code> is an ordinary member-generic type. It emits verbatim and <code>tsc</code> reduces it, so <code>u.name</code> is a <code>string</code>; validation comes from the schema's own <code>parse</code>, which is how zod already works. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) is first-class too. For the rare TypeScript idiom Glyph still can't spell, <code>extern_ts(\"...\")</code> is the scoped, greppable escape hatch: <code>tsc</code> checks it, but be precise, it is a trust boundary, not a runtime-validated one (opaque to Glyph, a value comes back <code>unknown</code> to narrow). So a library never forces a hand-written adapter file.",
+      "tr": "type ที่ derive จากค่าใช้ได้เต็มที่ <code>type User = z.infer&lt;typeof user_schema&gt;</code> ใช้ได้โดยตรง: <code>typeof user_schema</code> เป็น type query บน reference ของค่าจริง (พิมพ์ผิดจะเป็น error ชื่อที่ resolve ไม่ได้) และ <code>z.infer&lt;...&gt;</code> เป็น member-generic type ธรรมดา มันถูก emit ตรงตัวและ <code>tsc</code> ลดรูปมัน <code>u.name</code> จึงเป็น <code>string</code> validation มาจาก <code>parse</code> ของ schema เอง ซึ่งเป็นวิธีที่ zod ทำงานอยู่แล้ว JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) ก็ใช้ได้เต็มที่ สำหรับ idiom ของ TypeScript ที่หายากซึ่ง Glyph ยังเขียนไม่ได้ <code>extern_ts(\"...\")</code> คือทางออกฉุกเฉินที่มีขอบเขตและ grep หาได้: <code>tsc</code> ตรวจมัน แต่ต้องเข้าใจให้ถูก มันคือขอบเขตของความไว้ใจ ไม่ใช่ขอบเขตที่ validate ตอนรัน (Glyph มองไม่เห็นข้างใน ค่าที่ได้กลับมาเป็น <code>unknown</code> ให้ narrow ต่อ) ไลบรารีจึงไม่มีวันบังคับให้คุณเขียนไฟล์ adapter เอง"
+    },
+    {
+      "id": "h-933fdf8a",
+      "kind": "html",
+      "en": "When you need whole hand-written TypeScript",
+      "tr": "เมื่อต้องการ TypeScript ที่เขียนเองทั้งไฟล์"
+    },
+    {
+      "id": "h-d52bfb88",
+      "kind": "html",
+      "en": "Sometimes the escape hatch isn't a type or an expression but real runtime code: a node-stream loop, a <code>new Promise</code>, a worker thread. Put the <code>.ts</code> under <code>&lt;src&gt;/extern/</code> and reach it with <code>import extern/&lt;name&gt;</code>.",
+      "tr": "บางครั้งทางออกฉุกเฉินไม่ใช่ type หรือ expression แต่เป็นโค้ด runtime จริง: loop ของ node stream, <code>new Promise</code>, worker thread วาง <code>.ts</code> ไว้ใต้ <code>&lt;src&gt;/extern/</code> แล้วเรียกถึงด้วย <code>import extern/&lt;name&gt;</code>"
+    },
+    {
+      "id": "h-be412622",
+      "kind": "html",
+      "en": "The build stages <code>&lt;src&gt;/extern/**</code> into the output and emits a relative specifier, so <code>tsc</code> type-checks the extern together with your Glyph code and a rebuild never prunes it. Relative imports stay illegal in Glyph source (a greppability rule), so <code>extern/*</code> is the one reserved path, and <code>grep -rn 'import extern/'</code> finds every place you left the language. It is the inverse of the easy direction, a <code>.ts</code> file importing your compiled Glyph, which needs nothing at all. A common extern (an http server, <code>fs</code>) type-checks against the bundled node shim with nothing installed.",
+      "tr": "build นำ <code>&lt;src&gt;/extern/**</code> เข้าไปใน output และ emit specifier แบบ relative <code>tsc</code> จึงตรวจ type ของ extern ไปพร้อมกับโค้ด Glyph และการ build ใหม่ไม่มีวันตัดมันทิ้ง import แบบ relative ยังใช้ไม่ได้ในซอร์ส Glyph (เป็นกฎเรื่อง grep) <code>extern/*</code> จึงเป็น path เดียวที่สงวนไว้ และ <code>grep -rn 'import extern/'</code> เจอทุกจุดที่คุณออกจากภาษา มันเป็นทิศตรงข้ามกับทางที่ง่าย คือไฟล์ <code>.ts</code> ที่ import Glyph ที่คอมไพล์แล้ว ซึ่งไม่ต้องทำอะไรเลย extern ทั่วไป (http server, <code>fs</code>) ตรวจ type กับ node shim ที่มาด้วยได้โดยไม่ต้องติดตั้งอะไร"
+    },
+    {
+      "id": "h-71b270de",
+      "kind": "html",
+      "en": "Watching a subprocess, with nothing installed",
+      "tr": "เฝ้าดู subprocess โดยไม่ต้องติดตั้งอะไร"
+    },
+    {
+      "id": "h-5d5cd557",
+      "kind": "html",
+      "en": "The bundled node declarations carry the async half of <code>child_process</code>, not just the blocking one, so a tool that reports a long command's output while it runs is Glyph rather than an extern:",
+      "tr": "declaration ของ node ที่มาด้วยมีครึ่งที่เป็น async ของ <code>child_process</code> ไม่ใช่แค่แบบ blocking เครื่องมือที่รายงาน output ของคำสั่งที่ใช้เวลานานระหว่างที่มันรันจึงเป็น Glyph แทนที่จะเป็น extern:"
+    },
+    {
+      "id": "h-1b963ba3",
+      "kind": "html",
+      "en": "<code>io.print</code> and not <code>io.println</code>: a chunk is a slice of the stream, not a line, and one line can arrive across two of them. The overloads follow <code>@types/node</code>, so the pipes come back non-null from a plain <code>spawn(command, args)</code> and nullable once you pass <code>stdio</code>. Reading <code>child.stdout</code> after <code>stdio: \"inherit\"</code> is <code>TS18047</code> here and <code>TS18047</code> with the real typings, rather than two different stories about the same value:",
+      "tr": "<code>io.print</code> ไม่ใช่ <code>io.println</code>: chunk คือชิ้นหนึ่งของ stream ไม่ใช่บรรทัด และบรรทัดหนึ่งอาจมาข้ามสอง chunk overload ทำตาม <code>@types/node</code> pipe จึงกลับมาเป็นค่าที่ไม่ใช่ null จาก <code>spawn(command, args)</code> ธรรมดา และเป็น nullable เมื่อคุณส่ง <code>stdio</code> การอ่าน <code>child.stdout</code> หลัง <code>stdio: \"inherit\"</code> เป็น <code>TS18047</code> ที่นี่ และเป็น <code>TS18047</code> กับ typing จริง แทนที่จะเป็นสองเรื่องที่ต่างกันเกี่ยวกับค่าเดียวกัน:"
+    },
+    {
+      "id": "h-9dde8adf",
+      "kind": "html",
+      "en": "Edit the shim, and the next run is the shim you edited",
+      "tr": "แก้ shim แล้วการรันครั้งถัดไปก็ใช้ shim ที่คุณแก้"
+    },
+    {
+      "id": "h-452ef7e8",
+      "kind": "html",
+      "en": "A shim is a file you iterate on, so it has to count as a source. <code>glyph run</code> caches a build under a fingerprint of your sources, and that fingerprint covers every <code>.ts</code> and <code>.tsx</code> under <code>extern/</code>, by path as well as by contents. Edit one, rename one, add one, delete one, and the next run rebuilds and re-runs <code>tsc</code>. A symlinked shim is followed, so a <code>.ts</code> kept outside the source tree is hashed by what it actually contains.",
+      "tr": "shim เป็นไฟล์ที่คุณแก้ไปเรื่อยๆ จึงต้องนับเป็นซอร์ส <code>glyph run</code> cache build ไว้ภายใต้ fingerprint ของซอร์ส และ fingerprint นั้นครอบคลุมทุก <code>.ts</code> และ <code>.tsx</code> ใต้ <code>extern/</code> ทั้งตาม path และตามเนื้อหา แก้ เปลี่ยนชื่อ เพิ่ม หรือลบสักไฟล์ การรันครั้งถัดไปจะ build ใหม่และรัน <code>tsc</code> ใหม่ shim ที่เป็น symlink จะถูกตามไป <code>.ts</code> ที่เก็บไว้นอก source tree จึงถูก hash ตามเนื้อหาจริง"
+    },
+    {
+      "id": "h-f9bad1f5",
+      "kind": "html",
+      "en": "That is what lets the shim own a type instead of both files declaring their own copy of it. Export the shape from the shim, import it in the Glyph module, and the compiler holds the two together on every run:",
+      "tr": "นั่นคือสิ่งที่ทำให้ shim เป็นเจ้าของ type ได้ แทนที่ทั้งสองไฟล์จะประกาศสำเนาของตัวเอง export รูปร่างจาก shim แล้ว import มันใน module ของ Glyph คอมไพเลอร์จะยึดทั้งสองให้ตรงกันทุกครั้งที่รัน:"
+    },
+    {
+      "id": "h-5523ccd7",
+      "kind": "html",
+      "en": "the shim renamed a field, the build says so",
+      "tr": "shim เปลี่ยนชื่อ field และ build ก็บอก"
+    },
+    {
+      "id": "h-82a5c1d0",
+      "kind": "html",
+      "en": "Until 0.1.44 the fingerprint skipped <code>extern/</code> entirely, so that rename produced a clean, type-checked build running the previous copy of the shim. Files under <code>extern/</code> that are not <code>.ts</code> or <code>.tsx</code> still do not affect the cache, which is deliberate: a <code>README.md</code> next to your shim is copied into the output along with it, but nothing type-checks or runs it, so there is nothing to rebuild.",
+      "tr": "จนถึง 0.1.44 fingerprint ข้าม <code>extern/</code> ไปทั้งหมด การเปลี่ยนชื่อนั้นจึงได้ build ที่สะอาดและตรวจ type ผ่าน ซึ่งรัน shim สำเนาเก่า ไฟล์ใต้ <code>extern/</code> ที่ไม่ใช่ <code>.ts</code> หรือ <code>.tsx</code> ยังไม่กระทบ cache ซึ่งเป็นความตั้งใจ: <code>README.md</code> ข้าง shim ถูกคัดลอกไปใน output ด้วย แต่ไม่มีอะไรตรวจ type หรือรันมัน จึงไม่มีอะไรต้อง build ใหม่"
+    },
+    {
+      "id": "h-fc67c61f",
+      "kind": "html",
+      "en": "Class-based clients: the database and messaging ones",
+      "tr": "client แบบ class: ตัวที่ใช้กับฐานข้อมูลและ messaging"
+    },
+    {
+      "id": "h-c7898520",
+      "kind": "html",
+      "en": "Most database and messaging clients are class-based: you write <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Glyph has <code>new</code> for exactly this. It emits a verbatim TypeScript <code>new</code> and <code>tsc</code> checks it against the package's real constructor, so a wrong argument is a real error and an undefined callee is caught by name. It stays interop-only: Glyph has no <code>class</code> of its own, and <code>new</code> only constructs a type that comes from a package, a <code>.types</code> declaration, or <code>extern_ts</code>.",
+      "tr": "client ของฐานข้อมูลและ messaging ส่วนใหญ่เป็นแบบ class: คุณเขียน <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code> Glyph มี <code>new</code> สำหรับเรื่องนี้โดยเฉพาะ มัน emit <code>new</code> ของ TypeScript ตรงตัว และ <code>tsc</code> ตรวจมันกับ constructor จริงของแพ็กเกจ argument ที่ผิดจึงเป็น error จริง และ callee ที่ไม่ได้นิยามถูกจับด้วยชื่อ มันใช้ได้เฉพาะ interop: Glyph ไม่มี <code>class</code> ของตัวเอง และ <code>new</code> สร้างได้เฉพาะ type ที่มาจากแพ็กเกจ declaration ใน <code>.types</code> หรือ <code>extern_ts</code>"
+    },
+    {
+      "id": "h-89f59f10",
+      "kind": "html",
+      "en": "a class-based client (kafkajs)",
+      "tr": "client แบบ class (kafkajs)"
+    },
+    {
+      "id": "h-69ee7aec",
+      "kind": "html",
+      "en": "a factory client needs no <code>new</code>",
+      "tr": "client แบบ factory ไม่ต้องใช้ <code>new</code>"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-112846a9",
+      "kind": "html",
+      "en": "Import any npm package (hyphenated and scoped names included). An installed package that ships its own types (or has <code>@types/...</code>) type-checks and runs with no stub. Class-based clients construct with <code>new</code>, checked by <code>tsc</code> against the real constructor; factory clients import and call directly. Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> including the streaming <code>spawn</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when you install it, and CI builds the compiler's own runtime against that package at <code>latest</code>, so a declaration the stdlib depends on cannot drift from node's real one. A declaration only your code reaches is not covered by that check yet, and a few are still wider than node. <code>.types/</code> ambient declarations for anything else, <code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types, and clean <code>.ts</code> output your existing TypeScript imports back. When you need whole hand-written TypeScript, <code>import extern/&lt;name&gt;</code> reaches a <code>.ts</code> under <code>&lt;src&gt;/extern/</code>, staged and type-checked with your code, and tracked by the <code>glyph run</code> cache so editing it rebuilds.",
+      "tr": "import แพ็กเกจ npm ไหนก็ได้ (รวมชื่อที่มีขีดและมี scope) แพ็กเกจที่ติดตั้งแล้วซึ่งมี type มาเอง (หรือมี <code>@types/...</code>) ตรวจ type และรันได้โดยไม่มี stub client แบบ class สร้างด้วย <code>new</code> ซึ่ง <code>tsc</code> ตรวจกับ constructor จริง client แบบ factory import และเรียกได้ตรงๆ builtin ของ Node (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> รวมถึง <code>spawn</code> แบบ streaming และตัวอื่นๆ) ตรวจ type ได้ทันที โดยโหลด <code>@types/node</code> อัตโนมัติเมื่อคุณติดตั้ง และ CI build runtime ของคอมไพเลอร์เองกับแพ็กเกจนั้นที่ <code>latest</code> declaration ที่ stdlib พึ่งพาจึงเพี้ยนจากของจริงของ node ไม่ได้ declaration ที่มีแค่โค้ดของคุณเรียกถึงยังไม่อยู่ในการตรวจนั้น และบางตัวยังกว้างกว่าของ node declaration แบบ ambient ใน <code>.types/</code> สำหรับอย่างอื่น <code>glyph gen dts</code> สำหรับเปลี่ยน <code>.d.ts</code> เป็น type ของ Glyph ที่ validate ได้ และ output <code>.ts</code> ที่สะอาดซึ่ง TypeScript ที่มีอยู่ import กลับได้ เมื่อต้องการ TypeScript ที่เขียนเองทั้งไฟล์ <code>import extern/&lt;name&gt;</code> เรียกถึง <code>.ts</code> ใต้ <code>&lt;src&gt;/extern/</code> ซึ่งถูกนำเข้าและตรวจ type ไปพร้อมโค้ดของคุณ และถูกติดตามโดย cache ของ <code>glyph run</code> การแก้มันจึงทำให้ build ใหม่"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "กำลังมา"
+    },
+    {
+      "id": "h-8fc5ce45",
+      "kind": "html",
+      "en": "Materialization now handles the shapes real SDKs ship (namespaces, cross-file and aliased/namespace re-exports, subpath <code>exports</code>, and first-class generics), and value-derived types (<code>z.infer&lt;typeof s&gt;</code>) are first-class. The main gap left is that an un-materialized package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them. On the <code>extern/</code> side, the source root differs between the two commands: <code>glyph run app.glyph</code> roots at the file's own directory, <code>glyph build src/</code> roots at the directory you name. A program in a subdirectory therefore looks for its shim in two different places, and until we pick one root, a project laid out that way needs the shim reachable from both. It fails loudly when it does not.",
+      "tr": "ตอนนี้การ materialize จัดการรูปร่างที่ SDK จริงมีได้ (namespace, re-export ข้ามไฟล์และแบบ alias/namespace, <code>exports</code> แบบ subpath และ generic เต็มรูปแบบ) และ type ที่ derive จากค่า (<code>z.infer&lt;typeof s&gt;</code>) ก็ใช้ได้เต็มที่ ช่องว่างหลักที่เหลือคือ output ของแพ็กเกจที่ไม่ได้ materialize ถูกตรวจ type กับ <code>.d.ts</code> ของมัน แต่ไม่ถูก validate ตอนรันถ้าคุณไม่ materialize ฝั่ง <code>extern/</code> root ของซอร์สต่างกันระหว่างสองคำสั่ง: <code>glyph run app.glyph</code> ใช้ไดเรกทอรีของไฟล์เป็น root ส่วน <code>glyph build src/</code> ใช้ไดเรกทอรีที่คุณระบุ โปรแกรมในไดเรกทอรีย่อยจึงหา shim ในสองที่ต่างกัน และจนกว่าเราจะเลือก root เดียว โปรเจกต์ที่จัดแบบนั้นต้องให้ shim เข้าถึงได้จากทั้งสองที่ มันจะ fail อย่างชัดเจนเมื่อเข้าถึงไม่ได้"
+    }
+  ]
+}

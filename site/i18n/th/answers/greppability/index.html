@@ -1,0 +1,72 @@
+---
+title: เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน? · Glyph
+description: ทุก construct ใน Glyph มีรูปแบบเดียวให้ค้นหา grep (หรือการค้นหาของเอเจนต์) จึงเจอนิยามเดียว ไม่ใช่ห้าสิบจุดที่เกือบใช่
+source_hash: cb5e3e02dc597369
+prev: /answers/diff-stability/ | &larr; ก่อนหน้า | การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?
+next: /answers/why-typescript/ | ถัดไป &rarr; | ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?
+---
+      <p class="q-eyebrow">03 &middot; นำทางด้วยการค้นหา</p>
+      <h1 class="q-title">เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?</h1>
+
+      <p class="short-answer">
+        ทุก construct มี<strong>รูปแบบเดียวเท่านั้น</strong>ให้ค้นหา <code>grep</code> ธรรมดา (ซึ่งเป็นวิธีที่เอเจนต์ใช้นำทางจริงๆ) เจอนิยามเดียว <strong>ไม่ใช่ห้าสิบจุดที่เกือบใช่</strong>
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          เอเจนต์ไม่ได้จำทั้ง repo ไว้ในหัว มัน<strong>ค้นหา</strong> ถ้าแนวคิดหนึ่งเขียนได้ห้าแบบ การค้นหาก็จะพลาดบางกรณี และเอเจนต์ที่มั่นใจแต่หานิยามที่มีอยู่ไม่เจอก็จะสร้างตัวที่สองขึ้นมา รูปแบบเดียวต่อแนวคิดหมายความว่าการค้นหาครบถ้วน เอเจนต์จึงแก้สิ่งที่มีอยู่แทนที่จะทำซ้ำ
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>Glyph จำกัดการแก้ค่าไว้สองรูปแบบ (<code>mut x = &hellip;</code> และ <code>mut x.method(&hellip;)</code>) <em>ทุก</em>จุดที่ state เปลี่ยนจึงหาเจอได้ด้วยการค้นหาครั้งเดียว:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">grep -rn "mut " src/ (ทุกการแก้ค่าใน codebase)</span>
+<pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
+<span class="dim">src/cart.glyph:22:</span>   mut total = total + price
+<span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          สามการแก้ค่า ครบทุกตัว ในการค้นหาครั้งเดียว ใน TypeScript การแก้ค่าซ่อนอยู่หลัง <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter หรือ spread ได้ ไม่มี token เดียวให้ grep คำถาม &ldquo;มีอะไรเปลี่ยนค่านี้ไหม?&rdquo; จึงไม่มีคำตอบที่เชื่อถือได้ กฎรูปแบบเดียวกันนี้ทำให้ตรวจสอบได้ทั้งหมวด:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">ค้นหาหนึ่งครั้ง = คำตอบที่ครบหนึ่งชุด</span>
+<pre><span class="cm"># every UI component</span>
+grep -rn <span class="add">"^component "</span> src/
+
+<span class="cm"># every function</span>
+grep -rn <span class="add">"^fn "</span> src/
+
+<span class="cm"># the entire resource-ownership surface</span>
+grep -rn <span class="add">"owned"</span> src/</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ไม่มี object-literal shorthand ไม่มีวิธีที่สองในการประกาศ component ไม่มี syntax แบบ overload ที่ต้องแยกความหมาย การมีวิธีเขียนน้อยลงเป็นข้อจำกัดจริง และนั่นคือประเด็น: มันคือสิ่งที่ทำให้การค้นหาของเอเจนต์และของคุณเชื่อถือได้
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          construct ที่ Glyph ตัดออกไปเพื่อให้การค้นหาเชื่อถือได้ และเหตุผลที่กฎ lint ไม่ใช่การรับประกันแบบเดียวกัน อยู่ใน<a href="/pillars/greppability/">หน้าเสาหลักเรื่องค้นหาได้ด้วย grep</a>
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>รูปแบบมาตรฐานเดียวต่อ construct การแก้ค่าจำกัดไว้สองรูปแบบที่ grep หาได้ (<code>mut</code>) และตรวจสอบได้ด้วย keyword เดียว (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">วางซ้อนอยู่ด้านบน</h3>
+          <p>language server เพิ่ม go-to-definition และ find-references ทั้ง workspace: การรับประกันเดียวกัน ตอนนี้ใช้แบบโต้ตอบได้ใน editor ของคุณ</p>
+        </div>
+      </div>

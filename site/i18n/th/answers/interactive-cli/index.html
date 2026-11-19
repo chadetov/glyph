@@ -1,0 +1,99 @@
+---
+title: เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม? · Glyph
+description: io.read_line คืนค่าทันทีที่มีบรรทัดเข้ามา แทนที่จะรอให้ stdin ปิด REPL, game loop หรือ chat client จึงตอบกลับขณะที่คุณพิมพ์
+source_hash: a2332eec4a663662
+prev: /answers/web-serving/ | &larr; ก่อนหน้า | ให้บริการหน้าเว็บได้ไหม หรือได้แค่ JSON API?
+next: /answers/long-running/ | ถัดไป &rarr; | เขียน server ได้ไหม หรือ process จะจบไปเลย?
+---
+      <p class="q-eyebrow">18 &middot; โปรแกรมที่พิมพ์โต้ตอบ</p>
+      <h1 class="q-title">เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?</h1>
+
+      <p class="short-answer">
+        ได้ <code>io.read_line</code> คืนค่า<strong>ทันทีที่บรรทัดเต็มเข้ามา</strong> และไม่รอให้ stdin ปิด REPL, game loop หรือ chat client จึงตอบแต่ละบรรทัดก่อนอ่านบรรทัดถัดไป จนถึง 0.1.62 มันเคยรอ และเรื่องนี้ควรพูดออกมาตรงๆ เพราะมันทำให้โปรแกรมแบบโต้ตอบทุกตัวเป็นไปไม่ได้
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          ตัวอ่านบรรทัดที่คืนค่าเฉพาะตอนจบ input คือตัวอ่านไฟล์ที่ใช้ชื่อตัวอ่านบรรทัด การ pipe ไฟล์ผ่านมันใช้ได้สมบูรณ์ ซึ่งเป็นเหตุผลที่ไม่มีอะไรจับได้: ทุกแอปใน repository ที่อ่าน stdin อ่านจาก pipe แล้ววันหนึ่งมีคนเขียน chat client และมันเงียบไปขณะที่เขาพิมพ์ แล้วพิมพ์คำตอบทั้งหมดออกมาพร้อมกันหลัง Ctrl-D
+        </p>
+        <p>
+          แอปนั้นถูกปล่อยออกไปเป็นตัวเล่นซ้ำ session จากไฟล์ JSON ที่บันทึกไว้ พร้อม comment ในซอร์สบอกเหตุผล อีกสามแอปถูกปรับรูปให้หลบเรื่องเดียวกันโดยไม่มีใครเรียกชื่อมัน: minesweeper วาดใหม่ระหว่างการเดินไม่ได้ เกมผจญภัยแบบข้อความตอบ <code>look</code> ไม่ได้ และ REPL ไม่ประมวลผลอะไรเลยจนกว่าคุณจะวางสาย
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>loop ของ session สดทั้งหมดของแอป chat อ่าน ประมวลผล พิมพ์ ทำซ้ำ:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/chat/main.glyph</span>
+<pre>fn converse(limit: Option&lt;int&gt;) -&gt; Server {
+  let state = server.empty()
+  io.println(LIVE_BANNER)
+  loop {
+    let text = match io.read_line() {
+      Some(l) =&gt; l,
+      None =&gt; { break },
+    }
+    match client_line(text) {
+      None =&gt; { io.println(LIVE_HINT) },
+      Some(sent) =&gt; {
+        let done = turn(state, sent.from, sent.line)
+        report(done.lines)
+        mut state = done.state
+      },
+    }
+  }
+  return state
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ขับด้วย terminal จริง พิมพ์แต่ละบรรทัดห่างกันประมาณ 0.6 วินาที และเปิด stdin ค้างไว้ คอลัมน์ซ้ายคือมิลลิวินาทีนับจาก process เริ่ม:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+<pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
+1826ms |    1  #general &lt;bob&gt; hey, is the build green?
+2434ms | <span class="cm">alice: green since 9am</span>
+2435ms |    2  #general &lt;alice&gt; green since 9am
+3042ms | <span class="cm">bob: /who</span>
+3044ms |       * #general: alice, bob (2)
+3648ms | <span class="cm">carol: hello?</span>
+3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          หนึ่งถึงสองมิลลิวินาทีจากบรรทัดที่พิมพ์ถึงคำตอบ ก่อนแก้ ไม่มีอะไรพิมพ์ออกมาจนถึง 6460ms ซึ่งเป็นตอนที่ stdin ปิด คำตอบแรกในการรันเต็มมาถึงประมาณ 1.6 วินาที และนั่นคือเวลาเริ่มต้นของ <code>tsx</code> ไม่ใช่ความหน่วงในการอ่าน
+        </p>
+
+        <h2 class="block-label">ส่วนที่มักเจอปัญหาจริง</h2>
+        <p>
+          <code>\r</code> ท้ายบรรทัดถูกตัดออก ไฟล์ CRLF กับไฟล์ LF จึงให้บรรทัดเหมือนกัน และคุณไม่ต้องมาดีบักอักขระที่มองไม่เห็นจาก input บน Windows input ที่จบโดยไม่มีขึ้นบรรทัดใหม่ตัวสุดท้ายยังคืนบรรทัดสุดท้ายนั้นหนึ่งครั้งก่อน <code>None</code> แถวสุดท้ายของไฟล์ที่ไม่มีขึ้นบรรทัดใหม่ปิดท้ายจึงไม่หายไปเงียบๆ UTF-8 แบบหลายไบต์ที่ถูกแบ่งข้ามขอบเขตการอ่านจะถูกเก็บไว้และต่อให้ครบ แทนที่จะกลายเป็นอักขระแทนที่
+        </p>
+        <p>
+          <code>read_to_string</code> ดึงจาก buffer เดียวกัน ทั้งสองจึงใช้ร่วมกันได้: <code>read_line</code> สำหรับบรรทัด header แล้ว <code>read_to_string</code> สำหรับ body จะได้ส่วนที่เหลือ ไม่ใช่สำเนาที่สอง และไม่ใช่ string ว่าง ถ้าเรียกมันก่อน ก็ยังคืน stdin ทั้งหมด การนับ 200,000 บรรทัดที่ pipe เข้ามาใช้เวลาประมาณ 20ms การอ่านทีละบรรทัดจึงไม่ได้แลกกับ throughput
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">บรรทัด header แล้วตามด้วย body</span>
+<pre>let header = io.read_line()
+let body = io.read_to_string()</pre>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p><code>io.read_line</code> คืนค่าเมื่อบรรทัดเข้ามา ไม่ใช่เมื่อ stream ปิด loop แบบถาม อ่าน ตอบ จึงใช้ได้ทั้งใน terminal และผ่าน pipe CRLF ถูกปรับให้เป็นมาตรฐาน บรรทัดสุดท้ายที่ไม่มีตัวจบถูกส่งหนึ่งครั้ง อักขระหลายไบต์รอดข้ามขอบ chunk และ <code>read_to_string</code> รับส่วนที่เหลือของ buffer เดียวกัน regression test เปิด stdin ค้างไว้และต้องได้ echo กลับมา เพราะเทสต์ที่ pipe ไฟล์เข้าไปก็ผ่านกับ implementation ที่พังได้เหมือนกัน <code>io.print</code> และ <code>io.eprint</code> เขียนโดยไม่ขึ้นบรรทัดใหม่ prompt <code>&gt; </code> ของ REPL จึงอยู่บนบรรทัดเดียวกับที่พิมพ์คำตอบ และ <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> บอกโปรแกรมว่ากำลังคุยกับคนหรือ pipe flag อย่าง <code>--stdin</code> ของแอป chat จึงไม่ใช่วิธีเดียวที่จะถามอีกต่อไป</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">ยังหยาบอยู่</h3>
+          <p>โปรแกรมที่ต้องการวาดหน้าจอใหม่ไม่มีการควบคุมเคอร์เซอร์: <code>std/io</code> ไม่มีฟังก์ชันเกี่ยวกับเคอร์เซอร์หรือหน้าจอ และไม่มี module อื่นใน stdlib เพิ่มให้ terminal UI แบบเต็มจอจึงยังต้องเขียน escape code เอง</p>
+        </div>
+      </div>

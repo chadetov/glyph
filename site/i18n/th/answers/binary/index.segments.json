@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/binary/index.html",
+  "locale": "th",
+  "source_hash": "597ac2fe9fcb5f04",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I handle binary data, or is everything a string? · Glyph",
+      "tr": "จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "std/bytes gives Glyph an immutable byte sequence, with hex, base64 and base32 codecs that refuse malformed input, plus file I/O and HMACs over bytes.",
+      "tr": "std/bytes ให้ Glyph มีลำดับไบต์ที่เปลี่ยนค่าไม่ได้ พร้อม codec แบบ hex, base64 และ base32 ที่ปฏิเสธ input ที่ผิดรูป รวมถึง I/O ไฟล์และ HMAC บนไบต์"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "เขียน server ได้ไหม หรือ process จะจบไปเลย?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can the compiler tell me what a change will break before I make it?",
+      "tr": "คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง ก่อนที่ฉันจะแก้?"
+    },
+    {
+      "id": "h-a24343fd",
+      "kind": "html",
+      "en": "20 &middot; Binary data",
+      "tr": "20 &middot; ข้อมูลไบนารี"
+    },
+    {
+      "id": "h-0a58139d",
+      "kind": "html",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?"
+    },
+    {
+      "id": "h-50ebd61b",
+      "kind": "html",
+      "en": "<code>std/bytes</code> gives you an immutable sequence of octets, and <code>std/fs</code> and <code>std/crypto</code> both speak it. Until 0.1.78 they did not: every boundary in the standard library was string-in, string-out, so a PNG could not be read and an HMAC could not be given a real key.",
+      "tr": "<code>std/bytes</code> ให้ลำดับของ octet ที่เปลี่ยนค่าไม่ได้ และทั้ง <code>std/fs</code> และ <code>std/crypto</code> ก็ใช้มัน จนถึง 0.1.78 ยังไม่ใช่แบบนี้: ทุกขอบเขตใน standard library รับ string และคืน string ไฟล์ PNG จึงอ่านไม่ได้ และ HMAC ก็ใส่ key จริงไม่ได้"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-fb444517",
+      "kind": "html",
+      "en": "A PNG's first byte is <code>0x89</code>, which is not valid UTF-8 on its own. Read that file as text and every byte the decoder cannot make sense of becomes U+FFFD, so the file is corrupt before your program sees it and nothing reports an error. The same thing happens to a key: an HMAC secret is arbitrary octets, and routing one through a string changes it, so you compute a different MAC than the specification says and every test you wrote against your own code passes.",
+      "tr": "ไบต์แรกของ PNG คือ <code>0x89</code> ซึ่งไม่ใช่ UTF-8 ที่ถูกต้องเมื่ออยู่เดี่ยวๆ อ่านไฟล์นั้นเป็นข้อความแล้วทุกไบต์ที่ decoder ตีความไม่ได้จะกลายเป็น U+FFFD ไฟล์จึงเสียหายก่อนโปรแกรมของคุณจะเห็น และไม่มีอะไรรายงาน error เรื่องเดียวกันเกิดกับ key: secret ของ HMAC เป็น octet อะไรก็ได้ และการส่งมันผ่าน string จะเปลี่ยนมัน คุณจึงคำนวณ MAC ได้ไม่ตรงกับที่สเปกบอก และทุกเทสต์ที่คุณเขียนกับโค้ดของตัวเองก็ผ่าน"
+    },
+    {
+      "id": "h-2923da28",
+      "kind": "html",
+      "en": "Two applications written independently, one a PNG reader and one an authenticator, stopped on this same sentence in the same week. Neither could be worked around inside the language.",
+      "tr": "สองแอปที่เขียนแยกกัน ตัวหนึ่งอ่าน PNG อีกตัวเป็น authenticator หยุดที่ประโยคเดียวกันนี้ในสัปดาห์เดียวกัน ทั้งคู่หาทางเลี่ยงภายในภาษาไม่ได้"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-1575f58f",
+      "kind": "html",
+      "en": "An RFC 6238 authenticator, which needs bytes on both sides of the HMAC. The secret arrives base32-encoded, the message is an eight-byte counter that is mostly zero, and the digest is indexed by its own last byte:",
+      "tr": "authenticator ตาม RFC 6238 ซึ่งต้องใช้ไบต์ทั้งสองฝั่งของ HMAC secret มาในรูป base32 ข้อความเป็นตัวนับแปดไบต์ที่ส่วนใหญ่เป็นศูนย์ และ digest ถูกชี้ index ด้วยไบต์สุดท้ายของมันเอง:"
+    },
+    {
+      "id": "h-e573d962",
+      "kind": "html",
+      "en": "One-time password, start to finish",
+      "tr": "รหัสผ่านใช้ครั้งเดียว ตั้งแต่ต้นจนจบ"
+    },
+    {
+      "id": "h-1280c9e1",
+      "kind": "html",
+      "en": "<code>Bytes</code> is a <code>Uint8Array</code> at run time, so it hands to any host API that takes one without unwrapping. The sequence operations are named after their peers in <code>std/array</code> and <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Nothing mutates its argument.",
+      "tr": "<code>Bytes</code> เป็น <code>Uint8Array</code> ตอนรัน จึงส่งให้ API ของ host ที่รับมันได้โดยไม่ต้องแกะ operation ของลำดับตั้งชื่อตามตัวที่คล้ายกันใน <code>std/array</code> และ <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code> ไม่มีตัวไหนแก้ argument ของมัน"
+    },
+    {
+      "id": "h-53d05d13",
+      "kind": "html",
+      "en": "Every decode can refuse, and says where",
+      "tr": "ทุกการ decode ปฏิเสธได้ และบอกว่าตรงไหน"
+    },
+    {
+      "id": "h-5a77fb2e",
+      "kind": "html",
+      "en": "This is the part that cost the most to build and is the reason to use it. Node's <code>Buffer</code> accepts malformed input and reports success:",
+      "tr": "นี่คือส่วนที่สร้างยากที่สุด และเป็นเหตุผลที่ควรใช้มัน <code>Buffer</code> ของ Node รับ input ที่ผิดรูปและรายงานว่าสำเร็จ:"
+    },
+    {
+      "id": "h-53c32033",
+      "kind": "html",
+      "en": "What the platform does quietly",
+      "tr": "สิ่งที่แพลตฟอร์มทำแบบเงียบๆ"
+    },
+    {
+      "id": "h-f57d9b58",
+      "kind": "html",
+      "en": "What Glyph does",
+      "tr": "สิ่งที่ Glyph ทำ"
+    },
+    {
+      "id": "h-ce7398d8",
+      "kind": "html",
+      "en": "Every codec is written out rather than delegated to <code>Buffer</code>, so hex, base64, base64url and base32 all refuse a character outside their alphabet, a trailing group too short to encode a whole byte, and a final character carrying bits past the end of the data. <code>to_text</code> scans to find the first byte that cannot be part of a valid UTF-8 sequence, so you get a position rather than a verdict. <code>from_array</code> rejects anything outside 0..255 for the same reason: a silent <code>&amp; 0xff</code> turns 256 into 0 and a typo into data.",
+      "tr": "ทุก codec เขียนขึ้นเองแทนที่จะส่งต่อให้ <code>Buffer</code> hex, base64, base64url และ base32 จึงปฏิเสธอักขระที่อยู่นอก alphabet ของมัน กลุ่มท้ายที่สั้นเกินจะเข้ารหัสไบต์เต็ม และอักขระสุดท้ายที่มีบิตเกินท้ายข้อมูล <code>to_text</code> สแกนหาไบต์แรกที่เป็นส่วนของลำดับ UTF-8 ที่ถูกต้องไม่ได้ คุณจึงได้ตำแหน่ง ไม่ใช่แค่คำตัดสิน <code>from_array</code> ปฏิเสธทุกอย่างที่อยู่นอก 0..255 ด้วยเหตุผลเดียวกัน: <code>&amp; 0xff</code> แบบเงียบๆ เปลี่ยน 256 เป็น 0 และเปลี่ยนคำผิดเป็นข้อมูล"
+    },
+    {
+      "id": "h-5b1335e7",
+      "kind": "html",
+      "en": "Writing the codecs out bought something that was not the motive. The module reaches for no host API at all, only <code>Uint8Array</code>, <code>TextEncoder</code> and <code>TextDecoder</code>, so a bundle that touches only <code>std/bytes</code> still runs in a Web Worker.",
+      "tr": "การเขียน codec เองให้ผลพลอยได้ที่ไม่ได้ตั้งใจ module นี้ไม่ใช้ API ของ host เลย มีแค่ <code>Uint8Array</code>, <code>TextEncoder</code> และ <code>TextDecoder</code> bundle ที่แตะแค่ <code>std/bytes</code> จึงยังรันใน Web Worker ได้"
+    },
+    {
+      "id": "h-12c85de2",
+      "kind": "html",
+      "en": "Which HMAC you pick changes the answer",
+      "tr": "HMAC แบบไหนที่คุณเลือกเปลี่ยนคำตอบ"
+    },
+    {
+      "id": "h-45fc3393",
+      "kind": "html",
+      "en": "<code>std/crypto</code> now has both forms of every algorithm. The plain name takes a string and returns hex, which is what hashing a password wants. The <code>_bytes</code> form takes and returns <code>Bytes</code>, which is what a wire protocol wants. If the key came from <code>bytes.from_base64</code> or <code>crypto.random_bytes</code>, it has bytes a string cannot hold, and the text form will quietly compute something else.",
+      "tr": "ตอนนี้ <code>std/crypto</code> มีทั้งสองรูปแบบของทุก algorithm ชื่อธรรมดารับ string และคืน hex ซึ่งเหมาะกับการ hash รหัสผ่าน รูปแบบ <code>_bytes</code> รับและคืน <code>Bytes</code> ซึ่งเหมาะกับ wire protocol ถ้า key มาจาก <code>bytes.from_base64</code> หรือ <code>crypto.random_bytes</code> มันมีไบต์ที่ string เก็บไม่ได้ และรูปแบบข้อความจะคำนวณอย่างอื่นออกมาแบบเงียบๆ"
+    },
+    {
+      "id": "h-168ab7fa",
+      "kind": "html",
+      "en": "Verifying an attacker-supplied value against a secret uses <code>crypto.timing_safe_equal</code>, not <code>bytes.equals</code>. <code>equals</code> returns as soon as it finds a mismatch, so how long it takes says how many leading bytes were right.",
+      "tr": "การตรวจค่าที่ผู้โจมตีส่งมาเทียบกับ secret ใช้ <code>crypto.timing_safe_equal</code> ไม่ใช่ <code>bytes.equals</code> <code>equals</code> คืนค่าทันทีที่เจอจุดที่ไม่ตรงกัน เวลาที่ใช้จึงบอกได้ว่าไบต์นำหน้ากี่ตัวที่ถูก"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-f6e99ace",
+      "kind": "html",
+      "en": "<code>std/bytes</code> with 21 functions: the sequence operations, the UTF-8 bridge, and hex, base64, base64url and base32 codecs that return a <code>Result</code> naming the offending position. <code>fs.read_bytes</code>, <code>write_bytes</code> and <code>append_bytes</code> read and write a file undecoded. <code>std/crypto</code> has a <code>_bytes</code> form of every digest and HMAC, plus SHA-1 for the protocols that specify it, <code>random_bytes</code>, and <code>timing_safe_equal</code>. The codecs are pinned against the RFC 4648 vectors and the HMAC against RFC 6238, in the compiler's own test suite.",
+      "tr": "<code>std/bytes</code> ที่มี 21 ฟังก์ชัน: operation ของลำดับ สะพาน UTF-8 และ codec แบบ hex, base64, base64url และ base32 ที่คืน <code>Result</code> ซึ่งระบุตำแหน่งที่ผิด <code>fs.read_bytes</code>, <code>write_bytes</code> และ <code>append_bytes</code> อ่านและเขียนไฟล์โดยไม่ decode <code>std/crypto</code> มีรูปแบบ <code>_bytes</code> ของทุก digest และ HMAC รวมถึง SHA-1 สำหรับ protocol ที่กำหนดให้ใช้ <code>random_bytes</code> และ <code>timing_safe_equal</code> codec ถูกตรึงกับ vector ของ RFC 4648 และ HMAC กับ RFC 6238 ในชุดเทสต์ของคอมไพเลอร์เอง"
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "กำลังคมขึ้น"
+    },
+    {
+      "id": "h-cbb9e44a",
+      "kind": "html",
+      "en": "There is no integer codec yet, so reading a big-endian <code>u32</code> out of a header is arithmetic you write: past 32 bits a shift is the wrong tool anyway, so it divides. Hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read. <code>std/websocket</code> still decodes a binary frame as UTF-8 text; the type it needed now exists, and the frames are next. And <code>std/encoding</code>'s six older string-to-string functions are still silent on malformed input, so use the <code>std/bytes</code> codecs for anything that has to be right. The codecs are written in TypeScript rather than delegating to node's <code>Buffer</code>, which is what lets them run in a Web Worker, and they are between 1x and 35x slower than the platform's on a megabyte. Encoding a key or a token costs nothing you can measure either way; the performance guide has the table if you are moving tens of megabytes.",
+      "tr": "ยังไม่มี codec สำหรับจำนวนเต็ม การอ่าน <code>u32</code> แบบ big-endian จาก header จึงเป็นการคำนวณที่คุณเขียนเอง: เกิน 32 บิต shift ก็เป็นเครื่องมือที่ผิดอยู่แล้ว จึงใช้การหาร hex literal ยัง parse ไม่ได้ ตาราง CRC32 256 ช่องที่เขียนเป็นเลขฐานสิบจึงอ่านยาก <code>std/websocket</code> ยัง decode frame ไบนารีเป็นข้อความ UTF-8 type ที่มันต้องการมีแล้ว และ frame คือสิ่งถัดไป และฟังก์ชัน string-to-string รุ่นเก่าหกตัวของ <code>std/encoding</code> ยังเงียบเมื่อเจอ input ที่ผิดรูป จึงควรใช้ codec ของ <code>std/bytes</code> กับทุกอย่างที่ต้องถูกต้อง codec เขียนด้วย TypeScript แทนที่จะส่งต่อให้ <code>Buffer</code> ของ node ซึ่งเป็นสิ่งที่ทำให้มันรันใน Web Worker ได้ และช้ากว่าของแพลตฟอร์ม 1 ถึง 35 เท่าบนข้อมูลหนึ่งเมกะไบต์ การเข้ารหัส key หรือ token ไม่มีต้นทุนที่วัดได้ไม่ว่าทางไหน คู่มือเรื่องประสิทธิภาพมีตารางถ้าคุณย้ายข้อมูลหลายสิบเมกะไบต์"
+    }
+  ]
+}

@@ -1,0 +1,968 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/typed-apis/index.html",
+  "locale": "th",
+  "source_hash": "e5583b6a5d857445",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Do I have to hand-write a validator for every API? · Glyph",
+      "tr": "ต้องเขียน validator ด้วยมือให้ทุก API ไหม? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts.",
+      "tr": "ไม่ต้อง ใน Glyph type คือ validator ตอนรันของตัวเอง request และ response body จึงถูกตรวจโดยไม่ต้องเขียน validator และ type อาจมาจากสเปก OpenAPI หรือ .d.ts ก็ได้"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม หรือต้องเปลี่ยนทั้งหมด?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "generate client และ server ที่มี type จากสเปก API ได้ไหม?"
+    },
+    {
+      "id": "h-58ac443b",
+      "kind": "html",
+      "en": "11 &middot; Data boundaries",
+      "tr": "11 &middot; ขอบเขตของข้อมูล"
+    },
+    {
+      "id": "h-01f55cfa",
+      "kind": "html",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "ต้องเขียน validator ด้วยมือให้ทุก API ไหม?"
+    },
+    {
+      "id": "h-4f149dea",
+      "kind": "html",
+      "en": "No. In Glyph a <strong>type is its own validator</strong>. Declare a <code>type</code> and the compiler generates a runtime descriptor beside it, so an untrusted request or response body validates with one call, no separate <code>zod</code> schema to write and keep in sync.",
+      "tr": "ไม่ต้อง ใน Glyph <strong>type คือ validator ของตัวเอง</strong> ประกาศ <code>type</code> แล้วคอมไพเลอร์จะ generate runtime descriptor ไว้ข้างๆ request หรือ response body ที่ไม่น่าไว้ใจจึง validate ได้ด้วยการเรียกครั้งเดียว ไม่ต้องเขียน schema <code>zod</code> แยกแล้วคอยรักษาให้ตรงกัน"
+    },
+    {
+      "id": "h-54e32a63",
+      "kind": "html",
+      "en": "Untrusted body",
+      "tr": "body ที่ไม่น่าไว้ใจ"
+    },
+    {
+      "id": "h-d0cdd397",
+      "kind": "html",
+      "en": "unknown, e.g. {\"title\": 123}",
+      "tr": "unknown เช่น {\"title\": 123}"
+    },
+    {
+      "id": "h-219915ba",
+      "kind": "html",
+      "en": "Descriptor",
+      "tr": "Descriptor"
+    },
+    {
+      "id": "h-f830662c",
+      "kind": "html",
+      "en": "generated from <code>type NewTask</code>",
+      "tr": "generate จาก <code>type NewTask</code>"
+    },
+    {
+      "id": "h-843ac011",
+      "kind": "html",
+      "en": "Ok",
+      "tr": "Ok"
+    },
+    {
+      "id": "h-0931505e",
+      "kind": "html",
+      "en": "NewTask",
+      "tr": "NewTask"
+    },
+    {
+      "id": "h-d84444a0",
+      "kind": "html",
+      "en": "a typed value, every field checked",
+      "tr": "ค่าที่มี type ทุก field ถูกตรวจแล้ว"
+    },
+    {
+      "id": "h-f265d4d8",
+      "kind": "html",
+      "en": "Err",
+      "tr": "Err"
+    },
+    {
+      "id": "h-8471a8b6",
+      "kind": "html",
+      "en": "the bad body stops here",
+      "tr": "body ที่ผิดหยุดอยู่ตรงนี้"
+    },
+    {
+      "id": "h-724d7fd8",
+      "kind": "html",
+      "en": "<span>One declaration, one check. The descriptor is generated from the type, so the two can't disagree, and the only way to a <code>NewTask</code> is through it.</span>",
+      "tr": "<span>หนึ่ง declaration หนึ่งการตรวจ descriptor ถูก generate จาก type ทั้งสองจึงขัดแย้งกันไม่ได้ และทางเดียวที่จะได้ <code>NewTask</code> คือผ่านมัน</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-3fca475a",
+      "kind": "html",
+      "en": "<a href=\"#see-it\">See it</a>",
+      "tr": "<a href=\"#see-it\">ดูของจริง</a>"
+    },
+    {
+      "id": "h-83bec415",
+      "kind": "html",
+      "en": "<a href=\"#the-parse-result-is-an-ordinary-result\">An ordinary Result</a>",
+      "tr": "<a href=\"#the-parse-result-is-an-ordinary-result\">Result ธรรมดา</a>"
+    },
+    {
+      "id": "h-9c0a6e93",
+      "kind": "html",
+      "en": "<a href=\"#composing-your-own-the-output-type-is-derived-not-trusted\">Combinators</a>",
+      "tr": "<a href=\"#composing-your-own-the-output-type-is-derived-not-trusted\">Combinator</a>"
+    },
+    {
+      "id": "h-c4c8771e",
+      "kind": "html",
+      "en": "<a href=\"#if-i-parse-a-date-do-i-get-a-real-date\">Dates</a>",
+      "tr": "<a href=\"#if-i-parse-a-date-do-i-get-a-real-date\">วันที่</a>"
+    },
+    {
+      "id": "h-153170fe",
+      "kind": "html",
+      "en": "<a href=\"#you-don-t-even-have-to-write-the-types\">Generated types</a>",
+      "tr": "<a href=\"#you-don-t-even-have-to-write-the-types\">type ที่ generate</a>"
+    },
+    {
+      "id": "h-5a6809fd",
+      "kind": "html",
+      "en": "<a href=\"#the-database-is-a-boundary-too\">Databases</a>",
+      "tr": "<a href=\"#the-database-is-a-boundary-too\">ฐานข้อมูล</a>"
+    },
+    {
+      "id": "h-b639c008",
+      "kind": "html",
+      "en": "<a href=\"#a-signed-webhook-is-a-boundary-too\">Webhooks</a>",
+      "tr": "<a href=\"#a-signed-webhook-is-a-boundary-too\">Webhook</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">สถานะตอนนี้</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-3ee97857",
+      "kind": "html",
+      "en": "In most TypeScript stacks every payload is described <em>twice</em>: once as a <code>type</code> for the compiler, and again as a hand-written validator so the value is actually that shape at runtime.",
+      "tr": "ใน TypeScript stack ส่วนใหญ่ ทุก payload ถูกอธิบาย<em>สองครั้ง</em>: ครั้งหนึ่งเป็น <code>type</code> สำหรับคอมไพเลอร์ และอีกครั้งเป็น validator ที่เขียนเองเพื่อให้ค่ามีรูปร่างนั้นจริงตอนรัน"
+    },
+    {
+      "id": "h-4f479c04",
+      "kind": "html",
+      "en": "The two drift, and the drift is exactly where bad data slips in. Glyph collapses them into one declaration: the type <em>produces</em> the validator, so they cannot disagree.",
+      "tr": "ทั้งสองเพี้ยนออกจากกัน และความเพี้ยนคือที่ที่ข้อมูลผิดเล็ดลอดเข้ามา Glyph รวมมันเป็น declaration เดียว: type <em>สร้าง</em> validator ทั้งสองจึงขัดแย้งกันไม่ได้"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-17ed9f60",
+      "kind": "html",
+      "en": "Declare the DTO once. Its descriptor gives you <code>.parse</code> (validate an untrusted value into the type) and <code>.is</code> (a type guard), with nothing else to write:",
+      "tr": "ประกาศ DTO ครั้งเดียว descriptor ของมันให้ <code>.parse</code> (validate ค่าที่ไม่น่าไว้ใจให้เป็น type นั้น) และ <code>.is</code> (type guard) โดยไม่ต้องเขียนอะไรอีก:"
+    },
+    {
+      "id": "h-aed6522a",
+      "kind": "html",
+      "en": "what you did <em>not</em> write",
+      "tr": "สิ่งที่คุณ<em>ไม่ได้</em>เขียน"
+    },
+    {
+      "id": "h-e2d225d4",
+      "kind": "html",
+      "en": "Keep the typed value after the <code>match</code>",
+      "tr": "เก็บค่าที่มี type ไว้หลัง <code>match</code>"
+    },
+    {
+      "id": "h-fbc6c868",
+      "kind": "html",
+      "en": "You can also pull the value out instead of doing the work inside the arm.",
+      "tr": "คุณดึงค่าออกมาแทนที่จะทำงานภายใน arm ก็ได้"
+    },
+    {
+      "id": "h-2f288262",
+      "kind": "html",
+      "en": "api.glyph: the value leaves the match typed",
+      "tr": "api.glyph: ค่าออกจาก match พร้อม type"
+    },
+    {
+      "id": "h-90be60e1",
+      "kind": "html",
+      "en": "since 0.1.45",
+      "tr": "ตั้งแต่ 0.1.45"
+    },
+    {
+      "id": "h-896bc2d4",
+      "kind": "html",
+      "en": "generic types: not yet",
+      "tr": "type แบบ generic: ยังไม่ได้"
+    },
+    {
+      "id": "h-8cb9b8d1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the type is carried, and the generic exception</span>",
+      "tr": "รายละเอียด <span class=\"hint\">type ถูกพาไปอย่างไร และข้อยกเว้นของ generic</span>"
+    },
+    {
+      "id": "h-546a2fe9",
+      "kind": "html",
+      "en": "<code>T.parse</code> is typed as <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> and a <code>match</code> whose arms agree carries their type, so <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> gives you a <code>NewTask</code> for the rest of the function, with field names checked by Glyph rather than by <code>tsc</code> on the generated TypeScript. That landed in 0.1.45; before it, the value went untyped once it left the <code>match</code>. A generic type's <code>parse</code> is the one that still doesn't, because its descriptor takes a runtime checker per type parameter.",
+      "tr": "<code>T.parse</code> มี type เป็น <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> และ <code>match</code> ที่ arm ตรงกันพา type ของมันไปด้วย <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> จึงให้ <code>NewTask</code> สำหรับส่วนที่เหลือของฟังก์ชัน โดยชื่อ field ถูกตรวจโดย Glyph แทนที่จะเป็น <code>tsc</code> บน TypeScript ที่ generate สิ่งนี้มาใน 0.1.45 ก่อนหน้านั้นค่าไม่มี type ทันทีที่ออกจาก <code>match</code> <code>parse</code> ของ type แบบ generic คือตัวที่ยังไม่ได้ เพราะ descriptor ของมันต้องรับตัวตรวจตอนรันหนึ่งตัวต่อ type parameter"
+    },
+    {
+      "id": "h-fcc2b50a",
+      "kind": "html",
+      "en": "The parse result is an ordinary <code>Result</code>",
+      "tr": "ผลของการ parse เป็น <code>Result</code> ธรรมดา"
+    },
+    {
+      "id": "h-debf3e49",
+      "kind": "html",
+      "en": "In Glyph <code>T.parse</code> returns the same <code>Result</code> every fallible function in the language returns, so you hand it straight back, run it through <code>map_err</code> to turn validation issues into your own error type, or propagate it with <code>?</code>.",
+      "tr": "ใน Glyph <code>T.parse</code> คืน <code>Result</code> แบบเดียวกับที่ทุกฟังก์ชันที่อาจล้มเหลวในภาษาคืน คุณจึงส่งมันกลับไปได้เลย ส่งผ่าน <code>map_err</code> เพื่อเปลี่ยนปัญหาจาก validation เป็น error type ของคุณ หรือส่งต่อขึ้นไปด้วย <code>?</code>"
+    },
+    {
+      "id": "h-d7353c82",
+      "kind": "html",
+      "en": "what this replaced",
+      "tr": "สิ่งที่สิ่งนี้มาแทน"
+    },
+    {
+      "id": "h-cb13e42e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the runtime cost of using Result here</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ต้นทุนตอนรันของการใช้ Result ที่นี่</span>"
+    },
+    {
+      "id": "h-b84ab010",
+      "kind": "html",
+      "en": "A validator that gives you back a value in its own private shape is only half useful, because the rest of your error handling can't touch it. Nothing about a parse result is special.",
+      "tr": "validator ที่คืนค่าในรูปร่างเฉพาะของมันเองมีประโยชน์แค่ครึ่งเดียว เพราะการจัดการ error ส่วนอื่นของคุณแตะมันไม่ได้ ผลของการ parse ไม่มีอะไรพิเศษ"
+    },
+    {
+      "id": "h-202a257e",
+      "kind": "html",
+      "en": "The reason it was ever otherwise: a descriptor is generated next to your <code>type</code>, and emitting the bare object kept a module that declares a type from depending on <code>std/result</code> at runtime. That trade is now made the other way. A module with a <code>pub type</code> in it carries an import of <code>std/result</code> whether or not it ever writes <code>Result</code>, and a <code>parse</code> call allocates the combinator closures any <code>Ok(...)</code> allocates. What you get for it is that the validated boundary and the rest of your error handling are the same API.",
+      "tr": "เหตุผลที่เคยไม่เป็นแบบนี้: descriptor ถูก generate ข้าง <code>type</code> ของคุณ และการ emit object เปล่าๆ ทำให้ module ที่ประกาศ type ไม่ต้องพึ่ง <code>std/result</code> ตอนรัน ตอนนี้การแลกเปลี่ยนกลับด้าน module ที่มี <code>pub type</code> จะ import <code>std/result</code> ไม่ว่าจะเขียน <code>Result</code> หรือไม่ และการเรียก <code>parse</code> จะจอง closure ของ combinator แบบเดียวกับที่ <code>Ok(...)</code> ใดๆ จอง สิ่งที่ได้คือขอบเขตที่ validate แล้วกับการจัดการ error ส่วนที่เหลือเป็น API เดียวกัน"
+    },
+    {
+      "id": "h-096368d0",
+      "kind": "html",
+      "en": "Composing your own: the output type is derived, not trusted",
+      "tr": "ประกอบเอง: output type ถูก derive ไม่ใช่ถูกเชื่อตามคำบอก"
+    },
+    {
+      "id": "h-53401471",
+      "kind": "html",
+      "en": "Glyph's <code>infer_output&lt;Shape&gt;</code> <strong>derives</strong> the output type from the shape, and <code>tsc</code> checks your annotation against it. A shape that omits a field of the type you claim doesn't compile:",
+      "tr": "<code>infer_output&lt;Shape&gt;</code> ของ Glyph <strong>derive</strong> output type จาก shape และ <code>tsc</code> ตรวจ annotation ของคุณเทียบกับมัน shape ที่ขาด field ของ type ที่คุณอ้างจะคอมไพล์ไม่ผ่าน:"
+    },
+    {
+      "id": "h-cdab955e",
+      "kind": "html",
+      "en": "the drift Glyph removes",
+      "tr": "ความเพี้ยนที่ Glyph กำจัด"
+    },
+    {
+      "id": "h-17758042",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the TypeScript trap, and the cast that follows the return since 0.1.92</span>",
+      "tr": "รายละเอียด <span class=\"hint\">กับดักของ TypeScript และ cast ที่ตามการ return ตั้งแต่ 0.1.92</span>"
+    },
+    {
+      "id": "h-8f9b11ff",
+      "kind": "html",
+      "en": "Sometimes you want a <code>zod</code>-style combinator: build a validator by composing smaller ones. The trap in TypeScript is that the combinator's <em>output type</em> and the <em>shape</em> you passed it drift apart. You write the shape, then repeat yourself in a second type parameter, and nothing checks that they agree.",
+      "tr": "บางครั้งคุณต้องการ combinator แบบ <code>zod</code>: สร้าง validator โดยประกอบตัวเล็กๆ เข้าด้วยกัน กับดักใน TypeScript คือ<em>output type</em> ของ combinator กับ<em>shape</em> ที่คุณส่งให้มันเพี้ยนออกจากกัน คุณเขียน shape แล้วเขียนซ้ำใน type parameter ตัวที่สอง และไม่มีอะไรตรวจว่ามันตรงกัน"
+    },
+    {
+      "id": "h-83a7d8e0",
+      "kind": "html",
+      "en": "The derived type holds however the combinator returns. <code>infer_output</code> needs one cast at the function's boundary, because the body builds a value the type system can't prove carries the shape-derived type, and the compiler writes that cast for you. Through 0.1.91 it was attached to a plain <code>return &lt;value&gt;</code>. Put a <code>match</code> between the <code>return</code> and the value, or end the body in <code>r?</code>, and the same function stopped compiling: a <code>TS2322</code> against generated TypeScript, over Glyph the compiler had already accepted. As of 0.1.92 the cast follows the return rather than its spelling, so <code>return match strict { ... }</code> type-checks the same as the single <code>return</code> spelling of the identical body.",
+      "tr": "type ที่ derive มาใช้ได้ไม่ว่า combinator จะ return อย่างไร <code>infer_output</code> ต้องมี cast หนึ่งตัวที่ขอบของฟังก์ชัน เพราะ body สร้างค่าที่ type system พิสูจน์ไม่ได้ว่ามี type ที่ derive จาก shape และคอมไพเลอร์เขียน cast นั้นให้คุณ จนถึง 0.1.91 มันถูกผูกกับ <code>return &lt;value&gt;</code> ธรรมดา ใส่ <code>match</code> ระหว่าง <code>return</code> กับค่า หรือจบ body ด้วย <code>r?</code> แล้วฟังก์ชันเดียวกันก็คอมไพล์ไม่ผ่าน: <code>TS2322</code> บน TypeScript ที่ generate ทับ Glyph ที่คอมไพเลอร์ยอมรับไปแล้ว ตั้งแต่ 0.1.92 cast ตามการ return ไม่ใช่ตามวิธีเขียน <code>return match strict { ... }</code> จึงตรวจ type ได้เหมือนการเขียน <code>return</code> แบบเดียวของ body เดียวกัน"
+    },
+    {
+      "id": "h-78df86c8",
+      "kind": "html",
+      "en": "The rest of the untrusted boundary",
+      "tr": "ส่วนที่เหลือของขอบเขตที่ไม่น่าไว้ใจ"
+    },
+    {
+      "id": "h-6969498d",
+      "kind": "html",
+      "en": "The descriptor is the same one that makes <code>json.parse&lt;T&gt;</code> safe: give it a JSON string and it parses <em>and</em> validates in one step.",
+      "tr": "descriptor ตัวเดียวกันคือสิ่งที่ทำให้ <code>json.parse&lt;T&gt;</code> ปลอดภัย: ให้ string JSON กับมัน แล้วมัน parse <em>และ</em> validate ในขั้นเดียว"
+    },
+    {
+      "id": "h-36ecb4f8",
+      "kind": "html",
+      "en": "Input",
+      "tr": "Input"
+    },
+    {
+      "id": "h-d6e645b7",
+      "kind": "html",
+      "en": "Call",
+      "tr": "การเรียก"
+    },
+    {
+      "id": "h-16dcaa92",
+      "kind": "html",
+      "en": "Returns",
+      "tr": "คืนค่า"
+    },
+    {
+      "id": "h-8dd46ffe",
+      "kind": "html",
+      "en": "A JSON string",
+      "tr": "string JSON"
+    },
+    {
+      "id": "h-f1b6cf5f",
+      "kind": "html",
+      "en": "A decoded body",
+      "tr": "body ที่ decode แล้ว"
+    },
+    {
+      "id": "h-af8848ff",
+      "kind": "html",
+      "en": "A header",
+      "tr": "header"
+    },
+    {
+      "id": "h-2c7025a0",
+      "kind": "html",
+      "en": "A query parameter",
+      "tr": "query parameter"
+    },
+    {
+      "id": "h-eea770a1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">request bodies, headers and query parameters</span>",
+      "tr": "รายละเอียด <span class=\"hint\">request body, header และ query parameter</span>"
+    },
+    {
+      "id": "h-17daad44",
+      "kind": "html",
+      "en": "A request body arrives already decoded as an <code>unknown</code>, so there you reach for <code>T.parse(value)</code> instead: same guarantee, no cast.",
+      "tr": "request body มาถึงในรูปที่ decode แล้วเป็น <code>unknown</code> ตรงนั้นจึงใช้ <code>T.parse(value)</code> แทน: การรับประกันเดียวกัน ไม่มี cast"
+    },
+    {
+      "id": "h-751631d4",
+      "kind": "html",
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
+      "tr": "ส่วนที่เหลือของขอบเขตที่ไม่น่าไว้ใจมี type แบบเดียวกัน: <code>header(req, name)</code> และ <code>query_param(req, name)</code> คืน <code>Option&lt;string&gt;</code> header หรือ query parameter ที่ไม่มีจึงเป็น <code>None</code> และ <code>match</code> <em>บังคับ</em>ให้คุณจัดการ ละ arm <code>None</code> แล้วจะคอมไพล์ไม่ผ่าน input ที่ไม่มีจึงถูกอ่านราวกับว่ามีอยู่ไม่ได้"
+    },
+    {
+      "id": "h-c5c56180",
+      "kind": "html",
+      "en": "Does a map keyed by an enum check its keys?",
+      "tr": "map ที่ใช้ enum เป็น key ตรวจ key ไหม?"
+    },
+    {
+      "id": "h-1343a23f",
+      "kind": "html",
+      "en": "Yes, since 0.1.148. A <code>Record&lt;Tier, int&gt;</code> with <code>type Tier = \"free\" | \"pro\"</code> parses only an object whose keys are exactly <code>free</code> and <code>pro</code>: a stray key and a missing one are both an <code>Err</code>, which is also what <code>tsc</code> says about the same object written as a literal.",
+      "tr": "ตรวจ ตั้งแต่ 0.1.148 <code>Record&lt;Tier, int&gt;</code> ที่ <code>type Tier = \"free\" | \"pro\"</code> จะ parse ได้เฉพาะ object ที่มี key เป็น <code>free</code> และ <code>pro</code> พอดี: key ที่เกินและ key ที่ขาดต่างก็เป็น <code>Err</code> ซึ่งก็เป็นสิ่งที่ <code>tsc</code> บอกเกี่ยวกับ object เดียวกันที่เขียนเป็น literal"
+    },
+    {
+      "id": "h-90bb1f8c",
+      "kind": "html",
+      "en": "Key type",
+      "tr": "type ของ key"
+    },
+    {
+      "id": "h-d87876b6",
+      "kind": "html",
+      "en": "What <code>parse</code> checks on each key",
+      "tr": "สิ่งที่ <code>parse</code> ตรวจกับแต่ละ key"
+    },
+    {
+      "id": "h-3f0b83d0",
+      "kind": "html",
+      "en": "A string-literal union",
+      "tr": "union ของ string literal"
+    },
+    {
+      "id": "h-ecab195d",
+      "kind": "html",
+      "en": "exactly the listed keys, none missing, none extra",
+      "tr": "key ตามรายการพอดี ไม่ขาด ไม่เกิน"
+    },
+    {
+      "id": "h-356bbed3",
+      "kind": "html",
+      "en": "A <code>where</code>-refined type",
+      "tr": "type ที่ refine ด้วย <code>where</code>"
+    },
+    {
+      "id": "h-d1db2150",
+      "kind": "html",
+      "en": "the predicate",
+      "tr": "predicate"
+    },
+    {
+      "id": "h-28ded56e",
+      "kind": "html",
+      "en": "the plain spelling of a whole number; <code>\"01\"</code> and <code>\"1.5\"</code> fail",
+      "tr": "การเขียนจำนวนเต็มแบบธรรมดา <code>\"01\"</code> และ <code>\"1.5\"</code> ไม่ผ่าน"
+    },
+    {
+      "id": "h-b61a7b5c",
+      "kind": "html",
+      "en": "nothing new",
+      "tr": "ไม่มีอะไรใหม่"
+    },
+    {
+      "id": "h-14b46ac0",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
+      "tr": "รายละเอียด <span class=\"hint\">key แบบ refine และแบบ int และสิ่งที่ยังปล่อยให้ tsc</span>"
+    },
+    {
+      "id": "h-906e9c5a",
+      "kind": "html",
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "type ของ key ที่ refine ด้วย <code>where</code> รัน predicate กับทุก key และ key แบบ <code>int</code> ต้องเป็นการเขียนจำนวนเต็มแบบธรรมดา <code>\"01\"</code> และ <code>\"1.5\"</code> จึงถูกปฏิเสธ <code>Record&lt;string, V&gt;</code> ถูกตรวจเหมือนเดิมทุกประการ ตัวตรวจของ Glyph เองยังปล่อย key ของค่าที่คุณเขียนในโค้ดให้ <code>tsc</code> และ record แบบ generic ที่ใช้ type parameter ของตัวเองเป็น key จะถูกปฏิเสธ เว้นแต่ parameter นั้นเป็น <code>string</code>"
+    },
+    {
+      "id": "h-efd6b0f9",
+      "kind": "html",
+      "en": "If I parse a date, do I get a real date?",
+      "tr": "ถ้า parse วันที่ จะได้วันที่จริงไหม?"
+    },
+    {
+      "id": "h-ba916739",
+      "kind": "html",
+      "en": "Yes, and the interesting part is what you get back for input that isn't one. <code>time.parse_iso</code> returns <code>Option&lt;number&gt;</code>, and it is <code>None</code> for everything that is not ISO-8601.",
+      "tr": "ได้ และส่วนที่น่าสนใจคือสิ่งที่ได้กลับมาเมื่อ input ไม่ใช่วันที่ <code>time.parse_iso</code> คืน <code>Option&lt;number&gt;</code> และเป็น <code>None</code> สำหรับทุกอย่างที่ไม่ใช่ ISO-8601"
+    },
+    {
+      "id": "h-070c160a",
+      "kind": "html",
+      "en": "accepted",
+      "tr": "ยอมรับ"
+    },
+    {
+      "id": "h-164ac8b3",
+      "kind": "html",
+      "en": "None, every one of them",
+      "tr": "None ทุกตัว"
+    },
+    {
+      "id": "h-1f74fd41",
+      "kind": "html",
+      "en": "The last one is the one that surprises people, and it is the whole point. A datetime with no <code>Z</code> and no <code>+HH:MM</code> offset is local time by the ECMAScript grammar, so accepting it would mean the same string names a different calendar day depending on which machine ran the program.",
+      "tr": "ตัวสุดท้ายคือตัวที่ทำให้คนแปลกใจ และมันคือประเด็นทั้งหมด datetime ที่ไม่มี <code>Z</code> และไม่มี offset <code>+HH:MM</code> เป็นเวลาท้องถิ่นตาม grammar ของ ECMAScript การยอมรับมันจึงหมายความว่า string เดียวกันระบุวันในปฏิทินต่างกันขึ้นกับว่าเครื่องไหนรันโปรแกรม"
+    },
+    {
+      "id": "h-77b099e1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what Date.parse does instead, and why UTC</span>",
+      "tr": "รายละเอียด <span class=\"hint\">Date.parse ทำอะไรแทน และทำไมต้อง UTC</span>"
+    },
+    {
+      "id": "h-9aa02d61",
+      "kind": "html",
+      "en": "That is a stronger claim than JavaScript's <code>Date.parse</code>, which takes free-form text (<code>\"January 5 2026\"</code>), reads an unpadded date like <code>\"2026-1-3\"</code> in whatever timezone the process happens to run in, and reports an impossible day as a success by rolling it forward: <code>\"2026-02-31\"</code> becomes March 3, and you get a number back with no indication anything happened.",
+      "tr": "นั่นเป็นข้อกล่าวอ้างที่แข็งกว่า <code>Date.parse</code> ของ JavaScript ซึ่งรับข้อความรูปแบบอิสระ (<code>\"January 5 2026\"</code>) อ่านวันที่ที่ไม่เติมศูนย์อย่าง <code>\"2026-1-3\"</code> ตาม timezone ที่ process บังเอิญรันอยู่ และรายงานวันที่เป็นไปไม่ได้ว่าสำเร็จโดยเลื่อนไปข้างหน้า: <code>\"2026-02-31\"</code> กลายเป็น 3 มีนาคม และคุณได้ตัวเลขกลับมาโดยไม่มีสัญญาณว่าเกิดอะไรขึ้น"
+    },
+    {
+      "id": "h-b163f00e",
+      "kind": "html",
+      "en": "Glyph's calendar accessors (<code>time.year</code>, <code>time.month</code>, <code>time.day</code>) are UTC and say so, and a validator that quietly imports the host's timezone would make them lie. So the string is rejected instead, and you decide what it meant.",
+      "tr": "ตัวอ่านปฏิทินของ Glyph (<code>time.year</code>, <code>time.month</code>, <code>time.day</code>) เป็น UTC และบอกไว้ชัด validator ที่แอบนำ timezone ของ host เข้ามาจะทำให้มันโกหก string จึงถูกปฏิเสธแทน และคุณเป็นคนตัดสินว่ามันหมายถึงอะไร"
+    },
+    {
+      "id": "h-43b29fed",
+      "kind": "html",
+      "en": "The guard moved into the primitive",
+      "tr": "การป้องกันย้ายเข้าไปอยู่ใน primitive"
+    },
+    {
+      "id": "h-0f07a9cf",
+      "kind": "html",
+      "en": "When an application writes a correctness guard around a standard-library primitive, the guard belongs in the primitive. Here is what the app deleted:",
+      "tr": "เมื่อแอปเขียนการป้องกันความถูกต้องครอบ primitive ของ standard library การป้องกันนั้นควรอยู่ใน primitive นี่คือสิ่งที่แอปลบทิ้ง:"
+    },
+    {
+      "id": "h-eb2994d4",
+      "kind": "html",
+      "en": "before: the app guards the stdlib",
+      "tr": "ก่อน: แอปป้องกัน stdlib"
+    },
+    {
+      "id": "h-5c103d6b",
+      "kind": "html",
+      "en": "after: the primitive holds the line",
+      "tr": "หลัง: primitive รักษาเส้นเอง"
+    },
+    {
+      "id": "h-e6cf6833",
+      "kind": "html",
+      "en": "The <code>import std/regex</code> went with it. Same ledger, same rejected rows, same report byte for byte.",
+      "tr": "<code>import std/regex</code> หายไปด้วย บัญชีเดิม แถวที่ถูกปฏิเสธเดิม รายงานเหมือนเดิมทุกไบต์"
+    },
+    {
+      "id": "h-6219c047",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the expense-report app this came from</span>",
+      "tr": "ที่มา <span class=\"hint\">แอปรายงานค่าใช้จ่ายที่เป็นต้นเรื่อง</span>"
+    },
+    {
+      "id": "h-dad8f232",
+      "kind": "html",
+      "en": "This one came out of writing an <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph\">expense-report CLI in Glyph</a>. Every ledger row carries a date, and filing a row under the wrong month is the bug that matters, so the app didn't trust the old <code>parse_iso</code>: it checked the shape with a regex first, then round-tripped the timestamp back to text to catch a rolled-over day.",
+      "tr": "เรื่องนี้มาจากการเขียน <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph\">CLI รายงานค่าใช้จ่ายด้วย Glyph</a> ทุกแถวในบัญชีมีวันที่ และการบันทึกแถวผิดเดือนคือบั๊กที่สำคัญ แอปจึงไม่เชื่อ <code>parse_iso</code> ตัวเก่า: มันตรวจรูปร่างด้วย regex ก่อน แล้วแปลง timestamp กลับเป็นข้อความเพื่อจับวันที่ที่ถูกเลื่อน"
+    },
+    {
+      "id": "h-48099e52",
+      "kind": "html",
+      "en": "You don't even have to write the types",
+      "tr": "คุณไม่ต้องเขียน type เองด้วยซ้ำ"
+    },
+    {
+      "id": "h-6d14409c",
+      "kind": "html",
+      "en": "If the shape already exists in an OpenAPI spec or a TypeScript declaration file, generate the Glyph types from it: real, committed, greppable <code>type</code> declarations, each with its descriptor, not an inferred phantom:",
+      "tr": "ถ้ารูปร่างมีอยู่แล้วในสเปก OpenAPI หรือไฟล์ declaration ของ TypeScript ให้ generate type ของ Glyph จากมัน: declaration <code>type</code> จริงที่ commit ได้และ grep หาได้ แต่ละตัวมี descriptor ไม่ใช่สิ่งที่อนุมานขึ้นมาแบบมองไม่เห็น:"
+    },
+    {
+      "id": "h-9b46e0d2",
+      "kind": "html",
+      "en": "from an OpenAPI / JSON Schema spec",
+      "tr": "จากสเปก OpenAPI / JSON Schema"
+    },
+    {
+      "id": "h-1cba2c2c",
+      "kind": "html",
+      "en": "from an installed package, by name",
+      "tr": "จากแพ็กเกจที่ติดตั้งไว้ ด้วยชื่อ"
+    },
+    {
+      "id": "h-269e3a1d",
+      "kind": "html",
+      "en": "A wire type becomes a validated boundary, with nothing hand-written:",
+      "tr": "type ของข้อมูลบน wire กลายเป็นขอบเขตที่ validate แล้ว โดยไม่มีอะไรเขียนเอง:"
+    },
+    {
+      "id": "h-cd576e8d",
+      "kind": "html",
+      "en": "Generation is <strong>wire-faithful</strong>: what the spec says about a value is what <code>parse</code> checks.",
+      "tr": "การ generate <strong>ซื่อตรงต่อ wire</strong>: สิ่งที่สเปกบอกเกี่ยวกับค่าคือสิ่งที่ <code>parse</code> ตรวจ"
+    },
+    {
+      "id": "h-fc9a9e39",
+      "kind": "html",
+      "en": "In the spec or <code>.d.ts</code>",
+      "tr": "ในสเปกหรือ <code>.d.ts</code>"
+    },
+    {
+      "id": "h-9b2c9870",
+      "kind": "html",
+      "en": "Generated Glyph",
+      "tr": "Glyph ที่ generate"
+    },
+    {
+      "id": "h-7de6a6c3",
+      "kind": "html",
+      "en": "A string enum",
+      "tr": "string enum"
+    },
+    {
+      "id": "h-7bf9b670",
+      "kind": "html",
+      "en": "a string-literal union; <code>parse</code> checks membership",
+      "tr": "union ของ string literal <code>parse</code> ตรวจว่าเป็นสมาชิก"
+    },
+    {
+      "id": "h-8695f5b7",
+      "kind": "html",
+      "en": "An <code>integer</code> field",
+      "tr": "field แบบ <code>integer</code>"
+    },
+    {
+      "id": "h-9597570b",
+      "kind": "html",
+      "en": "<code>int</code>; a wire <code>3.5</code> fails",
+      "tr": "<code>int</code> ค่า <code>3.5</code> บน wire ไม่ผ่าน"
+    },
+    {
+      "id": "h-616732ba",
+      "kind": "html",
+      "en": "An object schema",
+      "tr": "schema แบบ object"
+    },
+    {
+      "id": "h-405b027e",
+      "kind": "html",
+      "en": "a record marked <code>@open</code>; strict with <code>additionalProperties: false</code>",
+      "tr": "record ที่ทำเครื่องหมาย <code>@open</code> และเข้มเมื่อมี <code>additionalProperties: false</code>"
+    },
+    {
+      "id": "h-885a75b0",
+      "kind": "html",
+      "en": "<code>type Page&lt;T&gt;</code>, each item checked as <code>T</code>",
+      "tr": "<code>type Page&lt;T&gt;</code> แต่ละรายการถูกตรวจในฐานะ <code>T</code>"
+    },
+    {
+      "id": "h-19a8e439",
+      "kind": "html",
+      "en": "An undiscriminated union",
+      "tr": "union ที่ไม่มี discriminator"
+    },
+    {
+      "id": "h-6d1b0ba7",
+      "kind": "html",
+      "en": "narrowed, with a printed note",
+      "tr": "ทำให้แคบลง พร้อมพิมพ์หมายเหตุ"
+    },
+    {
+      "id": "h-1f24311f",
+      "kind": "html",
+      "en": "A name in two reachable files",
+      "tr": "ชื่อเดียวกันในสองไฟล์ที่เข้าถึงได้"
+    },
+    {
+      "id": "h-f876bd7d",
+      "kind": "html",
+      "en": "flagged with a note, not bound",
+      "tr": "แจ้งพร้อมหมายเหตุ ไม่ bind"
+    },
+    {
+      "id": "h-c79e1805",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what materializes today, regeneration, generic types</span>",
+      "tr": "รายละเอียด <span class=\"hint\">สิ่งที่ materialize ได้วันนี้ การ generate ใหม่ type แบบ generic</span>"
+    },
+    {
+      "id": "h-c759d75a",
+      "kind": "html",
+      "en": "Point <code>glyph gen dts</code> at a <code>.d.ts</code> file, or, as above, at an installed npm package by name: it resolves the package's own declaration entry from <code>node_modules</code> and writes committed types you import.",
+      "tr": "ชี้ <code>glyph gen dts</code> ไปที่ไฟล์ <code>.d.ts</code> หรือ อย่างข้างบน ไปที่แพ็กเกจ npm ที่ติดตั้งไว้ด้วยชื่อ: มัน resolve entry ของ declaration ของแพ็กเกจเองจาก <code>node_modules</code> และเขียน type ที่ commit ได้ให้คุณ import"
+    },
+    {
+      "id": "h-7d241438",
+      "kind": "html",
+      "en": "What materializes today: <code>gen dts</code> reads the <code>interface</code> and <code>type</code> declarations a package exports, including those inside a <code>declare namespace</code> tree (bare cross-references resolve through the scope) and those in sibling files an <code>index</code> barrel re-exports (the entry <code>.d.ts</code> plus every relatively-imported <code>.d.ts</code> is walked). A generic is kept first-class: <code>interface Page&lt;T&gt;</code> materializes as <code>type Page&lt;T&gt;</code> and gets a descriptor that validates each item as its type argument, not just for presence. Aliased and <code>export * as</code> re-exports resolve through a per-file binding map. The one case it can't make safe, a type name that collides across two reachable files, it <em>flags with a note</em> rather than bind the wrong shape silently. For anything the materializer can't reach, hand-write the shapes you cross the boundary with, or use the <code>extern_ts</code> escape hatch.",
+      "tr": "สิ่งที่ materialize ได้วันนี้: <code>gen dts</code> อ่าน declaration <code>interface</code> และ <code>type</code> ที่แพ็กเกจ export รวมถึงที่อยู่ใน tree ของ <code>declare namespace</code> (reference ข้ามกันแบบเปล่าๆ resolve ผ่าน scope) และที่อยู่ในไฟล์ข้างเคียงที่ barrel <code>index</code> re-export (เดินทั้ง <code>.d.ts</code> ที่เป็น entry และทุก <code>.d.ts</code> ที่ import แบบ relative) generic ถูกรักษาไว้เต็มที่: <code>interface Page&lt;T&gt;</code> materialize เป็น <code>type Page&lt;T&gt;</code> และได้ descriptor ที่ validate แต่ละรายการตาม type argument ไม่ใช่แค่ว่ามีอยู่ re-export แบบ alias และ <code>export * as</code> resolve ผ่าน map ของ binding ต่อไฟล์ กรณีเดียวที่มันทำให้ปลอดภัยไม่ได้ คือชื่อ type ที่ชนกันข้ามสองไฟล์ที่เข้าถึงได้ มันจะ<em>แจ้งพร้อมหมายเหตุ</em>แทนที่จะ bind รูปร่างผิดไปเงียบๆ สำหรับสิ่งที่ materializer เข้าไม่ถึง ให้เขียนรูปร่างที่คุณใช้ข้ามขอบเขตเอง หรือใช้ทางออกฉุกเฉิน <code>extern_ts</code>"
+    },
+    {
+      "id": "h-9c95f2a9",
+      "kind": "html",
+      "en": "Regeneration is idempotent, so a spec change is a clean, reviewable diff. Generation is <strong>wire-faithful</strong>: a string enum materializes as a string-literal union (<code>\"free\" | \"pro\"</code>), so <code>parse</code> checks membership, not just that the value is a string, and a <code>match</code> over it is exhaustive without an <code>else</code>. An <code>integer</code> field becomes <code>int</code>, so a wire <code>3.5</code> fails <code>parse</code> where a plain number would pass. Where a construct has no exact Glyph form (an undiscriminated union), it narrows and <em>prints a note</em> rather than emit a validator that would reject real data. Generated records also carry <code>@open</code>, so <code>parse</code> tolerates a field the API adds later while still validating every field it declares; a schema that sets <code>additionalProperties: false</code> stays strict. Records are strict by default in Glyph, and this is the same greppable declaration-site marker a hand-written record would use, so nothing about what a record means changes.",
+      "tr": "การ generate ใหม่ให้ผลเท่าเดิม การเปลี่ยนสเปกจึงเป็น diff ที่สะอาดและรีวิวได้ การ generate <strong>ซื่อตรงต่อ wire</strong>: string enum materialize เป็น union ของ string literal (<code>\"free\" | \"pro\"</code>) <code>parse</code> จึงตรวจว่าเป็นสมาชิก ไม่ใช่แค่ว่าเป็น string และ <code>match</code> บนมันครบทุกกรณีได้โดยไม่ต้องมี <code>else</code> field แบบ <code>integer</code> กลายเป็น <code>int</code> ค่า <code>3.5</code> บน wire จึงไม่ผ่าน <code>parse</code> ในขณะที่ number ธรรมดาจะผ่าน ตรงไหนที่ construct ไม่มีรูปแบบ Glyph ที่ตรงพอดี (union ที่ไม่มี discriminator) มันจะทำให้แคบลงและ<em>พิมพ์หมายเหตุ</em> แทนที่จะ emit validator ที่ปฏิเสธข้อมูลจริง record ที่ generate ยังมี <code>@open</code> <code>parse</code> จึงยอมรับ field ที่ API เพิ่มทีหลังได้ ขณะที่ยัง validate ทุก field ที่ประกาศไว้ schema ที่ตั้ง <code>additionalProperties: false</code> ยังเข้มอยู่ record ใน Glyph เข้มโดยค่าเริ่มต้น และนี่คือเครื่องหมายที่ตำแหน่งประกาศซึ่ง grep หาได้แบบเดียวกับที่ record ที่เขียนเองใช้ จึงไม่มีอะไรเปลี่ยนในความหมายของ record"
+    },
+    {
+      "id": "h-209f2afc",
+      "kind": "html",
+      "en": "Generic types validate too. A <code>Paginated&lt;T&gt;</code> gets a descriptor whose <code>parse</code> takes the type argument: <code>Paginated.parse&lt;User&gt;(body)</code> checks every <code>items</code> entry <em>as a <code>User</code></em>, not just for presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way. This holds across module boundaries: define <code>Paginated&lt;T&gt;</code> in one file, <code>import</code> it into another, and both <code>Paginated.parse&lt;User&gt;(body)</code> and <code>is Paginated&lt;User&gt;</code> there still check each element as a <code>User</code>. The compiler builds the per-element check from the type argument at the call site, so which file the generic type lives in makes no difference to what gets validated.",
+      "tr": "type แบบ generic ก็ validate ได้ <code>Paginated&lt;T&gt;</code> ได้ descriptor ที่ <code>parse</code> รับ type argument: <code>Paginated.parse&lt;User&gt;(body)</code> ตรวจทุกรายการใน <code>items</code> <em>ในฐานะ <code>User</code></em> ไม่ใช่แค่ว่ามีอยู่ และ <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrow แบบเดียวกัน สิ่งนี้ใช้ได้ข้ามขอบเขต module: นิยาม <code>Paginated&lt;T&gt;</code> ในไฟล์หนึ่ง <code>import</code> มันเข้าอีกไฟล์ แล้วทั้ง <code>Paginated.parse&lt;User&gt;(body)</code> และ <code>is Paginated&lt;User&gt;</code> ตรงนั้นยังตรวจแต่ละ element ในฐานะ <code>User</code> คอมไพเลอร์สร้างการตรวจต่อ element จาก type argument ที่จุดเรียก type แบบ generic อยู่ในไฟล์ไหนจึงไม่ต่างในสิ่งที่ถูก validate"
+    },
+    {
+      "id": "h-d242942f",
+      "kind": "html",
+      "en": "Where it stops: descriptors cover the shapes most payloads are made of: objects, primitives, arrays, references, optional and nullable fields, and now generic types at a given instantiation. A type Glyph did not generate (an external package or <code>.d.ts</code> you only import) is type-checked but carries no descriptor until you materialize it, which is now one command against the installed package (<code>glyph gen dts &lt;package&gt;</code>, for the top-level interfaces and type aliases it exports). That boundary is deliberate: a type Glyph didn't emit can't promise runtime validation, so you opt in per package and the result is committed and greppable, not conjured on every build.",
+      "tr": "จุดที่หยุด: descriptor ครอบคลุมรูปร่างที่ payload ส่วนใหญ่ประกอบขึ้น: object, primitive, array, reference, field ที่ไม่บังคับและ nullable และตอนนี้รวม type แบบ generic ที่ instantiation หนึ่งๆ type ที่ Glyph ไม่ได้ generate (แพ็กเกจภายนอกหรือ <code>.d.ts</code> ที่คุณแค่ import) ถูกตรวจ type แต่ไม่มี descriptor จนกว่าคุณจะ materialize ซึ่งตอนนี้ใช้คำสั่งเดียวกับแพ็กเกจที่ติดตั้งไว้ (<code>glyph gen dts &lt;package&gt;</code> สำหรับ interface และ type alias ระดับบนสุดที่มัน export) ขอบนั้นเป็นความตั้งใจ: type ที่ Glyph ไม่ได้ emit สัญญาการ validate ตอนรันไม่ได้ คุณจึงเลือกเปิดทีละแพ็กเกจ และผลลัพธ์ commit ได้และ grep หาได้ ไม่ใช่เสกขึ้นมาทุกครั้งที่ build"
+    },
+    {
+      "id": "h-babaa99b",
+      "kind": "html",
+      "en": "The database is a boundary too",
+      "tr": "ฐานข้อมูลก็เป็นขอบเขตเช่นกัน"
+    },
+    {
+      "id": "h-d85b8f86",
+      "kind": "html",
+      "en": "A row read out of a database is untrusted in exactly the way a request body is. The same <code>.parse</code> you use on a request body validates a row.",
+      "tr": "แถวที่อ่านจากฐานข้อมูลไม่น่าไว้ใจแบบเดียวกับ request body <code>.parse</code> ตัวเดียวกับที่ใช้กับ request body validate แถวได้"
+    },
+    {
+      "id": "h-92b13790",
+      "kind": "html",
+      "en": "the bug this removes",
+      "tr": "บั๊กที่สิ่งนี้กำจัด"
+    },
+    {
+      "id": "h-542d9186",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">std/sqlite, and the 0-or-1 boolean</span>",
+      "tr": "รายละเอียด <span class=\"hint\">std/sqlite และ boolean แบบ 0 หรือ 1</span>"
+    },
+    {
+      "id": "h-92b9397f",
+      "kind": "html",
+      "en": "A row read out of a database is untrusted in exactly the way a request body is: the database schema and your code's idea of the row can disagree, and a cast (<code>row as Task</code>) papers over it. <code>std/sqlite</code>, the DB module over Node's built-in SQLite, leans into that. A query returns <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>, so there is no way to treat a row as a <code>Task</code> without validating it first.",
+      "tr": "แถวที่อ่านจากฐานข้อมูลไม่น่าไว้ใจแบบเดียวกับ request body: schema ของฐานข้อมูลกับความเข้าใจของโค้ดเกี่ยวกับแถวอาจไม่ตรงกัน และ cast (<code>row as Task</code>) ก็กลบมันไว้ <code>std/sqlite</code> ซึ่งเป็น module ฐานข้อมูลบน SQLite ที่มาในตัวของ Node เน้นเรื่องนี้ query คืน <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code> จึงไม่มีทางใช้แถวเป็น <code>Task</code> โดยไม่ validate ก่อน"
+    },
+    {
+      "id": "h-d6878367",
+      "kind": "html",
+      "en": "This catches a bug people ship constantly. SQLite has no boolean type, so a <code>done</code> column comes back as the integer <code>0</code> or <code>1</code>. Cast the row to a record with a <code>bool</code> field and <code>task.done === true</code> is quietly never true. In Glyph the storage shape and the domain shape are separate types, and the mapping between them is one line you actually see:",
+      "tr": "สิ่งนี้จับบั๊กที่คนปล่อยออกไปอยู่ตลอด SQLite ไม่มี type boolean คอลัมน์ <code>done</code> จึงกลับมาเป็นจำนวนเต็ม <code>0</code> หรือ <code>1</code> cast แถวเป็น record ที่มี field แบบ <code>bool</code> แล้ว <code>task.done === true</code> จะไม่มีวันเป็นจริงแบบเงียบๆ ใน Glyph รูปร่างของที่เก็บกับรูปร่างของโดเมนเป็นคนละ type และการแปลงระหว่างกันคือบรรทัดเดียวที่คุณมองเห็นจริง:"
+    },
+    {
+      "id": "h-bdebab37",
+      "kind": "html",
+      "en": "The whole thing is a working example: <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph\"><code>examples/apps/tasks/main.glyph</code></a> is a persisted task API, <code>std/sqlite</code> for storage and <code>std/http</code> for routes, with data that survives a restart and validation on both the wire and the database side. No hand-written validators anywhere in it.",
+      "tr": "ทั้งหมดเป็นตัวอย่างที่ใช้งานได้: <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph\"><code>examples/apps/tasks/main.glyph</code></a> คือ task API ที่เก็บข้อมูลถาวร ใช้ <code>std/sqlite</code> สำหรับเก็บข้อมูลและ <code>std/http</code> สำหรับ route ข้อมูลอยู่รอดข้ามการ restart และมีการ validate ทั้งฝั่ง wire และฝั่งฐานข้อมูล ไม่มี validator ที่เขียนเองเลย"
+    },
+    {
+      "id": "h-874af20b",
+      "kind": "html",
+      "en": "A signed webhook is a boundary too",
+      "tr": "webhook ที่มีลายเซ็นก็เป็นขอบเขตเช่นกัน"
+    },
+    {
+      "id": "h-bae4d501",
+      "kind": "html",
+      "en": "Verifying a webhook signature needs the exact bytes the sender signed, not a re-serialized copy (re-stringifying a parsed body changes whitespace and key order, so the HMAC would never match). <code>http.raw(req)</code> hands you those bytes, so the check stays in Glyph:",
+      "tr": "การตรวจลายเซ็นของ webhook ต้องใช้ไบต์ตรงตัวที่ผู้ส่งลงนาม ไม่ใช่สำเนาที่ serialize ใหม่ (การแปลง body ที่ parse แล้วกลับเป็น string เปลี่ยน whitespace และลำดับ key ทำให้ HMAC ไม่มีวันตรงกัน) <code>http.raw(req)</code> ให้ไบต์เหล่านั้นแก่คุณ การตรวจจึงอยู่ใน Glyph ได้:"
+    },
+    {
+      "id": "h-5eeadc33",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">raw bytes for the signature, parsed body for the shape</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ไบต์ดิบสำหรับลายเซ็น body ที่ parse แล้วสำหรับรูปร่าง</span>"
+    },
+    {
+      "id": "h-7f5b9685",
+      "kind": "html",
+      "en": "<code>req.body</code> is still the parsed value for the shape check; <code>raw</code> is the untampered payload the signature is computed over. A receiver that verifies a signature and validates the body needs no hand-written TypeScript.",
+      "tr": "<code>req.body</code> ยังเป็นค่าที่ parse แล้วสำหรับการตรวจรูปร่าง <code>raw</code> คือ payload ที่ไม่ถูกแตะต้องซึ่งลายเซ็นคำนวณจากมัน ตัวรับที่ตรวจลายเซ็นและ validate body ไม่ต้องมี TypeScript ที่เขียนเอง"
+    },
+    {
+      "id": "h-4516c359",
+      "kind": "html",
+      "en": "A type can validate its invariants, not just its shape",
+      "tr": "type validate invariant ของมันได้ ไม่ใช่แค่รูปร่าง"
+    },
+    {
+      "id": "h-a7168d78",
+      "kind": "html",
+      "en": "A shape check tells you a field is a number. It does not tell you the amount is non-negative or the rating is between 1 and 5. A <code>where</code> refinement puts that invariant in the type, and the descriptor enforces it at the boundary:",
+      "tr": "การตรวจรูปร่างบอกคุณว่า field เป็นตัวเลข แต่ไม่บอกว่าจำนวนเงินไม่ติดลบ หรือคะแนนอยู่ระหว่าง 1 ถึง 5 refinement แบบ <code>where</code> ใส่ invariant นั้นไว้ใน type และ descriptor บังคับใช้มันที่ขอบเขต:"
+    },
+    {
+      "id": "h-5398192b",
+      "kind": "html",
+      "en": "what you're not writing",
+      "tr": "สิ่งที่คุณไม่ต้องเขียน"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-79cfac13",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">10</span>",
+      "tr": "ใช้ได้วันนี้ <span class=\"count\">10</span>"
+    },
+    {
+      "id": "h-3e77e7bf",
+      "kind": "html",
+      "en": "Descriptors",
+      "tr": "Descriptor"
+    },
+    {
+      "id": "h-495b8283",
+      "kind": "html",
+      "en": "Every declared record and tagged union carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>), generic records included",
+      "tr": "ทุก record และ tagged union ที่ประกาศมี runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>) รวมถึง record แบบ generic"
+    },
+    {
+      "id": "h-922c7825",
+      "kind": "html",
+      "en": "a generic tagged union does not",
+      "tr": "tagged union แบบ generic ไม่มี"
+    },
+    {
+      "id": "h-14ac7bef",
+      "kind": "html",
+      "en": "<code>.parse</code> returns the same <code>Result</code> the rest of the language uses, so it composes with <code>map_err</code>, with <code>?</code>, and with any function that returns one",
+      "tr": "<code>.parse</code> คืน <code>Result</code> แบบเดียวกับที่ส่วนอื่นของภาษาใช้ จึงประกอบกับ <code>map_err</code>, <code>?</code> และฟังก์ชันใดก็ตามที่คืนมันได้"
+    },
+    {
+      "id": "h-d53b22f1",
+      "kind": "html",
+      "en": "A <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape",
+      "tr": "refinement แบบ <code>where</code> (<code>int where value &gt;= 0</code>) validate invariant ที่ขอบเขต ไม่ใช่แค่รูปร่าง"
+    },
+    {
+      "id": "h-e28e5c01",
+      "kind": "html",
+      "en": "<code>json.parse&lt;T&gt;</code> validates JSON",
+      "tr": "<code>json.parse&lt;T&gt;</code> validate JSON"
+    },
+    {
+      "id": "h-d8236d9b",
+      "kind": "html",
+      "en": "<code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift",
+      "tr": "<code>infer_output&lt;Shape&gt;</code> derive output type ของ combinator จาก shape ทั้งสองจึงเพี้ยนออกจากกันไม่ได้"
+    },
+    {
+      "id": "h-40536dd8",
+      "kind": "html",
+      "en": "Generation",
+      "tr": "การ generate"
+    },
+    {
+      "id": "h-62ff4789",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name",
+      "tr": "<code>glyph gen openapi</code> / <code>glyph gen dts</code> generate type ที่ commit ได้และมี descriptor จากสเปก, <code>.d.ts</code> หรือแพ็กเกจที่ติดตั้งไว้ด้วยชื่อ"
+    },
+    {
+      "id": "h-b0079f0f",
+      "kind": "html",
+      "en": "Boundaries",
+      "tr": "ขอบเขต"
+    },
+    {
+      "id": "h-24cc6cd4",
+      "kind": "html",
+      "en": "<code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other",
+      "tr": "<code>std/sqlite</code> คืนแถวเป็น <code>unknown</code> ฐานข้อมูลจึงเป็นขอบเขตที่ validate แล้วเหมือนที่อื่น"
+    },
+    {
+      "id": "h-de257c28",
+      "kind": "html",
+      "en": "A signed-webhook receiver stays entirely in Glyph",
+      "tr": "ตัวรับ webhook ที่มีลายเซ็นอยู่ใน Glyph ทั้งหมด"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "รายละเอียด"
+    },
+    {
+      "id": "h-ba1e90b3",
+      "kind": "html",
+      "en": "<code>http.raw(req)</code> exposes the unparsed request body, so a webhook signature is verified over the exact bytes and a signed-webhook receiver stays entirely in Glyph.",
+      "tr": "<code>http.raw(req)</code> เปิดให้เข้าถึง request body ที่ยังไม่ parse ลายเซ็นของ webhook จึงถูกตรวจบนไบต์ตรงตัว และตัวรับ webhook ที่มีลายเซ็นอยู่ใน Glyph ทั้งหมด"
+    },
+    {
+      "id": "h-9816d858",
+      "kind": "html",
+      "en": "Untrusted input can't reach a SQL or shell sink without <code>sanitize</code>",
+      "tr": "input ที่ไม่น่าไว้ใจไปถึง sink ของ SQL หรือ shell ไม่ได้ถ้าไม่มี <code>sanitize</code>"
+    },
+    {
+      "id": "h-bc0f3aaa",
+      "kind": "html",
+      "en": "<code>std/taint</code>'s <code>Tainted</code>/<code>Trusted</code> types keep untrusted input from reaching a SQL or shell sink without an explicit <code>sanitize</code>, so <code>tsc</code> rejects an injection path at compile time.",
+      "tr": "type <code>Tainted</code>/<code>Trusted</code> ของ <code>std/taint</code> กัน input ที่ไม่น่าไว้ใจไม่ให้ไปถึง sink ของ SQL หรือ shell ถ้าไม่มี <code>sanitize</code> ที่ชัดแจ้ง <code>tsc</code> จึงปฏิเสธเส้นทาง injection ตอนคอมไพล์"
+    },
+    {
+      "id": "h-390c07d2",
+      "kind": "html",
+      "en": "<code>time.parse_iso</code> takes ISO-8601 and nothing else",
+      "tr": "<code>time.parse_iso</code> รับ ISO-8601 และไม่รับอย่างอื่น"
+    },
+    {
+      "id": "h-d94882d2",
+      "kind": "html",
+      "en": "The smaller boundary primitives hold the same line: <code>time.parse_iso</code> takes ISO-8601 and returns <code>None</code> for free-form text, an impossible day, and an offset-less datetime that would otherwise be read in the host's local timezone.",
+      "tr": "primitive ของขอบเขตที่เล็กกว่ารักษาเส้นเดียวกัน: <code>time.parse_iso</code> รับ ISO-8601 และคืน <code>None</code> สำหรับข้อความรูปแบบอิสระ วันที่เป็นไปไม่ได้ และ datetime ที่ไม่มี offset ซึ่งไม่อย่างนั้นจะถูกอ่านตาม timezone ท้องถิ่นของ host"
+    },
+    {
+      "id": "h-50fb9df6",
+      "kind": "html",
+      "en": "On the way <span class=\"count\">3</span>",
+      "tr": "กำลังมา <span class=\"count\">3</span>"
+    },
+    {
+      "id": "h-b84bd62f",
+      "kind": "html",
+      "en": "Discriminated unions generate from a spec and from a <code>.d.ts</code>; enum and mapped-type coverage next",
+      "tr": "discriminated union generate จากสเปกและจาก <code>.d.ts</code> ได้ ต่อไปคือการครอบคลุม enum และ mapped type"
+    },
+    {
+      "id": "h-7a50add2",
+      "kind": "html",
+      "en": "Discriminated unions now generate from both an OpenAPI <code>discriminator</code> and a TypeScript <code>.d.ts</code> union (a <code>parse_&lt;Name&gt;</code> dispatcher reads the tag and validates into the right variant). Next: richer enum and mapped-type coverage.",
+      "tr": "ตอนนี้ discriminated union generate ได้ทั้งจาก <code>discriminator</code> ของ OpenAPI และจาก union ใน <code>.d.ts</code> ของ TypeScript (dispatcher <code>parse_&lt;Name&gt;</code> อ่าน tag แล้ว validate เข้า variant ที่ถูก) ต่อไป: การครอบคลุม enum และ mapped type ที่ละเอียดขึ้น"
+    },
+    {
+      "id": "h-5c6a5727",
+      "kind": "html",
+      "en": "Typed client and server code from a spec already ships",
+      "tr": "โค้ด client และ server ที่มี type จากสเปกมีให้ใช้แล้ว"
+    },
+    {
+      "id": "h-2fd0b96e",
+      "kind": "html",
+      "en": "See client &amp; server",
+      "tr": "ดู client และ server"
+    },
+    {
+      "id": "h-a0fb7da6",
+      "kind": "html",
+      "en": "A timestamp and a duration are both <code>number</code>",
+      "tr": "timestamp กับ duration เป็น <code>number</code> ทั้งคู่"
+    },
+    {
+      "id": "h-e32f0f0c",
+      "kind": "html",
+      "en": "On dates, the strictness is the whole feature and it stops at the parse: <code>parse_iso</code> hands back epoch milliseconds, so a timestamp and a duration are both <code>number</code> and nothing stops you adding one to the other. A distinct date type is a later decision, not a small one.",
+      "tr": "เรื่องวันที่ ความเข้มงวดคือฟีเจอร์ทั้งหมด และมันหยุดที่การ parse: <code>parse_iso</code> คืนค่าเป็นมิลลิวินาทีนับจาก epoch timestamp กับ duration จึงเป็น <code>number</code> ทั้งคู่ และไม่มีอะไรห้ามคุณบวกตัวหนึ่งเข้ากับอีกตัว type วันที่แยกต่างหากเป็นการตัดสินใจในอนาคต และไม่ใช่เรื่องเล็ก"
+    }
+  ]
+}

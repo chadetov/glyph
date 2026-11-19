@@ -1,0 +1,51 @@
+---
+title: AI เขียนภาษาที่แทบไม่เคยเห็นได้หรือ? · Glyph
+description: Glyph อ่านแล้วเหมือน TypeScript แต่ไม่ใช่ subset ของมัน สิ่งที่โมเดลรู้เกี่ยวกับ TypeScript ส่วนใหญ่ใช้ต่อได้ และคอมไพเลอร์บอกจุดที่ใช้ไม่ได้
+source_hash: dc044819d67c5db7
+prev: /answers/human-value/ | &larr; ก่อนหน้า | Glyph คุ้มไหมถ้าฉันไม่ได้ใช้ AI?
+next: /answers/upgrades/ | ถัดไป &rarr; | รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?
+---
+      <p class="q-eyebrow">07 &middot; หลักคิด</p>
+      <h1 class="q-title">AI เขียนภาษาที่แทบไม่เคยเห็นได้อย่างน่าเชื่อถือหรือ?</h1>
+
+      <p class="short-answer">
+        ส่วนใหญ่ได้ Glyph อ่านแล้วเหมือน TypeScript: type พื้นฐานและ generic แบบเดียวกัน (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>) expression ส่วนใหญ่แบบเดียวกัน และ import แพ็กเกจ npm ด้วยชื่อ แต่มันไม่ใช่ subset ของ TypeScript: <code>match</code>, <code>Result</code> และ <code>fn name(x: T) -&gt; R</code> เป็น syntax ที่ TypeScript ไม่มี และ <code>if</code>, ternary และ cast ก็ไม่ใช่ Glyph สิ่งที่โมเดลรู้อยู่แล้วส่วนใหญ่ใช้ต่อได้ และคอมไพเลอร์บอกจุดที่ใช้ไม่ได้
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          นี่คือคำถามที่ยุติธรรมของคนขี้สงสัย: LLM ทำนาย token ถัดไปจากโค้ดจำนวนมหาศาลของภาษาที่มีอยู่ ภาษาที่แทบไม่มีข้อมูลฝึกก็น่าจะเขียนยาก คำตอบอยู่ที่โครงสร้าง: Glyph ไม่ได้แปลกประหลาด มันหน้าตาเหมือน TypeScript โมเดลจึงรู้เกือบทั้งหมดอยู่แล้ว ความต่างมีไม่กี่ข้อ นับได้ และแต่ละข้อจะ fail <em>ทันที</em>ตอนคอมไพล์ ไม่ใช่ผ่านไปแบบเงียบๆ
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>เอเจนต์ที่เดาผิดไม่ได้ปล่อยสิ่งที่เดาออกไป มันได้ error ที่แม่นยำและแก้ได้ แล้วแก้ใน loop เดียวกัน:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">loop การแก้ ในขั้นเดียว</span>
+<pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
+if user.admin { grant() }
+
+<span class="del">[E0006] Glyph has no `if`</span>
+   ╰─ `match` is the only conditional:
+      match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          error ระบุ construct ของ Glyph และแสดงรูปแบบ การแก้จึงห่างไปแค่การแก้ครั้งเดียว ไม่ต้องขุดซอร์ส ไม่ต้องเดา loop ที่กระชับนี้คือสิ่งที่ชดเชยข้อมูลฝึกที่ขาดไป เอกสารเดียวคือ <a href="/llms.txt">llms.txt</a> ให้เอเจนต์ได้รูปแบบของโปรแกรม standard library และทุก diagnostic พร้อมวิธีแก้ และ <code>glyph llms</code> พิมพ์เอกสารอ้างอิงเดียวกันแบบออฟไลน์
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>syntax ที่หน้าตาแบบ TypeScript, error ที่มีรหัสคงที่ซึ่งบอกวิธีแก้ และ <code>llms.txt</code> / <code>glyph llms</code> เป็นเอกสารอ้างอิงเดียวสำหรับเอเจนต์ทุกตัว</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังพิสูจน์</h3>
+          <p>benchmark อัตราความสำเร็จ (จำนวนครั้งที่ต้องแก้เทียบกับ TypeScript บนงานเดียวกัน) เพื่อเปลี่ยน &ldquo;มันใช้ได้&rdquo; ให้เป็นตัวเลขที่วัดได้</p>
+        </div>
+      </div>

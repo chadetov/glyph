@@ -1,0 +1,130 @@
+---
+title: ค้นหาได้ด้วย grep · หนึ่งชื่อ หนึ่งที่ · Glyph
+description: เสาหลักข้อที่สองของ Glyph: ทุกสัญลักษณ์มีรูปแบบเดียวที่ declaration ของมัน ไม่มี overload, decorator, การ merge namespace หรือ barrel re-export grep จึงเจอมัน
+source_hash: dc081d192bed2b9f
+prev: /pillars/verifiability/ | &larr; เสาหลักก่อนหน้า | ตรวจสอบได้: จริงตอนรันด้วย
+next: /pillars/diff-stability/ | เสาหลักถัดไป &rarr; | diff ที่คงที่: การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด
+---
+      <p class="q-eyebrow">เสาหลัก 02 &middot; <span class="wedge">จุดหลัก</span></p>
+      <h1 class="q-title">ค้นหาได้ด้วย grep</h1>
+
+      <p class="short-answer">
+        <strong>หนึ่งชื่อ หนึ่งที่</strong> ทุกสัญลักษณ์มีรูปแบบทาง syntax เพียงแบบเดียวตรงจุดที่ประกาศ <code>grep</code> ธรรมดาจึงเจอนิยามเสมอ ไม่ต้องมี index ไม่ต้องมี language server และไม่ต้องอาศัยโชค
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไม "สิ่งนี้นิยามไว้ที่ไหน?" ถึงตอบยาก</h2>
+        <p class="lede">
+          ใน codebase TypeScript ที่โตแล้ว คำถามที่ง่ายที่สุด <em>ชื่อนี้มาจากไหน?</em> มักตอบยากที่สุด ภาษามีหลายวิธีให้กระจายสัญลักษณ์เดียวไปหลายที่: overload แยกฟังก์ชันเป็นหลาย signature, decorator ครอบมันด้วยอย่างอื่น, การ merge <code>namespace</code> และ <code>interface</code> กระจาย type ไปหลายไฟล์, <code>declare module</code> เสริมโค้ดที่คุณไม่ได้เป็นเจ้าของ และไฟล์ barrel <code>index.ts</code> re-export ทุกอย่าง path ที่คุณ import จึงไม่ใช่ที่ที่อะไรอยู่จริง
+        </p>
+        <p class="lede">
+          คนรับมือได้ด้วย LSP และความเคยชิน <strong>เอเจนต์</strong> ใช้ grep: มันอ่าน repo เป็นข้อความ และทุก construct เหล่านั้นคือจุดที่ข้อความโกหกว่าโค้ดอยู่ที่ไหน Glyph เอาพวกมันออก ผลคือภาษาที่การค้นหาเป็น primitive ที่เชื่อถือได้ ไม่ใช่การเดาแบบ heuristic
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> หนึ่ง declaration หนึ่งรูปแบบ</h2>
+        <p>
+          ฟังก์ชัน type หรือ component ถูกประกาศครั้งเดียวด้วย syntax เดียว ไม่มี overload ที่แยก signature และไม่มีทางประกาศชื่อซ้ำ: สองสิ่งระดับบนสุดที่ชื่อเดียวกันเป็น error ที่หยุด build (<code>E0100</code>) การค้นหานิยามจึงมีคำตอบเดียวพอดี
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: เจอสี่จุด มีจุดเดียวที่เป็น body</span>
+          <span class="cap">$ grep -n "parseUser" src/</span>
+<pre><span class="cm">users.ts:4:  export function parseUser(</span>
+<span class="cm">users.ts:9:  export function parseUser(</span>
+<span class="cm">index.ts:2: export { parseUser } from</span>
+<span class="cm">api.ts:7:   import { parseUser } from</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: จุดแรกที่เจอคือนิยาม</span>
+          <span class="cap">$ grep -n "fn parseUser" src/</span>
+<pre>users.glyph:12:fn parseUser(
+  raw: unknown,
+) -&gt; Result&lt;User, string&gt; {</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          keyword ของ declaration เป็นส่วนหนึ่งของชื่อที่คุณค้นหา <code>grep "fn parseUser"</code> ไม่มีทาง match การเรียก การ import หรือการ re-export มี match แค่ที่เดียวที่มัน<strong>ถูกนิยาม</strong>
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> ไม่มีไฟล์ barrel: path ของ import คือตำแหน่ง</h2>
+        <p>
+          import ของ Glyph ไม่เคย re-export และ module ที่มีแต่ import จะถูกปฏิเสธ (<code>E0102</code>) ไม่มีชั้น <code>index.ts</code> ที่ฟอกที่มา import จึงระบุ module ที่สัญลักษณ์อยู่จริง: path <em>คือ</em>ที่อยู่
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">import บอกคุณว่าต้องไปดูที่ไหนพอดี</span>
+<pre>import myapp/users { parseUser }
+<span class="cm">//     ^^^^^^^^^^^ the file is src/myapp/users.glyph.</span>
+<span class="cm">//     not a re-export of a re-export of a barrel.</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">03</span> ไม่มีทางแอบผูกพฤติกรรม</h2>
+        <p>
+          ไม่มี decorator ที่ครอบฟังก์ชันด้วยชั้นที่มองไม่เห็น ไม่มีการ merge <code>namespace</code> ที่รวม member จากทั่ว tree ไม่มี <code>declare module</code> ที่เสริม type ของ third-party จากไฟล์ที่คุณไม่มีวันคิดจะเปิด และไม่มี <code>this</code> แบบแฝงที่เปลี่ยนสิ่งที่ method อ้างถึง ชื่อหนึ่ง resolve ไปที่ declaration เดียว และทุกอย่างที่กำหนดรูปของมันมองเห็นได้ที่ declaration นั้น
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> แม้แต่การแก้ค่าก็ grep หาได้</h2>
+        <p>
+          การค้นหาด้วย grep ไม่ได้เกี่ยวแค่การหานิยาม แต่เกี่ยวกับการหา<em>ผลกระทบ</em>ด้วย state ที่ใช้ร่วมกันอยู่ใน <code>std/store</code> และทุกการเปลี่ยนแปลงคือการเรียก <code>.set(</code> หรือ <code>.update(</code> ตรงตัว การค้นหาครั้งเดียวจึงแจกแจงช่องทางเขียนทั้งหมดของ state ได้ แทนที่จะไล่หาการ assign ที่กระจายอยู่ทั่วไฟล์
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
+<pre><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(fn(cur) { ... })
+<span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
+<span class="cm"># every place the task list can change, enumerated.</span>
+<span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          codebase ค้นหาได้ด้วย grep เมื่อ<strong>ข้อความของมันบอกความจริงเกี่ยวกับโครงสร้าง</strong> ทุกข้อจำกัดที่นี่ (รูปแบบเดียวต่อชื่อ ไม่มี re-export ไม่มีการ merge) มีไว้เพื่อให้การค้นหาได้คำตอบ ไม่ใช่แค่เบาะแส
+        </p>
+
+        <h2 class="block-label">benchmark: กำลังมา</h2>
+        <p>
+          รูปแบบที่วัดได้ของข้อกล่าวอ้างนี้คือ precision: สำหรับสัญลักษณ์หนึ่ง ผลลัพธ์จาก grep ธรรมดากี่เปอร์เซ็นต์ที่เป็นสิ่งที่คุณตามหาจริง และเอเจนต์ต้องใช้กี่ขั้นถึงจะไปถึงนิยาม Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยตัวเลขจริงเมื่อมี codebase จริงให้วัด
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">precision ของ grep ในการหานิยาม &middot; ยิ่งสูงยิ่งดี</span>
+        <h3>TypeScript เทียบกับ Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 70%;">รอผล</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 38%;">รอผล</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">ยังไม่ได้วัด</span> เราจะรายงาน precision ของ grep และจำนวนขั้นที่ใช้ไปถึงนิยามจาก codebase Glyph จริงทันทีที่มี และเผยแพร่ตัวเลขที่นี่ไม่ว่าจะออกมาเป็นอย่างไร
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          ผลตอบแทนทวีขึ้นตามขนาดและความเป็นอิสระ คนจะเรียนรู้ที่ซ่อนของ codebase เอเจนต์ที่เริ่มจากศูนย์ไม่ได้เรียน การค้นหาได้ด้วย grep คือสิ่งที่ทำให้เครื่องมือ (หรือเพื่อนร่วมทีมคนใหม่) นำทางได้ด้วยการอ่าน ตามที่ repo เป็นจริง
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">"กฎ lint ห้าม overload และ decorator ได้"</h2>
+        <p>
+          ใน repository ของคุณเอง ได้ ESLint ห้าม namespace ได้ และทีมตกลงกันไม่ใช้ overload ได้ ภาษายังอนุญาตทั้งหมด การรับประกันจึงอยู่ได้นานเท่าที่ config อยู่ และครอบคลุมแค่โค้ดที่มันรัน <code>grep</code> บน dependency ไฟล์ที่ generate หรือ repository ของคนอื่นพึ่งพามันไม่ได้ ใน Glyph construct เหล่านั้นไม่มีอยู่ <code>grep</code> จึงทำงานเหมือนกันกับทุกไฟล์ Glyph รวมถึงไฟล์ที่ไม่มีใครในทีมคุณเป็นคนตั้งค่า
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          สิ่งนี้เป็นอย่างไรจากมุมของเอเจนต์ คือการหานิยามหรือทุกการเขียนค่าด้วยการค้นหาครั้งเดียว ตอบไว้ใน <a href="/answers/greppability/">เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?</a>
+        </p>
+      </div>

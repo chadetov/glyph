@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/upgrades/index.html",
+  "locale": "th",
+  "source_hash": "b4d1d08012358fef",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Will a new Glyph release break my build? · Glyph",
+      "tr": "รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A Glyph project pins its compiler exactly, so a release never reaches you by accident. glyph doctor tells you one exists and glyph upgrade moves you to it.",
+      "tr": "โปรเจกต์ Glyph pin คอมไพเลอร์ไว้แบบตายตัว รุ่นใหม่จึงไม่มีวันมาถึงคุณโดยบังเอิญ glyph doctor บอกว่ามีรุ่นใหม่ และ glyph upgrade พาคุณไปที่รุ่นนั้น"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "AI เขียนภาษาที่แทบไม่เคยเห็นได้อย่างน่าเชื่อถือหรือ?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?"
+    },
+    {
+      "id": "h-266e4a01",
+      "kind": "html",
+      "en": "08 &middot; Upgrades",
+      "tr": "08 &middot; การอัปเกรด"
+    },
+    {
+      "id": "h-7af5847c",
+      "kind": "html",
+      "en": "Will a new Glyph release break my build?",
+      "tr": "รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?"
+    },
+    {
+      "id": "h-f4dc288a",
+      "kind": "html",
+      "en": "Not without you asking for it. A Glyph project pins its compiler to an <strong>exact version</strong>, so a release published this morning does not reach your build this afternoon. Before 1.0 a release is allowed to add a diagnostic that rejects code which compiled yesterday, and that is usually the point of the release, so the decision to take one is yours and it is one command.",
+      "tr": "ไม่ ถ้าคุณไม่ได้ขอ โปรเจกต์ Glyph pin คอมไพเลอร์ไว้ที่<strong>เวอร์ชันที่แน่นอน</strong> รุ่นที่เผยแพร่เมื่อเช้าจึงไม่มาถึง build ของคุณตอนบ่าย ก่อน 1.0 รุ่นใหม่ได้รับอนุญาตให้เพิ่ม diagnostic ที่ปฏิเสธโค้ดที่เมื่อวานยังคอมไพล์ผ่าน และนั่นมักเป็นจุดประสงค์ของรุ่นนั้น การตัดสินใจรับมันจึงเป็นของคุณ และใช้คำสั่งเดียว"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-47c7a582",
+      "kind": "html",
+      "en": "Most tools you pin with a caret, because a patch release is a bug fix. A compiler before 1.0 is not that. Glyph's whole job is to reject programs, and getting better at it means new errors: a stricter check on an import, an exhaustiveness hole that used to slip through, an arity the checker had not modeled. Those releases are the good ones. They are also exactly the ones you do not want arriving through an <code>npm install</code> you ran to add a date library.",
+      "tr": "เครื่องมือส่วนใหญ่คุณ pin ด้วย caret เพราะรุ่น patch คือการแก้บั๊ก คอมไพเลอร์ก่อน 1.0 ไม่ใช่แบบนั้น งานทั้งหมดของ Glyph คือการปฏิเสธโปรแกรม และการทำได้ดีขึ้นหมายถึง error ใหม่: การตรวจ import ที่เข้มขึ้น ช่องโหว่เรื่องความครบถ้วนที่เคยหลุดไป จำนวน argument ที่ตัวตรวจไม่เคย model ไว้ รุ่นเหล่านั้นคือรุ่นที่ดี และก็เป็นรุ่นที่คุณไม่อยากให้มาถึงผ่าน <code>npm install</code> ที่คุณรันเพื่อเพิ่มไลบรารีจัดการวันที่"
+    },
+    {
+      "id": "h-d1c65588",
+      "kind": "html",
+      "en": "So <code>glyph init</code> writes no <code>^</code>. On a <code>0.x</code> version a caret still floats the patch, which is the trap: <code>^0.1.9</code> quietly accepts every later 0.1.x.",
+      "tr": "<code>glyph init</code> จึงไม่เขียน <code>^</code> บนเวอร์ชัน <code>0.x</code> caret ยังปล่อยให้ patch ลอยอยู่ ซึ่งเป็นกับดัก: <code>^0.1.9</code> ยอมรับ 0.1.x ทุกตัวที่ตามมาแบบเงียบๆ"
+    },
+    {
+      "id": "h-5339eb44",
+      "kind": "html",
+      "en": "package.json, as scaffolded",
+      "tr": "package.json ตามที่สร้างไว้"
+    },
+    {
+      "id": "h-9b0cc8ae",
+      "kind": "html",
+      "en": "Commit the <code>package-lock.json</code> next to it and a fresh clone builds with the toolchain you tested, not with whatever shipped since.",
+      "tr": "commit <code>package-lock.json</code> ไว้ข้างๆ แล้ว clone ใหม่จะ build ด้วย toolchain ที่คุณทดสอบแล้ว ไม่ใช่อะไรก็ตามที่ออกมาหลังจากนั้น"
+    },
+    {
+      "id": "h-ff0a175d",
+      "kind": "html",
+      "en": "The other half",
+      "tr": "อีกครึ่งหนึ่ง"
+    },
+    {
+      "id": "h-9f122561",
+      "kind": "html",
+      "en": "A pin has one obvious failure mode: you sit on an old compiler for a year and never find out. Nothing on your machine would tell you, and a website you have to remember to visit is not a channel. So the compiler tells you, when you ask it anything about your setup:",
+      "tr": "การ pin มีรูปแบบความล้มเหลวที่ชัดเจนแบบเดียว: คุณค้างอยู่กับคอมไพเลอร์เก่าเป็นปีโดยไม่รู้ตัว ไม่มีอะไรในเครื่องของคุณบอก และเว็บไซต์ที่คุณต้องจำไปเปิดดูก็ไม่ใช่ช่องทาง คอมไพเลอร์จึงบอกคุณเองเมื่อคุณถามอะไรก็ตามเกี่ยวกับการตั้งค่าของคุณ:"
+    },
+    {
+      "id": "h-42b52e59",
+      "kind": "html",
+      "en": "glyph doctor",
+      "tr": "glyph doctor"
+    },
+    {
+      "id": "h-2a126797",
+      "kind": "html",
+      "en": "Finding a newer release <em>never</em> changes the exit code, so this is safe to run in CI. A published release is not a broken toolchain, and a green pipeline should not go red because somebody shipped ten minutes ago. If the machine is offline the check says so and moves on; <code>--offline</code> skips it entirely and makes no network call at all.",
+      "tr": "การเจอรุ่นที่ใหม่กว่า<em>ไม่เคย</em>เปลี่ยน exit code จึงรันใน CI ได้อย่างปลอดภัย รุ่นที่เผยแพร่ไม่ได้หมายถึง toolchain ที่พัง และ pipeline ที่เขียวไม่ควรกลายเป็นแดงเพราะมีคนปล่อยรุ่นใหม่เมื่อสิบนาทีก่อน ถ้าเครื่องออฟไลน์ การตรวจจะบอกแล้วทำต่อ <code>--offline</code> ข้ามมันทั้งหมดและไม่เรียก network เลย"
+    },
+    {
+      "id": "h-193447d0",
+      "kind": "html",
+      "en": "Nothing else reaches the registry. <code>build</code>, <code>run</code> and <code>check</code> never do. A compiler that phones home on every build is a different product.",
+      "tr": "ไม่มีอย่างอื่นติดต่อ registry <code>build</code>, <code>run</code> และ <code>check</code> ไม่เคยทำ คอมไพเลอร์ที่โทรกลับบ้านทุกครั้งที่ build เป็นผลิตภัณฑ์อีกแบบ"
+    },
+    {
+      "id": "h-010eb101",
+      "kind": "html",
+      "en": "Taking the upgrade",
+      "tr": "รับการอัปเกรด"
+    },
+    {
+      "id": "h-3b711bf0",
+      "kind": "html",
+      "en": "One line changes, and you decide when",
+      "tr": "เปลี่ยนบรรทัดเดียว และคุณเป็นคนตัดสินว่าเมื่อไร"
+    },
+    {
+      "id": "h-03df523e",
+      "kind": "html",
+      "en": "It rewrites one line and runs <code>npm install</code>. It does not touch your source, and it does not pretend the upgrade is finished: building afterwards is the point, because the release you just took is allowed to have opinions your code has not met yet. <code>--to &lt;version&gt;</code> names a specific one, including an older one when you want to go back, and <code>--no-install</code> leaves the install to you.",
+      "tr": "มันเขียนบรรทัดเดียวใหม่แล้วรัน <code>npm install</code> ไม่แตะซอร์สของคุณ และไม่ทำทีว่าการอัปเกรดเสร็จแล้ว: การ build หลังจากนั้นคือประเด็น เพราะรุ่นที่คุณเพิ่งรับมาได้รับอนุญาตให้มีความเห็นที่โค้ดของคุณยังไม่เคยเจอ <code>--to &lt;version&gt;</code> ระบุรุ่นที่ต้องการ รวมถึงรุ่นที่เก่ากว่าเมื่อคุณอยากย้อนกลับ และ <code>--no-install</code> ปล่อยการติดตั้งให้คุณทำเอง"
+    },
+    {
+      "id": "h-acd610d7",
+      "kind": "html",
+      "en": "Moving the tool, not the project",
+      "tr": "ย้ายเครื่องมือ ไม่ใช่โปรเจกต์"
+    },
+    {
+      "id": "h-6a0faca9",
+      "kind": "html",
+      "en": "<code>upgrade</code> moves a pin in a <code>package.json</code>. That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have. <code>glyph --update</code> is the other half. The split is a rule now rather than a coincidence: flags act on the tool, the way <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and subcommands act on your code. <code>--update-dry-run</code> stops after printing the <code>npm</code> command it would have run.",
+      "tr": "<code>upgrade</code> ย้าย pin ใน <code>package.json</code> ซึ่งเป็นคำสั่งที่ผิดเมื่อสิ่งที่ล้าหลังคือคอมไพเลอร์ใน <code>PATH</code> ของคุณ และช่วงหนึ่ง <code>doctor</code> ก็พิมพ์มันออกมาอยู่ดี ชี้การติดตั้งแบบ global ไปที่ manifest ที่อาจไม่มีอยู่ <code>glyph --update</code> คืออีกครึ่ง ตอนนี้การแยกเป็นกฎแล้ว ไม่ใช่เรื่องบังเอิญ: flag ทำงานกับเครื่องมือ แบบเดียวกับ <code>--version</code>, <code>--help</code> และ <code>--explain</code> และคำสั่งย่อยทำงานกับโค้ดของคุณ <code>--update-dry-run</code> หยุดหลังพิมพ์คำสั่ง <code>npm</code> ที่มันจะรัน"
+    },
+    {
+      "id": "h-c1acb4b2",
+      "kind": "html",
+      "en": "glyph --update",
+      "tr": "glyph --update"
+    },
+    {
+      "id": "h-e478c4dc",
+      "kind": "html",
+      "en": "It only moves an install it can identify. A compiler reached through <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does not recognise gets the command printed and nothing overwritten, because replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess leaves <code>PATH</code> pointing at something nobody chose. It also stops short of claiming the update landed: npm can exit zero having skipped an <code>optionalDependency</code> it could not fetch, which is how a Glyph release once shipped with no platform binary, so the last line names <code>glyph --version</code> as the check rather than asserting success.",
+      "tr": "มันย้ายเฉพาะการติดตั้งที่มันระบุได้ คอมไพเลอร์ที่เรียกผ่าน <code>npx</code>, build จาก source tree ของ Glyph หรืออยู่ใน path ที่มันไม่รู้จัก จะได้คำสั่งพิมพ์ออกมาและไม่มีอะไรถูกเขียนทับ เพราะการแทนที่ binary ของ Homebrew หรือ <code>cargo build</code> ของใครสักคนด้วยการเดา จะทำให้ <code>PATH</code> ชี้ไปที่สิ่งที่ไม่มีใครเลือก มันยังไม่อ้างว่าการอัปเดตสำเร็จ: npm อาจ exit ศูนย์ทั้งที่ข้าม <code>optionalDependency</code> ที่ดึงมาไม่ได้ ซึ่งเป็นวิธีที่ Glyph รุ่นหนึ่งเคยออกไปโดยไม่มี binary ของแพลตฟอร์ม บรรทัดสุดท้ายจึงระบุ <code>glyph --version</code> เป็นการตรวจ แทนที่จะยืนยันว่าสำเร็จ"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-b2838e1c",
+      "kind": "html",
+      "en": "Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too. <code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.",
+      "tr": "โปรเจกต์ที่สร้างขึ้น pin แบบตายตัว จึงไม่มีรุ่นไหนมาถึง build โดยบังเอิญ <code>glyph doctor</code> รายงานคอมไพเลอร์ของคุณเทียบกับ registry และลิงก์ไปที่บันทึกประจำรุ่น โดยไม่เคยกระทบ exit code และไม่ถูกเรียกจาก <code>build</code>/<code>run</code>/<code>check</code> <code>glyph upgrade</code> ย้าย pin ติดตั้ง และอ่าน caret จากโปรเจกต์เก่า โปรเจกต์ที่มีอยู่ก่อนจึงย้ายมาใช้ pin แบบตายตัวได้ด้วย <code>glyph --update</code> ย้ายตัวคอมไพเลอร์เองสำหรับการติดตั้ง npm แบบ global และรายงานแทนที่จะเดาสำหรับวิธีอื่นๆ ที่มันอาจถูกติดตั้งมา"
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "กำลังคมขึ้น"
+    },
+    {
+      "id": "h-72347421",
+      "kind": "html",
+      "en": "The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between. <code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.",
+      "tr": "บันทึกประจำรุ่นเป็นหน้าเดียวสำหรับทั้งสาย <code>glyph upgrade</code> จึงลิงก์ไปที่หน้านั้น ไม่ใช่รายการของรุ่นที่คุณกำลังย้ายไป ยังไม่มีอะไรบอกคุณว่า diagnostic ไหนของรุ่นใหม่ที่โค้ดของคุณกำลังจะโดน: การรู้หมายถึงต้อง build ซึ่งเป็นเหตุผลที่คำสั่งบอกให้ทำ และการอัปเกรดข้ามหลายรุ่นในครั้งเดียวก็เป็นขั้นตอนเดียวเหมือนรุ่นเดียว โดยไม่มีสรุปว่ามีอะไรสะสมมาในระหว่างนั้น <code>glyph --update</code> เรียก npm และอ่าน exit code ของมัน จึงบอกคุณได้ว่า npm ทำเสร็จ แต่บอกไม่ได้ว่า binary ใน <code>PATH</code> เป็นเวอร์ชันที่คุณขอ นั่นคือเหตุผลที่มันชี้ไปที่ <code>glyph --version</code> แทนที่จะบอกว่าสำเร็จ"
+    }
+  ]
+}

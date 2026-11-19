@@ -1,0 +1,54 @@
+---
+title: นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม? · Glyph
+description: ไม่ต้องเขียนใหม่: แอปยังเป็น TypeScript เขียนแกนของโดเมนด้วย Glyph แล้ว import module ที่คอมไพล์แล้วเหมือนไฟล์ในเครื่องทั่วไป ใช้ได้กับ Vite แบบมาตรฐาน
+source_hash: 4dc0a3c1d0f26ab3
+prev: /answers/imports/ | &larr; ก่อนหน้า | ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?
+next: /answers/typed-apis/ | ถัดไป &rarr; | ต้องเขียน validator ด้วยมือให้ทุก API ไหม?
+---
+      <p class="q-eyebrow">10 &middot; ภายในแอปของคุณ</p>
+      <h1 class="q-title">นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม หรือต้องเปลี่ยนทั้งหมด?</h1>
+
+      <p class="short-answer">
+        ไม่ต้องเขียนใหม่ แอปยังเป็น TypeScript และเขียนส่วนที่พลาดไม่ได้ (model, สิทธิ์, การเปลี่ยนสถานะ, การคำนวณเงิน) ด้วย Glyph <code>glyph build</code> emit module ที่แอปของคุณ import ได้<strong>เหมือนไฟล์ในเครื่องทั่วไป</strong> ไม่ต้องตั้งค่า bundler และไม่ต้องมี path alias
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          ทีมส่วนใหญ่เขียนแอปใหม่ทั้งหมดไม่ได้ และแอปส่วนใหญ่ก็ไม่จำเป็นต้องใช้ Glyph ส่วนที่จำเป็นคือแกนของโดเมน: กฎที่เอเจนต์ AI จะมาแก้เดือนหน้า และไม่มีใครอยากให้ผิดแบบเงียบๆ การเก็บแกนนั้นไว้ใน Glyph ทำให้คุณได้ <code>match</code> ที่ต้องครบทุกกรณี ไม่มี cast และขอบเขตที่ถูก validate ตรงจุดที่คุ้มค่า ขณะที่ React component, การจัดสไตล์ และ infrastructure ยังเป็น TypeScript ธรรมดา
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>ไดเรกทอรีเดียวของซอร์ส Glyph คอมไพล์เข้าไปในแอป และ UI import ไปใช้:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">layout แบบผสม: แกนของโดเมนเป็น Glyph ที่เหลือเป็น TypeScript</span>
+<pre>src/
+  glyph/          # models.glyph, permissions.glyph, analytics.glyph
+  generated/      # glyph build --out src/generated src/glyph
+  components/     # hand-written React/TSX
+
+<span class="add">// BoardContext.tsx: the app imports compiled Glyph like a local module</span>
+import { TaskCard, can_move } from "../generated/models";
+
+const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ทุกอย่างที่โค้ดที่ emit ออกมาต้องใช้เดินทางไปพร้อมกับมัน import เป็นแบบ relative รวมถึง standard library ที่ bundle มาด้วย <code>tsconfig.json</code> และ bundler ของโปรเจกต์จึงไม่ต้องเพิ่มอะไร: Vite scaffold แบบมาตรฐานคอมไพล์และ bundle output ได้ตามที่เป็น และไฟล์ชุดเดียวกันผ่าน <code>tsc --strict</code> ของโปรเจกต์หลักด้วย ทำเครื่องหมายสิ่งที่แอป import ด้วย <code>pub</code> declaration ที่ไม่มีมันจะเป็น private ของ module นั้น นี่ไม่ใช่สมมติฐาน: วิศวกรภายนอก<a href="https://github.com/yildizadem/glyph-kanban">สร้าง Kanban board ด้วย React แบบนี้</a> โดยมี RBAC matrix สูตร analytics และการเปลี่ยนสถานะอยู่ใน module ของ Glyph สี่ตัว ใต้ UI React ที่เขียนเอง
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>output ที่ emit ออกมาวางลงในโปรเจกต์หลักได้โดยไม่ต้องแก้: ใช้ specifier แบบ relative ตลอด type ของ prelude ติดมากับโค้ดเอง ตรวจแล้วกับ Vite scaffold แบบมาตรฐาน, <code>tsc --strict</code> ของโปรเจกต์หลัก, esbuild และ <code>tsx</code> <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">คู่มือการ deploy</a> อธิบาย layout แบบผสมไว้</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังมา</h3>
+          <p>ยังไม่มี watch mode: ต้องรัน <code>glyph build</code> ใหม่หลังแก้ซอร์ส <code>.glyph</code> (ผูกไว้ในสคริปต์ <code>dev</code>) module ที่ใช้ <code>std/fs</code> หรือ <code>std/net</code> ต้องมี <code>@types/node</code> ในโปรเจกต์หลัก เหมือน TypeScript ที่แตะ Node ทั่วไป</p>
+        </div>
+      </div>

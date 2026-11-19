@@ -1,0 +1,146 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/greppability/index.html",
+  "locale": "th",
+  "source_hash": "cb5e3e02dc597369",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can an agent (or I) find where anything is defined? · Glyph",
+      "tr": "เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Every construct in Glyph has one shape to search for, so grep (or an agent's search) lands on the one definition, not fifty near-misses.",
+      "tr": "ทุก construct ใน Glyph มีรูปแบบเดียวให้ค้นหา grep (หรือการค้นหาของเอเจนต์) จึงเจอนิยามเดียว ไม่ใช่ห้าสิบจุดที่เกือบใช่"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?"
+    },
+    {
+      "id": "h-3acdba59",
+      "kind": "html",
+      "en": "03 &middot; Navigation by search",
+      "tr": "03 &middot; นำทางด้วยการค้นหา"
+    },
+    {
+      "id": "h-546a7b11",
+      "kind": "html",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?"
+    },
+    {
+      "id": "h-0104db85",
+      "kind": "html",
+      "en": "Every construct has <strong>exactly one shape</strong> to search for. A plain <code>grep</code> (the way agents actually navigate) lands on the one definition, <strong>not fifty near-misses</strong>.",
+      "tr": "ทุก construct มี<strong>รูปแบบเดียวเท่านั้น</strong>ให้ค้นหา <code>grep</code> ธรรมดา (ซึ่งเป็นวิธีที่เอเจนต์ใช้นำทางจริงๆ) เจอนิยามเดียว <strong>ไม่ใช่ห้าสิบจุดที่เกือบใช่</strong>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-5ddea4d2",
+      "kind": "html",
+      "en": "An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. If a concept can be written five different ways, search misses cases, and a confident agent that can't find the existing definition invents a second one. One shape per concept means search is complete, so the agent edits what's there instead of duplicating it.",
+      "tr": "เอเจนต์ไม่ได้จำทั้ง repo ไว้ในหัว มัน<strong>ค้นหา</strong> ถ้าแนวคิดหนึ่งเขียนได้ห้าแบบ การค้นหาก็จะพลาดบางกรณี และเอเจนต์ที่มั่นใจแต่หานิยามที่มีอยู่ไม่เจอก็จะสร้างตัวที่สองขึ้นมา รูปแบบเดียวต่อแนวคิดหมายความว่าการค้นหาครบถ้วน เอเจนต์จึงแก้สิ่งที่มีอยู่แทนที่จะทำซ้ำ"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-534265e6",
+      "kind": "html",
+      "en": "Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search:",
+      "tr": "Glyph จำกัดการแก้ค่าไว้สองรูปแบบ (<code>mut x = &hellip;</code> และ <code>mut x.method(&hellip;)</code>) <em>ทุก</em>จุดที่ state เปลี่ยนจึงหาเจอได้ด้วยการค้นหาครั้งเดียว:"
+    },
+    {
+      "id": "h-f3493d94",
+      "kind": "html",
+      "en": "grep -rn \"mut \" src/ (every mutation in the codebase)",
+      "tr": "grep -rn \"mut \" src/ (ทุกการแก้ค่าใน codebase)"
+    },
+    {
+      "id": "h-92a8e9f7",
+      "kind": "html",
+      "en": "Three mutations, all of them, in one search. In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer. The same one-shape rule makes whole categories auditable:",
+      "tr": "สามการแก้ค่า ครบทุกตัว ในการค้นหาครั้งเดียว ใน TypeScript การแก้ค่าซ่อนอยู่หลัง <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter หรือ spread ได้ ไม่มี token เดียวให้ grep คำถาม &ldquo;มีอะไรเปลี่ยนค่านี้ไหม?&rdquo; จึงไม่มีคำตอบที่เชื่อถือได้ กฎรูปแบบเดียวกันนี้ทำให้ตรวจสอบได้ทั้งหมวด:"
+    },
+    {
+      "id": "h-62e795f5",
+      "kind": "html",
+      "en": "one search = one complete answer",
+      "tr": "ค้นหาหนึ่งครั้ง = คำตอบที่ครบหนึ่งชุด"
+    },
+    {
+      "id": "h-4ae95bd1",
+      "kind": "html",
+      "en": "There's no object-literal shorthand, no second way to declare a component, no overloaded syntax to disambiguate. Fewer ways to write a thing is a real constraint, and it's the point: it's what makes an agent's search, and yours, trustworthy.",
+      "tr": "ไม่มี object-literal shorthand ไม่มีวิธีที่สองในการประกาศ component ไม่มี syntax แบบ overload ที่ต้องแยกความหมาย การมีวิธีเขียนน้อยลงเป็นข้อจำกัดจริง และนั่นคือประเด็น: มันคือสิ่งที่ทำให้การค้นหาของเอเจนต์และของคุณเชื่อถือได้"
+    },
+    {
+      "id": "h-127e49f1",
+      "kind": "html",
+      "en": "The constructs Glyph leaves out so that a search can be trusted, and why a lint rule is not the same guarantee, are on the <a href=\"/pillars/greppability/\">greppability pillar page</a>.",
+      "tr": "construct ที่ Glyph ตัดออกไปเพื่อให้การค้นหาเชื่อถือได้ และเหตุผลที่กฎ lint ไม่ใช่การรับประกันแบบเดียวกัน อยู่ใน<a href=\"/pillars/greppability/\">หน้าเสาหลักเรื่องค้นหาได้ด้วย grep</a>"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-b95960cf",
+      "kind": "html",
+      "en": "One canonical form per construct, mutation restricted to two greppable shapes (<code>mut</code>), and single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).",
+      "tr": "รูปแบบมาตรฐานเดียวต่อ construct การแก้ค่าจำกัดไว้สองรูปแบบที่ grep หาได้ (<code>mut</code>) และตรวจสอบได้ด้วย keyword เดียว (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)"
+    },
+    {
+      "id": "h-b19d96e0",
+      "kind": "html",
+      "en": "Layered on top",
+      "tr": "วางซ้อนอยู่ด้านบน"
+    },
+    {
+      "id": "h-87fdbb44",
+      "kind": "html",
+      "en": "The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.",
+      "tr": "language server เพิ่ม go-to-definition และ find-references ทั้ง workspace: การรับประกันเดียวกัน ตอนนี้ใช้แบบโต้ตอบได้ใน editor ของคุณ"
+    }
+  ]
+}

@@ -1,0 +1,398 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/language/index.html",
+  "locale": "th",
+  "source_hash": "5ef4512407bef58a",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Is this a real language, or a toy with gaps? · Glyph",
+      "tr": "นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Module visibility, structural interfaces for generic bounds, defer, structured concurrency and match as a value, and the JavaScript semantics it inherits.",
+      "tr": "การมองเห็นของ module, interface เชิงโครงสร้างสำหรับข้อจำกัดของ generic, defer, structured concurrency และ match ที่เป็นค่า พร้อม semantics ของ JavaScript ที่มันสืบทอดมา"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "How do I share mutable state between functions?",
+      "tr": "จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "ไว้ใจมันกับเรื่องเงิน และกับ input ที่ควบคุมไม่ได้ได้ไหม?"
+    },
+    {
+      "id": "h-496114c3",
+      "kind": "html",
+      "en": "15 &middot; Language completeness",
+      "tr": "15 &middot; ความครบถ้วนของภาษา"
+    },
+    {
+      "id": "h-49ee7f98",
+      "kind": "html",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่?"
+    },
+    {
+      "id": "h-5e5186b9",
+      "kind": "html",
+      "en": "It has the things you reach for in a real codebase: <strong>module visibility</strong>, <strong>interfaces</strong> to constrain generics, <strong>defer</strong> for cleanup, and <strong>concurrency</strong> helpers. Where it leans on JavaScript, it says so instead of pretending otherwise.",
+      "tr": "มันมีสิ่งที่คุณต้องใช้ใน codebase จริง: <strong>การมองเห็นของ module</strong>, <strong>interface</strong> สำหรับจำกัด generic, <strong>defer</strong> สำหรับ cleanup และ helper สำหรับ<strong>concurrency</strong> ตรงไหนที่มันพึ่ง JavaScript มันก็บอกไว้ แทนที่จะแกล้งทำเป็นไม่ใช่"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-7139f60a",
+      "kind": "html",
+      "en": "A language you can write one file in but not structure a project in isn't one you'll bet a codebase on. The gaps that matter aren't exotic: can I hide a helper, can a generic require a capability, can I release a file handle on every exit path, can I run two things at once and wait for both. Glyph answers those four, and it does it without reopening the annotation-heavy direction it deliberately dropped.",
+      "tr": "ภาษาที่เขียนไฟล์เดียวได้แต่จัดโครงสร้างโปรเจกต์ไม่ได้ ไม่ใช่ภาษาที่คุณจะเดิมพัน codebase ด้วย ช่องว่างที่สำคัญไม่ได้แปลกประหลาด: ซ่อน helper ได้ไหม generic กำหนดความสามารถได้ไหม ปล่อย file handle ในทุกทางออกได้ไหม รันสองอย่างพร้อมกันแล้วรอทั้งคู่ได้ไหม Glyph ตอบทั้งสี่ข้อ โดยไม่ย้อนกลับไปทางที่เต็มไปด้วย annotation ซึ่งตั้งใจทิ้งไปแล้ว"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-eaa34178",
+      "kind": "html",
+      "en": "Declarations are private to their module until you mark them <code>pub</code>, so the public surface is one search (<code>grep '^pub'</code>) and a helper never leaks by accident:",
+      "tr": "declaration เป็น private ของ module จนกว่าคุณจะทำเครื่องหมาย <code>pub</code> API สาธารณะจึงหาได้ด้วยการค้นหาครั้งเดียว (<code>grep '^pub'</code>) และ helper ไม่มีวันรั่วออกไปโดยบังเอิญ:"
+    },
+    {
+      "id": "h-45b4debe",
+      "kind": "html",
+      "en": "visibility: private by default",
+      "tr": "การมองเห็น: private โดยค่าเริ่มต้น"
+    },
+    {
+      "id": "h-a581c329",
+      "kind": "html",
+      "en": "An <code>interface</code> is structural, like a TypeScript one: it's a set of member signatures a generic can require. No <code>implements</code>, no nominal ceremony. Any value with the members qualifies, and <code>tsc</code> enforces it.",
+      "tr": "<code>interface</code> เป็นเชิงโครงสร้างเหมือนของ TypeScript: เป็นชุดของ signature ของ member ที่ generic กำหนดได้ ไม่มี <code>implements</code> ไม่มีพิธีแบบ nominal ค่าใดที่มี member ครบก็ผ่าน และ <code>tsc</code> บังคับใช้"
+    },
+    {
+      "id": "h-b42c746e",
+      "kind": "html",
+      "en": "interfaces constrain generics",
+      "tr": "interface จำกัด generic"
+    },
+    {
+      "id": "h-1bf73ee3",
+      "kind": "html",
+      "en": "<code>defer</code> runs cleanup when the block exits, on every path, including an early return or a thrown error. Multiple defers run last-in-first-out, and it composes with <code>owned</code> handles. And <code>std/task</code> joins concurrent work with one lifetime instead of leaving detached promises.",
+      "tr": "<code>defer</code> รัน cleanup เมื่อออกจาก block ในทุกเส้นทาง รวมถึงการ return ก่อนเวลาหรือ error ที่ถูก throw defer หลายตัวรันแบบเข้าหลังออกก่อน และใช้ร่วมกับ handle แบบ <code>owned</code> ได้ และ <code>std/task</code> รวมงานที่ทำพร้อมกันให้มีอายุเดียว แทนที่จะปล่อย promise ที่หลุดลอยไว้"
+    },
+    {
+      "id": "h-4e202025",
+      "kind": "html",
+      "en": "defer + structured concurrency",
+      "tr": "defer + structured concurrency"
+    },
+    {
+      "id": "h-21d0fec4",
+      "kind": "html",
+      "en": "The honest part: Glyph compiles to TypeScript and runs on a JavaScript engine, so evaluation order, value-versus-reference, equality (<code>==</code> is <code>===</code>, no overloading), and the single-threaded garbage-collected model are inherited, not invented. The spec now states them as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "ส่วนที่ต้องพูดตรงๆ: Glyph คอมไพล์เป็น TypeScript และรันบน JavaScript engine ลำดับการประเมินค่า value กับ reference ความเท่ากัน (<code>==</code> คือ <code>===</code> ไม่มี overloading) และ model แบบ single-thread ที่มี garbage collector จึงสืบทอดมา ไม่ได้คิดขึ้นใหม่ ตอนนี้สเปกระบุสิ่งเหล่านี้เป็นการรับประกัน แทนที่จะปล่อยให้คุณไปรู้เอง การจัดการหน่วยความจำเองและ model ที่ไม่มี GC ไม่อยู่ใน roadmap มันอยู่นอกขอบเขตของภาษาที่ transpile เป็น TypeScript"
+    },
+    {
+      "id": "h-173a357c",
+      "kind": "html",
+      "en": "There's no <code>if</code>, so <code>match</code> has to carry everything",
+      "tr": "ไม่มี <code>if</code> <code>match</code> จึงต้องแบกทุกอย่าง"
+    },
+    {
+      "id": "h-6de61157",
+      "kind": "html",
+      "en": "The first thing a TypeScript developer asks after the exhaustiveness pitch is whether <code>match</code> is really a general-purpose conditional or just a nice way to destructure a union. It's the former, and the place that proves it is assignment. A <code>match</code> that is the whole value of a <code>let</code> or a <code>mut</code> takes anything a statement takes: an arm can be a block, an arm can <code>await</code>, an arm can <code>break</code> out of the surrounding loop, and an arm can read the binding it is assigning, which is how you fold state through a loop without an <code>if</code>.",
+      "tr": "สิ่งแรกที่นักพัฒนา TypeScript ถามหลังจากได้ฟังเรื่องความครบถ้วนคือ <code>match</code> เป็นเงื่อนไขทั่วไปจริงหรือแค่วิธีสวยๆ ในการ destructure union คำตอบคืออย่างแรก และที่ที่พิสูจน์ได้คือการ assign <code>match</code> ที่เป็นค่าทั้งหมดของ <code>let</code> หรือ <code>mut</code> รับทุกอย่างที่ statement รับได้: arm เป็น block ได้ arm <code>await</code> ได้ arm <code>break</code> ออกจาก loop รอบนอกได้ และ arm อ่าน binding ที่มันกำลัง assign ได้ ซึ่งเป็นวิธีพับ state ผ่าน loop โดยไม่มี <code>if</code>"
+    },
+    {
+      "id": "h-9f6b1d3a",
+      "kind": "html",
+      "en": "from the link checker: fence tracking, and an awaited arm",
+      "tr": "จากตัวตรวจลิงก์: การติดตาม fence และ arm ที่ await"
+    },
+    {
+      "id": "h-037b924c",
+      "kind": "html",
+      "en": "Both compile to a plain <code>switch</code> that assigns the binding per arm, so the <code>await</code> sits in the enclosing async function and the accumulator is a normal variable TypeScript can infer. A <code>match</code> used <em>inside</em> a larger expression, as an argument or an operand, still becomes a closure, which means its arms have to be single expressions. Hoisting it to its own <code>let</code> lifts that. Both snippets are from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a>, a Markdown link checker written to find exactly this kind of thing.",
+      "tr": "ทั้งคู่คอมไพล์เป็น <code>switch</code> ธรรมดาที่ assign binding ในแต่ละ arm <code>await</code> จึงอยู่ในฟังก์ชัน async ที่ครอบอยู่ และตัวสะสมเป็นตัวแปรปกติที่ TypeScript อนุมานได้ <code>match</code> ที่ใช้<em>ภายใน</em> expression ที่ใหญ่กว่า เป็น argument หรือ operand ยังกลายเป็น closure ซึ่งหมายความว่า arm ต้องเป็น expression เดียว การยกมันออกมาเป็น <code>let</code> ของตัวเองปลดข้อจำกัดนั้น โค้ดทั้งสองชิ้นมาจาก <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a> ตัวตรวจลิงก์ใน Markdown ที่เขียนขึ้นเพื่อหาเรื่องแบบนี้โดยเฉพาะ"
+    },
+    {
+      "id": "h-bc837f41",
+      "kind": "html",
+      "en": "A pattern can name a shape more than one level down",
+      "tr": "pattern ระบุรูปร่างที่ลึกกว่าหนึ่งชั้นได้"
+    },
+    {
+      "id": "h-a4d66d53",
+      "kind": "html",
+      "en": "A variant with several fields carries a record, so an arm that wants to recognise a shape has to reach through the record's fields. Until 0.1.90 the field position took a name and nothing else: you could rename it, and that was all. Matching a tag there was a compile error, and a nested constructor fell off the parser. The workaround was to bind every field and write a nested <code>match</code> per level, which for anything like a red-black tree rebalance is a different program: the arms stop lining up with the cases and each level re-threads the bindings above it.",
+      "tr": "variant ที่มีหลาย field ถือ record ไว้ arm ที่ต้องการจำรูปร่างหนึ่งจึงต้องเอื้อมผ่าน field ของ record จนถึง 0.1.90 ตำแหน่ง field รับแค่ชื่อและไม่มีอย่างอื่น: คุณเปลี่ยนชื่อได้ และแค่นั้น การ match tag ตรงนั้นเป็น compile error และ constructor ที่ซ้อนกันทำให้ parser ล้ม วิธีเลี่ยงคือ bind ทุก field แล้วเขียน <code>match</code> ซ้อนกันทีละชั้น ซึ่งสำหรับอะไรอย่างการปรับสมดุล red-black tree ก็กลายเป็นอีกโปรแกรมหนึ่ง: arm ไม่ตรงกับ case อีกต่อไป และแต่ละชั้นต้องร้อย binding ข้างบนใหม่"
+    },
+    {
+      "id": "h-98315c48",
+      "kind": "html",
+      "en": "one rotation case of a red-black rebalance, as one arm",
+      "tr": "case การหมุนหนึ่งแบบของการปรับสมดุล red-black เป็น arm เดียว"
+    },
+    {
+      "id": "h-c9876574",
+      "kind": "html",
+      "en": "A field takes any pattern now: a variant tag, a nested constructor, a nested destructure, a literal, an array pattern. There is a consequence worth knowing before you write one. A field that tests a value can fail, so the arm no longer counts as covering its variant, and a match whose only <code>Node</code> arm is <code>Node({ color: Red, ... })</code> is reported non-exhaustive until a sibling arm or an <code>else</code> takes the rest. The checker proves coverage over a set of tags, not over a product of fields, so it will not work out that a <code>Red</code> arm and a <code>Black</code> arm together exhaust <code>Node</code>. Asking for the catch-all is the reading that cannot let a match fall off its end at run time. The same applies where there are no variants to count at all: a match on a plain record whose every arm tests a field needs an <code>else</code> behind it.",
+      "tr": "ตอนนี้ field รับ pattern ใดก็ได้: tag ของ variant, constructor ที่ซ้อนกัน, destructure ที่ซ้อนกัน, literal, array pattern มีผลที่ตามมาที่ควรรู้ก่อนเขียน field ที่ทดสอบค่าอาจไม่ match arm จึงไม่นับว่าครอบคลุม variant ของมันอีกต่อไป และ match ที่มี arm <code>Node</code> แค่ <code>Node({ color: Red, ... })</code> จะถูกรายงานว่าไม่ครบจนกว่าจะมี arm ข้างเคียงหรือ <code>else</code> รับส่วนที่เหลือ ตัวตรวจพิสูจน์ความครอบคลุมบนชุดของ tag ไม่ใช่บนผลคูณของ field มันจึงไม่คำนวณว่า arm <code>Red</code> กับ arm <code>Black</code> รวมกันครบ <code>Node</code> การขอ catch-all คือการตีความที่ไม่มีทางปล่อยให้ match หลุดท้ายตอนรัน เช่นเดียวกับที่ที่ไม่มี variant ให้นับเลย: match บน record ธรรมดาที่ทุก arm ทดสอบ field ต้องมี <code>else</code> ตามหลัง"
+    },
+    {
+      "id": "h-c4fa5941",
+      "kind": "html",
+      "en": "One place this reaches that you may not expect is the array position. <code>[Black]</code> as a whole arm used to count as matching any one-element array, so a match that leaned on it certified as exhaustive and then took that arm for <code>[Red]</code> as well. A PascalCase element is a variant reference here too, so such a match is now <code>E0208</code> on arrays of length 1. Bind the element and match it on its own. The lowering underneath is still the old one, which is why the check is the half that shipped first.",
+      "tr": "ที่หนึ่งที่สิ่งนี้ไปถึงซึ่งคุณอาจไม่คาดคิดคือตำแหน่งใน array <code>[Black]</code> ทั้ง arm เคยนับว่า match กับ array หนึ่ง element ใดก็ได้ match ที่พึ่งมันจึงถูกรับรองว่าครบ แล้วก็ใช้ arm นั้นกับ <code>[Red]</code> ด้วย element ที่เป็น PascalCase เป็นการอ้างถึง variant ที่นี่เช่นกัน match แบบนั้นตอนนี้จึงเป็น <code>E0208</code> บน array ความยาว 1 ให้ bind element แล้ว match มันแยกต่างหาก การแปลงข้างใต้ยังเป็นแบบเก่า ซึ่งเป็นเหตุผลที่การตรวจเป็นครึ่งที่ออกมาก่อน"
+    },
+    {
+      "id": "h-64ab5717",
+      "kind": "html",
+      "en": "And the compiler knows what the <code>match</code> produced",
+      "tr": "และคอมไพเลอร์รู้ว่า <code>match</code> ให้อะไรออกมา"
+    },
+    {
+      "id": "h-cffe8865",
+      "kind": "html",
+      "en": "The follow-up question is the one that decides whether any of this is load-bearing: once you bind a value out of a branch, does Glyph know its type, or does it shrug and let <code>tsc</code> sort it out later? Until 0.1.45 it shrugged. Every <code>match</code> expression typed as unknown, so a value that came out of the only branching construct in the language was untyped from that point on. A <code>match</code> now takes its arms' type when they agree, and <code>T.parse</code> is known to return <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, which is the shape most real code branches on.",
+      "tr": "คำถามต่อมาคือตัวที่ตัดสินว่าทั้งหมดนี้รับน้ำหนักได้จริงหรือไม่: เมื่อคุณ bind ค่าออกมาจาก branch แล้ว Glyph รู้ type ของมันไหม หรือยักไหล่แล้วปล่อยให้ <code>tsc</code> จัดการทีหลัง? จนถึง 0.1.45 มันยักไหล่ <code>match</code> expression ทุกตัวมี type เป็น unknown ค่าที่ออกมาจาก construct แตก branch เพียงตัวเดียวในภาษาจึงไม่มี type ตั้งแต่ตรงนั้น ตอนนี้ <code>match</code> ได้ type ของ arm เมื่อมันตรงกัน และรู้ว่า <code>T.parse</code> คืน <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> ซึ่งเป็นรูปร่างที่โค้ดจริงส่วนใหญ่แตก branch"
+    },
+    {
+      "id": "h-b03ef1aa",
+      "kind": "html",
+      "en": "from the expense splitter: no annotation, and <code>i</code> is a number",
+      "tr": "จากตัวแบ่งค่าใช้จ่าย: ไม่มี annotation และ <code>i</code> เป็นตัวเลข"
+    },
+    {
+      "id": "h-9a162c5e",
+      "kind": "html",
+      "en": "Both halves of that are things that used to go wrong quietly. The loop emits <code>wire.expenses.entries()</code>; when the iterand's type is unknown it emits <code>Object.entries(...)</code> instead and <code>i</code> is the <em>string</em> <code>\"0\"</code>, which is legal TypeScript, so the build was clean and the program printed <code>01:a</code> where it meant <code>1:a</code>. And <code>wire.expensez</code> is now <code>[E0210] type WireLedger has no field expensez</code> from Glyph, on the <code>.glyph</code> line, rather than a <code>TS2339</code> on generated TypeScript. The join is equality at the head: an arm that ends in <code>return</code> doesn't vote, and arms whose types disagree leave the result unknown the way it was before. It looks one level deeper only at a type argument, so <code>None =&gt; []</code> agrees with an <code>Array&lt;string&gt;</code> arm instead of sinking the whole <code>match</code>, and the loop after it still binds a number. The same chain over <code>record.get</code> works for the same reason: all six <code>std/record</code> functions carry the value type off the record you pass. The snippet is from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a>, which carried the annotation this deleted.",
+      "tr": "ทั้งสองส่วนนั้นเป็นเรื่องที่เคยผิดแบบเงียบๆ loop emit <code>wire.expenses.entries()</code> เมื่อ type ของสิ่งที่วนเป็น unknown มันจะ emit <code>Object.entries(...)</code> แทน และ <code>i</code> เป็น<em>string</em> <code>\"0\"</code> ซึ่งเป็น TypeScript ที่ถูกต้อง build จึงสะอาด และโปรแกรมพิมพ์ <code>01:a</code> ทั้งที่หมายถึง <code>1:a</code> และ <code>wire.expensez</code> ตอนนี้เป็น <code>[E0210] type WireLedger has no field expensez</code> จาก Glyph บนบรรทัดของ <code>.glyph</code> แทนที่จะเป็น <code>TS2339</code> บน TypeScript ที่ generate การรวม type คือความเท่ากันที่ส่วนหัว: arm ที่ลงท้ายด้วย <code>return</code> ไม่ได้ร่วมโหวต และ arm ที่ type ไม่ตรงกันทำให้ผลเป็น unknown เหมือนเดิม มันมองลึกลงไปอีกชั้นเฉพาะที่ type argument <code>None =&gt; []</code> จึงตรงกับ arm ที่เป็น <code>Array&lt;string&gt;</code> แทนที่จะทำให้ทั้ง <code>match</code> จม และ loop ที่ตามมายัง bind ตัวเลขได้ chain เดียวกันบน <code>record.get</code> ใช้ได้ด้วยเหตุผลเดียวกัน: ฟังก์ชันทั้งหกตัวของ <code>std/record</code> พา type ของค่าออกมาจาก record ที่คุณส่ง โค้ดนี้มาจาก <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a> ซึ่งเคยมี annotation ที่สิ่งนี้ลบออกไป"
+    },
+    {
+      "id": "h-3d9615c4",
+      "kind": "html",
+      "en": "from the dependency resolver: a lookup, an empty fallback, an indexed walk",
+      "tr": "จากตัว resolve dependency: การค้นหา ค่าว่างสำรอง และการเดินตาม index"
+    },
+    {
+      "id": "h-360bca16",
+      "kind": "html",
+      "en": "That is the shape this cost the most. <code>record.get</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>[]</code> is an array of nothing in particular, so the two arms agree on <code>Array</code> and the element type comes from the arm that has one. Until 0.1.55 they were compared for equality, <code>[]</code> counted as a disagreement, and the loop below printed <code>01:x</code> on a build with no diagnostics that <code>tsc --strict</code> passed. The code is <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a>, where it used to open with <code>let path: Array&lt;string&gt;</code> under a three-line comment explaining that the annotation was load-bearing.",
+      "tr": "นั่นคือรูปร่างที่เสียหายมากที่สุด <code>record.get</code> บน <code>Record&lt;string, Array&lt;string&gt;&gt;</code> เป็น <code>Option&lt;Array&lt;string&gt;&gt;</code> และ <code>[]</code> เป็น array ของอะไรก็ได้ arm ทั้งสองจึงตรงกันที่ <code>Array</code> และ type ของ element มาจาก arm ที่มี จนถึง 0.1.55 พวกมันถูกเทียบด้วยความเท่ากัน <code>[]</code> นับเป็นความไม่ตรงกัน และ loop ด้านล่างพิมพ์ <code>01:x</code> บน build ที่ไม่มี diagnostic และ <code>tsc --strict</code> ผ่าน โค้ดอยู่ที่ <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a> ซึ่งเคยเปิดด้วย <code>let path: Array&lt;string&gt;</code> ใต้ comment สามบรรทัดที่อธิบายว่า annotation นั้นรับน้ำหนักอยู่"
+    },
+    {
+      "id": "h-2a137295",
+      "kind": "html",
+      "en": "Do I have to write <code>pad_start</code> myself?",
+      "tr": "ต้องเขียน <code>pad_start</code> เองไหม?"
+    },
+    {
+      "id": "h-7e935433",
+      "kind": "html",
+      "en": "The gap you hit first in a real program isn't a type-system feature. It's reaching for <code>string.slice</code> and finding nothing there. Five dogfooding trips in a row filed the same list, and until 0.1.47 six apps in this repo carried their own <code>repeat</code>, five their own <code>pad_start</code>, and all of them had a loop where a fold belonged. Those eleven names ship now, and the copies are deleted from all seven apps that had them.",
+      "tr": "ช่องว่างแรกที่คุณเจอในโปรแกรมจริงไม่ใช่ฟีเจอร์ของ type system แต่คือการเอื้อมหา <code>string.slice</code> แล้วไม่เจออะไร รอบ dogfooding ห้ารอบติดกันบันทึกรายการเดียวกัน และจนถึง 0.1.47 แอปหกตัวใน repo นี้มี <code>repeat</code> ของตัวเอง ห้าตัวมี <code>pad_start</code> ของตัวเอง และทุกตัวมี loop ในที่ที่ควรเป็น fold ตอนนี้ชื่อทั้งสิบเอ็ดนั้นมาพร้อมแล้ว และสำเนาถูกลบออกจากแอปทั้งเจ็ดที่มี"
+    },
+    {
+      "id": "h-c1723870",
+      "kind": "html",
+      "en": "what landed",
+      "tr": "สิ่งที่เพิ่มเข้ามา"
+    },
+    {
+      "id": "h-7b497297",
+      "kind": "html",
+      "en": "Three of them part ways with their TypeScript namesakes on purpose. <code>repeat</code> returns <code>\"\"</code> on a negative count where TS throws, which is what makes <code>repeat(pad, width - len(s))</code> safe on a string that's already too long. Both <code>index_of</code> functions return <code>Option&lt;number&gt;</code> instead of <code>-1</code>, because <code>-1</code> is a number that type-checks everywhere a real index does and fails a long way from the call. Replacement ships only as <code>replace_all</code>, so there's no first-only form to confuse with <code>String.prototype.replace</code>, which quietly does one occurrence.",
+      "tr": "สามตัวในนั้นตั้งใจทำต่างจากชื่อเดียวกันใน TypeScript <code>repeat</code> คืน <code>\"\"</code> เมื่อจำนวนติดลบ ในขณะที่ TS throw ซึ่งทำให้ <code>repeat(pad, width - len(s))</code> ปลอดภัยกับ string ที่ยาวเกินอยู่แล้ว ฟังก์ชัน <code>index_of</code> ทั้งสองคืน <code>Option&lt;number&gt;</code> แทน <code>-1</code> เพราะ <code>-1</code> เป็นตัวเลขที่ตรวจ type ผ่านทุกที่ที่ index จริงผ่าน และ fail ห่างจากจุดเรียกมาก การแทนที่มีแค่ <code>replace_all</code> จึงไม่มีรูปแบบที่แทนแค่ตัวแรกให้สับสนกับ <code>String.prototype.replace</code> ซึ่งแทนแค่ครั้งเดียวแบบเงียบๆ"
+    },
+    {
+      "id": "h-93945406",
+      "kind": "html",
+      "en": "<code>fold</code> is the one that buys a pillar rather than saving typing. <code>mut</code> is the greppable record of every place state changes, and with no fold, <code>grep mut</code> comes back full of counting loops that mutate nothing a reviewer cares about. Deleting the hand-rolled versions took <code>examples/apps/</code> from 192 mutation sites to 161. The rewrite was checked by output, not by review: all seven apps ran against fixed inputs before and after, 26 files of stdout, exit codes, and HTTP responses, all byte-identical.",
+      "tr": "<code>fold</code> คือตัวที่ได้ประโยชน์ต่อเสาหลัก ไม่ใช่แค่ประหยัดการพิมพ์ <code>mut</code> คือบันทึกที่ grep หาได้ของทุกจุดที่ state เปลี่ยน และถ้าไม่มี fold <code>grep mut</code> จะกลับมาเต็มไปด้วย loop นับเลขที่ไม่ได้แก้อะไรที่คนรีวิวสนใจ การลบตัวที่เขียนเองทำให้ <code>examples/apps/</code> ลดจาก 192 จุดแก้ค่าเหลือ 161 การเขียนใหม่ตรวจด้วย output ไม่ใช่ด้วยการรีวิว: แอปทั้งเจ็ดรันกับ input ตายตัวก่อนและหลัง stdout, exit code และ HTTP response 26 ไฟล์ เหมือนกันทุกไบต์"
+    },
+    {
+      "id": "h-0e58d55a",
+      "kind": "html",
+      "en": "Can I walk a directory and tell what broke?",
+      "tr": "เดินไดเรกทอรีแล้วบอกได้ไหมว่าอะไรพัง?"
+    },
+    {
+      "id": "h-37004ae4",
+      "kind": "html",
+      "en": "<code>std/fs</code> shipped six functions and none of them listed a directory. The link checker in this repo reached past the stdlib into node's <code>readdirSync</code>, and worked out which paths were directories by trying to read them and inspecting the <code>errno</code> that came back. Both halves of that are fixed. <code>fs.read_dir</code> returns the entry names one level down, <code>fs.is_dir</code> answers with a <code>bool</code> the way <code>fs.exists</code> does, and <code>fs.stat</code> returns a <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>, <code>size</code> in bytes, and <code>modified</code> in epoch milliseconds, which <code>time.format_iso</code> renders directly. There is no recursive <code>walk</code> and no glob; a walk is those three plus <code>path.join</code> in about ten lines.",
+      "tr": "<code>std/fs</code> มีหกฟังก์ชันและไม่มีตัวไหนแสดงรายการในไดเรกทอรี ตัวตรวจลิงก์ใน repo นี้เอื้อมข้าม stdlib ไปใช้ <code>readdirSync</code> ของ node และหาว่า path ไหนเป็นไดเรกทอรีโดยลองอ่านแล้วดู <code>errno</code> ที่กลับมา ทั้งสองส่วนแก้แล้ว <code>fs.read_dir</code> คืนชื่อรายการลึกลงไปหนึ่งชั้น <code>fs.is_dir</code> ตอบเป็น <code>bool</code> แบบเดียวกับ <code>fs.exists</code> และ <code>fs.stat</code> คืน <code>FileInfo</code> ที่มี <code>is_dir</code>, <code>is_file</code>, <code>size</code> เป็นไบต์ และ <code>modified</code> เป็นมิลลิวินาทีนับจาก epoch ซึ่ง <code>time.format_iso</code> render ได้โดยตรง ไม่มี <code>walk</code> แบบ recursive และไม่มี glob การเดินคือสามตัวนั้นบวก <code>path.join</code> ประมาณสิบบรรทัด"
+    },
+    {
+      "id": "h-a937d20c",
+      "kind": "html",
+      "en": "The failure side changed more. <code>FsError.kind</code> was <code>{ tag: string }</code> with <code>NotFound</code> as the whole taxonomy, so telling &ldquo;that path is a directory&rdquo; from &ldquo;that path is missing&rdquo; meant comparing an errno string. Now the five kinds a program actually recovers from have names, and an errno with no name arrives intact on the <code>Other</code> tail.",
+      "tr": "ฝั่งความล้มเหลวเปลี่ยนมากกว่า <code>FsError.kind</code> เคยเป็น <code>{ tag: string }</code> โดยมี <code>NotFound</code> เป็นการจำแนกทั้งหมด การแยก &ldquo;path นั้นเป็นไดเรกทอรี&rdquo; ออกจาก &ldquo;path นั้นไม่มีอยู่&rdquo; จึงต้องเทียบ string ของ errno ตอนนี้ห้าชนิดที่โปรแกรมกู้คืนได้จริงมีชื่อ และ errno ที่ไม่มีชื่อมาถึงครบถ้วนในส่วนท้าย <code>Other</code>"
+    },
+    {
+      "id": "h-f6e4f77c",
+      "kind": "html",
+      "en": "The checker knows that taxonomy is closed, so a <code>match</code> on <code>err.kind</code> is held to the same bar as a union you declared yourself: cover the six and you need no <code>else</code>, leave one out and the build fails with <code>E0200</code> naming <code>fs.ErrorKind</code>. <code>fs.FsError</code> and <code>fs.FileInfo</code> have checked fields too, so <code>err.mesage</code> is <code>E0210</code> against your Glyph source rather than a <code>tsc</code> error against generated TypeScript.",
+      "tr": "ตัวตรวจรู้ว่าการจำแนกนั้นเป็นชุดปิด <code>match</code> บน <code>err.kind</code> จึงถูกถือมาตรฐานเดียวกับ union ที่คุณประกาศเอง: ครอบคลุมทั้งหกแล้วไม่ต้องมี <code>else</code> ขาดไปหนึ่งแล้ว build จะ fail ด้วย <code>E0200</code> ที่ระบุ <code>fs.ErrorKind</code> <code>fs.FsError</code> และ <code>fs.FileInfo</code> ก็มี field ที่ถูกตรวจ <code>err.mesage</code> จึงเป็น <code>E0210</code> เทียบกับซอร์ส Glyph ของคุณ แทนที่จะเป็น error ของ <code>tsc</code> เทียบกับ TypeScript ที่ generate"
+    },
+    {
+      "id": "h-3202b4ab",
+      "kind": "html",
+      "en": "walk a tree, and name what went wrong",
+      "tr": "เดิน tree และระบุว่าอะไรผิด"
+    },
+    {
+      "id": "h-43fd3e55",
+      "kind": "html",
+      "en": "Two smaller ones landed with it, both from the same app. <code>regex.captures_all</code> gives you the capture groups of every match instead of just the matched text, so a flat <code>key=value</code> scan stops being a hand-rolled loop. And <code>task.pool_settled</code> is <code>task.pool</code> with <code>all_settled</code>&rsquo;s failure behaviour: bounded concurrency, one outcome per task, and one dead host costs you that host's result rather than every result the pool had collected.",
+      "tr": "มีสองอย่างเล็กกว่าที่มาพร้อมกัน ทั้งคู่มาจากแอปเดียวกัน <code>regex.captures_all</code> ให้ capture group ของทุก match แทนที่จะให้แค่ข้อความที่ match การสแกน <code>key=value</code> แบบแบนจึงไม่ต้องเป็น loop ที่เขียนเอง และ <code>task.pool_settled</code> คือ <code>task.pool</code> ที่มีพฤติกรรมเมื่อล้มเหลวแบบ <code>all_settled</code>: concurrency ที่มีขอบเขต ผลลัพธ์หนึ่งตัวต่องาน และ host ที่ตายไปหนึ่งตัวทำให้เสียแค่ผลของ host นั้น ไม่ใช่ทุกผลที่ pool เก็บไว้"
+    },
+    {
+      "id": "h-c44fd9b3",
+      "kind": "html",
+      "en": "That check is live. Delete the <code>PermissionDenied</code> arm from the <code>match</code> above and <code>glyph check --no-tsc</code> stops with <code>E0200</code>: non-exhaustive match on <code>fs.ErrorKind</code>, missing variants <code>PermissionDenied</code>. When the stdlib model was first written it covered return types only, and a match like this one compiled clean and threw at run time; the field and variant shapes of <code>fs.FsError</code>, <code>fs.FileInfo</code> and <code>fs.ErrorKind</code> are modeled now.",
+      "tr": "การตรวจนั้นใช้งานจริง ลบ arm <code>PermissionDenied</code> ออกจาก <code>match</code> ข้างบน แล้ว <code>glyph check --no-tsc</code> จะหยุดด้วย <code>E0200</code>: match ไม่ครบบน <code>fs.ErrorKind</code> ขาด variant <code>PermissionDenied</code> ตอนที่ model ของ stdlib ถูกเขียนครั้งแรก มันครอบคลุมแค่ return type และ match แบบนี้คอมไพล์ผ่านสะอาดแล้ว throw ตอนรัน ตอนนี้รูปร่างของ field และ variant ของ <code>fs.FsError</code>, <code>fs.FileInfo</code> และ <code>fs.ErrorKind</code> ถูก model แล้ว"
+    },
+    {
+      "id": "h-9250d380",
+      "kind": "html",
+      "en": "How do you know the functions are the right ones?",
+      "tr": "รู้ได้อย่างไรว่าฟังก์ชันเหล่านี้ถูกตัว?"
+    },
+    {
+      "id": "h-86ed6abf",
+      "kind": "html",
+      "en": "Because the app that asked for them had to stop working around them before the release counted as done. A library function that ships and a workaround that outlives it are different claims, so the same change that added these four deleted the link checker's copies: the <code>readdirSync</code> import, both <code>errno</code> string comparisons, 97 lines of hand-rolled scanner, and the fail-fast pool. 122 lines came out.",
+      "tr": "เพราะแอปที่ขอมันต้องเลิกใช้ทางเลี่ยงเสียก่อน รุ่นนั้นจึงจะนับว่าเสร็จ ฟังก์ชันในไลบรารีที่ออกมาแล้วกับทางเลี่ยงที่ยังอยู่ต่อเป็นข้อกล่าวอ้างคนละแบบ การเปลี่ยนแปลงเดียวกันที่เพิ่มสี่ตัวนี้จึงลบสำเนาของตัวตรวจลิงก์ไปด้วย: import <code>readdirSync</code>, การเทียบ string ของ <code>errno</code> ทั้งสองจุด, scanner ที่เขียนเอง 97 บรรทัด และ pool แบบ fail-fast รวมแล้วลบออกไป 122 บรรทัด"
+    },
+    {
+      "id": "h-23121e09",
+      "kind": "html",
+      "en": "Two of those deletions changed what the program does, and the difference was measured rather than argued. Point the old and new versions at a tree containing a directory you cannot read: the new one prints <code>permission denied</code> and counts the path as unreadable, and the old one, which could only ask whether the errno was <code>EISDIR</code>, left it out of the report entirely. Make one of three URLs throw: <code>pool_settled</code> printed all three rows and named the failure, and <code>pool</code> printed nothing and died on an unhandled rejection, taking the two good results with it.",
+      "tr": "การลบสองอย่างในนั้นเปลี่ยนสิ่งที่โปรแกรมทำ และความต่างถูกวัด ไม่ใช่ถูกเถียง ชี้ทั้งรุ่นเก่าและรุ่นใหม่ไปที่ tree ที่มีไดเรกทอรีที่คุณอ่านไม่ได้: รุ่นใหม่พิมพ์ <code>permission denied</code> และนับ path นั้นว่าอ่านไม่ได้ ส่วนรุ่นเก่าซึ่งถามได้แค่ว่า errno เป็น <code>EISDIR</code> หรือไม่ ไม่ใส่มันในรายงานเลย ทำให้หนึ่งในสาม URL throw: <code>pool_settled</code> พิมพ์ครบสามแถวและระบุความล้มเหลว ส่วน <code>pool</code> ไม่พิมพ์อะไรเลยและตายไปด้วย rejection ที่ไม่ถูกจัดการ พาผลที่ดีสองตัวไปด้วย"
+    },
+    {
+      "id": "h-28994342",
+      "kind": "html",
+      "en": "The scanner rewrite settled a design worry too. Since a capture group that did not participate reads as <code>\"\"</code>, the same as one that matched empty, <code>captures_all</code> looked unable to tell you which branch of an alternation fired. It can, if you write each branch's group around the whole construct rather than around the part you want: a group that fired then starts with <code>`</code>, <code>[</code>, <code>!</code>, or <code>&lt;</code>, and cannot be empty. The possibly-empty piece, the link target, nests inside and is never the thing you ask about. That turned a 180-line character walk into two patterns and a 12-line dispatch, with byte-identical output on the repo's own docs and on a fixture built to break it.",
+      "tr": "การเขียน scanner ใหม่ยังคลายความกังวลด้านการออกแบบด้วย เพราะ capture group ที่ไม่ได้มีส่วนร่วมอ่านได้เป็น <code>\"\"</code> เหมือนกับตัวที่ match ค่าว่าง <code>captures_all</code> จึงดูเหมือนบอกไม่ได้ว่า branch ไหนของ alternation ทำงาน แต่บอกได้ ถ้าคุณเขียน group ของแต่ละ branch ครอบทั้ง construct แทนที่จะครอบแค่ส่วนที่ต้องการ: group ที่ทำงานจะเริ่มด้วย <code>`</code>, <code>[</code>, <code>!</code> หรือ <code>&lt;</code> และว่างไม่ได้ ชิ้นที่อาจว่าง คือปลายทางของลิงก์ ซ้อนอยู่ข้างในและไม่เคยเป็นสิ่งที่คุณถามถึง นั่นเปลี่ยนการเดินทีละอักขระ 180 บรรทัดให้เหลือสอง pattern และการ dispatch 12 บรรทัด โดย output เหมือนกันทุกไบต์ทั้งบนเอกสารของ repo เองและบน fixture ที่สร้างมาเพื่อทำให้มันพัง"
+    },
+    {
+      "id": "h-5e9d4aa9",
+      "kind": "html",
+      "en": "Money doesn't run on floats",
+      "tr": "เงินไม่ได้คำนวณด้วย float"
+    },
+    {
+      "id": "h-859647ed",
+      "kind": "html",
+      "en": "The gap that would end a fintech evaluation on the spot is doing money on IEEE-754 <code>number</code>, where <code>0.1 + 0.2</code> is not <code>0.3</code> and values past 2<sup>53</sup> quietly lose precision. <code>std/decimal</code> is exact base-10 fixed-point over BigInt: an arbitrary-precision integer with a fixed number of fractional digits, so addition, subtraction, and multiplication are exact and division takes an explicit scale and rounding. A malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
+      "tr": "ช่องว่างที่จะจบการประเมินด้าน fintech ทันทีคือการคำนวณเงินด้วย <code>number</code> แบบ IEEE-754 ซึ่ง <code>0.1 + 0.2</code> ไม่ใช่ <code>0.3</code> และค่าที่เกิน 2<sup>53</sup> เสียความแม่นยำไปเงียบๆ <code>std/decimal</code> เป็น fixed-point ฐานสิบที่แม่นยำบน BigInt: จำนวนเต็มความแม่นยำไม่จำกัดที่มีจำนวนหลักทศนิยมตายตัว การบวก ลบ และคูณจึงแม่นยำ และการหารต้องระบุ scale และการปัดเศษ จำนวนเงินที่ผิดรูป parse ได้เป็น <code>Err</code> ไม่มีวันเป็น <code>NaN</code> แบบเงียบๆ"
+    },
+    {
+      "id": "h-e374ef99",
+      "kind": "html",
+      "en": "For exact large <em>whole</em> numbers, account ids and counters, there is the <code>bigint</code> type: literals are <code>123n</code>, it emits to a real TypeScript <code>bigint</code>, and a record field typed <code>bigint</code> validates <code>typeof === \"bigint\"</code> at the boundary, so an id sent as a JSON <code>number</code> is rejected rather than silently rounded past 2<sup>53</sup>.",
+      "tr": "สำหรับจำนวน<em>เต็ม</em>ขนาดใหญ่ที่แม่นยำ อย่าง id บัญชีและตัวนับ มี type <code>bigint</code>: literal เป็น <code>123n</code> มัน emit เป็น <code>bigint</code> จริงของ TypeScript และ field ของ record ที่มี type เป็น <code>bigint</code> จะ validate <code>typeof === \"bigint\"</code> ที่ขอบเขต id ที่ส่งมาเป็น <code>number</code> ใน JSON จึงถูกปฏิเสธแทนที่จะถูกปัดเงียบๆ เมื่อเกิน 2<sup>53</sup>"
+    },
+    {
+      "id": "h-78490aad",
+      "kind": "html",
+      "en": "An async callback finally has a type",
+      "tr": "callback แบบ async มี type ในที่สุด"
+    },
+    {
+      "id": "h-886579ed",
+      "kind": "html",
+      "en": "A function type was <code>fn(A) -&gt; T</code> and nothing else, which emits <code>(a: A) =&gt; T</code>. An async body does not fit that, so a function returning a deferred task, or a record of async handlers, had to go unannotated and the checker stopped looking. <code>async fn(A) -&gt; T</code> is that missing type. It emits <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, and <code>async fn()</code> with no return emits <code>() =&gt; Promise&lt;void&gt;</code>.",
+      "tr": "type ของฟังก์ชันเคยเป็น <code>fn(A) -&gt; T</code> และไม่มีอย่างอื่น ซึ่ง emit เป็น <code>(a: A) =&gt; T</code> body แบบ async ไม่เข้ากับสิ่งนั้น ฟังก์ชันที่คืนงานที่เลื่อนไว้ หรือ record ของ handler แบบ async จึงต้องปล่อยไว้โดยไม่มี annotation และตัวตรวจก็เลิกดู <code>async fn(A) -&gt; T</code> คือ type ที่ขาดไปนั้น มัน emit เป็น <code>(a0: A) =&gt; Promise&lt;T&gt;</code> และ <code>async fn()</code> ที่ไม่มี return emit เป็น <code>() =&gt; Promise&lt;void&gt;</code>"
+    },
+    {
+      "id": "h-f88409c6",
+      "kind": "html",
+      "en": "Glyph holds the two apart itself rather than leaving it to <code>tsc</code>: a plain function where an async one is expected is <code>E0204</code> at a return and <code>E0211</code> at a call argument, and the message names both sides. The one case it doesn't judge is a <code>void</code> return, where TypeScript lets any function stand.",
+      "tr": "Glyph แยกสองอย่างนี้ออกจากกันเอง แทนที่จะปล่อยให้ <code>tsc</code>: ฟังก์ชันธรรมดาในที่ที่ต้องการฟังก์ชัน async เป็น <code>E0204</code> ที่ return และ <code>E0211</code> ที่ argument ของการเรียก และข้อความระบุทั้งสองฝั่ง กรณีเดียวที่มันไม่ตัดสินคือ return แบบ <code>void</code> ซึ่ง TypeScript ยอมให้ฟังก์ชันใดก็ได้"
+    },
+    {
+      "id": "h-c1b08369",
+      "kind": "html",
+      "en": "a deferred task, and a map of handlers",
+      "tr": "งานที่เลื่อนไว้ และ map ของ handler"
+    },
+    {
+      "id": "h-9348ac56",
+      "kind": "html",
+      "en": "A recursive type, matched all the way down",
+      "tr": "type แบบ recursive ที่ match ได้ลึกจนสุด"
+    },
+    {
+      "id": "h-0f62e9c9",
+      "kind": "html",
+      "en": "A union can name itself inside its own payload, with its type parameters, and a match arm can nest a constructor pattern inside another constructor pattern&rsquo;s field. Put those together and the balancing rules of a red-black tree are four arms: each one names the exact shape it rewrites, and the compiler is the thing checking the shape rather than a comment above it claiming it. <code>examples/apps/leaderboard/main.glyph</code> is the whole program, a leaderboard that keeps every score in the tree and answers rank, top-N and range queries by walking it instead of re-sorting a log.",
+      "tr": "union อ้างถึงตัวเองภายใน payload ของมันได้ พร้อม type parameter และ arm ของ match ซ้อน constructor pattern ไว้ใน field ของ constructor pattern อีกตัวได้ เอาสองอย่างนี้มารวมกัน กฎการปรับสมดุลของ red-black tree ก็เหลือสี่ arm: แต่ละ arm ระบุรูปร่างที่มันเขียนใหม่พอดี และคอมไพเลอร์คือผู้ตรวจรูปร่าง แทนที่จะเป็น comment ข้างบนที่อ้างไว้ <code>examples/apps/leaderboard/main.glyph</code> คือโปรแกรมทั้งหมด เป็น leaderboard ที่เก็บทุกคะแนนไว้ใน tree และตอบคิวรี rank, top-N และช่วง ด้วยการเดิน tree แทนการเรียง log ใหม่"
+    },
+    {
+      "id": "h-f43b9a36",
+      "kind": "html",
+      "en": "one of the four rotation cases",
+      "tr": "หนึ่งในสี่ case ของการหมุน"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-1a261fdc",
+      "kind": "html",
+      "en": "<code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation), structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> as a written type, a union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field, <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, an <code>FsError.kind</code> taxonomy the checker holds you to, and <code>regex.captures_all</code>. Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index. <code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.",
+      "tr": "การมองเห็นแบบ <code>pub</code> ที่บังคับใช้กับทั้งสองวิธีในการอ้างถึง type ของ module ข้างเคียง (import ด้วยชื่อ และ annotation <code>lib.Secret</code>), ข้อจำกัดแบบ <code>interface</code> เชิงโครงสร้าง, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> เป็น type ที่เขียนได้, union ที่อ้างถึงตัวเองใน payload ซึ่ง match ได้ด้วย arm ที่ซ้อน constructor pattern ไว้ใน field ของอีกตัว, <code>match</code> เป็นค่าของ <code>let</code> หรือ <code>mut</code> โดยมี block, <code>await</code> และการควบคุม loop ใน arm, <code>match</code> ที่ arm ตรงกันพา type ไปใช้ในส่วนที่เหลือของโปรแกรม, <code>T.parse</code> ที่มี type, <code>std/decimal</code> สำหรับคำนวณเงินอย่างแม่นยำ, <code>bigint</code> สำหรับจำนวนเต็มขนาดใหญ่ที่แม่นยำ, ตัวคั่นหลัก, ส่วนของสเปกที่รับผิดชอบ semantics ที่สืบทอดจาก JS และ standard library ที่มี <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> และ <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code> บวก <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, การจำแนก <code>FsError.kind</code> ที่ตัวตรวจบังคับคุณ และ <code>regex.captures_all</code> ส่วนใหญ่ของ <code>std/string</code> และ <code>std/array</code> พา return type เข้ามาในโปรแกรมของคุณแล้ว <code>string.split</code> จึงเป็น <code>Array&lt;string&gt;</code> และ loop บนมันก็ bind index เป็นตัวเลข <code>std/record</code> ก็ถูก model ด้วย โดยอ่าน type ของค่าจาก record ที่คุณส่ง: <code>record.get(t, k)</code> บน <code>Record&lt;string, Array&lt;string&gt;&gt;</code> เป็น <code>Option&lt;Array&lt;string&gt;&gt;</code> และ <code>record.keys(t)</code> เป็น <code>Array&lt;string&gt;</code> <code>array.sort(record.keys(t), cmp)</code> จึงรักษา type ของ element ไว้"
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "หยุดตรงไหน"
+    },
+    {
+      "id": "h-02415819",
+      "kind": "html",
+      "en": "A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Visibility is checked on type annotations, not on values read through a namespace: <code>lib.helper()</code> where <code>helper</code> is private is still a <code>tsc</code> error rather than a Glyph one. Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it. The arm join still needs the arms to agree on the type's head: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it. Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into. A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>. Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time. <code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible. A nested field pattern has one edge left: a constructor that carries a payload, sitting in a field, on a union reached through a namespace import. <code>import tree { Node }</code> then <code>Node({ left: Node({ key: k }) })</code> compiles, and <code>import tree</code> then <code>tree.Node({ left: tree.Node({ key: k }) })</code> is <code>E0300</code> on the same union. The other edge is gone: a union generic over its own parameter (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) used to refuse the nested arm that the same union without the parameter accepts, and now takes it, at an open type parameter and at a concrete instantiation alike. The same lookup was deciding whether the match got checked for missing variants at all, so until this release a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit <code>Leaf</code>, build clean, pass <code>tsc --strict</code>, and throw at run time where the non-generic spelling was <code>E0200</code>. Both spellings report it, and moving the union one import away no longer changes the answer: a <code>match</code> on an imported <code>Tree&lt;string&gt;</code> that omits <code>Leaf</code> is <code>E0200</code> naming <code>Leaf</code>, the same as the imported non-generic <code>Tree</code>. That was a different code path, checked separately, and it went the other way until this release, building clean and throwing at run time. One thing about an imported union's coverage is still worth knowing before you lean on it: its variant payloads are never checked either, so <code>B(X)</code> where <code>X</code> is a variant of the payload's own union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and that one has nothing to do with generics. Binding a field, or matching a tag with no payload in one, works in every case.",
+      "tr": "import ที่เป็น private รายงานว่า &ldquo;not exported by M&rdquo; ซึ่งเป็นข้อความเดียวกับชื่อที่ไม่มีอยู่ การแยก &ldquo;เป็น private ให้ทำเครื่องหมาย <code>pub</code>&rdquo; ออกจาก &ldquo;ไม่มีชื่อนี้&rdquo; เป็นการปรับปรุงที่อยู่ในคิว การมองเห็นถูกตรวจบน type annotation ไม่ใช่บนค่าที่อ่านผ่าน namespace: <code>lib.helper()</code> ที่ <code>helper</code> เป็น private ยังเป็น error ของ <code>tsc</code> ไม่ใช่ของ Glyph บริบทของ async ถูกตรวจแล้ว (<code>E0222</code>) ยกเว้นจุดเดียว: initializer ของ <code>const</code> ระดับ module ไม่มีสิ่งที่เรียกได้ครอบอยู่ <code>await</code> ระดับบนสุดตรงนั้นจึงได้รับอนุญาต และ ESM ที่ emit ออกมาก็รันมัน การรวม type ของ arm ยังต้องให้ arm ตรงกันที่ส่วนหัวของ type: เมื่อได้ type ต่างกัน ผลจะเป็น unknown สำหรับ Glyph และมีแค่ <code>tsc</code> ที่ตรวจสิ่งที่คุณทำกับมัน ฟังก์ชันใน stdlib เก้าตัวอยู่ในสถานะเดียวกัน หกตัวรับ argument ท้ายที่ไม่บังคับ (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) และการตรวจจำนวน argument เทียบตัวเลขหนึ่งตัวกับตัวเลขหนึ่งตัว การ model มันจึงจะรายงาน error ผิดๆ ทุกครั้งที่เรียกโดยไม่ใส่ argument ตัวสุดท้าย ส่วน <code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ได้ type ของ element จาก callback ที่ตัวตรวจไม่ได้เดินเข้าไป ค่าที่ออกมาจากเก้าตัวนี้โดยตรงต้องมี annotation ก่อนวนด้วย index และ <code>match</code> บน <code>string.index_of</code> ที่ไม่มี arm <code>None</code> ยัง build ผ่านสะอาดและ throw ตอนรัน <code>array.index_of</code> ถูก model แล้วและรายงาน <code>E0200</code> member และจำนวน argument ของการเรียกบนค่าที่ตัวตรวจให้ type ไม่ได้ยังไม่ถูกตรวจที่ขอบเขตนั้น แทนที่จะเป็น error ฝั่งไลบรารี <code>string</code> ใช้ index เป็นหน่วย code unit ของ UTF-16 แบบเดียวกับที่ <code>len</code> และ <code>split</code> ใช้มาตลอด และเรื่องนี้ตัดสินแล้ว: ไม่มี <code>chars</code> หรือ <code>char_at</code> และไม่มีแผนจะทำ เพราะครึ่งหนึ่งของ surrogate ที่ถูกคืนมาดูเหมือนอักขระจนกระทั่งถูกเขียนออกไป ให้เข้ารหัสด้วย <code>encoding.hex_encode</code> แล้วอ่านทีละสองหลัก hex <code>captures_all</code> คืน group แต่ไม่มี offset scanner ที่ต้องรู้ว่า match เริ่มตรงไหนในบรรทัดจึงยังต้องเขียน loop เอง และ <code>fs.read_dir</code> ให้รายการตามลำดับของ OS จึงต้องเรียงเองเมื่อ output ต้องทำซ้ำได้ pattern ของ field ที่ซ้อนกันยังเหลือขอบหนึ่งจุด: constructor ที่มี payload อยู่ใน field บน union ที่เข้าถึงผ่าน namespace import <code>import tree { Node }</code> แล้ว <code>Node({ left: Node({ key: k }) })</code> คอมไพล์ผ่าน แต่ <code>import tree</code> แล้ว <code>tree.Node({ left: tree.Node({ key: k }) })</code> เป็น <code>E0300</code> บน union เดียวกัน ขออีกจุดหายไปแล้ว: union ที่เป็น generic บน parameter ของตัวเอง (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) เคยปฏิเสธ arm ที่ซ้อนกัน ซึ่ง union เดียวกันที่ไม่มี parameter ยอมรับ ตอนนี้รับได้แล้ว ทั้งที่ type parameter ที่ยังเปิดอยู่และที่ instantiation ที่ระบุจริง การค้นหาเดียวกันนี้เป็นตัวตัดสินด้วยว่า match ถูกตรวจหา variant ที่ขาดหรือไม่ จนถึงรุ่นนี้ <code>match</code> บน <code>Tree&lt;K&gt;</code> จึงละ <code>Leaf</code> ได้ build ผ่านสะอาด ผ่าน <code>tsc --strict</code> และ throw ตอนรัน ขณะที่การเขียนแบบไม่ generic เป็น <code>E0200</code> ตอนนี้ทั้งสองแบบรายงาน และการย้าย union ไปอยู่ห่างออกไปหนึ่ง import ก็ไม่เปลี่ยนคำตอบอีกต่อไป: <code>match</code> บน <code>Tree&lt;string&gt;</code> ที่ import มาซึ่งละ <code>Leaf</code> เป็น <code>E0200</code> ที่ระบุ <code>Leaf</code> เหมือนกับ <code>Tree</code> ที่ไม่ generic ที่ import มา นั่นเป็นอีกเส้นทางโค้ดที่ตรวจแยกกัน และมันเป็นไปในทางตรงข้ามจนถึงรุ่นนี้ คือ build ผ่านสะอาดแล้ว throw ตอนรัน มีอย่างหนึ่งเกี่ยวกับความครอบคลุมของ union ที่ import มาที่ควรรู้ก่อนพึ่งพามัน: payload ของ variant ไม่เคยถูกตรวจเช่นกัน <code>B(X)</code> ที่ <code>X</code> เป็น variant ของ union ใน payload เองจึง match กับ <code>B</code> ทุกตัวแทนที่จะรายงาน <code>Y</code> ที่ขาดไป และเรื่องนั้นไม่เกี่ยวกับ generic การ bind field หรือการ match tag ที่ไม่มี payload ในนั้นใช้ได้ทุกกรณี"
+    }
+  ]
+}

@@ -1,0 +1,416 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "hardening/index.html",
+  "locale": "th",
+  "source_hash": "39150fb233f95dbe",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Hardening · how Glyph is stress-tested, and what it found",
+      "tr": "การทดสอบความแข็งแรง · Glyph ถูกทดสอบหนักอย่างไร และเจออะไรบ้าง"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "AI agents role-play skeptical engineers, build apps in Glyph and try to break its guarantees. The loop, and the bugs it found.",
+      "tr": "เอเจนต์ AI สวมบทวิศวกรขี้สงสัย สร้างแอปด้วย Glyph และพยายามทำลายการรับประกันของมัน loop ทั้งหมด และบั๊กที่มันเจอ"
+    },
+    {
+      "id": "h-897a3805",
+      "kind": "html",
+      "en": "How Glyph is hardened",
+      "tr": "Glyph ถูกทำให้แข็งแรงอย่างไร"
+    },
+    {
+      "id": "h-d1b07b17",
+      "kind": "html",
+      "en": "Agents try to break it, <span class=\"accent\">and we keep what they find</span>.",
+      "tr": "เอเจนต์พยายามทำให้พัง <span class=\"accent\">และเราเก็บสิ่งที่พวกมันเจอไว้</span>"
+    },
+    {
+      "id": "h-e264bea0",
+      "kind": "html",
+      "en": "A language that says your agents can't quietly break it has to be tested against that. We run AI agents that role-play skeptical engineers (a frustrated React developer, a backend contrarian, a safety adversary), have them build apps and try to break the guarantees, then fix what they find or file it as an open gap. Here is that loop, and what it found.",
+      "tr": "ภาษาที่บอกว่าเอเจนต์ของคุณทำพังแบบเงียบๆ ไม่ได้ ต้องถูกทดสอบตามนั้น เรารันเอเจนต์ AI ที่สวมบทวิศวกรขี้สงสัย (นักพัฒนา React ที่หงุดหงิด คนทำ backend ที่ชอบเถียง และคนที่จ้องหาช่องโหว่ด้านความปลอดภัย) ให้สร้างแอปและพยายามทำลายการรับประกัน แล้วแก้สิ่งที่พวกมันเจอ หรือบันทึกไว้เป็น gap ที่ยังเปิดอยู่ นี่คือ loop นั้น และสิ่งที่มันเจอ"
+    },
+    {
+      "id": "h-26b9b9ba",
+      "kind": "html",
+      "en": "Cases that pass <code>tsc --strict</code> and do not compile in Glyph",
+      "tr": "กรณีที่ผ่าน <code>tsc --strict</code> แต่คอมไพล์ไม่ผ่านใน Glyph"
+    },
+    {
+      "id": "h-4b26fd30",
+      "kind": "html",
+      "en": "Each is two files: a <code>.ts</code> that type-checks clean under <code>tsc --strict</code>, and the same program in Glyph that does not compile. A build gate, <code>scripts/check_catches.py</code>, re-runs every one and fails if either half stops behaving, so a guarantee that quietly disappears takes the build with it. The table lists the {{catches:refused}} of the {{catches:count}} TypeScript mistakes on <a href=\"/catches/\">the catches page</a> that are refused this way; the page has the rest, which Glyph checks when the data arrives, warns about, or stops at run time. {{catches:breakdown}}",
+      "tr": "แต่ละกรณีมีสองไฟล์: <code>.ts</code> ที่ตรวจ type ผ่านสะอาดภายใต้ <code>tsc --strict</code> และโปรแกรมเดียวกันใน Glyph ที่คอมไพล์ไม่ผ่าน build gate ชื่อ <code>scripts/check_catches.py</code> รันทุกกรณีซ้ำ และจะ fail ถ้าฝั่งใดฝั่งหนึ่งไม่ทำงานตามที่ควร การรับประกันที่หายไปเงียบๆ จึงทำให้ build พังไปด้วย ตารางแสดง {{catches:refused}} ข้อจากข้อผิดพลาดใน TypeScript {{catches:count}} ข้อใน<a href=\"/catches/\">หน้าสิ่งที่จับได้</a>ที่ถูกปฏิเสธด้วยวิธีนี้ หน้านั้นมีส่วนที่เหลือ ซึ่ง Glyph ตรวจเมื่อข้อมูลเข้ามา เตือน หรือหยุดตอนรัน {{catches:breakdown}}"
+    },
+    {
+      "id": "h-e8999e82",
+      "kind": "html",
+      "en": "Cases that turned out to be caught by TypeScript too, or whose two halves were not the same program, were deleted rather than softened; <code>catches/README.md</code> lists each one and why.",
+      "tr": "กรณีที่กลายเป็นว่า TypeScript ก็จับได้ หรือที่สองฝั่งไม่ใช่โปรแกรมเดียวกัน ถูกลบทิ้งไม่ใช่ถูกทำให้อ่อนลง <code>catches/README.md</code> แสดงแต่ละกรณีพร้อมเหตุผล"
+    },
+    {
+      "id": "h-c3a6a081",
+      "kind": "html",
+      "en": "The map read is refused even when the key is spelled right, because a <code>Record&lt;string, string&gt;</code> says nothing about which keys exist. TypeScript catches it with <code>noUncheckedIndexedAccess</code>, which <code>--strict</code> does not turn on. The missing union case can be caught in TypeScript too, with typescript-eslint's <code>switch-exhaustiveness-check</code> or an <code>assertNever</code> default, if the project adopts them. In Glyph neither check is optional.",
+      "tr": "การอ่านจาก map ถูกปฏิเสธแม้จะสะกด key ถูก เพราะ <code>Record&lt;string, string&gt;</code> ไม่ได้บอกอะไรเลยว่ามี key ไหนอยู่บ้าง TypeScript จับได้ด้วย <code>noUncheckedIndexedAccess</code> ซึ่ง <code>--strict</code> ไม่ได้เปิดให้ case ของ union ที่ขาดไปก็จับได้ใน TypeScript เช่นกัน ด้วย <code>switch-exhaustiveness-check</code> ของ typescript-eslint หรือ default แบบ <code>assertNever</code> ถ้าโปรเจกต์เลือกใช้ ใน Glyph การตรวจทั้งสองอย่างไม่ใช่ตัวเลือก"
+    },
+    {
+      "id": "h-9c37f555",
+      "kind": "html",
+      "en": "In the parsed-body case, Glyph's <code>json.parse</code> returns a <code>Result</code>, not a <code>User</code>, so the assignment is a type mismatch until the body is checked. TypeScript's <code>JSON.parse</code> returns <code>any</code>, and the annotation on <code>user</code> launders it.",
+      "tr": "ในกรณี body ที่ parse แล้ว <code>json.parse</code> ของ Glyph คืนค่าเป็น <code>Result</code> ไม่ใช่ <code>User</code> การ assign จึงเป็น type ที่ไม่ตรงกันจนกว่า body จะถูกตรวจ <code>JSON.parse</code> ของ TypeScript คืนค่า <code>any</code> และ annotation บน <code>user</code> ก็ฟอกมันให้ดูสะอาด"
+    },
+    {
+      "id": "h-d39e3998",
+      "kind": "html",
+      "en": "The adversarial loop",
+      "tr": "loop แบบปรปักษ์"
+    },
+    {
+      "id": "h-27dc16d9",
+      "kind": "html",
+      "en": "Every finding is reproduced against the compiler, fixed at the root, and independently re-verified before it counts.",
+      "tr": "ทุกสิ่งที่เจอจะถูกทำซ้ำกับคอมไพเลอร์ แก้ที่ต้นเหตุ และยืนยันซ้ำโดยอิสระก่อนจะนับ"
+    },
+    {
+      "id": "h-3b73900b",
+      "kind": "html",
+      "en": "Explore",
+      "tr": "สำรวจ"
+    },
+    {
+      "id": "h-5539289f",
+      "kind": "html",
+      "en": "Persona agents build programs (forms, backends, stateful UI) and record every place the language fought them.",
+      "tr": "เอเจนต์ที่สวมบทบาทสร้างโปรแกรม (ฟอร์ม backend UI ที่มี state) และบันทึกทุกจุดที่ภาษาขัดขวางพวกมัน"
+    },
+    {
+      "id": "h-5efe5e51",
+      "kind": "html",
+      "en": "Reproduce",
+      "tr": "ทำซ้ำ"
+    },
+    {
+      "id": "h-3fb71d14",
+      "kind": "html",
+      "en": "Each finding is minimized to the smallest failing program and re-run against the compiler. Anything that can't be reproduced is dropped.",
+      "tr": "ทุกสิ่งที่เจอถูกย่อให้เหลือโปรแกรมที่ล้มเหลวที่เล็กที่สุด แล้วรันซ้ำกับคอมไพเลอร์ อะไรที่ทำซ้ำไม่ได้จะถูกทิ้ง"
+    },
+    {
+      "id": "h-21f1595b",
+      "kind": "html",
+      "en": "Fix",
+      "tr": "แก้"
+    },
+    {
+      "id": "h-ffc4b518",
+      "kind": "html",
+      "en": "Root-cause fix in the Rust compiler with a regression test that fails before and passes after. The full suite must stay green, or the change reverts.",
+      "tr": "แก้ที่ต้นเหตุในคอมไพเลอร์ Rust พร้อม regression test ที่ fail ก่อนแก้และผ่านหลังแก้ เทสต์ทั้งชุดต้องยังเขียวอยู่ ไม่อย่างนั้นการเปลี่ยนแปลงจะถูก revert"
+    },
+    {
+      "id": "h-eea2745e",
+      "kind": "html",
+      "en": "Verify",
+      "tr": "ยืนยัน"
+    },
+    {
+      "id": "h-955632b2",
+      "kind": "html",
+      "en": "An independent pass re-runs every repro against the freshly built compiler, catching &ldquo;the agent thought it was fixed&rdquo; gaps before anything ships.",
+      "tr": "รอบตรวจที่เป็นอิสระรันโค้ดทำซ้ำทุกตัวกับคอมไพเลอร์ที่เพิ่ง build ใหม่ เพื่อจับ gap แบบ &ldquo;เอเจนต์คิดว่าแก้แล้ว&rdquo; ก่อนที่อะไรจะถูกปล่อยออกไป"
+    },
+    {
+      "id": "h-dc5f2d3c",
+      "kind": "html",
+      "en": "The ones that mattered most: silent-correctness holes",
+      "tr": "ที่สำคัญที่สุด: ช่องโหว่ที่ทำให้ผิดแบบเงียบๆ"
+    },
+    {
+      "id": "h-ff0ab30c",
+      "kind": "html",
+      "en": "Each of these compiled clean and could ship <em>wrong code that passed the type check</em>: exactly the class of bug Glyph exists to prevent. Every one is now caught at compile time.",
+      "tr": "แต่ละข้อนี้คอมไพล์ผ่านสะอาด และอาจปล่อย<em>โค้ดผิดที่ผ่านการตรวจ type</em>ออกไปได้ ซึ่งเป็นประเภทบั๊กที่ Glyph มีไว้ป้องกันพอดี ตอนนี้ทุกข้อถูกจับได้ตอนคอมไพล์"
+    },
+    {
+      "id": "h-1904c499",
+      "kind": "html",
+      "en": "Critical, fixed",
+      "tr": "วิกฤต แก้แล้ว"
+    },
+    {
+      "id": "h-a0fa8f92",
+      "kind": "html",
+      "en": "Nullary error variants in a <code>Result</code> match",
+      "tr": "error variant ที่ไม่มี payload ใน match ของ <code>Result</code>"
+    },
+    {
+      "id": "h-3ccd1c17",
+      "kind": "html",
+      "en": "A <code>match</code> over <code>Result&lt;T, Empty | BadQty(...)&gt;</code> lowered to two duplicate <code>case&nbsp;\"Err\"</code> branches; the first swallowed every error and silently dispatched to the wrong arm.",
+      "tr": "<code>match</code> บน <code>Result&lt;T, Empty | BadQty(...)&gt;</code> ถูกแปลงเป็น branch <code>case&nbsp;\"Err\"</code> ซ้ำกันสองตัว ตัวแรกกลืน error ทุกตัวและส่งไปยัง arm ที่ผิดแบบเงียบๆ"
+    },
+    {
+      "id": "h-1564b8d2",
+      "kind": "html",
+      "en": "Now: one grouped case with a correct inner switch; each variant routes right.",
+      "tr": "ตอนนี้: case เดียวที่จัดกลุ่มแล้ว พร้อม switch ด้านในที่ถูกต้อง แต่ละ variant ไปถูกที่"
+    },
+    {
+      "id": "h-d8932e62",
+      "kind": "html",
+      "en": "Misspelled constructor as a silent catch-all",
+      "tr": "constructor ที่สะกดผิดกลายเป็น catch-all แบบเงียบๆ"
+    },
+    {
+      "id": "h-dc4e0e22",
+      "kind": "html",
+      "en": "A typo'd variant in a match arm (<code>Loded</code> for <code>Loaded</code>) was silently bound as an irrefutable catch-all, masking non-exhaustiveness and misrouting at runtime, with no diagnostic.",
+      "tr": "variant ที่พิมพ์ผิดใน arm ของ match (<code>Loded</code> แทน <code>Loaded</code>) ถูก bind เงียบๆ เป็น catch-all ที่ match ได้ทุกอย่าง ทำให้มองไม่เห็นว่าไม่ครบทุกกรณี และส่งผิดที่ตอนรัน โดยไม่มี diagnostic เลย"
+    },
+    {
+      "id": "h-67755759",
+      "kind": "html",
+      "en": "Now: an unknown constructor is rejected at the typo, like a real name.",
+      "tr": "ตอนนี้: constructor ที่ไม่รู้จักถูกปฏิเสธตรงจุดที่พิมพ์ผิด เหมือนชื่อทั่วไป"
+    },
+    {
+      "id": "h-dc9c4611",
+      "kind": "html",
+      "en": "High, fixed",
+      "tr": "สูง แก้แล้ว"
+    },
+    {
+      "id": "h-7908974b",
+      "kind": "html",
+      "en": "Partial <code>bool</code> match slipped past exhaustiveness",
+      "tr": "match บน <code>bool</code> ที่ไม่ครบหลุดการตรวจความครบถ้วนไปได้"
+    },
+    {
+      "id": "h-c9b71a04",
+      "kind": "html",
+      "en": "<code>match n &gt; 0 { true =&gt; ... }</code> (missing the <code>false</code> arm) compiled and passed <code>tsc</code>, then threw at runtime.",
+      "tr": "<code>match n &gt; 0 { true =&gt; ... }</code> (ขาด arm <code>false</code>) คอมไพล์ผ่านและผ่าน <code>tsc</code> แล้ว throw ตอนรัน"
+    },
+    {
+      "id": "h-073647a0",
+      "kind": "html",
+      "en": "Now: a compile-time non-exhaustive-match error.",
+      "tr": "ตอนนี้: เป็น error แบบ match ไม่ครบทุกกรณีตอนคอมไพล์"
+    },
+    {
+      "id": "h-f1e07109",
+      "kind": "html",
+      "en": "Multi-parameter components mis-bound props",
+      "tr": "component ที่มีหลาย parameter bind props ผิด"
+    },
+    {
+      "id": "h-f9edcc6d",
+      "kind": "html",
+      "en": "<code>component C(a, b)</code> emitted positional params, but React calls components props-first, so <code>a</code> silently bound to the whole props object. It passed <code>tsc</code>.",
+      "tr": "<code>component C(a, b)</code> emit parameter ตามตำแหน่ง แต่ React เรียก component โดยส่ง props เป็นตัวแรก <code>a</code> จึงถูก bind เงียบๆ กับ props object ทั้งก้อน และมันผ่าน <code>tsc</code>"
+    },
+    {
+      "id": "h-314299cb",
+      "kind": "html",
+      "en": "Now: a clear compile error pointing to the single props-record form.",
+      "tr": "ตอนนี้: compile error ที่ชัดเจน ชี้ไปที่รูปแบบ props record ตัวเดียว"
+    },
+    {
+      "id": "h-4f19f2a4",
+      "kind": "html",
+      "en": "JSX <code>&lt;match&gt;</code> skipped exhaustiveness",
+      "tr": "<code>&lt;match&gt;</code> ใน JSX ข้ามการตรวจความครบถ้วน"
+    },
+    {
+      "id": "h-928f72e4",
+      "kind": "html",
+      "en": "A JSX <code>&lt;match&gt;</code> with a missing <code>&lt;case&gt;</code> compiled green and threw at runtime, unlike value-level <code>match</code>, which was checked.",
+      "tr": "<code>&lt;match&gt;</code> ใน JSX ที่ขาด <code>&lt;case&gt;</code> คอมไพล์ผ่านเขียวแล้ว throw ตอนรัน ต่างจาก <code>match</code> ระดับค่าที่ถูกตรวจ"
+    },
+    {
+      "id": "h-5314dfa1",
+      "kind": "html",
+      "en": "Now: the same exhaustiveness check applies; a missing case is a compile error.",
+      "tr": "ตอนนี้: ใช้การตรวจความครบถ้วนแบบเดียวกัน case ที่ขาดเป็น compile error"
+    },
+    {
+      "id": "h-8918c1fb",
+      "kind": "html",
+      "en": "Record payload bound to the wrong field",
+      "tr": "payload ที่เป็น record ถูก bind กับ field ผิด"
+    },
+    {
+      "id": "h-cc48b904",
+      "kind": "html",
+      "en": "Binding a record-payload variant to a name (<code>BadQty(b)</code>) read a nonexistent <code>.value</code> off the flattened payload.",
+      "tr": "การ bind variant ที่มี payload เป็น record เข้ากับชื่อ (<code>BadQty(b)</code>) ไปอ่าน <code>.value</code> ที่ไม่มีอยู่จาก payload ที่ถูกแผ่ออก"
+    },
+    {
+      "id": "h-af14bf62",
+      "kind": "html",
+      "en": "Now: the payload binds correctly, so <code>b.sku</code> works.",
+      "tr": "ตอนนี้: payload ถูก bind อย่างถูกต้อง <code>b.sku</code> จึงใช้ได้"
+    },
+    {
+      "id": "h-ef70f209",
+      "kind": "html",
+      "en": "Rules the checker now enforces",
+      "tr": "กฎที่ตัวตรวจบังคับใช้แล้วตอนนี้"
+    },
+    {
+      "id": "h-3b3d737b",
+      "kind": "html",
+      "en": "Soundness the compiler used to leave to <code>tsc</code>, now caught by Glyph itself.",
+      "tr": "ความถูกต้องที่คอมไพเลอร์เคยปล่อยให้ <code>tsc</code> จัดการ ตอนนี้ Glyph จับได้เอง"
+    },
+    {
+      "id": "h-1246fc93",
+      "kind": "html",
+      "en": "Fixed",
+      "tr": "แก้แล้ว"
+    },
+    {
+      "id": "h-fda12b22",
+      "kind": "html",
+      "en": "Call arity",
+      "tr": "จำนวน argument ในการเรียก"
+    },
+    {
+      "id": "h-42270c66",
+      "kind": "html",
+      "en": "Too few or too many arguments were accepted (and ran to <code>NaN</code>). Now <code>E0213</code> rejects a wrong argument count.",
+      "tr": "argument ที่น้อยหรือมากเกินไปเคยถูกยอมรับ (และรันได้ <code>NaN</code>) ตอนนี้ <code>E0213</code> ปฏิเสธจำนวน argument ที่ผิด"
+    },
+    {
+      "id": "h-b0a75b13",
+      "kind": "html",
+      "en": "The <code>?</code> error type, across the stdlib boundary",
+      "tr": "error type ของ <code>?</code> ข้ามขอบเขตของ stdlib"
+    },
+    {
+      "id": "h-15376345",
+      "kind": "html",
+      "en": "The exact-error-type rule was skipped when the error came from a stdlib wrapper. Now it's enforced there too.",
+      "tr": "กฎเรื่อง error type ต้องตรงกันพอดีเคยถูกข้ามเมื่อ error มาจาก wrapper ของ stdlib ตอนนี้บังคับใช้ที่นั่นด้วย"
+    },
+    {
+      "id": "h-83ce394b",
+      "kind": "html",
+      "en": "Aliasing an <code>owned</code> handle",
+      "tr": "การสร้างชื่อแฝงให้ handle แบบ <code>owned</code>"
+    },
+    {
+      "id": "h-01563e55",
+      "kind": "html",
+      "en": "<code>let g = f</code> on a resource handle created a second binding that could double-close. Now rejected (<code>E0215</code>).",
+      "tr": "<code>let g = f</code> บน resource handle สร้าง binding ตัวที่สองที่อาจปิดซ้ำสองครั้ง ตอนนี้ถูกปฏิเสธ (<code>E0215</code>)"
+    },
+    {
+      "id": "h-e7fbcea4",
+      "kind": "html",
+      "en": "Unreachable arms &amp; deeper validation",
+      "tr": "arm ที่ไปไม่ถึง และการ validate ที่ลึกขึ้น"
+    },
+    {
+      "id": "h-687519f2",
+      "kind": "html",
+      "en": "An arm after a catch-all is now flagged; <code>json.parse&lt;T&gt;</code> now structurally validates <code>Record</code> fields instead of only checking presence.",
+      "tr": "arm ที่อยู่หลัง catch-all ถูกเตือนแล้ว <code>json.parse&lt;T&gt;</code> ตอนนี้ validate field ของ <code>Record</code> ตามโครงสร้าง แทนที่จะตรวจแค่ว่ามีอยู่"
+    },
+    {
+      "id": "h-f95c66d5",
+      "kind": "html",
+      "en": "First-contact friction, removed",
+      "tr": "ความติดขัดตอนใช้ครั้งแรก เอาออกแล้ว"
+    },
+    {
+      "id": "h-639f4987",
+      "kind": "html",
+      "en": "The small things that made a bad first impression, none of which served any purpose.",
+      "tr": "เรื่องเล็กๆ ที่ทำให้ความประทับใจแรกแย่ และไม่มีประโยชน์อะไรเลย"
+    },
+    {
+      "id": "h-914bb39e",
+      "kind": "html",
+      "en": "Accessibility &amp; data attributes",
+      "tr": "Accessibility และ data attribute"
+    },
+    {
+      "id": "h-15cc52bd",
+      "kind": "html",
+      "en": "<code>aria-label</code> and <code>data-*</code> parsed as subtraction. Now they work, and emit as proper React props.",
+      "tr": "<code>aria-label</code> และ <code>data-*</code> เคยถูก parse เป็นการลบ ตอนนี้ใช้ได้ และ emit เป็น React props ที่ถูกต้อง"
+    },
+    {
+      "id": "h-983e63bd",
+      "kind": "html",
+      "en": "npm package names",
+      "tr": "ชื่อแพ็กเกจ npm"
+    },
+    {
+      "id": "h-054b5a73",
+      "kind": "html",
+      "en": "Hyphenated and scoped specifiers (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>) were rejected. Now they import directly.",
+      "tr": "ชื่อที่มีขีดและมี scope (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>) เคยถูกปฏิเสธ ตอนนี้ import ได้โดยตรง"
+    },
+    {
+      "id": "h-93adf1e9",
+      "kind": "html",
+      "en": "Browser-bundle first run",
+      "tr": "การรันครั้งแรกใน browser bundle"
+    },
+    {
+      "id": "h-1f8e379a",
+      "kind": "html",
+      "en": "The runtime bootstrap wasn't loaded in a browser build, crashing on first run. Every emitted module now pulls it in.",
+      "tr": "runtime bootstrap ไม่ถูกโหลดใน build สำหรับเบราว์เซอร์ ทำให้ crash ตอนรันครั้งแรก ตอนนี้ทุก module ที่ emit ออกมาดึงมันเข้ามาด้วย"
+    },
+    {
+      "id": "h-3e7cde99",
+      "kind": "html",
+      "en": "Error messages that misdirect",
+      "tr": "ข้อความ error ที่ชี้ผิดทาง"
+    },
+    {
+      "id": "h-e017695a",
+      "kind": "html",
+      "en": "Writing <code>if</code> now points at <code>match</code>; a range pattern says so directly; JSX whitespace and a bare <code>$</code> in text are handled.",
+      "tr": "การเขียน <code>if</code> ตอนนี้ชี้ไปที่ <code>match</code> range pattern บอกไว้ตรงๆ และจัดการ whitespace ใน JSX กับ <code>$</code> เดี่ยวๆ ในข้อความได้แล้ว"
+    },
+    {
+      "id": "h-35a0d2fd",
+      "kind": "html",
+      "en": "Still open: on the record",
+      "tr": "ยังเปิดอยู่: บันทึกไว้"
+    },
+    {
+      "id": "h-6a151a97",
+      "kind": "html",
+      "en": "Hardening means naming what isn't done, too. These are known and tracked, not hidden.",
+      "tr": "การทำให้แข็งแรงหมายถึงการระบุสิ่งที่ยังไม่เสร็จด้วย สิ่งเหล่านี้รู้แล้วและถูกติดตาม ไม่ได้ซ่อนไว้"
+    },
+    {
+      "id": "h-e750b9a3",
+      "kind": "html",
+      "en": "<strong>Deliberately deferred or awaiting a design decision:</strong>",
+      "tr": "<strong>ตั้งใจเลื่อนออกไป หรือรอ design decision:</strong>"
+    },
+    {
+      "id": "h-a27057f5",
+      "kind": "html",
+      "en": "Rejecting implicit-<code>any</code> closures in Glyph's own checker needs contextual inference to avoid false positives on validly-typed callbacks. Ergonomic FFI, using a complex-typed TS library without a per-library adapter, is the largest interop question still open, tracked in <a href=\"https://github.com/chadetov/glyph/blob/main/docs/open-questions.md\">open questions</a>. A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet reach a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its element types.",
+      "tr": "การปฏิเสธ closure ที่เป็น <code>any</code> แบบแฝงในตัวตรวจของ Glyph เองต้องใช้การอนุมานตามบริบท เพื่อไม่ให้เตือนผิดกับ callback ที่มี type ถูกต้อง FFI ที่ใช้สะดวก คือการใช้ไลบรารี TS ที่มี type ซับซ้อนโดยไม่ต้องมี adapter แยกแต่ละไลบรารี เป็นคำถามเรื่อง interop ที่ใหญ่ที่สุดที่ยังเปิดอยู่ ติดตามไว้ใน <a href=\"https://github.com/chadetov/glyph/blob/main/docs/open-questions.md\">open questions</a> map ที่มาจาก module อื่นหรือจาก standard library ยังถูกอ่านโดยไม่ตรวจ E0224 จึงยังไปไม่ถึง <code>sqlite.Row</code> และ <code>for i, x in xs</code> ที่มีสอง binding ยังเสีย type ของ element ไป"
+    },
+    {
+      "id": "h-922ee9b1",
+      "kind": "html",
+      "en": "&larr; See the engineer questions these fixes came from",
+      "tr": "&larr; ดูคำถามของวิศวกรที่เป็นที่มาของการแก้เหล่านี้"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+---
+title: การออกแบบ · สี่เสาหลักและ decision ต่างๆ · Glyph
+description: เหตุผลของการออกแบบ Glyph: สี่เสาหลักที่ทุก decision ถูกทดสอบด้วย decision ที่มีหมายเลขในสเปก และสิ่งที่ภาษาตั้งใจตัดออกไป
+source_hash: 28891a173ca9e4a0
+next_steps: |
+  ไปต่อที่ไหน
+  แนะนำ | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | อ่านสเปก | ทุก decision ที่มีหมายเลข แต่ละข้อปิดท้ายด้วยเสาหลักที่มันรับใช้ | เปิดสเปก
+  /catches/ | catches | สิ่งที่ Glyph ปฏิเสธ | แต่ละกรณี ตรวจทั้งใน <code>tsc --strict</code> และใน Glyph
+  /start/ | start | เขียนโปรแกรมแรก | ติดตั้ง สร้างโปรเจกต์ รัน ตั้งใจทำให้พัง แล้วอ่าน error ใช้เวลาประมาณสิบนาที
+---
+      <p class="q-eyebrow">การออกแบบ</p>
+      <h1 class="q-title">สี่เสาหลัก และบันทึก decision สำหรับทุกกฎ</h1>
+
+      <p class="short-answer">
+        ทุกกฎใน Glyph ถูกทดสอบกับคุณสมบัติสี่ข้อ และแต่ละกฎเป็น decision ที่มีหมายเลขในสเปกพร้อมเสาหลักที่มันรับใช้ เสาหลักเป็นคุณสมบัติของภาษา ไม่ใช่ของการตั้งค่าโปรเจกต์ เอเจนต์ที่เปิด codebase ของ Glyph ที่ไม่คุ้นเคยจึงพึ่งพามันได้โดยไม่ต้องไปหาก่อนว่าโปรเจกต์เลือกตั้งค่าอะไรไว้
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">เสาหลัก</h2>
+        <p>
+          เรียงตามความสำคัญ สองข้อแรกคือจุดหลัก เป็นปัญหาที่คุณเจอทุกวัน สองข้อหลังคือส่วนเสริมที่ทำให้ใช้แล้วสบาย เมื่อขัดกัน สองข้อแรกชนะ
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/pillars/verifiability/"><span class="n">เสาหลัก 01</span><span class="q">ตรวจสอบได้</span><p>ไม่มี <code>any</code> และไม่มี <code>as</code> ให้เขียน <code>match</code> ต้องครอบคลุมทุก case และ type ที่เป็น record และ union จะ generate validator แบบเข้มสำหรับตอนรัน ค่าที่ขอบเขตจึงถูกตรวจ ไม่ใช่ถูกสันนิษฐาน เป็นชั้นที่เข้มอยู่บน <code>tsc</code> ซึ่งปิดไม่ได้ ข้อผิดพลาดหลายอย่างที่ <code>tsc --strict</code> ยอมรับคอมไพล์ไม่ผ่านที่นี่ ส่วนที่ยังผ่านได้อยู่แสดงไว้ใน<a href="/catches/#not-yet">สิ่งที่ยังจับไม่ได้</a></p></a>
+        <a class="a-card" href="/pillars/greppability/"><span class="n">เสาหลัก 02</span><span class="q">ค้นหาได้ด้วย grep</span><p>หนึ่งชื่อ หนึ่งที่ ทุกสัญลักษณ์มีรูปแบบทาง syntax เพียงแบบเดียวที่ declaration ของมัน ไม่มี overload, decorator, <code>this</code> แบบแฝง หรือการ merge namespace <code>grep "fn parseUser"</code> เจอนิยามเลย</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">เสาหลัก 03</span><span class="q">diff ที่คงที่</span><p>การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด มี layout มาตรฐานแบบเดียว: list อยู่ในบรรทัดเดียวเมื่อพอดี และหนึ่ง element ต่อบรรทัดเมื่อไม่พอดี ไม่มีการจัดกลุ่มใหม่ มี trailing comma ไม่มี barrel file และไม่มีตัวเลือก โค้ดเดียวกันจึงพิมพ์ออกมาเหมือนกันในทุกโปรเจกต์ คนรีวิวอ่านการเปลี่ยนแปลง ไม่ใช่ความวุ่นวายรอบๆ</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">เสาหลัก 04</span><span class="q">นามธรรม</span><p>เขียนตามที่ตั้งใจ: pattern matching แทนบันได switch, <code>Result</code> แทน exception ที่ throw, record ที่มีชื่อแทน tuple จาก core เล็กๆ ที่แต่ละส่วนตั้งฉากกัน ไม่ใช่ชั้นที่พอกพูนกันมาแบบ TypeScript</p></a>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">สเปกคือรายการ decision</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">docs/language/spec.md</a> มี decision ที่มีหมายเลข 49 ข้อ ตั้งแต่ D1 ถึง D49 แต่ละข้อปิดท้ายด้วยเสาหลักที่มันรับใช้ grammar ทำตามสเปก: ความกำกวมจะถูกแก้ในสเปกก่อน แล้วจึงเขียนลงใน parser <code>glyph llms --json</code> parse รายการนี้ออกมาจากสเปก เอเจนต์จึงอ่าน decision ชุดเดียวกับคุณ ตัวอย่างหนึ่ง แบบย่อ:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">D9 จาก docs/language/spec.md (แบบย่อ)</span>
+<pre>D9. `else` is a catch-all arm; `_` is a position-level wildcard;
+a PascalCase arm head is a variant reference, not a binding.
+
+... a PascalCase head that names no variant of that union is a
+compile error (E0220, with a nearest-variant suggestion), never a
+silent catch-all that would mask a missing variant (E0200) and
+misroute values at runtime. ...
+
+*[verifiability, abstraction]*</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">สิ่งที่ตั้งใจตัดออกไป</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">แถลงการณ์</a> ระบุจุดยืนไว้ ฉบับย่อคือข้อจำกัดแต่ละข้อต้องพิสูจน์ว่าคุ้มค่ากับเสาหลักข้อใดข้อหนึ่ง Glyph ไม่มี <code>if</code>/<code>else</code> (<code>match</code> เป็นเงื่อนไขแบบเดียว) ไม่มี class ไม่มี overload หรือ decorator ไม่มี cast ไม่มี <code>any</code> ไม่มี import แบบ relative และไม่มีตัวเลือกของ formatter และมันปรับแต่งไม่ได้ด้วย: formatter เดียว การ resolve module แบบเดียว ความเข้มระดับเดียว ข้อจำกัดที่น่ารำคาญจะได้เอกสาร ไม่ใช่กฎที่หลวมลง
+        </p>
+
+        <h2 class="block-label">การเปรียบเทียบ</h2>
+        <p>
+          Glyph ใกล้เคียงกับหลายสิ่งที่มีอยู่แล้ว และการเปรียบเทียบแต่ละข้อด้านล่างบอกว่าอีกทางเลือกทำอะไรได้ดีกว่า
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?</span><p>ทำไมเป้าหมายคือ TypeScript และสิ่งนั้นทำให้อะไรเป็นไปได้: การนำมาใช้ทีละไฟล์</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">ทำไมไม่ใช้ TypeScript แบบ strict + zod + eslint + ts-pattern?</span><p>การตรวจแบบเดียวกันในรูปการตั้งค่า เทียบกับในรูปภาษา และจุดที่ TypeScript ที่ใส่เครื่องมือครบยังทำได้ดีกว่า</p></a>
+        <a class="a-card" href="/design/vs-effect/"><span class="q">เทียบกับ Effect แล้วเป็นอย่างไร?</span><p>ไลบรารี TypeScript ที่มี error แบบมี type และ ecosystem ขนาดใหญ่ เทียบกับภาษาที่เอาทางหนีทีไล่ออกไป</p></a>
+        <a class="a-card" href="/design/vs-rescript-gleam-elm/"><span class="q">ทำไมไม่ใช้ ReScript, Gleam หรือ Elm?</span><p>สามภาษาที่มี type รุ่นเก่ากว่าที่คอมไพล์เป็น JavaScript แต่ละตัวเหนือกว่าตรงไหน และ Glyph ทำอะไรต่างออกไป</p></a>
+        <a class="a-card" href="/answers/language/"><span class="q">นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่?</span><p>การมองเห็นของ module, interface, defer, standard library และขอบเขตที่ยังมีอยู่</p></a>
+      </div>
+
+      <div class="detail">
+        <p>
+          สมมติฐานเบื้องหลังทั้งหมดนี้ ซึ่งยังไม่ใช่ผลลัพธ์: เอเจนต์ที่ได้งานเดียวกันจะเขียนโค้ดที่ถูกต้องได้สม่ำเสมอกว่าใน Glyph มากกว่าใน TypeScript และคนรีวิวใช้เวลายืนยันน้อยกว่า งานศึกษานั้นยังไม่ได้ทำ เว็บนี้จึงไม่ใส่ตัวเลขให้มัน <a href="/benchmarks/">Benchmark</a> บอกว่าตอนนี้วัดอะไรไปแล้วบ้าง
+        </p>
+      </div>

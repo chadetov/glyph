@@ -1,0 +1,168 @@
+---
+title: คอมไพเลอร์บอกเอเจนต์ไหมว่าต้องแก้อย่างไร? · Glyph
+description: แต่ละ diagnostic มี type สัญลักษณ์ที่ผิด และทางเลือกที่ถูกต้อง และ glyph fix เขียนการแก้ที่คอมไพเลอร์ตัดสินได้เอง
+source_hash: 4b15cc7a1cc4e288
+prev: /answers/ask-the-compiler/ | &larr; ก่อนหน้า | เอเจนต์ของฉันถามคอมไพเลอร์ได้ไหมว่าสัญลักษณ์คืออะไร ก่อนเขียนโค้ด?
+next: /answers/generated-docs/ | ถัดไป &rarr; | เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมา หรือเขียนด้วยมือและล้าสมัย?
+---
+      <p class="q-eyebrow">23 &middot; แก้ build ที่แดง</p>
+      <h1 class="q-title">เมื่อ build ล้มเหลว คอมไพเลอร์บอกเอเจนต์ไหมว่าต้องแก้อย่างไร?</h1>
+
+      <p class="short-answer">
+        มันบอกว่าอะไรผิดในรูปข้อมูล ไม่ใช่ประโยคที่ต้อง parse: type ทั้งสอง สัญลักษณ์ที่ผิดในรูป <code>module::name</code> และรายการจำกัดของสิ่งที่วางแทนตรงที่ผิดได้อย่างถูกต้อง <code>glyph check --agent</code> เพิ่มสิ่งที่การแก้ต้องไม่ทำพัง ในกรณีที่คำตอบถูกกำหนดไว้ชัดเจน <code>glyph fix</code> จะเขียนให้
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          loop ของเอเจนต์รอบคอมไพเลอร์คือ อ่าน error เดาการแก้ build ใหม่ ขั้นเดาคือจุดที่ความเสียหายเกิด และมันเกิดเพราะ error เป็น string เอเจนต์ที่อ่าน "non-exhaustive match on <code>OrderStatus</code>" รู้ว่า match ขาด arm ไปบางตัว แต่ไม่รู้ว่า variant ที่ขาดถืออะไรไว้ มันจึงเขียน <code>Paid("tx_1")</code> แล้วไปรู้จาก diagnostic ถัดไป หรือมันอ่านคำว่า "exhaustive" เพิ่ม arm <code>else</code> แล้ว build ก็เขียว โดยทิ้งการรับประกันที่ diagnostic มีไว้ปกป้องไปแล้ว
+        </p>
+        <p>
+          คอมไพเลอร์รู้ทั้งหมดนั้น มันรู้ variant ของ union และ payload ของแต่ละตัว รู้ว่า <code>else</code> จะทำให้เสียการปิดผนึก และทิ้งทั้งสองอย่างไปหนึ่งบรรทัดก่อนตอบ
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>
+          โปรเจกต์สอง module <code>orders</code> ประกาศ union ส่วน <code>main</code> เขียน <code>match</code> บนมันและจัดการแค่ case เดียว <code>glyph check --agent</code> ตัดเหลือเฉพาะ key ที่สำคัญตรงนี้:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --agent --no-tsc src</span>
+<pre>{
+  "code": "E0200",
+  "severity": "error",
+  "stage": "typecheck",
+  "message": "non-exhaustive match on `OrderStatus`: missing variants
+              `Paid`, `Cancelled`",
+  "help": "Add an arm for each missing variant.",
+  "file":   "main.glyph",
+  "module": "main",
+  "entity": "main::describe",
+  "cause":  "orders::OrderStatus",
+  "related": ["Pending", "Paid", "Cancelled"],
+  "missing_variants": ["Paid", "Cancelled"],
+  "expected": null, "actual": null, "alternatives": null,
+
+  "constraints": [
+    "preserve exhaustiveness: this match must name every case of
+     `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
+    "do not add an `else` arm: `OrderStatus` is declared in this project,
+     and a catch-all forfeits the guarantee that adding a variant to it
+     later forces this match to be updated (D9)."
+  ],
+
+  "symbols": [
+    { "entity": "orders::OrderStatus", "kind": "union", "pub": true,
+      "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+      "exhaustive_match": true,
+      "variants": [
+        { "name": "Pending", "payload": null, "construct": "Pending" },
+        { "name": "Paid",    "payload": "{ transaction_id: string }",
+          "construct": "Paid({ transaction_id: string })" },
+        { "name": "Cancelled", "payload": null, "construct": "Cancelled" }
+      ] }
+  ],
+  "symbols_absent": [],
+
+  "explain": { "command": "glyph --explain E0200",
+               "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200" }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          มีสามเรื่องที่ควรดึงออกมา <code>cause</code> คือสัญลักษณ์ที่ผิด และเป็นคนละอย่างกับ <code>entity</code> ซึ่งคือ declaration ที่ diagnostic อยู่ ตรงนี้การแก้เกิดใน <code>main::describe</code> และรูปร่างที่ต้องตรงมาจาก <code>orders::OrderStatus</code> ทั้งสองเป็นที่อยู่ที่เครื่องมืออื่นรับได้ คำตอบจึงต่อกันได้โดยไม่ต้องหาอะไรใหม่
+        </p>
+        <p>
+          <code>constraints</code> ไม่ใช่การแก้ แต่ละข้อคือสิ่งที่คอมไพเลอร์บังคับใช้อยู่แล้ว เขียนออกมาเพื่อให้การแก้ที่ทำให้ diagnostic หายไปไม่ทำลายการรับประกันที่อยู่เบื้องหลัง ข้อจำกัดข้อที่สองคือเหตุผลที่ key นี้มีอยู่: arm แบบ <code>else</code> ถูกต้องตามกฎ มันจะทำให้ build เขียว และข้อจำกัดบอกว่าการเลือกมันต้องแลกกับอะไร
+        </p>
+        <p>
+          <code>symbols</code> คือคำตอบของ <code>glyph_symbol</code> สำหรับทุกสัญลักษณ์ที่ diagnostic อ้างถึง การแก้ครั้งถัดไปของเอเจนต์จึงไม่ต้องเรียกซ้ำ สัญลักษณ์ที่เครื่องมือปฏิเสธจะอยู่ใน <code>symbols_absent</code> พร้อมเหตุผล ซึ่งแยก "เราไม่ได้ดู" ออกจาก "เราดูแล้วและมันไม่มี"
+        </p>
+        <p>
+          ทุก key มีอยู่เสมอ ข้อเท็จจริงที่คอมไพเลอร์ไม่มีจะมาเป็น <code>null</code> อย่างชัดแจ้ง ไม่เคยเป็น key ที่หายไป การไม่มีจึงมีวิธีเขียนแบบเดียวในทุกรหัส และทั้งบน CLI และ MCP
+        </p>
+
+        <h2 class="block-label">เมื่อคำตอบถูกกำหนดไว้ชัดเจน คอมไพเลอร์เขียนให้</h2>
+        <p>
+          <code>glyph fix</code> ใช้เฉพาะการแก้ที่คอมไพเลอร์ตัดสินได้เอง: import ที่ไม่ได้ใช้, หัวของ arm ที่ไม่ใช่ variant เมื่อตัวตรวจคำนวณคำแนะนำได้ตัวเดียวพอดี และ field ที่ record ไม่ได้ประกาศเมื่อมี field ที่ประกาศไว้ตัวเดียวพอดีที่ห่างไปหนึ่งตัวอักษร <code>match</code> ข้างบนไม่ใช่หนึ่งในนั้น
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph fix src กับ match ข้างบน</span>
+<pre>glyph fix: removed 0 unused import(s) across 0 file(s).
+glyph fix: declined E0200 in src/main.glyph: the compiler does not
+           determine what a missing arm should do, so `glyph fix`
+           writes none: add an arm for each of `Paid`, `Cancelled`.
+           `glyph check --agent` gives the pattern each case takes.
+
+<span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          คอมไพเลอร์รู้ว่า case ไหนขาดไป และ pattern ที่แต่ละตัวใช้ แต่ไม่รู้ว่าโปรแกรมควรทำอะไรเมื่อคำสั่งซื้อเป็น <code>Paid</code> และ body ใดๆ ที่มันเขียนก็คือการเดาที่คอมไพล์ผ่าน จนถึง 0.1.128 <code>glyph fix</code> เขียนการเดานั้น: หนึ่ง arm ต่อ case โดย body พิมพ์ชื่อ case แล้วเรียก <code>process.exit(1)</code> จากนั้นโปรแกรมก็ผ่าน <code>check</code>, <code>tsc</code> และ <code>build</code> และ <code>glyph query variants</code> รายงานว่า match ครบทุกกรณี case ที่ขาดจึงย้ายจาก compile error ไปเป็น crash ตอนรัน โดยไม่เหลืออะไรคอยเตือน
+        </p>
+        <p>
+          กฎจึงปฏิเสธ และระบุชื่อ case ทุกอย่างที่ต้องใช้เขียน arm อยู่ในคำตอบ <code>--agent</code> ข้างบนแล้ว: <code>missing_variants</code> และวิธีเขียน <code>construct</code> ของแต่ละ variant ใต้ <code>symbols</code> arm เป็นสิ่งที่คุณหรือเอเจนต์ของคุณต้องเขียน เหมือนโค้ดอื่นที่คอมไพเลอร์อนุมานพฤติกรรมไม่ได้
+        </p>
+        <p>
+          สิ่งที่ <code>glyph fix</code> เขียน มันเขียนโดยไม่เดา และทุกกฎที่ตัดสินคำตอบไม่ได้จะพิมพ์การปฏิเสธพร้อมเหตุผลลงใน output เดียวกับสิ่งที่มันทำ field สองตัวที่ห่างจากคำผิดหนึ่งตัวอักษรคือสองตัว ไม่ใช่ตัวเดียว และมันจะบอกแบบนั้นแทนที่จะเลือกเอง
+        </p>
+
+        <h2 class="block-label">คำอธิบายของรหัสเอง ในรูปข้อมูล</h2>
+        <p>
+          <code>glyph --explain &lt;CODE&gt; --json</code> ตอบด้วยคำอธิบายแบบยาว <code>help</code> หนึ่งบรรทัด URL ของเอกสาร และโปรแกรมที่ผิดจากชุดตัวอย่างเชิงลบของคอมไพเลอร์ คู่กับ diagnostic ที่คอมไพเลอร์ตัวนี้ให้กับมัน diagnostic ถูกคอมไพล์เมื่อคุณถาม ไม่ได้เก็บไว้ มันจึงไม่เพี้ยนจากสิ่งที่คอมไพเลอร์พูดจริง
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --explain E0200 --json</span>
+<pre>{
+  "code": "E0200",
+  "title": "non-exhaustive match",
+  "explanation": "A `match` over a tagged union must handle every variant.
+    Unions are sealed (D9): adding a variant later forces every match to be
+    updated, so a missing variant cannot silently fall through at runtime ...",
+  "help": "Add an arm for each missing variant.",
+  "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "expected_error": "E0200",
+    "files": [ { "path": "alias_of_local_union_not_exhaustive.glyph",
+                 "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+                    "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+                    "cause": "alias_of_local_union_not_exhaustive::Shape",
+                    "related": ["Circle", "Square", "Tri"],
+                    "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a case:
+      an entry is a wrong program and the code it draws. A fix invented here would
+      compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          รหัสที่ชุดตัวอย่างไม่ครอบคลุมจะกลับมาพร้อม <code>counter_example: null</code> และประโยคที่บอกว่าชุดตัวอย่างไม่มีกรณีสำหรับมัน แทนที่จะเป็นตัวอย่างที่แต่งขึ้น ชุดตัวอย่างอ้างเฉพาะสิ่งที่มันครอบคลุม และไม่อ้างอะไรเกี่ยวกับส่วนที่เหลือ
+        </p>
+        <p>
+          <code>glyph --explain</code> ให้หนึ่งกรณีต่อรหัส ชุดตัวอย่างทั้งหมดก็อ่านได้: <code>glyph llms --negative E0200</code> พิมพ์ทุกโปรแกรมที่ผิดที่ได้รหัสนั้น แต่ละตัวคอมไพล์เมื่อคุณถาม และในกรณีที่ชุดที่สองจับคู่โปรแกรมที่ <code>tsc --strict</code> ยอมรับกับ Glyph ที่ปฏิเสธมัน ก็จะกลับมาข้างๆ ถ้าไม่ระบุรหัส มันแสดง 102 กรณีบน 46 จาก 70 รหัส และระบุชื่อ 24 รหัสที่ไม่มี ความครอบคลุมจึงถูกระบุไว้ ไม่ใช่อนุมานจากสิ่งที่กลับมา สิ่งนั้นและส่วนที่เหลือที่คอมไพเลอร์เผยแพร่เกี่ยวกับตัวเองอยู่ใน<a href="/answers/generated-docs/">หน้าของมันเอง</a>
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>ทุก diagnostic มี <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (พร้อม <code>alternatives_kind</code> ที่บอกว่ามันแสดง <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> หรือ <code>exports</code> ซึ่งตั้งไว้ตรงที่ error ถูกแจ้ง), <code>related</code>, <code>module</code>, <code>file</code> และ <code>explain</code> เติมจาก error ที่คอมไพเลอร์แจ้งจริง ไม่ได้หาใหม่ และแต่ละตัวเป็น <code>null</code> อย่างชัดแจ้งเมื่อคอมไพเลอร์ไม่มีข้อเท็จจริงนั้น <code>file</code> เป็น path ที่สัมพัทธ์กับ resolution root และรายงานระบุ root นั้นใน <code>project_root</code> จึงเปิดได้ <code>glyph check --agent</code> เพิ่ม <code>constraints</code> และ <code>symbols</code> ต่อ diagnostic <code>glyph fix</code> ใช้สามกฎ (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) และระบุทุกการปฏิเสธพร้อมเหตุผล รวมถึง <code>E0200</code> ทุกตัว ซึ่งมันรายงานและไม่เคยเขียน <code>glyph --explain &lt;CODE&gt; --json</code> คืนคำอธิบายพร้อมตัวอย่างค้านที่คอมไพล์แล้ว และ <code>glyph llms --negative &lt;CODE&gt;</code> คืนชุดโปรแกรมที่ผิดทั้งหมดที่ได้รหัสนั้น</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">หยุดตรงไหน</h3>
+          <p><code>cause</code> ของ <code>E0211</code> เป็น <code>null</code>: สัญลักษณ์ที่ผิดที่ argument ของการเรียกคือ parameter และ <code>module::fn.param</code> ไม่ใช่สิ่งที่คำศัพท์ของตัวตนเขียนได้ null นั้นจึงเป็นความตั้งใจ ไม่ใช่การตกหล่น <code>corrected</code> ในตัวอย่างค้านเป็น <code>null</code> เสมอ เพราะชุดตัวอย่างเชิงลบไม่ได้จับคู่โปรแกรมที่แก้แล้วกับกรณีใด และ 24 จาก 70 รหัสไม่มีกรณีเลย <code>glyph fix</code> เขียนสามกฎและไม่มีอย่างอื่น และไม่เขียน arm ให้ <code>match</code> ที่ไม่ครบ: สิ่งเหล่านั้นเหลือไว้ให้คุณหรือเอเจนต์ของคุณ โดยมี case และ pattern อยู่ใน diagnostic ทุกอย่างที่มันปฏิเสธ มันปฏิเสธอย่างเปิดเผย</p>
+        </div>
+      </div>

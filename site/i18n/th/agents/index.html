@@ -1,0 +1,127 @@
+---
+title: สำหรับเอเจนต์และคนสร้างเครื่องมือ · Glyph
+description: เอเจนต์ทำงานกับ Glyph อย่างไร: เซิร์ฟเวอร์ MCP ที่มีสิบเอ็ดเครื่องมือ คิวรีเดียวกันบน command line และ glyph check --agent สำหรับซ่อม build ที่แดง
+source_hash: 74db8e3bf226ba57
+next_steps: |
+  แต่ละส่วนแบบละเอียด
+  เริ่มที่นี่ | /mcp/ | agents | เซิร์ฟเวอร์ MCP | การตั้งค่า เครื่องมือสิบเอ็ดตัวพร้อม argument คำสั่งย่อยของ <code>glyph query</code> และสิ่งที่เซิร์ฟเวอร์ยังทำไม่ได้ | ตั้งค่าเซิร์ฟเวอร์
+  /answers/ask-the-compiler/ | lookup | เอเจนต์ของฉันถามคอมไพเลอร์ได้ไหมว่าสัญลักษณ์นี้คืออะไร? | <code>glyph_symbol</code>: case ของ union พร้อม syntax ที่ใช้สร้างแต่ละ case
+  /answers/impact/ | impact | คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพังก่อนแก้? | การเปลี่ยนแปลงหกแบบ คำตัดสินหนึ่งข้อต่อจุด และการรัน csvql ข้างบนแบบเต็ม
+  /answers/repair-protocol/ | repair | build ที่ล้มเหลวบอกเอเจนต์ไหมว่าต้องแก้อย่างไร? | <code>check --agent</code>, <code>glyph fix</code> และตัวอย่างทีละขั้นพร้อม output จริง
+  /answers/generated-docs/ | docs | เอกสารสำหรับเอเจนต์ถูก generate ขึ้นมาหรือเปล่า? | <code>glyph llms</code> emit อะไรออกมา ตัวเลขแต่ละตัวมาจากไหน และอะไรที่ยังขาด
+  /answers/ai-authoring/ | spark | AI เขียนภาษาที่แทบไม่เคยเห็นได้หรือ? | อะไรใช้ต่อจาก TypeScript ได้ และคอมไพเลอร์ช่วยส่วนที่เหลืออย่างไร
+---
+      <p class="q-eyebrow">สำหรับเอเจนต์และคนสร้างเครื่องมือ</p>
+      <h1 class="q-title">อินเทอร์เฟซของคอมไพเลอร์สำหรับเอเจนต์</h1>
+
+      <p class="short-answer">
+        เอเจนต์ถามคอมไพเลอร์ของ Glyph ได้ว่าสัญลักษณ์คืออะไร การแก้จะทำอะไรพัง และทำไม build ล้มเหลว แล้วได้คำตอบเป็น JSON <code>glyph mcp</code> ให้บริการสิบเอ็ดเครื่องมือผ่าน stdio แต่ละตัวเป็นคำสั่งย่อยของ <code>glyph query</code> ด้วย และ <code>glyph llms</code> พิมพ์เอกสารอ้างอิงภาษาแบบออฟไลน์
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ตั้งค่า</h2>
+        <p>
+          <code>glyph init</code> เขียน <code>.mcp.json</code> นี้ลงในโปรเจกต์ใหม่ และ <code>glyph agents</code> เขียนมัน (พร้อม <code>AGENTS.md</code> ที่ชี้ไปที่ <code>glyph llms</code>) ลงในโปรเจกต์ที่มีอยู่แล้ว MCP client ไหนที่อ่านไฟล์นี้ก็จะเปิดเซิร์ฟเวอร์เอง ไม่มี port และไม่มี daemon
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">.mcp.json ตามที่ glyph init เขียน</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">การเรียกหนึ่งครั้ง พร้อมคำตอบจริง</h2>
+        <p>
+          ไฟล์หนึ่งอ่าน field ที่ record ของมันไม่ได้ประกาศไว้ (<code>u.naem</code>) เอเจนต์เรียก <code>glyph_diagnostics</code> และได้ diagnostic ของคอมไพเลอร์เอง พร้อม field ที่ record ประกาศไว้จริงและ record ที่เป็นเจ้าของ นี่คือ output ของเครื่องมือบน 0.1.149 ตัดเฉพาะจุดที่ทำเครื่องหมายไว้
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">request</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": {
+      "path": "src/user.glyph"
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">ผลลัพธ์</span>
+<pre>{
+  "diagnostics": [ {
+    "code": "E0210",
+    "severity": "error",
+    "stage": "typecheck",
+    "message": "type `U` has no field
+      `naem`; did you mean `name`?",
+    "alternatives": ["name", "email"],
+    "alternatives_kind": "fields",
+    "cause": "user::U",
+    "entity": "user::greet",
+    "file": "user.glyph",
+    "range": {
+      "start": { "line": 9, "col": 10 },
+      "end": { "line": 9, "col": 16 } },
+    ...
+  } ],
+  "member": true,
+  "module": "user",
+  "not_run": [
+    { "what": "tsc", ... },
+    { "what": "E0104, ...", ... },
+    { "what": "E0400, ...", ... } ],
+  "path": "src/user.glyph",
+  "project_root": "src",
+  "unindexed": []
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>not_run</code> บอกว่าการตรวจครั้งนี้ไม่ได้ครอบคลุมอะไร list <code>diagnostics</code> ที่ว่างจึงไม่ถูกเข้าใจผิดว่าเป็น build เต็ม ถ้าไม่มี MCP client <code>glyph query diagnostics --path src/user.glyph</code> ก็พิมพ์ JSON เดียวกัน รายการเครื่องมือทั้งหมดพร้อมทุกคำสั่งย่อยอยู่ใน<a href="/mcp/">หน้า MCP</a>
+        </p>
+
+        <h2 class="block-label">ก่อนแก้: จะทำอะไรพัง?</h2>
+        <p>
+          <code>examples/apps/csvql</code> เป็น query engine สำหรับ CSV สิบเอ็ดไฟล์ ที่มี union สี่ case ชื่อ <code>Value</code> เมื่อถามว่าการเพิ่ม case ที่ห้าจะมีผลอย่างไร <code>glyph_impact</code> แสดง <code>match</code> 10 จุดใน 4 ไฟล์: <code>WILL_FAIL</code> 8 จุด และ <code>ABSORBS</code> 2 จุด ซึ่ง arm แบบ catch-all จะกลืน case ใหม่ไปและยังคอมไพล์ผ่าน เมื่อเพิ่ม case จริงๆ ได้ error <code>E0200</code> 8 ตัวพอดี ที่ 8 จุดนั้น 2 จุดที่กลืนไปจะเงียบ ซึ่งเป็นเหตุผลที่คำตอบต้องระบุชื่อมัน
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">คำถามเดียวกันบน command line</span>
+<pre>glyph query impact --path value.glyph --entity value::Value \
+  --change add_variant --variant Blob</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">หลัง build แดง: การแก้ต้องรักษาอะไรไว้?</h2>
+        <p>
+          <code>glyph check --agent</code> พิมพ์ diagnostic ของ <code>check --json</code> โดยเพิ่ม key อีกสองตัวในแต่ละข้อ <code>constraints</code> แสดงสิ่งที่การแก้ต้องไม่ทำพัง สำหรับคำผิดข้างบนจะอ่านได้ว่า "the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others" <code>symbols</code> ถือคำตอบของ <code>glyph_symbol</code> สำหรับทุกสัญลักษณ์ที่ diagnostic อ้างถึง การแก้ครั้งถัดไปจึงไม่ต้องเรียกซ้ำ ในกรณีที่วิธีแก้ถูกกำหนดไว้ชัดเจน <code>glyph fix</code> จะเขียนให้
+        </p>
+
+        <h2 class="block-label">อ่านภาษาแบบออฟไลน์</h2>
+        <p>
+          <code>glyph llms</code> พิมพ์เอกสารอ้างอิงภาษา และ <code>/llms.txt</code> บนเว็บนี้คือเอกสารเดียวกัน <code>glyph llms --json</code> คือความรู้ชุดนั้นในรูปข้อมูล อ่านจากตารางของคอมไพเลอร์เอง: รหัส diagnostic 77 ตัว ชื่อใน prelude 24 ชื่อ stdlib 40 module ที่มี export 340 ตัว decision ของภาษา 49 ข้อ และเครื่องมือสิบเอ็ดตัว <code>glyph llms --negative</code> คืนโปรแกรมที่ผิด 117 ตัวใน 0.1.149 (139 ตัวตั้งแต่รุ่นถัดไป) พร้อมรหัสที่แต่ละตัวได้ คอมไพล์เมื่อคุณขอ <code>scripts/check_llms_sync.py</code> จะ fail เมื่อตาราง diagnostic และคำสงวนในเอกสารอ้างอิงไม่ตรงกับของคอมไพเลอร์
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">จุดเริ่มต้นแบบออฟไลน์</span>
+<pre>glyph llms                  <span class="cm"># the reference, as prose</span>
+glyph llms --json           <span class="cm"># the same, as data from the compiler's tables</span>
+glyph llms --negative E0200 <span class="cm"># wrong programs that draw E0200</span>
+glyph --explain E0200       <span class="cm"># the long explanation of one code</span></pre>
+      </div>

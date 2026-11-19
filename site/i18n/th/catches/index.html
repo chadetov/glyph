@@ -1,0 +1,43 @@
+---
+title: สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้ · Glyph
+description: โค้ดที่เอเจนต์ AI เขียนแล้วผ่าน tsc --strict แต่ละตัวแสดงคู่กับโปรแกรมเดียวกันใน Glyph พร้อม output จริงจากคอมไพเลอร์ มี build gate รันทุกกรณีซ้ำ
+source_hash: 09d8897c06eb2254
+---
+      <header class="page-hero">
+        <p class="eyebrow">กรณีที่ TypeScript ปล่อยผ่าน</p>
+        <h1>จับได้ก่อนขึ้น production</h1>
+        <p class="lede">{{catches:breakdown}}</p>
+        <p class="lede">{{catches:measured}}</p>
+        <p class="lede">
+          แต่ละรายการคือโปรแกรมสองตัวใน <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> และ output ใต้แต่ละตัวคือสิ่งที่เครื่องมือพิมพ์ออกมาจริง build gate ชื่อ <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a> รันทุกกรณีซ้ำ และจะ fail ถ้าฝั่งใดฝั่งหนึ่งไม่ทำตามที่หน้านี้บอก การตั้งค่า TypeScript ฉบับเต็มที่ใช้ตรวจอยู่ในสคริปต์นั้น
+        </p>
+      </header>
+
+      <section class="c-cases" id="cases">
+        <h2 class="group-head">ข้อผิดพลาดใน TypeScript {{catches:count}} ข้อ</h2>
+{{catches:legend}}
+{{catches:filters}}
+{{catches:mistakes}}
+      </section>
+      <section class="c-section" id="traps">
+        <h2 class="group-head">กับดักของ JavaScript {{catches:trap-count}} ข้อที่ไม่มีใน Glyph</h2>
+        <p class="group-sub">
+          กับดักเก่าๆ ที่เอเจนต์ยังเจออยู่เป็นครั้งคราว Glyph ปฏิเสธทุกโปรแกรมในกลุ่มนี้ แต่ไม่ใช่เพราะจับความผิดพลาดได้ ฟีเจอร์ที่เป็นต้นเหตุไม่มีอยู่ในภาษา และมีการบอกชื่อสิ่งที่ใช้แทน
+        </p>
+{{catches:traps}}
+      </section>
+
+      <section class="c-section" id="not-yet">
+        <h2 class="group-head">สิ่งที่ Glyph ยังจับไม่ได้</h2>
+        <p class="group-sub">
+          ช่องโหว่ {{catches:gap-cases}} ข้อที่ Glyph ยังปิดไม่ได้ แต่ละข้อคอมไพล์ผ่านใน Glyph วันนี้ และทำสิ่งที่ผิดแบบเดียวกับใน TypeScript ทุกข้อมีโค้ดสำหรับทำซ้ำอยู่ใน <code>catches/</code> และมีหมายเลข gap ที่ยังเปิดอยู่ gate จะ fail เมื่อมีการแก้ลงมา รายการจึงอยู่นานกว่าช่องโหว่ไม่ได้
+        </p>
+{{catches:gaps}}
+        <p class="group-sub c-after">
+          logic error เป็นกลุ่มที่ใหญ่ที่สุดในทุกงานศึกษาเกี่ยวกับโค้ดที่เอเจนต์เขียน และไม่มี type checker ตัวไหนมองเห็น: สูตรที่ผิด หรืองานที่อ่านโจทย์ผิด คอมไพล์ผ่านใน Glyph เหมือนที่ผ่านใน TypeScript
+        </p>
+        <p class="group-sub">
+          Glyph มีทางออกฉุกเฉินอยู่ทางเดียวคือ <code>extern_ts</code> สำหรับ TypeScript ที่ Glyph เขียนแทนไม่ได้ มันเป็น keyword ตายตัว <code>grep extern_ts</code> จึงแสดงทุกจุดที่กฎถูกยกเว้น
+        </p>
+      </section>
+{{catches:script}}

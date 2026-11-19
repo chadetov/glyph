@@ -1,0 +1,98 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "404.html",
+  "locale": "th",
+  "source_hash": "c7ed4cfc21c6376f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Page not found · Glyph",
+      "tr": "ไม่พบหน้านี้ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "There is no page at this address. The links below go to the pages most people come to the site for.",
+      "tr": "ไม่มีหน้าใดอยู่ที่ที่อยู่นี้ ลิงก์ด้านล่างพาไปยังหน้าที่คนส่วนใหญ่เข้ามาดูในเว็บนี้"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go instead",
+      "tr": "ไปที่อื่นแทน"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Most people start here",
+      "tr": "คนส่วนใหญ่เริ่มที่นี่"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Start in 10 minutes",
+      "tr": "เริ่มได้ใน 10 นาที"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install Glyph, write a program, break it on purpose and read the error.",
+      "tr": "ติดตั้ง Glyph เขียนโปรแกรม ตั้งใจทำให้พัง แล้วอ่าน error"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Start here",
+      "tr": "เริ่มที่นี่"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What it catches",
+      "tr": "จับอะไรได้บ้าง"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "The cases a fully configured TypeScript setup lets through, and what Glyph says about each.",
+      "tr": "กรณีที่ TypeScript แม้ตั้งค่าเต็มที่ก็ยังปล่อยผ่าน และสิ่งที่ Glyph บอกในแต่ละกรณี"
+    },
+    {
+      "id": "ns./answers/.title",
+      "kind": "ns.title",
+      "en": "Answers",
+      "tr": "คำตอบ"
+    },
+    {
+      "id": "ns./answers/.desc",
+      "kind": "ns.desc",
+      "en": "Questions engineers ask about Glyph, with worked examples.",
+      "tr": "คำถามที่วิศวกรถามเกี่ยวกับ Glyph พร้อมตัวอย่างประกอบ"
+    },
+    {
+      "id": "ns./versions/.title",
+      "kind": "ns.title",
+      "en": "Versions",
+      "tr": "เวอร์ชัน"
+    },
+    {
+      "id": "ns./versions/.desc",
+      "kind": "ns.desc",
+      "en": "What changed in each release, newest first.",
+      "tr": "สิ่งที่เปลี่ยนในแต่ละรุ่น เรียงจากใหม่ไปเก่า"
+    },
+    {
+      "id": "h-fb434496",
+      "kind": "html",
+      "en": "There is no page at this address.",
+      "tr": "ไม่มีหน้าใดอยู่ที่ที่อยู่นี้"
+    },
+    {
+      "id": "h-ab88a679",
+      "kind": "html",
+      "en": "The link may be old, or the page may have moved. If a link on this site brought you here, <a href=\"https://github.com/chadetov/glyph/issues/new\">open an issue</a> with the address and we will fix it. Or go back to the <a href=\"/\">home page</a>.",
+      "tr": "ลิงก์อาจเก่าแล้ว หรือหน้านั้นอาจย้ายไปแล้ว ถ้าคุณมาที่นี่จากลิงก์ในเว็บนี้ <a href=\"https://github.com/chadetov/glyph/issues/new\">เปิด issue</a> พร้อมแนบที่อยู่นั้นมา แล้วเราจะแก้ให้ หรือกลับไปที่<a href=\"/\">หน้าแรก</a>"
+    }
+  ]
+}

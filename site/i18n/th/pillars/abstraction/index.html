@@ -1,0 +1,144 @@
+---
+title: นามธรรม · core เล็กๆ ที่แต่ละส่วนตั้งฉากกัน · Glyph
+description: เสาหลักข้อที่สี่ของ Glyph: หนึ่งวิธีต่อหนึ่งแนวคิด pattern matching แทนบันได switch, Result แทน exception, record แทน tuple และ match เป็นเงื่อนไข
+source_hash: e8827b54becde411
+prev: /pillars/diff-stability/ | &larr; เสาหลักก่อนหน้า | diff ที่คงที่: การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด
+next: /pillars/verifiability/ | กลับไปที่จุดเริ่มต้น &rarr; | ตรวจสอบได้: จริงตอนรันด้วย
+---
+      <p class="q-eyebrow">เสาหลัก 04 &middot; <span class="polish">ส่วนเสริม</span></p>
+      <h1 class="q-title">นามธรรม</h1>
+
+      <p class="short-answer">
+        เขียนตามที่ตั้งใจด้วย<strong>core เล็กๆ ที่แต่ละส่วนตั้งฉากกัน</strong>: pattern matching แทนบันได switch, <code>Result</code> แทน exception ที่ throw, record ที่มีชื่อแทน tuple หนึ่งวิธีที่ดีต่อหนึ่งแนวคิด ไม่ใช่ชั้นที่พอกพูนกันมาแบบ TypeScript
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">วิธีพูดเรื่องเดียวกันมีมากเกินไป</h2>
+        <p class="lede">
+          TypeScript โตมาด้วยการพอกพูน และเก็บทุกชั้นไว้ คุณ model ชุด case ที่ตายตัวได้เป็น <code>enum</code>, union ของ string literal หรือ object แบบ <code>const</code> คุณอธิบายรูปร่างได้ด้วย <code>interface</code>, <code>type</code> หรือ <code>class</code> มี <code>namespace</code> และ module, decorator และ higher-order function มีห้า idiom สำหรับแทบทุกอย่าง แต่ละตัวมีกรณีขอบของตัวเอง
+        </p>
+        <p class="lede">
+          สำหรับคน นั่นคือความยืดหยุ่น สำหรับ<strong>เอเจนต์</strong>มันคือทุ่นระเบิด: วิธีแสดงสิ่งหนึ่งที่มากขึ้นหมายถึงโอกาสเลือกตัวที่มีกับดักมากขึ้น และมี idiom ให้จำไม่ให้สับสนมากขึ้น เสาหลักเรื่องนามธรรมของ Glyph คือการลบออกโดยตั้งใจ: เครื่องมือคมหนึ่งชิ้นต่องาน เลือกให้วิธีที่ชัดที่สุดเป็นวิธีที่ปลอดภัยด้วย
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> <code>match</code> เป็นเงื่อนไขแบบเดียว</h2>
+        <p>
+          ไม่มี statement <code>if</code>/<code>else</code> การแตก branch คือ <code>match</code> ทุกที่ และ <code>match</code> เป็น expression: มันให้ค่า construct เดียวครอบคลุมการทดสอบ boolean การ dispatch ตาม union และตารางค่า จึงไม่ต้องตัดสินใจว่าจะใช้รูปแบบการแตก branch <em>แบบไหน</em>
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: เป็น statement ไม่ใช่ค่า</span>
+          <span class="cap">grade.ts</span>
+<pre>let label: string;
+if (score &gt; 90) label = "A";
+else if (score &gt; 80) label = "B";
+else label = "C";</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: expression เดียว</span>
+          <span class="cap">grade.glyph</span>
+<pre>let label = match score &gt; 90 {
+  true =&gt; "A",
+  false =&gt; match score &gt; 80 {
+    true =&gt; "B",
+    else =&gt; "C",
+  },
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">02</span> tagged union และ pattern matching</h2>
+        <p>
+          วิธี model "หนึ่งในรูปร่างเหล่านี้" คือ tagged union และวิธีแยกมันออกคือ <code>match</code> ซึ่ง destructure payload ในขั้นเดียวกับที่เลือก case ไม่มี field discriminant ให้ดูแลเอง ไม่มีบันได <code>switch</code> บน tag ที่เป็น string ไม่มี cast ในแต่ละ branch เพื่อกู้รูปร่างคืน
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">feed.glyph</span>
+<pre>type Feed =
+  | Loading
+  | Loaded(Array&lt;Post&gt;)
+  | Failed(string)
+
+fn view(feed: Feed) -&gt; string {
+  return match feed {
+    Loading =&gt; "...",
+    Loaded(posts) =&gt; render(posts),   <span class="cm">// posts is Array&lt;Post&gt; here</span>
+    Failed(msg) =&gt; msg,               <span class="cm">// msg is string here</span>
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">03</span> <code>Result</code> แทน exception</h2>
+        <p>
+          ความล้มเหลวเป็นค่า ไม่ใช่การกระโดดของ control flow ที่ซ่อนอยู่ ฟังก์ชันที่อาจล้มเหลวบอกไว้ใน return type (<code>Result&lt;T, E&gt;</code>) และคุณประกอบความล้มเหลวด้วย operator <code>?</code> แทนที่จะครอบจุดเรียกด้วย <code>try</code>/<code>catch</code> แล้วหวังว่าสิ่งที่ถูกจะ throw class ที่ถูก เส้นทาง error มองเห็นได้เท่ากับเส้นทางปกติ
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> record ที่มีชื่อแทน tuple ตามตำแหน่ง</h2>
+        <p>
+          ข้อมูลอธิบายด้วย field ที่มีชื่อเสมอ ไม่มี object-literal shorthand และไม่มีการหยิบ tuple นิรนามที่คุณต้องจำว่า <code>[0]</code> และ <code>[1]</code> คืออะไร รูปร่างอ่านเหมือนกันทั้งที่นิยาม ที่สร้าง และที่ใช้
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: [0] กับ [1] คืออะไร?</span>
+          <span class="cap">point.ts</span>
+<pre>function origin(): [number, number] {
+  return [0, 0];
+}
+const p = origin();
+p[0]; p[1];  <span class="cm">// x? y? row? col?</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: ชื่อเดินทางไปพร้อมค่า</span>
+          <span class="cap">point.glyph</span>
+<pre>type Point = { x: number, y: number }
+
+fn origin() -&gt; Point {
+  return { x: 0, y: 0 }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> primitive หนึ่งตัวต่องาน</h2>
+        <p>
+          เมื่อแนวคิดหนึ่งต้องมีเครื่องมือของตัวเอง Glyph ให้แค่หนึ่งตัวพอดี state ที่ใช้ร่วมกันและเปลี่ยนค่าได้อยู่ใน <code>std/store</code> handle ของไฟล์หรือ socket ที่ต้องปิดครั้งเดียวคือ resource แบบ <code>owned</code> การวนซ้ำคือ <code>for x in xs</code> แต่ละตัวเป็น primitive เดียวที่มีชื่อและสร้างมาเพื่องานนั้น ไม่ใช่ pattern ที่คุณต้องประกอบใหม่จากชิ้นส่วนทั่วไปแล้วทำผิดแบบแนบเนียน
+        </p>
+
+        <p class="pull-quote">
+          นามธรรมในที่นี้หมายถึง<strong>เครื่องมือที่น้อยลงและคมขึ้น</strong> ไม่ใช่มากขึ้น ทุกแนวคิดมีรูปแบบที่ชัดเจน และรูปแบบที่ชัดเจนคือรูปแบบที่ตั้งใจให้ใช้
+        </p>
+
+        <h2 class="block-label">benchmark: กำลังมา</h2>
+        <p>
+          วิธีวัดเรื่องนี้คือพื้นที่ผิว: คนอ่านต้องถือแนวคิดที่แตกต่างกันกี่อย่างเพื่อเข้าใจโปรแกรม และต้องใช้โค้ดเท่าไรในการแสดงงานทั่วไปอย่างสะอาด Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยการวัดจริงเมื่อมีโปรแกรมจริงมากพอให้เปรียบเทียบ
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">จำนวนแนวคิดที่แตกต่างกันในการอ่าน module ทั่วไป &middot; ยิ่งน้อยยิ่งดี</span>
+        <h3>TypeScript เทียบกับ Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 30%;">รอผล</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 62%;">รอผล</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">ยังไม่ได้วัด</span> เราจะเผยแพร่การเปรียบเทียบจำนวนแนวคิดและจำนวนบรรทัดที่ใช้แสดง X จากโปรแกรมจริงที่นี่ ทันทีที่มีมากพอให้วัด
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          core ที่เล็กกว่าเรียนรู้ได้ง่ายกว่าสำหรับคน ซึ่งเรียนครั้งเดียว และทำให้ถูกได้ง่ายกว่าสำหรับโมเดลทุกครั้ง นั่นคือชั้นส่วนเสริมทั้งหมดในประโยคเดียว: เอาตัวเลือกที่เพิ่มแค่ความเสี่ยงออกไป แล้วสิ่งที่เหลือคือภาษาที่พูดตามที่หมายถึง
+        </p>
+      </div>

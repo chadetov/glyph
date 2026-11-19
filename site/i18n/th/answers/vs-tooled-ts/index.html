@@ -1,0 +1,136 @@
+---
+title: ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ: tsc, zod, eslint? · Glyph
+description: TypeScript ที่ใส่เครื่องมือครบไปได้ไกล แต่การรับประกันแต่ละข้อต้องเลือกเปิดเอง และเอเจนต์หลบมันได้ ใน Glyph ความเข้มงวดคือตัวภาษา ไม่ใช่ไฟล์ config
+source_hash: d0694478c32b0491
+prev: /answers/why-typescript/ | &larr; ก่อนหน้า | ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?
+next: /answers/human-value/ | ถัดไป &rarr; | Glyph คุ้มไหมถ้าฉันไม่ได้ใช้ AI?
+---
+      <p class="q-eyebrow">05 &middot; การเปรียบเทียบ</p>
+      <h1 class="q-title">ทำไมไม่ใช้แค่ TypeScript แบบ strict + zod + eslint + ts-pattern?</h1>
+
+      <p class="short-answer">
+        เพราะการรับประกันทุกข้อในนั้น<strong>ต้องเลือกเปิดเอง</strong> และเอเจนต์หลบแต่ละข้อได้ในบรรทัดเดียว ความเข้มงวดของ Glyph ไม่ใช่ไฟล์ config ที่เอเจนต์แก้ได้ มันคือตัวภาษา จุดบังคับใช้ย้ายจาก "เราจำได้ไหมว่าต้อง lint ไฟล์นี้" มาเป็น "มันคอมไพล์ผ่านไหม"
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">สิ่งที่ TypeScript ที่ใส่เครื่องมือครบครอบคลุมอยู่แล้ว</h2>
+        <p>
+          การตั้งค่า TypeScript ที่ดีพาคุณไปได้ไกล และถ้าทีมของคุณรันทั้งหมดใน CI คุณก็ปิดช่องโหว่ส่วนใหญ่ที่ Glyph มุ่งเป้าไปแล้ว มันเป็นทางเลือกที่ควรพิจารณาอย่างจริงจัง นี่คือการเทียบกัน:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">สิ่งที่ TypeScript ที่ใส่เครื่องมือครบให้คุณอยู่แล้ว</span>
+<pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
+exhaustive match    <span class="cm">→ ts-pattern .exhaustive() (compile-time, today)</span>
+errors as values    <span class="cm">→ neverthrow / Effect</span>
+runtime validation  <span class="cm">→ zod at every boundary</span>
+must-handle errors  <span class="cm">→ an eslint rule</span>
+deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ถ้าคุณผูกทั้งหมดนั้นไว้และบังคับใช้จริง คุณก็มาได้เกือบครบแล้ว TypeScript มีแนวคิดเหล่านี้ สิ่งที่ภาษาเพิ่มให้ด้วยการทำให้มันไม่ใช่ตัวเลือก สรุปได้สามข้อ
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> ไม่ใช่ตัวเลือก ชนะ ต้องเลือกเปิดเอง</h2>
+        <p>
+          config ของ eslint ป้องกันได้เฉพาะโค้ดที่เอเจนต์ส่ง<em>ผ่าน</em>มัน และเอเจนต์เขียน <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code> หรือแค่ลืม <code>.exhaustive()</code> ได้ แล้วมันก็ยังคอมไพล์และ merge ได้ ทางหนีทีไล่ทุกทางเป็น config ที่เอเจนต์แก้ได้ Glyph ไม่มีทางหนีแบบนั้นให้หยิบ: ไม่มี <code>as</code> ไม่มี pragma สำหรับ ignore ไม่มีทางได้ค่าที่มี type ออกมาจาก <code>unknown</code> โดยไม่มีการตรวจที่คอมไพเลอร์มองเห็น
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: มีทางหนีอยู่</span>
+          <span class="cap">handler.ts</span>
+<pre>const user = body as unknown as User;
+<span class="cm">// @ts-ignore</span>
+doThing(user.mispelled);
+<span class="cm">// eslint-disable-next-line</span>
+return anything as any;</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: ไม่มีอะไรให้ปิด</span>
+          <span class="cap">handler.glyph</span>
+<pre>return match User.parse(body) {
+  Ok(user) =&gt; use(user),
+  Err(_) =&gt; fallback(),
+}
+<span class="cm">// no `as`, no ignore pragma,</span>
+<span class="cm">// no lint to switch off.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          ความเข้มงวดที่เอเจนต์<strong>ปิดผ่าน config ไม่ได้</strong>อยู่ที่จุดบังคับใช้คนละจุดกับความเข้มงวดที่มันปิดได้ Glyph สร้างขึ้นบนความต่างนั้น
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> type คือ validator: ไม่มีสิ่งที่สองให้ดูแล</h2>
+        <p>
+          zod กลับด้านแหล่งความจริงของคุณ: คุณเขียน <em>schema</em> แล้ว derive type จากมัน จากนั้นต้องรักษา type, schema และ serializer ให้ตรงกันด้วยมือ การรักษาให้ตรงกันคือจุดที่เอเจนต์ทำให้เพี้ยน: มันเปลี่ยนชื่อ field ใน type แต่ไม่เปลี่ยนใน schema และทั้งคู่ยังคอมไพล์ผ่าน ใน Glyph type <em>คือ</em> validator: การประกาศ <code>type User = {...}</code> จะ generate <code>User.parse</code> มาด้วย สิ่งเดียว ไม่มีอะไรต้องรักษาให้ตรงกัน ไม่มีอะไรให้ลืม
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> การแก้ค่าที่ grep หาได้</h2>
+        <p>
+          ใน TypeScript การเปลี่ยน state ซ่อนอยู่หลัง <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter หรือ spread ได้ ไม่มี token เดียวให้ค้นหา และไม่มีกฎ lint ไหนแก้ได้หมด ใน Glyph state ที่ใช้ร่วมกันอยู่ใน store และทุกการเปลี่ยนคือข้อความ <code>.set(</code>/<code>.update(</code> ส่วน <code>grep 'mut '</code> เจอทุกการแก้ค่าระดับ local TypeScript ปกติไม่มีสิ่งที่เทียบเท่า
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">diff ของรูปแบบความล้มเหลว</h2>
+        <p>
+          งานเดียวกัน เอเจนต์เพิ่ม variant ให้ union แล้วลืมจัดการในหนึ่งจากสามจุด:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TS ที่ใส่เครื่องมือครบ</span>
+<pre><span class="cm">// ts-pattern .exhaustive() catches it,</span>
+<span class="cm">// IF every site used ts-pattern and</span>
+<span class="cm">// nobody wrote a default: case or a</span>
+<span class="cm">// switch that only logs. Those</span>
+<span class="cm">// compile green and skip the new case.</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Feed`: missing variant `Archived`</span>
+<span class="cm">// every unhandled match, everywhere,</span>
+<span class="cm">// fails the build. No opt-in, no</span>
+<span class="cm">// escape, no forgotten default.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">จุดที่ TypeScript ที่ใส่เครื่องมือครบยังทำได้ดีกว่า</h2>
+        <p>
+          สี่จุดที่มันเหนือกว่า Glyph ในวันนี้:
+        </p>
+        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>validation ที่ละเอียดกว่า</strong> descriptor ของ Glyph เข้มโดยค่าเริ่มต้น (ปฏิเสธ key ที่ไม่ได้ประกาศ) และ refinement แบบ <code>where</code> ใส่ predicate ให้ primitive ได้ (<code>type Email = string where value.includes("@")</code>) ซึ่ง descriptor รันที่ทุกขอบเขตที่ type ไปถึง zod ยังนำอยู่สองเรื่อง: มีการตรวจสำเร็จรูปอย่าง <code>.email()</code> และ <code>.url()</code> ที่ใน Glyph คุณต้องเขียนเอง และ refine ทั้ง object ได้ ขณะที่ <code>where</code> บน record (<code>lo &lt;= hi</code> ข้ามสอง field) ตอนนี้เป็น <code>E0300</code></li>
+          <li><strong>matching ที่ลึกกว่า</strong> guard และ pattern เชิงโครงสร้างแบบลึกของ ts-pattern ไปได้ไกลกว่าที่ <code>match</code> ของ Glyph แสดงได้</li>
+          <li><strong>"การพิสูจน์ว่าไม่มี" หยุดที่ขอบเขตของ <code>.ts</code></strong> การรับประกันของ Glyph ใช้กับโค้ดที่เขียนด้วย Glyph exception ที่ throw จาก dependency ของ npm ยังข้าม <code>Result</code> ไปได้ และ type จาก <code>.d.ts</code> ที่ import มาไม่มี runtime descriptor</li>
+          <li><strong>Ecosystem และการจ้างคน</strong> เครื่องมือ ชุมชน และกลุ่มคนที่จ้างได้ของ TypeScript ใหญ่กว่ามาก และมีการใช้งานจริงใน production มาหลายปี Glyph ยังเป็นพรีวิวช่วงแรก</li>
+        </ul>
+        <p>
+          ถ้าคุณผูก TypeScript ที่ใส่เครื่องมือครบไว้หมดแล้วและเอเจนต์อยู่ภายในนั้น คุณก็ได้ส่วนใหญ่ของสิ่งนี้แล้ว ข้อโต้แย้งของ Glyph คือ "อยู่ภายในนั้น" เป็นวลีที่รับน้ำหนักทั้งหมด และเป็นวลีที่เอเจนต์ทำพัง ความเป็นข้อบังคับ validation ที่มีสิ่งเดียว และการแก้ค่าที่ grep หาได้ คือส่วนที่คุณไม่ได้จากการเพิ่มเครื่องมือแบบเลือกเปิดเข้าไปอีก
+        </p>
+        <p>
+          ถ้าคุณพร้อมจะออกจาก TypeScript ไปใช้ภาษาที่มี type รุ่นเก่ากว่าที่คอมไพล์เป็น JavaScript <a href="/design/vs-rescript-gleam-elm/">ทำไมไม่ใช้ ReScript, Gleam หรือ Elm?</a> เปรียบเทียบ Glyph กับภาษาเหล่านั้น
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>ไม่มี <code>any</code>/<code>as</code>, <code>match</code> ที่ต้องครบทุกกรณี (<code>E0200</code>/<code>E0218</code>), คำเตือนเมื่อทิ้ง <code>Result</code> (<code>E0217</code>), validator ที่ generate จาก type และการแก้ค่าที่ grep หาได้: ทั้งหมดไม่ใช่ตัวเลือก ไม่มีข้อไหนเป็นกฎ eslint ที่คุณปิดได้</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังวัด</h3>
+          <p>ข้อกล่าวอ้างว่าเอเจนต์สร้าง defect ที่หลุดออกไปใน Glyph น้อยกว่าใน TS แบบ strict ที่<em>ตั้งค่ามาอย่างดี</em> คือ benchmark ที่เรากำลังสร้าง โดยเทียบกับ TS ที่ใส่เครื่องมือครบ ไม่ใช่ TS แบบดิบ ดู<a href="/benchmarks/">benchmark</a></p>
+        </div>
+      </div>

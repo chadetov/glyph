@@ -1,0 +1,122 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/why-typescript/index.html",
+  "locale": "th",
+  "source_hash": "9f7bf2e8baaad5d9",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why TypeScript, and not Go or a new language? · Glyph",
+      "tr": "ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "TypeScript is where agents already write the most code and where npm, React, and Node live. Glyph is adoptable one file at a time only because its target is TS.",
+      "tr": "TypeScript คือที่ที่เอเจนต์เขียนโค้ดมากที่สุดอยู่แล้ว และเป็นที่อยู่ของ npm, React และ Node Glyph นำมาใช้ทีละไฟล์ได้ก็เพราะเป้าหมายของมันคือ TS"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "ทำไมไม่ใช้แค่ TypeScript แบบ strict + zod + eslint + ts-pattern?"
+    },
+    {
+      "id": "h-69c9c9dc",
+      "kind": "html",
+      "en": "04 &middot; Positioning",
+      "tr": "04 &middot; จุดยืน"
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?"
+    },
+    {
+      "id": "h-4242272e",
+      "kind": "html",
+      "en": "Because TypeScript is where agents already write the most code and where your ecosystem (npm, React, Node) lives. Glyph is adoptable one file at a time <strong>only because its target is TS</strong>.",
+      "tr": "เพราะ TypeScript คือที่ที่เอเจนต์เขียนโค้ดมากที่สุดอยู่แล้ว และเป็นที่อยู่ของ ecosystem ของคุณ (npm, React, Node) Glyph นำมาใช้ทีละไฟล์ได้<strong>ก็เพราะเป้าหมายของมันคือ TS เท่านั้น</strong>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-0a5dbd26",
+      "kind": "html",
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
+      "tr": "ภาษาใหม่จะรอดหรือไม่ขึ้นกับว่าคุณไปจากศูนย์ถึงการปล่อยของจริงได้อย่างไร การคอมไพล์เป็น TypeScript หมายความว่าคุณไม่ต้องออกจาก codebase, bundler, test runner หรือวิธี deploy ของคุณเลย Glyph เสียบเข้าไปข้างไฟล์ <code>.ts</code> ที่คุณมีอยู่แล้ว และ import กันได้สะอาดทั้งสองทาง:"
+    },
+    {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "โปรเจกต์เดียวกัน: .glyph และ .ts วางคู่กัน"
+    },
+    {
+      "id": "h-4eb97fa1",
+      "kind": "html",
+      "en": "You cannot drop Go into a TypeScript codebase file by file: it's a different runtime, a different module system, a different ecosystem. That single fact is why the target is TS.",
+      "tr": "คุณใส่ Go ลงใน codebase TypeScript ทีละไฟล์ไม่ได้: runtime ต่างกัน ระบบ module ต่างกัน ecosystem ต่างกัน ข้อเท็จจริงข้อเดียวนี้คือเหตุผลที่เป้าหมายเป็น TS"
+    },
+    {
+      "id": "h-b0743097",
+      "kind": "html",
+      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "<strong>ข้อที่ยุติธรรมเกี่ยวกับ Go:</strong> keyword ที่มีน้อยและคงที่ของมันทำให้เอเจนต์มีทางผิดพลาดน้อยลง เราเห็นด้วย และนั่นคือเหตุผลที่ Glyph ตั้งใจรักษา core ให้เล็ก มีวิธีเดียวในการทำแต่ละอย่าง Go รวมอยู่ใน<a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> ความหนาแน่นของเราเพื่อเปรียบเทียบกันตรงๆ"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-93871ba6",
+      "kind": "html",
+      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
+      "tr": "output ที่เป็น TypeScript สะอาด import สองทางกับ <code>.ts</code> ที่มีอยู่ และ core เล็กๆ ที่รันได้ทุกที่ที่ Node หรือ browser bundle รันได้"
+    },
+    {
+      "id": "h-0abde815",
+      "kind": "html",
+      "en": "Being measured",
+      "tr": "กำลังวัด"
+    },
+    {
+      "id": "h-5cb4379c",
+      "kind": "html",
+      "en": "The cross-language benchmark (Glyph, TS, Go, Python, Rust) grows as the corpus does, so the &ldquo;small surface&rdquo; claim stays a number, not an assertion.",
+      "tr": "benchmark ข้ามภาษา (Glyph, TS, Go, Python, Rust) โตตามชุดข้อมูล ข้อกล่าวอ้างเรื่อง &ldquo;พื้นผิวเล็ก&rdquo; จึงยังเป็นตัวเลข ไม่ใช่แค่คำยืนยัน"
+    }
+  ]
+}

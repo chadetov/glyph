@@ -1,0 +1,78 @@
+---
+title: คนที่ on-call เห็นอะไรเมื่อพังตอนตีสาม? · Glyph
+description: Glyph คอมไพล์เป็น TypeScript ที่อ่านได้ พร้อม source map v3 ที่ชี้กลับไปยังไฟล์ .glyph แต่ละไฟล์ stack trace และ error ของ tsc จึงชี้ไปที่ Glyph ที่คุณเขียน
+source_hash: 23c0350a6befa9fd
+prev: /answers/parse-errors/ | &larr; ก่อนหน้า | เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?
+next: /playground/ | คุณได้เห็นแล้ว &rarr; | ทีนี้ลองเขียน Glyph ใน playground
+---
+      <p class="q-eyebrow">28 &middot; การดูแลระบบ</p>
+      <h1 class="q-title">เมื่อพังบน production ตอนตีสาม คนที่ on-call เห็นอะไร?</h1>
+
+      <p class="short-answer">
+        TypeScript ที่อ่านได้และเป็นของคุณ พร้อม<strong>source map ที่ชี้กลับไปยัง <code>.glyph</code></strong>ข้างทุกไฟล์ที่ emit debugger, bundler หรือ error tracker ไล่โค้ดที่กำลังรันกลับไปยังซอร์สของคุณได้ และแม้แต่คนที่ไม่เคยเห็น Glyph ก็อ่าน TS ที่ generate ได้ ก่อนหน้านั้น <code>glyph build</code> และ <code>glyph run</code> รายงาน diagnostic ชุดเดียวกันบน tree เดียวกัน loop ที่เร็วจึงซ่อนสิ่งที่ build จะจับได้ไม่ได้ ข้อจำกัดสองข้อ ซึ่งอยู่บนเส้นทาง <code>glyph run</code> ทั้งคู่ ระบุไว้ด้านล่าง
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; TypeScript ที่ generate เป็นของคุณ อ่านได้</h2>
+        <p>
+          Glyph ไม่ได้ส่ง runtime ที่ทึบแสงมาด้วย มัน emit TypeScript ธรรมดาที่จัดรูปแบบแล้ว ซึ่งคุณ commit และ deploy เหมือน TS ทั่วไป กรณีที่แย่ที่สุด (วิศวกร on-call ที่ไม่รู้จัก Glyph ตอนตีสาม) ก็ยังอ่าน TypeScript ธรรมดา ไม่ใช่ภาษาถิ่น ไม่มีกล่องดำระหว่างซอร์สของคุณกับ production
+        </p>
+
+        <h2 class="block-label">2 &middot; source map ที่ชี้กลับไปยัง <code>.glyph</code></h2>
+        <p>
+          ทุกไฟล์ <code>.ts</code> ที่ emit มี source map มาตรฐาน v3 (<code>.ts.map</code>) อยู่ข้างๆ พร้อม comment <code>sourceMappingURL</code> และซอร์ส Glyph ของคุณฝังอยู่ (<code>sourcesContent</code>) อะไรก็ตามที่ใช้ source map (Chrome DevTools, Node debugger, error tracker อย่าง Sentry, bundler ของคุณ) ไล่ต่อผ่านมันได้และแสดงบรรทัดใน <code>.glyph</code> ไม่ใช่บรรทัดที่ generate
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">dist/main.ts (ส่วนท้าย)</span>
+<pre>// ...emitted TypeScript...
+//# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">3 &middot; error ตอน build และ type error ชี้ไปที่ Glyph อยู่แล้ว</h2>
+        <p>
+          คุณแทบไม่มีทางไปถึง production พร้อม type error เพราะ <code>glyph build</code> รัน <code>tsc --strict</code> และ<strong>map ทุก error ของ <code>tsc</code> กลับไปยังซอร์ส <code>.glyph</code> ของคุณ</strong> (เครื่องหมายชี้ตำแหน่งแบบเดียวกัน และรักษารหัส error ของ TypeScript ไว้) เครื่องหมายชี้อยู่ที่ expression ของ Glyph ที่เล็กที่สุดซึ่งโค้ดของมันถูก <code>tsc</code> ปฏิเสธ: argument ที่ผิดจะขีดเส้นใต้ argument นั้น field ที่สะกดผิดใน event handler ของ JSX จะขีดเส้นใต้การเข้าถึง member นั้น ไม่ใช่ <code>return</code> ทั้งก้อนรอบๆ และ <code>glyph build --json</code> emit ทุก diagnostic เป็น JSON ที่มีโครงสร้าง (code, severity, file, line/col เริ่มจาก 1, help) ให้ CI หรือเครื่องมือของคุณนำไปใช้
+        </p>
+
+        <h2 class="block-label">4 &middot; <code>glyph run</code> บอกสิ่งเดียวกัน</h2>
+        <p>
+          คำสั่งที่คุณพิมพ์ทั้งวันคือ <code>glyph run</code> และจนถึง 0.1.40 มันเงียบกว่า build มันคอมไพล์ทั้งไดเรกทอรี เอารายการไฟล์ที่ emit ออกจากรายงาน แล้วทิ้ง diagnostic ไป tree ที่ <code>glyph build</code> เตือนจะรันผ่านสะอาดและ exit 0 ตอนนี้มันรายงานชุดเดียวกัน: รวมคำเตือน ทั้งในไฟล์ที่คุณระบุและไฟล์ข้างเคียง หลัง output ของโปรแกรม พร้อมจำนวนหนึ่งบรรทัด cache ของการรันเก็บมันไว้ การรันครั้งที่สองของซอร์สที่ไม่เปลี่ยนจึงบอกสิ่งที่ครั้งแรกบอก แทนที่จะเงียบไป และรายการใน cache ที่ไม่มี diagnostic ถือว่า miss และ build ใหม่
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">import ที่ไม่ได้ใช้ เพิ่มเข้ามาก่อนโค้ดที่จะใช้มันหนึ่งขั้น</span>
+<pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
+<span class="cm">...the game plays and exits 0...</span>
+
+[E0106] Warning: lint: unused import `math`
+    ╭─[adventure:21:1]
+    │
+ 21 │ import std/math
+    │         ╰─────── unused import `math`
+    │ Help: Remove the import. Nothing in this module references it.
+
+glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ข้อจำกัดสองข้อในตอนนี้</h2>
+        <p>
+          <strong>stack ตอน crash ของ <code>glyph run</code> เองยังแสดงเลขบรรทัดของ <code>.ts</code></strong> <code>glyph run</code> รันผ่าน <code>tsx</code> และ <code>tsx</code> ไม่ได้ไล่ source map ต่อผ่านการแปลง <code>.ts</code>&rarr;<code>.js</code> ของตัวเอง throw ที่ไม่ถูกจับระหว่าง <code>glyph run</code> จึงรายงานบรรทัดที่ generate การ remap stack นั้นเป็นงานที่จะตามมา มันมีผลกับ loop <code>run</code> ในเครื่อง ส่วนการ deploy จริง คุณ <code>glyph build</code> เป็น <code>.ts</code> แล้ว bundle ด้วย toolchain ปกติ และ <code>.ts.map</code> ก็ไล่ต่อตามปกติ stack บน production ที่ปลุกคุณขึ้นมาจึง map กลับไปยัง <code>.glyph</code>
+        </p>
+        <p>
+          <strong>error ใน module ข้างเคียงไม่เปลี่ยน exit code ของ <code>glyph run</code></strong> module ที่คอมไพล์ไม่ผ่านจะ import ไม่ได้ และโปรแกรมที่ไม่เคย import มันก็ยังรันไป ตอนนี้คุณเห็น error แล้ว แต่ process ยัง exit ด้วยค่าที่ <code>main</code> คืนมา การทำให้มัน exit ไม่เป็นศูนย์จะทำให้ tree ที่รันได้ดีวันนี้ fail จึงเป็นการตัดสินใจที่ยังเปิดอยู่ ไม่ใช่การมองข้าม ถ้าคุณต้องการให้สุขภาพของ tree เป็นตัวตัดสิน exit code ให้ใช้ <code>glyph build</code>
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>TS ที่อ่านได้และ commit ไว้ <code>.ts.map</code> v3 ต่อไฟล์ error ของ <code>tsc</code> ที่ remap ไปยัง <code>.glyph</code> และ diagnostic แบบ <code>--json</code> <code>glyph run</code> รายงานแบบเดียวกับ <code>glyph build</code> รวมถึงตอน cache อุ่นอยู่ สาย source map ของ toolchain สำหรับ deploy ไปถึง <code>.glyph</code></p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังมา</h3>
+          <p>remap stack ตอน crash ของ <code>glyph run</code> เอง (เพื่อให้ loop run ในเครื่องแสดง frame ของ <code>.glyph</code> ด้วย) การตัดสินใจว่า error ใน module ข้างเคียงควรทำให้ <code>glyph run</code> exit ไม่เป็นศูนย์หรือไม่ และการดีบักใน editor ที่ดีขึ้นผ่าน LSP</p>
+        </div>
+      </div>

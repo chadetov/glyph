@@ -73,6 +73,8 @@
     "The design": "설계",
     "The four pillars and what was left out on purpose": "네 가지 원칙과 일부러 넣지 않은 것들",
     "Glyph vs Effect": "Glyph와 Effect 비교",
+    "Why not ReScript, Gleam or Elm?": "왜 ReScript, Gleam, Elm이 아닌가?",
+    "Three typed languages that compile to JavaScript": "JavaScript로 컴파일되는 세 가지 타입 언어",
     "A language and a library, compared": "언어와 라이브러리의 비교",
     "Glyph vs tooled TypeScript": "Glyph와 도구를 갖춘 TypeScript 비교",
     "What strict tsc, zod and eslint still let through": "strict tsc, zod, eslint로도 여전히 통과하는 것들",

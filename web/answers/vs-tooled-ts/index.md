@@ -93,6 +93,8 @@ Four places where it is ahead of Glyph today:
 
 If you've fully wired tooled TypeScript and your agents stay inside it, you've got most of this. Glyph's argument is that "stay inside it" is the load-bearing phrase, and it's the phrase an agent breaks. Non-optionality, one-artifact validation, and greppable mutation are the parts you cannot get by adding more opt-in tools.
 
+If you are open to leaving TypeScript for an older typed language that compiles to JavaScript, [Why not ReScript, Gleam or Elm?](https://glyphlang.io/design/vs-rescript-gleam-elm/) compares Glyph with those.
+
 ## Where it stands
 
 ### Shipping today

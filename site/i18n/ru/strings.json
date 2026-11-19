@@ -73,6 +73,8 @@
     "The design": "Дизайн",
     "The four pillars and what was left out on purpose": "Четыре принципа и то, что намеренно оставили за бортом",
     "Glyph vs Effect": "Glyph и Effect",
+    "Why not ReScript, Gleam or Elm?": "Почему не ReScript, Gleam или Elm?",
+    "Three typed languages that compile to JavaScript": "Три типизированных языка, компилируемых в JavaScript",
     "A language and a library, compared": "Сравнение языка и библиотеки",
     "Glyph vs tooled TypeScript": "Glyph и TypeScript со всеми инструментами",
     "What strict tsc, zod and eslint still let through": "Что всё ещё пропускают строгий tsc, zod и eslint",

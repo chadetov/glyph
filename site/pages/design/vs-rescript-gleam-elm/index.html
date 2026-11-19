@@ -1,0 +1,190 @@
+---
+title: Why not ReScript, Gleam or Elm? · Glyph
+description: Three typed languages that compile to JavaScript and are older and more proven than Glyph. Where each is ahead, and the four things Glyph does differently.
+layout: article
+nav: design
+next_steps: |
+  Where to go next
+  Recommended | /catches/ | catches | What Glyph refuses | Each case, checked under <code>tsc --strict</code> and under Glyph. | See the catches
+  /design/vs-effect/ | compare | Glyph and Effect | A TypeScript library compared with a language.
+  /design/ | design | Back to design | The four pillars, the spec, and the other comparisons.
+---
+      <p class="q-eyebrow">Design &middot; Comparison</p>
+      <h1 class="q-title">Why not ReScript, Gleam or Elm?</h1>
+
+      <p class="short-answer">
+        All three are typed languages that compile to JavaScript, and all three are older, more
+        widely used and more settled than Glyph. If you are choosing a language for a new
+        codebase and don't need to stay close to TypeScript, they deserve a look first. Glyph's
+        differences are narrower: it emits TypeScript source rather than JavaScript, it imports
+        npm packages typed from their own <code>.d.ts</code>, it generates runtime validators from
+        your types, and its compiler answers impact queries for an agent.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">How each describes itself</h2>
+        <p>
+          ReScript's home page leads with "JavaScript Made Simple for Humans and AI" and "Types &gt;
+          Vibes", and says it "compiles to clean, efficient JavaScript" with "No <code>any</code>,
+          no magic types, no surprise <code>undefined</code>." It offers to "automatically generate
+          TypeScript types" (<a href="https://rescript-lang.org/">rescript-lang.org</a>).
+        </p>
+        <p>
+          Gleam's calls it "a friendly language for building type-safe systems that scale" with
+          "No null values, no exceptions, clear error messages". It runs on the Erlang VM and "can
+          additionally compile to JavaScript", and "also generates TypeScript definitions"
+          (<a href="https://gleam.run/">gleam.run</a>).
+        </p>
+        <p>
+          Elm's describes "A delightful language with friendly error messages, great performance,
+          small assets, and no runtime exceptions", for "reliable web applications", and says Elm
+          "detects all API changes automatically" to "guarantee that every single Elm package
+          follows semantic versioning" (<a href="https://elm-lang.org/">elm-lang.org</a>).
+        </p>
+        <p>These quotes were read on 2026-11-19.</p>
+
+        <h2 class="block-label">Where they are ahead</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Area</th><th>ReScript, Gleam, Elm</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">Maturity</td><td data-label="ReScript, Gleam, Elm">Years of production use. ReScript's home page shows a wall of company logos; Elm's cites NoRedInk with 300k+ lines and no confusing runtime exception in production</td><td data-label="Glyph">Early preview, pre-1.0, maintained mainly by one person, and many releases are Breaking</td></tr>
+            <tr><td data-label="Area">Guarantees</td><td data-label="ReScript, Gleam, Elm">Elm claims no runtime exceptions; Gleam no null values and no exceptions; ReScript no <code>any</code> and no surprise <code>undefined</code></td><td data-label="Glyph">No <code>any</code> and no cast, but {{catches:gap-cases}} known holes are <a href="/catches/#not-yet">listed</a>, and an exception thrown inside an npm package still bypasses <code>Result</code></td></tr>
+            <tr><td data-label="Area">Error messages</td><td data-label="ReScript, Gleam, Elm">Elm's home page leads with "friendly error messages" and Gleam's promises "clear error messages", both with years of users behind them</td><td data-label="Glyph">Every error has a stable code and a help line, but they have had far less use</td></tr>
+            <tr><td data-label="Area">Tooling and ecosystem</td><td data-label="ReScript, Gleam, Elm">Gleam ships "compiler, build tool, formatter, editor integrations, and package manager all built in"; Elm enforces semantic versioning on its packages</td><td data-label="Glyph">npm for packages; the VS Code extension is built from source</td></tr>
+            <tr><td data-label="Area">Targets</td><td data-label="ReScript, Gleam, Elm">Gleam also runs on the Erlang VM</td><td data-label="Glyph">TypeScript only, for Node and the browser</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">What Glyph does differently</h2>
+        <p>
+          Each of these was run on Glyph 0.1.149 for this page.
+        </p>
+
+        <h3>It emits TypeScript source</h3>
+        <p>
+          <code>glyph build</code> writes one <code>.ts</code> file per module, which
+          <code>tsc --strict</code> then checks, and which you keep if you stop using Glyph.
+          ReScript and Gleam emit JavaScript and generate type definitions next to it. The
+          <a href="/from-typescript/#what-the-emitted-typescript-looks-like">emitted TypeScript</a>
+          is shown on the TypeScript page.
+        </p>
+
+        <h3>It imports npm packages typed from their own declarations</h3>
+        <p>
+          A module imports a package by name, and the package's <code>.d.ts</code> types every use.
+          There is no binding to write first. In ReScript, "<code>external</code> is the primary
+          ReScript feature for bringing in and using JavaScript values"
+          (<a href="https://rescript-lang.org/docs/manual/external">external</a>), with the types
+          declared on the ReScript side. Gleam's externals need type annotations, and the compiler
+          "cannot verify that the function implemented in the other language returns the specified
+          types" (<a href="https://gleam.run/documentation/externals/">externals</a>). Elm talks to
+          JavaScript through flags, ports and custom elements
+          (<a href="https://guide.elm-lang.org/interop/">interop</a>). With <code>pg</code> and
+          <code>@types/pg</code> installed, this is refused:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-npm expect-error TS2322">module main
+
+import pg { Pool }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let _pool = new Pool({ max: "two", })
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ glyph check (trimmed)</span>
+<pre><span class="del">[TS2322] Error: tsc: Type 'string' is not assignable to type 'number'.</span>
+   ╭─[ main:6:24 ]
+   │
+ 6 │   let _pool = new Pool({ max: "two", })
+   │                        ───────┬───────
+   │                               ╰───────── Type 'string' is not assignable to type 'number'.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The code is <code>TS2322</code> because <code>tsc</code> is what checks a library's
+          values, mapped back onto the Glyph line. Glyph's own checker does not see them, so
+          <code>glyph check --no-tsc</code>, the editor and the MCP tools miss this error (G257). A
+          type imported from a <code>.d.ts</code> also has no runtime check.
+        </p>
+
+        <h3>It generates the validator from the type</h3>
+        <p>
+          Every record and union carries a runtime check generated from its declaration, so
+          <code>json.parse&lt;User&gt;</code> returns <code>Err</code> when the data does not match.
+          In Elm you write a decoder for each shape, and its guide notes that "the decoders people
+          write end up working as a validation phase"
+          (<a href="https://guide.elm-lang.org/effects/json.html">JSON</a>).
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph: prints "refused", because the JSON has no email</span>
+<pre>module main
+
+import std/io
+import std/json
+
+type User = {
+  id: number,
+  email: string,
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  return match json.parse&lt;User&gt;("{\"id\": 1}") {
+    Ok(u) =&gt; {
+      io.println(u.email)
+      return 0
+    },
+    Err(_) =&gt; {
+      io.println("refused")
+      return 1
+    },
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h3>Its compiler answers what a change will break</h3>
+        <p>
+          Before an edit, an agent can ask which places a change reaches, over MCP
+          (<code>glyph_impact</code>) or with <code>glyph query impact</code>. On a union
+          <code>Plan = Free | Pro | Team</code> with one exhaustive <code>match</code> and one that
+          ends in <code>else</code>, asking about a new variant answers per site:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">$ glyph query impact --entity main::Plan --change add_variant --variant Enterprise (three fields of each site)</span>
+<pre>{"entity": "main::seats", "verdict": "ABSORBS", "diagnostic": null}
+{"entity": "main::label", "verdict": "WILL_FAIL", "diagnostic": "E0200"}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The second site would fail to compile after the change, which any of these compilers
+          would also tell you once the change is made. The first would keep compiling and send the new case to its
+          <code>else</code>, and the query is what names it. <a href="/agents/">For agent
+          builders</a> lists the other tools.
+        </p>
+
+        <h2 class="block-label">What this page does not claim</h2>
+        <p>
+          It has not compared error messages, compile speed or runtime performance, and it has not
+          tried calling any of the three from Glyph or the other way round. The quotes describe
+          each project in its own words; how well each lives up to them is for you to check, as
+          it is for Glyph's own claims on <a href="/evidence/">the evidence page</a>.
+        </p>
+      </div>

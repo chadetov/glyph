@@ -1,0 +1,130 @@
+---
+title: For teams · what Glyph guarantees, what adopting it costs · Glyph
+description: For an engineering lead weighing Glyph: what the compiler guarantees and where it stops, how to adopt it inside an existing TypeScript app, the exit story (the output is readable TypeScript you keep), exact version pinning, the release cadence and the Breaking marker, and the project's pre-1.0 status.
+layout: article
+sitemap: 2026-11-19 monthly 0.8
+---
+      <p class="q-eyebrow">For teams</p>
+      <h1 class="q-title">What it guarantees, what adopting it costs, and how you get out</h1>
+
+      <p class="short-answer">
+        Glyph refuses a specific, checked list of mistakes that a strict TypeScript project
+        accepts, and it compiles to TypeScript you can keep if you stop using it. It is an early
+        preview: pre-1.0, maintained mainly by one person, and releasing several times a week.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">What it guarantees</p>
+        <p>
+          Every claim about what Glyph catches is a case in the repository's <code>catches/</code>
+          directory: the same program in TypeScript and in Glyph, both run by a CI gate. Of the 53
+          cases, 28 are programs Glyph refuses to build, 3 draw a warning, 9 are bad data stopped at
+          a runtime boundary check, 2 stop at run time, and 11 are holes Glyph does not close yet.
+          The ones a reviewer of agent-written code leans on most:
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Code</th><th>What is refused</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Code"><code>E0200</code></td><td data-label="What is refused">A <code>match</code> that leaves out a case of a union, so adding a case lists every place that has to change</td></tr>
+            <tr><td data-label="Code"><code>E0013</code></td><td data-label="What is refused">A cast (<code>as</code>, <code>as unknown as</code>); there is no cast, and no <code>any</code></td></tr>
+            <tr><td data-label="Code"><code>E0204</code></td><td data-label="What is refused">Parsed JSON assigned to a typed name without being checked</td></tr>
+            <tr><td data-label="Code"><code>E0224</code></td><td data-label="What is refused">A read from a map typed as if the key were always there</td></tr>
+            <tr><td data-label="Code"><code>E0217</code></td><td data-label="What is refused">A <code>Result</code> dropped on the floor (a warning; <code>let _ =</code> says it was deliberate)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="/catches/">The catches page</a> lists every case with its TypeScript, its Glyph,
+          and the error, and says which ones a fully configured typescript-eslint setup would also
+          have caught.
+        </p>
+
+        <p class="block-label">Where it stops</p>
+        <p>
+          The guarantees cover code written in Glyph. An exception thrown inside an npm dependency
+          still bypasses <code>Result</code>, and a type imported from a package's
+          <code>.d.ts</code> has no runtime check. Inside Glyph, the 11 open holes are listed with
+          their gap numbers in <a href="/catches/#not-yet">what it does not catch yet</a>, and the
+          full ledger is <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>.
+          For a comparison with strict TypeScript plus zod, eslint and ts-pattern, including where
+          that setup is still ahead, see <a href="/answers/vs-tooled-ts/">why not tooled TypeScript</a>.
+        </p>
+
+        <p class="block-label">Adopting it inside an existing app</p>
+        <p>
+          There is no rewrite. You write the part you can't afford to get wrong (models,
+          permissions, state transitions, money) in Glyph, and the rest of the app stays
+          TypeScript and imports the emitted modules like any local file. The walkthrough uses a
+          stock Vite scaffold: <a href="/answers/embedding/">Can I adopt Glyph inside my existing app?</a>
+        </p>
+
+        <p class="block-label">The exit story</p>
+        <p>
+          <code>glyph build</code> writes plain TypeScript, one file per module, that passes
+          <code>tsc --strict</code>. If you stop using Glyph, you commit that output and keep
+          going with <code>tsc</code>. The licence is MIT or Apache-2.0, so a fork is always
+          possible. <a href="/from-typescript/">Coming from TypeScript</a> shows a module next to
+          its emitted file.
+        </p>
+
+        <p class="block-label">Pinning and upgrades</p>
+        <p>
+          <code>glyph init</code> pins the compiler to an exact version in
+          <code>package.json</code>, with no <code>^</code>, so no release reaches your build by
+          accident. Three commands handle the rest:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">upgrading on purpose</span>
+<pre>glyph doctor     <span class="cm"># your version against the latest release; never fails CI for that</span>
+glyph upgrade    <span class="cm"># moves the project's pin, runs npm install, links the notes</span>
+glyph --update   <span class="cm"># moves the installed compiler itself</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Details in <a href="/answers/upgrades/">Will a new Glyph release break my build?</a>
+        </p>
+
+        <p class="block-label">Release cadence and the Breaking marker</p>
+        <p>
+          The <a href="/versions/">versions page</a> has an entry for every release from 0.1.0
+          to 0.1.149, 148 in all, and 22 of them shipped in November 2026 up to the 19th. A
+          release is marked Breaking when it rejects a program the previous version accepted,
+          which is how most correctness fixes land. 32 entries carry the marker. It is applied by
+          running the smallest affected program under both versions, not by reading the diff, and
+          releases before 0.1.99 were not tested this way, so an unmarked old release is
+          untested rather than safe.
+        </p>
+
+        <p class="block-label">Status</p>
+        <p>
+          Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted
+          TypeScript may change, and a release may reject code that compiled before.
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a>
+          says what may change and what is held stable.
+          <a href="https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md">MAINTAINERS.md</a>
+          says plainly that the project is maintained primarily by one person today.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Objections, answered</p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/human-value/"><span class="q">We don't use AI much. Is it still worth it?</span><p>The checks are the same whoever writes the code: fewer runtime surprises, smaller diffs, code you can grep.</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">We already run strict TypeScript and lint.</span><p>Every one of those checks is opt-in and can be turned off in one line. Glyph's can't.</p></a>
+        <a class="a-card" href="/answers/ai-authoring/"><span class="q">Can our agents write a language they've barely seen?</span><p>Most of what a model knows about TypeScript carries over, and the compiler names the rest.</p></a>
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">Why compile to TypeScript at all?</span><p>That is where npm, React and Node are, and it is why adoption can be one file at a time.</p></a>
+        <a class="a-card" href="/answers/debugging/"><span class="q">What does on-call see when it breaks?</span><p>Readable TypeScript, source maps back to the <code>.glyph</code> file, and stable error codes.</p></a>
+        <a class="a-card" href="/evidence/"><span class="q">How do we know any of this is true?</span><p>How each claim on this site is checked, and how to reproduce one yourself.</p></a>
+      </div>

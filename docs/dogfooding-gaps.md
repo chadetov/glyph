@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-380 entries, 302 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-59 are open. G144, the D28 boundary cast that never reached the returns a
+382 entries, 302 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+61 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13263,3 +13263,28 @@ and is the owner's to confirm.
   *Reproduced against 0.1.149 (the release build): `--no-tsc` reports no
   diagnostics; full `check` reports ``[TS18046] Error: tsc: 'data' is of
   type 'unknown'``.*
+
+- **G382. `string + number` is not typed as a string by Glyph's checker.**
+  `fn with_tax(input: string) -> number { return input + 1 }` and `let n:
+  number = input + 1` are `no diagnostics` under `check --no-tsc`, while the
+  value is the string `"51"` for input `"5"`; only `tsc` refuses it (TS2322,
+  `Type 'string' is not assignable to type 'number'`). The editor, MCP and the
+  applyEdit gate run without `tsc`. Either refuse `+` between a string and a
+  number (Glyph has template strings for joining), or type the result as
+  `string` so the mismatch is E0204. Found while checking examples for the
+  project's overview page.
+
+  *Reproduced against 0.1.149 (the release build): `--no-tsc` reports no
+  diagnostics; full `check` reports ``[TS2322] Error: tsc: Type 'string' is
+  not assignable to type 'number'``.*
+
+- **G383. Renaming an import says only "expected `}`, found As".** `import
+  users { get_user as fetch_user }` is E0002 with that message and no help,
+  so a TypeScript author cannot tell that Glyph keeps every name as declared
+  on purpose (D15, greppability) rather than that the line has a typo. The
+  message should name the rule and the fix: import `get_user` under its own
+  name, or import the module and write `users.get_user`. Found while checking
+  examples for the project's overview page.
+
+  *Reproduced against 0.1.149 (the release build): ``[E0002] Error: parse:
+  expected `}`, found As``.*

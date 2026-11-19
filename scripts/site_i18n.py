@@ -27,8 +27,9 @@ UI strings live in site/i18n/<locale>/strings.json, three objects:
   "nav"    the site.json nav, gettext style: the English label, description,
            column title or card text is the key, so site.json stays the one
            place the nav is defined. A label with no entry shows in English.
-  "subnav" the sub-nav labels and group names of site/partials/subnav-*.html,
-           gettext style too, keyed by the English label without its number.
+  "subnav" the sub-nav labels of site/partials/subnav-*.html, keyed by each
+           entry's link target (its number is not translated), and the
+           answers' group names, keyed by the English name.
 
 The texts of the cases in catches/ that the generated pages show are in
 site/i18n/<locale>/catches.json (see scripts/site_catches.py). A translated
@@ -169,9 +170,10 @@ class Strings:
         translation is used as written."""
         return self.nav_map.get(english, english)
 
-    def subnav(self, english: str) -> str:
-        """A sub-nav label or group name, as markup."""
-        return self.subnav_map.get(english, english)
+    def subnav(self, key: str, english: str | None = None) -> str:
+        """A sub-nav entry's label (keyed by its link target) or a group's
+        name (keyed by the English name), as markup."""
+        return self.subnav_map.get(key, key if english is None else english)
 
     def date(self, iso: str) -> str:
         """YYYY-MM-DD in this locale's short form, from ui `date.format` and

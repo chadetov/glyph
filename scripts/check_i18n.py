@@ -264,8 +264,8 @@ def check_catches(loc: str, errors: list[str], notes: list[str]) -> tuple[int, i
 def subnav_texts() -> set[str]:
     out = set()
     for part in sorted(site_i18n.SITE.glob("partials/subnav-*.html")):
-        for g, _, label in build_site.subnav_entries(part.stem.removeprefix("subnav-"), str(part)):
-            out.add(re.sub(r'<span class="n">[^<]*</span>\s*', "", label))
+        for g, href, _ in build_site.subnav_entries(part.stem.removeprefix("subnav-"), str(part)):
+            out.add(href)
             if g:
                 out.add(g)
     return out
@@ -353,9 +353,8 @@ def check(errors: list[str], notes: list[str], locales: list[str] | None = None)
             if key not in sub_texts:
                 notes.append(f"site/i18n/{loc}/strings.json: subnav entry {key!r} matches nothing in "
                              f"site/partials/subnav-*.html (unused)")
-            else:
-                errors += [f"site/i18n/{loc}/strings.json: subnav {m}" for m in
-                           i18n_apply.fragment_errors(key, "html", key, value)]
+            elif "<" in value:
+                errors.append(f"site/i18n/{loc}/strings.json: subnav {key!r} has markup; a label is text")
         for key, value in nav.items():
             if key not in nav_texts:
                 notes.append(f"site/i18n/{loc}/strings.json: nav entry {key!r} matches nothing in site.json (unused)")

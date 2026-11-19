@@ -296,7 +296,7 @@
         <p class="c-why">A request body, a file, an API response.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> user = <span class="t">JSON</span>.parse(body) <span class="k">as</span> <span class="t">User</span>;
 console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">invoice for the undefined plan</span></pre></div>
             <p class="c-result"><b>Nothing checks the data.</b> <code>undefined</code> travels on as a plan.</p>
@@ -323,7 +323,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <p class="c-why">An agent adds an <code>"archived"</code> status. The handler that announces each status was written before it existed.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">switch</span> (s) {
   <span class="k">case</span> <span class="s">"todo"</span>:
     console.log(<span class="s">"not started"</span>);
@@ -362,7 +362,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <p class="c-why">Looking a record up by id.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, crashes</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> users.find((u) =&gt; u.id === id)!.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
             <p class="c-result"><b><code>!</code> tells the compiler "trust me".</b> At run time it does nothing.</p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>no-non-null-assertion</code></p>
@@ -386,7 +386,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <p class="c-why">A function that can fail, called by code that does not know it can.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, crashes</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> loadConfig(): <span class="t">Config</span> {
   <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"missing file"</span>);
 }
@@ -418,7 +418,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <p class="c-why">Calling something that can fail and moving on.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre>save(user); <span class="c">// returns { ok: false }</span>
 <span class="k">return</span> <span class="s">"done"</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">done</span></pre></div>
             <p class="c-result"><b>The failure is dropped</b> and the user is told it worked.</p>
@@ -444,7 +444,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <p class="c-why">Checking each user against an async permission call.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong answer</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> active = names.filter(
   <span class="k">async</span> (n) =&gt; <span class="k">await</span> isActive(n));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ 'ada', 'mallory' ]</span></pre></div>
             <p class="c-result"><b>Nothing is filtered out.</b></p>
@@ -469,7 +469,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <p class="c-why">Validating a request body by hand.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, crashes</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> isUser(x: unknown): x <span class="k">is</span> <span class="t">User</span> {
   <span class="k">return</span> <span class="k">typeof</span> x === <span class="s">"object"</span> &amp;&amp; x !== <span class="k">null</span> &amp;&amp; <span class="s">"id"</span> <span class="k">in</span> x;
 }</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'toLowerCase')</span></pre></div>
@@ -497,7 +497,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
         <p class="c-why">Forcing a value into the type you want.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, crashes</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cfg = raw <span class="k">as</span> unknown <span class="k">as</span> <span class="t">Config</span>;
 console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'length')</span></pre></div>
             <p class="c-result"><b>A double cast switches checking off.</b></p>
@@ -521,7 +521,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
         <p class="c-why">Reading a request body into a typed variable.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> user: <span class="t">User</span> = <span class="t">JSON</span>.parse(body);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
             <p class="c-result"><b>The annotation is a promise nothing keeps.</b> <code>JSON.parse</code> returns <code>any</code>, so a body of any shape gets through.</p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>no-unsafe-assignment</code></p>
@@ -545,7 +545,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
         <p class="c-why">Two requests charge the same account at once.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, loses money</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then loses money at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = a.balance;
 <span class="k">const</span> f = <span class="k">await</span> fee();
 a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">balance 90</span></pre></div>
@@ -573,7 +573,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
         <p class="c-why">Splitting an address into a user and a host.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong text</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then prints the wrong text</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> [user, host] = s.split(<span class="s">"@"</span>);
 <span class="k">return</span> <span class="s">`${user} at ${host}`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">nobody at undefined</span></pre></div>
             <p class="c-result"><b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads "nobody at undefined".</p>
@@ -599,7 +599,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
         <p class="c-why">An API starts sending a status your code has never seen.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Account</span> = { status: <span class="s">"active"</span> | <span class="s">"banned"</span> };
 
 <span class="k">const</span> body = <span class="s">'{"status":"deleted"}'</span>;
@@ -630,7 +630,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
         <p class="c-why">A limit for each plan, loaded from a file someone forgot to update.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> limits = <span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">Plan</span>, number&gt;;
 console.log(limits.team * 2);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
             <p class="c-result"><b>The type promises every plan has a limit.</b> The file does not.</p>
@@ -657,7 +657,7 @@ console.log(limits.team * 2);</pre><span class="cap">$ tsx ts.ts</span><pre clas
         <p class="c-why">A status code read from the database.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong state</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then picks the wrong state</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> fromDb: number = 7;
 console.log(label(fromDb));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">suspended</span></pre></div>
             <p class="c-result"><b>An unknown code becomes a real status.</b></p>
@@ -683,7 +683,7 @@ print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-o
         <p class="c-why">Returning early before cleanup.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, leaks</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then leaks a connection</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> c = openConn();
 <span class="k">if</span> (!valid) <span class="k">return</span> <span class="s">"rejected"</span>;
 closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">rejected 1 still open</span></pre></div>
@@ -713,7 +713,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
         <p class="c-why">Reading a field from a response.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, fails in production</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then fails at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> data = <span class="k">await</span> res.json();
 <span class="k">return</span> data.usr.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
             <p class="c-result"><b><code>res.json()</code> is <code>any</code>,</b> so nothing about it is checked.</p>
@@ -741,7 +741,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
         <p class="c-why">Reading a field from a row of strings, with the name misspelled.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then prints undefined</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> nameOf(row: <span class="t">Record</span>&lt;string, string&gt;): string {
   <span class="k">return</span> row.naem;
 }</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
@@ -769,7 +769,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
         <p class="c-why">Building the options in a variable, then passing them.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong setting</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then uses the wrong setting</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> opts = { host: <span class="s">"db"</span>, timeoutMS: 500 };
 console.log(<span class="s">"timeout"</span>, connect(opts));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">timeout 30000</span></pre></div>
             <p class="c-result"><b>The misspelled option is silently dropped.</b></p>
@@ -795,7 +795,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <p class="c-why">Parsing a date from a form.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong or crashes</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives a wrong date or crashes</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="k">new</span> <span class="t">Date</span>(input).toISOString().slice(0, 10);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">2025-03-02</span>
 <span class="e">RangeError: Invalid time value</span></pre></div>
             <p class="c-result"><b>Bad dates roll over</b> into real ones.</p>
@@ -823,7 +823,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <p class="c-why">Cleaning an input, then returning the original by mistake.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cleaned = input.trim().toLowerCase();
 <span class="k">return</span> input;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">"  Ada@Example.COM "</span></pre></div>
             <p class="c-result"><b>The cleaning never happens.</b></p>
@@ -849,7 +849,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <p class="c-why">Showing an optional relation.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong text</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then prints the wrong text</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="s">`Reports to: ${e.manager?.name}`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Reports to: undefined</span></pre></div>
             <p class="c-result"><b>The user sees the word "undefined".</b></p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>restrict-template-expressions</code></p>
@@ -873,7 +873,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <p class="c-why">User input, a query string, a CSV cell.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> total(input: string): number {
   <span class="k">const</span> qty = parseInt(input);
   <span class="k">return</span> qty * 10;
@@ -903,7 +903,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <p class="c-why">Skipping a save when nothing changed.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, compares identity</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then compares identity, not data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = { x: 1, y: 2 };
 <span class="k">const</span> after = { x: 1, y: 2 };
 
@@ -932,7 +932,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <p class="c-why">A function that edits the object it was given.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> label(u: <span class="t">User</span>): string {
   u.name = <span class="s">"admin"</span>;
   <span class="k">return</span> u.name;
@@ -959,7 +959,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
         <p class="c-why">A rule about a value, not just its type.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Person</span> = { age: number }; <span class="c">// must be &gt;= 0</span>
 
 <span class="k">const</span> text = <span class="s">'{"age": -5}'</span>;
@@ -992,7 +992,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <p class="c-why">Finding every caller before you change something.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">import</span> getUser <span class="k">from</span> <span class="s">"./users"</span>;
 <span class="k">import</span> fetchUser <span class="k">from</span> <span class="s">"./users"</span>;
 <span class="k">import</span> { <span class="k">default</span> <span class="k">as</span> load } <span class="k">from</span> <span class="s">"./users"</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">ada ada ada</span></pre></div>
@@ -1018,7 +1018,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <p class="c-why">A discount per plan.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong price</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then charges the wrong price</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"pro"</span>: pct = 10;
 <span class="k">case</span> <span class="s">"team"</span>: pct = 20; <span class="k">break</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">pro discount 20</span></pre></div>
             <p class="c-result"><b>The missing <code>break</code> runs the next case.</b></p>
@@ -1046,7 +1046,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <p class="c-why">Taking the middle of a sorted list.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong answer</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sorted[sorted.length / 2];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
             <p class="c-result"><b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.</p>
             <p class="c-cfg none"><b>Nothing catches it</b>not even with every compiler flag and typescript-eslint strict on</p>
@@ -1069,7 +1069,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <p class="c-why">Summing a list with a loop.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong answer</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">for</span> (<span class="k">let</span> i = 0; i &lt;= prices.length; i++)
   sum += prices[i];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
             <p class="c-result"><b><code>&lt;=</code> reads one past the end.</b></p>
@@ -1095,7 +1095,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <p class="c-why">Adding tax after the function already returned.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sum;
 sum = sum * (1 + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">30</span></pre></div>
             <p class="c-result"><b>The tax line never runs.</b></p>
@@ -1121,7 +1121,7 @@ sum = sum * (1 + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="
         <p class="c-why">Mapping users to rows.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong answer</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> rows = users.map((u) =&gt; { label: u.name });</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ undefined ]</span></pre></div>
             <p class="c-result"><b>The braces are a function body,</b> and <code>label:</code> is a statement label.</p>
             <p class="c-cfg flag"><b>Off by default</b>caught by the compiler flag <code>allowUnusedLabels: false</code></p>
@@ -1145,7 +1145,7 @@ sum = sum * (1 + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="
         <p class="c-why">Passing a list of dogs where a list of animals is expected.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, crashes</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> adopt(shelter: <span class="t">Animal</span>[]): <span class="k">void</span> {
   shelter.push({ name: <span class="s">"Tom the cat"</span> });
 }
@@ -1173,7 +1173,7 @@ adopt(dogs);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span c
         <p class="c-why">Verified and unverified email addresses.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">UnverifiedEmail</span> = { address: string };
 <span class="k">type</span> <span class="t">VerifiedEmail</span> = { address: string };
 
@@ -1200,7 +1200,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
         <p class="c-why">A record holding a socket, checked by a hand-written guard.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then accepts a string as a socket</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> isConn(value: unknown): value <span class="k">is</span> <span class="t">Conn</span> {
   <span class="k">return</span> (
     <span class="k">typeof</span> value === <span class="s">"object"</span> &amp;&amp;
@@ -1231,7 +1231,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
         <p class="c-why">Passing a method around as a value.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, crashes</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> up = name.toUpperCase;
 console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: String.prototype.toUpperCase called on null or undefined</span></pre></div>
             <p class="c-result"><b>The method is pulled off its string</b> and loses track of it.</p>
@@ -1255,7 +1255,7 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
         <p class="c-why">An order line that can only be a whole number.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: number };
 
 <span class="k">const</span> text = <span class="s">'{"qty": 1.5}'</span>;
@@ -1286,7 +1286,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <p class="c-why">Deciding which orders can be refunded.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles with no warning</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"paid"</span>: <span class="k">return</span> <span class="k">true</span>;
 <span class="k">case</span> <span class="s">"shipped"</span>: <span class="k">return</span> <span class="k">true</span>;
 <span class="k">case</span> <span class="s">"paid"</span>: <span class="k">return</span> <span class="k">false</span>; <span class="c">// never runs</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">true</span></pre></div>

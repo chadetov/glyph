@@ -1,7 +1,7 @@
 ---
 title: Glyph: uma linguagem tipada que compila para TypeScript, pensada para agentes de IA
 description: Glyph é uma linguagem de tipagem estática que compila para TypeScript, feita para que o código escrito por um agente de IA possa ser lido, verificado e alterado sem adivinhação. A sintaxe é muito parecida com a de TypeScript.
-source_hash: 520cddaf09df5f1b
+source_hash: 458b68e89319c327
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, linguagem de programação, typescript, transpilador, agentes de ia, llm" />
   <meta property="og:type" content="website" />
@@ -39,12 +39,9 @@ head: |
       <header class="hero">
         <div>
           <a class="pill" href="/versions/" title="Veja as novidades"><span class="dot"></span>v{{version}} · versão preliminar →</a>
-          <h1>Código escrito por um agente de IA, <span class="accent">verificado antes de ir para produção.</span></h1>
+          <h1>Seu agente de IA escreve. <span class="accent">O compilador confere.</span></h1>
           <p class="sub">
-            Glyph é uma linguagem tipada que se lê como TypeScript e compila para
-            TypeScript legível. Você continua usando node, npm e o código que já
-            tem, e o compilador recusa código que o <code>tsc --strict</code>
-            deixa passar.
+            O Glyph se lê como TypeScript, sem as válvulas de escape: sem <code>any</code>, sem casts, sem dados não verificados, todo caso tratado. Ele compila para TypeScript legível, então você mantém o node, o npm e o código que já tem.
           </p>
           <div class="install" title="Requer Node.js 18 ou mais recente">
             <span class="prompt">$</span>

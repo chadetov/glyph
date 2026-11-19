@@ -1,0 +1,248 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "contribute/index.html",
+  "locale": "ko",
+  "source_hash": "98fd22506cb2f943",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Contribute · how the compiler is built, how to help · Glyph",
+      "tr": "기여하기 · 컴파일러의 구조와 기여하는 방법 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How the Glyph compiler is built (a Rust workspace: lex, parse, resolve, typecheck, emit), how to build and test it, and how issues and pull requests work.",
+      "tr": "Glyph 컴파일러의 구조(lex, parse, resolve, typecheck, emit으로 이어지는 Rust 워크스페이스), 빌드와 테스트 방법, 그리고 이슈와 풀 리퀘스트를 다루는 방식."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "다음으로 볼 곳"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Start here",
+      "tr": "여기서 시작하기"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph.title",
+      "kind": "ns.title",
+      "en": "The repository",
+      "tr": "저장소"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph.desc",
+      "kind": "ns.desc",
+      "en": "Source, issues, discussions and releases.",
+      "tr": "소스, 이슈, 토론, 릴리스."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open it on GitHub",
+      "tr": "GitHub에서 열기"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "The design",
+      "tr": "설계"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars and the decision record every change is judged against.",
+      "tr": "모든 변경을 판단하는 기준인 네 가지 기둥과 결정 기록."
+    },
+    {
+      "id": "h-97b0c61b",
+      "kind": "html",
+      "en": "Contribute",
+      "tr": "기여하기"
+    },
+    {
+      "id": "h-f8152d5e",
+      "kind": "html",
+      "en": "How the compiler is built, and how to help",
+      "tr": "컴파일러의 구조와 기여하는 방법"
+    },
+    {
+      "id": "h-874a5023",
+      "kind": "html",
+      "en": "The compiler is a Rust workspace of twelve crates in one public repository, licensed MIT or Apache-2.0. Bug reports with a small reproduction help most today. A change to the language starts as an issue, because every rule traces to a numbered design decision.",
+      "tr": "컴파일러는 공개 저장소 하나에 있는 크레이트 열두 개짜리 Rust 워크스페이스이며, 라이선스는 MIT 또는 Apache-2.0입니다. 지금 가장 도움이 되는 것은 작은 재현 코드가 있는 버그 리포트입니다. 모든 규칙은 번호가 붙은 설계 결정으로 거슬러 올라가므로, 언어를 바꾸는 변경은 이슈에서 시작합니다."
+    },
+    {
+      "id": "h-940e5ca3",
+      "kind": "html",
+      "en": "The pipeline",
+      "tr": "파이프라인"
+    },
+    {
+      "id": "h-a19553e3",
+      "kind": "html",
+      "en": "<code>glyph build</code> lexes, parses, resolves names, type-checks and emits TypeScript, then runs <code>tsc --strict</code> on what it wrote. The middle stages run as incremental queries on <a href=\"https://github.com/salsa-rs/salsa\">salsa</a>, so a re-check reuses the results an edit did not invalidate.",
+      "tr": "<code>glyph build</code>는 렉싱, 파싱, 이름 해석, 타입 검사를 거쳐 TypeScript를 생성한 다음, 생성한 코드에 <code>tsc --strict</code>를 실행합니다. 중간 단계는 <a href=\"https://github.com/salsa-rs/salsa\">salsa</a> 위에서 증분 쿼리로 실행되므로, 다시 검사할 때 편집으로 무효화되지 않은 결과를 재사용합니다."
+    },
+    {
+      "id": "h-546976e1",
+      "kind": "html",
+      "en": "one .glyph file, through the crates",
+      "tr": ".glyph 파일 하나가 크레이트를 거치는 과정"
+    },
+    {
+      "id": "h-ef90fcdd",
+      "kind": "html",
+      "en": "Crate",
+      "tr": "크레이트"
+    },
+    {
+      "id": "h-c74ea9dc",
+      "kind": "html",
+      "en": "What it does",
+      "tr": "하는 일"
+    },
+    {
+      "id": "h-0ef08b51",
+      "kind": "html",
+      "en": "Tokens, keywords, significant newlines, template literals",
+      "tr": "토큰, 키워드, 의미 있는 줄바꿈, 템플릿 리터럴"
+    },
+    {
+      "id": "h-9dcac089",
+      "kind": "html",
+      "en": "Syntax tree types, with a source span on every node",
+      "tr": "모든 노드에 소스 범위가 있는 구문 트리 타입"
+    },
+    {
+      "id": "h-9883c2af",
+      "kind": "html",
+      "en": "Pratt parser for every decision in the spec, JSX included",
+      "tr": "JSX를 포함해 명세의 모든 결정을 다루는 Pratt 파서"
+    },
+    {
+      "id": "h-e4e07009",
+      "kind": "html",
+      "en": "Name resolution, the module graph, cross-module import checks, the prelude",
+      "tr": "이름 해석, 모듈 그래프, 모듈 간 import 검사, prelude"
+    },
+    {
+      "id": "h-52d65da7",
+      "kind": "html",
+      "en": "The salsa query pipeline and cross-file invalidation",
+      "tr": "salsa 쿼리 파이프라인과 파일 간 무효화"
+    },
+    {
+      "id": "h-0fbf280c",
+      "kind": "html",
+      "en": "Exhaustiveness, <code>?</code>, generics, <code>owned</code>, runtime descriptors, the stdlib model",
+      "tr": "망라성, <code>?</code>, 제네릭, <code>owned</code>, 런타임 디스크립터, stdlib 모델"
+    },
+    {
+      "id": "h-12794c13",
+      "kind": "html",
+      "en": "The TypeScript writer, descriptor generation, expression-level source maps",
+      "tr": "TypeScript 출력기, 디스크립터 생성, 표현식 수준의 소스 맵"
+    },
+    {
+      "id": "h-eea25fb5",
+      "kind": "html",
+      "en": "<code>glyph fmt</code>: one layout, comment-preserving, idempotent",
+      "tr": "<code>glyph fmt</code>: 레이아웃 하나, 주석 보존, 멱등"
+    },
+    {
+      "id": "h-01d7f937",
+      "kind": "html",
+      "en": "The language server and the MCP server, sharing one analysis layer",
+      "tr": "하나의 분석 계층을 공유하는 언어 서버와 MCP 서버"
+    },
+    {
+      "id": "h-97f50295",
+      "kind": "html",
+      "en": "The <code>glyph</code> binary and every subcommand",
+      "tr": "<code>glyph</code> 바이너리와 모든 하위 명령"
+    },
+    {
+      "id": "h-7692d295",
+      "kind": "html",
+      "en": "The compiler in WebAssembly, which runs the playground",
+      "tr": "플레이그라운드를 실행하는 WebAssembly 컴파일러"
+    },
+    {
+      "id": "h-5a430b53",
+      "kind": "html",
+      "en": "A stub; tests run through the emitter and <code>tsx</code> instead",
+      "tr": "스텁입니다. 테스트는 대신 emitter와 <code>tsx</code>를 통해 실행"
+    },
+    {
+      "id": "h-47c936c4",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md\">glyph-compiler/README.md</a> has the full crate notes and the current test count.",
+      "tr": "전체 크레이트 설명과 현재 테스트 수는 <a href=\"https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md\">glyph-compiler/README.md</a>에 있습니다."
+    },
+    {
+      "id": "h-ae97f6f1",
+      "kind": "html",
+      "en": "Build and test",
+      "tr": "빌드와 테스트"
+    },
+    {
+      "id": "h-ad0fde9e",
+      "kind": "html",
+      "en": "Rust 1.95 is pinned in <code>rust-toolchain.toml</code>. Some tests shell out to <code>tsc</code> and <code>tsx</code>, so install those too. CI runs clippy with warnings as errors, and neither <code>cargo build</code> nor <code>cargo test</code> runs it, so run the script before you push.",
+      "tr": "Rust 1.95가 <code>rust-toolchain.toml</code>에 고정되어 있습니다. 일부 테스트는 <code>tsc</code>와 <code>tsx</code>를 셸로 호출하므로 이것들도 설치하세요. CI는 경고를 오류로 취급하는 clippy를 실행하는데, <code>cargo build</code>도 <code>cargo test</code>도 clippy를 실행하지 않으므로 push하기 전에 스크립트를 실행하세요."
+    },
+    {
+      "id": "h-07e9fc9b",
+      "kind": "html",
+      "en": "from a clone",
+      "tr": "클론한 저장소에서"
+    },
+    {
+      "id": "h-b879e6fa",
+      "kind": "html",
+      "en": "A new diagnostic comes with a program under <code>tests/negative/</code> that must fail with that code. A claim that Glyph catches something TypeScript misses goes in <code>catches/</code>, where <a href=\"/evidence/\">a gate runs both halves</a>.",
+      "tr": "새 진단에는 그 코드로 실패해야 하는 <code>tests/negative/</code> 아래의 프로그램이 함께 있어야 합니다. Glyph가 TypeScript가 놓치는 것을 잡는다는 주장은 <code>catches/</code>에 넣으며, 거기서 <a href=\"/evidence/\">게이트가 양쪽을 모두 실행합니다</a>."
+    },
+    {
+      "id": "h-ead58161",
+      "kind": "html",
+      "en": "What is planned, and what is broken",
+      "tr": "계획된 것과 고장 난 것"
+    },
+    {
+      "id": "h-574361b1",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">docs/roadmap/releases.md</a> is the release roadmap: what each shipped release did and what the next ones are for. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> is the gap ledger, every limitation found by building real apps, each numbered (<code>G</code> plus a number) with a status marker. An open gap with a reproduction is a good place to start.",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">docs/roadmap/releases.md</a>는 릴리스 로드맵입니다. 배포된 각 릴리스가 한 일과 다음 릴리스들의 목적이 적혀 있습니다. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>는 gap 목록으로, 실제 앱을 만들면서 발견한 모든 한계가 번호(<code>G</code>와 숫자)와 상태 표시와 함께 기록되어 있습니다. 재현 코드가 있는 열린 gap은 시작하기 좋은 곳입니다."
+    },
+    {
+      "id": "h-55f877d3",
+      "kind": "html",
+      "en": "Issues and pull requests",
+      "tr": "이슈와 풀 리퀘스트"
+    },
+    {
+      "id": "h-1be0f32e",
+      "kind": "html",
+      "en": "Toolchain fixes, diagnostics, docs and examples can go straight to a pull request. A change to syntax or semantics starts with an issue, and larger ones go through the RFC process in <code>docs/rfcs/</code>; a PR that relaxes a rule \"to be helpful\" will probably be declined, because the restriction is the point. Keep a pull request to one gap, usually one to three commits, and sign each commit (<code>git commit -s</code>). <code>main</code> is protected and merges are rebase-only. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md\">CONTRIBUTING.md</a> has the full rules, and issues labelled <a href=\"https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22\">good first issue</a> are scoped for a first change.",
+      "tr": "툴체인 수정, 진단, 문서, 예제는 바로 풀 리퀘스트로 보내도 됩니다. 문법이나 의미를 바꾸는 변경은 이슈에서 시작하고, 큰 변경은 <code>docs/rfcs/</code>의 RFC 절차를 거칩니다. 규칙을 \"편의를 위해\" 느슨하게 하는 PR은 거절될 가능성이 높습니다. 제약 자체가 핵심이기 때문입니다. 풀 리퀘스트 하나에는 gap 하나만 담고, 보통 커밋은 한 개에서 세 개로 하며, 각 커밋에 서명하세요(<code>git commit -s</code>). <code>main</code>은 보호되어 있고 병합은 rebase만 허용됩니다. 전체 규칙은 <a href=\"https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md\">CONTRIBUTING.md</a>에 있고, <a href=\"https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22\">good first issue</a> 레이블이 붙은 이슈는 첫 기여에 맞게 범위를 잡아 두었습니다."
+    },
+    {
+      "id": "h-f3ec8e88",
+      "kind": "html",
+      "en": "Licence",
+      "tr": "라이선스"
+    },
+    {
+      "id": "h-2e7bb863",
+      "kind": "html",
+      "en": "MIT or Apache-2.0, at your option (<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-MIT\">LICENSE-MIT</a>, <a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE\">LICENSE-APACHE</a>). Contributions are accepted under the same dual licence, certified by the sign-off line.",
+      "tr": "MIT 또는 Apache-2.0 중 선택할 수 있습니다(<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-MIT\">LICENSE-MIT</a>, <a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE\">LICENSE-APACHE</a>). 기여도 같은 이중 라이선스로 받으며, sign-off 줄로 이를 확인합니다."
+    }
+  ]
+}

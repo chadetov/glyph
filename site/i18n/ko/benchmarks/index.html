@@ -1,0 +1,82 @@
+---
+title: 벤치마크 · 주장하지 않고 측정합니다 · Glyph
+description: Glyph의 네 가지 기둥을 숫자로: 컴파일 시점에 잡히는 오류, 심볼마다 grep 한 번, 한 줄짜리 diff, 그리고 TypeScript보다 약 9% 적은 토큰. 단서와 함께.
+source_hash: c2635229de656794
+---
+      <header class="page-hero">
+        <p class="eyebrow">벤치마크</p>
+        <h1>두 종류의 <span class="accent">근거</span>.</h1>
+        <p class="lede">
+          측정할 만한 질문은 두 가지이고, 우리는 둘을 구분합니다. <strong>구조적 질문:</strong> TypeScript는 받아들이지만 Glyph는 구조상 거부하는 것은 무엇인가? 이는 지금 증명할 수 있으며, 아래에 나와 있습니다. <strong>신뢰성 질문:</strong> 에이전트가 <em>잘 설정된</em> strict TypeScript 환경보다 Glyph에서 실제로 결함을 덜 배포하는가? 도입을 결정짓는 숫자는 이것이고, 아직 우리에게는 없습니다. 지금 준비 중인 연구이며, 대리 지표를 그 답인 것처럼 꾸미지 않을 것입니다. (진짜 비교 대상은 아무 설정 없는 TS가 아니라 <a href="/answers/vs-tooled-ts/">strict TS + zod + eslint + ts-pattern</a>입니다.)
+        </p>
+      </header>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">구조적 근거: 구조상 증명 가능</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 24px;">
+          통계가 아니라 쌍으로 된 시연입니다. 각각은 Glyph가 거부하고 <code>tsc --strict</code>가 받아들이는 사례이며, <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> 디렉터리에서 재현할 수 있습니다.
+        </p>
+        <div class="stat-row">
+          <div class="card stat">
+            <span class="label">검증 가능성: 비용이 큰 버그</span>
+            <div class="big"><span class="accent">둘 다</span> 컴파일 시점에 잡힘</div>
+            <p>
+              에이전트가 끊임없이 저지르는 두 가지 실수(빠진 <code>match</code> variant와 <code>as unknown as</code>를 통한 캐스트)를 Glyph는 거부하고 <code>tsc --strict</code>는 받아들입니다. 둘 다 <code>catches/</code>에 있는 검사된 사례(<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>)이며, 빌드 게이트가 다시 실행합니다. 컴파일되는 잘못된 코드는 비용이 큰 실패입니다. Glyph는 이를 허용하지 않습니다.
+            </p>
+          </div>
+          <div class="card stat">
+            <span class="label">검색 용이성: 이름 하나에 위치 하나</span>
+            <div class="big">언제나 결과 <span class="accent">1</span>개</div>
+            <p>
+              모든 심볼은 선언 형태가 정확히 하나입니다. 심볼을 흩어 놓는 오버로드, 데코레이터, 병합된 네임스페이스가 없습니다.
+            </p>
+            <div class="grepout">
+              <span class="prompt">$ grep -n "fn welcome" main.glyph</span><br />
+              <span class="ln-no">15:</span> fn welcome(user: User) -&gt; Result&lt;string, string&gt; {
+            </div>
+          </div>
+          <div class="card stat">
+            <span class="label">diff 안정성: 기본적으로 리뷰하기 쉬움</span>
+            <div class="big"><span class="accent">1줄 &rarr; 1줄</span></div>
+            <p>
+              Glyph에서 한 줄을 고치면 트랜스파일러를 거쳐 TypeScript에서도 한 줄짜리 diff가 나오고, <code>glyph fmt</code>는 불필요한 변동을 더하지 않습니다. diff는 주변 잡음이 아니라 변경 자체입니다.
+            </p>
+          </div>
+        </div>
+
+        <div class="chart">
+          <span class="label">그리고 안전성 때문에 길어지지 않습니다</span>
+          <h3>같은 함수 세 개의 토큰 수</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill glyph" style="width: 70%">436</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Python</span><div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div></div>
+          <div class="bar-row"><span class="bar-lang">TypeScript</span><div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Go</span><div class="bar-track"><div class="bar-fill other" style="width: 91%">564</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Rust</span><div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div></div>
+          <p class="bench-note">
+            안전성은 보통 길이로 대가를 치릅니다. 정적 타입과 명시적 오류 처리를 갖춘 다른 언어인 Go와 Rust가 가장 깁니다. Glyph는 둘 다 갖추었지만 그 때문에 길어지지 않습니다. <code>glyph check</code>와 <code>tsc</code>를 통과하는 프로그램을 실제 <code>cl100k_base</code>로 센 결과, TypeScript가 478 토큰일 때 436 토큰으로 약 9% 적고, Python과 비슷하며, Go보다 약 23%, Rust보다 30% 적습니다. 차이는 실제 제어 흐름이 있는 함수(<code>parse_user</code>, 132 대 174)에서 납니다. 한 줄짜리 <code>slugify</code>에서는 정규식 리터럴이 없기 때문에 Glyph가 더 깁니다(67 대 47). 함수 세 개로 된 작은 표본입니다. 예전에 발표한 341이라는 수치는 컴파일러가 받아들이지 않는 fixture로 측정한 것이어서 철회했습니다. <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">방법론과 단서 보기 &rarr;</a>
+          </p>
+        </div>
+
+      </section>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">신뢰성: 준비 중인 연구</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 22px;">
+          위의 구조적 결과는 Glyph가 도움이 될 것이라고 <em>기대할 이유</em>이지, 실제로 도움이 된다는 증거는 아닙니다. 증거는 비교 연구입니다. 같은 에이전트가 같은 현실적인 작업을 한 번은 Glyph로, 한 번은 도구를 모두 갖춘 strict TypeScript 환경(<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod)으로 작성하고, <strong>빠져나간 의미적 결함</strong>과 한 번에 빌드가 통과하는 비율로 점수를 매깁니다. 서로 다른 리뷰어 다섯 명이 판단을 바꿀 수 있다고 말한 숫자가 바로 이것이어서 준비하고 있으며, 결과가 나오기 전까지 이 막대는 주장이 아니라 자리 표시입니다.
+        </p>
+        <div class="chart">
+          <span class="label">작업당 빠져나간 결함 &middot; 낮을수록 좋음 &middot; <span style="color:var(--amber)">아직 측정하지 않음</span></span>
+          <h3>Glyph와 도구를 모두 갖춘 strict TypeScript 비교</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill pending" style="width: 30%">대기 중</div></div></div>
+          <div class="bar-row"><span class="bar-lang">도구를 갖춘 TS</span><div class="bar-track"><div class="bar-fill pending" style="width: 55%">대기 중</div></div></div>
+          <p class="bench-note">
+            장치(작업 모음, 실행 및 재실행 하네스, 고정해 둔 가장 강력하고 공정한 TS 기준선)는 <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> 디렉터리에 있습니다. 첫 번째 실제 파일럿은 실행하는 즉시 (<em>n</em>, 모델, 비용을 함께 표기해) 여기에 공개합니다. 결과가 어떻든 마찬가지입니다.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+          <a class="btn" href="/answers/vs-tooled-ts/">도구를 갖춘 TS와 비교하는 이유 &rarr;</a>
+        </div>
+      </section>
+
+      <a href="/" class="backlink">&larr; 홈으로 돌아가기</a>

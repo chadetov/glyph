@@ -1,0 +1,80 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "catches/index.html",
+  "locale": "ko",
+  "source_hash": "09d8897c06eb2254",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What TypeScript lets through and Glyph catches · Glyph",
+      "tr": "TypeScript가 통과시키고 Glyph가 잡아내는 것 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Code AI agents write that passes tsc --strict, each shown beside the same program in Glyph with the real compiler output. A build gate re-runs every case.",
+      "tr": "AI 에이전트가 작성하고 tsc --strict를 통과하는 코드를, Glyph로 쓴 같은 프로그램과 실제 컴파일러 출력과 함께 나란히 보여 줍니다. 빌드 게이트가 모든 사례를 다시 실행합니다."
+    },
+    {
+      "id": "h-62a67cf6",
+      "kind": "html",
+      "en": "Cases TypeScript lets through",
+      "tr": "TypeScript가 통과시키는 사례"
+    },
+    {
+      "id": "h-e64296aa",
+      "kind": "html",
+      "en": "Caught before it ships",
+      "tr": "배포되기 전에 잡아냅니다"
+    },
+    {
+      "id": "h-2b7258ab",
+      "kind": "html",
+      "en": "Each entry is two programs in <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a>, and the output under each one is what the tools printed. A build gate, <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a>, re-runs every case and fails if either half stops doing what the page says. The full TypeScript configuration it checks against is in that script.",
+      "tr": "각 항목은 <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a>에 있는 두 프로그램이고, 각 프로그램 아래의 출력은 도구가 실제로 출력한 내용입니다. 빌드 게이트인 <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a>가 모든 사례를 다시 실행하고, 어느 한쪽이라도 페이지에 적힌 대로 동작하지 않으면 실패합니다. 검사에 쓰는 전체 TypeScript 설정은 이 스크립트에 있습니다."
+    },
+    {
+      "id": "h-edf64e1e",
+      "kind": "html",
+      "en": "{{catches:count}} TypeScript mistakes",
+      "tr": "TypeScript 실수 {{catches:count}}건"
+    },
+    {
+      "id": "h-792e25f6",
+      "kind": "html",
+      "en": "{{catches:trap-count}} JavaScript traps that do not exist in Glyph",
+      "tr": "Glyph에는 존재하지 않는 JavaScript 함정 {{catches:trap-count}}건"
+    },
+    {
+      "id": "h-b2b3836d",
+      "kind": "html",
+      "en": "Older traps that agents still hit now and then. Glyph refuses each program, but not by spotting the mistake: the feature behind it is not in the language, and the replacement is named.",
+      "tr": "에이전트가 지금도 가끔 빠지는 오래된 함정들입니다. Glyph는 각 프로그램을 거부하지만, 실수를 찾아내서가 아닙니다. 그 원인이 되는 기능이 언어에 없고, 대신 쓸 것을 알려 줍니다."
+    },
+    {
+      "id": "h-2db8dfc2",
+      "kind": "html",
+      "en": "What Glyph does not catch yet",
+      "tr": "Glyph가 아직 잡아내지 못하는 것"
+    },
+    {
+      "id": "h-e0a2f441",
+      "kind": "html",
+      "en": "{{catches:gap-cases}} holes Glyph does not close yet. Each of these compiles in Glyph today and does the same wrong thing as in TypeScript. Every one has a reproduction in <code>catches/</code> and an open gap number, and the gate fails when a fix lands so the entry cannot outlive the hole.",
+      "tr": "Glyph가 아직 막지 못한 구멍 {{catches:gap-cases}}건입니다. 이 코드는 모두 현재 Glyph에서 컴파일되고, TypeScript에서와 똑같이 잘못 동작합니다. 각각 <code>catches/</code>에 재현 코드와 열린 gap 번호가 있고, 수정이 들어오면 게이트가 실패하므로 구멍이 막힌 뒤에도 항목이 남아 있을 수는 없습니다."
+    },
+    {
+      "id": "h-e0eee93e",
+      "kind": "html",
+      "en": "Logic errors are the largest class in every study of agent-written code, and no type checker sees them: a wrong formula, or a task that was misread, compiles in Glyph as it does in TypeScript.",
+      "tr": "에이전트가 작성한 코드에 관한 모든 연구에서 가장 큰 비중을 차지하는 것은 논리 오류이고, 어떤 타입 검사기도 이를 보지 못합니다. 잘못된 공식이나 잘못 이해한 작업은 TypeScript에서처럼 Glyph에서도 컴파일됩니다."
+    },
+    {
+      "id": "h-2343e2b3",
+      "kind": "html",
+      "en": "Glyph has one escape hatch, <code>extern_ts</code>, for TypeScript it cannot express. It is a fixed keyword, so <code>grep extern_ts</code> lists every place the rules are suspended.",
+      "tr": "Glyph에는 TypeScript로만 표현할 수 있는 코드를 위한 탈출구가 하나 있습니다. <code>extern_ts</code>입니다. 고정된 키워드이므로 <code>grep extern_ts</code>로 규칙이 해제된 모든 곳을 찾을 수 있습니다."
+    }
+  ]
+}

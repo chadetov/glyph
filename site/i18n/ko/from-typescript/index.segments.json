@@ -1,0 +1,398 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "from-typescript/index.html",
+  "locale": "ko",
+  "source_hash": "bc168f89faa5ea6e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Coming from TypeScript · what changes in Glyph · Glyph",
+      "tr": "TypeScript 사용자라면 · Glyph에서 바뀌는 것 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph reads almost like TypeScript and compiles to it. What changes: a few syntax deltas, no any, as or !, one greppable escape hatch, and how npm works.",
+      "tr": "Glyph는 TypeScript와 거의 똑같이 읽히고 TypeScript로 컴파일됩니다. 바뀌는 것은 몇 가지 문법 차이, any와 as와 !가 없다는 점, grep으로 찾을 수 있는 탈출구 하나, 그리고 npm을 쓰는 방식입니다."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "다음으로 볼 곳"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "추천"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "See what TypeScript lets through",
+      "tr": "TypeScript가 통과시키는 것 보기"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case run under <code>tsc --strict</code> and under Glyph, with the error.",
+      "tr": "각 사례를 <code>tsc --strict</code>와 Glyph에서 실행한 결과와 오류."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "사례 보기"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "첫 프로그램 작성하기"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "설치하고, 프로젝트를 만들고, 실행하고, 일부러 깨뜨려 오류를 읽습니다. 약 10분."
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "Try it in the browser",
+      "tr": "브라우저에서 써 보기"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "The compiler runs in the page, with nothing to install.",
+      "tr": "컴파일러가 페이지 안에서 실행되므로 설치할 것이 없습니다."
+    },
+    {
+      "id": "h-1400e396",
+      "kind": "html",
+      "en": "Coming from TypeScript",
+      "tr": "TypeScript 사용자라면"
+    },
+    {
+      "id": "h-7d374caf",
+      "kind": "html",
+      "en": "What changes when you already write TypeScript",
+      "tr": "이미 TypeScript를 쓰고 있다면 무엇이 바뀌는가"
+    },
+    {
+      "id": "h-5166948b",
+      "kind": "html",
+      "en": "Less than you'd expect. Glyph compiles to TypeScript that passes <code>tsc --strict</code>, keeps npm and your deploy, and reads almost the same. The differences are a handful of deltas, and each one trades a way to be wrong for a check the compiler makes.",
+      "tr": "생각보다 적습니다. Glyph는 <code>tsc --strict</code>를 통과하는 TypeScript로 컴파일되고, npm과 기존 배포 방식을 그대로 쓰며, 거의 똑같이 읽힙니다. 차이는 몇 가지뿐이고, 각각은 틀릴 수 있는 방법 하나를 컴파일러가 하는 검사 하나와 맞바꿉니다."
+    },
+    {
+      "id": "h-380f8519",
+      "kind": "html",
+      "en": "If you know TypeScript, you know most of this",
+      "tr": "TypeScript를 안다면 대부분은 이미 아는 것입니다"
+    },
+    {
+      "id": "h-a355cda9",
+      "kind": "html",
+      "en": "You don't learn a new language, just these four. They are the ones in every sample on this site.",
+      "tr": "새 언어를 배우는 것이 아니라 이 네 가지만 익히면 됩니다. 이 사이트의 모든 예제에 나오는 것들입니다."
+    },
+    {
+      "id": "h-46e350dd",
+      "kind": "html",
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
+      "tr": "망라적인 <code>switch</code>: 유니언에 대해 쓰면 컴파일러가 모든 case를 처리하게 합니다. 이것이 유일한 조건문이기도 합니다. <code>if</code>/<code>else</code>도 삼항 연산자도 없으며, 이유는 <a href=\"#there-is-no-if\">아래에서 설명합니다</a>."
+    },
+    {
+      "id": "h-12d01dfb",
+      "kind": "html",
+      "en": "Errors as return values, not thrown exceptions. You handle one with <code>match</code>, or propagate it with the <code>?</code> operator.",
+      "tr": "오류는 던지는 예외가 아니라 반환값입니다. <code>match</code>로 처리하거나 <code>?</code> 연산자로 위로 전달합니다."
+    },
+    {
+      "id": "h-d9b07eb7",
+      "kind": "html",
+      "en": "A function; the <code>-&gt;</code> is its return type. A <code>type X = {...}</code> is a record, and a <code>type X = A | B</code> is a tagged union.",
+      "tr": "함수이며, <code>-&gt;</code> 뒤가 반환 타입입니다. <code>type X = {...}</code>는 레코드이고, <code>type X = A | B</code>는 태그 유니언입니다."
+    },
+    {
+      "id": "h-82ab0a00",
+      "kind": "html",
+      "en": "Reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.",
+      "tr": "재할당은 명시적이고 grep으로 찾을 수 있습니다. 평범한 <code>let</code> 바인딩은 모르는 사이에 바뀌지 않으며, 바꾸려면 <code>mut</code>를 씁니다."
+    },
+    {
+      "id": "h-40accee4",
+      "kind": "html",
+      "en": "\"Agents\" on this site means AI coding assistants such as Claude, Copilot and Cursor. Glyph helps them most, but the checks are the same whether a person or a model wrote the code. If you already run strict TypeScript with zod and eslint, <a href=\"/answers/vs-tooled-ts/\">here is what a language adds over that</a>.",
+      "tr": "이 사이트에서 \"에이전트\"는 Claude, Copilot, Cursor 같은 AI 코딩 도우미를 뜻합니다. Glyph가 가장 도움이 되는 대상은 에이전트이지만, 사람이 썼든 모델이 썼든 검사는 같습니다. 이미 zod와 eslint를 곁들인 strict TypeScript를 쓰고 있다면, <a href=\"/answers/vs-tooled-ts/\">언어가 그 위에 더하는 것은 이것입니다</a>."
+    },
+    {
+      "id": "h-06d12c99",
+      "kind": "html",
+      "en": "There is no if",
+      "tr": "if가 없습니다"
+    },
+    {
+      "id": "h-aaf8fd69",
+      "kind": "html",
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
+      "tr": "불리언에 대한 분기는 <code>true</code>와 <code>false</code>에 대한 <code>match</code>입니다. 한쪽에서만 무언가를 할 때는 다른 arm을 빈 블록으로 둡니다."
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-63d595e5",
+      "kind": "html",
+      "en": "The reason is decision D3 in the spec: one construct for branching on a value, so there is one shape to read, write and search for. A value that comes out of a branch always comes out of a <code>match</code>, whose result type Glyph's own checker works out instead of handing it to <code>tsc</code>. For a union, the same construct is the one that must cover every case (<code>E0200</code>). For a boolean that buys little, since <code>false =&gt; {}</code> says no more than leaving out an <code>else</code>.",
+      "tr": "이유는 명세의 결정 D3입니다. 값에 따른 분기를 위한 구문을 하나로 두면 읽고, 쓰고, 검색할 형태도 하나가 됩니다. 분기에서 나오는 값은 언제나 <code>match</code>에서 나오며, 그 결과 타입은 <code>tsc</code>에 넘기지 않고 Glyph 자체 검사기가 계산합니다. 유니언에서는 바로 이 구문이 모든 case를 다뤄야 하는 구문입니다(<code>E0200</code>). 불리언에서는 얻는 것이 적습니다. <code>false =&gt; {}</code>는 <code>else</code>를 생략하는 것 이상을 말해 주지 않기 때문입니다."
+    },
+    {
+      "id": "h-7765a037",
+      "kind": "html",
+      "en": "It costs you something. A one-line ternary becomes a four-line <code>match</code>, an early return on a condition is a <code>match</code> with an empty arm, and it is the first thing that looks wrong to a TypeScript reader. The spec records the verbosity as an accepted cost. Writing <code>if</code> anyway is error <code>E0006</code>, whose help shows the <code>match</code> form; a ternary is <code>E0013</code> with the same help.",
+      "tr": "대가도 있습니다. 한 줄짜리 삼항 연산자는 네 줄짜리 <code>match</code>가 되고, 조건에 따른 조기 반환은 빈 arm이 있는 <code>match</code>가 되며, TypeScript 사용자가 보기에 가장 먼저 어색한 부분입니다. 명세는 이 장황함을 감수하는 비용으로 기록해 두었습니다. 그래도 <code>if</code>를 쓰면 오류 <code>E0006</code>이 나고, 그 도움말이 <code>match</code> 형태를 보여 줍니다. 삼항 연산자는 같은 도움말을 가진 <code>E0013</code>입니다."
+    },
+    {
+      "id": "h-5a5cbe2a",
+      "kind": "html",
+      "en": "The tax you already pay",
+      "tr": "이미 치르고 있는 비용"
+    },
+    {
+      "id": "h-73849589",
+      "kind": "html",
+      "en": "If you build with AI agents on a TypeScript codebase, these are the daily costs. Each one has a specific answer in Glyph, linked from the list.",
+      "tr": "TypeScript 코드베이스에서 AI 에이전트와 함께 개발한다면 매일 치르는 비용입니다. Glyph에는 각각에 대한 구체적인 답이 있고, 목록에서 링크로 연결됩니다."
+    },
+    {
+      "id": "h-887166ae",
+      "kind": "html",
+      "en": "Agents hallucinate APIs, because TypeScript erases its types and the runtime no longer agrees with compile time. Glyph types carry a runtime check (<code>T.parse</code>, <code>T.is</code>), see <a href=\"/answers/typed-apis/\">typed APIs</a>.",
+      "tr": "TypeScript는 타입을 지우기 때문에 런타임이 컴파일 시점과 더 이상 일치하지 않고, 그래서 에이전트는 존재하지 않는 API를 지어냅니다. Glyph의 타입은 런타임 검사(<code>T.parse</code>, <code>T.is</code>)를 함께 가집니다. <a href=\"/answers/typed-apis/\">타입이 있는 API</a>를 보세요."
+    },
+    {
+      "id": "h-31205be6",
+      "kind": "html",
+      "en": "Agents paper over uncertainty with <code>any</code> and <code>as unknown as T</code>, and the compiler lets them. Neither exists in Glyph, see the table below.",
+      "tr": "에이전트는 불확실한 부분을 <code>any</code>와 <code>as unknown as T</code>로 덮고, 컴파일러는 이를 허용합니다. Glyph에는 둘 다 없습니다. 아래 표를 보세요."
+    },
+    {
+      "id": "h-d3367c49",
+      "kind": "html",
+      "en": "You ask for a one-line change and get a whole file rewritten, because the formatter cascades on every edit. <code>glyph fmt</code> has one layout with no options, see <a href=\"/answers/diff-stability/\">clean diffs</a>.",
+      "tr": "한 줄만 바꿔 달라고 했는데 파일 전체가 다시 쓰여 돌아옵니다. 포매터가 편집할 때마다 연쇄적으로 바꾸기 때문입니다. <code>glyph fmt</code>는 옵션 없이 레이아웃이 하나뿐입니다. <a href=\"/answers/diff-stability/\">깔끔한 diff</a>를 보세요."
+    },
+    {
+      "id": "h-3414000c",
+      "kind": "html",
+      "en": "You keep a hand-written validator next to every type (zod, and a serializer), and an agent renames a field in one but not the others; all of it still compiles. In Glyph the type is the validator.",
+      "tr": "모든 타입 옆에 직접 작성한 검증기(zod와 직렬화 코드)를 따로 유지하는데, 에이전트가 한쪽에서만 필드 이름을 바꾸고 나머지는 그대로 둡니다. 그래도 전부 컴파일됩니다. Glyph에서는 타입이 곧 검증기입니다."
+    },
+    {
+      "id": "h-ea4184c4",
+      "kind": "html",
+      "en": "You <code>grep</code> for a symbol and find ten unrelated matches: overloads, decorators, merged namespaces. Glyph has none of those, see <a href=\"/answers/greppability/\">finding things</a>.",
+      "tr": "심볼을 <code>grep</code>하면 오버로드, 데코레이터, 병합된 네임스페이스 등 관련 없는 결과가 열 개 나옵니다. Glyph에는 그런 것이 없습니다. <a href=\"/answers/greppability/\">코드 찾기</a>를 보세요."
+    },
+    {
+      "id": "h-f6530aaf",
+      "kind": "html",
+      "en": "The off-switches TypeScript gives you, and what Glyph has instead",
+      "tr": "TypeScript가 주는 검사 끄기 스위치와, Glyph에서 대신 쓰는 것"
+    },
+    {
+      "id": "h-0fe3d59b",
+      "kind": "html",
+      "en": "Each TypeScript construct below tells the checker to stop checking. None of them is Glyph syntax. The middle column is what <code>glyph check --no-tsc</code> printed for each one on 0.1.149.",
+      "tr": "아래의 각 TypeScript 구문은 검사기에게 검사를 멈추라고 말합니다. 어느 것도 Glyph 문법이 아닙니다. 가운데 열은 0.1.149에서 각 구문에 대해 <code>glyph check --no-tsc</code>가 출력한 내용입니다."
+    },
+    {
+      "id": "h-c8db21bc",
+      "kind": "html",
+      "en": "In Glyph",
+      "tr": "Glyph에서는"
+    },
+    {
+      "id": "h-5d68f239",
+      "kind": "html",
+      "en": "What you write instead",
+      "tr": "대신 쓰는 것"
+    },
+    {
+      "id": "h-67832a79",
+      "kind": "html",
+      "en": "Not syntax: <code>E0013</code>",
+      "tr": "문법이 아님: <code>E0013</code>"
+    },
+    {
+      "id": "h-84f8c408",
+      "kind": "html",
+      "en": "An <code>Option&lt;T&gt;</code> handled with <code>match</code>, or passed up with <code>?</code>",
+      "tr": "<code>match</code>로 처리하거나 <code>?</code>로 위로 전달하는 <code>Option&lt;T&gt;</code>"
+    },
+    {
+      "id": "h-beb1a8e3",
+      "kind": "html",
+      "en": "No cast exists: <code>E0013</code>, whose help says to validate",
+      "tr": "캐스트가 존재하지 않음: <code>E0013</code>, 도움말은 검증하라고 안내"
+    },
+    {
+      "id": "h-006076f6",
+      "kind": "html",
+      "en": "<code>T.parse(x)</code>, which returns a <code>Result</code>",
+      "tr": "<code>Result</code>를 반환하는 <code>T.parse(x)</code>"
+    },
+    {
+      "id": "h-a549d366",
+      "kind": "html",
+      "en": "Not a type: <code>E0103</code>, unresolved name",
+      "tr": "타입이 아님: <code>E0103</code>, 해석되지 않는 이름"
+    },
+    {
+      "id": "h-6fd9cc30",
+      "kind": "html",
+      "en": "<code>unknown</code>, narrowed by <code>T.parse</code>, <code>T.is</code> or a <code>match</code> arm <code>is T</code>",
+      "tr": "<code>T.parse</code>, <code>T.is</code>, 또는 <code>match</code> arm의 <code>is T</code>로 좁히는 <code>unknown</code>"
+    },
+    {
+      "id": "h-3c065f9d",
+      "kind": "html",
+      "en": "No user-written type guards: <code>E0002</code>",
+      "tr": "사용자가 작성하는 타입 가드 없음: <code>E0002</code>"
+    },
+    {
+      "id": "h-039d3bb4",
+      "kind": "html",
+      "en": "The generated <code>T.is(v)</code>, which checks the declared shape, so a guard can't check less than it claims",
+      "tr": "선언된 모양을 검사하는 자동 생성된 <code>T.is(v)</code>. 따라서 가드가 주장하는 것보다 덜 검사할 수 없습니다"
+    },
+    {
+      "id": "h-deba3acc",
+      "kind": "html",
+      "en": "An ordinary comment; the error under it still fires",
+      "tr": "평범한 주석일 뿐이며, 그 아래의 오류는 그대로 발생합니다"
+    },
+    {
+      "id": "h-a20798f5",
+      "kind": "html",
+      "en": "Nothing. No comment or flag turns a Glyph diagnostic off",
+      "tr": "없음. 어떤 주석이나 플래그로도 Glyph 진단을 끌 수 없습니다"
+    },
+    {
+      "id": "h-6869a73b",
+      "kind": "html",
+      "en": "<code>glyph check</code> has flags that skip a whole pass (<code>--no-tsc</code> skips the <code>tsc --strict</code> run, <code>--no-test</code> skips the <code>@example</code> tests), and none that silence one check. The full list of what a TypeScript project accepts and Glyph refuses, each case run under both compilers, is on <a href=\"/catches/\">the catches page</a>.",
+      "tr": "<code>glyph check</code>에는 단계 전체를 건너뛰는 플래그가 있지만(<code>--no-tsc</code>는 <code>tsc --strict</code> 실행을, <code>--no-test</code>는 <code>@example</code> 테스트를 건너뜁니다), 검사 하나만 끄는 플래그는 없습니다. TypeScript 프로젝트는 받아들이고 Glyph는 거부하는 것의 전체 목록은 각 사례를 두 컴파일러로 실행한 결과와 함께 <a href=\"/catches/\">잡아내는 것 페이지</a>에 있습니다."
+    },
+    {
+      "id": "h-ae85dea9",
+      "kind": "html",
+      "en": "One escape hatch, and you can grep for it",
+      "tr": "탈출구는 하나이고, grep으로 찾을 수 있습니다"
+    },
+    {
+      "id": "h-c32f7ec7",
+      "kind": "html",
+      "en": "When you need TypeScript that Glyph can't spell, <code>extern_ts(\"...\")</code> takes one inline type or expression, and <code>tsc</code> still checks it. For a whole module, put the <code>.ts</code> under <code>src/extern/</code> and write <code>import extern/name</code>; relative imports are otherwise illegal, so that path is the only way in. Both forms contain the word <code>extern</code>, so <code>grep -rn extern src/</code> lists every place the checker hands over to TypeScript.",
+      "tr": "Glyph로 표현할 수 없는 TypeScript가 필요할 때 <code>extern_ts(\"...\")</code>는 인라인 타입이나 표현식 하나를 받고, <code>tsc</code>는 여전히 이를 검사합니다. 모듈 전체가 필요하면 <code>.ts</code> 파일을 <code>src/extern/</code> 아래에 두고 <code>import extern/name</code>이라고 씁니다. 그 밖의 상대 경로 import는 허용되지 않으므로 이 경로가 유일한 통로입니다. 두 형태 모두 <code>extern</code>이라는 단어를 포함하므로, <code>grep -rn extern src/</code>로 검사기가 TypeScript에 넘기는 모든 곳을 찾을 수 있습니다."
+    },
+    {
+      "id": "h-cd5d6b49",
+      "kind": "html",
+      "en": "What the emitted TypeScript looks like",
+      "tr": "생성된 TypeScript의 모습"
+    },
+    {
+      "id": "h-169034ff",
+      "kind": "html",
+      "en": "Plain TypeScript, one file per module, that you can read and commit. A union becomes a discriminated union plus a value carrying its runtime check, and a <code>match</code> becomes a <code>switch</code> on the tag. This is <code>glyph build</code>'s output for the module on the left, with the import lines trimmed.",
+      "tr": "읽고 커밋할 수 있는 평범한 TypeScript이며, 모듈마다 파일 하나입니다. 유니언은 판별 유니언과 그 런타임 검사를 담은 값이 되고, <code>match</code>는 태그에 대한 <code>switch</code>가 됩니다. 왼쪽 모듈에 대한 <code>glyph build</code>의 출력이며, import 줄은 줄였습니다."
+    },
+    {
+      "id": "h-563a40e0",
+      "kind": "html",
+      "en": "plan.ts (emitted, trimmed)",
+      "tr": "plan.ts (생성됨, 일부 생략)"
+    },
+    {
+      "id": "h-3b534e13",
+      "kind": "html",
+      "en": "Delete the <code>Team</code> arm and the build stops before any TypeScript is written:",
+      "tr": "<code>Team</code> arm을 지우면 TypeScript를 쓰기 전에 빌드가 멈춥니다."
+    },
+    {
+      "id": "h-7077f971",
+      "kind": "html",
+      "en": "glyph check --no-tsc (trimmed)",
+      "tr": "glyph check --no-tsc (일부 생략)"
+    },
+    {
+      "id": "h-f59e4630",
+      "kind": "html",
+      "en": "If you stop using Glyph, the emitted <code>.ts</code> is what you keep. It has no runtime dependency beyond a small bundled support directory the build writes next to it.",
+      "tr": "Glyph를 그만 쓰더라도 생성된 <code>.ts</code>는 남습니다. 빌드가 옆에 함께 쓰는 작은 지원 디렉터리 말고는 런타임 의존성이 없습니다."
+    },
+    {
+      "id": "h-4a394bc5",
+      "kind": "html",
+      "en": "npm, and the TypeScript you already have",
+      "tr": "npm, 그리고 이미 가지고 있는 TypeScript"
+    },
+    {
+      "id": "h-76fdeb65",
+      "kind": "html",
+      "en": "A <code>.glyph</code> module imports an npm package by name (<code>import kafkajs { Kafka }</code>), typed from the package's own declarations, and your existing <code>.ts</code> imports the emitted Glyph modules like any local file. So you can start with one module inside an app that stays TypeScript. The details are in three answers.",
+      "tr": "<code>.glyph</code> 모듈은 npm 패키지를 이름으로 import하며(<code>import kafkajs { Kafka }</code>), 타입은 패키지 자체의 선언에서 가져옵니다. 기존 <code>.ts</code> 코드는 생성된 Glyph 모듈을 여느 로컬 파일처럼 import합니다. 따라서 TypeScript로 남아 있는 앱 안에서 모듈 하나부터 시작할 수 있습니다. 자세한 내용은 세 가지 답변에 있습니다."
+    },
+    {
+      "id": "h-e9a25225",
+      "kind": "html",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "기존 TypeScript, JavaScript, npm 라이브러리를 쓸 수 있나요?"
+    },
+    {
+      "id": "h-f9974c7b",
+      "kind": "html",
+      "en": "Importing packages, keeping a <code>.ts</code> shim, and importing Glyph back into <code>.ts</code>.",
+      "tr": "패키지 import, <code>.ts</code> shim 유지, 그리고 Glyph를 다시 <code>.ts</code>로 import하기."
+    },
+    {
+      "id": "h-959b40fe",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app?",
+      "tr": "기존 앱 안에서 Glyph를 도입할 수 있나요?"
+    },
+    {
+      "id": "h-2a8fcb81",
+      "kind": "html",
+      "en": "The domain core in Glyph, the rest in TypeScript, in a stock Vite scaffold.",
+      "tr": "기본 Vite 프로젝트에서 도메인 핵심은 Glyph로, 나머지는 TypeScript로."
+    },
+    {
+      "id": "h-93bd5c12",
+      "kind": "html",
+      "en": "Does it work with React?",
+      "tr": "React와 함께 쓸 수 있나요?"
+    },
+    {
+      "id": "h-0bc7f09f",
+      "kind": "html",
+      "en": "Components, JSX, hooks, Context, and where <code>tsc</code> still does the checking.",
+      "tr": "컴포넌트, JSX, hook, Context, 그리고 여전히 <code>tsc</code>가 검사하는 부분."
+    }
+  ]
+}

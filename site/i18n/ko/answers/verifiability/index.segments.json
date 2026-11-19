@@ -1,0 +1,1226 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/verifiability/index.html",
+  "locale": "ko",
+  "source_hash": "debac5501878fd3d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What stops an agent from silently breaking my code? · Glyph",
+      "tr": "에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.",
+      "tr": "TypeScript에서는 컴파일된 뒤 깨지는 변경, 예를 들어 빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드가 Glyph에서는 에이전트가 고쳐야 하는 컴파일 오류가 됩니다."
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일 전체를 다시 포맷하나요?"
+    },
+    {
+      "id": "h-817ec091",
+      "kind": "html",
+      "en": "01 &middot; The core promise",
+      "tr": "01 &middot; 핵심 약속"
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?"
+    },
+    {
+      "id": "h-8860267a",
+      "kind": "html",
+      "en": "A whole class of change that <strong>quietly compiles</strong> in TypeScript (a missing case, an unhandled error, a renamed field) becomes a <strong>compile error the agent has to fix before it can ship</strong>.",
+      "tr": "TypeScript에서 <strong>조용히 컴파일되는</strong> 종류의 변경 전체(빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드)가 <strong>에이전트가 배포하기 전에 고쳐야 하는 컴파일 오류</strong>가 됩니다."
+    },
+    {
+      "id": "h-0dca38d0",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.ts</span> one new state, no other edit",
+      "tr": "<span class=\"ak-lang\">status.ts</span> 새 상태 하나, 다른 편집 없음"
+    },
+    {
+      "id": "h-a7fd8366",
+      "kind": "html",
+      "en": "tsc --strict: passes, prints undefined",
+      "tr": "tsc --strict: 통과, undefined 출력"
+    },
+    {
+      "id": "h-df578f1c",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.glyph</span> one new variant, and the compiler finds every gap",
+      "tr": "<span class=\"ak-lang\">status.glyph</span> 새 variant 하나, 그리고 컴파일러가 빠진 곳을 모두 찾음"
+    },
+    {
+      "id": "h-f12dfbd8",
+      "kind": "html",
+      "en": "refused: E0200",
+      "tr": "거부됨: E0200"
+    },
+    {
+      "id": "h-dddaf308",
+      "kind": "html",
+      "en": "glyph check --no-tsc, 0.1.149 (excerpt)",
+      "tr": "glyph check --no-tsc, 0.1.149 (발췌)"
+    },
+    {
+      "id": "h-b4036960",
+      "kind": "html",
+      "en": "<span>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update. The equivalent TypeScript <code>switch</code> compiles clean and returns <code>undefined</code> at runtime.</span>",
+      "tr": "<span>유니언에 상태를 추가하면 이전 집합을 처리하던 모든 곳이 컴파일되지 않고, 고쳐야 할 정확한 위치를 가리킵니다. 같은 TypeScript <code>switch</code>는 깔끔하게 컴파일되고 런타임에 <code>undefined</code>를 반환합니다.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">왜 중요한가</a>"
+    },
+    {
+      "id": "h-493ba471",
+      "kind": "html",
+      "en": "<a href=\"#errors\">Errors</a>",
+      "tr": "<a href=\"#errors\">오류</a>"
+    },
+    {
+      "id": "h-299aad85",
+      "kind": "html",
+      "en": "<a href=\"#typos\">Typos in arms</a>",
+      "tr": "<a href=\"#typos\">arm의 오타</a>"
+    },
+    {
+      "id": "h-f1f1c9bc",
+      "kind": "html",
+      "en": "<a href=\"#imports\">Across modules</a>",
+      "tr": "<a href=\"#imports\">모듈 간</a>"
+    },
+    {
+      "id": "h-ef1ba415",
+      "kind": "html",
+      "en": "<a href=\"#refinements\">Refinements</a>",
+      "tr": "<a href=\"#refinements\">정제 타입</a>"
+    },
+    {
+      "id": "h-736c66f8",
+      "kind": "html",
+      "en": "<a href=\"#examples\">Tests in the build</a>",
+      "tr": "<a href=\"#examples\">빌드 안의 테스트</a>"
+    },
+    {
+      "id": "h-1af522cc",
+      "kind": "html",
+      "en": "<a href=\"#four-more-found-by-building-with-it\">Found by building</a>",
+      "tr": "<a href=\"#four-more-found-by-building-with-it\">직접 만들며 찾은 것</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-32dffb36",
+      "kind": "html",
+      "en": "Agents don't usually break code loudly. They break it <strong>confidently</strong>: they add a state, drop a branch, or rename a field, everything still type-checks, and the bug surfaces in production.",
+      "tr": "에이전트는 보통 코드를 요란하게 깨뜨리지 않습니다. <strong>자신 있게</strong> 깨뜨립니다. 상태를 추가하거나, 분기를 빠뜨리거나, 필드 이름을 바꾸고, 모든 것이 여전히 타입 검사를 통과하며, 버그는 프로덕션에서 드러납니다."
+    },
+    {
+      "id": "h-593cf2d6",
+      "kind": "html",
+      "en": "The expensive failures are the ones that <em>compiled and were wrong</em>. Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into &ldquo;the compiler proved you did.&rdquo;",
+      "tr": "비용이 큰 실패는 <em>컴파일되었는데 틀린</em> 것입니다. Glyph는 &ldquo;아마 처리했을 것&rdquo;을 &ldquo;처리했다는 것을 컴파일러가 증명함&rdquo;으로 바꿔 그 틈을 막습니다."
+    },
+    {
+      "id": "h-7c47ac02",
+      "kind": "html",
+      "en": "<b>Sealed unions</b>Tagged unions are <strong>sealed</strong>, so <code>match</code> must cover every case.",
+      "tr": "<b>봉인된 유니언</b>태그 유니언은 <strong>봉인되어</strong> 있으므로 <code>match</code>는 모든 case를 다뤄야 합니다."
+    },
+    {
+      "id": "h-a732dd83",
+      "kind": "html",
+      "en": "<b>Errors as values</b>Errors are <strong>values</strong> you have to unwrap, not exceptions that vanish.",
+      "tr": "<b>값으로서의 오류</b>오류는 사라지는 예외가 아니라 꺼내 확인해야 하는 <strong>값</strong>입니다."
+    },
+    {
+      "id": "h-7cc9aefc",
+      "kind": "html",
+      "en": "<b>Checked boundaries</b>And every type carries a runtime descriptor, so data crossing a boundary is checked against its shape.",
+      "tr": "<b>검사되는 경계</b>그리고 모든 타입은 런타임 디스크립터를 가지므로, 경계를 넘어오는 데이터는 그 모양에 맞는지 검사됩니다."
+    },
+    {
+      "id": "h-9e145fb3",
+      "kind": "html",
+      "en": "A dropped error is a warning",
+      "tr": "버려진 오류는 경고입니다"
+    },
+    {
+      "id": "h-a0f7e838",
+      "kind": "html",
+      "en": "Same for errors: a function that returns <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or propagated with <code>?</code> (and the compiler checks the error type lines up). And if you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure.",
+      "tr": "오류도 마찬가지입니다. <code>Result&lt;T, E&gt;</code>를 반환하는 함수는 <code>match</code>로 처리하거나 <code>?</code>로 전달하도록 되어 있습니다(컴파일러는 오류 타입이 맞는지 검사합니다). 그리고 <code>Result</code>를 <em>버리면</em>(문장으로 호출하고 반환값을 무시하면) Glyph가 경고합니다(<code>E0217</code>). 버려진 오류는 삼켜진 실패이기 때문입니다."
+    },
+    {
+      "id": "h-3c7c9444",
+      "kind": "html",
+      "en": "You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "경고는 <code>let _ = ...</code>로 의도적으로만 끌 수 있고, 실수로 꺼지는 일은 없습니다."
+    },
+    {
+      "id": "h-4faa036c",
+      "kind": "html",
+      "en": "The standard library's unions are sealed too",
+      "tr": "표준 라이브러리의 유니언도 봉인되어 있습니다"
+    },
+    {
+      "id": "h-ac5ad03f",
+      "kind": "html",
+      "en": "The bar is the same for a union the standard library owns. <code>fs.ErrorKind</code> is a closed set of six kinds, and the checker knows its shape, so <code>match e.kind</code> on a filesystem error needs no <code>else</code> arm and fails with <code>E0200</code> when you leave a kind out.",
+      "tr": "표준 라이브러리가 소유한 유니언에도 같은 기준이 적용됩니다. <code>fs.ErrorKind</code>는 여섯 가지 종류로 된 닫힌 집합이고 검사기가 그 모양을 알기 때문에, 파일 시스템 오류에 대한 <code>match e.kind</code>에는 <code>else</code> arm이 필요 없고, 종류 하나를 빠뜨리면 <code>E0200</code>으로 실패합니다."
+    },
+    {
+      "id": "h-d6bf3201",
+      "kind": "html",
+      "en": "E0200 missing kind",
+      "tr": "E0200 빠진 종류"
+    },
+    {
+      "id": "h-82c9da4e",
+      "kind": "html",
+      "en": "E0210 unknown field",
+      "tr": "E0210 알 수 없는 필드"
+    },
+    {
+      "id": "h-b365b66a",
+      "kind": "html",
+      "en": "E0218 needs else",
+      "tr": "E0218 else 필요"
+    },
+    {
+      "id": "h-68b00f6d",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">field typos, return types, number and string matches</span>",
+      "tr": "자세히 <span class=\"hint\">필드 오타, 반환 타입, 숫자와 문자열 match</span>"
+    },
+    {
+      "id": "h-0469c431",
+      "kind": "html",
+      "en": "<code>e.mesage</code> is <code>E0210</code> rather than something <code>tsc</code> catches downstream. Return types travel too: <code>string.split(text, \",\")</code> is an <code>Array&lt;string&gt;</code>, so <code>for i, part in string.split(text, \",\")</code> binds <code>i</code> as a number instead of the string key you'd get from an untyped iterand.",
+      "tr": "<code>e.mesage</code>는 <code>tsc</code>가 나중에 잡는 것이 아니라 <code>E0210</code>입니다. 반환 타입도 전달됩니다. <code>string.split(text, \",\")</code>는 <code>Array&lt;string&gt;</code>이므로, <code>for i, part in string.split(text, \",\")</code>는 타입 없는 반복 대상에서 얻게 되는 문자열 키가 아니라 숫자로 <code>i</code>를 바인딩합니다."
+    },
+    {
+      "id": "h-50f9d186",
+      "kind": "html",
+      "en": "Exhaustiveness isn't just for unions. A <code>match</code> on a <code>number</code> or <code>string</code> with only literal arms can't cover an unbounded domain, so Glyph requires an <code>else</code> (<code>E0218</code>) rather than letting the uncovered value fall through to a runtime throw.",
+      "tr": "망라성은 유니언만을 위한 것이 아닙니다. 리터럴 arm만 있는 <code>number</code>나 <code>string</code>에 대한 <code>match</code>는 끝없는 정의역을 다 다룰 수 없으므로, Glyph는 다루지 않은 값이 런타임 예외로 흘러가게 두지 않고 <code>else</code>를 요구합니다(<code>E0218</code>)."
+    },
+    {
+      "id": "h-bf2adc90",
+      "kind": "html",
+      "en": "The rule is the same everywhere: a <code>match</code> that doesn't account for a case doesn't compile.",
+      "tr": "규칙은 어디서나 같습니다. case 하나를 고려하지 않은 <code>match</code>는 컴파일되지 않습니다."
+    },
+    {
+      "id": "h-94ceef2f",
+      "kind": "html",
+      "en": "A misspelled arm is a gap, not a catch-all",
+      "tr": "철자가 틀린 arm은 catch-all이 아니라 빠진 곳입니다"
+    },
+    {
+      "id": "h-325a109d",
+      "kind": "html",
+      "en": "A typo can't quietly paper over a gap either. A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding.",
+      "tr": "오타가 빠진 곳을 조용히 덮을 수도 없습니다. 대문자로 시작하는 arm 머리는 새 바인딩이 아니라 <strong>variant에 대한 참조</strong>입니다."
+    },
+    {
+      "id": "h-81a2cb84",
+      "kind": "html",
+      "en": "status.glyph: a misspelled arm is a gap, not a catch-all",
+      "tr": "status.glyph: 철자가 틀린 arm은 catch-all이 아니라 빠진 곳"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-1111b2dc",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what older Glyph did with the typo</span>",
+      "tr": "이력 <span class=\"hint\">예전 Glyph가 오타를 처리한 방식</span>"
+    },
+    {
+      "id": "h-35c640dd",
+      "kind": "html",
+      "en": "A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding, so if you misspell <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a catch-all that bound every value and made the match look total. Now the head has to name a real variant of the union you're matching. When it doesn't, the build stops with <code>E0220</code> and points at the nearest real name, and the variant you actually skipped still shows up as <code>E0200</code> right next to it.",
+      "tr": "대문자로 시작하는 arm 머리는 새 바인딩이 아니라 <strong>variant에 대한 참조</strong>입니다. 예전 Glyph는 <code>Loading</code>을 <code>Loadign</code>으로 잘못 쓰면 그 오타를 모든 값을 바인딩하는 catch-all로 읽어서 match가 완전한 것처럼 보이게 했습니다. 이제 머리는 match 대상 유니언의 실제 variant를 가리켜야 합니다. 그렇지 않으면 빌드가 <code>E0220</code>으로 멈추고 가장 가까운 실제 이름을 가리키며, 실제로 빠뜨린 variant도 바로 옆에 <code>E0200</code>으로 나타납니다."
+    },
+    {
+      "id": "h-e45746f9",
+      "kind": "html",
+      "en": "Variants inside a payload",
+      "tr": "payload 안의 variant"
+    },
+    {
+      "id": "h-4e9c7c14",
+      "kind": "html",
+      "en": "That reading holds one level down, where the variant is the payload of another one. The arm now dispatches on the payload's own tag, whatever the outer variant is.",
+      "tr": "variant가 다른 variant의 payload인 한 단계 아래에서도 같은 해석이 적용됩니다. 이제 arm은 바깥 variant가 무엇이든 payload 자신의 태그로 분기합니다."
+    },
+    {
+      "id": "h-5f78059f",
+      "kind": "html",
+      "en": "repl.glyph: the inner arm tests the payload, it doesn't bind it",
+      "tr": "repl.glyph: 안쪽 arm은 payload를 바인딩하지 않고 검사함"
+    },
+    {
+      "id": "h-e29806a9",
+      "kind": "html",
+      "en": "E0305 duplicate case label",
+      "tr": "E0305 중복된 case 레이블"
+    },
+    {
+      "id": "h-a9f4ca6a",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the dead arm before 0.1.93, and the E0305 guard</span>",
+      "tr": "이력 <span class=\"hint\">0.1.93 이전의 죽은 arm과 E0305 방어</span>"
+    },
+    {
+      "id": "h-6b579450",
+      "kind": "html",
+      "en": "<code>Err(Blank)</code> beside <code>Err(e)</code> reads as \"ignore a blank line, print every other parse error\", and until 0.1.93 it compiled to two <code>case \"Err\":</code> labels on the outer tag whose first bound the whole payload under the name <code>Blank</code>. Every error took the first arm, the second was dead code, and nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> accepts a duplicate case label. The arm now dispatches on the payload's own tag, whatever the outer variant is, and the compiler reads the name the way the typechecker does: the payload union's own variant list decides, and only when that list is out of reach does the name's shape decide. For a union declared in the same file the capitalization no longer matters. For one imported from another module the variant list is out of reach today, so a capitalized variant dispatches and a lowercase one stops the build.",
+      "tr": "<code>Err(e)</code> 옆의 <code>Err(Blank)</code>는 \"빈 줄은 무시하고 다른 모든 파싱 오류는 출력\"으로 읽히는데, 0.1.93까지는 바깥 태그에 대한 <code>case \"Err\":</code> 레이블 두 개로 컴파일되었고, 첫 번째가 payload 전체를 <code>Blank</code>라는 이름으로 바인딩했습니다. 모든 오류가 첫 번째 arm으로 갔고 두 번째는 죽은 코드였는데, 아무것도 이를 알려 주지 않았습니다. Glyph는 진단을 내지 않았고 <code>tsc --strict</code>는 중복된 case 레이블을 받아들입니다. 이제 arm은 바깥 variant가 무엇이든 payload 자신의 태그로 분기하고, 컴파일러는 타입 검사기와 같은 방식으로 이름을 읽습니다. payload 유니언의 variant 목록이 결정하고, 그 목록에 닿을 수 없을 때만 이름의 모양이 결정합니다. 같은 파일에 선언된 유니언이라면 대소문자는 더 이상 상관없습니다. 다른 모듈에서 import한 유니언은 현재 variant 목록에 닿을 수 없으므로, 대문자 variant는 분기하고 소문자 variant는 빌드를 멈춥니다."
+    },
+    {
+      "id": "h-2bcf741d",
+      "kind": "html",
+      "en": "It stops because the switch is guarded now. Two arms that would write the same <code>case</code> label are <code>E0305</code>, not a switch whose second label can never run. That is what makes the class loud instead of silent: a lowering that reaches for the same tag twice fails the build rather than picking the wrong arm at run time.",
+      "tr": "빌드가 멈추는 것은 이제 switch가 보호되기 때문입니다. 같은 <code>case</code> 레이블을 쓰게 되는 두 arm은 두 번째 레이블이 절대 실행되지 않는 switch가 아니라 <code>E0305</code>입니다. 이 덕분에 이 종류의 문제가 조용하지 않고 요란해집니다. 같은 태그를 두 번 사용하는 변환은 런타임에 엉뚱한 arm을 고르는 대신 빌드를 실패시킵니다."
+    },
+    {
+      "id": "h-5ae4d2b0",
+      "kind": "html",
+      "en": "Import spelling never turns the check off",
+      "tr": "import 표기 방식이 검사를 끄는 일은 없습니다"
+    },
+    {
+      "id": "h-cf742b0d",
+      "kind": "html",
+      "en": "How the union got into scope doesn't change any of this. Glyph lets you write a variant arm two ways, and both are checked the same: <code>import model { Cond, Yes, No }</code> with bare arms, or <code>import model</code> (or <code>import model as m</code>) with <code>model.Yes(_)</code>.",
+      "tr": "유니언이 어떻게 스코프에 들어왔는지는 이 모든 것을 바꾸지 않습니다. Glyph에서는 variant arm을 두 가지 방식으로 쓸 수 있고, 둘 다 똑같이 검사됩니다. <code>import model { Cond, Yes, No }</code>와 그냥 쓰는 arm, 또는 <code>import model</code>(또는 <code>import model as m</code>)과 <code>model.Yes(_)</code>입니다."
+    },
+    {
+      "id": "h-a5be5f60",
+      "kind": "html",
+      "en": "interp.glyph: the import list came out, the match is still checked",
+      "tr": "interp.glyph: import 목록은 사라졌지만 match는 여전히 검사됨"
+    },
+    {
+      "id": "h-1efde9fe",
+      "kind": "html",
+      "en": "glyph build, after deleting the last arm",
+      "tr": "glyph build, 마지막 arm을 지운 뒤"
+    },
+    {
+      "id": "h-f2895549",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">standard library unions, string enums, and why the list existed</span>",
+      "tr": "자세히 <span class=\"hint\">표준 라이브러리 유니언, 문자열 enum, 그리고 그 목록이 있었던 이유</span>"
+    },
+    {
+      "id": "h-d10dc4ff",
+      "kind": "html",
+      "en": "That holds for the standard library's unions too, so <code>match o { option.Some(s) =&gt; … }</code> on an <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling is. Until 0.1.56 the qualified spelling skipped the check entirely and the build reported no diagnostics on a match that threw at run time.",
+      "tr": "표준 라이브러리의 유니언에도 마찬가지이므로, <code>option.Option&lt;string&gt;</code>에 대한 <code>match o { option.Some(s) =&gt; … }</code>는 그냥 <code>Some</code>/<code>None</code>으로 쓴 것과 똑같이 빠진 <code>None</code>에 대해 <code>E0200</code>입니다. 0.1.56까지는 한정된 표기가 검사를 통째로 건너뛰었고, 런타임에 예외를 던지는 match에 대해 빌드가 아무 진단도 보고하지 않았습니다."
+    },
+    {
+      "id": "h-947faa47",
+      "kind": "html",
+      "en": "A string enum crosses the boundary too. <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> declared in <code>catalog.glyph</code> and imported into another module keeps its four values, so a match covering all four compiles with no <code>else</code>, and dropping one is <code>E0200</code> naming the value you dropped. Until 0.1.57 it was <code>E0218</code>, with help text telling you to add an <code>else</code> arm. That help was wrong about the code in front of it, and taking it turned a compile error into a runtime fallthrough. All three import spellings work: <code>import catalog { ColType }</code>, <code>import catalog</code> with <code>catalog.ColType</code>, and <code>import catalog as c</code> with <code>c.ColType</code>.",
+      "tr": "문자열 enum도 경계를 넘습니다. <code>catalog.glyph</code>에 선언하고 다른 모듈로 import한 <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code>은 네 값을 유지하므로, 네 가지를 모두 다루는 match는 <code>else</code> 없이 컴파일되고, 하나를 빠뜨리면 빠뜨린 값을 짚는 <code>E0200</code>입니다. 0.1.57까지는 <code>E0218</code>이었고, 도움말은 <code>else</code> arm을 추가하라고 했습니다. 그 도움말은 눈앞의 코드에 대해 틀렸고, 그대로 따르면 컴파일 오류가 런타임 fallthrough로 바뀌었습니다. 세 가지 import 표기 모두 동작합니다: <code>import catalog { ColType }</code>, <code>catalog.ColType</code>을 쓰는 <code>import catalog</code>, 그리고 <code>c.ColType</code>을 쓰는 <code>import catalog as c</code>."
+    },
+    {
+      "id": "h-1a86b4ae",
+      "kind": "html",
+      "en": "That import list is where this came from. It was written by hand in every module of a statechart engine, with a comment above it saying a union's constructors don't arrive with its type. The comment was right about the syntax and wrong about the reason: the list was there because the shorter spelling turned the check off, and nobody had noticed, because turning it off is silent. Which form you pick is now a real choice rather than a trap. The named one puts every variant you handle in the import list, which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one says at each arm which module the variant came from. Neither costs you the check.",
+      "tr": "이 문제는 그 import 목록에서 시작되었습니다. statechart 엔진의 모든 모듈에 직접 작성되어 있었고, 그 위에는 유니언의 생성자는 타입과 함께 들어오지 않는다는 주석이 달려 있었습니다. 주석은 문법에 대해서는 맞았지만 이유에 대해서는 틀렸습니다. 목록이 있었던 이유는 더 짧은 표기가 검사를 꺼 버렸기 때문이고, 끄는 것이 조용했기 때문에 아무도 알아채지 못했습니다. 이제 어느 형태를 고르느냐는 함정이 아니라 실제 선택입니다. 이름을 나열하는 형태는 처리하는 모든 variant를 import 목록에 두므로 <code>Equals</code>를 <code>grep</code>하면 찾을 수 있습니다. 한정된 형태는 각 arm에서 variant가 어느 모듈에서 왔는지 보여 줍니다. 어느 쪽도 검사를 잃지 않습니다."
+    },
+    {
+      "id": "h-5d24c15d",
+      "kind": "html",
+      "en": "Imported records keep their fields",
+      "tr": "import한 레코드는 필드를 유지합니다"
+    },
+    {
+      "id": "h-22710d78",
+      "kind": "html",
+      "en": "Records cross now too, and until 0.1.58 they did not. A record therefore keeps its field set, and a bad field is <code>E0210</code> naming the record rather than a <code>tsc</code> error about an anonymous shape.",
+      "tr": "이제 레코드도 경계를 넘으며, 0.1.58까지는 그렇지 않았습니다. 따라서 레코드는 필드 집합을 유지하고, 잘못된 필드는 익명 모양에 대한 <code>tsc</code> 오류가 아니라 레코드 이름을 짚는 <code>E0210</code>입니다."
+    },
+    {
+      "id": "h-7282177b",
+      "kind": "html",
+      "en": "glyph build, on a typo'd field of an imported record",
+      "tr": "glyph build, import한 레코드의 오타 난 필드에 대해"
+    },
+    {
+      "id": "h-e3755b2b",
+      "kind": "html",
+      "en": "table.glyph: the hoists and the comment explaining them are gone",
+      "tr": "table.glyph: 끌어올린 바인딩과 그것을 설명하던 주석이 사라짐"
+    },
+    {
+      "id": "h-7255646a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the line 11 bug, what tsc misses, how identity crosses</span>",
+      "tr": "자세히 <span class=\"hint\">line 11 버그, tsc가 놓치는 것, 식별이 경계를 넘는 방식</span>"
+    },
+    {
+      "id": "h-14cf6d10",
+      "kind": "html",
+      "en": "A type declared in one file and used in another arrived with nothing known about it, which cost two separate checks. A misspelled field on it drew no Glyph error at all, so <code>sheet.rowz</code> fell through to <code>tsc</code> and came back as a TypeScript message about a shape you never wrote. And <code>for i, r in sheet.rows</code> could not tell that <code>rows</code> was an array, so it emitted <code>Object.entries(sheet.rows)</code> rather than <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string <code>\"0\"</code>. <code>i + 1</code> then concatenates instead of adding, and a row that should be reported as <code>line 2</code> reports as <code>line 11</code>.",
+      "tr": "한 파일에서 선언하고 다른 파일에서 쓰는 타입은 아무 정보 없이 도착했고, 그 때문에 별개의 검사 두 개를 잃었습니다. 그 타입의 철자가 틀린 필드는 Glyph 오류를 전혀 내지 않았으므로 <code>sheet.rowz</code>는 <code>tsc</code>까지 넘어가서, 작성한 적도 없는 모양에 대한 TypeScript 메시지로 돌아왔습니다. 그리고 <code>for i, r in sheet.rows</code>는 <code>rows</code>가 배열인지 알 수 없어서 <code>sheet.rows.entries()</code> 대신 <code>Object.entries(sheet.rows)</code>를 생성했습니다. 그러면 <code>i</code>가 문자열 <code>\"0\"</code>에 바인딩됩니다. 그러면 <code>i + 1</code>은 더하기 대신 문자열을 이어 붙이고, <code>line 2</code>로 보고되어야 할 행이 <code>line 11</code>로 보고됩니다."
+    },
+    {
+      "id": "h-9abff4c5",
+      "kind": "html",
+      "en": "The part worth knowing is which half <code>tsc</code> catches. Arithmetic on that index it does catch, though it reports the error against generated TypeScript for a variable Glyph bound on your behalf. What it cannot catch is every place a string is accepted where a number was meant: string interpolation, concatenation, a <code>record.get</code> key. Those compile clean under both checkers and print the wrong number. That is the shape of bug this project exists to remove, so a module boundary that reintroduces it is not a boundary Glyph can leave alone.",
+      "tr": "알아 둘 만한 부분은 <code>tsc</code>가 어느 쪽을 잡느냐입니다. 그 인덱스에 대한 산술 연산은 잡지만, Glyph가 대신 바인딩한 변수에 대해 생성된 TypeScript 기준으로 오류를 보고합니다. 잡지 못하는 것은 숫자를 의도한 곳에 문자열이 받아들여지는 모든 곳입니다. 문자열 보간, 이어 붙이기, <code>record.get</code> 키 같은 곳입니다. 이런 코드는 두 검사기에서 모두 깔끔하게 컴파일되고 잘못된 숫자를 출력합니다. 이 프로젝트가 없애려고 존재하는 바로 그 모양의 버그이므로, 이를 다시 들여오는 모듈 경계를 Glyph가 그냥 둘 수는 없습니다."
+    },
+    {
+      "id": "h-458dd926",
+      "kind": "html",
+      "en": "An imported type now carries an identity across the boundary, keyed on the module that declares it and the name it declares, so all three import spellings resolve to the same type. The declaration itself is fetched on demand and lowered on the declaring module's side, which is the half a consumer cannot do: resolution runs over spans, and an imported declaration's spans belong to another file.",
+      "tr": "이제 import한 타입은 그것을 선언한 모듈과 선언된 이름을 키로 하는 식별 정보를 경계 너머로 가지고 가므로, 세 가지 import 표기 모두 같은 타입으로 해석됩니다. 선언 자체는 필요할 때 가져와서 선언한 모듈 쪽에서 변환되는데, 이것이 사용하는 쪽에서는 할 수 없는 절반입니다. 이름 해석은 소스 범위를 기준으로 실행되고, import한 선언의 범위는 다른 파일에 속하기 때문입니다."
+    },
+    {
+      "id": "h-056c35df",
+      "kind": "html",
+      "en": "The query engine in <code>examples/apps/csvql</code> is where this surfaced. It carried three <code>let</code> hoists whose only job was to restate an imported field's type for the emitter, under a four-line comment explaining that without them the row and column numbers in an error message come out wrong. All three are deleted and the app prints byte-identical output for all twelve queries.",
+      "tr": "이 문제가 드러난 곳은 <code>examples/apps/csvql</code>의 쿼리 엔진입니다. 여기에는 import한 필드의 타입을 emitter에 다시 알려 주는 것 말고는 하는 일이 없는 <code>let</code> 끌어올리기가 세 개 있었고, 그 위에는 이것이 없으면 오류 메시지의 행과 열 번호가 틀리게 나온다는 네 줄짜리 주석이 있었습니다. 세 개 모두 삭제했고, 앱은 열두 개 쿼리 모두에 대해 바이트 단위로 같은 출력을 냅니다."
+    },
+    {
+      "id": "h-16e56e8c",
+      "kind": "html",
+      "en": "One thing still stops at the boundary. Passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is E0211 naming both types, but an <code>interface</code>'s member list does not cross, so a record passed where an imported interface is expected is compared against nothing. Giving it the treatment a record's field set gets would quietly change what structural satisfaction means, which is a language decision rather than a fix.",
+      "tr": "경계에서 여전히 멈추는 것이 하나 있습니다. <code>table.Row</code>가 필요한 곳에 <code>catalog.Sheet</code>를 넘기면 두 타입을 모두 짚는 E0211이지만, <code>interface</code>의 멤버 목록은 경계를 넘지 않으므로 import한 인터페이스가 필요한 곳에 넘긴 레코드는 아무것과도 비교되지 않습니다. 레코드의 필드 집합과 같은 처리를 하면 구조적 만족이 무엇을 뜻하는지가 조용히 바뀌게 되는데, 이는 수정이 아니라 언어 차원의 결정입니다."
+    },
+    {
+      "id": "h-6834f6ea",
+      "kind": "html",
+      "en": "PII masking lives on the type",
+      "tr": "개인정보 마스킹은 타입에 있습니다"
+    },
+    {
+      "id": "h-e74ab1dc",
+      "kind": "html",
+      "en": "The same \"make it type-level, not convention\" instinct covers PII. Put <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a <code>redact()</code> on its descriptor that masks those fields, so <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "\"관례가 아니라 타입 수준으로 만든다\"는 같은 원칙이 개인정보에도 적용됩니다. 타입에 <code>@redact fields: [ssn, dob]</code>를 붙이면 컴파일러가 그 필드를 가리는 <code>redact()</code>를 디스크립터에 생성하므로, <code>json.stringify(User.redact(u))</code>는 그 필드를 유출할 수 없습니다."
+    },
+    {
+      "id": "h-13194d57",
+      "kind": "html",
+      "en": "E0219 unknown field in @redact",
+      "tr": "E0219 @redact의 알 수 없는 필드"
+    },
+    {
+      "id": "h-a3dc9bf7",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently does nothing.",
+      "tr": "타입에 없는 필드를 지정하면 아무 일도 하지 않는 마스킹이 아니라 컴파일 오류(<code>E0219</code>)입니다."
+    },
+    {
+      "id": "h-f83eef70",
+      "kind": "html",
+      "en": "Refinements are checked all the way down",
+      "tr": "정제 타입은 끝까지 검사됩니다"
+    },
+    {
+      "id": "h-4f2c9d8a",
+      "kind": "html",
+      "en": "A descriptor is only worth anything if it's the check the type declares, all the way down. A <code>where</code> refinement runs its predicate wherever the type appears, not just at a direct <code>Instant.parse</code>: as a record field, as an <code>Array</code> element, as an <code>Option</code> payload, inside a union variant, and through <code>json.parse&lt;T&gt;</code>.",
+      "tr": "디스크립터는 타입이 선언한 검사를 끝까지 수행할 때만 가치가 있습니다. <code>where</code> 정제는 직접 호출한 <code>Instant.parse</code>에서만이 아니라 타입이 나타나는 모든 곳에서 조건식을 실행합니다. 레코드 필드, <code>Array</code> 요소, <code>Option</code> payload, 유니언 variant 안, 그리고 <code>json.parse&lt;T&gt;</code>를 통해서도 마찬가지입니다."
+    },
+    {
+      "id": "a-9d24b993",
+      "kind": "attr:aria-label",
+      "en": "Where the predicate runs",
+      "tr": "조건식이 실행되는 곳"
+    },
+    {
+      "id": "h-cc2d34d0",
+      "kind": "html",
+      "en": "<span>Calendar</span>",
+      "tr": "<span>Calendar</span>"
+    },
+    {
+      "id": "h-ff1a5c12",
+      "kind": "html",
+      "en": "<span>busy</span>",
+      "tr": "<span>busy</span>"
+    },
+    {
+      "id": "h-6f5019a2",
+      "kind": "html",
+      "en": "<span>start</span>",
+      "tr": "<span>start</span>"
+    },
+    {
+      "id": "h-b466db9f",
+      "kind": "html",
+      "en": "<span>The fix is four levels down from the boundary: <code>Calendar</code> to <code>Array&lt;WireParticipant&gt;</code> to <code>busy</code> to <code>start</code> to the predicate.</span>",
+      "tr": "<span>수정은 경계에서 네 단계 아래에 있습니다: <code>Calendar</code>에서 <code>Array&lt;WireParticipant&gt;</code>, <code>busy</code>, <code>start</code>, 그리고 조건식까지.</span>"
+    },
+    {
+      "id": "h-b717ddb6",
+      "kind": "html",
+      "en": "schedule.glyph: the predicate follows the type into the field",
+      "tr": "schedule.glyph: 조건식이 타입을 따라 필드 안까지 들어감"
+    },
+    {
+      "id": "h-db3eb4df",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the confident wrong schedule before 0.1.41</span>",
+      "tr": "이력 <span class=\"hint\">0.1.41 이전의 자신만만하게 틀린 일정</span>"
+    },
+    {
+      "id": "h-26ea0f9a",
+      "kind": "html",
+      "en": "The same goes for a record imported from another module. Until 0.1.41 both of those fell back to checking that the key was present, which is not a check of anything.",
+      "tr": "다른 모듈에서 import한 레코드도 마찬가지입니다. 0.1.41까지는 둘 다 키가 있는지만 확인하는 것으로 대신했는데, 이는 아무것도 검사하지 않는 것입니다."
+    },
+    {
+      "id": "h-32933c95",
+      "kind": "html",
+      "en": "The scheduling app below is where this surfaced. It reads calendars from a JSON file and needs every timestamp to be a real ISO-8601 instant. Before, the refinement stopped at the top level, so a hand-edited file with <code>\"start\": \"no\"</code> parsed fine, the instant read as 0, and the app printed a confident schedule and exited 0.",
+      "tr": "이 문제가 드러난 곳은 아래의 일정 관리 앱입니다. JSON 파일에서 캘린더를 읽고, 모든 타임스탬프가 실제 ISO-8601 시각이어야 합니다. 예전에는 정제가 최상위에서 멈췄기 때문에, 직접 수정한 파일에 <code>\"start\": \"no\"</code>가 있어도 문제없이 파싱되었고, 시각은 0으로 읽혔으며, 앱은 자신만만하게 일정을 출력하고 0으로 종료했습니다."
+    },
+    {
+      "id": "h-e0b0c6e0",
+      "kind": "html",
+      "en": "Tests run as part of the build",
+      "tr": "테스트는 빌드의 일부로 실행됩니다"
+    },
+    {
+      "id": "h-8f68e695",
+      "kind": "html",
+      "en": "Tests live next to the code and run as part of compiling it. An <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.",
+      "tr": "테스트는 코드 옆에 있고 컴파일 과정의 일부로 실행됩니다. 함수 위의 <code>@example</code>이나 <code>@doc</code> 안의 <code>```glyph @run```</code> 블록은 기억해야 할 플래그 없이 <code>glyph build</code>가 실행합니다."
+    },
+    {
+      "id": "h-a935d52f",
+      "kind": "html",
+      "en": "bracket.glyph: break the seeding and the build stops",
+      "tr": "bracket.glyph: 시드 배치를 깨뜨리면 빌드가 멈춤"
+    },
+    {
+      "id": "h-9fb096f6",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why it can't be skipped quietly, and the JSON channel</span>",
+      "tr": "자세히 <span class=\"hint\">조용히 건너뛸 수 없는 이유와 JSON 채널</span>"
+    },
+    {
+      "id": "h-8d480a9c",
+      "kind": "html",
+      "en": "A false one fails the build the same way a type error does, which is the point: an agent rewriting a function body cannot pass the build by leaving the assertion behind. <code>--no-test</code> opts out and prints how many tests it skipped, so the bypass is visible in the log.",
+      "tr": "거짓인 예제는 타입 오류와 똑같이 빌드를 실패시키며, 그것이 핵심입니다. 함수 본문을 다시 쓰는 에이전트는 단언을 그대로 둔 채 빌드를 통과할 수 없습니다. <code>--no-test</code>로 건너뛸 수 있지만 건너뛴 테스트 수를 출력하므로, 우회한 사실이 로그에 남습니다."
+    },
+    {
+      "id": "h-0c14dec1",
+      "kind": "html",
+      "en": "The JSON output agents read reports the same verdict. <code>glyph build --json</code> carries an <code>examples</code> object next to the diagnostics, and a failing example makes <code>ok</code> false and the exit code non-zero. Until 0.1.43 the examples ran only under <code>--test</code>, and the JSON path returned before they ran at all, so the one channel an agent can read printed <code>\"ok\": true</code> on a project whose own assertion was false. If <code>tsx</code> isn't on <code>PATH</code> the build fails instead of reporting a pass it never checked.",
+      "tr": "에이전트가 읽는 JSON 출력도 같은 판정을 보고합니다. <code>glyph build --json</code>은 진단 옆에 <code>examples</code> 객체를 담고, 실패하는 예제가 있으면 <code>ok</code>가 false가 되고 종료 코드가 0이 아닙니다. 0.1.43까지는 예제가 <code>--test</code>에서만 실행되었고 JSON 경로는 예제를 실행하기도 전에 반환했으므로, 에이전트가 읽을 수 있는 유일한 채널이 자체 단언이 거짓인 프로젝트에 대해 <code>\"ok\": true</code>를 출력했습니다. <code>PATH</code>에 <code>tsx</code>가 없으면 검사하지도 않은 통과를 보고하는 대신 빌드가 실패합니다."
+    },
+    {
+      "id": "h-39aaaa02",
+      "kind": "html",
+      "en": "The bracket app below carries 23 of these. <code>seed_order</code> builds standard bracket order by doubling, which is the kind of function that is easy to get subtly wrong and easy to describe exactly. Change the doubling rule and the build stops, without a test file, a runner, or a flag.",
+      "tr": "아래의 대진표 앱에는 이런 예제가 23개 있습니다. <code>seed_order</code>는 두 배로 늘려 가며 표준 대진 순서를 만드는데, 미묘하게 틀리기 쉽고 정확하게 설명하기도 쉬운 종류의 함수입니다. 두 배로 늘리는 규칙을 바꾸면 테스트 파일도, 러너도, 플래그도 없이 빌드가 멈춥니다."
+    },
+    {
+      "id": "h-03f15931",
+      "kind": "html",
+      "en": "Found by building with it",
+      "tr": "직접 만들며 찾은 것"
+    },
+    {
+      "id": "h-698c73d4",
+      "kind": "html",
+      "en": "Four more, found by building with it",
+      "tr": "직접 만들며 찾은 네 가지 더"
+    },
+    {
+      "id": "h-113db4ca",
+      "kind": "html",
+      "en": "Each of these compiled clean and passed <code>tsc --strict</code>, and each was found by writing an application rather than by reading the compiler. They are the same failure in three places: the types said one thing and the program did another.",
+      "tr": "이것들은 모두 깔끔하게 컴파일되고 <code>tsc --strict</code>를 통과했으며, 모두 컴파일러를 읽어서가 아니라 애플리케이션을 작성하면서 발견했습니다. 세 곳에서 나타난 같은 실패입니다. 타입은 한 가지를 말했고 프로그램은 다른 일을 했습니다."
+    },
+    {
+      "id": "h-a616a906",
+      "kind": "html",
+      "en": "Reading a key that may not be there",
+      "tr": "없을 수도 있는 키 읽기"
+    },
+    {
+      "id": "h-52489cbb",
+      "kind": "html",
+      "en": "reading a key that may not be there: now E0224",
+      "tr": "없을 수도 있는 키 읽기: 이제 E0224"
+    },
+    {
+      "id": "h-f531f861",
+      "kind": "html",
+      "en": "It is now a compile error pointing at <code>record.get</code>, which returns <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.",
+      "tr": "이제 <code>record.get</code>을 가리키는 컴파일 오류입니다. 이 함수는 <code>Option&lt;V&gt;</code>를 반환하므로 키가 없는 경우를 처리할 자리가 생깁니다."
+    },
+    {
+      "id": "h-e54e941e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why a map read is different from array indexing</span>",
+      "tr": "자세히 <span class=\"hint\">맵 읽기가 배열 인덱싱과 다른 이유</span>"
+    },
+    {
+      "id": "h-c9bcefe0",
+      "kind": "html",
+      "en": "A map's keys are arbitrary, so the compiler cannot know the key is there. Typing the read as <code>string</code> stated something it had not checked, and the value printed as the text \"undefined\". Writing a key is untouched, and so is array indexing: a bound is a value a program can check, a map key is not.",
+      "tr": "맵의 키는 임의적이므로 컴파일러는 키가 있는지 알 수 없습니다. 읽은 값의 타입을 <code>string</code>으로 지정하는 것은 검사하지 않은 것을 단언하는 것이었고, 값은 \"undefined\"라는 텍스트로 출력되었습니다. 키를 쓰는 것은 그대로이고 배열 인덱싱도 그대로입니다. 범위는 프로그램이 검사할 수 있는 값이지만 맵 키는 그렇지 않습니다."
+    },
+    {
+      "id": "h-7affa1da",
+      "kind": "html",
+      "en": "<code>==</code> is value equality everywhere",
+      "tr": "<code>==</code>는 어디서나 값 비교입니다"
+    },
+    {
+      "id": "h-4243938e",
+      "kind": "html",
+      "en": "a test that passed while the code failed",
+      "tr": "코드는 실패했는데 통과한 테스트"
+    },
+    {
+      "id": "h-310e559c",
+      "kind": "html",
+      "en": "<code>==</code> is now value equality everywhere; primitives still compile to <code>===</code>, so ordinary comparisons are unchanged.",
+      "tr": "<code>==</code>는 이제 어디서나 값 비교입니다. 원시 타입은 여전히 <code>===</code>로 컴파일되므로 일반적인 비교는 바뀌지 않습니다."
+    },
+    {
+      "id": "h-ce8c5b9d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how a test could pass on broken code</span>",
+      "tr": "이력 <span class=\"hint\">망가진 코드에서 테스트가 통과할 수 있었던 이유</span>"
+    },
+    {
+      "id": "h-493aa455",
+      "kind": "html",
+      "en": "<code>==</code> was documented as value equality and lowered to <code>===</code>, which is <em>reference</em> equality the moment either side is a record, a tagged union, or an array. The same expression compared structurally in a test and by identity in the program beside it, so a test could report success on code that did not work.",
+      "tr": "<code>==</code>는 값 비교라고 문서화되어 있었지만 <code>===</code>로 변환되었는데, 이는 어느 한쪽이 레코드, 태그 유니언, 배열이 되는 순간 <em>참조</em> 비교입니다. 같은 표현식이 테스트에서는 구조적으로, 바로 옆 프로그램에서는 동일성으로 비교했으므로, 동작하지 않는 코드에 대해 테스트가 성공을 보고할 수 있었습니다."
+    },
+    {
+      "id": "h-5f4e8e26",
+      "kind": "html",
+      "en": "A loop binding keeps its element type",
+      "tr": "반복문 바인딩은 요소 타입을 유지합니다"
+    },
+    {
+      "id": "h-8a885009",
+      "kind": "html",
+      "en": "exhaustiveness that evaporated inside a loop",
+      "tr": "반복문 안에서 사라진 망라성"
+    },
+    {
+      "id": "h-6c2e2fbd",
+      "kind": "html",
+      "en": "It now names the variant you have not handled, which is advice to satisfy the check rather than to switch it off.",
+      "tr": "이제 처리하지 않은 variant를 짚어 주며, 이는 검사를 끄라는 조언이 아니라 검사를 만족시키라는 조언입니다."
+    },
+    {
+      "id": "h-811ca57d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the catch-all advice it used to give</span>",
+      "tr": "이력 <span class=\"hint\">예전에 주던 catch-all 조언</span>"
+    },
+    {
+      "id": "h-1933d79f",
+      "kind": "html",
+      "en": "The loop binding carried no element type, so a <code>match</code> over a string-literal union degraded to a match over <code>string</code> and the compiler advised adding a catch-all.",
+      "tr": "반복문 바인딩에 요소 타입이 없었으므로, 문자열 리터럴 유니언에 대한 <code>match</code>가 <code>string</code>에 대한 match로 격하되었고 컴파일러는 catch-all을 추가하라고 조언했습니다."
+    },
+    {
+      "id": "h-c324ad5a",
+      "kind": "html",
+      "en": "Imported generic unions are checked",
+      "tr": "import한 제네릭 유니언도 검사됩니다"
+    },
+    {
+      "id": "h-c5058636",
+      "kind": "html",
+      "en": "a variant left out of a match on an imported generic union",
+      "tr": "import한 제네릭 유니언에 대한 match에서 빠진 variant"
+    },
+    {
+      "id": "h-e2d737fb",
+      "kind": "html",
+      "en": "It is <code>E0200</code> either way now, at both import spellings and at an open parameter or a concrete instantiation alike.",
+      "tr": "이제는 어느 경우든 <code>E0200</code>입니다. 두 가지 import 표기 모두, 열린 매개변수든 구체적인 인스턴스화든 마찬가지입니다."
+    },
+    {
+      "id": "h-16f631f3",
+      "kind": "html",
+      "en": "History <span class=\"hint\">why the check never started</span>",
+      "tr": "이력 <span class=\"hint\">검사가 시작조차 되지 않았던 이유</span>"
+    },
+    {
+      "id": "h-b1b9589f",
+      "kind": "html",
+      "en": "A union your own module declares is checked whether or not it takes type parameters. One imported from a sibling module was checked only when it took none. <code>Tree&lt;string&gt;</code> reaches the cross-module coverage path as an application of an imported union rather than as one, and the gate that starts the check was looking for the second, so the <code>match</code> was never counted at all: <code>tsc --strict</code> passed and a <code>Leaf</code> threw. Delete <code>&lt;K&gt;</code> from both files and the same program was <code>E0200</code>.",
+      "tr": "자기 모듈이 선언한 유니언은 타입 매개변수가 있든 없든 검사됩니다. 형제 모듈에서 import한 유니언은 타입 매개변수가 없을 때만 검사되었습니다. <code>Tree&lt;string&gt;</code>은 import한 유니언 자체가 아니라 import한 유니언의 적용으로서 모듈 간 커버리지 경로에 도달하는데, 검사를 시작하는 관문은 전자를 찾고 있었으므로 <code>match</code>는 아예 세어지지 않았습니다. <code>tsc --strict</code>는 통과했고 <code>Leaf</code>가 예외를 던졌습니다. 두 파일에서 <code>&lt;K&gt;</code>를 지우면 같은 프로그램이 <code>E0200</code>이었습니다."
+    },
+    {
+      "id": "h-215b69fb",
+      "kind": "html",
+      "en": "A <code>parse</code> can't claim a check it didn't do",
+      "tr": "<code>parse</code>는 하지 않은 검사를 했다고 주장할 수 없습니다"
+    },
+    {
+      "id": "h-ed18ae93",
+      "kind": "html",
+      "en": "a <code>parse</code> that reported success without checking: now E0304",
+      "tr": "검사하지 않고 성공을 보고한 <code>parse</code>: 이제 E0304"
+    },
+    {
+      "id": "h-39872533",
+      "kind": "html",
+      "en": "Holding a socket in a record is ordinary and still compiles. Validating one is now refused where it is written and in every module that imports the record, naming the field and its type, and the refusal follows the shape: through a nested record, an <code>Array</code>, an <code>Option</code>.",
+      "tr": "레코드에 소켓을 담는 것은 평범한 일이고 여전히 컴파일됩니다. 이를 검증하는 것은 이제 작성한 곳과 그 레코드를 import하는 모든 모듈에서 필드와 그 타입을 짚으며 거부되고, 거부는 모양을 따라갑니다. 중첩된 레코드, <code>Array</code>, <code>Option</code>을 통해서도 마찬가지입니다."
+    },
+    {
+      "id": "h-a05fe05e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why presence is not a check, and the fix it asks for</span>",
+      "tr": "자세히 <span class=\"hint\">존재 여부가 검사가 아닌 이유와, 요구하는 수정</span>"
+    },
+    {
+      "id": "h-9c3b562f",
+      "kind": "html",
+      "en": "Every record type carries a runtime descriptor. For a field whose type the compiler cannot see into, a socket or anything reached through <code>extern_ts</code>, the generated check was \"is it present\" while the reported message read <code>field `sock` must be Socket</code>. A boolean that is always true is useless. One that is always true under a message naming a type nothing checked is worse, because <code>parse</code> is the thing a boundary is told to trust.",
+      "tr": "모든 레코드 타입은 런타임 디스크립터를 가집니다. 소켓이나 <code>extern_ts</code>를 통해 닿는 것처럼 컴파일러가 안을 들여다볼 수 없는 타입의 필드에 대해, 생성된 검사는 \"있는가\"였는데 보고 메시지는 <code>field `sock` must be Socket</code>이었습니다. 항상 참인 불리언은 쓸모가 없습니다. 아무것도 검사하지 않은 타입을 짚는 메시지 아래에서 항상 참인 불리언은 더 나쁩니다. 경계에서 믿으라고 하는 것이 바로 <code>parse</code>이기 때문입니다."
+    },
+    {
+      "id": "h-f64526be",
+      "kind": "html",
+      "en": "The fix it asks for is the split you would have written anyway, a wire type whose fields are all checkable, then a domain record you build from it. <code>unknown</code> is not caught by this, because it claims nothing and presence really is the whole check.",
+      "tr": "요구하는 수정은 어차피 작성했을 분리입니다. 모든 필드를 검사할 수 있는 wire 타입을 두고, 그로부터 도메인 레코드를 만드는 것입니다. <code>unknown</code>은 이 검사에 걸리지 않습니다. 아무것도 주장하지 않으며, 존재 여부가 정말로 검사의 전부이기 때문입니다."
+    },
+    {
+      "id": "h-ffa8c81e",
+      "kind": "html",
+      "en": "A signature change, invisible at the call site: closed in 0.1.116",
+      "tr": "호출 지점에서 보이지 않는 시그니처 변경: 0.1.116에서 막힘"
+    },
+    {
+      "id": "h-6db7877f",
+      "kind": "html",
+      "en": "Change a function to take a payload instead of a raw string and every call still passing the old shape built clean.",
+      "tr": "함수가 원시 문자열 대신 payload를 받도록 바꿔도, 여전히 이전 모양을 넘기는 모든 호출이 깔끔하게 빌드되었습니다."
+    },
+    {
+      "id": "h-9ee21e49",
+      "kind": "html",
+      "en": "billing.glyph: a union crosses a `string` parameter unnoticed",
+      "tr": "billing.glyph: 유니언이 아무도 모르게 `string` 매개변수를 통과함"
+    },
+    {
+      "id": "h-a20d51b6",
+      "kind": "html",
+      "en": "glyph build, now",
+      "tr": "glyph build, 현재"
+    },
+    {
+      "id": "h-dac7e473",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the check fires, and where it stays quiet</span>",
+      "tr": "자세히 <span class=\"hint\">검사가 발생하는 곳과 조용한 곳</span>"
+    },
+    {
+      "id": "h-17c058ca",
+      "kind": "html",
+      "en": "A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to accept a value of a declared union or record with no complaint at all, even though the identical call with a mismatched <code>bool</code> argument was already <code>E0211</code>.",
+      "tr": "<code>string</code>, <code>number</code>, <code>bool</code> 타입의 매개변수는 선언된 유니언이나 레코드 값을 아무 불평 없이 받아들였습니다. 같은 호출에 맞지 않는 <code>bool</code> 인자를 넘기면 이미 <code>E0211</code>이었는데도 말입니다."
+    },
+    {
+      "id": "h-da7fe218",
+      "kind": "html",
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "검사는 선언을 읽으므로 답이 확실한 곳에서만 발생합니다. 원시 타입 별칭, 문자열 리터럴 유니언(D30), <code>extern_ts</code>나 <code>typeof</code> 본문, 그리고 <code>interface</code>는 모두 여전히 아무 말도 하지 않습니다. 태그 유니언이나 레코드처럼 <code>string</code>이 아니라고 증명할 수 있는 것이 아니기 때문입니다. <code>void</code>도 제외됩니다. 인자, <code>return</code>, <code>let</code> 타입 표기 모두에 똑같이 적용되는데, 셋이 같은 관계를 공유하기 때문입니다."
+    },
+    {
+      "id": "h-77fa2d03",
+      "kind": "html",
+      "en": "An annotated <code>const</code> is typed",
+      "tr": "타입 표기가 있는 <code>const</code>는 타입을 가집니다"
+    },
+    {
+      "id": "h-18946092",
+      "kind": "html",
+      "en": "A <code>const</code> had the matching gap on the receiving side.",
+      "tr": "<code>const</code>에는 받는 쪽에 같은 구멍이 있었습니다."
+    },
+    {
+      "id": "h-275d90ea",
+      "kind": "html",
+      "en": "catalog.glyph: an annotated const, and the field it does not have",
+      "tr": "catalog.glyph: 타입 표기가 있는 const와, 그것에 없는 필드"
+    },
+    {
+      "id": "h-ace01ce9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">unannotated consts, and why both fixes are breaking</span>",
+      "tr": "자세히 <span class=\"hint\">타입 표기가 없는 const, 그리고 두 수정이 모두 breaking인 이유</span>"
+    },
+    {
+      "id": "h-7e1d4db5",
+      "kind": "html",
+      "en": "A module-level <code>const</code> carrying a type annotation lowered to <code>Ty::Unknown</code> no matter what the annotation said, so a field typo on it was invisible exactly where the identical annotated <code>let</code> inside a function already reported it.",
+      "tr": "타입 표기가 있는 모듈 수준 <code>const</code>는 표기가 무엇이든 <code>Ty::Unknown</code>으로 변환되었으므로, 함수 안의 같은 표기를 가진 <code>let</code>에서는 이미 보고되던 필드 오타가 거기서는 보이지 않았습니다."
+    },
+    {
+      "id": "h-4319dca8",
+      "kind": "html",
+      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "타입 표기가 없는 <code>const</code>는 아무것도 주장하지 않으며, 의도적으로 <code>Unknown</code>으로 남습니다. 초기값에서 타입을 추론하는 것은 오탐의 범위가 다른 별개의 문제입니다. 두 수정 모두 <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드에서 breaking입니다. 각각 이전 릴리스가 받아들이던 프로그램을 잡기 시작하기 때문입니다. 전체 <code>glyph build</code>는 두 경우 모두 이미 <code>tsc</code>를 통해 실패했습니다."
+    },
+    {
+      "id": "h-cbab1648",
+      "kind": "html",
+      "en": "An extra field is still <code>tsc</code>'s to catch",
+      "tr": "추가 필드는 여전히 <code>tsc</code>가 잡습니다"
+    },
+    {
+      "id": "h-ac6a4587",
+      "kind": "html",
+      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
+      "tr": "레코드 리터럴 검사 하나는 여전히 Glyph가 아니라 <code>tsc</code>의 몫입니다. <code>glyph build</code>는 여기서 멈추지만, <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드는 아무 말도 하지 않습니다(G273)."
+    },
+    {
+      "id": "h-b4f5f44a",
+      "kind": "html",
+      "en": "point.glyph: an extra field, left to tsc",
+      "tr": "point.glyph: tsc에 맡겨진 추가 필드"
+    },
+    {
+      "id": "h-500a7735",
+      "kind": "html",
+      "en": "TS2353 from tsc",
+      "tr": "tsc의 TS2353"
+    },
+    {
+      "id": "h-420c0512",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how tsc reports it</span>",
+      "tr": "자세히 <span class=\"hint\">tsc가 보고하는 방식</span>"
+    },
+    {
+      "id": "h-ef7526a6",
+      "kind": "html",
+      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
+      "tr": "선언된 레코드에 없는 필드를 가진 리터럴은 Glyph 검사기를 통과하고, <code>tsc</code>가 생성된 TypeScript에서 <code>TS2353</code>으로 거부하며, 이는 리터럴 위치로 다시 매핑됩니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-d58144f7",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">18</span>",
+      "tr": "지금 제공되는 것 <span class=\"count\">18</span>"
+    },
+    {
+      "id": "h-f9b8704d",
+      "kind": "html",
+      "en": "Matching",
+      "tr": "매칭"
+    },
+    {
+      "id": "h-1822a7e3",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over sealed unions: yours or a sibling module's, generic or not, and the standard library's, such as <code>fs.ErrorKind</code>",
+      "tr": "봉인된 유니언에 대한 망라적인 <code>match</code>: 자기 모듈의 것이든 형제 모듈의 것이든, 제네릭이든 아니든, 그리고 <code>fs.ErrorKind</code> 같은 표준 라이브러리의 것"
+    },
+    {
+      "id": "h-1dc7d0ec",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over <code>number</code>/<code>string</code>",
+      "tr": "<code>number</code>/<code>string</code>에 대한 망라적인 <code>match</code>"
+    },
+    {
+      "id": "h-d12411b5",
+      "kind": "html",
+      "en": "A typo'd variant arm caught as a compile error with a nearest-variant suggestion instead of a silent catch-all",
+      "tr": "오타 난 variant arm을 조용한 catch-all 대신 가장 가까운 variant 제안과 함께 컴파일 오류로 잡음"
+    },
+    {
+      "id": "h-b2819e07",
+      "kind": "html",
+      "en": "A variant in payload position dispatching on the payload's own tag rather than binding it",
+      "tr": "payload 위치의 variant가 payload를 바인딩하지 않고 payload 자신의 태그로 분기"
+    },
+    {
+      "id": "h-12d7966b",
+      "kind": "html",
+      "en": "Two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning",
+      "tr": "같은 태그에 답하는 두 arm을 하나가 조용히 이기게 두지 않고 <code>E0305</code>로 거부"
+    },
+    {
+      "id": "h-42315da3",
+      "kind": "html",
+      "en": "A <code>for</code> binding that keeps its element type",
+      "tr": "요소 타입을 유지하는 <code>for</code> 바인딩"
+    },
+    {
+      "id": "h-d7829106",
+      "kind": "html",
+      "en": "Errors and tests",
+      "tr": "오류와 테스트"
+    },
+    {
+      "id": "h-71ede7c9",
+      "kind": "html",
+      "en": "<code>Result</code> + the <code>?</code> operator with error-type checking",
+      "tr": "<code>Result</code>와 오류 타입을 검사하는 <code>?</code> 연산자"
+    },
+    {
+      "id": "h-77e204a0",
+      "kind": "html",
+      "en": "A warning when a <code>Result</code> is discarded",
+      "tr": "<code>Result</code>를 버리면 경고"
+    },
+    {
+      "id": "h-c7fdeb1c",
+      "kind": "html",
+      "en": "<code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included",
+      "tr": "<code>--json</code>을 포함해 빌드할 때마다 실행되는 <code>@example</code> / <code>@doc @run</code> 테스트"
+    },
+    {
+      "id": "h-5f5f223f",
+      "kind": "html",
+      "en": "Types, records and literals",
+      "tr": "타입, 레코드, 리터럴"
+    },
+    {
+      "id": "h-538cd6bb",
+      "kind": "html",
+      "en": "A declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected",
+      "tr": "<code>string</code>/<code>number</code>/<code>bool</code>이 필요한 곳에 넘긴 선언된 유니언이나 레코드"
+    },
+    {
+      "id": "h-1d1dcc32",
+      "kind": "html",
+      "en": "A field typo on an annotated module-level <code>const</code>",
+      "tr": "타입 표기가 있는 모듈 수준 <code>const</code>의 필드 오타"
+    },
+    {
+      "id": "h-10b714c5",
+      "kind": "html",
+      "en": "<code>==</code> as value equality on every type",
+      "tr": "모든 타입에서 값 비교인 <code>==</code>"
+    },
+    {
+      "id": "h-65a54713",
+      "kind": "html",
+      "en": "Reading a key out of a map rejected",
+      "tr": "맵에서 키를 읽는 것을 거부"
+    },
+    {
+      "id": "h-0fdc9dd8",
+      "kind": "html",
+      "en": "Object literals and JSX attributes checked against the declared type",
+      "tr": "선언된 타입에 대해 검사되는 객체 리터럴과 JSX 속성"
+    },
+    {
+      "id": "h-194b7ac0",
+      "kind": "html",
+      "en": "since 0.1.124",
+      "tr": "0.1.124부터"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
+    },
+    {
+      "id": "h-16b87510",
+      "kind": "html",
+      "en": "Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant=\"nope\" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames.",
+      "tr": "0.1.124부터 객체 리터럴은 그 필드가 나타내는 레코드 타입을 가집니다. 그래서 <code>let g: string = { x: 1 }</code>, 선언된 레코드가 요구하는 필드가 빠진 리터럴, 맞지 않는 곳에 넘긴 리터럴은 <code>let</code>, <code>const</code>, <code>return</code>, 호출 인자에서 선언된 타입을 짚는 E0204나 E0211입니다. 그리고 JSX 속성은 컴포넌트의 props 레코드에 대해 검사되므로, <code>&lt;Button variant=\"nope\" /&gt;</code>는 받아들이는 값을 보여 주는 E0211을 내고, 레코드에 선언되지 않은 속성은 <code>glyph fix</code>가 이름을 바꿔 주는 E0210을 냅니다."
+    },
+    {
+      "id": "h-cafb3664",
+      "kind": "html",
+      "en": "A missing required field or prop is named",
+      "tr": "빠진 필수 필드나 prop을 짚어 줍니다"
+    },
+    {
+      "id": "h-90bb1a2a",
+      "kind": "html",
+      "en": "since 0.1.125",
+      "tr": "0.1.125부터"
+    },
+    {
+      "id": "h-2bed57b7",
+      "kind": "html",
+      "en": "Since 0.1.125 a record literal or a component element that leaves out a required field names it, in the message and in <code>missing_fields</code> on <code>--json</code>, and an element missing a required prop is E0211 even when it writes no attributes at all; a component whose one parameter is not a record is E0229.",
+      "tr": "0.1.125부터 필수 필드를 빠뜨린 레코드 리터럴이나 컴포넌트 요소는 메시지와 <code>--json</code>의 <code>missing_fields</code>에서 그 필드를 짚어 줍니다. 필수 prop이 빠진 요소는 속성을 하나도 쓰지 않았더라도 E0211이고, 매개변수 하나가 레코드가 아닌 컴포넌트는 E0229입니다."
+    },
+    {
+      "id": "h-d16cf25f",
+      "kind": "html",
+      "en": "Every field of a record compared by the same rule as the record",
+      "tr": "레코드의 모든 필드를 레코드와 같은 규칙으로 비교"
+    },
+    {
+      "id": "h-5e7cd30b",
+      "kind": "html",
+      "en": "since 0.1.127",
+      "tr": "0.1.127부터"
+    },
+    {
+      "id": "h-7f53d708",
+      "kind": "html",
+      "en": "Since 0.1.127 every field of a record is compared by the same rule as the record, so a nested record, a declared type or a string-literal union inside one is refused where <code>tsc</code> refuses it, and so are an optional field where a required one is declared, a function whose return does not fit and a local interface's members. A record whose fields are all optional refuses a value that shares none of them, as TS2559 does. A function's parameters are still not compared.",
+      "tr": "0.1.127부터 레코드의 모든 필드는 레코드와 같은 규칙으로 비교되므로, 안에 든 중첩 레코드, 선언된 타입, 문자열 리터럴 유니언은 <code>tsc</code>가 거부하는 곳에서 거부되고, 필수로 선언된 곳의 선택 필드, 반환 타입이 맞지 않는 함수, 로컬 인터페이스의 멤버도 마찬가지입니다. 모든 필드가 선택인 레코드는 TS2559처럼 겹치는 필드가 하나도 없는 값을 거부합니다. 함수의 매개변수는 아직 비교하지 않습니다."
+    },
+    {
+      "id": "h-ea0eaaf6",
+      "kind": "html",
+      "en": "Data boundaries",
+      "tr": "데이터 경계"
+    },
+    {
+      "id": "h-256d43ee",
+      "kind": "html",
+      "en": "Runtime type descriptors",
+      "tr": "런타임 타입 디스크립터"
+    },
+    {
+      "id": "h-32584cfc",
+      "kind": "html",
+      "en": "<code>@redact</code> PII masking on the type descriptor",
+      "tr": "타입 디스크립터의 <code>@redact</code> 개인정보 마스킹"
+    },
+    {
+      "id": "h-f094b384",
+      "kind": "html",
+      "en": "Getting sharper <span class=\"count\">13</span>",
+      "tr": "개선 중 <span class=\"count\">13</span>"
+    },
+    {
+      "id": "h-832f8a5e",
+      "kind": "html",
+      "en": "Coverage of an imported union doesn't look inside a variant's payload yet",
+      "tr": "import한 유니언의 커버리지 검사는 아직 variant의 payload 안을 들여다보지 않습니다"
+    },
+    {
+      "id": "h-951e9ba7",
+      "kind": "html",
+      "en": "next to deepen",
+      "tr": "다음으로 깊게 할 것"
+    },
+    {
+      "id": "h-1398e498",
+      "kind": "html",
+      "en": "A type parameter used to switch the check off: through 0.1.90 a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit a variant, build clean, pass <code>tsc --strict</code>, and throw at run time, where the same match on <code>Tree</code> was <code>E0200</code>. That is closed for a union your own module declares and, as of 0.1.95, for one an import away. What is still shallower on the imported path is the depth rather than the gate: the check that runs for an imported union never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> rather than reporting the missing <code>Y</code>, and no type parameter is involved. That is the next thing to deepen.",
+      "tr": "타입 매개변수가 검사를 꺼 버리곤 했습니다. 0.1.90까지 <code>Tree&lt;K&gt;</code>에 대한 <code>match</code>는 variant를 빠뜨려도 깔끔하게 빌드되고 <code>tsc --strict</code>를 통과한 뒤 런타임에 예외를 던질 수 있었는데, <code>Tree</code>에 대한 같은 match는 <code>E0200</code>이었습니다. 이는 자기 모듈이 선언한 유니언에 대해서는 막혔고, 0.1.95부터는 import한 유니언에 대해서도 막혔습니다. import 경로에서 여전히 얕은 것은 관문이 아니라 깊이입니다. import한 유니언에 대해 실행되는 검사는 variant의 payload 안을 들여다보지 않으므로, payload 자체가 유니언인 import한 유니언에 대한 <code>B(X)</code>는 빠진 <code>Y</code>를 보고하지 않고 모든 <code>B</code>에 매칭되며, 여기에는 타입 매개변수가 관여하지 않습니다. 이것이 다음으로 깊게 할 부분입니다."
+    },
+    {
+      "id": "h-8efe9560",
+      "kind": "html",
+      "en": "A lowercase payload variant of an imported union stops the build",
+      "tr": "import한 유니언의 소문자 payload variant는 빌드를 멈춥니다"
+    },
+    {
+      "id": "h-5584b05d",
+      "kind": "html",
+      "en": "A variant in payload position is read off the payload union's variant list now, so the capitalization of the name stops mattering for a union your module declares. For one imported from another module there is no list to read and the shape of the name still answers, which means <code>Err(Blank)</code> dispatches and <code>Err(blank)</code> stops the build at <code>E0305</code>: a loud failure on a valid program, and it needs the same imported-union registry the shallow coverage check above needs.",
+      "tr": "payload 위치의 variant는 이제 payload 유니언의 variant 목록에서 읽으므로, 자기 모듈이 선언한 유니언에서는 이름의 대소문자가 더 이상 상관없습니다. 다른 모듈에서 import한 유니언에는 읽을 목록이 없어서 여전히 이름의 모양이 답을 정하며, 그래서 <code>Err(Blank)</code>는 분기하고 <code>Err(blank)</code>는 <code>E0305</code>에서 빌드를 멈춥니다. 올바른 프로그램에 대한 요란한 실패이며, 위의 얕은 커버리지 검사와 같은 import 유니언 레지스트리가 필요합니다."
+    },
+    {
+      "id": "h-bc939020",
+      "kind": "html",
+      "en": "A constructor pattern over a record payload (<code>Ok(Point)</code>) fails in <code>tsc</code>, not Glyph",
+      "tr": "레코드 payload에 대한 생성자 패턴(<code>Ok(Point)</code>)은 Glyph가 아니라 <code>tsc</code>에서 실패합니다"
+    },
+    {
+      "id": "h-0de1643c",
+      "kind": "html",
+      "en": "A constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic naming the type and the pattern.",
+      "tr": "유니언이 아니라 레코드인 payload에 대한 생성자 패턴(<code>Ok(Point)</code>)은 <code>tsc</code>를 통해 작성한 적 없는 <code>.tag</code>를 짚으며 실패하는데, 원래는 타입과 패턴을 짚는 Glyph 진단이어야 합니다."
+    },
+    {
+      "id": "h-f3636a71",
+      "kind": "html",
+      "en": "A misspelled bare arm reports two lines for the same name",
+      "tr": "철자가 틀린 단독 arm은 같은 이름에 대해 두 줄을 보고합니다"
+    },
+    {
+      "id": "h-578afec8",
+      "kind": "html",
+      "en": "The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike, constructor-shaped or bare: through 0.1.115 a bare misspelled head over an imported union (<code>Loadign</code>, no arguments) was credited as covering a variant and said nothing, where the same typo on a local union already reported <code>E0220</code>; both spellings report it now. A misspelled bare arm also trips <code>E0103</code>, one stage earlier, so you get both lines for the same name.",
+      "tr": "오타 검사(<code>E0220</code>)는 이제 모듈에 선언된 유니언과 네임스페이스 import로 닿는 유니언(<code>model.Nooo(_)</code>)을 생성자 모양이든 단독이든 똑같이 다룹니다. 0.1.115까지는 import한 유니언에 대한 철자가 틀린 단독 머리(<code>Loadign</code>, 인자 없음)가 variant를 다룬 것으로 인정되어 아무 말도 하지 않았는데, 로컬 유니언에서의 같은 오타는 이미 <code>E0220</code>을 보고했습니다. 이제 두 표기 모두 보고합니다. 철자가 틀린 단독 arm은 한 단계 앞에서 <code>E0103</code>에도 걸리므로, 같은 이름에 대해 두 줄을 받게 됩니다."
+    },
+    {
+      "id": "h-5ab756fd",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted",
+      "tr": "spread를 담은 리터럴은 타입이 없고, 추가 필드가 여전히 허용됩니다"
+    },
+    {
+      "id": "h-3a8ce517",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
+      "tr": "spread를 담은 리터럴은 타입이 없고, 추가 필드가 여전히 허용됩니다. <code>tsc</code>는 새로 만든 리터럴의 추가 필드를 TS2353으로 거부합니다(G273)."
+    },
+    {
+      "id": "h-cf31f508",
+      "kind": "html",
+      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
+      "tr": "import한 <code>interface</code>의 멤버와 import한 <code>const</code>의 타입은 아직 경계를 넘지 않습니다"
+    },
+    {
+      "id": "h-182d14d1",
+      "kind": "html",
+      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
+      "tr": "이제 타입은 모듈 경계를 온전히 넘습니다. 유니언은 태그 유니언이든 문자열 리터럴 유니언이든 망라성을 유지하고, 레코드는 필드 집합을 유지하므로, import한 레코드의 오타 난 필드는 그 레코드 자신의 타입을 짚는 <code>E0210</code>이고, 배열 필드 하나에 대한 <code>for i, x</code>는 타입 표기 없이 숫자를 바인딩합니다. 아직 넘지 않는 것은 <code>interface</code>의 멤버 목록이므로, import한 인터페이스가 필요한 곳에 넘긴 레코드는 아무것과도 비교되지 않습니다. import한 <code>const</code>도 한 단계 옆에서 같은 모양입니다. 여전히 <code>Ty::Unknown</code>이므로, 원본 모듈이 타입을 표기했든 아니든 이름 import나 네임스페이스 import를 통한 필드 오타는 조용합니다."
+    },
+    {
+      "id": "h-b6b84555",
+      "kind": "html",
+      "en": "Deeper flow-narrowing is on the roadmap",
+      "tr": "더 깊은 흐름 기반 좁히기는 로드맵에 있습니다"
+    },
+    {
+      "id": "h-fd47e980",
+      "kind": "html",
+      "en": "Maps from another module or the standard library are read unchecked",
+      "tr": "다른 모듈이나 표준 라이브러리에서 온 맵은 검사 없이 읽힙니다"
+    },
+    {
+      "id": "h-0edf415f",
+      "kind": "html",
+      "en": "A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types.",
+      "tr": "다른 모듈이나 표준 라이브러리에서 온 맵은 여전히 검사 없이 읽히므로, E0224가 아직 <code>sqlite.Row</code>에 적용되지 않고, 바인딩이 두 개인 <code>for i, x in xs</code>는 여전히 타입을 잃습니다."
+    },
+    {
+      "id": "h-15d1a62f",
+      "kind": "html",
+      "en": "A type from a plain <code>.d.ts</code> has no descriptor; materialize it with <code>glyph gen dts</code>",
+      "tr": "평범한 <code>.d.ts</code>에서 온 타입에는 디스크립터가 없습니다. <code>glyph gen dts</code>로 실체화하세요"
+    },
+    {
+      "id": "h-5b74c17a",
+      "kind": "html",
+      "en": "A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates.",
+      "tr": "다른 Glyph 모듈에서 import한 타입은 이제 자신의 디스크립터로 검증되며, 필드 위치의 <code>where</code> 정제도 마찬가지입니다. 평범한 <code>.d.ts</code>에서 import한 타입에는 검증에 쓸 디스크립터가 없고, 그런 타입을 담은 레코드에 대한 <code>parse</code>는 이제 검사하지도 않은 성공을 보고하는 대신 거부됩니다(<code>E0304</code>). 검증되는 타입을 얻으려면 <code>glyph gen dts</code>로 실체화하세요."
+    },
+    {
+      "id": "h-b99fb20b",
+      "kind": "html",
+      "en": "Tooling and the standard library",
+      "tr": "도구와 표준 라이브러리"
+    },
+    {
+      "id": "h-3aeea93f",
+      "kind": "html",
+      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
+      "tr": "<code>std/string</code>과 <code>std/array</code> 함수 아홉 개는 여전히 타입 없는 값을 반환합니다"
+    },
+    {
+      "id": "h-b4a6a924",
+      "kind": "html",
+      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
+      "tr": "검사기가 모델링하는 stdlib 반환 타입은 <code>std/string</code>과 <code>std/array</code> 중 인자 개수가 고정된 절반을 다룹니다. 선택적인 마지막 인자가 있는 함수 여섯 개(<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>)와 <code>array.map</code>/<code>flat_map</code>/<code>zip</code>은 아직 타입이 없으므로, 이 함수들에서 바로 나온 값을 인덱스와 함께 반복하려면 먼저 타입 표기가 필요합니다."
+    },
+    {
+      "id": "h-201d023a",
+      "kind": "html",
+      "en": "Member access on primitives and arrays has no diagnostic where <code>tsc</code> doesn't run",
+      "tr": "<code>tsc</code>가 실행되지 않는 곳에서는 원시 타입과 배열의 멤버 접근에 대한 진단이 없습니다"
+    },
+    {
+      "id": "h-4ea82084",
+      "kind": "html",
+      "en": "Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground.",
+      "tr": "<code>string</code>, <code>number</code>, <code>bool</code>, <code>Array&lt;T&gt;</code>에 대한 멤버 접근과 호출은 구멍이 아니라 설계상 <code>tsc</code>에 맡겨집니다. Glyph는 거기서 원시 JS 멤버를 허용하므로 <code>s.length</code>와 <code>xs.length</code>는 컴파일되고 <code>tsc --strict</code>를 통과합니다. 빠져 있는 것은 <code>tsc</code>를 실행하지 않는 네 곳, 즉 <code>glyph check --no-tsc</code>, 언어 서버, MCP 서버, 플레이그라운드에서의 진단입니다."
+    },
+    {
+      "id": "h-92f64275",
+      "kind": "html",
+      "en": "An offline build with examples needs <code>tsx</code> or <code>--no-test</code>",
+      "tr": "예제가 있는 오프라인 빌드에는 <code>tsx</code>나 <code>--no-test</code>가 필요합니다"
+    },
+    {
+      "id": "h-be29560d",
+      "kind": "html",
+      "en": "The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>.",
+      "tr": "예제 러너는 <code>tsx</code>를 셸로 호출하므로, 예제가 있는데 <code>PATH</code>에 <code>tsx</code>가 없는 프로젝트는 조용히 건너뛰지 않고 빌드가 실패합니다. 의도한 것이지만, 오프라인 빌드에는 <code>tsx</code>를 설치하거나 <code>--no-test</code>를 써야 한다는 뜻입니다."
+    },
+    {
+      "id": "h-b5f0eada",
+      "kind": "html",
+      "en": "An <code>await</code> in a plain <code>fn</code> is caught against your own source",
+      "tr": "평범한 <code>fn</code> 안의 <code>await</code>는 여러분의 소스 기준으로 잡힙니다"
+    },
+    {
+      "id": "h-d7c47327",
+      "kind": "html",
+      "en": "Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href=\"/answers/early-errors/\">caught earlier</a>.",
+      "tr": "비동기 문맥은 Glyph가 <code>tsc</code>에 맡기던 유일한 규칙이었습니다. 이제 평범한 <code>fn</code> 안의 <code>await</code>는 여러분의 소스 기준의 <code>E0222</code>이며, 최상위 <code>const</code> 초기값만 여전히 허용되는 경우입니다. 이 규칙과 한 단계 앞으로 옮겨진 다른 두 규칙은 <a href=\"/answers/early-errors/\">더 일찍 잡기</a>에 있습니다."
+    },
+    {
+      "id": "h-9517f6f5",
+      "kind": "html",
+      "en": "Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the <a href=\"/pillars/verifiability/\">verifiability pillar page</a>.",
+      "tr": "이것이 Glyph의 네 가지 기둥 중 첫 번째인 이유와, 그 보장이 멈추는 곳은 <a href=\"/pillars/verifiability/\">검증 가능성 기둥 페이지</a>에 있습니다."
+    }
+  ]
+}

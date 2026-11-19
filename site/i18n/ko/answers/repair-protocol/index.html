@@ -1,0 +1,168 @@
+---
+title: 컴파일러가 에이전트에게 고치는 방법을 알려 주나요? · Glyph
+description: 각 진단에는 타입, 문제가 된 심볼, 가능한 대안이 담기고, 컴파일러가 스스로 결정할 수 있는 수정은 glyph fix가 직접 씁니다.
+source_hash: 4b15cc7a1cc4e288
+prev: /answers/ask-the-compiler/ | &larr; 이전 | 에이전트가 코드를 쓰기 전에 컴파일러에게 심볼이 무엇인지 물어볼 수 있나요?
+next: /answers/generated-docs/ | 다음 &rarr; | 에이전트가 읽는 문서는 생성된 것인가요, 사람이 써서 낡은 것인가요?
+---
+      <p class="q-eyebrow">23 &middot; 실패한 빌드 고치기</p>
+      <h1 class="q-title">빌드가 실패하면 컴파일러가 에이전트에게 고치는 방법을 알려 주나요?</h1>
+
+      <p class="short-answer">
+        무엇이 잘못됐는지를 파싱해야 할 문장이 아니라 데이터로 알려 줍니다. 두 타입, <code>module::name</code> 형태의 문제가 된 심볼, 그리고 잘못된 것이 있는 자리에 올 수 있는 유한한 목록입니다. <code>glyph check --agent</code>는 수정하는 편집이 깨뜨리면 안 되는 것을 더합니다. 답이 완전히 정해지는 경우에는 <code>glyph fix</code>가 직접 씁니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">왜 중요한가</h2>
+        <p>
+          컴파일러를 둘러싼 에이전트의 루프는 오류를 읽고, 편집을 추측하고, 다시 빌드하는 것입니다. 피해는 추측 단계에서 생기고, 오류가 문자열이기 때문에 생깁니다. "<code>OrderStatus</code>에 대한 비망라적 match"를 읽은 에이전트는 match에 arm이 몇 개 빠졌다는 것은 압니다. 빠진 variant가 무엇을 담는지는 모르므로 <code>Paid("tx_1")</code>을 쓰고 다음 진단에서야 알게 됩니다. 아니면 "exhaustive"라는 단어를 읽고 <code>else</code> arm을 추가하며, 빌드는 진단이 지키려던 보장을 버린 채 통과합니다.
+        </p>
+        <p>
+          컴파일러는 그 모두를 알고 있었습니다. 유니언의 variant와 payload를 알았고, <code>else</code>가 봉인을 포기하게 만든다는 것도 알았는데, 응답 바로 앞에서 둘 다 버렸습니다.
+        </p>
+
+        <h2 class="block-label">직접 보기</h2>
+        <p>
+          모듈 두 개짜리 프로젝트입니다. <code>orders</code>가 유니언을 선언하고, <code>main</code>은 그에 대한 <code>match</code>를 쓰면서 case 하나만 처리합니다. 여기서 중요한 키만 남긴 <code>glyph check --agent</code> 출력입니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --agent --no-tsc src</span>
+<pre>{
+  "code": "E0200",
+  "severity": "error",
+  "stage": "typecheck",
+  "message": "non-exhaustive match on `OrderStatus`: missing variants
+              `Paid`, `Cancelled`",
+  "help": "Add an arm for each missing variant.",
+  "file":   "main.glyph",
+  "module": "main",
+  "entity": "main::describe",
+  "cause":  "orders::OrderStatus",
+  "related": ["Pending", "Paid", "Cancelled"],
+  "missing_variants": ["Paid", "Cancelled"],
+  "expected": null, "actual": null, "alternatives": null,
+
+  "constraints": [
+    "preserve exhaustiveness: this match must name every case of
+     `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
+    "do not add an `else` arm: `OrderStatus` is declared in this project,
+     and a catch-all forfeits the guarantee that adding a variant to it
+     later forces this match to be updated (D9)."
+  ],
+
+  "symbols": [
+    { "entity": "orders::OrderStatus", "kind": "union", "pub": true,
+      "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+      "exhaustive_match": true,
+      "variants": [
+        { "name": "Pending", "payload": null, "construct": "Pending" },
+        { "name": "Paid",    "payload": "{ transaction_id: string }",
+          "construct": "Paid({ transaction_id: string })" },
+        { "name": "Cancelled", "payload": null, "construct": "Cancelled" }
+      ] }
+  ],
+  "symbols_absent": [],
+
+  "explain": { "command": "glyph --explain E0200",
+               "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200" }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          짚어 볼 것이 세 가지 있습니다. <code>cause</code>는 문제가 된 심볼이며, 진단이 위치한 선언인 <code>entity</code>와는 다릅니다. 여기서 편집은 <code>main::describe</code>에서 일어나고, 맞춰야 할 모양은 <code>orders::OrderStatus</code>에서 옵니다. 둘 다 다른 도구가 받는 주소이므로, 아무것도 다시 계산하지 않고 답을 이어 갈 수 있습니다.
+        </p>
+        <p>
+          <code>constraints</code>는 수정 방법이 아닙니다. 각각은 컴파일러가 이미 강제하는 것이며, 진단을 만족시키는 편집이 그 뒤의 보장을 깨뜨리지 않도록 적어 둔 것입니다. 이 키가 있는 이유는 두 번째 제약 때문입니다. <code>else</code> arm은 허용되고 빌드를 통과시키지만, 제약은 그것을 택했을 때 무엇을 잃는지 말해 줍니다.
+        </p>
+        <p>
+          <code>symbols</code>는 진단이 언급한 모든 심볼에 대한 <code>glyph_symbol</code> 응답이므로, 에이전트의 다음 편집에 두 번째 호출이 필요 없습니다. 도구가 거부한 심볼은 이유와 함께 <code>symbols_absent</code>에 나오므로, "보지 않았다"와 "봤는데 없다"가 구분됩니다.
+        </p>
+        <p>
+          모든 키는 항상 있습니다. 컴파일러가 갖고 있지 않은 사실은 키가 빠지는 대신 명시적인 <code>null</code>로 오므로, 없음은 모든 코드에서, CLI와 MCP 모두에서 한 가지로만 표기됩니다.
+        </p>
+
+        <h2 class="block-label">답이 정해진 곳에서는 컴파일러가 직접 씁니다</h2>
+        <p>
+          <code>glyph fix</code>는 컴파일러가 스스로 결정할 수 있는 수정만 적용합니다. 사용하지 않는 import, 검사기가 정확히 하나의 제안을 계산한 경우의 variant가 아닌 arm 머리, 그리고 선언된 필드 중 정확히 하나가 한 글자 차이인 경우의 레코드가 선언하지 않은 필드입니다. 위의 <code>match</code>는 여기에 해당하지 않습니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph fix src, 위의 match에 대해</span>
+<pre>glyph fix: removed 0 unused import(s) across 0 file(s).
+glyph fix: declined E0200 in src/main.glyph: the compiler does not
+           determine what a missing arm should do, so `glyph fix`
+           writes none: add an arm for each of `Paid`, `Cancelled`.
+           `glyph check --agent` gives the pattern each case takes.
+
+<span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          컴파일러는 어떤 case가 빠졌는지와 각각의 패턴을 압니다. 주문이 <code>Paid</code>일 때 프로그램이 무엇을 해야 하는지는 모르며, 컴파일러가 쓰는 본문은 무엇이든 컴파일되는 추측일 것입니다. 0.1.128까지 <code>glyph fix</code>는 그 추측을 썼습니다. case마다 arm 하나를 만들고, 본문은 case를 출력하고 <code>process.exit(1)</code>을 호출했습니다. 그러면 프로그램은 <code>check</code>, <code>tsc</code>, <code>build</code>를 통과했고 <code>glyph query variants</code>는 match가 망라적이라고 보고했으므로, 빠진 case가 컴파일 오류에서 런타임 충돌로 옮겨 갔고 이를 표시할 것은 아무것도 남지 않았습니다.
+        </p>
+        <p>
+          그래서 이 규칙은 거절하고 case를 짚어 줍니다. arm을 쓰는 데 필요한 것은 모두 위의 <code>--agent</code> 응답에 이미 있습니다. <code>missing_variants</code>와, <code>symbols</code> 아래에 있는 각 variant의 <code>construct</code> 표기입니다. arm은 컴파일러가 동작을 추론할 수 없는 다른 모든 코드와 마찬가지로 여러분이나 에이전트가 씁니다.
+        </p>
+        <p>
+          <code>glyph fix</code>가 쓰는 것은 추측 없이 쓰고, 답을 정할 수 없는 모든 규칙은 적용한 내용과 같은 출력에 거절과 이유를 표시합니다. 오타와 한 글자 차이인 필드가 두 개면 하나가 아니라 둘이며, 하나를 고르는 대신 그렇다고 말합니다.
+        </p>
+
+        <h2 class="block-label">코드 자체의 설명을 데이터로</h2>
+        <p>
+          <code>glyph --explain &lt;CODE&gt; --json</code>은 자세한 설명, 한 줄짜리 <code>help</code>, 문서 URL, 그리고 컴파일러의 negative 코퍼스에 있는 잘못된 프로그램과 이 컴파일러가 그 프로그램에 대해 내는 진단을 짝지어 답합니다. 진단은 저장된 것이 아니라 요청할 때 컴파일되므로, 컴파일러가 실제로 하는 말과 어긋날 수 없습니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --explain E0200 --json</span>
+<pre>{
+  "code": "E0200",
+  "title": "non-exhaustive match",
+  "explanation": "A `match` over a tagged union must handle every variant.
+    Unions are sealed (D9): adding a variant later forces every match to be
+    updated, so a missing variant cannot silently fall through at runtime ...",
+  "help": "Add an arm for each missing variant.",
+  "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "expected_error": "E0200",
+    "files": [ { "path": "alias_of_local_union_not_exhaustive.glyph",
+                 "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+                    "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+                    "cause": "alias_of_local_union_not_exhaustive::Shape",
+                    "related": ["Circle", "Square", "Tri"],
+                    "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a case:
+      an entry is a wrong program and the code it draws. A fix invented here would
+      compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          코퍼스가 다루지 않는 코드는 지어낸 예제 대신 <code>counter_example: null</code>과 코퍼스에 해당 사례가 없다는 문장과 함께 돌아옵니다. 코퍼스는 자신이 다루는 것만 주장하고 나머지에 대해서는 아무것도 주장하지 않습니다.
+        </p>
+        <p>
+          <code>glyph --explain</code>은 코드마다 사례 하나를 줍니다. 코퍼스 전체도 읽을 수 있습니다. <code>glyph llms --negative E0200</code>은 그 코드를 일으키는 모든 잘못된 프로그램을 요청할 때 각각 컴파일해서 출력하고, 두 번째 코퍼스에 <code>tsc --strict</code>는 받아들이지만 Glyph는 거부하는 프로그램 쌍이 있으면 그것도 함께 돌려줍니다. 코드를 지정하지 않으면 코드 70개 중 46개에 걸친 사례 102개를 나열하고 사례가 없는 24개를 짚어 주므로, 커버리지를 돌아온 결과에서 추론하지 않고 명시합니다. 이것과 컴파일러가 자신에 대해 공개하는 나머지는 <a href="/answers/generated-docs/">별도 페이지</a>에 있습니다.
+        </p>
+      </div>
+
+      <h2 class="block-label">현재 상태</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">지금 제공되는 것</h3>
+          <p>모든 진단에는 <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>(오류가 발생한 곳에서 설정되며, <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code>, <code>exports</code> 중 무엇을 나열하는지 <code>alternatives_kind</code>가 알려 줍니다), <code>related</code>, <code>module</code>, <code>file</code>, <code>explain</code>이 있으며, 다시 계산하지 않고 컴파일러가 낸 오류에서 채우고, 컴파일러가 그런 사실을 갖고 있지 않으면 각각 명시적인 <code>null</code>입니다. <code>file</code>은 해석 루트 기준의 상대 경로이고 보고서가 <code>project_root</code>에 그 루트를 담으므로 바로 열 수 있습니다. <code>glyph check --agent</code>는 진단마다 <code>constraints</code>와 <code>symbols</code>를 더합니다. <code>glyph fix</code>는 규칙 세 가지(<code>E0106</code>, <code>E0210</code>, <code>E0220</code>)를 적용하고 모든 거절을 이유와 함께 밝히며, 여기에는 보고만 하고 절대 쓰지 않는 모든 <code>E0200</code>이 포함됩니다. <code>glyph --explain &lt;CODE&gt; --json</code>은 컴파일된 반례와 함께 설명을 반환하고, <code>glyph llms --negative &lt;CODE&gt;</code>는 그 코드를 일으키는 잘못된 프로그램 코퍼스 전체를 반환합니다.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">한계</h3>
+          <p><code>E0211</code>의 <code>cause</code>는 <code>null</code>입니다. 호출 인자에서 문제가 된 심볼은 매개변수인데, <code>module::fn.param</code>은 식별자 어휘로 표현할 수 없으므로 null은 누락이 아니라 의도한 것입니다. 반례의 <code>corrected</code>는 항상 <code>null</code>입니다. negative 코퍼스는 사례에 수정된 프로그램을 짝짓지 않고, 코드 70개 중 24개에는 사례가 아예 없기 때문입니다. <code>glyph fix</code>는 규칙 세 가지만 쓰고, 비망라적 <code>match</code>에 대해서는 arm을 쓰지 않습니다. 그것은 진단에 담긴 case와 패턴을 가지고 여러분이나 에이전트가 쓰도록 남겨 둡니다. 거절하는 것은 모두 분명히 밝힙니다.</p>
+        </div>
+      </div>

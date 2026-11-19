@@ -1,0 +1,86 @@
+---
+title: 답변 · 엔지니어들이 Glyph에 대해 묻는 것 · Glyph
+description: 엔지니어들이 Glyph에 대해 묻는 질문에 대한 구체적인 답: 조용한 파손을 무엇이 막는지, React와 npm, 왜 도구를 갖춘 TypeScript가 아닌지, 프로덕션에서의 디버깅.
+source_hash: f574b9ebcd22635e
+---
+      <header class="page-hero">
+        <p class="eyebrow">답변</p>
+        <h1>엔지니어들이 <span class="accent">Glyph에 대해 묻는 것</span>.</h1>
+        <p class="lede">
+          각 답변은 예제를 보여 주고, 아직 동작하지 않는 것으로 끝납니다. 의문이 드는 곳에서 시작하세요. Glyph가 처음이라면 <a href="/start/">10분 만에 시작하기</a>가 가장 빠른 첫걸음입니다.
+        </p>
+      </header>
+
+      <div class="ans-group">
+        <h2 class="block-label">해결하는 문제</h2>
+        <p class="ans-group-sub">에이전트의 편집이 아무도 모르게 깨뜨릴 수 있는 것과, 각각에 대해 Glyph가 하는 일.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/verifiability/"><span class="n">01</span><span class="q">에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?</span><p><code>any</code>도 캐스트도 없고, 망라적인 <code>match</code>, 런타임에 검사되는 타입, 빌드할 때마다 실행되는 코드 옆의 테스트가 있습니다.</p></a>
+          <a class="a-card" href="/answers/diff-stability/"><span class="n">02</span><span class="q">에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일 전체를 다시 포맷하나요?</span><p>한 줄을 바꾸면 diff도 한 줄입니다. 정해진 레이아웃은 하나이고, 다시 묶이는 것은 없습니다.</p></a>
+          <a class="a-card" href="/answers/greppability/"><span class="n">03</span><span class="q">에이전트가(또는 내가) 무엇이 어디에 정의되어 있는지 찾을 수 있나요?</span><p>이름 하나에 선언 형태 하나. <code>grep</code>은 언제나 정의에 닿습니다.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">도입할지 결정하기</h2>
+        <p class="ans-group-sub">도구를 더하는 대신 언어를 택한 이유와, 도입하는 데 드는 비용.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/why-typescript/"><span class="n">04</span><span class="q">왜 Go나 새 언어가 아니라 TypeScript인가요?</span><p>여러분의 생태계가 거기 있기 때문이고, 그래서 파일 단위로 도입할 수 있습니다.</p></a>
+          <a class="a-card" href="/answers/vs-tooled-ts/"><span class="n">05</span><span class="q">그냥 strict TypeScript + zod + eslint + ts-pattern을 쓰면 안 되나요?</span><p>선택 사항이 아니라는 점: 에이전트가 설정으로 끌 수 없는 언어입니다.</p></a>
+          <a class="a-card" href="/answers/human-value/"><span class="n">06</span><span class="q">AI를 쓰지 않아도 Glyph가 쓸 만한가요?</span><p>네. 보장은 사람이 직접 누리는 평범한 엔지니어링상의 이점입니다.</p></a>
+          <a class="a-card" href="/answers/ai-authoring/"><span class="n">07</span><span class="q">AI가 거의 본 적 없는 언어를 안정적으로 쓸 수 있나요?</span><p>모델이 TypeScript에 대해 아는 것은 대부분 그대로 통하고, 통하지 않는 곳은 컴파일러가 알려 줍니다.</p></a>
+          <a class="a-card" href="/answers/upgrades/"><span class="n">08</span><span class="q">새 Glyph 릴리스가 내 빌드를 깨뜨리나요?</span><p>프로젝트는 컴파일러 버전을 정확히 고정하므로 어떤 릴리스도 실수로 들어오지 않습니다. 새 릴리스가 있으면 <code>glyph doctor</code>가 알려 주고, <code>glyph upgrade</code>로 받습니다.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">기존 스택과 함께 쓰기</h2>
+        <p class="ans-group-sub">npm 패키지, 기존 앱, API 경계, React.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/imports/"><span class="n">09</span><span class="q">기존 TypeScript, JavaScript, npm 라이브러리를 쓸 수 있나요?</span><p>네. 어떤 npm 패키지든 import하고, 필요한 곳에는 직접 작성한 <code>.ts</code> shim을 두고, Glyph를 다시 <code>.ts</code>로 import할 수 있습니다.</p></a>
+          <a class="a-card" href="/answers/embedding/"><span class="n">10</span><span class="q">기존 앱 안에서 Glyph를 도입할 수 있나요, 아니면 전부 아니면 전무인가요?</span><p>다시 작성할 필요가 없습니다. 도메인 핵심은 Glyph로, 나머지는 TypeScript로 둡니다. 생성된 TypeScript는 기본 Vite 앱이 여느 모듈처럼 import합니다.</p></a>
+          <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">API마다 검증기를 직접 작성해야 하나요?</span><p>아니요. 타입을 선언하면 검증기가 생성됩니다.</p></a>
+          <a class="a-card" href="/answers/codegen/"><span class="n">12</span><span class="q">API 명세에서 타입이 있는 클라이언트와 서버를 생성할 수 있나요?</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: 커밋하고 grep할 수 있는 코드.</p></a>
+          <a class="a-card" href="/answers/react/"><span class="n">13</span><span class="q">React의 컴포넌트, hook, Context와 함께 쓸 수 있나요?</span><p>일급 JSX, hook, 망라적인 reducer 액션.</p></a>
+          <a class="a-card" href="/answers/state/"><span class="n">14</span><span class="q">함수 사이에서 변경 가능한 상태를 어떻게 공유하나요?</span><p>store입니다. <code>.set</code>/<code>.update</code>가 쓰기 창구인 <code>const</code>입니다.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">만들 수 있는 것</h2>
+        <p class="ans-group-sub">프로그램 종류별로 본 언어와 표준 라이브러리.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/language/"><span class="n">15</span><span class="q">이것은 진짜 언어인가요, 구멍 많은 장난감인가요?</span><p>모듈 가시성, 인터페이스 제약, defer, 어떤 값으로든 쓸 수 있고 타입을 유지하는 <code>match</code>, 그리고 <code>slice</code>, <code>pad_start</code>, <code>fold</code>를 갖춘 표준 라이브러리.</p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">16</span><span class="q">돈을 다루거나, 내가 통제하지 못하는 입력을 맡겨도 되나요?</span><p>정확한 십진수와 id, 타입으로 표현한 불변식, 컴파일 오류가 되는 인젝션.</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">웹 페이지를 서빙할 수 있나요, 아니면 JSON API만 되나요?</span><p>직접 작성한 서버 없이 HTML, 리다이렉트, 응답 헤더, 폼 전송.</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">18</span><span class="q">사용자가 입력하는 프로그램을 작성할 수 있나요?</span><p><code>io.read_line</code>은 stdin이 닫힐 때까지 기다리지 않고 줄이 도착하는 대로 응답하므로, REPL이나 게임 루프가 동작합니다.</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">19</span><span class="q">서버를 작성할 수 있나요, 아니면 프로세스가 그냥 종료되나요?</span><p><code>main</code>은 준비를 마치고 반환하며, 소켓과 타이머가 대기 중인 동안 프로세스는 살아 있습니다. Node와 같은 규칙입니다.</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">20</span><span class="q">바이너리 데이터를 다룰 수 있나요, 아니면 모든 것이 문자열인가요?</span><p><code>std/bytes</code>는 옥텟의 나열이며, 잘못된 입력을 건너뛰지 않고 거부하는 코덱과 실제 키를 받는 HMAC이 있습니다.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">에이전트와 함께 작업하기</h2>
+        <p class="ans-group-sub">편집 전후에 에이전트가 컴파일러에게 묻는 질문.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/impact/"><span class="n">21</span><span class="q">변경하기 전에 그 변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?</span><p><code>glyph_impact</code>: 파일을 건드리기 전에, 정해진 목록에서 고른 판정을 위치마다 이유와 함께 하나씩.</p></a>
+          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">에이전트가 코드를 쓰기 전에 컴파일러에게 심볼이 무엇인지 물어볼 수 있나요?</span><p><code>glyph_symbol</code>: 유니언의 variant와 각각을 생성하는 문법을 한 번의 호출로. 도구 열한 개, 각각 <code>glyph query</code> 동사가 있습니다.</p></a>
+          <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">빌드가 실패하면 컴파일러가 에이전트에게 고치는 방법을 알려 주나요?</span><p>진단에는 문제가 된 심볼, 가능한 대안, 수정하는 편집이 깨뜨리면 안 되는 것이 담깁니다. 컴파일러가 스스로 결정할 수 있는 수정은 <code>glyph fix</code>가 직접 씁니다.</p></a>
+          <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">에이전트가 읽는 문서는 생성된 것인가요, 사람이 써서 낡은 것인가요?</span><p><code>glyph llms --json</code>은 진단, prelude, stdlib 시그니처, 도구 설명서를 컴파일러 자체 테이블에서 출력하고, 사람이 쓴 사본이 이와 다르면 게이트가 실패합니다.</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">오류, 에디터, 프로덕션</h2>
+        <p class="ans-group-sub">무언가 잘못되었을 때 에디터에서 온콜까지 보게 되는 것.</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">에디터, 디버깅, 오류 경험은 어떤가요?</span><p>모든 LSP 에디터를 위한 언어 서버와, 수정 방법을 알려 주는 고정된 코드를 가진 오류.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요?</span><p><code>await</code> 문맥, 값이 없는 <code>match</code> arm, 빠진 <code>mut</code>을 생성된 TypeScript가 아니라 여러분의 소스 기준으로 보고합니다.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">파싱이 실패하면 이유를 알 수 있나요?</span><p>어떤 필드인지, 어떤 규칙을 어겼는지, 위반한 <code>where</code> 조건, 그리고 분기에 쓸 <code>code</code>.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">새벽 3시에 프로덕션에서 장애가 나면 온콜 담당자는 무엇을 보나요?</span><p>직접 소유한 읽을 수 있는 TS, <code>.glyph</code>로 연결되는 소스 맵, 그리고 <code>build</code>가 보고하는 것을 똑같이 보고하는 <code>run</code>.</p></a>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 44px;">
+        <a class="btn primary" href="/answers/verifiability/">순서대로 읽기 &rarr;</a>
+      </div>

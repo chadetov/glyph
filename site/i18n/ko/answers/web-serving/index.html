@@ -1,0 +1,85 @@
+---
+title: 웹 페이지를 서빙할 수 있나요, 아니면 JSON API만 되나요? · Glyph
+description: std/http는 JSON만이 아니라 HTML 페이지, 리다이렉트, 사용자 지정 응답 헤더, 폼 전송을 처리하며, 응답 헤더는 타입 검사기가 모델링합니다.
+source_hash: 3919e268d4a46ec8
+prev: /answers/finance/ | &larr; 이전 | 돈을 다루거나, 내가 통제하지 못하는 입력을 맡겨도 되나요?
+next: /answers/interactive-cli/ | 다음 &rarr; | 사용자가 입력하는 프로그램을 작성할 수 있나요?
+---
+      <p class="q-eyebrow">17 &middot; 웹 서빙</p>
+      <h1 class="q-title">웹 페이지를 서빙할 수 있나요, 아니면 JSON API만 되나요?</h1>
+
+      <p class="short-answer">
+        웹 페이지도 됩니다. <code>std/http</code>는 응답 헤더를 설정할 수 있으므로 <code>text/html</code> 페이지, 302 리다이렉트, 캐시 헤더, HTML 폼 전송이 모두 평범한 Glyph 코드입니다. Express도, 직접 작성한 TypeScript shim도 필요 없습니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">왜 중요한가</h2>
+        <p>
+          0.1.46까지 응답은 <code>{ status, body }</code>였고, 서버가 본문의 모양으로 content type을 골랐습니다. 문자열이면 <code>text/plain</code>, 그 밖에는 JSON이었습니다. API에는 괜찮지만 브라우저가 렌더링하는 것에는 쓸모가 없습니다. 빠져나갈 방법은 직접 작성한 <code>.ts</code> 파일에서 <code>node:http</code>로 서버를 만드는 것이었고, 그러면 요청 경로 전체가 타입 검사기 밖에 놓였습니다. 생성자 두 개가 없어서 애플리케이션 경계 하나를 통째로 잃고 있었습니다.
+        </p>
+
+        <h2 class="block-label">직접 보기</h2>
+        <p>
+          저장소에 포함된 URL 단축기 <code>examples/apps/shortlink/main.glyph</code>의 라우터입니다. HTML 폼이 코드를 만들고, POST는 리다이렉트로 응답하므로 브라우저를 새로고침해도 다시 전송되지 않으며, 코드를 따라가면 대상으로 302 리다이렉트됩니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">shortlink.glyph: HTML 페이지, 폼 전송, 그리고 302</span>
+<pre>fn handle_home(req: Request) -&gt; Response {
+  return match req.method {
+    "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
+    "POST" =&gt; {
+      let fields = form(req)
+      match create_link(form_field(fields, "url"), form_field(fields, "alias")) {
+        Ok(link) =&gt; redirect(303, "/${link.code}+"),
+        Err(message) =&gt; redirect(303, "/?error=${url_encode(message)}"),
+      }
+    },
+    else =&gt; html(405, page("405", "&lt;h1&gt;405&lt;/h1&gt;")),
+  }
+}
+
+fn route(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match segments(req) {
+    [] =&gt; Ok(handle_home(req)),
+    [one] =&gt; match stats_code(percent_decode(one)) {
+      Some(code) =&gt; Ok(handle_stats(code)),
+      None =&gt; Ok(handle_code(percent_decode(one))),
+    },
+    else =&gt; Ok(html(404, not_found_page(path(req)))),
+  }
+}
+
+async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let outcome = await serve(8138, route)
+  return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          같은 앱이 한 릴리스 전에는 615줄이었고, 그중 121줄이 옆에 둔 <code>.ts</code> 파일에 직접 작성한 <code>node:http</code> 서버였습니다. <code>Location</code>과 <code>text/html</code> 본문을 표현할 방법이 없었기 때문입니다. 지금은 494줄이고 <code>std</code> 밖에서 아무것도 import하지 않습니다. 핸들러는 <code>Result&lt;Response, string&gt;</code>를 반환하므로 404는 평범한 <code>Ok</code>이고, <code>Err</code>는 앱이 답할 수 없는 경우를 위한 것이며 서버가 이를 500으로 바꿉니다. <code>serve</code>는 수신 대기하는 동안 pending 상태로 남으므로 프로세스를 직접 살려 둘 필요가 없고, 바인딩에 실패하면 값으로 돌아옵니다.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Response</code>에는 필수 필드 <code>headers: Record&lt;string, string&gt;</code>가 있습니다. 선택이 아니라 필수입니다. 모든 생성자가 이를 채우므로 <code>resp.headers</code>를 읽을 때 없는지 확인할 필요가 없고, 이 채널을 잊을 수도 없습니다. Glyph에는 레코드 필드 변경이 없으므로 <code>with_header(resp, "cache-control", "no-store")</code>는 응답을 바꾸지 않고 새 응답을 반환합니다. 타입 검사기는 세 생성자가 모두 <code>Response</code>를 반환한다는 것을 알기 때문에, 선언된 반환 타입이 <code>Result&lt;Response, string&gt;</code>인 핸들러는 생성된 출력에 대한 <code>tsc</code>가 아니라 Glyph에서 검사됩니다.
+        </p>
+        <p>
+          직접 하면 틀리기 쉬운 두 가지가 있습니다. Node가 헤더에 쓰기를 거부하는 문자는 내보낼 때 값에서 제거되므로, 쿼리 매개변수로 만든 <code>location</code>이 두 번째 헤더나 두 번째 응답을 끼워 넣을 수 없고, 단축 URL의 이모지가 서버를 멈추게 할 수도 없습니다. 그리고 <code>form(req)</code>는 퍼센트 이스케이프와 함께 <code>+</code>를 공백으로 디코딩합니다. 직접 만든 폼 파싱이 보통 놓치는 조합입니다. 원본 본문을 읽으므로 직접 파싱하는 핸들러를 위해 <code>req.body</code>는 그대로 둡니다.
+        </p>
+      </div>
+
+      <h2 class="block-label">현재 상태</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">지금 제공되는 것</h3>
+          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, <code>form</code>. 응답 헤더는 그대로 전송되고 content type은 직접 설정하지 않았을 때만 추론합니다. 들어오는 쪽에서는 요청 헤더, 쿼리 매개변수, 경로 세그먼트, 원본 본문을 다루고, 클라이언트는 받은 응답 헤더를 알려 줍니다.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">앞으로 할 것</h3>
+          <p>위 코드에서 보이는 빈틈은 퍼센트 인코딩입니다. <code>form</code>은 폼 본문을 디코딩하지만 URL을 만들기 위한 <code>encode_component</code>는 없어서 단축기가 직접 구현합니다. 클라이언트 쪽에서도 타임아웃, 리다이렉트 정책, <code>head</code>, 리다이렉트가 도착한 최종 URL이 빠져 있습니다. 정적 파일 서버와 템플릿 엔진은 없으며, 둘 다 만들 계획도 없습니다.</p>
+        </div>
+      </div>

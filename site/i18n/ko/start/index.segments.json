@@ -1,0 +1,236 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "start/index.html",
+  "locale": "ko",
+  "source_hash": "0967efaee1e51c6b",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Start Here · your first Glyph program in 10 minutes · Glyph",
+      "tr": "여기서 시작하기 · 10분 만에 작성하는 첫 Glyph 프로그램 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally.",
+      "tr": "npx로 Glyph 프로젝트를 만들고, 실행하고, 일부러 깨뜨린 뒤 컴파일러 오류를 읽고 고쳐 봅니다. 10분이면 되고, 전역으로 설치하는 것은 없습니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Home",
+      "tr": "&larr; 홈"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "TypeScript your agents can't quietly break",
+      "tr": "에이전트가 몰래 깨뜨릴 수 없는 TypeScript"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "From here",
+      "tr": "다음 단계"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Next &middot; no install",
+      "tr": "다음 &middot; 설치 불필요"
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "The playground",
+      "tr": "플레이그라운드"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "Try Glyph in your browser, no install.",
+      "tr": "설치 없이 브라우저에서 Glyph를 사용해 보세요."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open the playground",
+      "tr": "플레이그라운드 열기"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md.title",
+      "kind": "ns.title",
+      "en": "The five-minute tour",
+      "tr": "5분 둘러보기"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md.desc",
+      "kind": "ns.desc",
+      "en": "The whole language, quickly.",
+      "tr": "언어 전체를 빠르게 살펴봅니다."
+    },
+    {
+      "id": "ns./answers/.title",
+      "kind": "ns.title",
+      "en": "The answers",
+      "tr": "답변"
+    },
+    {
+      "id": "ns./answers/.desc",
+      "kind": "ns.desc",
+      "en": "Worked answers about React, typed APIs, npm and tooled TypeScript.",
+      "tr": "React, 타입이 있는 API, npm, 도구를 갖춘 TypeScript에 대한 예제와 답."
+    },
+    {
+      "id": "h-046417a2",
+      "kind": "html",
+      "en": "Start here &middot; ~10 minutes",
+      "tr": "여기서 시작하기 &middot; 약 10분"
+    },
+    {
+      "id": "h-ce040163",
+      "kind": "html",
+      "en": "Your first Glyph program",
+      "tr": "첫 번째 Glyph 프로그램"
+    },
+    {
+      "id": "h-af332234",
+      "kind": "html",
+      "en": "Scaffold a project, run it, then <strong>break it on purpose</strong> and read the error the compiler gives you. No prior Glyph knowledge assumed. If you've written a little TypeScript, you'll follow every line.",
+      "tr": "프로젝트를 만들고 실행한 다음, <strong>일부러 깨뜨리고</strong> 컴파일러가 내는 오류를 읽어 봅니다. Glyph에 대한 사전 지식은 필요 없습니다. TypeScript를 조금이라도 써 봤다면 모든 줄을 따라갈 수 있습니다."
+    },
+    {
+      "id": "h-86a4f8cb",
+      "kind": "html",
+      "en": "1 &middot; Create a project",
+      "tr": "1 &middot; 프로젝트 만들기"
+    },
+    {
+      "id": "h-355a40de",
+      "kind": "html",
+      "en": "Glyph ships on npm as a prebuilt binary for macOS and Linux (x64 and ARM) and Windows (x64), and needs Node 18 or later. This path installs nothing globally: <code>npx</code> fetches the compiler to scaffold the project, and the project pins its own copy along with <code>tsx</code> and <code>typescript</code>, which Glyph uses to run and type-check.",
+      "tr": "Glyph는 macOS와 Linux(x64, ARM), Windows(x64)용으로 미리 빌드된 바이너리로 npm에 배포되며, Node 18 이상이 필요합니다. 이 방법은 전역으로 아무것도 설치하지 않습니다. <code>npx</code>가 프로젝트를 만들기 위해 컴파일러를 받아 오고, 프로젝트는 Glyph가 실행과 타입 검사에 쓰는 <code>tsx</code>, <code>typescript</code>와 함께 자체 컴파일러 버전을 고정합니다."
+    },
+    {
+      "id": "h-4e686af7",
+      "kind": "html",
+      "en": "terminal",
+      "tr": "터미널"
+    },
+    {
+      "id": "h-ba09e82e",
+      "kind": "html",
+      "en": "If you'd rather have <code>glyph</code> on your PATH, install it globally with the two tools it runs through, and drop the <code>npx</code> from the commands on this page:",
+      "tr": "<code>glyph</code>를 PATH에 두고 싶다면, Glyph가 함께 쓰는 두 도구와 함께 전역으로 설치하고 이 페이지의 명령에서 <code>npx</code>를 빼세요."
+    },
+    {
+      "id": "h-5c1d388d",
+      "kind": "html",
+      "en": "terminal, the global alternative",
+      "tr": "터미널, 전역 설치를 쓰는 방법"
+    },
+    {
+      "id": "h-377cd0d0",
+      "kind": "html",
+      "en": "2 &middot; Look at what it made",
+      "tr": "2 &middot; 생성된 파일 살펴보기"
+    },
+    {
+      "id": "h-3694bb2c",
+      "kind": "html",
+      "en": "<code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a <code>package.json</code>, a <code>.gitignore</code>, and two files coding agents read on their own: <code>AGENTS.md</code>, which points at <code>glyph llms</code> for the full language reference, and <code>.mcp.json</code>, which registers <code>glyph mcp</code> so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, <code>glyph agents</code> writes those two. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.",
+      "tr": "<code>glyph init</code>은 바로 실행할 수 있는 시작 프로젝트를 만듭니다. <code>src/main.glyph</code>, 타입이 있는 npm 패키지는 여기에 아무것도 필요 없고 이 디렉터리는 타입을 제공하지 않는 패키지를 위한 곳이라고 설명하는 <code>src/.types/README.md</code>, <code>package.json</code>, <code>.gitignore</code>, 그리고 코딩 에이전트가 스스로 읽는 파일 두 개입니다. 전체 언어 레퍼런스를 위해 <code>glyph llms</code>를 가리키는 <code>AGENTS.md</code>와, 에이전트가 타입과 참조를 검색하는 대신 컴파일러에 물어볼 수 있도록 <code>glyph mcp</code>를 등록하는 <code>.mcp.json</code>입니다. 이미 있는 프로젝트에서는 <code>glyph agents</code>가 이 두 파일을 작성합니다. <code>package.json</code>은 컴파일러, <code>typescript</code>, <code>tsx</code>를 <code>devDependencies</code>에 고정하므로, 프로젝트를 클론한 사람은 누구나 전역 설치 없이 <code>npm install</code>만으로 빌드할 수 있습니다."
+    },
+    {
+      "id": "h-915bf352",
+      "kind": "html",
+      "en": "Open <code>src/main.glyph</code>. It's a hello-world:",
+      "tr": "<code>src/main.glyph</code>를 열어 보세요. hello-world 프로그램입니다."
+    },
+    {
+      "id": "h-71deb346",
+      "kind": "html",
+      "en": "Two things to notice: a program runs its <code>main(argv)</code>, and <code>main</code> returns a <code>number</code>, the process exit code. Returning sets that code without forcing the process to stop, so a program that starts a server keeps serving.",
+      "tr": "눈여겨볼 점이 두 가지 있습니다. 프로그램은 <code>main(argv)</code>를 실행하고, <code>main</code>은 프로세스 종료 코드인 <code>number</code>를 반환합니다. 반환하면 프로세스를 강제로 멈추지 않고 종료 코드만 설정하므로, 서버를 시작하는 프로그램은 계속 요청을 처리합니다."
+    },
+    {
+      "id": "h-574233d5",
+      "kind": "html",
+      "en": "3 &middot; Run it",
+      "tr": "3 &middot; 실행하기"
+    },
+    {
+      "id": "h-168ebd5f",
+      "kind": "html",
+      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page.",
+      "tr": "<code>glyph run</code>은 코드를 타입 검사하고, TypeScript로 컴파일하고, 실행했습니다. 이 페이지의 나머지 부분에서 반복할 루프가 바로 이것입니다."
+    },
+    {
+      "id": "h-e7d3d489",
+      "kind": "html",
+      "en": "4 &middot; Add something real",
+      "tr": "4 &middot; 실제 코드 추가하기"
+    },
+    {
+      "id": "h-f1d8aa48",
+      "kind": "html",
+      "en": "Now replace the body with a tiny bit of logic: a task status and a function that labels it. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
+      "tr": "이제 본문을 작은 로직으로 바꿔 봅니다. 작업 상태와 그 상태에 레이블을 붙이는 함수입니다. 여기서 계속 쓰게 될 두 가지가 등장합니다. <em>태그 유니언</em>(<code>type Status = ...</code>)과, Glyph의 유일한 조건문인 <code>match</code>입니다."
+    },
+    {
+      "id": "h-227acdb7",
+      "kind": "html",
+      "en": "5 &middot; Break it on purpose",
+      "tr": "5 &middot; 일부러 깨뜨리기"
+    },
+    {
+      "id": "h-08f96fcf",
+      "kind": "html",
+      "en": "Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm from the <code>match</code> (the kind of thing an agent does when it adds a case somewhere and forgets to handle it), and run again.",
+      "tr": "Glyph가 <em>무엇을 위한</em> 언어인지 보여 주는 부분입니다. <code>match</code>에서 <code>Done</code> arm을 지우고(에이전트가 어딘가에 case를 추가하고 처리하는 것을 잊을 때 하는 일입니다) 다시 실행해 보세요."
+    },
+    {
+      "id": "h-4f6a6f0d",
+      "kind": "html",
+      "en": "src/main.glyph (with the Done arm deleted)",
+      "tr": "src/main.glyph (Done arm을 지운 상태)"
+    },
+    {
+      "id": "h-31c09e63",
+      "kind": "html",
+      "en": "It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A <code>switch</code> that only logs or updates state, or one with a <code>default:</code>, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run <code>glyph --explain E0200</code> any time you want the long version.",
+      "tr": "실행되지 않았습니다. TypeScript에서도 반환 타입을 명시한 이 함수는 거부됩니다(TS2366). 하지만 로그만 남기거나 상태만 갱신하는 <code>switch</code>나 <code>default:</code>가 있는 경우는 깔끔하게 컴파일되고 새 case를 조용히 건너뜁니다. 여기서는 모든 비망라적 match가 고정된 코드(<code>E0200</code>), 정확한 위치, 한 줄짜리 수정 방법을 갖춘 컴파일 오류입니다. 자세한 설명이 필요하면 언제든 <code>glyph --explain E0200</code>을 실행하세요."
+    },
+    {
+      "id": "h-a205e0c5",
+      "kind": "html",
+      "en": "6 &middot; Fix it",
+      "tr": "6 &middot; 고치기"
+    },
+    {
+      "id": "h-1995de51",
+      "kind": "html",
+      "en": "Put the arm back (or add an <code>else</code>), and it runs again.",
+      "tr": "arm을 다시 넣으면(또는 <code>else</code>를 추가하면) 다시 실행됩니다."
+    },
+    {
+      "id": "h-25ed8d45",
+      "kind": "html",
+      "en": "That's the core loop: write, run, and when something's wrong the compiler tells you exactly what and how, before your code ships, not after.",
+      "tr": "이것이 핵심 루프입니다. 작성하고, 실행하고, 무언가 잘못되면 코드가 배포되기 전에 컴파일러가 무엇이 잘못됐고 어떻게 고치는지 정확히 알려 줍니다."
+    }
+  ]
+}

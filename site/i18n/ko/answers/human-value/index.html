@@ -1,0 +1,49 @@
+---
+title: AI를 쓰지 않아도 Glyph가 쓸 만한가요? · Glyph
+description: 네. AI 에이전트가 대표적인 이유이지만, 모든 보장(망라적인 match, any 없음, 런타임에 검사되는 타입, grep으로 찾을 수 있는 코드, 안정적인 diff)은 사람에게도 도움이 됩니다.
+source_hash: 353b3dea2a444a3f
+prev: /answers/vs-tooled-ts/ | &larr; 이전 | 그냥 strict TypeScript + zod + eslint + ts-pattern을 쓰면 안 되나요?
+next: /answers/ai-authoring/ | 다음 &rarr; | AI가 거의 본 적 없는 언어를 안정적으로 쓸 수 있나요?
+---
+      <p class="q-eyebrow">06 &middot; 사람에게도</p>
+      <h1 class="q-title">AI를 쓰지 않아도 Glyph가 쓸 만한가요?</h1>
+
+      <p class="short-answer">
+        네. AI 에이전트를 앞세우는 것은 에이전트가 이런 것들을 끊임없이 깨뜨리기 때문이지만, 그 아래의 모든 보장은 <strong>사람이 직접 누리는 평범한 엔지니어링상의 이점</strong>입니다. 런타임에서 놀랄 일이 줄고, diff가 작아지고, 정말로 grep할 수 있는 코드가 됩니다. 어느 것도 LLM이 필요하지 않습니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">AI 기능이 아니라 언어 기능입니다</h2>
+        <p>
+          "에이전트"라는 말을 빼고 목록을 읽어 보세요. <code>any</code> 없음, 망라적인 <code>match</code>, 값으로서의 오류, 런타임에 검사되는 타입, 이름마다 하나인 선언 형태, diff가 안정적인 정해진 포맷. Rust, Elm, OCaml을 써 본 사람이라면 코드베이스를 유지보수하기 좋게 만드는 것들이라는 걸 알아볼 것입니다. AI가 코드를 쓰기 훨씬 전부터 좋은 아이디어였습니다. Glyph는 이를 파일 하나씩 도입할 수 있는 TypeScript 모양의 언어로 가져올 뿐입니다.
+        </p>
+
+        <h2 class="block-label">혼자 써도 얻는 것</h2>
+        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>새벽 3시 호출이 줄어듭니다.</strong> 경계 데이터는 구조상 검증되고(<code>User.parse</code>), 빠진 case는 프로덕션에서 드러나는 <code>undefined</code>가 아니라 컴파일 오류입니다.</li>
+          <li><strong>리뷰가 빨라집니다.</strong> 한 줄을 바꾸면 diff도 한 줄이므로, 리뷰어는 주변의 재포맷 변동이 아니라 변경 자체를 읽습니다.</li>
+          <li><strong>무엇이든 찾을 수 있습니다.</strong> <code>grep "fn parseUser"</code>가 정의에 닿습니다. 정의를 흩어 놓는 오버로드, barrel, 데코레이터가 없습니다.</li>
+          <li><strong>온보딩이 쉬워집니다.</strong> 각각을 하는 방법이 하나뿐인 작은 핵심 덕분에 다음 사람이 익혀야 할 암묵지가 줄어듭니다.</li>
+        </ul>
+
+        <h2 class="block-label">그런데 왜 에이전트를 앞세우나요?</h2>
+        <p>
+          거기서 얻는 것이 <em>더 크기</em> 때문입니다. 사람은 결국 린터를 돌리고 case를 처리하는 법을 배우지만, 에이전트는 <code>any</code>를 꺼내 들고, arm을 잊고, 통과한 상태로 병합하며, 직접 켜야 하는 도구를 계속 켜 둘 거라고 믿을 수도 없습니다. 엄격함을 <em>선택 사항이 아니게</em> 만드는 가치는 기계가 코드를 쓸 때 더 커집니다. 하지만 바닥(위의 이점)은 에이전트를 쓰든 안 쓰든 그대로입니다.
+        </p>
+
+        <p class="callout">
+          에이전트를 써야만 정당화되는 에이전트 도구가 아니라, 마침 에이전트에게도 아주 좋은 더 엄격한 TypeScript라고 생각하세요.
+        </p>
+      </div>
+
+      <h2 class="block-label">현재 상태</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">트레이드오프</h3>
+          <p>새로운 것을 시작하거나 팀이 이미 ML 계열 언어의 규율을 중시한다면 이점은 바로 나타납니다. 성숙하고 도구가 잘 갖춰진 TS 스택에서 혼자 일한다면 판단이 더 애매합니다. Glyph는 초기 프리뷰이고, 이는 따져 봐야 할 실제 비용입니다.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">어느 쪽이든</h3>
+          <p>탈출구는 영구적입니다. 직접 소유하는 읽을 수 있는 TypeScript로 컴파일되므로, 모듈 하나에 시험해 보는 것은 비용이 적고 되돌릴 수 있습니다.</p>
+        </div>
+      </div>

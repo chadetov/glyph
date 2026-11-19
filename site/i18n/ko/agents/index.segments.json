@@ -1,0 +1,224 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "agents/index.html",
+  "locale": "ko",
+  "source_hash": "74db8e3bf226ba57",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "For agents and tool builders · Glyph",
+      "tr": "에이전트와 도구 개발자를 위한 안내 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How an agent works with Glyph: an MCP server with eleven tools, the same queries on the command line, and glyph check --agent for repairing a red build.",
+      "tr": "에이전트가 Glyph와 함께 일하는 방법: 도구 열한 개를 갖춘 MCP 서버, 명령줄에서 쓰는 같은 쿼리, 실패한 빌드를 고치기 위한 glyph check --agent."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Each piece in depth",
+      "tr": "각 부분 자세히 보기"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Start here",
+      "tr": "여기서 시작하기"
+    },
+    {
+      "id": "ns./mcp/.title",
+      "kind": "ns.title",
+      "en": "The MCP server",
+      "tr": "MCP 서버"
+    },
+    {
+      "id": "ns./mcp/.desc",
+      "kind": "ns.desc",
+      "en": "Setup, the eleven tools with their arguments, the <code>glyph query</code> verbs, and what the server doesn't do yet.",
+      "tr": "설정, 인자를 포함한 도구 열한 개, <code>glyph query</code> 동사, 그리고 서버가 아직 하지 못하는 것."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Set up the server",
+      "tr": "서버 설정하기"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.title",
+      "kind": "ns.title",
+      "en": "Can my agent ask the compiler what a symbol is?",
+      "tr": "에이전트가 컴파일러에게 심볼이 무엇인지 물어볼 수 있나요?"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.desc",
+      "kind": "ns.desc",
+      "en": "<code>glyph_symbol</code>: a union's cases with the syntax that constructs each.",
+      "tr": "<code>glyph_symbol</code>: 유니언의 case와 각 case를 생성하는 문법."
+    },
+    {
+      "id": "ns./answers/impact/.title",
+      "kind": "ns.title",
+      "en": "Can the compiler say what a change breaks first?",
+      "tr": "변경이 무엇을 깨뜨리는지 컴파일러가 먼저 알려 줄 수 있나요?"
+    },
+    {
+      "id": "ns./answers/impact/.desc",
+      "kind": "ns.desc",
+      "en": "Six change kinds, one verdict per site, and the csvql run above in full.",
+      "tr": "여섯 가지 변경 종류, 위치마다 하나의 판정, 그리고 위에서 본 csvql 실행 전체."
+    },
+    {
+      "id": "ns./answers/repair-protocol/.title",
+      "kind": "ns.title",
+      "en": "Does a failed build tell my agent how to fix it?",
+      "tr": "실패한 빌드가 에이전트에게 고치는 방법을 알려 주나요?"
+    },
+    {
+      "id": "ns./answers/repair-protocol/.desc",
+      "kind": "ns.desc",
+      "en": "<code>check --agent</code>, <code>glyph fix</code>, and a walkthrough with real output.",
+      "tr": "<code>check --agent</code>, <code>glyph fix</code>, 그리고 실제 출력으로 따라가는 안내."
+    },
+    {
+      "id": "ns./answers/generated-docs/.title",
+      "kind": "ns.title",
+      "en": "Is the agent's documentation generated?",
+      "tr": "에이전트용 문서는 자동으로 생성되나요?"
+    },
+    {
+      "id": "ns./answers/generated-docs/.desc",
+      "kind": "ns.desc",
+      "en": "What <code>glyph llms</code> emits, where each number comes from, and what is still missing.",
+      "tr": "<code>glyph llms</code>가 출력하는 것, 각 숫자의 출처, 그리고 아직 빠진 것."
+    },
+    {
+      "id": "ns./answers/ai-authoring/.title",
+      "kind": "ns.title",
+      "en": "Can an AI write a language it has barely seen?",
+      "tr": "AI가 거의 본 적 없는 언어를 쓸 수 있나요?"
+    },
+    {
+      "id": "ns./answers/ai-authoring/.desc",
+      "kind": "ns.desc",
+      "en": "What carries over from TypeScript, and how the compiler covers the rest.",
+      "tr": "TypeScript에서 그대로 통하는 것과, 나머지를 컴파일러가 채우는 방법."
+    },
+    {
+      "id": "h-753824bb",
+      "kind": "html",
+      "en": "For agents and tool builders",
+      "tr": "에이전트와 도구 개발자를 위한 안내"
+    },
+    {
+      "id": "h-035437e3",
+      "kind": "html",
+      "en": "The compiler's interface for agents",
+      "tr": "에이전트를 위한 컴파일러 인터페이스"
+    },
+    {
+      "id": "h-59e0f1f6",
+      "kind": "html",
+      "en": "An agent can ask Glyph's compiler what a symbol is, what an edit will break, and why a build failed, and get JSON back. <code>glyph mcp</code> serves eleven tools over stdio, each one also a <code>glyph query</code> verb, and <code>glyph llms</code> prints the language reference offline.",
+      "tr": "에이전트는 Glyph 컴파일러에게 심볼이 무엇인지, 편집이 무엇을 깨뜨릴지, 빌드가 왜 실패했는지 묻고 JSON으로 답을 받을 수 있습니다. <code>glyph mcp</code>는 stdio로 도구 열한 개를 제공하며, 각 도구는 <code>glyph query</code> 동사로도 쓸 수 있습니다. <code>glyph llms</code>는 오프라인에서 언어 레퍼런스를 출력합니다."
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "설정하기"
+    },
+    {
+      "id": "h-f72d5056",
+      "kind": "html",
+      "en": "<code>glyph init</code> writes this <code>.mcp.json</code> into a new project, and <code>glyph agents</code> writes it (with an <code>AGENTS.md</code> pointing at <code>glyph llms</code>) into an existing one. Any MCP client that reads the file launches the server; there is no port and no daemon.",
+      "tr": "<code>glyph init</code>은 새 프로젝트에 이 <code>.mcp.json</code>을 쓰고, <code>glyph agents</code>는 기존 프로젝트에 이 파일을 (<code>glyph llms</code>를 가리키는 <code>AGENTS.md</code>와 함께) 씁니다. 이 파일을 읽는 MCP 클라이언트라면 어느 것이든 서버를 실행합니다. 포트도 데몬도 없습니다."
+    },
+    {
+      "id": "h-95651357",
+      "kind": "html",
+      "en": ".mcp.json, as glyph init writes it",
+      "tr": "glyph init이 쓰는 .mcp.json"
+    },
+    {
+      "id": "h-bef1632c",
+      "kind": "html",
+      "en": "One call, with its real answer",
+      "tr": "호출 하나와 실제 응답"
+    },
+    {
+      "id": "h-d90f4a66",
+      "kind": "html",
+      "en": "A file reads a field that its record doesn't declare (<code>u.naem</code>). The agent calls <code>glyph_diagnostics</code> and gets the compiler's own diagnostic, with the fields the record does declare and the record that owns them. This is the tool's output on 0.1.149, trimmed only where marked.",
+      "tr": "어떤 파일이 레코드에 선언되지 않은 필드(<code>u.naem</code>)를 읽습니다. 에이전트가 <code>glyph_diagnostics</code>를 호출하면, 레코드가 실제로 선언한 필드와 그 필드를 가진 레코드를 담은 컴파일러 자체의 진단을 받습니다. 0.1.149에서 이 도구가 출력한 내용이며, 표시한 곳만 줄였습니다."
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "요청"
+    },
+    {
+      "id": "h-f6a214f7",
+      "kind": "html",
+      "en": "result",
+      "tr": "결과"
+    },
+    {
+      "id": "h-7039cad1",
+      "kind": "html",
+      "en": "<code>not_run</code> names what this check did not cover, so an empty <code>diagnostics</code> list can't be mistaken for a full build. Without an MCP client, <code>glyph query diagnostics --path src/user.glyph</code> prints the same JSON. The full tool list, with every verb, is on <a href=\"/mcp/\">the MCP page</a>.",
+      "tr": "<code>not_run</code>은 이 검사가 다루지 않은 것을 알려 주므로, 비어 있는 <code>diagnostics</code> 목록을 전체 빌드 결과로 오해할 일이 없습니다. MCP 클라이언트가 없으면 <code>glyph query diagnostics --path src/user.glyph</code>가 같은 JSON을 출력합니다. 모든 동사를 포함한 전체 도구 목록은 <a href=\"/mcp/\">MCP 페이지</a>에 있습니다."
+    },
+    {
+      "id": "h-1fb11ce5",
+      "kind": "html",
+      "en": "Before an edit: what will it break?",
+      "tr": "편집하기 전에: 무엇이 깨질까?"
+    },
+    {
+      "id": "h-ada15b5d",
+      "kind": "html",
+      "en": "<code>examples/apps/csvql</code> is an eleven-file CSV query engine with a four-case union, <code>Value</code>. Asked what adding a fifth case does, <code>glyph_impact</code> lists 10 <code>match</code> sites in 4 files: 8 <code>WILL_FAIL</code> and 2 <code>ABSORBS</code>, where a catch-all arm will swallow the new case and keep compiling. Adding the case for real gives exactly 8 <code>E0200</code> errors, at those 8 sites. The 2 absorbing sites stay silent, which is why the answer names them.",
+      "tr": "<code>examples/apps/csvql</code>은 case 네 개짜리 유니언 <code>Value</code>를 가진, 파일 열한 개로 된 CSV 쿼리 엔진입니다. 다섯 번째 case를 추가하면 어떻게 되는지 물으면 <code>glyph_impact</code>는 파일 4개에 걸친 <code>match</code> 위치 10곳을 나열합니다. <code>WILL_FAIL</code> 8곳과, catch-all arm이 새 case를 삼키고 계속 컴파일되는 <code>ABSORBS</code> 2곳입니다. 실제로 case를 추가하면 정확히 그 8곳에서 <code>E0200</code> 오류 8개가 납니다. 흡수하는 2곳은 아무 말도 하지 않으므로, 답에서 그 위치를 짚어 줍니다."
+    },
+    {
+      "id": "h-1b4a94d5",
+      "kind": "html",
+      "en": "the same question on the command line",
+      "tr": "명령줄에서 같은 질문하기"
+    },
+    {
+      "id": "h-e02ae173",
+      "kind": "html",
+      "en": "After a red build: what does the fix have to keep?",
+      "tr": "빌드가 실패한 뒤에: 수정이 지켜야 할 것은?"
+    },
+    {
+      "id": "h-fd59d326",
+      "kind": "html",
+      "en": "<code>glyph check --agent</code> prints <code>check --json</code>'s diagnostics with two more keys on each. <code>constraints</code> lists what a repairing edit must not break; for the typo above it reads \"the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others\". <code>symbols</code> carries the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. Where the fix is fully determined, <code>glyph fix</code> writes it.",
+      "tr": "<code>glyph check --agent</code>는 <code>check --json</code>의 진단에 키 두 개를 더해 출력합니다. <code>constraints</code>는 수정하는 편집이 깨뜨리면 안 되는 것을 나열합니다. 위의 오타라면 \"the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others\"라고 나옵니다. <code>symbols</code>는 진단이 언급한 모든 심볼에 대한 <code>glyph_symbol</code> 응답을 담고 있으므로, 다음 편집에 두 번째 호출이 필요 없습니다. 수정 방법이 완전히 정해지는 경우에는 <code>glyph fix</code>가 직접 수정합니다."
+    },
+    {
+      "id": "h-b85dc276",
+      "kind": "html",
+      "en": "Reading the language offline",
+      "tr": "오프라인에서 언어 읽기"
+    },
+    {
+      "id": "h-1f29991a",
+      "kind": "html",
+      "en": "<code>glyph llms</code> prints the language reference, and <code>/llms.txt</code> on this site is the same document. <code>glyph llms --json</code> is that knowledge as data, read from the compiler's own tables: 77 diagnostic codes, 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions, and the eleven tools. <code>glyph llms --negative</code> returns 117 wrong programs in 0.1.149 (139 from the next release) with the code each one draws, compiled when you ask. <code>scripts/check_llms_sync.py</code> fails when the diagnostic and reserved-word tables in the reference drift from the compiler's own.",
+      "tr": "<code>glyph llms</code>는 언어 레퍼런스를 출력하며, 이 사이트의 <code>/llms.txt</code>도 같은 문서입니다. <code>glyph llms --json</code>은 같은 지식을 컴파일러 자체 테이블에서 읽은 데이터로 제공합니다. 진단 코드 77개, prelude 이름 24개, export 340개를 가진 stdlib 모듈 40개, 언어 결정 49개, 그리고 도구 열한 개입니다. <code>glyph llms --negative</code>는 0.1.149에서 잘못된 프로그램 117개(다음 릴리스부터는 139개)를 각 프로그램이 일으키는 코드와 함께 반환하며, 요청할 때 컴파일합니다. 레퍼런스의 진단 테이블과 예약어 테이블이 컴파일러 자체 테이블과 어긋나면 <code>scripts/check_llms_sync.py</code>가 실패합니다."
+    },
+    {
+      "id": "h-d7b19eb8",
+      "kind": "html",
+      "en": "offline entry points",
+      "tr": "오프라인 진입점"
+    }
+  ]
+}

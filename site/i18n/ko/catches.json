@@ -1,0 +1,1212 @@
+{
+  "_about": "The texts of each case in catches/ as the generated pages show them. Translate each \"tr\" from its \"en\"; keep tags, <code> content and placeholders. A case whose English changes shows in English until its \"tr\" is redone. See site/i18n/README.md.",
+  "locale": "ko",
+  "cases": {
+    "absent-map-key": {
+      "page_title": {
+        "en": "A key that may not be there",
+        "tr": "없을 수도 있는 키"
+      },
+      "why": {
+        "en": "Reading a field from a row of strings, with the name misspelled.",
+        "tr": "문자열로 된 행에서 필드를 읽는데, 이름의 철자가 틀린 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints undefined",
+        "tr": "컴파일된 뒤 undefined를 출력"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>Any key reads as a <code>string</code>,</b> even one that is not there, so the misspelled field prints <code>undefined</code>.",
+        "tr": "<b>어떤 키를 읽어도 <code>string</code>으로 취급합니다.</b> 없는 키도 마찬가지라서 철자가 틀린 필드는 <code>undefined</code>를 출력합니다."
+      },
+      "glyph_result": {
+        "en": "<b>A map read says it might be empty,</b> so the code has to say what happens then.",
+        "tr": "<b>맵에서 읽은 값은 비어 있을 수 있다고 표시되므로,</b> 그때 어떻게 할지 코드에 적어야 합니다."
+      },
+      "page_note": {
+        "en": "TypeScript's <code>Record&lt;string, string&gt;</code> claims every possible key has a string. Glyph treats it as a map, where a lookup can find nothing, so it refuses the correctly spelled <code>row.name</code> too.",
+        "tr": "TypeScript의 <code>Record&lt;string, string&gt;</code>은 가능한 모든 키에 문자열이 있다고 주장합니다. Glyph는 이를 조회 결과가 없을 수도 있는 맵으로 다루므로, 철자가 맞는 <code>row.name</code>도 거부합니다."
+      }
+    },
+    "array-covariance": {
+      "page_title": {
+        "en": "Array covariance",
+        "tr": "배열 공변성"
+      },
+      "why": {
+        "en": "Passing a list of dogs where a list of animals is expected.",
+        "tr": "동물 목록이 필요한 곳에 개 목록을 넘기는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "컴파일된 뒤 실행 중에 충돌"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>A cat ends up in the list of dogs.</b>",
+        "tr": "<b>개 목록에 고양이가 들어갑니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A list of dogs is not a writable list of animals.</b>",
+        "tr": "<b>개 목록은 쓰기 가능한 동물 목록이 아닙니다.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript lets <code>Dog[]</code> stand in for <code>Animal[]</code> even when the function adds to it.",
+        "tr": "TypeScript는 함수가 배열에 값을 추가하는 경우에도 <code>Dog[]</code>를 <code>Animal[]</code> 대신 쓸 수 있게 허용합니다."
+      }
+    },
+    "arrow-function-returns-nothing": {
+      "page_title": {
+        "en": "An arrow function that returns nothing",
+        "tr": "아무것도 반환하지 않는 화살표 함수"
+      },
+      "why": {
+        "en": "Mapping users to rows.",
+        "tr": "사용자를 행으로 매핑하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "컴파일된 뒤 잘못된 결과를 냄"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "작성할 수 없음"
+      },
+      "ts_result": {
+        "en": "<b>The braces are a function body,</b> and <code>label:</code> is a statement label.",
+        "tr": "<b>중괄호는 함수 본문이고,</b> <code>label:</code>은 문장 레이블입니다."
+      },
+      "glyph_result": {
+        "en": "<b>The ambiguous form is not valid Glyph.</b>",
+        "tr": "<b>모호한 형태는 올바른 Glyph 코드가 아닙니다.</b>"
+      },
+      "page_note": {
+        "en": "To return an object from a TypeScript arrow function, the braces need parentheses: <code>u =&gt; ({ ... })</code>.",
+        "tr": "TypeScript 화살표 함수에서 객체를 반환하려면 중괄호를 괄호로 감싸야 합니다: <code>u =&gt; ({ ... })</code>."
+      }
+    },
+    "as-unknown-as": {
+      "page_title": {
+        "en": "<code>as unknown as T</code>",
+        "tr": "<code>as unknown as T</code>"
+      },
+      "why": {
+        "en": "Forcing a value into the type you want.",
+        "tr": "값을 원하는 타입으로 강제로 바꾸는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "컴파일된 뒤 실행 중에 충돌"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "작성할 수 없음"
+      },
+      "ts_result": {
+        "en": "<b>A double cast switches checking off.</b>",
+        "tr": "<b>이중 캐스트는 타입 검사를 꺼 버립니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>There is no cast to write.</b> The help says what to do instead.",
+        "tr": "<b>작성할 캐스트 자체가 없습니다.</b> 대신 무엇을 해야 하는지 도움말이 알려 줍니다."
+      },
+      "page_note": {
+        "en": "<code>as unknown as T</code> is how agents silence a type error they can't fix.",
+        "tr": "<code>as unknown as T</code>는 에이전트가 고칠 수 없는 타입 오류를 덮을 때 쓰는 방법입니다."
+      }
+    },
+    "change-hidden-in-a-helper": {
+      "page_title": {
+        "en": "A change hidden in a helper",
+        "tr": "헬퍼 안에 숨은 변경"
+      },
+      "why": {
+        "en": "A function that edits the object it was given.",
+        "tr": "전달받은 객체를 수정하는 함수."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "경고 없이 컴파일"
+      },
+      "glyph_verdict": {
+        "en": "refused until it is marked",
+        "tr": "표시할 때까지 거부"
+      },
+      "ts_result": {
+        "en": "<b>The caller's user is renamed.</b> Nothing at the call site says so.",
+        "tr": "<b>호출한 쪽의 user 이름이 바뀝니다.</b> 호출 지점에는 그런 표시가 전혀 없습니다."
+      },
+      "glyph_result": {
+        "en": "<b>Changing a field takes <code>mut</code>.</b>",
+        "tr": "<b>필드를 바꾸려면 <code>mut</code>가 필요합니다.</b>"
+      },
+      "page_note": {
+        "en": "Glyph does not forbid the change. It makes it visible: searching for <code>mut</code> lists every field a function writes.",
+        "tr": "Glyph는 변경을 금지하지 않습니다. 변경을 드러나게 합니다. <code>mut</code>를 검색하면 함수가 쓰는 모든 필드가 나옵니다."
+      }
+    },
+    "code-after-return": {
+      "page_title": {
+        "en": "Code after <code>return</code>",
+        "tr": "<code>return</code> 뒤의 코드"
+      },
+      "why": {
+        "en": "Adding tax after the function already returned.",
+        "tr": "함수가 이미 반환한 뒤에 세금을 더하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "경고 없이 컴파일"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "경고"
+      },
+      "ts_result": {
+        "en": "<b>The tax line never runs.</b>",
+        "tr": "<b>세금 계산 줄은 절대 실행되지 않습니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dead line.</b>",
+        "tr": "<b>Glyph가 죽은 코드 줄을 가리킵니다.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only shows unreachable code as a faded hint in the editor by default.",
+        "tr": "TypeScript는 기본적으로 도달할 수 없는 코드를 에디터에서 흐리게 표시하는 힌트로만 보여 줍니다."
+      }
+    },
+    "comparing-records-with-triple-equals": {
+      "page_title": {
+        "en": "Comparing two records with <code>===</code>",
+        "tr": "두 레코드를 <code>===</code>로 비교하기"
+      },
+      "why": {
+        "en": "Skipping a save when nothing changed.",
+        "tr": "바뀐 것이 없으면 저장을 건너뛰는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then compares identity, not data",
+        "tr": "컴파일된 뒤 데이터가 아니라 동일성을 비교"
+      },
+      "glyph_verdict": {
+        "en": "compares the data",
+        "tr": "데이터를 비교"
+      },
+      "ts_result": {
+        "en": "<b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs.",
+        "tr": "<b>데이터는 같지만 <code>===</code>는 같은 객체인지를 묻습니다.</b> 저장이 매번 실행됩니다."
+      },
+      "glyph_result": {
+        "en": "<b>Two records with the same fields are equal.</b>",
+        "tr": "<b>필드가 같은 두 레코드는 같습니다.</b>"
+      },
+      "page_note": {
+        "en": "This is JavaScript working as designed: <code>===</code> on objects compares identity, and comparing data needs a helper such as lodash's <code>isEqual</code>. The mistake is reaching for <code>===</code> when the data was meant. In Glyph <code>==</code> on records compares the data, so the obvious spelling is the right one.",
+        "tr": "이것은 JavaScript가 설계대로 동작하는 것입니다. 객체에 쓴 <code>===</code>는 동일성을 비교하고, 데이터를 비교하려면 lodash의 <code>isEqual</code> 같은 헬퍼가 필요합니다. 실수는 데이터를 비교하려 했는데 <code>===</code>를 쓰는 데 있습니다. Glyph에서는 레코드에 쓴 <code>==</code>가 데이터를 비교하므로, 가장 자연스러운 표기가 올바른 표기입니다."
+      }
+    },
+    "computed-value-never-used": {
+      "page_title": {
+        "en": "A computed value that is never used",
+        "tr": "계산했지만 쓰지 않는 값"
+      },
+      "why": {
+        "en": "Cleaning an input, then returning the original by mistake.",
+        "tr": "입력을 정리한 뒤 실수로 원래 값을 반환하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "경고 없이 컴파일"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "경고"
+      },
+      "ts_result": {
+        "en": "<b>The cleaning never happens.</b>",
+        "tr": "<b>정리 작업이 반영되지 않습니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the unused value.</b>",
+        "tr": "<b>Glyph가 사용되지 않은 값을 가리킵니다.</b>"
+      },
+      "page_note": {
+        "en": "<code>noUnusedLocals</code> is not part of <code>--strict</code>, so TypeScript says nothing by default.",
+        "tr": "<code>noUnusedLocals</code>는 <code>--strict</code>에 포함되지 않으므로 TypeScript는 기본적으로 아무 말도 하지 않습니다."
+      }
+    },
+    "config-with-a-setting-missing": {
+      "page_title": {
+        "en": "A config with a setting missing",
+        "tr": "설정 하나가 빠진 config"
+      },
+      "why": {
+        "en": "A limit for each plan, loaded from a file someone forgot to update.",
+        "tr": "요금제별 한도를, 누군가 갱신을 잊은 파일에서 읽어 오는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "컴파일된 뒤 잘못된 데이터로 실행"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "데이터가 들어올 때 검사"
+      },
+      "ts_result": {
+        "en": "<b>The type promises every plan has a limit.</b> The file does not.",
+        "tr": "<b>타입은 모든 요금제에 한도가 있다고 약속합니다.</b> 파일은 그렇지 않습니다."
+      },
+      "glyph_result": {
+        "en": "<b>Every plan must be there, and nothing else.</b>",
+        "tr": "<b>모든 요금제가 있어야 하고, 그 밖의 것은 없어야 합니다.</b>"
+      },
+      "page_note": {
+        "en": "<code>Record&lt;Plan, number&gt;</code> promises a value for every plan, and <code>as</code> never looks. Glyph requires every key in the type and refuses extra ones.",
+        "tr": "<code>Record&lt;Plan, number&gt;</code>는 모든 요금제에 값이 있다고 약속하고, <code>as</code>는 아무것도 확인하지 않습니다. Glyph는 타입에 있는 모든 키를 요구하고 그 밖의 키는 거부합니다."
+      }
+    },
+    "connection-left-open": {
+      "page_title": {
+        "en": "A connection left open",
+        "tr": "열린 채로 남은 연결"
+      },
+      "why": {
+        "en": "Returning early before cleanup.",
+        "tr": "정리하기 전에 일찍 반환하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then leaks a connection",
+        "tr": "컴파일된 뒤 연결이 누수됨"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>Every rejected request leaks a connection.</b>",
+        "tr": "<b>거부된 요청마다 연결이 하나씩 누수됩니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Every path must close it.</b>",
+        "tr": "<b>모든 경로에서 연결을 닫아야 합니다.</b>"
+      },
+      "page_note": {
+        "en": "This check applies to values declared <code>owned</code>. A resource without it is not tracked.",
+        "tr": "이 검사는 <code>owned</code>로 선언한 값에 적용됩니다. 그렇게 선언하지 않은 리소스는 추적하지 않습니다."
+      }
+    },
+    "data-from-outside-the-program": {
+      "page_title": {
+        "en": "Data from outside the program",
+        "tr": "프로그램 외부에서 온 데이터"
+      },
+      "why": {
+        "en": "A request body, a file, an API response.",
+        "tr": "요청 본문, 파일, API 응답."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "컴파일된 뒤 잘못된 데이터로 실행"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "데이터가 들어올 때 검사"
+      },
+      "ts_result": {
+        "en": "<b>Nothing checks the data.</b> <code>undefined</code> travels on as a plan.",
+        "tr": "<b>아무것도 데이터를 검사하지 않습니다.</b> <code>undefined</code>가 요금제인 것처럼 계속 전달됩니다."
+      },
+      "glyph_result": {
+        "en": "<b>A body that is not a real <code>User</code> is an <code>Err</code>.</b> The program never holds a fake one.",
+        "tr": "<b>올바른 <code>User</code>가 아닌 본문은 <code>Err</code>입니다.</b> 프로그램이 가짜 값을 갖게 되는 일은 없습니다."
+      },
+      "page_note": {
+        "en": "<code>as User</code> does not check anything. It tells the compiler to trust you. Glyph has no <code>as</code>.",
+        "tr": "<code>as User</code>는 아무것도 검사하지 않습니다. 컴파일러에게 나를 믿으라고 말할 뿐입니다. Glyph에는 <code>as</code>가 없습니다."
+      }
+    },
+    "duplicate-case": {
+      "page_title": {
+        "en": "A duplicate case",
+        "tr": "중복된 case"
+      },
+      "why": {
+        "en": "Deciding which orders can be refunded.",
+        "tr": "어떤 주문을 환불할 수 있는지 결정하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "경고 없이 컴파일"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>The second rule is dead.</b> Nobody notices.",
+        "tr": "<b>두 번째 규칙은 죽은 코드입니다.</b> 아무도 알아채지 못합니다."
+      },
+      "glyph_result": {
+        "en": "<b>An arm that can never run is an error.</b>",
+        "tr": "<b>절대 실행될 수 없는 arm은 오류입니다.</b>"
+      },
+      "page_note": {
+        "en": "tsc does not flag a <code>case</code> label that appears twice.",
+        "tr": "tsc는 두 번 나오는 <code>case</code> 레이블을 지적하지 않습니다."
+      }
+    },
+    "error-nobody-looked-at": {
+      "page_title": {
+        "en": "An error nobody looked at",
+        "tr": "아무도 확인하지 않은 오류"
+      },
+      "why": {
+        "en": "Calling something that can fail and moving on.",
+        "tr": "실패할 수 있는 것을 호출하고 그냥 넘어가는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "경고 없이 컴파일"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "경고"
+      },
+      "ts_result": {
+        "en": "<b>The failure is dropped</b> and the user is told it worked.",
+        "tr": "<b>실패는 버려지고</b> 사용자에게는 성공했다고 알립니다."
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dropped failure.</b>",
+        "tr": "<b>Glyph가 버려진 실패를 가리킵니다.</b>"
+      },
+      "page_note": {
+        "en": "A warning, not an error. To drop it on purpose, say so: <code>let _ = save(user)</code>.",
+        "tr": "오류가 아니라 경고입니다. 일부러 버리려면 그렇다고 명시합니다: <code>let _ = save(user)</code>."
+      }
+    },
+    "error-the-signature-hides": {
+      "page_title": {
+        "en": "An error the signature hides",
+        "tr": "시그니처가 숨기는 오류"
+      },
+      "why": {
+        "en": "A function that can fail, called by code that does not know it can.",
+        "tr": "실패할 수 있는 함수를, 그 사실을 모르는 코드가 호출하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "컴파일된 뒤 실행 중에 충돌"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>The type says <code>Config</code>.</b> Nothing says it can throw.",
+        "tr": "<b>타입은 <code>Config</code>라고만 말합니다.</b> 예외를 던질 수 있다는 표시는 어디에도 없습니다."
+      },
+      "glyph_result": {
+        "en": "<b>Failure is part of the return type,</b> so the caller has to handle it.",
+        "tr": "<b>실패가 반환 타입의 일부이므로,</b> 호출하는 쪽이 처리해야 합니다."
+      },
+      "page_note": {
+        "en": "A TypeScript function's type lists what it returns, never what it throws. In Glyph, failure is part of the return type, so every caller can see it.",
+        "tr": "TypeScript 함수의 타입은 무엇을 반환하는지만 나열하고, 무엇을 던지는지는 나열하지 않습니다. Glyph에서는 실패가 반환 타입의 일부이므로 모든 호출자가 이를 볼 수 있습니다."
+      }
+    },
+    "filter-that-keeps-everyone": {
+      "page_title": {
+        "en": "A filter that keeps everyone",
+        "tr": "모두를 통과시키는 필터"
+      },
+      "why": {
+        "en": "Checking each user against an async permission call.",
+        "tr": "각 사용자를 비동기 권한 확인 호출로 검사하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "컴파일된 뒤 잘못된 결과를 냄"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>Nothing is filtered out.</b>",
+        "tr": "<b>아무것도 걸러지지 않습니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>An async function is not a yes/no answer.</b>",
+        "tr": "<b>비동기 함수는 예/아니요 답이 아닙니다.</b>"
+      },
+      "page_note": {
+        "en": "An async function returns a Promise, and any Promise counts as true. A permission filter built this way lets everyone through.",
+        "tr": "비동기 함수는 Promise를 반환하고, Promise는 무엇이든 참으로 취급됩니다. 이렇게 만든 권한 필터는 모두를 통과시킵니다."
+      }
+    },
+    "gap-g380-mutation-without-mut": {
+      "summary": {
+        "en": "<code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it.",
+        "tr": "헬퍼 안의 <code>xs.sort(...)</code>는 호출한 쪽의 배열 순서를 바꾸는데, 이를 표시하는 <code>mut</code>가 없습니다."
+      }
+    },
+    "gap-g381-member-read-on-unknown": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "문자열에 대한 <code>input + 1</code>, <code>users.find(...).name</code>, <code>unknown</code>에서 필드 읽기는 Glyph 자체 검사기가 아니라 <code>tsc</code> 단계에서만 잡히므로, 에디터와 에이전트 도구는 이를 놓칩니다."
+      }
+    },
+    "gap-g382-string-plus-number": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "문자열에 대한 <code>input + 1</code>, <code>users.find(...).name</code>, <code>unknown</code>에서 필드 읽기는 Glyph 자체 검사기가 아니라 <code>tsc</code> 단계에서만 잡히므로, 에디터와 에이전트 도구는 이를 놓칩니다."
+      }
+    },
+    "gap-g384-dropped-async-call": {
+      "summary": {
+        "en": "<code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns.",
+        "tr": "<code>forEach(async ...)</code>는 모든 promise를 버리므로, 작업이 그 결과에 의존하는 코드보다 늦게 끝나는데도 아무 경고가 없습니다."
+      }
+    },
+    "gap-g385-record-in-template": {
+      "summary": {
+        "en": "<code>\"Welcome back, ${user}!\"</code> with a record prints <code>[object Object]</code>.",
+        "tr": "레코드를 넣은 <code>\"Welcome back, ${user}!\"</code>는 <code>[object Object]</code>를 출력합니다."
+      }
+    },
+    "gap-g386-or-on-a-number": {
+      "summary": {
+        "en": "<code>requested || 3</code> turns a real <code>0</code> into <code>3</code>.",
+        "tr": "<code>requested || 3</code>은 실제 값인 <code>0</code>을 <code>3</code>으로 바꿉니다."
+      }
+    },
+    "gap-g387-sql-by-interpolation": {
+      "summary": {
+        "en": "A SQL query built with <code>${name}</code> is accepted by <code>std/sqlite</code>.",
+        "tr": "<code>${name}</code>으로 만든 SQL 쿼리를 <code>std/sqlite</code>가 받아들입니다."
+      }
+    },
+    "gap-g388-sort-as-text": {
+      "summary": {
+        "en": "<code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>.",
+        "tr": "숫자에 대한 <code>.sort()</code>는 숫자를 텍스트로 정렬합니다: <code>100,25,9</code>."
+      }
+    },
+    "gap-g390-index-update-across-await": {
+      "summary": {
+        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
+        "tr": "<code>c[0]</code>에 대해 <code>await</code>를 사이에 둔 갱신 손실. 필드에 대한 같은 쓰기는 거부됩니다."
+      }
+    },
+    "gap-g391-null-in-optional-field": {
+      "summary": {
+        "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",
+        "tr": "선택 필드에 들어 있는 JSON <code>null</code>이 검사를 통과하므로, 기본값 위에 spread하면 <code>null</code>이 남습니다."
+      }
+    },
+    "gap-g392-find-method-option": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "문자열에 대한 <code>input + 1</code>, <code>users.find(...).name</code>, <code>unknown</code>에서 필드 읽기는 Glyph 자체 검사기가 아니라 <code>tsc</code> 단계에서만 잡히므로, 에디터와 에이전트 도구는 이를 놓칩니다."
+      }
+    },
+    "invalid-date": {
+      "page_title": {
+        "en": "An invalid date",
+        "tr": "잘못된 날짜"
+      },
+      "why": {
+        "en": "Parsing a date from a form.",
+        "tr": "폼에서 날짜를 파싱하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives a wrong date or crashes",
+        "tr": "컴파일된 뒤 엉뚱한 날짜를 내거나 충돌"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "작성할 수 없음"
+      },
+      "ts_result": {
+        "en": "<b>Bad dates roll over</b> into real ones.",
+        "tr": "<b>잘못된 날짜가</b> 실제 날짜로 넘어갑니다."
+      },
+      "glyph_result": {
+        "en": "<b>Parsing can fail, and the type says so.</b>",
+        "tr": "<b>파싱은 실패할 수 있고, 타입이 그것을 말해 줍니다.</b>"
+      },
+      "page_note": {
+        "en": "JavaScript's <code>Date</code> turns February 30 into March 2 without complaint. Glyph has no <code>Date</code>; <code>time.parse_iso</code> returns <code>None</code>.",
+        "tr": "JavaScript의 <code>Date</code>는 2월 30일을 아무 불평 없이 3월 2일로 바꿉니다. Glyph에는 <code>Date</code>가 없고, <code>time.parse_iso</code>는 <code>None</code>을 반환합니다."
+      }
+    },
+    "lost-update-across-await": {
+      "page_title": {
+        "en": "A lost update across <code>await</code>",
+        "tr": "<code>await</code>를 사이에 둔 갱신 손실"
+      },
+      "why": {
+        "en": "Two requests charge the same account at once.",
+        "tr": "두 요청이 같은 계정에 동시에 요금을 부과하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then loses money at run time",
+        "tr": "컴파일된 뒤 실행 중에 돈이 사라짐"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>One charge vanishes.</b> No test reliably catches it.",
+        "tr": "<b>요금 하나가 사라집니다.</b> 어떤 테스트도 이를 안정적으로 잡지 못합니다."
+      },
+      "glyph_result": {
+        "en": "<b>Glyph spots the read-then-write around the wait.</b>",
+        "tr": "<b>Glyph가 대기를 사이에 둔 읽기 후 쓰기를 찾아냅니다.</b>"
+      },
+      "page_note": {
+        "en": "While one call waits on <code>fee()</code>, another can update the balance. The first then writes back a stale value.",
+        "tr": "한 호출이 <code>fee()</code>를 기다리는 동안 다른 호출이 잔액을 갱신할 수 있습니다. 그러면 첫 번째 호출이 오래된 값을 다시 씁니다."
+      }
+    },
+    "median-with-a-fractional-index": {
+      "page_title": {
+        "en": "A median with a fractional index",
+        "tr": "소수 인덱스로 구한 중앙값"
+      },
+      "why": {
+        "en": "Taking the middle of a sorted list.",
+        "tr": "정렬된 목록의 가운데 값을 구하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "컴파일된 뒤 잘못된 결과를 냄"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "실행 시 중단"
+      },
+      "ts_result": {
+        "en": "<b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.",
+        "tr": "<b>인덱스 1.5를 읽으면 <code>undefined</code>가 나오고,</b> 호출한 쪽의 산술 연산이 이를 <code>NaN</code>으로 바꿉니다."
+      },
+      "glyph_result": {
+        "en": "<b>A bad index stops the program</b> instead of spreading <code>NaN</code>.",
+        "tr": "<b>잘못된 인덱스는 프로그램을 멈춥니다.</b> <code>NaN</code>을 퍼뜨리지 않습니다."
+      },
+      "page_note": {
+        "en": "Glyph checks every array index when the code runs. This one is not caught at build time.",
+        "tr": "Glyph는 코드가 실행될 때 모든 배열 인덱스를 검사합니다. 이 경우는 빌드 시점에 잡히지 않습니다."
+      }
+    },
+    "method-forgets-its-object": {
+      "page_title": {
+        "en": "A method that forgets its object",
+        "tr": "자기 객체를 잊는 메서드"
+      },
+      "why": {
+        "en": "Passing a method around as a value.",
+        "tr": "메서드를 값으로 넘기는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "컴파일된 뒤 실행 중에 충돌"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>The method is pulled off its string</b> and loses track of it.",
+        "tr": "<b>메서드를 문자열에서 떼어 내면</b> 그 문자열을 잃어버립니다."
+      },
+      "glyph_result": {
+        "en": "<b>A method has to be called where it is read.</b> Pass a function instead.",
+        "tr": "<b>메서드는 읽는 자리에서 호출해야 합니다.</b> 대신 함수를 넘기세요."
+      },
+      "page_note": {
+        "en": "A TypeScript method depends on the object it is called on (<code>this</code>). Taken out of <code>name.toUpperCase()</code> as a value, it no longer knows which string to use.",
+        "tr": "TypeScript 메서드는 자신이 호출된 객체(<code>this</code>)에 의존합니다. <code>name.toUpperCase()</code>에서 값으로 떼어 내면 어떤 문자열을 써야 하는지 더 이상 알지 못합니다."
+      }
+    },
+    "negative-age": {
+      "page_title": {
+        "en": "A negative age",
+        "tr": "음수 나이"
+      },
+      "why": {
+        "en": "A rule about a value, not just its type.",
+        "tr": "타입뿐 아니라 값에 대한 규칙."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "컴파일된 뒤 잘못된 데이터로 실행"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "데이터가 들어올 때 검사"
+      },
+      "ts_result": {
+        "en": "<b>The rule lives in a comment,</b> where nothing enforces it.",
+        "tr": "<b>규칙은 주석에만 있고,</b> 아무것도 이를 강제하지 않습니다."
+      },
+      "glyph_result": {
+        "en": "<b>The rule is part of the type,</b> and checked with it.",
+        "tr": "<b>규칙은 타입의 일부이고,</b> 타입과 함께 검사됩니다."
+      },
+      "page_note": {
+        "en": "In TypeScript, a rule like \"never negative\" lives in a comment or a separate validator. In Glyph it is part of the type, so every check of the type enforces it.",
+        "tr": "TypeScript에서 \"절대 음수가 아님\" 같은 규칙은 주석이나 별도의 검증기에 있습니다. Glyph에서는 타입의 일부이므로 타입을 검사할 때마다 규칙도 강제됩니다."
+      }
+    },
+    "non-exhaustive-match": {
+      "page_title": {
+        "en": "A case nobody handled",
+        "tr": "아무도 처리하지 않은 case"
+      },
+      "why": {
+        "en": "An agent adds an <code>\"archived\"</code> status. The handler that announces each status was written before it existed.",
+        "tr": "에이전트가 <code>\"archived\"</code> 상태를 추가합니다. 각 상태를 알리는 핸들러는 이 상태가 생기기 전에 작성되었습니다."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "경고 없이 컴파일"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>Archiving an item logs nothing.</b> Nothing says the <code>switch</code> is out of date.",
+        "tr": "<b>항목을 보관해도 아무 로그가 남지 않습니다.</b> <code>switch</code>가 낡았다고 알려 주는 것이 없습니다."
+      },
+      "glyph_result": {
+        "en": "<b>The build stops and names the case.</b>",
+        "tr": "<b>빌드가 멈추고 해당 case를 지목합니다.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript checks that a <code>switch</code> covers every case only when the function returns a value from every branch, or with the <code>assertNever</code> idiom. A handler that returns nothing gets neither. In Glyph every <code>match</code> must cover every case, so adding a variant lists each place that has to change.",
+        "tr": "TypeScript는 함수가 모든 분기에서 값을 반환하거나 <code>assertNever</code> 관용구를 쓸 때만 <code>switch</code>가 모든 case를 다루는지 검사합니다. 아무것도 반환하지 않는 핸들러는 둘 다 해당하지 않습니다. Glyph에서는 모든 <code>match</code>가 모든 case를 다뤄야 하므로, variant를 추가하면 바꿔야 할 곳이 모두 나열됩니다."
+      }
+    },
+    "number-accepted-as-enum": {
+      "page_title": {
+        "en": "A number accepted as an enum",
+        "tr": "enum으로 받아들여지는 숫자"
+      },
+      "why": {
+        "en": "A status code read from the database.",
+        "tr": "데이터베이스에서 읽은 상태 코드."
+      },
+      "ts_verdict": {
+        "en": "compiles, then picks the wrong state",
+        "tr": "컴파일된 뒤 잘못된 상태를 선택"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>An unknown code becomes a real status.</b>",
+        "tr": "<b>알 수 없는 코드가 실제 상태가 됩니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A number is not a <code>Status</code>.</b>",
+        "tr": "<b>숫자는 <code>Status</code>가 아닙니다.</b>"
+      },
+      "page_note": {
+        "en": "Any number is assignable to a numeric enum in TypeScript, even one with no matching member.",
+        "tr": "TypeScript에서는 일치하는 멤버가 없는 숫자라도 모든 숫자를 숫자 enum에 대입할 수 있습니다."
+      }
+    },
+    "number-that-is-not-a-number": {
+      "page_title": {
+        "en": "A number that is not a number",
+        "tr": "숫자가 아닌 숫자"
+      },
+      "why": {
+        "en": "User input, a query string, a CSV cell.",
+        "tr": "사용자 입력, 쿼리 문자열, CSV 셀."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "컴파일된 뒤 잘못된 데이터로 실행"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b><code>NaN</code> spreads</b> through every sum it touches.",
+        "tr": "<b><code>NaN</code>이 퍼집니다.</b> 닿는 모든 합계로 번집니다."
+      },
+      "glyph_result": {
+        "en": "<b>Parsing returns a <code>Result</code>:</b> a number, or a reason it failed.",
+        "tr": "<b>파싱은 <code>Result</code>를 반환합니다:</b> 숫자이거나, 실패한 이유입니다."
+      },
+      "page_note": {
+        "en": "The error points at this line, before <code>total</code> is ever called. To compile, the code has to say what a bad input means: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>",
+        "tr": "오류는 <code>total</code>이 호출되기도 전에 이 줄을 가리킵니다. 컴파일하려면 잘못된 입력이 무엇을 뜻하는지 코드에 적어야 합니다: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>"
+      }
+    },
+    "one-function-many-names": {
+      "page_title": {
+        "en": "One function, many names",
+        "tr": "함수 하나, 이름 여러 개"
+      },
+      "why": {
+        "en": "Finding every caller before you change something.",
+        "tr": "무언가를 바꾸기 전에 모든 호출자를 찾는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "경고 없이 컴파일"
+      },
+      "glyph_verdict": {
+        "en": "one name everywhere",
+        "tr": "어디서나 같은 이름"
+      },
+      "ts_result": {
+        "en": "<b><code>grep getUser</code> misses two of three callers.</b>",
+        "tr": "<b><code>grep getUser</code>는 호출자 세 곳 중 두 곳을 놓칩니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>No default exports, no renaming.</b> <code>grep get_user</code> finds every caller.",
+        "tr": "<b>default export도, 이름 바꾸기도 없습니다.</b> <code>grep get_user</code>가 모든 호출자를 찾습니다."
+      },
+      "page_note": {
+        "en": "This is what lets an agent change a function safely: it can find every place that uses it with a plain text search.",
+        "tr": "이 덕분에 에이전트가 함수를 안전하게 바꿀 수 있습니다. 평범한 텍스트 검색으로 그 함수를 쓰는 모든 곳을 찾을 수 있기 때문입니다."
+      }
+    },
+    "one-step-past-the-end": {
+      "page_title": {
+        "en": "One step past the end",
+        "tr": "끝에서 한 칸 더"
+      },
+      "why": {
+        "en": "Summing a list with a loop.",
+        "tr": "반복문으로 목록의 합을 구하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "컴파일된 뒤 잘못된 결과를 냄"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "실행 시 중단"
+      },
+      "ts_result": {
+        "en": "<b><code>&lt;=</code> reads one past the end.</b>",
+        "tr": "<b><code>&lt;=</code>는 끝을 한 칸 넘어서 읽습니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program.",
+        "tr": "<b>Glyph에는 C 스타일 <code>for</code>가 없습니다.</b> 끝을 넘어서 읽으면 프로그램이 멈춥니다."
+      },
+      "page_note": {
+        "en": "Out-of-range reads return <code>undefined</code> in TypeScript, and arithmetic turns that into <code>NaN</code>.",
+        "tr": "TypeScript에서 범위를 벗어난 읽기는 <code>undefined</code>를 반환하고, 산술 연산이 이를 <code>NaN</code>으로 바꿉니다."
+      }
+    },
+    "quantity-of-one-and-a-half": {
+      "page_title": {
+        "en": "A quantity of 1.5",
+        "tr": "수량 1.5"
+      },
+      "why": {
+        "en": "An order line that can only be a whole number.",
+        "tr": "정수만 될 수 있는 주문 항목."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "컴파일된 뒤 잘못된 데이터로 실행"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "데이터가 들어올 때 검사"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript has one <code>number</code>.</b> Half an item ships.",
+        "tr": "<b>TypeScript에는 <code>number</code> 하나뿐입니다.</b> 반 개짜리 상품이 출고됩니다."
+      },
+      "glyph_result": {
+        "en": "<b><code>int</code> is its own type,</b> and it is checked.",
+        "tr": "<b><code>int</code>는 별도의 타입이고,</b> 검사됩니다."
+      },
+      "page_note": {
+        "en": "TypeScript has one <code>number</code> type for whole numbers and fractions alike. Glyph has <code>int</code>, and checks it when the data arrives.",
+        "tr": "TypeScript는 정수와 소수 모두에 <code>number</code> 타입 하나를 씁니다. Glyph에는 <code>int</code>가 있고, 데이터가 들어올 때 이를 검사합니다."
+      }
+    },
+    "split-into-a-pair": {
+      "page_title": {
+        "en": "Destructuring a <code>split</code>",
+        "tr": "<code>split</code> 결과를 구조 분해하기"
+      },
+      "why": {
+        "en": "Splitting an address into a user and a host.",
+        "tr": "주소를 사용자와 호스트로 나누는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "컴파일된 뒤 잘못된 텍스트를 출력"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads \"nobody at undefined\".",
+        "tr": "<b>TypeScript는 두 번째 부분이 있다고 가정합니다.</b> <code>@</code>가 없으면 텍스트는 \"nobody at undefined\"가 됩니다."
+      },
+      "glyph_result": {
+        "en": "<b>The missing part has to be handled.</b>",
+        "tr": "<b>빠진 부분을 처리해야 합니다.</b>"
+      },
+      "page_note": {
+        "en": "<code>split</code> can return one piece. TypeScript types <code>host</code> as <code>string</code> anyway.",
+        "tr": "<code>split</code>은 조각 하나만 반환할 수 있습니다. 그런데도 TypeScript는 <code>host</code>의 타입을 <code>string</code>으로 지정합니다."
+      }
+    },
+    "switch-fallthrough": {
+      "page_title": {
+        "en": "Switch fallthrough",
+        "tr": "switch fallthrough"
+      },
+      "why": {
+        "en": "A discount per plan.",
+        "tr": "요금제별 할인."
+      },
+      "ts_verdict": {
+        "en": "compiles, then charges the wrong price",
+        "tr": "컴파일된 뒤 잘못된 가격을 청구"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "작성할 수 없음"
+      },
+      "ts_result": {
+        "en": "<b>The missing <code>break</code> runs the next case.</b>",
+        "tr": "<b><code>break</code>가 빠져서 다음 case가 실행됩니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>match</code> arms never fall through.</b>",
+        "tr": "<b><code>match</code> arm은 절대 다음으로 넘어가지 않습니다.</b>"
+      },
+      "page_note": {
+        "en": "<code>noFallthroughCasesInSwitch</code> is not part of <code>--strict</code>.",
+        "tr": "<code>noFallthroughCasesInSwitch</code>는 <code>--strict</code>에 포함되지 않습니다."
+      }
+    },
+    "template-prints-undefined": {
+      "page_title": {
+        "en": "A template that prints \"undefined\"",
+        "tr": "\"undefined\"를 출력하는 템플릿"
+      },
+      "why": {
+        "en": "Showing an optional relation.",
+        "tr": "선택적인 관계를 화면에 보여 주는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "컴파일된 뒤 잘못된 텍스트를 출력"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>The user sees the word \"undefined\".</b>",
+        "tr": "<b>사용자에게 \"undefined\"라는 단어가 보입니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The missing case needs a default.</b>",
+        "tr": "<b>값이 없는 경우에는 기본값이 필요합니다.</b>"
+      },
+      "page_note": {
+        "en": "<code>?.</code> stops the crash, but the <code>undefined</code> it produces still gets printed.",
+        "tr": "<code>?.</code>는 충돌을 막지만, 그 결과로 나온 <code>undefined</code>는 그대로 출력됩니다."
+      }
+    },
+    "trap-array-holes": {
+      "summary": {
+        "en": "<code>Array(3).map(...)</code> returns three holes, because <code>map</code> skips them. Glyph has no <code>Array(n)</code>; arrays are written as literals.",
+        "tr": "<code>Array(3).map(...)</code>은 구멍 세 개를 반환합니다. <code>map</code>이 구멍을 건너뛰기 때문입니다. Glyph에는 <code>Array(n)</code>이 없고, 배열은 리터럴로 작성합니다."
+      }
+    },
+    "trap-foreach-method-this": {
+      "summary": {
+        "en": "<code>[1, 2, 3].forEach(counter.increment)</code> runs the method without its object. Glyph has no classes and no <code>this</code>.",
+        "tr": "<code>[1, 2, 3].forEach(counter.increment)</code>는 메서드를 객체 없이 실행합니다. Glyph에는 클래스도 <code>this</code>도 없습니다."
+      }
+    },
+    "trap-map-parseint": {
+      "summary": {
+        "en": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> is <code>[10, NaN, NaN]</code>, because <code>map</code> passes the index as the number base. Glyph has <code>number.parse</code>, which returns a <code>Result</code>.",
+        "tr": "<code>\"10,20,30\".split(\",\").map(parseInt)</code>의 결과는 <code>[10, NaN, NaN]</code>입니다. <code>map</code>이 인덱스를 진법으로 넘기기 때문입니다. Glyph에는 <code>Result</code>를 반환하는 <code>number.parse</code>가 있습니다."
+      }
+    },
+    "trap-math-max-empty": {
+      "summary": {
+        "en": "<code>Math.max(...[])</code> is <code>-Infinity</code>. Glyph's <code>array.max</code> returns an <code>Option</code>, empty for an empty list.",
+        "tr": "<code>Math.max(...[])</code>는 <code>-Infinity</code>입니다. Glyph의 <code>array.max</code>는 <code>Option</code>을 반환하며, 빈 목록이면 비어 있습니다."
+      }
+    },
+    "trap-regex-lastindex": {
+      "summary": {
+        "en": "A <code>/g</code> regex reused with <code>.test</code> fails every second match, because it remembers <code>lastIndex</code>. Glyph has no regex objects; <code>regex.matches(pattern, text)</code> has no state.",
+        "tr": "<code>/g</code> 정규식을 <code>.test</code>에 재사용하면 <code>lastIndex</code>를 기억하기 때문에 두 번에 한 번은 매칭에 실패합니다. Glyph에는 정규식 객체가 없고, <code>regex.matches(pattern, text)</code>에는 상태가 없습니다."
+      }
+    },
+    "trusting-find-with-bang": {
+      "page_title": {
+        "en": "Trusting <code>find</code> with <code>!</code>",
+        "tr": "<code>!</code>로 <code>find</code>를 믿기"
+      },
+      "why": {
+        "en": "Looking a record up by id.",
+        "tr": "id로 레코드를 찾는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "컴파일된 뒤 실행 중에 충돌"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b><code>!</code> tells the compiler \"trust me\".</b> At run time it does nothing.",
+        "tr": "<b><code>!</code>는 컴파일러에게 \"나를 믿어\"라고 말합니다.</b> 실행 시에는 아무것도 하지 않습니다."
+      },
+      "glyph_result": {
+        "en": "<b><code>find</code> returns an <code>Option</code>,</b> so the empty case must be handled.",
+        "tr": "<b><code>find</code>는 <code>Option</code>을 반환하므로,</b> 비어 있는 경우를 처리해야 합니다."
+      },
+      "page_note": {
+        "en": "Without the <code>!</code>, <code>tsc --strict</code> refuses this line. The <code>!</code> is what switches that check off, and it does nothing at run time. Glyph has no <code>!</code>.",
+        "tr": "<code>!</code>가 없으면 <code>tsc --strict</code>는 이 줄을 거부합니다. 그 검사를 끄는 것이 <code>!</code>이고, 실행 시에는 아무것도 하지 않습니다. Glyph에는 <code>!</code>가 없습니다."
+      }
+    },
+    "two-types-same-shape": {
+      "page_title": {
+        "en": "Two types with the same shape",
+        "tr": "모양이 같은 두 타입"
+      },
+      "why": {
+        "en": "Verified and unverified email addresses.",
+        "tr": "인증된 이메일 주소와 인증되지 않은 이메일 주소."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "경고 없이 컴파일"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>An unverified address gets the invoice.</b>",
+        "tr": "<b>인증되지 않은 주소로 청구서가 갑니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Two named types are different types.</b>",
+        "tr": "<b>이름이 다른 두 타입은 서로 다른 타입입니다.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript compares object types by shape, so same-shaped types are interchangeable whatever they are called.",
+        "tr": "TypeScript는 객체 타입을 모양으로 비교하므로, 모양이 같은 타입은 이름이 무엇이든 서로 바꿔 쓸 수 있습니다."
+      }
+    },
+    "type-guard-that-checks-less": {
+      "page_title": {
+        "en": "A type guard that checks less than it claims",
+        "tr": "주장하는 것보다 덜 검사하는 타입 가드"
+      },
+      "why": {
+        "en": "Validating a request body by hand.",
+        "tr": "요청 본문을 직접 검증하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "컴파일된 뒤 실행 중에 충돌"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "데이터가 들어올 때 검사"
+      },
+      "ts_result": {
+        "en": "<b>The guard says \"User\" after checking one field.</b>",
+        "tr": "<b>가드는 필드 하나만 확인하고 \"User\"라고 말합니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>User.is</code> checks every field.</b> Glyph has no hand-written guards.",
+        "tr": "<b><code>User.is</code>는 모든 필드를 검사합니다.</b> Glyph에는 직접 작성하는 가드가 없습니다."
+      },
+      "page_note": {
+        "en": "TypeScript trusts a <code>x is User</code> function completely, whatever its body actually checks.",
+        "tr": "TypeScript는 <code>x is User</code> 함수를 그 본문이 실제로 무엇을 검사하든 완전히 믿습니다."
+      }
+    },
+    "typo-in-an-options-object": {
+      "page_title": {
+        "en": "A typo in an options object",
+        "tr": "옵션 객체의 오타"
+      },
+      "why": {
+        "en": "Building the options in a variable, then passing them.",
+        "tr": "옵션을 변수에 만들어 둔 뒤 넘기는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then uses the wrong setting",
+        "tr": "컴파일된 뒤 잘못된 설정을 사용"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>The misspelled option is silently dropped.</b>",
+        "tr": "<b>철자가 틀린 옵션은 조용히 무시됩니다.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The wrong name is an error.</b>",
+        "tr": "<b>잘못된 이름은 오류입니다.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only checks for unknown keys on a literal written directly in the call, not on one built in a variable first.",
+        "tr": "TypeScript는 호출 안에 직접 작성한 리터럴에서만 알 수 없는 키를 검사하고, 변수에 먼저 만든 객체는 검사하지 않습니다."
+      }
+    },
+    "typo-nobody-sees": {
+      "page_title": {
+        "en": "A typo nobody sees",
+        "tr": "아무도 보지 못하는 오타"
+      },
+      "why": {
+        "en": "Reading a field from a response.",
+        "tr": "응답에서 필드를 읽는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then fails at run time",
+        "tr": "컴파일된 뒤 실행 중에 실패"
+      },
+      "glyph_verdict": {
+        "en": "refused by glyph check",
+        "tr": "glyph check가 거부"
+      },
+      "ts_result": {
+        "en": "<b><code>res.json()</code> is <code>any</code>,</b> so nothing about it is checked.",
+        "tr": "<b><code>res.json()</code>은 <code>any</code>이므로,</b> 그에 관한 어떤 것도 검사되지 않습니다."
+      },
+      "glyph_result": {
+        "en": "<b>There is no <code>any</code>.</b> Data nobody has checked is <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gives it a type.",
+        "tr": "<b><code>any</code>가 없습니다.</b> 아무도 검사하지 않은 데이터는 <code>unknown</code>이고, <code>json.parse&lt;User&gt;</code>가 여기에 타입을 부여합니다."
+      },
+      "page_note": {
+        "en": "<code>any</code> switches type checking off for everything it touches, and it spreads: <code>data.usr</code> is <code>any</code> too. Glyph has no <code>any</code>. The refusal here comes from the <code>tsc</code> step that <code>glyph check</code> and <code>glyph build</code> run; Glyph's own checker does not see it yet (G381).",
+        "tr": "<code>any</code>는 닿는 모든 것의 타입 검사를 끄고, 퍼져 나갑니다. <code>data.usr</code>도 <code>any</code>입니다. Glyph에는 <code>any</code>가 없습니다. 여기서의 거부는 <code>glyph check</code>와 <code>glyph build</code>가 실행하는 <code>tsc</code> 단계에서 나옵니다. Glyph 자체 검사기는 아직 이를 보지 못합니다(G381)."
+      }
+    },
+    "unvalidated-boundary-read": {
+      "page_title": {
+        "en": "A parsed body given a type without a check",
+        "tr": "검사 없이 타입이 붙은 파싱된 본문"
+      },
+      "why": {
+        "en": "Reading a request body into a typed variable.",
+        "tr": "요청 본문을 타입이 있는 변수로 읽는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "컴파일된 뒤 잘못된 데이터로 실행"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>The annotation is a promise nothing keeps.</b> <code>JSON.parse</code> returns <code>any</code>, so a body of any shape gets through.",
+        "tr": "<b>타입 표기는 아무도 지키지 않는 약속입니다.</b> <code>JSON.parse</code>는 <code>any</code>를 반환하므로 어떤 모양의 본문이든 통과합니다."
+      },
+      "glyph_result": {
+        "en": "<b><code>json.parse</code> returns a <code>Result</code> of <code>unknown</code>,</b> and that is not a <code>User</code>.",
+        "tr": "<b><code>json.parse</code>는 <code>unknown</code>의 <code>Result</code>를 반환하고,</b> 그것은 <code>User</code>가 아닙니다."
+      },
+      "page_note": {
+        "en": "Writing <code>const user: User</code> looks like a check and is not one. In Glyph, <code>json.parse&lt;User&gt;(body)</code> checks the body and returns a <code>Result</code> to match on.",
+        "tr": "<code>const user: User</code>라고 쓰면 검사처럼 보이지만 검사가 아닙니다. Glyph에서는 <code>json.parse&lt;User&gt;(body)</code>가 본문을 검사하고, match할 수 있는 <code>Result</code>를 반환합니다."
+      }
+    },
+    "unverifiable-parse": {
+      "page_title": {
+        "en": "A validator that cannot check what it claims",
+        "tr": "주장하는 것을 검사할 수 없는 검증기"
+      },
+      "why": {
+        "en": "A record holding a socket, checked by a hand-written guard.",
+        "tr": "소켓을 담은 레코드를 직접 작성한 가드로 검사하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then accepts a string as a socket",
+        "tr": "컴파일된 뒤 문자열을 소켓으로 받아들임"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "빌드할 때 거부"
+      },
+      "ts_result": {
+        "en": "<b>The guard says <code>Conn</code> after checking that <code>sock</code> exists.</b> A string passes as a socket.",
+        "tr": "<b>가드는 <code>sock</code>이 있는지만 확인하고 <code>Conn</code>이라고 말합니다.</b> 문자열이 소켓으로 통과합니다."
+      },
+      "glyph_result": {
+        "en": "<b>A socket has no runtime check,</b> so Glyph refuses <code>Conn.parse</code> instead of generating a check that cannot hold.",
+        "tr": "<b>소켓에는 런타임 검사가 없으므로,</b> Glyph는 성립할 수 없는 검사를 생성하는 대신 <code>Conn.parse</code>를 거부합니다."
+      },
+      "page_note": {
+        "en": "Split the wire type from the domain type: parse the fields that can be checked, then build the record around the socket.",
+        "tr": "wire 타입과 도메인 타입을 분리하세요. 검사할 수 있는 필드를 파싱한 다음, 소켓을 포함해 레코드를 만듭니다."
+      }
+    },
+    "value-outside-the-list": {
+      "page_title": {
+        "en": "A value outside the list",
+        "tr": "목록에 없는 값"
+      },
+      "why": {
+        "en": "An API starts sending a status your code has never seen.",
+        "tr": "API가 코드에서 본 적 없는 상태를 보내기 시작하는 경우."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "컴파일된 뒤 잘못된 데이터로 실행"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "데이터가 들어올 때 검사"
+      },
+      "ts_result": {
+        "en": "<b><code>\"deleted\"</code> is treated as one of the two.</b> Every check on <code>status</code> is now wrong.",
+        "tr": "<b><code>\"deleted\"</code>가 둘 중 하나로 취급됩니다.</b> 이제 <code>status</code>에 대한 모든 검사가 틀립니다."
+      },
+      "glyph_result": {
+        "en": "<b>Only the listed values get through.</b>",
+        "tr": "<b>목록에 있는 값만 통과합니다.</b>"
+      },
+      "page_note": {
+        "en": "In TypeScript a union like <code>\"active\" | \"banned\"</code> exists only while compiling. At run time nothing stops a third value. Glyph checks it when the data comes in.",
+        "tr": "TypeScript에서 <code>\"active\" | \"banned\"</code> 같은 유니언은 컴파일하는 동안에만 존재합니다. 실행 시에는 세 번째 값을 막는 것이 없습니다. Glyph는 데이터가 들어올 때 이를 검사합니다."
+      }
+    }
+  }
+}

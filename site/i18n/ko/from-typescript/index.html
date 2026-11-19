@@ -1,0 +1,229 @@
+---
+title: TypeScript 사용자라면 · Glyph에서 바뀌는 것 · Glyph
+description: Glyph는 TypeScript와 거의 똑같이 읽히고 TypeScript로 컴파일됩니다. 바뀌는 것은 몇 가지 문법 차이, any와 as와 !가 없다는 점, grep으로 찾을 수 있는 탈출구 하나, 그리고 npm을 쓰는 방식입니다.
+source_hash: bc168f89faa5ea6e
+next_steps: |
+  다음으로 볼 곳
+  추천 | /catches/ | catches | TypeScript가 통과시키는 것 보기 | 각 사례를 <code>tsc --strict</code>와 Glyph에서 실행한 결과와 오류. | 사례 보기
+  /start/ | start | 첫 프로그램 작성하기 | 설치하고, 프로젝트를 만들고, 실행하고, 일부러 깨뜨려 오류를 읽습니다. 약 10분.
+  /playground/ | playground | 브라우저에서 써 보기 | 컴파일러가 페이지 안에서 실행되므로 설치할 것이 없습니다.
+---
+      <p class="q-eyebrow">TypeScript 사용자라면</p>
+      <h1 class="q-title">이미 TypeScript를 쓰고 있다면 무엇이 바뀌는가</h1>
+
+      <p class="short-answer">
+        생각보다 적습니다. Glyph는 <code>tsc --strict</code>를 통과하는 TypeScript로 컴파일되고, npm과 기존 배포 방식을 그대로 쓰며, 거의 똑같이 읽힙니다. 차이는 몇 가지뿐이고, 각각은 틀릴 수 있는 방법 하나를 컴파일러가 하는 검사 하나와 맞바꿉니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">TypeScript를 안다면 대부분은 이미 아는 것입니다</h2>
+        <p>
+          새 언어를 배우는 것이 아니라 이 네 가지만 익히면 됩니다. 이 사이트의 모든 예제에 나오는 것들입니다.
+        </p>
+      </div>
+
+      <dl class="gloss-list">
+        <div>
+          <dt><code>match</code></dt>
+          <dd>망라적인 <code>switch</code>: 유니언에 대해 쓰면 컴파일러가 모든 case를 처리하게 합니다. 이것이 유일한 조건문이기도 합니다. <code>if</code>/<code>else</code>도 삼항 연산자도 없으며, 이유는 <a href="#there-is-no-if">아래에서 설명합니다</a>.</dd>
+        </div>
+        <div>
+          <dt><code>Result&lt;T, E&gt;</code></dt>
+          <dd>오류는 던지는 예외가 아니라 반환값입니다. <code>match</code>로 처리하거나 <code>?</code> 연산자로 위로 전달합니다.</dd>
+        </div>
+        <div>
+          <dt><code>fn f() -&gt; T</code></dt>
+          <dd>함수이며, <code>-&gt;</code> 뒤가 반환 타입입니다. <code>type X = {...}</code>는 레코드이고, <code>type X = A | B</code>는 태그 유니언입니다.</dd>
+        </div>
+        <div>
+          <dt><code>mut x = e</code></dt>
+          <dd>재할당은 명시적이고 grep으로 찾을 수 있습니다. 평범한 <code>let</code> 바인딩은 모르는 사이에 바뀌지 않으며, 바꾸려면 <code>mut</code>를 씁니다.</dd>
+        </div>
+      </dl>
+
+      <div class="detail">
+        <p>
+          이 사이트에서 "에이전트"는 Claude, Copilot, Cursor 같은 AI 코딩 도우미를 뜻합니다. Glyph가 가장 도움이 되는 대상은 에이전트이지만, 사람이 썼든 모델이 썼든 검사는 같습니다. 이미 zod와 eslint를 곁들인 strict TypeScript를 쓰고 있다면, <a href="/answers/vs-tooled-ts/">언어가 그 위에 더하는 것은 이것입니다</a>.
+        </p>
+
+        <h2 class="block-label">if가 없습니다</h2>
+        <p>
+          불리언에 대한 분기는 <code>true</code>와 <code>false</code>에 대한 <code>match</code>입니다. 한쪽에서만 무언가를 할 때는 다른 arm을 빈 블록으로 둡니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript</span>
+<pre>function label(admin: boolean): string {
+  return admin ? "admin" : "member";
+}
+
+if (verbose) {
+  console.log("starting");
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph</span>
+<pre>fn label(admin: bool) -&gt; string {
+  return match admin {
+    true =&gt; "admin",
+    false =&gt; "member",
+  }
+}
+
+match verbose {
+  true =&gt; io.println("starting"),
+  false =&gt; {},
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          이유는 명세의 결정 D3입니다. 값에 따른 분기를 위한 구문을 하나로 두면 읽고, 쓰고, 검색할 형태도 하나가 됩니다. 분기에서 나오는 값은 언제나 <code>match</code>에서 나오며, 그 결과 타입은 <code>tsc</code>에 넘기지 않고 Glyph 자체 검사기가 계산합니다. 유니언에서는 바로 이 구문이 모든 case를 다뤄야 하는 구문입니다(<code>E0200</code>). 불리언에서는 얻는 것이 적습니다. <code>false =&gt; {}</code>는 <code>else</code>를 생략하는 것 이상을 말해 주지 않기 때문입니다.
+        </p>
+        <p>
+          대가도 있습니다. 한 줄짜리 삼항 연산자는 네 줄짜리 <code>match</code>가 되고, 조건에 따른 조기 반환은 빈 arm이 있는 <code>match</code>가 되며, TypeScript 사용자가 보기에 가장 먼저 어색한 부분입니다. 명세는 이 장황함을 감수하는 비용으로 기록해 두었습니다. 그래도 <code>if</code>를 쓰면 오류 <code>E0006</code>이 나고, 그 도움말이 <code>match</code> 형태를 보여 줍니다. 삼항 연산자는 같은 도움말을 가진 <code>E0013</code>입니다.
+        </p>
+
+        <h2 class="block-label">이미 치르고 있는 비용</h2>
+        <p>
+          TypeScript 코드베이스에서 AI 에이전트와 함께 개발한다면 매일 치르는 비용입니다. Glyph에는 각각에 대한 구체적인 답이 있고, 목록에서 링크로 연결됩니다.
+        </p>
+      </div>
+
+      <ul class="tax-list">
+        <li>TypeScript는 타입을 지우기 때문에 런타임이 컴파일 시점과 더 이상 일치하지 않고, 그래서 에이전트는 존재하지 않는 API를 지어냅니다. Glyph의 타입은 런타임 검사(<code>T.parse</code>, <code>T.is</code>)를 함께 가집니다. <a href="/answers/typed-apis/">타입이 있는 API</a>를 보세요.</li>
+        <li>에이전트는 불확실한 부분을 <code>any</code>와 <code>as unknown as T</code>로 덮고, 컴파일러는 이를 허용합니다. Glyph에는 둘 다 없습니다. 아래 표를 보세요.</li>
+        <li>한 줄만 바꿔 달라고 했는데 파일 전체가 다시 쓰여 돌아옵니다. 포매터가 편집할 때마다 연쇄적으로 바꾸기 때문입니다. <code>glyph fmt</code>는 옵션 없이 레이아웃이 하나뿐입니다. <a href="/answers/diff-stability/">깔끔한 diff</a>를 보세요.</li>
+        <li>모든 타입 옆에 직접 작성한 검증기(zod와 직렬화 코드)를 따로 유지하는데, 에이전트가 한쪽에서만 필드 이름을 바꾸고 나머지는 그대로 둡니다. 그래도 전부 컴파일됩니다. Glyph에서는 타입이 곧 검증기입니다.</li>
+        <li>심볼을 <code>grep</code>하면 오버로드, 데코레이터, 병합된 네임스페이스 등 관련 없는 결과가 열 개 나옵니다. Glyph에는 그런 것이 없습니다. <a href="/answers/greppability/">코드 찾기</a>를 보세요.</li>
+      </ul>
+
+      <div class="detail">
+        <h2 class="block-label">TypeScript가 주는 검사 끄기 스위치와, Glyph에서 대신 쓰는 것</h2>
+        <p>
+          아래의 각 TypeScript 구문은 검사기에게 검사를 멈추라고 말합니다. 어느 것도 Glyph 문법이 아닙니다. 가운데 열은 0.1.149에서 각 구문에 대해 <code>glyph check --no-tsc</code>가 출력한 내용입니다.
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>TypeScript</th><th>Glyph에서는</th><th>대신 쓰는 것</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="TypeScript"><code>x!</code></td><td data-label="In Glyph">문법이 아님: <code>E0013</code></td><td data-label="What you write instead"><code>match</code>로 처리하거나 <code>?</code>로 위로 전달하는 <code>Option&lt;T&gt;</code></td></tr>
+            <tr><td data-label="TypeScript"><code>x as T</code>, <code>as unknown as T</code></td><td data-label="In Glyph">캐스트가 존재하지 않음: <code>E0013</code>, 도움말은 검증하라고 안내</td><td data-label="What you write instead"><code>Result</code>를 반환하는 <code>T.parse(x)</code></td></tr>
+            <tr><td data-label="TypeScript"><code>any</code></td><td data-label="In Glyph">타입이 아님: <code>E0103</code>, 해석되지 않는 이름</td><td data-label="What you write instead"><code>T.parse</code>, <code>T.is</code>, 또는 <code>match</code> arm의 <code>is T</code>로 좁히는 <code>unknown</code></td></tr>
+            <tr><td data-label="TypeScript"><code>(v): v is T</code></td><td data-label="In Glyph">사용자가 작성하는 타입 가드 없음: <code>E0002</code></td><td data-label="What you write instead">선언된 모양을 검사하는 자동 생성된 <code>T.is(v)</code>. 따라서 가드가 주장하는 것보다 덜 검사할 수 없습니다</td></tr>
+            <tr><td data-label="TypeScript"><code>// @ts-ignore</code>, <code>// eslint-disable</code></td><td data-label="In Glyph">평범한 주석일 뿐이며, 그 아래의 오류는 그대로 발생합니다</td><td data-label="What you write instead">없음. 어떤 주석이나 플래그로도 Glyph 진단을 끌 수 없습니다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph check</code>에는 단계 전체를 건너뛰는 플래그가 있지만(<code>--no-tsc</code>는 <code>tsc --strict</code> 실행을, <code>--no-test</code>는 <code>@example</code> 테스트를 건너뜁니다), 검사 하나만 끄는 플래그는 없습니다. TypeScript 프로젝트는 받아들이고 Glyph는 거부하는 것의 전체 목록은 각 사례를 두 컴파일러로 실행한 결과와 함께 <a href="/catches/">잡아내는 것 페이지</a>에 있습니다.
+        </p>
+
+        <h2 class="block-label">탈출구는 하나이고, grep으로 찾을 수 있습니다</h2>
+        <p>
+          Glyph로 표현할 수 없는 TypeScript가 필요할 때 <code>extern_ts("...")</code>는 인라인 타입이나 표현식 하나를 받고, <code>tsc</code>는 여전히 이를 검사합니다. 모듈 전체가 필요하면 <code>.ts</code> 파일을 <code>src/extern/</code> 아래에 두고 <code>import extern/name</code>이라고 씁니다. 그 밖의 상대 경로 import는 허용되지 않으므로 이 경로가 유일한 통로입니다. 두 형태 모두 <code>extern</code>이라는 단어를 포함하므로, <code>grep -rn extern src/</code>로 검사기가 TypeScript에 넘기는 모든 곳을 찾을 수 있습니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">src/clock.glyph</span>
+<pre>module clock
+
+pub fn now_ms() -&gt; number {
+  return extern_ts("Date.now()")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">생성된 TypeScript의 모습</h2>
+        <p>
+          읽고 커밋할 수 있는 평범한 TypeScript이며, 모듈마다 파일 하나입니다. 유니언은 판별 유니언과 그 런타임 검사를 담은 값이 되고, <code>match</code>는 태그에 대한 <code>switch</code>가 됩니다. 왼쪽 모듈에 대한 <code>glyph build</code>의 출력이며, import 줄은 줄였습니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">plan.glyph</span>
+<pre>module plan
+
+pub type Plan = Free | Pro | Team
+
+pub fn seats(p: Plan) -&gt; number {
+  return match p {
+    Free =&gt; 1,
+    Pro =&gt; 5,
+    Team =&gt; 50,
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">plan.ts (생성됨, 일부 생략)</span>
+<pre>export type Plan =
+  | { tag: "Free" }
+  | { tag: "Pro" }
+  | { tag: "Team" };
+
+export const Free: Plan = { tag: "Free" };
+export const Pro: Plan = { tag: "Pro" };
+export const Team: Plan = { tag: "Team" };
+export const Plan = {
+  is(value: unknown): value is Plan { ... },
+  parse(value: unknown) { ... },
+  schema: ...,
+};
+
+export function seats(p: Plan): number {
+  const __m0 = p;
+  switch (__m0.tag) {
+    case "Free": { return 1; }
+    case "Pro": { return 5; }
+    case "Team": { return 50; }
+    default: throw new Error("non-exhaustive match");
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Team</code> arm을 지우면 TypeScript를 쓰기 전에 빌드가 멈춥니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc (일부 생략)</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Plan`: missing variants `Team`</span>
+   ╭─[ plan:6:10 ]
+   │
+ 6 │ ╭─▶   return match p {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── non-exhaustive match on `Plan`: missing variants `Team`
+   │     Help: Add an arm for each missing variant.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph를 그만 쓰더라도 생성된 <code>.ts</code>는 남습니다. 빌드가 옆에 함께 쓰는 작은 지원 디렉터리 말고는 런타임 의존성이 없습니다.
+        </p>
+
+        <h2 class="block-label">npm, 그리고 이미 가지고 있는 TypeScript</h2>
+        <p>
+          <code>.glyph</code> 모듈은 npm 패키지를 이름으로 import하며(<code>import kafkajs { Kafka }</code>), 타입은 패키지 자체의 선언에서 가져옵니다. 기존 <code>.ts</code> 코드는 생성된 Glyph 모듈을 여느 로컬 파일처럼 import합니다. 따라서 TypeScript로 남아 있는 앱 안에서 모듈 하나부터 시작할 수 있습니다. 자세한 내용은 세 가지 답변에 있습니다.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/imports/"><span class="q">기존 TypeScript, JavaScript, npm 라이브러리를 쓸 수 있나요?</span><p>패키지 import, <code>.ts</code> shim 유지, 그리고 Glyph를 다시 <code>.ts</code>로 import하기.</p></a>
+        <a class="a-card" href="/answers/embedding/"><span class="q">기존 앱 안에서 Glyph를 도입할 수 있나요?</span><p>기본 Vite 프로젝트에서 도메인 핵심은 Glyph로, 나머지는 TypeScript로.</p></a>
+        <a class="a-card" href="/answers/react/"><span class="q">React와 함께 쓸 수 있나요?</span><p>컴포넌트, JSX, hook, Context, 그리고 여전히 <code>tsc</code>가 검사하는 부분.</p></a>
+      </div>

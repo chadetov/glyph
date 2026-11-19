@@ -1,0 +1,290 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "pillars/verifiability/index.html",
+  "locale": "ko",
+  "source_hash": "b8ae04a4b3228182",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Verifiability · no any, exhaustive match · Glyph",
+      "tr": "검증 가능성 · any 없음, 망라적인 match · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's first pillar: no any or as, exhaustive match, and runtime validators for the types you declare: a strict layer over tsc, with its limits stated.",
+      "tr": "Glyph의 첫 번째 기둥: any도 as도 없고, match는 망라적이며, 선언한 타입에는 런타임 검증기가 붙습니다. 한계를 밝혀 둔, tsc 위의 엄격한 계층입니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Home",
+      "tr": "&larr; 홈"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Why Glyph wins",
+      "tr": "왜 Glyph인가"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next pillar &rarr;",
+      "tr": "다음 기둥 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Greppability: one name, one place",
+      "tr": "검색 용이성: 이름 하나에 위치 하나"
+    },
+    {
+      "id": "h-4a2abfce",
+      "kind": "html",
+      "en": "Pillar 01 &middot; <span class=\"wedge\">The wedge</span>",
+      "tr": "기둥 01 &middot; <span class=\"wedge\">핵심</span>"
+    },
+    {
+      "id": "h-a33b81eb",
+      "kind": "html",
+      "en": "Verifiability",
+      "tr": "검증 가능성"
+    },
+    {
+      "id": "h-d495bf0b",
+      "kind": "html",
+      "en": "Glyph closes the holes an agent falls through: there's <strong>no <code>any</code> and no <code>as</code> you can write</strong>, <code>match</code> is <strong>provably exhaustive</strong>, and the types you declare get <strong>strict runtime validators</strong>, all enforced as a strict layer on top of <code>tsc</code>. It doesn't verify everything itself, and it's honest below about exactly where the guarantee stops.",
+      "tr": "Glyph는 에이전트가 빠지는 구멍을 막습니다. <strong>작성할 수 있는 <code>any</code>도 <code>as</code>도 없고</strong>, <code>match</code>는 <strong>망라적임이 증명되며</strong>, 선언한 타입에는 <strong>엄격한 런타임 검증기</strong>가 붙고, 이 모두가 <code>tsc</code> 위의 엄격한 계층으로 강제됩니다. 모든 것을 직접 검증하지는 않으며, 보장이 정확히 어디서 멈추는지 아래에 솔직하게 적어 두었습니다."
+    },
+    {
+      "id": "h-639f009d",
+      "kind": "html",
+      "en": "The lie a type can tell",
+      "tr": "타입이 할 수 있는 거짓말"
+    },
+    {
+      "id": "h-075a79f0",
+      "kind": "html",
+      "en": "In TypeScript a type is a compile-time promise that evaporates before your code runs. A <code>User</code> annotation is erased to nothing; the object you actually get from a network call, a JSON parse, or a form field could be any shape at all. Worse, the language hands you three legal ways to lie to the checker about it: <code>any</code>, an <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all three, and <code>tsc --strict</code> stays green while the bug ships.",
+      "tr": "TypeScript에서 타입은 코드가 실행되기 전에 사라지는 컴파일 시점의 약속입니다. <code>User</code> 표기는 지워져 아무것도 남지 않고, 네트워크 호출, JSON 파싱, 폼 필드에서 실제로 받는 객체는 어떤 모양이든 될 수 있습니다. 더 나쁜 것은 언어가 이에 대해 검사기에게 거짓말할 합법적인 방법 세 가지를 준다는 점입니다. <code>any</code>, <code>as</code> 캐스트, non-null <code>!</code>입니다. 빠르게 일하는 에이전트는 셋 다 꺼내 쓰고, 버그가 배포되는 동안 <code>tsc --strict</code>는 통과 상태를 유지합니다."
+    },
+    {
+      "id": "h-3e057639",
+      "kind": "html",
+      "en": "Glyph's first job is to close those holes. Not with more annotations, but by removing the escape hatches and making every type carry its proof to runtime. Here is what that means, one guarantee at a time.",
+      "tr": "Glyph의 첫 번째 일은 이 구멍들을 막는 것입니다. 표기를 더하는 것이 아니라, 탈출구를 없애고 모든 타입이 증명을 런타임까지 가지고 가게 해서입니다. 보장을 하나씩 보면 다음과 같습니다."
+    },
+    {
+      "id": "h-ca35841b",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> There is no <code>any</code>",
+      "tr": "<span class=\"ex-label\">01</span> <code>any</code>가 없습니다"
+    },
+    {
+      "id": "h-5f3593d9",
+      "kind": "html",
+      "en": "<code>any</code> is the single most expensive keyword in TypeScript: it switches off the type system for a value <em>and everything that value touches</em>. One <code>any</code> at a boundary quietly poisons the call graph downstream. Glyph doesn't have it. The top type is <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it, or pass it anywhere typed until you have <em>proven</em> what it is.",
+      "tr": "<code>any</code>는 TypeScript에서 가장 비싼 키워드입니다. 값 하나<em>와 그 값이 닿는 모든 것</em>에 대해 타입 시스템을 꺼 버립니다. 경계에 있는 <code>any</code> 하나가 그 아래의 호출 그래프를 조용히 오염시킵니다. Glyph에는 이것이 없습니다. 최상위 타입은 <code>unknown</code>이고, <code>unknown</code>은 무력합니다. 그것이 무엇인지 <em>증명하기</em> 전까지는 호출하거나, 인덱싱하거나, 타입이 있는 곳에 넘길 수 없습니다."
+    },
+    {
+      "id": "h-efbb175b",
+      "kind": "html",
+      "en": "TypeScript: compiles, then crashes",
+      "tr": "TypeScript: 컴파일된 뒤 충돌"
+    },
+    {
+      "id": "h-fd3640a0",
+      "kind": "html",
+      "en": "Glyph: the narrowing is the proof",
+      "tr": "Glyph: 좁히기가 곧 증명"
+    },
+    {
+      "id": "h-f01c689a",
+      "kind": "html",
+      "en": "You cannot get a typed value out of <code>unknown</code> without a check the compiler can see. In Glyph, the narrowing <strong>is</strong> the runtime proof. There is no syntax for skipping it.",
+      "tr": "컴파일러가 볼 수 있는 검사 없이는 <code>unknown</code>에서 타입이 있는 값을 꺼낼 수 없습니다. Glyph에서는 좁히기가 <strong>곧</strong> 런타임 증명입니다. 이를 건너뛰는 문법은 없습니다."
+    },
+    {
+      "id": "h-7f97c1c4",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">02</span> Types are real at runtime",
+      "tr": "<span class=\"ex-label\">02</span> 타입은 런타임에도 실재합니다"
+    },
+    {
+      "id": "h-6b3971a1",
+      "kind": "html",
+      "en": "How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a composable <code>schema</code>. The record's shape is actually inspected at runtime, not assumed, so an <code>is User</code> check is a real check, not an erased no-op.",
+      "tr": "<code>User.parse</code>는 어떻게 존재할까요? 모든 레코드 타입과 제네릭이 아닌 모든 태그 유니언이 <strong>런타임 디스크립터</strong>를 함께 생성하기 때문입니다. <code>is</code> 가드, <code>unknown</code>을 <code>Result</code>로 검증하는 <code>parse</code>, 조합할 수 있는 <code>schema</code>입니다. 레코드의 모양은 가정되는 것이 아니라 런타임에 실제로 검사되므로, <code>is User</code> 검사는 지워지는 무동작이 아니라 실제 검사입니다."
+    },
+    {
+      "id": "h-14c2cb86",
+      "kind": "html",
+      "en": "the type you write, and the descriptor generated from it",
+      "tr": "작성하는 타입과, 그로부터 생성되는 디스크립터"
+    },
+    {
+      "id": "h-013d9e91",
+      "kind": "html",
+      "en": "This is the answer to \"every API needs a hand-written validator.\" The type is the validator. A boundary (a request body, a config file, a third-party response) becomes typed only by passing through a check that can actually reject bad data.",
+      "tr": "\"API마다 직접 작성한 검증기가 필요하다\"에 대한 답이 이것입니다. 타입이 곧 검증기입니다. 경계(요청 본문, 설정 파일, 서드파티 응답)는 잘못된 데이터를 실제로 거부할 수 있는 검사를 통과해야만 타입을 얻습니다."
+    },
+    {
+      "id": "h-10d713ab",
+      "kind": "html",
+      "en": "Where this stops: a record's descriptor is strict by default. It confirms the declared fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to allow extras). Record types get a descriptor, generic ones included, so <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>, and a tagged union's descriptor checks the tag and then that variant's payload fields. What still doesn't get one is a generic tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> has no <code>Box.parse</code>), or a type imported from a <code>.d.ts</code> you only reference. Where a check can prove only part of a shape, the compiler says so instead of implying a guarantee it can't make.",
+      "tr": "한계: 레코드의 디스크립터는 기본적으로 엄격합니다. 선언된 필드를 확인하고, 선언되지 않은 키를 가진 값은 거부합니다(추가 키를 허용하려면 타입에 <code>@open</code>을 붙입니다). 레코드 타입은 제네릭을 포함해 디스크립터를 가지므로, <code>Paginated&lt;User&gt;</code>는 각 요소를 <code>User</code>로 검사하고, 태그 유니언의 디스크립터는 태그를 검사한 다음 그 variant의 payload 필드를 검사합니다. 아직 디스크립터가 없는 것은 제네릭 태그 유니언(<code>Box&lt;T&gt; = Empty | Full({ value: T })</code>에는 <code>Box.parse</code>가 없습니다)과, 참조만 하는 <code>.d.ts</code>에서 import한 타입입니다. 검사가 모양의 일부만 증명할 수 있는 곳에서는, 컴파일러가 할 수 없는 보장을 암시하는 대신 그렇다고 말합니다."
+    },
+    {
+      "id": "h-7f6e1258",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">03</span> Every case, or it doesn't compile",
+      "tr": "<span class=\"ex-label\">03</span> 모든 case를 다루거나, 컴파일되지 않거나"
+    },
+    {
+      "id": "h-0adab77f",
+      "kind": "html",
+      "en": "A <code>match</code> over a sealed union must handle every variant. Add a variant later and <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>). The new case cannot silently fall through to <code>undefined</code> the way a forgotten <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>), because those domains are unbounded and a set of literals can never be complete.",
+      "tr": "봉인된 유니언에 대한 <code>match</code>는 모든 variant를 처리해야 합니다. 나중에 variant를 추가하면 그것을 고려하지 않은 <em>모든</em> match가 컴파일되지 않습니다(<code>E0200</code>). 잊힌 <code>switch</code> 분기처럼 새 case가 조용히 <code>undefined</code>로 빠질 수 없습니다. 유니언만이 아닙니다. <code>number</code>나 <code>string</code>을 리터럴 값으로 매칭하면 <code>else</code>가 필요합니다(<code>E0218</code>). 그 정의역은 끝이 없어서 리터럴 집합으로는 결코 완전해질 수 없기 때문입니다."
+    },
+    {
+      "id": "h-b6cc05d4",
+      "kind": "html",
+      "en": "compile error, not a runtime undefined",
+      "tr": "런타임 undefined가 아니라 컴파일 오류"
+    },
+    {
+      "id": "h-85b49cf2",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">04</span> Errors are values, not surprises",
+      "tr": "<span class=\"ex-label\">04</span> 오류는 놀랄 일이 아니라 값입니다"
+    },
+    {
+      "id": "h-9f7ae855",
+      "kind": "html",
+      "en": "A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with <code>match</code>, or propagate it with the <code>?</code> operator, and the error type has to line up (there is no implicit conversion hiding a mismatch). Ignore a <code>Result</code> entirely (call it for effect and drop what it returned) and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "실패할 수 있는 함수는 <code>Result&lt;T, E&gt;</code>를 반환합니다. <code>match</code>로 처리하거나 <code>?</code> 연산자로 전달하며, 오류 타입이 맞아야 합니다(불일치를 숨기는 암묵적 변환은 없습니다). <code>Result</code>를 완전히 무시하면(효과를 위해 호출하고 반환값을 버리면) Glyph가 경고합니다(<code>E0217</code>). 버려진 오류는 삼켜진 실패이기 때문입니다. 경고는 <code>let _ = ...</code>로 의도적으로만 끌 수 있고, 실수로 꺼지는 일은 없습니다."
+    },
+    {
+      "id": "h-bc93cc11",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">05</span> Even PII is type-level",
+      "tr": "<span class=\"ex-label\">05</span> 개인정보도 타입 수준입니다"
+    },
+    {
+      "id": "h-b6234b6d",
+      "kind": "html",
+      "en": "The same \"make it the compiler's job, not a convention\" instinct reaches all the way to sensitive data. Put <code>@redact</code> on a type and its descriptor gains a <code>redact()</code> that masks those fields, so a stray <code>json.stringify(User.redact(u))</code> can't leak them. Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently protects nothing.",
+      "tr": "\"관례가 아니라 컴파일러의 일로 만든다\"는 같은 원칙이 민감한 데이터까지 이어집니다. 타입에 <code>@redact</code>를 붙이면 디스크립터에 그 필드를 가리는 <code>redact()</code>가 생기므로, 무심코 쓴 <code>json.stringify(User.redact(u))</code>가 그 필드를 유출할 수 없습니다. 타입에 없는 필드를 지정하면 아무것도 보호하지 않는 마스킹이 아니라 컴파일 오류(<code>E0219</code>)입니다."
+    },
+    {
+      "id": "h-725757af",
+      "kind": "html",
+      "en": "Five different failure modes (unchecked input, a missed case, a dropped error, a leaked secret, an unvalidated key) and in every one the fix is the same shape: <strong>the compiler refuses to pretend.</strong>",
+      "tr": "다섯 가지 실패 방식(검사하지 않은 입력, 놓친 case, 버려진 오류, 유출된 비밀 값, 검증하지 않은 키)이 있고, 모두 고치는 방식의 모양이 같습니다. <strong>컴파일러는 그런 척하기를 거부합니다.</strong>"
+    },
+    {
+      "id": "h-ee1644b5",
+      "kind": "html",
+      "en": "How it's enforced, and where the guarantee stops",
+      "tr": "강제하는 방식, 그리고 보장이 멈추는 곳"
+    },
+    {
+      "id": "h-4641dcd8",
+      "kind": "html",
+      "en": "Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect over <code>tsc</code></strong>, not an independent verifier. Some things it proves itself: exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code> in your source, strict-key validation. The rest of type compatibility it enforces by emitting TypeScript and running <code>tsc --strict</code>, which fails the build. The wedge is that these checks are the <em>language</em>, not opt-in lint the agent can disable, not that Glyph re-implements a type checker.",
+      "tr": "차이가 중요하므로 정확히 말하겠습니다. Glyph는 독립적인 검증기가 아니라 <strong><code>tsc</code> 위의 엄격하고 강제되는 방언</strong>입니다. 일부는 직접 증명합니다. 망라성, <code>?</code> 오류 타입, 소스에 <code>any</code>/<code>as</code>가 없다는 것, 엄격한 키 검증입니다. 나머지 타입 호환성은 TypeScript를 생성하고 빌드를 실패시키는 <code>tsc --strict</code>를 실행해서 강제합니다. 핵심은 Glyph가 타입 검사기를 다시 구현한다는 것이 아니라, 이 검사들이 에이전트가 끌 수 있는 선택적 lint가 아니라 <em>언어</em>라는 것입니다."
+    },
+    {
+      "id": "h-c25c2286",
+      "kind": "html",
+      "en": "Two earlier edges here were closed in 0.1.10. The emitter used to insert a checked-by-Glyph-not-<code>tsc</code> return cast in <em>every</em> generic function; it now fires only where a validator combinator assembles a value of a shape-derived type (<code>infer_output&lt;Shape&gt;</code>), and every honest generic emits with no cast at all. And a validator's output type is no longer trusted: <code>infer_output</code> derives it from the shape you pass, and <code>tsc</code> checks your annotation against it: a shape missing a field of the type you claim now fails to compile.",
+      "tr": "여기 있던 이전의 한계 두 가지는 0.1.10에서 막혔습니다. emitter는 예전에 <em>모든</em> 제네릭 함수에 <code>tsc</code>가 아니라 Glyph가 검사하는 반환 캐스트를 넣었습니다. 이제는 검증기 조합자가 모양에서 파생된 타입(<code>infer_output&lt;Shape&gt;</code>)의 값을 만드는 곳에서만 넣으며, 정직한 제네릭은 모두 캐스트 없이 생성됩니다. 그리고 검증기의 출력 타입을 더 이상 그냥 믿지 않습니다. <code>infer_output</code>이 넘긴 모양에서 그 타입을 끌어내고 <code>tsc</code>가 여러분의 타입 표기를 그에 대해 검사하므로, 주장하는 타입의 필드가 빠진 모양은 이제 컴파일에 실패합니다."
+    },
+    {
+      "id": "h-3ae3435e",
+      "kind": "html",
+      "en": "Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor checks every element <em>as a <code>User</code></em>, not just for presence. One edge remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you only reference carries no descriptor until you materialize it with <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape. That boundary is deliberate (a type Glyph didn't emit can't promise runtime validation) and materializing it closes it.",
+      "tr": "제네릭 타입도 이제 깊게 검증됩니다. <code>Paginated&lt;User&gt;</code> 디스크립터는 모든 요소가 있는지만이 아니라 <em><code>User</code>로서</em> 검사합니다. 한계가 하나 남아 있으며, 분명히 밝혀 둡니다. 참조만 하는 외부 <code>.d.ts</code>에서 <em>import한</em> 타입은 <code>glyph gen dts</code>로 실체화하기 전까지 디스크립터가 없으므로, 그 타입의 필드는 모양이 아니라 존재 여부만 검사됩니다. 이 경계는 의도한 것이며(Glyph가 생성하지 않은 타입은 런타임 검증을 약속할 수 없습니다), 실체화하면 막힙니다."
+    },
+    {
+      "id": "h-71727b66",
+      "kind": "html",
+      "en": "The benchmark: coming",
+      "tr": "벤치마크: 준비 중"
+    },
+    {
+      "id": "h-e396933a",
+      "kind": "html",
+      "en": "This claim is empirical, so we intend to measure it: take a corpus of real agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and count what each one actually catches. Glyph isn't in real-world use yet, so there are no numbers to report. The chart below is a placeholder, and it fills in with real data the moment there is real usage.",
+      "tr": "이 주장은 경험적인 것이므로 측정할 계획입니다. 에이전트가 작성한 실제 변경 모음을 각각 <code>tsc --strict</code>와 Glyph로 실행하고, 각각이 실제로 무엇을 잡는지 세는 것입니다. Glyph는 아직 실제 환경에서 쓰이지 않으므로 보고할 숫자가 없습니다. 아래 차트는 자리 표시이며, 실제 사용이 생기는 순간 실제 데이터로 채워집니다."
+    },
+    {
+      "id": "h-53997b9b",
+      "kind": "html",
+      "en": "Agent-shipped bugs caught &middot; higher is better",
+      "tr": "에이전트가 배포한 버그 중 잡아낸 것 &middot; 높을수록 좋음"
+    },
+    {
+      "id": "h-2eb7b111",
+      "kind": "html",
+      "en": "tsc --strict vs Glyph",
+      "tr": "tsc --strict와 Glyph 비교"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "대기 중"
+    },
+    {
+      "id": "h-207317aa",
+      "kind": "html",
+      "en": "tsc --strict",
+      "tr": "tsc --strict"
+    },
+    {
+      "id": "h-179d799d",
+      "kind": "html",
+      "en": "<span class=\"h\">Not measured yet</span> The methodology is set; the corpus needs real Glyph usage to draw from. We'll publish the numbers (whatever they are) here as soon as they exist.",
+      "tr": "<span class=\"h\">아직 측정하지 않음</span> 방법론은 정해졌고, 코퍼스는 실제 Glyph 사용에서 가져와야 합니다. 숫자가 나오는 대로 (그것이 무엇이든) 여기에 공개하겠습니다."
+    },
+    {
+      "id": "h-487c6fec",
+      "kind": "html",
+      "en": "None of this is bought with ceremony. There are no proof annotations, no contracts, no verifier to satisfy. The code above is just ordinary Glyph. Verifiability isn't a feature you turn on; it's what's left once the ways to lie are gone.",
+      "tr": "이 중 어느 것도 번거로운 의식을 대가로 얻는 것이 아닙니다. 증명 표기도, 계약도, 만족시켜야 할 검증기도 없습니다. 위의 코드는 평범한 Glyph일 뿐입니다. 검증 가능성은 켜는 기능이 아니라, 거짓말할 방법이 사라지고 나면 남는 것입니다."
+    },
+    {
+      "id": "h-ea1f5d16",
+      "kind": "html",
+      "en": "\"Strict TypeScript and a lint config do this\"",
+      "tr": "\"strict TypeScript와 lint 설정이면 된다\""
+    },
+    {
+      "id": "h-9a1829dc",
+      "kind": "html",
+      "en": "Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code> and a rule against explicit <code>any</code> catch most of what an agent would otherwise slip past. They stop at the edges. <code>JSON.parse(body) as User</code> compiles under every setting there is, and the usual fix, a zod schema, is a second description of <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than trusted.",
+      "tr": "프로그램 안에서는 거의 그렇습니다. <code>strict</code>, <code>noUncheckedIndexedAccess</code>, 그리고 명시적 <code>any</code>를 금지하는 규칙이 에이전트가 빠져나갈 것의 대부분을 잡습니다. 하지만 가장자리에서 멈춥니다. <code>JSON.parse(body) as User</code>는 어떤 설정에서든 컴파일되며, 흔한 해결책인 zod 스키마는 첫 번째와 직접 맞춰 둬야 하는 <code>User</code>의 두 번째 기술입니다. Glyph에서는 타입이 곧 검증기입니다. <code>json.parse&lt;User&gt;(body)</code>는 <code>User</code> 자체에 대해 검사되고, Glyph가 런타임에 검사할 수 없는 타입은 믿는 대신 거부됩니다."
+    },
+    {
+      "id": "h-df4adf7a",
+      "kind": "html",
+      "en": "The other difference is who can rely on it. A lint config is a choice one repository made. An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned there; in Glyph it can't be written anywhere.",
+      "tr": "다른 차이는 누가 이에 기댈 수 있느냐입니다. lint 설정은 저장소 하나가 내린 선택입니다. 낯선 TypeScript 코드베이스를 연 에이전트는 거기서 <code>any</code>가 금지되어 있다고 가정할 수 없습니다. Glyph에서는 어디서도 쓸 수 없습니다."
+    },
+    {
+      "id": "h-339efe42",
+      "kind": "html",
+      "en": "The same guarantee, as the mistakes an agent makes and the errors that stop them, is answered in <a href=\"/answers/verifiability/\">What stops an agent from silently breaking my code?</a>",
+      "tr": "같은 보장을 에이전트가 저지르는 실수와 그것을 막는 오류의 관점에서 본 답은 <a href=\"/answers/verifiability/\">에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?</a>에 있습니다."
+    }
+  ]
+}

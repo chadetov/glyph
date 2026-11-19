@@ -1,0 +1,50 @@
+---
+title: 왜 Go나 새 언어가 아니라 TypeScript인가요? · Glyph
+description: TypeScript는 에이전트가 이미 가장 많은 코드를 쓰는 곳이고, npm, React, Node가 있는 곳입니다. Glyph를 파일 하나씩 도입할 수 있는 것은 대상이 TS이기 때문입니다.
+source_hash: 9f7bf2e8baaad5d9
+prev: /answers/greppability/ | &larr; 이전 | 에이전트가(또는 내가) 무엇이 어디에 정의되어 있는지 찾을 수 있나요?
+next: /answers/vs-tooled-ts/ | 다음 &rarr; | 그냥 strict TypeScript + zod + eslint + ts-pattern을 쓰면 안 되나요?
+---
+      <p class="q-eyebrow">04 &middot; 포지셔닝</p>
+      <h1 class="q-title">왜 Go나 새 언어가 아니라 TypeScript인가요?</h1>
+
+      <p class="short-answer">
+        TypeScript는 에이전트가 이미 가장 많은 코드를 쓰는 곳이고, 여러분의 생태계(npm, React, Node)가 있는 곳이기 때문입니다. Glyph를 파일 하나씩 도입할 수 있는 것은 <strong>오직 대상이 TS이기 때문</strong>입니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">왜 중요한가</h2>
+        <p>
+          새 언어의 성패는 처음부터 배포까지 어떻게 가느냐에 달려 있습니다. TypeScript로 컴파일한다는 것은 코드베이스, 번들러, 테스트 러너, 배포 방식을 떠나지 않는다는 뜻입니다. Glyph는 이미 있는 <code>.ts</code> 파일 옆에 들어가고, 양방향 import가 모두 깔끔하게 동작합니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">같은 프로젝트: .glyph와 .ts를 나란히</span>
+<pre><span class="cm">// cart.glyph: new, written in Glyph</span>
+import { formatPrice } from "./format.ts"
+
+<span class="cm">// checkout.ts: existing, untouched</span>
+import { total } from "./cart.glyph"</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          TypeScript 코드베이스에 Go를 파일 단위로 넣을 수는 없습니다. 런타임도, 모듈 시스템도, 생태계도 다릅니다. 대상이 TS인 이유는 이 한 가지 사실 때문입니다.
+        </p>
+        <p>
+          <strong>Go에 대한 타당한 지적:</strong> 작고 안정적인 키워드 표면 덕분에 에이전트가 틀릴 수 있는 방법이 적습니다. 우리도 동의하며, Glyph가 각각을 하는 방법이 하나뿐인 작은 핵심을 의도적으로 유지하는 이유가 바로 그것입니다. 직접 비교할 수 있도록 Go를 밀도 <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">벤치마크</a>에 포함했습니다.
+        </p>
+      </div>
+
+      <h2 class="block-label">현재 상태</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">지금 제공되는 것</h3>
+          <p>깔끔한 TypeScript 출력, 기존 <code>.ts</code>와의 양방향 import, 그리고 Node나 브라우저 번들이 실행되는 곳이면 어디서나 실행되는 작은 핵심.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">측정 중</h3>
+          <p>언어 간 벤치마크(Glyph, TS, Go, Python, Rust)는 코퍼스와 함께 커지므로, &ldquo;작은 표면&rdquo;이라는 주장은 단언이 아니라 숫자로 남습니다.</p>
+        </div>
+      </div>

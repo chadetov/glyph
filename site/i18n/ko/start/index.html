@@ -1,0 +1,154 @@
+---
+title: 여기서 시작하기 · 10분 만에 작성하는 첫 Glyph 프로그램 · Glyph
+description: npx로 Glyph 프로젝트를 만들고, 실행하고, 일부러 깨뜨린 뒤 컴파일러 오류를 읽고 고쳐 봅니다. 10분이면 되고, 전역으로 설치하는 것은 없습니다.
+source_hash: 0967efaee1e51c6b
+prev: / | &larr; 홈 | 에이전트가 몰래 깨뜨릴 수 없는 TypeScript
+next: /answers/verifiability/ | 다음 &rarr; | 에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?
+next_steps: |
+  다음 단계
+  다음 &middot; 설치 불필요 | /playground/ | playground | 플레이그라운드 | 설치 없이 브라우저에서 Glyph를 사용해 보세요. | 플레이그라운드 열기
+  https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md | spec | 5분 둘러보기 | 언어 전체를 빠르게 살펴봅니다.
+  /answers/ | answers | 답변 | React, 타입이 있는 API, npm, 도구를 갖춘 TypeScript에 대한 예제와 답.
+---
+      <p class="q-eyebrow">여기서 시작하기 &middot; 약 10분</p>
+      <h1 class="q-title">첫 번째 Glyph 프로그램</h1>
+
+      <p class="short-answer">
+        프로젝트를 만들고 실행한 다음, <strong>일부러 깨뜨리고</strong> 컴파일러가 내는 오류를 읽어 봅니다. Glyph에 대한 사전 지식은 필요 없습니다. TypeScript를 조금이라도 써 봤다면 모든 줄을 따라갈 수 있습니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; 프로젝트 만들기</h2>
+        <p>
+          Glyph는 macOS와 Linux(x64, ARM), Windows(x64)용으로 미리 빌드된 바이너리로 npm에 배포되며, Node 18 이상이 필요합니다. 이 방법은 전역으로 아무것도 설치하지 않습니다. <code>npx</code>가 프로젝트를 만들기 위해 컴파일러를 받아 오고, 프로젝트는 Glyph가 실행과 타입 검사에 쓰는 <code>tsx</code>, <code>typescript</code>와 함께 자체 컴파일러 버전을 고정합니다.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">터미널</span>
+<pre>npx -y @glyphlang/glyph init hello
+cd hello
+npm install</pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph</code>를 PATH에 두고 싶다면, Glyph가 함께 쓰는 두 도구와 함께 전역으로 설치하고 이 페이지의 명령에서 <code>npx</code>를 빼세요.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">터미널, 전역 설치를 쓰는 방법</span>
+<pre>npm install -g @glyphlang/glyph tsx typescript
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span>
+glyph init hello
+cd hello</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">2 &middot; 생성된 파일 살펴보기</h2>
+        <p><code>glyph init</code>은 바로 실행할 수 있는 시작 프로젝트를 만듭니다. <code>src/main.glyph</code>, 타입이 있는 npm 패키지는 여기에 아무것도 필요 없고 이 디렉터리는 타입을 제공하지 않는 패키지를 위한 곳이라고 설명하는 <code>src/.types/README.md</code>, <code>package.json</code>, <code>.gitignore</code>, 그리고 코딩 에이전트가 스스로 읽는 파일 두 개입니다. 전체 언어 레퍼런스를 위해 <code>glyph llms</code>를 가리키는 <code>AGENTS.md</code>와, 에이전트가 타입과 참조를 검색하는 대신 컴파일러에 물어볼 수 있도록 <code>glyph mcp</code>를 등록하는 <code>.mcp.json</code>입니다. 이미 있는 프로젝트에서는 <code>glyph agents</code>가 이 두 파일을 작성합니다. <code>package.json</code>은 컴파일러, <code>typescript</code>, <code>tsx</code>를 <code>devDependencies</code>에 고정하므로, 프로젝트를 클론한 사람은 누구나 전역 설치 없이 <code>npm install</code>만으로 빌드할 수 있습니다.</p>
+        <p><code>src/main.glyph</code>를 열어 보세요. hello-world 프로그램입니다.</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+import std/io
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  io.println("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          눈여겨볼 점이 두 가지 있습니다. 프로그램은 <code>main(argv)</code>를 실행하고, <code>main</code>은 프로세스 종료 코드인 <code>number</code>를 반환합니다. 반환하면 프로세스를 강제로 멈추지 않고 종료 코드만 설정하므로, 서버를 시작하는 프로그램은 계속 요청을 처리합니다.
+        </p>
+
+        <h2 class="block-label">3 &middot; 실행하기</h2>
+      </div>
+      <div class="code">
+        <span class="cap">터미널</span>
+<pre>npx glyph run
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph run</code>은 코드를 타입 검사하고, TypeScript로 컴파일하고, 실행했습니다. 이 페이지의 나머지 부분에서 반복할 루프가 바로 이것입니다.
+        </p>
+
+        <h2 class="block-label">4 &middot; 실제 코드 추가하기</h2>
+        <p>
+          이제 본문을 작은 로직으로 바꿔 봅니다. 작업 상태와 그 상태에 레이블을 붙이는 함수입니다. 여기서 계속 쓰게 될 두 가지가 등장합니다. <em>태그 유니언</em>(<code>type Status = ...</code>)과, Glyph의 유일한 조건문인 <code>match</code>입니다.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">터미널</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">5 &middot; 일부러 깨뜨리기</h2>
+        <p>
+          Glyph가 <em>무엇을 위한</em> 언어인지 보여 주는 부분입니다. <code>match</code>에서 <code>Done</code> arm을 지우고(에이전트가 어딘가에 case를 추가하고 처리하는 것을 잊을 때 하는 일입니다) 다시 실행해 보세요.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph (Done arm을 지운 상태)</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          실행되지 않았습니다. TypeScript에서도 반환 타입을 명시한 이 함수는 거부됩니다(TS2366). 하지만 로그만 남기거나 상태만 갱신하는 <code>switch</code>나 <code>default:</code>가 있는 경우는 깔끔하게 컴파일되고 새 case를 조용히 건너뜁니다. 여기서는 모든 비망라적 match가 고정된 코드(<code>E0200</code>), 정확한 위치, 한 줄짜리 수정 방법을 갖춘 컴파일 오류입니다. 자세한 설명이 필요하면 언제든 <code>glyph --explain E0200</code>을 실행하세요.
+        </p>
+
+        <h2 class="block-label">6 &middot; 고치기</h2>
+        <p>arm을 다시 넣으면(또는 <code>else</code>를 추가하면) 다시 실행됩니다.</p>
+      </div>
+      <div class="code">
+        <span class="cap">터미널</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          이것이 핵심 루프입니다. 작성하고, 실행하고, 무언가 잘못되면 코드가 배포되기 전에 컴파일러가 무엇이 잘못됐고 어떻게 고치는지 정확히 알려 줍니다.
+        </p>
+      </div>

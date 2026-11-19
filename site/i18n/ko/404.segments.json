@@ -1,0 +1,98 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "404.html",
+  "locale": "ko",
+  "source_hash": "c7ed4cfc21c6376f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Page not found · Glyph",
+      "tr": "페이지를 찾을 수 없음 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "There is no page at this address. The links below go to the pages most people come to the site for.",
+      "tr": "이 주소에는 페이지가 없습니다. 아래 링크는 사람들이 이 사이트에서 가장 많이 찾는 페이지로 연결됩니다."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go instead",
+      "tr": "대신 갈 곳"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Most people start here",
+      "tr": "대부분 여기서 시작합니다"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Start in 10 minutes",
+      "tr": "10분 만에 시작하기"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install Glyph, write a program, break it on purpose and read the error.",
+      "tr": "Glyph를 설치하고, 프로그램을 작성하고, 일부러 깨뜨려 오류를 읽어 봅니다."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Start here",
+      "tr": "여기서 시작하기"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What it catches",
+      "tr": "무엇을 잡아내는가"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "The cases a fully configured TypeScript setup lets through, and what Glyph says about each.",
+      "tr": "최대한 엄격하게 설정한 TypeScript 환경이 통과시키는 사례와, 각 사례에 대해 Glyph가 하는 말."
+    },
+    {
+      "id": "ns./answers/.title",
+      "kind": "ns.title",
+      "en": "Answers",
+      "tr": "답변"
+    },
+    {
+      "id": "ns./answers/.desc",
+      "kind": "ns.desc",
+      "en": "Questions engineers ask about Glyph, with worked examples.",
+      "tr": "엔지니어들이 Glyph에 대해 묻는 질문과 예제로 보는 답."
+    },
+    {
+      "id": "ns./versions/.title",
+      "kind": "ns.title",
+      "en": "Versions",
+      "tr": "버전"
+    },
+    {
+      "id": "ns./versions/.desc",
+      "kind": "ns.desc",
+      "en": "What changed in each release, newest first.",
+      "tr": "릴리스마다 바뀐 내용, 최신순."
+    },
+    {
+      "id": "h-fb434496",
+      "kind": "html",
+      "en": "There is no page at this address.",
+      "tr": "이 주소에는 페이지가 없습니다."
+    },
+    {
+      "id": "h-ab88a679",
+      "kind": "html",
+      "en": "The link may be old, or the page may have moved. If a link on this site brought you here, <a href=\"https://github.com/chadetov/glyph/issues/new\">open an issue</a> with the address and we will fix it. Or go back to the <a href=\"/\">home page</a>.",
+      "tr": "링크가 오래되었거나 페이지가 옮겨졌을 수 있습니다. 이 사이트의 링크를 따라 여기 왔다면 주소와 함께 <a href=\"https://github.com/chadetov/glyph/issues/new\">이슈를 열어 주세요</a>. 고치겠습니다. 아니면 <a href=\"/\">홈페이지</a>로 돌아가세요."
+    }
+  ]
+}

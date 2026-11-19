@@ -1,0 +1,137 @@
+---
+title: 근거 · 이 사이트의 각 주장을 검증하는 방법 · Glyph
+description: 이 사이트의 각 주장을 검증하는 방법: catches fixture와 그 뒤의 CI 게이트, 비교 대상인 TypeScript 설정, 그리고 직접 재현하는 방법.
+source_hash: 22fcc8a3d8e611cf
+next_steps: |
+  나머지 기록
+  추천 | /catches/ | catches | 잡아내는 것 | 모든 사례: TypeScript 코드, Glyph 코드, 오류, 그리고 도구를 갖춘 TypeScript가 잡을 수 있는지 여부. | 모든 사례 보기
+  /hardening/ | hardening | 하드닝 | 회의적인 엔지니어 역할을 맡은 에이전트가 컴파일러를 공격하는 방법과, 그렇게 찾아낸 버그.
+  /benchmarks/ | benchmarks | 벤치마크 | 측정하는 것(토큰 밀도, grep, diff)과 아직 끝나지 않은 신뢰성 연구.
+  /versions/ | versions | 버전 | 모든 릴리스, 각각 바뀐 내용, 그리고 Breaking 릴리스.
+---
+      <p class="q-eyebrow">근거</p>
+      <h1 class="q-title">이 사이트의 각 주장을 검증하는 방법</h1>
+
+      <p class="short-answer">
+        Glyph가 무언가를 잡아낸다는 주장은 저장소에 있는 프로그램 한 쌍입니다. 하나는 TypeScript, 하나는 Glyph이고, CI 게이트가 변경이 있을 때마다 둘 다 실행합니다. TypeScript가 컴파일되지 않거나 Glyph가 거부하지 않게 되면 빌드가 실패합니다. 어떤 사례든 명령 두 개로 직접 실행해 볼 수 있습니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">fixture</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 아래의 각 디렉터리에는 <code>ts.ts</code>, <code>glyph.glyph</code>, 그리고 각각이 무엇을 하는지 적은 <code>case.toml</code>이 있습니다. <code>scripts/check_catches.py</code>는 CI에서 실행됩니다. 컴파일되지 않는 TypeScript 프로그램은 아무것도 증명하지 못하므로 모든 <code>ts.ts</code>가 <code>tsc --strict</code>를 통과해야 하고, Glyph 쪽은 사례의 종류에 따라 검사합니다. {{catches:breakdown}} 게이트가 검사하는 종류별로 보면 다음과 같습니다.
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>종류</th><th>사례</th><th>게이트가 Glyph 쪽에 요구하는 것</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Kind"><code>refused</code></td><td data-label="Cases">{{catches:refused-all}}</td><td data-label="What the gate requires of the Glyph"><code>case.toml</code>에 적힌 코드로 빌드가 실패함</td></tr>
+            <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">{{catches:warned-all}}</td><td data-label="What the gate requires of the Glyph">빌드는 통과하고 그 코드를 경고로 보고함</td></tr>
+            <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">{{catches:boundary-all}}</td><td data-label="What the gate requires of the Glyph">프로그램이 실행되고, 경계의 검사가 잘못된 데이터를 <code>Err</code>로 바꿈</td></tr>
+            <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">{{catches:runtime-all}}</td><td data-label="What the gate requires of the Glyph">프로그램이 빌드된 뒤, 실행 중에 명시된 출력과 함께 멈춤</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">{{catches:gap-cases}}</td><td data-label="What the gate requires of the Glyph">Glyph가 프로그램을 받아들이고 잘못 동작함. 구멍이 막히면 게이트가 실패하고 사례를 옮기라고 알려 줌</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          더 이상 시연할 수 없게 된 사례는 완화하지 않고 삭제하며, <a href="https://github.com/chadetov/glyph/blob/main/catches/README.md">catches README</a>에 삭제된 여섯 개와 그 이유가 나와 있습니다. 그중 하나는 <code>tsc</code>도 잡아내는 것으로 밝혀졌고, 다른 하나는 TypeScript 쪽이 값을 <code>any</code>로 받았기 때문에 성립했던 것입니다.
+        </p>
+
+        <h2 class="block-label">비교 대상인 TypeScript</h2>
+        <p>
+          각 사례에는 최대한 설정한 TypeScript 프로젝트라면 그 실수를 잡았을지도 적혀 있고, "TypeScript가 잡을까" 태그는 여기서 나옵니다. "최대한 설정"이란 <code>tsc --strict</code>에 더 엄격하게 만드는 모든 옵션을 더하고, typescript-eslint를 실행하는 것입니다. 게이트는 실행할 때마다 패키지(TypeScript 6, eslint 9, typescript-eslint 8, tsx 4, 최신 <code>@types/node</code>)를 새로 설치하며, 네트워크가 없으면 건너뛰지 않고 실패합니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">strict 위에 더한 tsconfig 옵션</span>
+<pre>noUncheckedIndexedAccess: true
+noFallthroughCasesInSwitch: true
+noUnusedLocals: true
+noUnusedParameters: true
+noImplicitReturns: true
+noImplicitOverride: true
+allowUnreachableCode: false
+allowUnusedLabels: false
+exactOptionalPropertyTypes: true
+noPropertyAccessFromIndexSignature: true</pre>
+        </div>
+        <div class="code">
+          <span class="cap">eslint.config.mjs</span>
+<pre>export default tseslint.config(
+  js.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  { rules: {
+    "@typescript-eslint/switch-exhaustiveness-check": "error",
+    "@typescript-eslint/strict-boolean-expressions": "error",
+    "@typescript-eslint/require-array-sort-compare": "error",
+    "require-atomic-updates": "error",
+  } },
+);</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          사례의 태그는 <code>none</code>, 또는 <code>flag:</code>와 그 실수를 보고하는 옵션 하나, 또는 <code>lint:</code>와 규칙입니다. 수정된 프로그램도 관련 없는 이유로 규칙에 걸리면 그 사례에는 <code>ts_ok.ts</code>가 있고, 태그는 실수에 대해 발생하는 것만 셉니다. 예를 들어 <code>non-exhaustive-match</code>는 <code>lint:switch-exhaustiveness-check</code>입니다. 그 규칙을 켜면 typescript-eslint가 잡아내고, 페이지에도 그렇게 적혀 있습니다.
+        </p>
+
+        <h2 class="block-label">사례 하나 재현하기</h2>
+        <p>
+          저장소를 클론해서 사례 하나에 대해 게이트를 실행하거나, 직접 해 보세요. 이 페이지를 위해 실행한 <code>non-exhaustive-match</code>의 양쪽 결과입니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">게이트, 사례 하나</span>
+<pre>$ python3 scripts/check_catches.py non-exhaustive-match
+catches: 1/1 cases hold every claim they make.
+TypeScript checked with tsc --strict and the full flag set (typescript 6.0.3),
+typescript-eslint 8.73.0 strictTypeChecked on eslint 9.39.5, run with
+tsx 4.23.15, and @types/node 26.6.6.</pre>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript 쪽, 직접 실행</span>
+<pre>$ npm i -D typescript@6 tsx@4
+$ npx tsc --strict --noEmit ts.ts
+$ echo $?
+0
+$ npx tsx ts.ts
+finished
+archived logged nothing</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph 쪽, 직접 실행</span>
+<pre>$ glyph check --no-tsc catches/non-exhaustive-match
+<span class="del">[E0200] Error: typecheck: non-exhaustive match
+  on `"todo" | "doing" | "done" | "archived"`:
+  missing variants "archived"</span>
+glyph check: 1 error(s) across 1 module(s)</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">이 사이트의 코드 조각은 컴파일됩니다</h2>
+        <p>
+          <code>scripts/check_docs_compile.py</code>는 CI에서 실행되며, 사이트에서 독립적으로 완결된(<code>module</code>로 시작하고 무언가를 선언하는) 모든 Glyph 코드 조각과 문서 및 <code>llms.txt</code>의 코드 조각을 컴파일합니다. 실패하도록 의도한 코드 조각은 자신이 일으키는 오류를 명시해야 하고, 정확히 그 오류만 일으켜야 합니다. React나 npm 패키지가 필요한 코드 조각은 그 패키지의 실제 타입으로 컴파일합니다. 단편 코드는 세어서 건너뛰고, 건너뛴 비율이 보이도록 그 수를 출력합니다.
+        </p>
+
+        <h2 class="block-label">아직 잡아내지 못하는 것</h2>
+        <p>
+          <code>gap</code> 사례 {{catches:gap-cases}}건은 각각의 gap 번호와 함께 <a href="/catches/#not-yet">잡아내는 것 페이지</a>에 있습니다. Glyph로 앱을 만들면서 발견한 모든 gap은 목록인 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>에 있습니다. 여기서는 대괄호 표시만이 현재 상태를 나타내며(<code>[FIXED]</code>, <code>[HALF FIXED]</code>, 열린 항목은 표시 없음), 열린 항목이 마지막으로 재현된 지 릴리스 다섯 개가 넘으면 <code>scripts/check_gaps.py</code>가 CI를 실패시킵니다.
+        </p>
+
+        <h2 class="block-label">릴리스에 Breaking 표시를 붙이는 방법</h2>
+        <p>
+          이전 버전이 받아들이던 프로그램을 거부하는 릴리스에는 Breaking 표시를 붙입니다. 이는 영향받는 가장 작은 프로그램을 작성해 이전에 배포된 릴리스와 새 바이너리에서 실행하고 종료 코드를 비교해서 결정합니다. 릴리스 노트의 문구에서 추론하지 않습니다. 0.1.99 이전 릴리스는 이렇게 검사한 적이 없으므로, 표시가 없는 릴리스는 안전하다는 뜻이 아니라 검사하지 않았다는 뜻입니다. 기록은 <a href="/versions/">버전 페이지</a>에 있습니다.
+        </p>
+      </div>

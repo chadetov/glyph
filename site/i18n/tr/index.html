@@ -1,7 +1,7 @@
 ---
 title: Glyph: yapay zekâ ajanları için tasarlanmış, TypeScript'e derlenen tipli bir dil
 description: Glyph, TypeScript'e derlenen statik tipli bir dil. Bir yapay zekâ ajanının yazdığı kod tahmin yürütmeden okunabilsin, kontrol edilebilsin ve değiştirilebilsin diye tasarlandı. Görünüşü TypeScript'e çok yakın.
-source_hash: 520cddaf09df5f1b
+source_hash: 458b68e89319c327
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, programlama dili, typescript, transpiler, yapay zekâ ajanları, llm" />
   <meta property="og:type" content="website" />
@@ -39,12 +39,9 @@ head: |
       <header class="hero">
         <div>
           <a class="pill" href="/versions/" title="Yenilikleri gör"><span class="dot"></span>v{{version}} · erken önizleme →</a>
-          <h1>Yapay zekâ ajanının yazdığı kod, <span class="accent">production'a çıkmadan kontrol edilir.</span></h1>
+          <h1>Yapay zekâ ajanınız yazar. <span class="accent">Derleyici kontrol eder.</span></h1>
           <p class="sub">
-            Glyph, TypeScript gibi okunan ve okunabilir TypeScript'e derlenen
-            tipli bir dil. node, npm ve mevcut kodunuz yerinde kalır; derleyici
-            ise <code>tsc --strict</code> tarafından gözden kaçırılan kodu
-            kabul etmez.
+            Glyph TypeScript gibi okunur, kaçış kapıları olmadan: <code>any</code> yok, cast yok, kontrol edilmemiş veri yok, her durum ele alınır. Okunabilir TypeScript'e derlenir; node, npm ve mevcut kodunuz olduğu gibi kalır.
           </p>
           <div class="install" title="Node.js 18 veya üstü gerekir">
             <span class="prompt">$</span>

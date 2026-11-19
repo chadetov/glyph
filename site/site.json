@@ -159,7 +159,7 @@
       "featured": {
         "href": "/catches/",
         "big": "{{catches:none}} of {{catches:count}}",
-        "text": "mistakes that nothing in a fully configured TypeScript setup catches",
+        "text": "cases that nothing in a fully configured TypeScript setup catches",
         "cta": "See what it catches"
       }
     },

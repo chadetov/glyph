@@ -92,7 +92,7 @@
                       <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Not caught yet</span><span class="nav-desc">Known holes, each with a reproduction</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">mistakes that nothing in a fully configured TypeScript setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">cases that nothing in a fully configured TypeScript setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -317,14 +317,14 @@
 
       <!-- ============ THE REFUSED CASES ============ -->
       <section>
-        <h2 class="group-head">Mistakes that pass <code>tsc --strict</code> and do not compile in Glyph</h2>
+        <h2 class="group-head">Cases that pass <code>tsc --strict</code> and do not compile in Glyph</h2>
         <p class="group-sub">
           Each is two files: a <code>.ts</code> that type-checks clean under
           <code>tsc --strict</code>, and the same program in Glyph that does not
           compile. A build gate, <code>scripts/check_catches.py</code>, re-runs
           every one and fails if either half stops behaving, so a guarantee that
           quietly disappears takes the build with it. 23 of the
-          37 mistakes on <a href="/catches/">the catches page</a>
+          37 cases on <a href="/catches/">the catches page</a>
           are refused this way; the page has the rest, which Glyph checks when the
           data arrives, warns about, or stops at run time.
         </p>

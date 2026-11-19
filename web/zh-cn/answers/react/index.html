@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>能和 React 一起用吗：组件、hooks 和 Context？ · Glyph</title>
+    <meta name="description" content="React 是内置支持的：component 编译成函数组件，JSX 转换为 createElement，reducer 的 action 会被穷尽匹配。" />
+    <link rel="canonical" href="https://glyphlang.io/zh-cn/answers/react/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/zh-cn/answers/react/" />
+    <meta property="og:title" content="能和 React 一起用吗：组件、hooks 和 Context？" />
+    <meta property="og:description" content="React 是内置支持的：component 编译成函数组件，JSX 转换为 createElement，reducer 的 action 会被穷尽匹配。" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/react/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"能和 React 一起用吗：组件、hooks 和 Context？","item":"https://glyphlang.io/zh-cn/answers/react/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/react/#article","headline":"能和 React 一起用吗：组件、hooks 和 Context？","description":"React 是内置支持的：component 编译成函数组件，JSX 转换为 createElement，reducer 的 action 会被穷尽匹配。","url":"https://glyphlang.io/zh-cn/answers/react/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/react/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/react/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/react/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/react/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/react/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/react/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/react/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/react/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/react/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/react/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/react/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/react/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="主导航">
+        <div class="nav-brand">
+          <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">为什么选 Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">适合谁用</p>
+                    <ul>
+                      <li><a href="/zh-cn/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">面向智能体开发者</span><span class="nav-desc">MCP 服务器及其能回答的查询</span></span></a></li>
+                      <li><a href="/zh-cn/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">从 TypeScript 迁移过来</span><span class="nav-desc">哪些变了，哪些保持不变</span></span></a></li>
+                      <li><a href="/zh-cn/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">面向团队</span><span class="nav-desc">它保证什么，引入它的成本是什么</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">设计</p>
+                    <ul>
+                      <li><a href="/zh-cn/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">设计</span><span class="nav-desc">四大支柱，以及有意没有做的部分</span></span></a></li>
+                      <li><a href="/zh-cn/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">四大支柱</span><span class="nav-desc">可验证性、可检索性、抽象、稳定的 diff</span></span></a></li>
+                      <li><a href="/zh-cn/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph 与 Effect 对比</span><span class="nav-desc">一门语言和一个库的比较</span></span></a></li>
+                      <li><a href="/zh-cn/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">为什么不用 ReScript、Gleam 或 Elm？</span><span class="nav-desc">三种编译为 JavaScript 的类型化语言</span></span></a></li>
+                      <li><a href="/zh-cn/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph 与配齐工具链的 TypeScript 对比</span><span class="nav-desc">严格模式的 tsc、zod 和 eslint 仍会放过的问题</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/zh-cn/catches/">它能发现什么</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">学习<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">上手</p>
+                    <ul>
+                      <li><a href="/zh-cn/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 分钟上手</span><span class="nav-desc">安装、写一个程序、运行</span></span></a></li>
+                      <li><a href="/zh-cn/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">问答 <span class="nav-count">28</span></span><span class="nav-desc">工程师常问的问题，附完整示例</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">语言参考</span><span class="nav-desc">完整规范，在 GitHub 上</span></span></a></li>
+                      <li><a href="/zh-cn/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">参与贡献</span><span class="nav-desc">编译器的实现方式，以及如何参与</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">连接你的智能体</p>
+                    <ul>
+                      <li><a href="/zh-cn/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP 服务器</span><span class="nav-desc">把智能体接入编译器的查询</span></span></a></li>
+                      <li><a href="/zh-cn/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">询问编译器</span><span class="nav-desc">编辑前先查询符号、类型或改动的影响</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">面向智能体的 llms.txt</span><span class="nav-desc">整门语言写在一个智能体能读的文件里</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">证据<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">如何验证</p>
+                    <ul>
+                      <li><a href="/zh-cn/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">说法如何验证</span><span class="nav-desc">每条说法背后的 fixture 和 CI 检查</span></span></a></li>
+                      <li><a href="/zh-cn/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">加固</span><span class="nav-desc">智能体尝试攻破它，以及它们的发现</span></span></a></li>
+                      <li><a href="/zh-cn/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">基准测试</span><span class="nav-desc">用数字衡量四大支柱，附注意事项</span></span></a></li>
+                      <li><a href="/zh-cn/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">尚未覆盖的问题</span><span class="nav-desc">已知漏洞，每个都附复现示例</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/zh-cn/catches/"><span class="nav-feature-big">37 个中有 21 个</span><span class="nav-feature-text">TypeScript 错误，即使项目配置拉满，也没有任何工具能发现</span><span class="nav-feature-cta">看看它能发现什么 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">版本</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="语言: 简体中文 (中文)"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">简体中文</span><span class="lang-short" aria-hidden="true">中文</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">语言</p>
+            <ul>
+              <li><a href="/answers/react/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/react/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/react/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/react/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/react/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/react/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn" aria-current="true"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/ko/answers/react/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/react/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/react/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/react/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/react/" hreflang="en" data-lang="en">阅读英文版</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="配色主题：自动（跟随系统）。切换为浅色。">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">自动</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="打开菜单">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "关闭菜单" : "打开菜单");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="问答导航">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/zh-cn/answers/">问答</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/zh-cn/answers/react/" aria-current="page"><span class="n">13</span> React</a></p>
+        <a class="ans-step prev" href="/zh-cn/answers/codegen/" aria-label="上一篇：12 客户端和服务端">&lsaquo; 12</a><a class="ans-step next" href="/zh-cn/answers/state/" aria-label="下一篇：14 共享状态">14 &rsaquo;</a>
+        <a class="ans-all-link" href="/zh-cn/answers/">全部问答</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">全部问答<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>当前语言：简体中文</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/react/" hreflang="en" data-lang="en">阅读英文版</a></p>
+      <button class="i18n-x" type="button" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>本页是译文，以英文版为准。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28zh-cn%29%3A+%2Fzh-cn%2Fanswers%2Freact%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fzh-cn%2Fanswers%2Freact%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Freact%2F%0A%0AWhat+is+wrong%3A%0A">报告翻译问题</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side">
+      <p class="q-eyebrow">13 &middot; 前端</p>
+      <h1 class="q-title">能和 React 一起用吗：组件、hooks 和 Context？</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="问答">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/zh-cn/answers/">全部问答</a><button class="ans-close" type="button" aria-label="关闭问答列表"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>它解决的问题</summary><ol>
+            <li><a href="/zh-cn/answers/verifiability/"><span class="n">01</span><span class="t">悄无声息的破坏</span></a></li>
+            <li><a href="/zh-cn/answers/diff-stability/"><span class="n">02</span><span class="t">干净的 diff</span></a></li>
+            <li><a href="/zh-cn/answers/greppability/"><span class="n">03</span><span class="t">查找代码</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>决定是否采用</summary><ol>
+            <li><a href="/zh-cn/answers/why-typescript/"><span class="n">04</span><span class="t">为什么是 TypeScript</span></a></li>
+            <li><a href="/zh-cn/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">为什么不用配齐工具的 TS</span></a></li>
+            <li><a href="/zh-cn/answers/human-value/"><span class="n">06</span><span class="t">不用 AI 时</span></a></li>
+            <li><a href="/zh-cn/answers/ai-authoring/"><span class="n">07</span><span class="t">AI 编写的代码</span></a></li>
+            <li><a href="/zh-cn/answers/upgrades/"><span class="n">08</span><span class="t">升级</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>配合你的技术栈使用</summary><ol>
+            <li><a href="/zh-cn/answers/imports/"><span class="n">09</span><span class="t">你的库</span></a></li>
+            <li><a href="/zh-cn/answers/embedding/"><span class="n">10</span><span class="t">嵌入你的应用</span></a></li>
+            <li><a href="/zh-cn/answers/typed-apis/"><span class="n">11</span><span class="t">类型化的 API</span></a></li>
+            <li><a href="/zh-cn/answers/codegen/"><span class="n">12</span><span class="t">客户端和服务端</span></a></li>
+            <li><a href="/zh-cn/answers/react/" aria-current="page"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/zh-cn/answers/state/"><span class="n">14</span><span class="t">共享状态</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>能用它构建什么</summary><ol>
+            <li><a href="/zh-cn/answers/language/"><span class="n">15</span><span class="t">语言本身</span></a></li>
+            <li><a href="/zh-cn/answers/finance/"><span class="n">16</span><span class="t">金额与安全</span></a></li>
+            <li><a href="/zh-cn/answers/web-serving/"><span class="n">17</span><span class="t">Web 服务</span></a></li>
+            <li><a href="/zh-cn/answers/interactive-cli/"><span class="n">18</span><span class="t">交互式程序</span></a></li>
+            <li><a href="/zh-cn/answers/long-running/"><span class="n">19</span><span class="t">服务器与守护进程</span></a></li>
+            <li><a href="/zh-cn/answers/binary/"><span class="n">20</span><span class="t">二进制数据</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>与智能体协作</summary><ol>
+            <li><a href="/zh-cn/answers/impact/"><span class="n">21</span><span class="t">编辑之前</span></a></li>
+            <li><a href="/zh-cn/answers/ask-the-compiler/"><span class="n">22</span><span class="t">询问编译器</span></a></li>
+            <li><a href="/zh-cn/answers/repair-protocol/"><span class="n">23</span><span class="t">修复失败的构建</span></a></li>
+            <li><a href="/zh-cn/answers/generated-docs/"><span class="n">24</span><span class="t">不会过时的文档</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>错误、编辑器与生产环境</summary><ol>
+            <li><a href="/zh-cn/answers/tooling/"><span class="n">25</span><span class="t">编辑器与调试</span></a></li>
+            <li><a href="/zh-cn/answers/early-errors/"><span class="n">26</span><span class="t">更早发现</span></a></li>
+            <li><a href="/zh-cn/answers/parse-errors/"><span class="n">27</span><span class="t">解析为何失败</span></a></li>
+            <li><a href="/zh-cn/answers/debugging/"><span class="n">28</span><span class="t">调试与运维</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        能。<code>component</code> 编译成 React 函数组件，JSX 转换为 <code>createElement</code>，React 自己的 hooks 按名字导入并解构它们返回的二元组，reducer 的状态还能得到普通 TypeScript 没有的穷尽性检查。页面本身（标题、挂载点、保存的状态）通过 <code>std/dom</code> 和 <code>std/storage</code> 访问。首先值得了解的 gap：Glyph 自己的检查器不会推断 hook 返回值的类型，这些值由 <code>tsc</code> 检查。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-it-matters">为什么这很重要<a class="h-anchor" href="#why-it-matters" aria-label="链接到本节">#</a></h2>
+        <p>
+          智能体写的代码有很大一部分是 React。Glyph 把它当作一等目标，而不是外挂：<code>component</code> 是独立的关键字（所以 <code>grep "^component "</code> 就能审查整个 UI）。React 的 hooks 从 <code>react</code> 导入，用它们真实的名字和类型调用，由 <code>tsc</code> 对照 React 自己的类型声明检查。
+        </p>
+
+        <h2 class="block-label" id="see-it">看看实际效果<a class="h-anchor" href="#see-it" aria-label="链接到本节">#</a></h2>
+        <p>使用 React 真正的 <code>useReducer</code>，reducer 处理一个标签联合。每个 action 都必须处理，编译器会检查：</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">counter.glyph，基于 react@18 及其类型</span>
+<pre><span class="k">import</span> react { useReducer }
+
+<span class="k">type</span> <span class="t">Action</span> = <span class="t">Inc</span> | <span class="t">Dec</span> | <span class="t">Reset</span>
+
+<span class="k">fn</span> reducer(n: <span class="t">number</span>, a: <span class="t">Action</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> <span class="k">match</span> a {
+    <span class="t">Inc</span> <span class="op">=&gt;</span> n + <span class="n">1</span>,
+    <span class="t">Dec</span> <span class="op">=&gt;</span> n - <span class="n">1</span>,
+    <span class="t">Reset</span> <span class="op">=&gt;</span> <span class="n">0</span>,
+<span class="add">    <span class="c">// add an Action variant and this match is E0200</span></span>
+  }
+}
+
+<span class="k">pub</span> <span class="k">component</span> <span class="t">Counter</span>() {
+  <span class="k">let</span> [count, dispatch] = useReducer(reducer, <span class="n">0</span>)
+  <span class="k">return</span> &lt;<span class="t">button</span> on_click={<span class="k">fn</span>() { dispatch(<span class="t">Inc</span>) }}&gt;<span class="ip">{</span>count<span class="ip">}</span>&lt;/<span class="t">button</span>&gt;
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          加一个 <code>Double</code> action，reducer 就会编译失败，报 <code>E0200</code> 并指出它的名字，而普通 TypeScript 的 <code>switch</code> 会让它直接上线。二元组用 <code>let [count, dispatch]</code> 解构，生成的 TypeScript 会加上 <code>satisfies readonly [unknown, unknown]</code>，所以 <code>tsc</code> 会证明 hook 返回的是二元组，同时仍然推断每个元素的类型。Glyph 自己的检查器不推断来自 React 的值的类型，所以传给 <code>dispatch</code> 或状态 setter 的错误参数，是在构建时由 <code>tsc</code> 报告的，而不是在编辑器里或 <code>--no-tsc</code> 时报告。React <strong>Context</strong> 现在可以通过 <code>createContext</code> / <code>useContext</code> 使用，成员表达式形式的元素名（<code>&lt;ThemeContext.Provider&gt;</code>）也可以直接使用，不需要变通。
+        </p>
+        <p>
+          JSX 属性展开同样可用：<code>&lt;input {...register("email")} /&gt;</code> 会转换为 props 中的对象展开，所以 react-hook-form 的惯用写法不需要适配层。Zod 的值派生类型是一等支持的：<code>type FormData = z.infer&lt;typeof schema&gt;</code> 可以直接使用，不需要逃生口。唯一的区别是：组件只接受一个 props 记录，而不是多个位置参数。这条边界具体在哪里，见<a href="/zh-cn/answers/imports/">使用你的库</a>和<a href="/zh-cn/hardening/">加固页面</a>。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="are-props-checked-before-tsc">props 会在 tsc 之前检查吗？<a class="h-anchor" href="#are-props-checked-before-tsc" aria-label="链接到本节">#</a></h2>
+        <p>
+          会。Glyph 自己把每个元素与其组件的 props 记录进行比对，所以错误的值、拼错的 prop 和缺少的必需 prop 都是指出该 prop 的 Glyph 错误。你在编辑器里和通过 MCP 都能看到它们，而不只是在完整构建中。无论组件是按名字导入还是通过模块导入，效果都一样：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph，<code>Card</code> 声明在 <code>ui.glyph</code> 中</span>
+<pre>import ui
+
+pub component App() {
+  return &lt;div&gt;
+    &lt;ui.Card title="Q3" /&gt;
+    &lt;ui.Card title="Q4" cout={2} /&gt;
+  &lt;/div&gt;
+}
+
+<span class="add">// <span class="e">E0211</span> argument type mismatch: expected <span class="q">`CardProps`</span>, found <span class="q">`record`</span>: missing field <span class="q">`count`</span>
+// <span class="e">E0210</span> type <span class="q">`CardProps`</span> has no field <span class="q">`cout`</span>; did you mean <span class="q">`count`</span>?
+// <span class="e">E0211</span> argument type mismatch: expected <span class="q">`CardProps`</span>, found <span class="q">`record`</span>: missing field <span class="q">`count`</span></span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>--json</code> 会把缺少的名字放在 <code>missing_fields</code> 列表里，所以智能体不用解析信息就能补上 props。组件还必须以一个记录接收 props：<code>component Greeting(name: string)</code> 会在参数处报 E0229，因为 React 只会传入 props 对象，这样的元素永远无法通过类型检查。如果你是把它当函数调用而不是渲染它，就用 <code>fn</code> 声明。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="is-a-match-in-jsx-checked-like-a-match">JSX 中的 &lt;match&gt; 会像 match 一样被检查吗？<a class="h-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="链接到本节">#</a></h2>
+        <p>
+          它们就是同一个东西。每个 <code>&lt;case&gt;</code> 接受与 <code>match</code> 分支相同的模式，编译器用处理分支的同一套代码来处理它。case 绑定的名字具有负载的类型，访问负载记录中不存在的字段是 E0210，缺少变体是 E0200。对值做判断的 case 只覆盖其变体的一部分，所以需要一个同级 case 或 <code>&lt;case else&gt;</code> 来处理其余情况：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">results.glyph</span>
+<pre><span class="k">type</span> <span class="t">Page</span> =
+  | <span class="t">Loading</span>
+  | <span class="t">Loaded</span>({ users: <span class="t">Array</span>&lt;<span class="t">User</span>&gt;, total: <span class="t">number</span> })
+  | <span class="t">Failed</span>(<span class="t">string</span>)
+
+<span class="k">component</span> <span class="t">Results</span>(props: { page: <span class="t">Page</span> }) {
+  <span class="k">return</span> &lt;<span class="t">match</span> value={props.page}&gt;
+    &lt;<span class="t">case</span> <span class="t">Loading</span>&gt;&lt;<span class="t">p</span>&gt;Loading...&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;<span class="t">case</span> <span class="t">Loaded</span>({ users, totl })&gt;&lt;<span class="t">p</span>&gt;<span class="ip">{</span>users.length<span class="ip">}</span> of <span class="ip">{</span>totl<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;<span class="t">case</span> <span class="t">Failed</span>(message)&gt;&lt;<span class="t">p</span>&gt;<span class="ip">{</span>message<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+  &lt;/<span class="t">match</span>&gt;
+}
+
+<span class="add"><span class="c">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="how-does-a-page-start-it">页面怎么启动它？<a class="h-anchor" href="#how-does-a-page-start-it" aria-label="链接到本节">#</a></h2>
+        <p>
+          Glyph 没有顶层语句，所以由页面自己调用导出的 <code>main</code>。应用由两个模块组成：一个放组件，另一个通过 <code>std/dom</code> 和 react-dom 的 <code>createRoot</code> 把组件挂载到 <code>#root</code> 上。事件属性使用蛇形命名（<code>on_change</code> 生成 React 的 <code>onChange</code>），处理函数是一个 lambda，输入框的文本是 <code>e.currentTarget.value</code>。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">app.glyph</span>
+<pre data-check="needs-react"><span class="k">module</span> app
+
+<span class="k">import</span> react { useState }
+
+<span class="k">pub</span> <span class="k">component</span> <span class="t">App</span>() {
+  <span class="k">let</span> [name, set_name] = useState(<span class="s">""</span>)
+  <span class="k">return</span> &lt;<span class="t">main</span>&gt;
+    &lt;<span class="t">input</span> value={name} on_change={<span class="k">fn</span>(e) { set_name(e.currentTarget.value) }} /&gt;
+    &lt;<span class="t">p</span>&gt;Hello, <span class="ip">{</span>name<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;
+  &lt;/<span class="t">main</span>&gt;
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-react"><span class="k">module</span> main
+
+<span class="k">import</span> react-dom/client { createRoot }
+<span class="k">import</span> std/dom
+<span class="k">import</span> std/console
+<span class="k">import</span> std/option { <span class="t">Some</span>, <span class="t">None</span> }
+<span class="k">import</span> app { <span class="t">App</span> }
+
+<span class="k">pub</span> <span class="k">fn</span> main() <span class="op">-&gt;</span> <span class="k">void</span> {
+  <span class="k">match</span> dom.element_by_id(<span class="s">"root"</span>) {
+    <span class="t">Some</span>(root) <span class="op">=&gt;</span> createRoot(root).render(&lt;<span class="t">App</span> /&gt;),
+    <span class="t">None</span> <span class="op">=&gt;</span> console.error(<span class="s">"the page has no #root element"</span>),
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">index.html，与两个模块放在一起</span>
+<pre>&lt;<span class="t">div</span> id=<span class="s">"root"</span>&gt;&lt;/<span class="t">div</span>&gt;
+&lt;<span class="t">script</span> type=<span class="s">"module"</span>&gt;
+  <span class="k">import</span> { main } <span class="k">from</span> <span class="s">"./dist/gen/main.ts"</span>;
+  main();
+&lt;/<span class="t">script</span>&gt;</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>npx glyph build . --out dist/gen</code> 检查模块，对照 React 的类型声明运行 <code>tsc --strict</code>，并把 TypeScript 写到 <code>dist/gen</code>。然后 <code>npx vite build --outDir dist/web</code> 读取 <code>index.html</code>，跟随导入，把它和 React 打包在一起。这个 <code>main</code> 不接受参数也不返回值，因为脚本调用它时不传参数；<code>glyph init</code> 生成的 <code>main(argv) -&gt; number</code> 是 <code>glyph run</code> 在 node 下调用的那个。完整的演练（包括 <code>package.json</code> 和安装命令）见 <code>glyph llms</code> 打印的参考文档中的<a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">在浏览器页面中运行 Glyph</a>。CI 以同样的方式构建 <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a>，并在无头 Chromium 中渲染它。
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">当前状态<a class="h-anchor" href="#where-it-stands" aria-label="链接到本节">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>组件、JSX、片段（<code>&lt;&gt;...&lt;/&gt;</code>）、成员表达式形式的元素名（<code>&lt;Ctx.Provider&gt;</code>）、JSX 属性展开（<code>{...register()}</code>）、在任何导入写法下都会在 <code>tsc</code> 之前对照组件检查的 props、按名字导入的 React 自己的 hooks（<code>useState</code>、<code>useReducer</code>、<code>useEffect</code>），由 tsc 检查类型并解构二元组（<code>let [count, set_count] = useState(0)</code>）、带有穷尽标签联合 action 的 <code>useReducer</code>、作为 <code>match</code> 检查和转换并使用分支模式的 <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>、通过 <code>createContext</code>/<code>useContext</code> 使用的 Context，以及通过 <code>std/dom</code>（标题、挂载点、地址）、<code>std/storage</code> 和 <code>std/console</code> 访问的页面。JSX 文本按 TSX 的方式读取，所以 <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> 是普通文本；文本中的 <code>}</code>、<code>&gt;</code>、<code>//</code> 以及 <code>&amp;amp;</code> 这样的 HTML 实体会被拒绝（E0012），并给出应该使用的写法。数组上的成员读取会被检查，所以对 <code>Array&lt;string&gt;</code> 写 <code>{items.foo}</code> 是 E0210。<a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> 是一个基于 React 18 的完整应用，用 Vite 打包并在浏览器中渲染。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">正在进行</h3>
+          <p>Glyph 的检查器不推断 hook 结果的类型，所以对数字状态调用 <code>set_count("x")</code> 是构建中的 <code>tsc</code> 错误，而不是编辑器里的 Glyph 错误。<code>std/dom</code> 只能读取页面和设置标题：React 掌管它渲染的 DOM，所以没有元素 setter，也没有事件监听器。effect 必须写成 <code>fn() -&gt; void { ... }</code>，因为 lambda 会返回它的最后一个表达式，React 会把它当作清理函数调用。内联写的 props 类型在这些信息中仍然显示为 <code>record</code>；具名的类型会显示它的名字。把 Glyph 的输出嵌入现有的 Vite 应用、UI 用 TypeScript 编写的做法，见<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">部署指南</a>。</p>
+        </div>
+        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.149 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      </div>
+      <nav class="prevnext" aria-label="上一篇和下一篇">
+        <a href="/zh-cn/answers/codegen/">
+          <span class="dir">&larr; 上一篇</span>
+          <span class="t">能根据 API 规范生成类型化的客户端和服务端吗？</span>
+        </a>
+        <a href="/zh-cn/answers/state/" class="nx cta">
+          <span class="dir">下一篇 &rarr;</span>
+          <span class="t">怎样在函数之间共享可变状态？</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>一门编译到 TypeScript 的类型化语言，让智能体修改代码时不会把它改坏。</p>
+          </div>
+          <div class="foot-col">
+            <h2>开始</h2>
+            <a href="/zh-cn/start/">第一个程序</a>
+            <a href="/zh-cn/from-typescript/">从 TypeScript 迁移过来</a>
+            <a href="/zh-cn/teams/">面向团队</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">五分钟速览</a>
+          </div>
+          <div class="foot-col">
+            <h2>学习</h2>
+            <a href="/zh-cn/answers/">问答</a>
+            <a href="/zh-cn/answers/verifiability/">按顺序阅读问答</a>
+            <a href="/zh-cn/answers/tooling/">编辑器与智能体工具</a>
+            <a href="/zh-cn/agents/">面向智能体</a>
+            <a href="/zh-cn/mcp/">MCP 服务器</a>
+            <a href="/llms-pages.txt">Markdown 版页面</a>
+            <a href="/zh-cn/design/">设计</a>
+            <a href="/zh-cn/pillars/verifiability/">四大支柱</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">语言规范</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">宣言</a>
+          </div>
+          <div class="foot-col">
+            <h2>证据</h2>
+            <a href="/zh-cn/catches/">能发现什么</a>
+            <a href="/zh-cn/evidence/">说法如何验证</a>
+            <a href="/zh-cn/hardening/">加固</a>
+            <a href="/zh-cn/benchmarks/">基准测试</a>
+            <a href="/versions/">版本</a>
+          </div>
+          <div class="foot-col">
+            <h2>源代码</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/zh-cn/contribute/">参与贡献</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub 上的 Releases</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/zh-cn/answers/react/index.segments.json">编辑本页</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph：你的智能体没法悄悄改坏的 TypeScript。</span>
+          <span>&copy; 2026 Glyph &middot; MIT 或 Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "自动", light: "浅色", dark: "深色" };
+        var labels = { auto: "配色主题：自动（跟随系统）。切换为浅色。", light: "配色主题：浅色。切换为深色。", dark: "配色主题：深色。切换为自动。" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

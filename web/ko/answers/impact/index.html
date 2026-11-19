@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요? · Glyph</title>
+    <meta name="description" content="glyph_impact는 바꾸려는 선언과 편집 내용을 받아, 파일을 건드리기 전에 모든 위치에 대해 판정과 이유를 답합니다." />
+    <link rel="canonical" href="https://glyphlang.io/ko/answers/impact/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ko/answers/impact/" />
+    <meta property="og:title" content="변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?" />
+    <meta property="og:description" content="glyph_impact는 바꾸려는 선언과 편집 내용을 받아, 파일을 건드리기 전에 모든 위치에 대해 판정과 이유를 답합니다." />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?","item":"https://glyphlang.io/ko/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/impact/#article","headline":"변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?","description":"glyph_impact는 바꾸려는 선언과 편집 내용을 받아, 파일을 건드리기 전에 모든 위치에 대해 판정과 이유를 답합니다.","url":"https://glyphlang.io/ko/answers/impact/","inLanguage":"ko","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/impact/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/impact/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/impact/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/impact/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/impact/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/impact/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/impact/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/impact/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/impact/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/impact/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="주 메뉴">
+        <div class="nav-brand">
+          <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">왜 Glyph인가<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">누구를 위한 언어인가</p>
+                    <ul>
+                      <li><a href="/ko/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">에이전트 개발자를 위한 안내</span><span class="nav-desc">MCP 서버와 서버가 답하는 쿼리</span></span></a></li>
+                      <li><a href="/ko/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript 사용자라면</span><span class="nav-desc">무엇이 바뀌고 무엇이 그대로인가</span></span></a></li>
+                      <li><a href="/ko/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">팀을 위한 안내</span><span class="nav-desc">무엇을 보장하고 도입 비용은 얼마인가</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">설계</p>
+                    <ul>
+                      <li><a href="/ko/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">설계</span><span class="nav-desc">네 가지 원칙과 일부러 넣지 않은 것들</span></span></a></li>
+                      <li><a href="/ko/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">네 가지 기둥</span><span class="nav-desc">검증 가능성, 검색 용이성, 추상화, 안정적인 diff</span></span></a></li>
+                      <li><a href="/ko/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph와 Effect 비교</span><span class="nav-desc">언어와 라이브러리의 비교</span></span></a></li>
+                      <li><a href="/ko/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">왜 ReScript, Gleam, Elm이 아닌가?</span><span class="nav-desc">JavaScript로 컴파일되는 세 가지 타입 언어</span></span></a></li>
+                      <li><a href="/ko/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph와 도구를 갖춘 TypeScript 비교</span><span class="nav-desc">strict tsc, zod, eslint로도 여전히 통과하는 것들</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/ko/catches/">무엇을 잡아내는가</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">배우기<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">시작하기</p>
+                    <ul>
+                      <li><a href="/ko/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10분 만에 시작하기</span><span class="nav-desc">설치하고, 프로그램을 작성하고, 실행하기</span></span></a></li>
+                      <li><a href="/ko/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">답변 <span class="nav-count">28</span></span><span class="nav-desc">엔지니어들이 묻는 질문과 예제로 보는 답</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">언어 레퍼런스</span><span class="nav-desc">GitHub에 있는 전체 명세</span></span></a></li>
+                      <li><a href="/ko/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">기여하기</span><span class="nav-desc">컴파일러의 구조와 기여하는 방법</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">에이전트 연결</p>
+                    <ul>
+                      <li><a href="/ko/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP 서버</span><span class="nav-desc">에이전트를 컴파일러 쿼리에 연결합니다</span></span></a></li>
+                      <li><a href="/ko/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">컴파일러에게 묻기</span><span class="nav-desc">편집하기 전에 심볼, 타입, 변경의 영향을 조회합니다</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">에이전트를 위한 llms.txt</span><span class="nav-desc">에이전트가 읽을 수 있는 파일 하나에 담은 언어</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">근거<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">검증 방법</p>
+                    <ul>
+                      <li><a href="/ko/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">주장을 검증하는 방법</span><span class="nav-desc">각 주장 뒤에 있는 fixture와 CI 게이트</span></span></a></li>
+                      <li><a href="/ko/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">하드닝</span><span class="nav-desc">에이전트가 깨뜨리려 시도한 기록과 찾아낸 것들</span></span></a></li>
+                      <li><a href="/ko/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">벤치마크</span><span class="nav-desc">네 가지 원칙을 숫자로, 단서와 함께</span></span></a></li>
+                      <li><a href="/ko/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">아직 잡아내지 못하는 것</span><span class="nav-desc">알려진 구멍과 각각의 재현 코드</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ko/catches/"><span class="nav-feature-big">37개 중 21개</span><span class="nav-feature-text">최대한 엄격하게 설정한 환경의 어떤 도구도 잡지 못하는 TypeScript 실수</span><span class="nav-feature-cta">무엇을 잡아내는지 보기 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">버전</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">플레이그라운드</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="언어: 한국어 (한국)"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">한국어</span><span class="lang-short" aria-hidden="true">한국</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">언어</p>
+            <ul>
+              <li><a href="/answers/impact/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/impact/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/impact/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/impact/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/impact/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/impact/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/impact/" hreflang="ko" lang="ko" data-lang="ko" aria-current="true"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/de/answers/impact/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/impact/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/impact/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/impact/" hreflang="en" data-lang="en">영어로 읽기</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="색상 테마: 자동(시스템 설정을 따름). 라이트로 전환.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">자동</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="메뉴 열기">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "메뉴 닫기" : "메뉴 열기");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="답변 탐색">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/ko/answers/">답변</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/ko/answers/impact/" aria-current="page"><span class="n">21</span> 편집하기 전에</a></p>
+        <a class="ans-step prev" href="/ko/answers/binary/" aria-label="이전 답변: 20 바이너리 데이터">&lsaquo; 20</a><a class="ans-step next" href="/ko/answers/ask-the-compiler/" aria-label="다음 답변: 22 컴파일러에게 묻기">22 &rsaquo;</a>
+        <a class="ans-all-link" href="/ko/answers/">전체 답변</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">전체 답변<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>언어: 한국어</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/impact/" hreflang="en" data-lang="en">영어로 읽기</a></p>
+      <button class="i18n-x" type="button" aria-label="닫기"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>이 페이지는 번역본입니다. 기준은 영어판입니다. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ko%29%3A+%2Fko%2Fanswers%2Fimpact%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fko%2Fanswers%2Fimpact%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fimpact%2F%0A%0AWhat+is+wrong%3A%0A">번역 문제 신고하기</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side">
+      <p class="q-eyebrow">21 &middot; 편집하기 전에</p>
+      <h1 class="q-title">변경하기 전에 그 변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="답변">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/ko/answers/">전체 답변</a><button class="ans-close" type="button" aria-label="답변 목록 닫기"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>해결하는 문제</summary><ol>
+            <li><a href="/ko/answers/verifiability/"><span class="n">01</span><span class="t">조용한 파손</span></a></li>
+            <li><a href="/ko/answers/diff-stability/"><span class="n">02</span><span class="t">깔끔한 diff</span></a></li>
+            <li><a href="/ko/answers/greppability/"><span class="n">03</span><span class="t">코드 찾기</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>도입할지 결정하기</summary><ol>
+            <li><a href="/ko/answers/why-typescript/"><span class="n">04</span><span class="t">왜 TypeScript인가</span></a></li>
+            <li><a href="/ko/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">왜 도구를 갖춘 TS가 아닌가</span></a></li>
+            <li><a href="/ko/answers/human-value/"><span class="n">06</span><span class="t">AI 없이</span></a></li>
+            <li><a href="/ko/answers/ai-authoring/"><span class="n">07</span><span class="t">AI가 작성한 코드</span></a></li>
+            <li><a href="/ko/answers/upgrades/"><span class="n">08</span><span class="t">업그레이드</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>기존 스택과 함께 쓰기</summary><ol>
+            <li><a href="/ko/answers/imports/"><span class="n">09</span><span class="t">사용 중인 라이브러리</span></a></li>
+            <li><a href="/ko/answers/embedding/"><span class="n">10</span><span class="t">기존 앱 안에서</span></a></li>
+            <li><a href="/ko/answers/typed-apis/"><span class="n">11</span><span class="t">타입이 있는 API</span></a></li>
+            <li><a href="/ko/answers/codegen/"><span class="n">12</span><span class="t">클라이언트와 서버</span></a></li>
+            <li><a href="/ko/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/ko/answers/state/"><span class="n">14</span><span class="t">공유 상태</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>만들 수 있는 것</summary><ol>
+            <li><a href="/ko/answers/language/"><span class="n">15</span><span class="t">언어</span></a></li>
+            <li><a href="/ko/answers/finance/"><span class="n">16</span><span class="t">돈과 안전</span></a></li>
+            <li><a href="/ko/answers/web-serving/"><span class="n">17</span><span class="t">웹 서빙</span></a></li>
+            <li><a href="/ko/answers/interactive-cli/"><span class="n">18</span><span class="t">입력을 받는 프로그램</span></a></li>
+            <li><a href="/ko/answers/long-running/"><span class="n">19</span><span class="t">서버와 데몬</span></a></li>
+            <li><a href="/ko/answers/binary/"><span class="n">20</span><span class="t">바이너리 데이터</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>에이전트와 함께 작업하기</summary><ol>
+            <li><a href="/ko/answers/impact/" aria-current="page"><span class="n">21</span><span class="t">편집하기 전에</span></a></li>
+            <li><a href="/ko/answers/ask-the-compiler/"><span class="n">22</span><span class="t">컴파일러에게 묻기</span></a></li>
+            <li><a href="/ko/answers/repair-protocol/"><span class="n">23</span><span class="t">실패한 빌드 고치기</span></a></li>
+            <li><a href="/ko/answers/generated-docs/"><span class="n">24</span><span class="t">어긋나지 않는 문서</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>오류, 에디터, 프로덕션</summary><ol>
+            <li><a href="/ko/answers/tooling/"><span class="n">25</span><span class="t">에디터와 디버깅</span></a></li>
+            <li><a href="/ko/answers/early-errors/"><span class="n">26</span><span class="t">더 일찍 잡기</span></a></li>
+            <li><a href="/ko/answers/parse-errors/"><span class="n">27</span><span class="t">파싱 실패 이유</span></a></li>
+            <li><a href="/ko/answers/debugging/"><span class="n">28</span><span class="t">디버깅과 운영</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        여섯 가지 편집에 대해서는 그렇습니다. <code>glyph_impact</code>는 바꾸려는 선언과 변경 자체(이름 바꾸기, variant 제거, 매개변수 타입 변경, 인자 개수 변경, 삭제)를 받아, 정해진 목록에서 고른 <strong>위치마다 하나의 판정</strong>을, 다른 판정이 아니라 그 판정인 이유와 함께 답합니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-it-matters">왜 중요한가<a class="h-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          함수 이름을 바꾸거나, 유니언을 넓히거나, 매개변수가 받는 것을 바꿀 때는 이전 이름을 grep하고 모든 호출을 찾았기를 바라거나, 편집한 뒤 컴파일러가 하는 말을 읽습니다. 어느 방법도 어떤 위치가 계속 컴파일되면서 조용히 틀리게 될지는 알려 주지 않습니다. catch-all arm이 있는 <code>match</code>는 variant를 추가해도 실패하지 않고, 새 case를 아무도 고르지 않은 곳으로 보내기 시작할 뿐입니다. 그런 위치는 빌드에 절대 나타나지 않습니다. <code>glyph_impact</code>는 컴파일러가 실행하는 것과 같은 분석으로 편집 전에 답합니다.
+        </p>
+
+        <h2 class="block-label" id="what-comes-back">돌아오는 것<a class="h-anchor" href="#what-comes-back" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          요청은 엔티티를 <code>module::name</code> 식별자로, 변경을 정해진 목록에서 지정합니다: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. 판정은 편집에 대한 사실이므로 변경은 필수입니다. 편집을 지정하지 않으면 모든 위치가 결과가 아니라 그저 참조로 돌아올 것입니다. 답에는 엔티티, 변경, 그리고 <code>impact</code> 목록이 있습니다. 위치마다 항목 하나이며, 각 항목에는 그 위치가 속한 선언, <code>relation</code>, <code>verdict</code>, <code>because</code>, 그리고 컴파일러가 내는 진단 코드가 정확히 하나일 때 그 코드가 들어 있습니다. 판정은 정해진 목록이고 각각 한 가지를 뜻합니다. <code>WILL_FAIL</code>(컴파일러가 그 위치가 컴파일되지 않게 된다는 것을 증명할 수 있음), <code>ABSORBS</code>(변경이 여기서 조용히 흡수된다는 것을 증명할 수 있음), <code>SAFE</code>(그 위치가 올바르게 유지된다는 것을 증명할 수 있음), <code>UNDETERMINED</code>(그 위치를 살펴봤지만 결과를 확정할 수 없음), <code>NOT_INDEXED</code>(이런 모양의 위치에 대해서는 애초에 물을 수 없는 질문임)입니다.
+        </p>
+
+        <h2 class="block-label" id="see-it">직접 보기<a class="h-anchor" href="#see-it" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          어떤 모듈이 <code>label(s: string) -&gt; number</code>를 선언합니다. 호출자 세 곳이 여기에 닿습니다. 하나는 문자열 리터럴을 넘기고, 하나는 다른 모듈에서 import한 <code>string</code> 별칭 타입의 값을 넘기고, 하나는 <code>label</code>을 값으로 읽기만 하고 호출하지 않습니다. 각각에 <code>change_signature_type</code>이 어떤 영향을 주는지 물으면 세 가지 다른 판정이 나옵니다. 세 가지 다른 주장이기 때문입니다.
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">요청</span>
+<pre>{
+  <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
+  <span class="pk">"params"</span>: {
+    <span class="pk">"name"</span>: <span class="s">"glyph_impact"</span>,
+    <span class="pk">"arguments"</span>: {
+      <span class="pk">"entity"</span>: <span class="s">"lib::label"</span>,
+      <span class="pk">"change"</span>: { <span class="pk">"kind"</span>: <span class="s">"change_signature_type"</span> }
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">결과, 세 위치만 남기고 줄임</span>
+<pre>{
+  <span class="pk">"entity"</span>: <span class="s">"lib::label"</span>,
+  <span class="pk">"impact"</span>: [
+    {
+      <span class="pk">"entity"</span>: <span class="s">"literal::probe"</span>,
+      <span class="pk">"verdict"</span>: <span class="s">"WILL_FAIL"</span>,
+      <span class="pk">"diagnostic"</span>: <span class="s">"E0211"</span>,
+      <span class="pk">"because"</span>: <span class="s">"every argument at this site is paired with
+        a parameter the relation reads in full, so a
+        replacement parameter type any of those pairings does
+        not accept is E0211 here. The pairings: argument 1
+        (`\"x\"`, `\"x\"`) against parameter `s: string`: ..."</span>
+    },
+    {
+      <span class="pk">"entity"</span>: <span class="s">"imported::probe"</span>,
+      <span class="pk">"verdict"</span>: <span class="s">"UNDETERMINED"</span>,
+      <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
+      <span class="pk">"because"</span>: <span class="s">"argument 1 (`c`, `Cell`) against parameter
+        `s: string`: `Cell` is declared in another module as
+        an alias for a primitive, and the checker compares an
+        imported declaration only when the declaration at the
+        end of its chain of names is a tagged union or a
+        record (G215, G226), so a replacement is compared
+        against nothing here and only `tsc` on a full `glyph
+        build` would see a mismatch"</span>
+    },
+    {
+      <span class="pk">"entity"</span>: <span class="s">"reader::sizer"</span>,
+      <span class="pk">"verdict"</span>: <span class="s">"NOT_INDEXED"</span>,
+      <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
+      <span class="pk">"because"</span>: <span class="s">"this site reads the name rather than
+        applying it, so no argument is paired with a
+        parameter here, and Glyph does not compare a
+        function value's parameter types against the type
+        its use context expects"</span>
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          같은 편집, 세 위치, 세 판정이며, 각각의 <code>because</code>는 분류 레이블이 아니라 컴파일러가 실제로 만드는 문장입니다. 이는 이 변경에 대한 컴파일러 자체 테스트(<code>glyph-cli/tests/agent_loop.rs</code>의 <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>)를 그대로 반영합니다. 테스트는 이후에 실제로 편집하고, <code>WILL_FAIL</code>이라고 한 곳에 정확히 E0211이 나는지, 나머지 두 곳에서는 컴파일러가 조용한지 확인합니다.
+        </p>
+
+        <h2 class="block-label" id="on-a-real-application">실제 애플리케이션에서<a class="h-anchor" href="#on-a-real-application" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          이 저장소에 있는 파일 열한 개짜리 CSV 쿼리 엔진 <code>examples/apps/csvql</code>에는 현재 variant 네 개를 가진 태그 유니언 <code>Value</code>가 하나 있습니다. 다섯 번째(<code>Blob</code>)를 추가하면 어떻게 되는지 <code>glyph_impact</code>에 물으면 파일 4개에 걸쳐 match 위치 10곳을 찾습니다. 8곳은 컴파일에 실패하고, 2곳에는 새 variant를 조용히 흡수할 catch-all arm이 있습니다. 실제로 variant를 추가하면 컴파일러는 정확히 그 8곳에서 <code>E0200</code> 실패 8개를 보고하고, <code>ABSORBS</code> 2곳에 대해서는 전후 모두 아무 말도 하지 않습니다. 도구 없이 하게 될 방법인, 같은 앱에서 catch-all arm을 텍스트로 검색하면 같은 실제 위치 2곳이 결과 20개 속에 묻혀 나오고(정밀도 0.10), 실패하는 8곳에 대해서는 아무것도 알려 주지 않습니다. <code>match</code>가 어떤 타입을 검사하는지 전혀 모르기 때문입니다.
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">현재 상태<a class="h-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">지금 제공되는 것</h3>
+          <p>정해진 변경 종류 여섯 가지(<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>)와 정해진 판정 다섯 가지, 그리고 영향받는 위치마다 이유와 진단 코드를 담은 항목 하나. <code>change_signature_type</code>은 호출 인자마다 검사기 자체의 비교 규칙으로 판정하며, 위치의 판정은 인자 중 가장 약한 것입니다. JSX 요소는 변환된 호출로 판정합니다. <code>&lt;Card title="x" /&gt;</code>는 <code>Card</code>에 넘기는 props 레코드 하나이고, 각 속성은 검사 대상 필드와 함께 같은 타입의 호출 인자가 받을 판정으로 나열됩니다. 커버리지(검색이 읽을 수 있었던 것과 없었던 것)는 답 전체에 대해 한 번이 아니라 검색마다 밝히고, 모든 노드에는 Glyph 소스, <code>extern_ts</code> 탈출구, 불투명한 <code>.d.ts</code> 중 어디서 왔는지가 표시됩니다.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">한계</h3>
+          <p>깊이는 한 단계에서 정확하고 그 너머는 비어 있습니다. Glyph는 선언의 타입을 본문에서 추론하지 않으므로 피호출자의 타입이 호출자의 시그니처에 닿을 수 없고, X에 대한 변경은 X를 언급하는 표현식만 무효화할 수 있습니다. 깊이 2를 요청하면 대신 정확한 질문을 짚는 <code>next_query</code>와 함께 답이 돌아옵니다. 두 번째 단계에 필요한 것은 누군가 첫 번째 위치에 하는 수정인데, 그 수정은 아직 존재하지 않기 때문입니다. <code>UNDETERMINED</code>와 <code>NOT_INDEXED</code>는 다른 주장입니다. 검사기가 타입을 갖고 있지 않은 인자나, 어떤 규칙도 읽지 않는 필드와 짝지어진 레코드는 <code>UNDETERMINED</code>(살펴봤지만 결정할 수 없음)이고, 호출하지 않고 값으로 읽은 함수는 <code>NOT_INDEXED</code>(거기서는 애초에 물을 수 없는 질문)입니다. 주의해서 볼 것은 <code>ABSORBS</code>입니다. 그 위치는 계속 컴파일되면서도 틀렸다고 증명되며, 통과한 빌드는 이를 결코 보여 주지 않습니다.</p>
+        </div>
+        <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.149으로 검사합니다. 마지막 변경: <time datetime="2026-11-20">2026년 11월 20일</time>.</p>
+      </div>
+      <nav class="prevnext" aria-label="이전과 다음">
+        <a href="/ko/answers/binary/">
+          <span class="dir">&larr; 이전</span>
+          <span class="t">바이너리 데이터를 다룰 수 있나요, 아니면 모든 것이 문자열인가요?</span>
+        </a>
+        <a href="/ko/answers/ask-the-compiler/" class="nx cta">
+          <span class="dir">다음 &rarr;</span>
+          <span class="t">에이전트가 코드를 쓰기 전에 컴파일러에게 심볼이 무엇인지 물어볼 수 있나요?</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript로 트랜스파일되는 타입 언어로, 에이전트가 코드를 깨뜨리지 않고 수정할 수 있도록 만들었습니다.</p>
+          </div>
+          <div class="foot-col">
+            <h2>시작하기</h2>
+            <a href="/ko/start/">첫 번째 프로그램</a>
+            <a href="/ko/from-typescript/">TypeScript 사용자라면</a>
+            <a href="/ko/teams/">팀을 위한 안내</a>
+            <a href="/playground/">플레이그라운드</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">5분 둘러보기</a>
+          </div>
+          <div class="foot-col">
+            <h2>배우기</h2>
+            <a href="/ko/answers/">답변</a>
+            <a href="/ko/answers/verifiability/">답변을 순서대로 읽기</a>
+            <a href="/ko/answers/tooling/">에디터와 에이전트 도구</a>
+            <a href="/ko/agents/">에이전트 개발자를 위한 안내</a>
+            <a href="/ko/mcp/">MCP 서버</a>
+            <a href="/llms-pages.txt">Markdown 버전 페이지</a>
+            <a href="/ko/design/">설계</a>
+            <a href="/ko/pillars/verifiability/">네 가지 기둥</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">언어 명세</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">매니페스토</a>
+          </div>
+          <div class="foot-col">
+            <h2>근거</h2>
+            <a href="/ko/catches/">잡아내는 것</a>
+            <a href="/ko/evidence/">주장을 검증하는 방법</a>
+            <a href="/ko/hardening/">하드닝</a>
+            <a href="/ko/benchmarks/">벤치마크</a>
+            <a href="/versions/">버전</a>
+          </div>
+          <div class="foot-col">
+            <h2>소스 코드</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">이슈</a>
+            <a href="/ko/contribute/">기여하기</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub 릴리스</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ko/answers/impact/index.segments.json">이 페이지 편집</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: 에이전트가 몰래 깨뜨릴 수 없는 TypeScript.</span>
+          <span>&copy; 2026 Glyph &middot; MIT 또는 Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "자동", light: "라이트", dark: "다크" };
+        var labels = { auto: "색상 테마: 자동(시스템 설정을 따름). 라이트로 전환.", light: "색상 테마: 라이트. 다크로 전환.", dark: "색상 테마: 다크. 자동으로 전환." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

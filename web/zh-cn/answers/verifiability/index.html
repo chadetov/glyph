@@ -1,0 +1,1246 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>什么能防止智能体悄悄改坏我的代码？ · Glyph</title>
+    <meta name="description" content="在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。" />
+    <link rel="canonical" href="https://glyphlang.io/zh-cn/answers/verifiability/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/zh-cn/answers/verifiability/" />
+    <meta property="og:title" content="什么能防止智能体悄悄改坏我的代码？" />
+    <meta property="og:description" content="在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"什么能防止智能体悄悄改坏我的代码？","item":"https://glyphlang.io/zh-cn/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#article","headline":"什么能防止智能体悄悄改坏我的代码？","description":"在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。","url":"https://glyphlang.io/zh-cn/answers/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/verifiability/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/verifiability/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/verifiability/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/verifiability/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/verifiability/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/verifiability/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/verifiability/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/verifiability/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/verifiability/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="主导航">
+        <div class="nav-brand">
+          <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">为什么选 Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">适合谁用</p>
+                    <ul>
+                      <li><a href="/zh-cn/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">面向智能体开发者</span><span class="nav-desc">MCP 服务器及其能回答的查询</span></span></a></li>
+                      <li><a href="/zh-cn/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">从 TypeScript 迁移过来</span><span class="nav-desc">哪些变了，哪些保持不变</span></span></a></li>
+                      <li><a href="/zh-cn/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">面向团队</span><span class="nav-desc">它保证什么，引入它的成本是什么</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">设计</p>
+                    <ul>
+                      <li><a href="/zh-cn/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">设计</span><span class="nav-desc">四大支柱，以及有意没有做的部分</span></span></a></li>
+                      <li><a href="/zh-cn/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">四大支柱</span><span class="nav-desc">可验证性、可检索性、抽象、稳定的 diff</span></span></a></li>
+                      <li><a href="/zh-cn/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph 与 Effect 对比</span><span class="nav-desc">一门语言和一个库的比较</span></span></a></li>
+                      <li><a href="/zh-cn/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">为什么不用 ReScript、Gleam 或 Elm？</span><span class="nav-desc">三种编译为 JavaScript 的类型化语言</span></span></a></li>
+                      <li><a href="/zh-cn/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph 与配齐工具链的 TypeScript 对比</span><span class="nav-desc">严格模式的 tsc、zod 和 eslint 仍会放过的问题</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/zh-cn/catches/">它能发现什么</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">学习<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">上手</p>
+                    <ul>
+                      <li><a href="/zh-cn/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 分钟上手</span><span class="nav-desc">安装、写一个程序、运行</span></span></a></li>
+                      <li><a href="/zh-cn/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">问答 <span class="nav-count">28</span></span><span class="nav-desc">工程师常问的问题，附完整示例</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">语言参考</span><span class="nav-desc">完整规范，在 GitHub 上</span></span></a></li>
+                      <li><a href="/zh-cn/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">参与贡献</span><span class="nav-desc">编译器的实现方式，以及如何参与</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">连接你的智能体</p>
+                    <ul>
+                      <li><a href="/zh-cn/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP 服务器</span><span class="nav-desc">把智能体接入编译器的查询</span></span></a></li>
+                      <li><a href="/zh-cn/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">询问编译器</span><span class="nav-desc">编辑前先查询符号、类型或改动的影响</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">面向智能体的 llms.txt</span><span class="nav-desc">整门语言写在一个智能体能读的文件里</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">证据<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">如何验证</p>
+                    <ul>
+                      <li><a href="/zh-cn/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">说法如何验证</span><span class="nav-desc">每条说法背后的 fixture 和 CI 检查</span></span></a></li>
+                      <li><a href="/zh-cn/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">加固</span><span class="nav-desc">智能体尝试攻破它，以及它们的发现</span></span></a></li>
+                      <li><a href="/zh-cn/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">基准测试</span><span class="nav-desc">用数字衡量四大支柱，附注意事项</span></span></a></li>
+                      <li><a href="/zh-cn/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">尚未覆盖的问题</span><span class="nav-desc">已知漏洞，每个都附复现示例</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/zh-cn/catches/"><span class="nav-feature-big">37 个中有 21 个</span><span class="nav-feature-text">TypeScript 错误，即使项目配置拉满，也没有任何工具能发现</span><span class="nav-feature-cta">看看它能发现什么 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">版本</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="语言: 简体中文 (中文)"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">简体中文</span><span class="lang-short" aria-hidden="true">中文</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">语言</p>
+            <ul>
+              <li><a href="/answers/verifiability/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/verifiability/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/verifiability/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/verifiability/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/verifiability/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/verifiability/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn" aria-current="true"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/ko/answers/verifiability/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/verifiability/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/verifiability/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/verifiability/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/verifiability/" hreflang="en" data-lang="en">阅读英文版</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="配色主题：自动（跟随系统）。切换为浅色。">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">自动</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="打开菜单">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "关闭菜单" : "打开菜单");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="问答导航">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/zh-cn/answers/">问答</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/zh-cn/answers/verifiability/" aria-current="page"><span class="n">01</span> 悄无声息的破坏</a></p>
+        <span class="ans-step prev off" aria-hidden="true"></span><a class="ans-step next" href="/zh-cn/answers/diff-stability/" aria-label="下一篇：02 干净的 diff">02 &rsaquo;</a>
+        <a class="ans-all-link" href="/zh-cn/answers/">全部问答</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">全部问答<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>当前语言：简体中文</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/verifiability/" hreflang="en" data-lang="en">阅读英文版</a></p>
+      <button class="i18n-x" type="button" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>本页是译文，以英文版为准。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28zh-cn%29%3A+%2Fzh-cn%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fzh-cn%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">报告翻译问题</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side ak">
+      <p class="q-eyebrow">01 &middot; 核心承诺</p>
+      <h1 class="q-title">什么能防止智能体悄悄改坏我的代码？</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="问答">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/zh-cn/answers/">全部问答</a><button class="ans-close" type="button" aria-label="关闭问答列表"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp" open><summary>它解决的问题</summary><ol>
+            <li><a href="/zh-cn/answers/verifiability/" aria-current="page"><span class="n">01</span><span class="t">悄无声息的破坏</span></a></li>
+            <li><a href="/zh-cn/answers/diff-stability/"><span class="n">02</span><span class="t">干净的 diff</span></a></li>
+            <li><a href="/zh-cn/answers/greppability/"><span class="n">03</span><span class="t">查找代码</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>决定是否采用</summary><ol>
+            <li><a href="/zh-cn/answers/why-typescript/"><span class="n">04</span><span class="t">为什么是 TypeScript</span></a></li>
+            <li><a href="/zh-cn/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">为什么不用配齐工具的 TS</span></a></li>
+            <li><a href="/zh-cn/answers/human-value/"><span class="n">06</span><span class="t">不用 AI 时</span></a></li>
+            <li><a href="/zh-cn/answers/ai-authoring/"><span class="n">07</span><span class="t">AI 编写的代码</span></a></li>
+            <li><a href="/zh-cn/answers/upgrades/"><span class="n">08</span><span class="t">升级</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>配合你的技术栈使用</summary><ol>
+            <li><a href="/zh-cn/answers/imports/"><span class="n">09</span><span class="t">你的库</span></a></li>
+            <li><a href="/zh-cn/answers/embedding/"><span class="n">10</span><span class="t">嵌入你的应用</span></a></li>
+            <li><a href="/zh-cn/answers/typed-apis/"><span class="n">11</span><span class="t">类型化的 API</span></a></li>
+            <li><a href="/zh-cn/answers/codegen/"><span class="n">12</span><span class="t">客户端和服务端</span></a></li>
+            <li><a href="/zh-cn/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/zh-cn/answers/state/"><span class="n">14</span><span class="t">共享状态</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>能用它构建什么</summary><ol>
+            <li><a href="/zh-cn/answers/language/"><span class="n">15</span><span class="t">语言本身</span></a></li>
+            <li><a href="/zh-cn/answers/finance/"><span class="n">16</span><span class="t">金额与安全</span></a></li>
+            <li><a href="/zh-cn/answers/web-serving/"><span class="n">17</span><span class="t">Web 服务</span></a></li>
+            <li><a href="/zh-cn/answers/interactive-cli/"><span class="n">18</span><span class="t">交互式程序</span></a></li>
+            <li><a href="/zh-cn/answers/long-running/"><span class="n">19</span><span class="t">服务器与守护进程</span></a></li>
+            <li><a href="/zh-cn/answers/binary/"><span class="n">20</span><span class="t">二进制数据</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>与智能体协作</summary><ol>
+            <li><a href="/zh-cn/answers/impact/"><span class="n">21</span><span class="t">编辑之前</span></a></li>
+            <li><a href="/zh-cn/answers/ask-the-compiler/"><span class="n">22</span><span class="t">询问编译器</span></a></li>
+            <li><a href="/zh-cn/answers/repair-protocol/"><span class="n">23</span><span class="t">修复失败的构建</span></a></li>
+            <li><a href="/zh-cn/answers/generated-docs/"><span class="n">24</span><span class="t">不会过时的文档</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>错误、编辑器与生产环境</summary><ol>
+            <li><a href="/zh-cn/answers/tooling/"><span class="n">25</span><span class="t">编辑器与调试</span></a></li>
+            <li><a href="/zh-cn/answers/early-errors/"><span class="n">26</span><span class="t">更早发现</span></a></li>
+            <li><a href="/zh-cn/answers/parse-errors/"><span class="n">27</span><span class="t">解析为何失败</span></a></li>
+            <li><a href="/zh-cn/answers/debugging/"><span class="n">28</span><span class="t">调试与运维</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        一整类在 TypeScript 中<strong>悄悄编译通过</strong>的改动（漏掉的分支、未处理的错误、被改名的字段），在 Glyph 中会变成<strong>智能体必须先修复才能发布的编译错误</strong>。
+      </p>
+
+      <figure class="ak-hero" id="see-it">
+        <div class="ak-compare">
+          <div class="ak-pane bad">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.ts</span> 新增一个状态，没有其他改动 <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg> tsc --strict：通过，打印 undefined</span></span>
+<pre><span class="k">type</span> <span class="t">Status</span> =
+  | { tag: <span class="s">"Loading"</span> }
+  | { tag: <span class="s">"Ready"</span> }
+  | { tag: <span class="s">"Failed"</span>; msg: <span class="t">string</span> }
+<span class="add">  | { tag: <span class="s">"Cancelled"</span> };</span>
+
+<span class="k">function</span> label(s: <span class="t">Status</span>) {
+  <span class="k">switch</span> (s.tag) {
+    <span class="k">case</span> <span class="s">"Loading"</span>: <span class="k">return</span> <span class="s">"…"</span>;
+    <span class="k">case</span> <span class="s">"Ready"</span>: <span class="k">return</span> <span class="s">"done"</span>;
+    <span class="k">case</span> <span class="s">"Failed"</span>: <span class="k">return</span> s.msg;
+  }
+}</pre>
+            </div>
+          </div>
+          <div class="ak-pane good">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.glyph</span> 新增一个变体，编译器找出每一处遗漏 <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 8.4l3 3 6-6.6"/></svg> 被拒绝：E0200</span></span>
+<pre><span class="dim"><span class="k">type</span> <span class="t">Status</span> = <span class="t">Loading</span> | <span class="t">Ready</span> | <span class="t">Failed</span>(<span class="t">string</span>)<span class="cm">   // + Cancelled</span></span>
+
+<span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> s {
+    <span class="t">Loading</span> <span class="op">=&gt;</span> <span class="s">"…"</span>,
+    <span class="t">Ready</span> <span class="op">=&gt;</span> <span class="s">"done"</span>,
+    <span class="t">Failed</span>(msg) <span class="op">=&gt;</span> msg,
+<span class="add">    <span class="c">// no arm for Cancelled ⇒ this match no longer compiles</span></span>
+  }
+}</pre>
+            </div>
+            <div class="code term">
+              <span class="cap">glyph check --no-tsc，0.1.149（节选）</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Cancelled`</span></span>
+    <span class="bx">╭─</span>[ status:6:10 ]
+  6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match s {
+ 10 <span class="bx">│</span> <span class="bx">├─</span>▶   }
+    <span class="bx">│</span> <span class="bx">╰─────────</span> non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Cancelled`</span>
+    <span class="bx">│</span>     <span class="f">Help:</span> Add an arm for each missing variant.</pre>
+            </div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>给联合类型加一个状态，原先处理旧集合的每一处都会编译失败，并指出需要更新的确切位置。等价的 TypeScript <code>switch</code> 能干净地编译通过，运行时却返回 <code>undefined</code>。</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#why-it-matters">为什么重要</a></li>
+          <li><a href="#errors">错误</a></li>
+          <li><a href="#typos">分支中的拼写错误</a></li>
+          <li><a href="#imports">跨模块</a></li>
+          <li><a href="#refinements">精化类型</a></li>
+          <li><a href="#examples">构建中的测试</a></li>
+          <li><a href="#four-more-found-by-building-with-it">实际构建中发现的</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">为什么重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        智能体通常不会大张旗鼓地改坏代码。它们改坏代码时<strong>信心十足</strong>：加一个状态，删掉一个分支，或者给字段改个名，一切照样通过类型检查，bug 到了生产环境才暴露出来。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>代价最高的失败是那些<em>编译通过却是错的</em>。Glyph 把&ldquo;你大概处理了这种情况&rdquo;变成&ldquo;编译器证明了你处理了&rdquo;，以此堵上这个缺口。</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>封闭的联合类型</b>标签联合是<strong>封闭的</strong>，所以 <code>match</code> 必须覆盖每一种情况。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>错误即值</b>错误是你必须解包的<strong>值</strong>，而不是会凭空消失的异常。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>受检的边界</b>每个类型都带有运行时描述符，所以跨越边界的数据会按它的形状进行检查。</li>
+      </ul>
+
+      <h2 class="ak-h" id="errors">丢弃的错误会产生警告<a class="ak-anchor" href="#errors" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        错误也一样：返回 <code>Result&lt;T, E&gt;</code> 的函数应当用 <code>match</code> 处理，或者用 <code>?</code> 向上传递（编译器会检查错误类型是否对得上）。如果你把一个 <code>Result</code> <em>丢掉</em>（把调用当作语句，忽略它的返回值），Glyph 会发出警告（<code>E0217</code>），因为被丢弃的错误就是被吞掉的失败。
+      </p>
+      <div class="code term wraps">
+        <span class="cap">glyph check --no-tsc，0.1.149（节选）</span>
+<pre class="wraps"><span class="p">13 │</span>   save("a")
+<span class="del"><span class="e">[E0217]</span> <span class="w">Warning:</span> typecheck: this <span class="q">`Result`</span> is discarded; its <span class="q">`Err`</span> case is silently ignored</span>
+    <span class="bx">│</span> <span class="f">Help:</span> Handle it with <span class="q">`match`</span>, propagate it with <span class="q">`?`</span>, or bind it (<span class="q">`let _ = ...`</span>) to say the discard is intentional.</pre>
+      </div>
+      <p class="ak-lede">要消除警告，你得用 <code>let _ = ...</code> 有意为之，而不会是无意的。</p>
+
+      <h2 class="ak-h" id="stdlib">标准库的联合类型同样是封闭的<a class="ak-anchor" href="#stdlib" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        对标准库拥有的联合类型，标准也一样。<code>fs.ErrorKind</code> 是一个包含六种类型的封闭集合，检查器知道它的形状，所以对文件系统错误做 <code>match e.kind</code> 不需要 <code>else</code> 分支，漏掉某一种时会以 <code>E0200</code> 失败。
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200 缺少某种类型</span><span class="chip code">E0210 未知字段</span><span class="chip code">E0218 需要 else</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">字段拼写错误、返回类型、数字与字符串的 match</span></summary><div class="body">
+        <p>
+          <code>e.mesage</code> 是 <code>E0210</code>，而不是等到下游由 <code>tsc</code> 发现。返回类型也会传递：<code>string.split(text, ",")</code> 是 <code>Array&lt;string&gt;</code>，所以 <code>for i, part in string.split(text, ",")</code> 把 <code>i</code> 绑定为数字，而不是未标注类型的迭代对象会给出的字符串键。
+        </p>
+        <p>
+          穷尽检查不只针对联合类型。对 <code>number</code> 或 <code>string</code> 的 <code>match</code> 如果只有字面量分支，就无法覆盖无界的取值范围，所以 Glyph 要求一个 <code>else</code>（<code>E0218</code>），而不是让未覆盖的值落到运行时抛出异常。
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>规则处处相同：没有考虑到某种情况的 <code>match</code> 无法编译。</p></div>
+
+      <h2 class="ak-h" id="typos">拼错的分支是一处遗漏，而不是兜底分支<a class="ak-anchor" href="#typos" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        拼写错误也无法悄悄掩盖遗漏。首字母大写的分支头是<strong>对变体的引用</strong>，而不是新的绑定。
+      </p>
+      <div class="code">
+        <span class="cap">status.glyph：拼错的分支是一处遗漏，而不是兜底分支</span>
+<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> s {
+<span class="del">    <span class="t">Loadign</span> <span class="op">=&gt;</span> <span class="s">"…"</span>,        <span class="c">// typo for Loading, read as a variant, not a binding</span></span>
+    <span class="t">Ready</span> <span class="op">=&gt;</span> <span class="s">"done"</span>,
+    <span class="t">Failed</span>(msg) <span class="op">=&gt;</span> msg,
+  }
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build</span>
+<pre class="wraps"><span class="del"><span class="e">[E0220]</span> <span class="q">`Loadign`</span> is not a variant of <span class="q">`Status`</span>; did you mean <span class="q">`Loading`</span>?</span>
+   <span class="bx">╰─</span> a lowercase name would be a binding; a PascalCase name is read as a variant
+<span class="del"><span class="e">[E0200]</span> non-exhaustive match on <span class="q">`Status`</span>: missing variant <span class="q">`Loading`</span></span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">旧版 Glyph 如何处理这个拼写错误</span></summary><div class="body">
+        <p>
+          首字母大写的分支头是<strong>对变体的引用</strong>，而不是新的绑定。所以如果你把 <code>Loading</code> 拼成 <code>Loadign</code>，旧版 Glyph 会把这个错误拼写当作绑定所有值的兜底分支，让这个 match 看起来是完整的。现在分支头必须是被匹配的联合类型中真实存在的变体。不是的话，构建会以 <code>E0220</code> 停止并指出最接近的真实名字，而你真正漏掉的变体仍然会以 <code>E0200</code> 出现在旁边。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="payload">负载中的变体<a class="ak-anchor" href="#payload" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        往下一层也是同样的理解，即变体是另一个变体的负载时。无论外层变体是什么，分支现在都按负载自身的标签分派。
+      </p>
+      <div class="code">
+        <span class="cap">repl.glyph：内层分支检测负载，而不是绑定它</span>
+<pre><span class="k">fn</span> step(z: <span class="t">Zipper</span>, line: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Zipper</span> {
+  <span class="k">return</span> <span class="k">match</span> parse_command(line) {
+    <span class="t">Err</span>(<span class="t">Blank</span>) <span class="op">=&gt;</span> z,                          <span class="c">// a comment or an empty line</span>
+    <span class="t">Err</span>(e) <span class="op">=&gt;</span> { io.println(explain(e)) z },   <span class="c">// every other parse error</span>
+    <span class="t">Ok</span>(command) <span class="op">=&gt;</span> execute(z, command),
+  }
+}</pre>
+      </div>
+      <div class="ak-chips"><span class="chip code">E0305 重复的 case 标签</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">0.1.93 之前的死分支，以及 E0305 防护</span></summary><div class="body">
+        <p>
+          <code>Err(Blank)</code> 写在 <code>Err(e)</code> 旁边，读起来是&ldquo;忽略空行，打印其他所有解析错误&rdquo;。直到 0.1.93，它会被编译成外层标签上的两个 <code>case "Err":</code> 标签，第一个把整个负载绑定到名字 <code>Blank</code> 上。所有错误都走第一个分支，第二个成了死代码，而且没有任何提示：Glyph 不报任何诊断，<code>tsc --strict</code> 也接受重复的 case 标签。现在无论外层变体是什么，分支都按负载自身的标签分派，编译器理解这个名字的方式也与类型检查器相同：由负载联合类型自己的变体列表决定，只有拿不到这个列表时才由名字的形式决定。对同一文件中声明的联合类型，大小写已经无关紧要。对从其他模块导入的联合类型，目前拿不到变体列表，所以首字母大写的变体会分派，小写的则让构建停止。
+        </p>
+        <p>
+          构建之所以停止，是因为 switch 现在有了防护。两个会写出相同 <code>case</code> 标签的分支是 <code>E0305</code>，而不是一个第二个标签永远不会执行的 switch。这让这类问题从悄无声息变成大声报错：一次两次用到同一标签的代码降级会让构建失败，而不是在运行时选错分支。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="imports">导入的写法永远不会关闭检查<a class="ak-anchor" href="#imports" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        联合类型是怎么进入作用域的，不会改变上面任何一点。Glyph 允许用两种方式写变体分支，两者的检查完全相同：<code>import model { Cond, Yes, No }</code> 配合不带前缀的分支，或者 <code>import model</code>（或 <code>import model as m</code>）配合 <code>model.Yes(_)</code>。
+      </p>
+      <div class="code">
+        <span class="cap">interp.glyph：导入列表删掉了，match 仍然受检</span>
+<pre><span class="del"><span class="k">import</span> model { <span class="t">Action</span>, <span class="t">All</span>, <span class="t">Any</span>, <span class="t">AtLeast</span>, <span class="t">Clear</span>, <span class="t">Condition</span>, <span class="t">Context</span>, <span class="t">Counter</span>,</span>
+<span class="del">               <span class="t">Equals</span>, <span class="t">Flag</span>, <span class="t">FlagSet</span>, <span class="t">Increment</span>, <span class="t">Not</span>, <span class="t">Set</span>, <span class="t">Slot</span>, <span class="t">Text</span> }</span>
+<span class="k">import</span> model
+<span class="k">import</span> std/result
+
+<span class="k">pub</span> <span class="k">fn</span> evaluate(ctx: model.<span class="t">Context</span>, c: model.<span class="t">Condition</span>) <span class="op">-&gt;</span> result.<span class="t">Result</span>&lt;<span class="t">bool</span>, <span class="t">SlotError</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> c {
+    model.<span class="t">Equals</span>({ key, value }) <span class="op">=&gt;</span> result.<span class="t">Ok</span>(read_text(ctx, key, <span class="s">"equals"</span>)<span class="op">?</span> == value),
+    model.<span class="t">AtLeast</span>({ key, least }) <span class="op">=&gt;</span> result.<span class="t">Ok</span>(read_count(ctx, key, <span class="s">"at-least"</span>)<span class="op">?</span> &gt;= least),
+    model.<span class="t">FlagSet</span>({ key }) <span class="op">=&gt;</span> result.<span class="t">Ok</span>(read_flag(ctx, key, <span class="s">"flag-set"</span>)<span class="op">?</span>),
+    model.<span class="t">All</span>({ of }) <span class="op">=&gt;</span> all_of(ctx, of),
+    model.<span class="t">Any</span>({ of }) <span class="op">=&gt;</span> any_of(ctx, of),
+    model.<span class="t">Not</span>({ of }) <span class="op">=&gt;</span> result.<span class="t">Ok</span>(!(evaluate(ctx, of)<span class="op">?</span>)),
+  }
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build，删掉最后一个分支之后</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on <span class="q">`Condition`</span>: missing variants Not</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">标准库的联合类型、字符串枚举，以及那个列表为什么存在</span></summary><div class="body">
+        <p>
+          标准库的联合类型也是如此，所以对 <code>option.Option&lt;string&gt;</code> 写 <code>match o { option.Some(s) =&gt; … }</code>，会因为缺少 <code>None</code> 而得到 <code>E0200</code>，与不带前缀的 <code>Some</code>/<code>None</code> 写法完全一样。直到 0.1.56，带限定的写法会完全跳过检查，构建对一个运行时会抛异常的 match 不报任何诊断。
+        </p>
+        <p>
+          字符串枚举同样能跨越边界。在 <code>catalog.glyph</code> 中声明并导入到另一个模块的 <code>type ColType = "text" | "int" | "real" | "bool"</code> 保留它的四个值，所以覆盖全部四个值的 match 无需 <code>else</code> 就能编译，漏掉一个则是 <code>E0200</code>，并指出漏掉的值。直到 0.1.57 它还是 <code>E0218</code>，帮助文本让你加一个 <code>else</code> 分支。那条帮助对眼前的代码判断有误，照做会把编译错误变成运行时的落空。三种导入写法都有效：<code>import catalog { ColType }</code>，<code>import catalog</code> 配合 <code>catalog.ColType</code>，以及 <code>import catalog as c</code> 配合 <code>c.ColType</code>。
+        </p>
+        <p>
+          这个问题正是从那个导入列表发现的。一个状态图引擎的每个模块里都手写了这个列表，上面还有一条注释，说联合类型的构造器不会随类型一起导入。这条注释对语法的描述是对的，对原因的解释是错的：之所以需要这个列表，是因为更短的写法会关闭检查，而没有人注意到，因为关闭检查是悄无声息的。现在选哪种写法是一个实际的选择，而不是一个陷阱。具名写法把你处理的每个变体都放在导入列表里，<code>grep</code> 搜 <code>Equals</code> 时能找到它。限定写法在每个分支上标明变体来自哪个模块。两种都不会让你失去检查。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="records">导入的记录保留它的字段<a class="ak-anchor" href="#records" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        记录现在也能跨越边界，而在 0.1.58 之前不行。因此记录保留它的字段集合，错误的字段是指出该记录的 <code>E0210</code>，而不是一条关于匿名形状的 <code>tsc</code> 错误。
+      </p>
+      <div class="code term">
+        <span class="cap">glyph build，针对导入记录上拼错的字段</span>
+<pre class="wraps"><span class="del"><span class="e">[E0210]</span> type <span class="q">`Sheet`</span> has no field <span class="q">`rowz`</span>; did you mean <span class="q">`rows`</span>?</span>
+<span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
+      </div>
+      <div class="code">
+        <span class="cap">table.glyph：提升的 let 以及解释它们的注释都删掉了</span>
+<pre><span class="del"><span class="c">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span></span>
+<span class="del"><span class="c">// lowering from the iterand's type as the checker knows it, and a field</span></span>
+<span class="del"><span class="c">// access is not enough: without the `let`, `i` and `j` come out as strings</span></span>
+<span class="del"><span class="c">// and the row/column numbers in a `BadCell` are wrong.</span></span>
+<span class="del"><span class="k">let</span> raw_rows: <span class="t">Array</span>&lt;<span class="t">Array</span>&lt;<span class="t">string</span>&gt;&gt; = sheet.rows</span>
+<span class="del"><span class="k">for</span> i, raw_row <span class="k">in</span> raw_rows {</span>
+<span class="add"><span class="k">for</span> i, raw_row <span class="k">in</span> sheet.rows {</span>
+  <span class="k">let</span> typed: <span class="t">Array</span>&lt;<span class="t">Value</span>&gt; = []
+<span class="del">  <span class="k">let</span> cols: <span class="t">Array</span>&lt;<span class="t">ColumnSpec</span>&gt; = spec.columns</span>
+<span class="del">  <span class="k">for</span> j, col <span class="k">in</span> cols {</span>
+<span class="add">  <span class="k">for</span> j, col <span class="k">in</span> spec.columns {</span>
+    …
+  }
+}
+
+<span class="cm">// sheet: Sheet, declared in catalog.glyph and imported here.</span>
+<span class="cm">// Emitted TypeScript: sheet.rows.entries(), not Object.entries(sheet.rows).</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">line 11 的 bug、tsc 漏掉了什么、标识如何跨越边界</span></summary><div class="body">
+        <p>
+          在一个文件中声明、在另一个文件中使用的类型，到达时没有任何已知信息，这导致两项检查失效。它上面拼错的字段不会引发任何 Glyph 错误，所以 <code>sheet.rowz</code> 落到 <code>tsc</code>，返回的是一条关于你从没写过的形状的 TypeScript 信息。而 <code>for i, r in sheet.rows</code> 无法判断 <code>rows</code> 是数组，于是生成 <code>Object.entries(sheet.rows)</code> 而不是 <code>sheet.rows.entries()</code>。这会把 <code>i</code> 绑定为字符串 <code>"0"</code>。接着 <code>i + 1</code> 变成拼接而不是相加，本应报告为 <code>line 2</code> 的行被报告为 <code>line 11</code>。
+        </p>
+        <p>
+          值得了解的是 <code>tsc</code> 能发现其中哪一半。对这个索引做算术运算它能发现，不过报告的错误针对的是生成的 TypeScript，涉及的是 Glyph 替你绑定的一个变量。它发现不了的是所有本该用数字却接受了字符串的地方：字符串插值、拼接、<code>record.get</code> 的键。这些在两个检查器下都能干净地编译通过，却打印出错误的数字。这正是本项目要消除的那类 bug，所以一个重新引入它的模块边界，Glyph 不能置之不理。
+        </p>
+        <p>
+          导入的类型现在会带着一个标识跨越边界，以声明它的模块和它声明的名字为键，所以三种导入写法都解析到同一个类型。声明本身按需获取，并在声明模块那一侧完成降级，这一半是使用方做不了的：解析是基于源码区间进行的，而导入声明的区间属于另一个文件。
+        </p>
+        <p>
+          这个问题是在 <code>examples/apps/csvql</code> 的查询引擎中发现的。它带着三个提升出来的 <code>let</code>，唯一作用是为代码生成器重新声明一个导入字段的类型，上面还有四行注释，解释没有它们的话错误信息里的行号和列号会出错。这三个都删掉了，应用对全部十二个查询的输出逐字节相同。
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>仍有一样东西停在边界上。在需要 <code>table.Row</code> 的地方传入 <code>catalog.Sheet</code> 是同时指出两个类型的 E0211，但 <code>interface</code> 的成员列表不会跨越边界，所以在需要导入接口的地方传入的记录，没有可比较的对象。给它与记录字段集合相同的处理，会悄悄改变结构满足的含义，这是一个语言设计决定，而不是一个修复。</p></div>
+
+      <h2 class="ak-h" id="redact">PII 脱敏定义在类型上<a class="ak-anchor" href="#redact" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        同样是&ldquo;让它成为类型层面的东西，而不是约定&rdquo;的思路，也用在了 PII 上。在类型上写 <code>@redact fields: [ssn, dob]</code>，编译器会在它的描述符上生成一个屏蔽这些字段的 <code>redact()</code>，所以 <code>json.stringify(User.redact(u))</code> 不会泄露它们。
+      </p>
+      <div class="ak-chips"><span class="chip code">E0219 @redact 中的未知字段</span></div>
+      <p class="ak-lede">写了一个类型中没有的字段就是编译错误（<code>E0219</code>），而不是一个悄悄什么都不做的脱敏。</p>
+
+      <h2 class="ak-h" id="refinements">精化类型会一路检查到底<a class="ak-anchor" href="#refinements" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        描述符只有在一路到底都执行类型所声明的检查时才有价值。<code>where</code> 精化会在类型出现的任何地方运行它的谓词，而不只是在直接调用 <code>Instant.parse</code> 时：作为记录字段、作为 <code>Array</code> 元素、作为 <code>Option</code> 负载、在联合类型的变体中，以及通过 <code>json.parse&lt;T&gt;</code>。
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="谓词在哪里运行">
+          <li><span>Calendar</span></li>
+          <li><span>Array&lt;WireParticipant&gt;</span></li>
+          <li><span>busy</span></li>
+          <li><span>start</span></li>
+          <li><span>is_instant(value)</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>修复位于边界往下四层：<code>Calendar</code> 到 <code>Array&lt;WireParticipant&gt;</code> 到 <code>busy</code> 到 <code>start</code>，再到谓词。</span></figcaption>
+      </figure>
+      <div class="code">
+        <span class="cap">schedule.glyph：谓词跟着类型进入字段</span>
+<pre><span class="k">fn</span> is_instant(value: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">bool</span> {
+  <span class="k">return</span> <span class="k">match</span> time.parse_iso(value) {
+    <span class="t">Some</span>(_) <span class="op">=&gt;</span> <span class="k">true</span>,
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="k">false</span>,
+  }
+}
+
+<span class="k">type</span> <span class="t">Instant</span> = <span class="t">string</span> <span class="k">where</span> is_instant(value)
+
+<span class="k">type</span> <span class="t">WireBlock</span> = { start: <span class="t">Instant</span>, end: <span class="t">Instant</span> }
+<span class="k">type</span> <span class="t">WireParticipant</span> = { name: <span class="t">string</span>, busy: <span class="t">Array</span>&lt;<span class="t">WireBlock</span>&gt; }
+<span class="k">type</span> <span class="t">Calendar</span> = { participants: <span class="t">Array</span>&lt;<span class="t">WireParticipant</span>&gt; }
+
+<span class="cm">// json.parse&lt;Calendar&gt;(text) on a file holding "start": "no"</span>
+<span class="cm">//   =&gt; Err. It returned Ok before 0.1.41.</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">0.1.41 之前那份信心十足的错误日程</span></summary><div class="body">
+        <p>
+          从另一个模块导入的记录也是如此。直到 0.1.41，这两种情况都退化为只检查键是否存在，这实际上什么也没检查。
+        </p>
+        <p>
+          这个问题是在下面的排程应用中发现的。它从 JSON 文件读取日历，要求每个时间戳都是合法的 ISO-8601 时刻。以前精化只在顶层生效，所以一个手动编辑过、写着 <code>"start": "no"</code> 的文件能顺利解析，时刻被读成 0，应用信心十足地打印出一份日程，并以 0 退出。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="examples">测试作为构建的一部分运行<a class="ak-anchor" href="#examples" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        测试就在代码旁边，并作为编译的一部分运行。函数上方的 <code>@example</code>，或者 <code>@doc</code> 中的 <code>```glyph @run```</code> 代码块，都由 <code>glyph build</code> 执行，不需要记住任何 flag。
+      </p>
+      <div class="code term">
+        <span class="cap">bracket.glyph：改坏种子排序，构建就会停止</span>
+<pre><span class="k">@example</span> seed_order(<span class="n">2</span>) == [<span class="n">1</span>, <span class="n">2</span>]
+<span class="k">@example</span> seed_order(<span class="n">4</span>) == [<span class="n">1</span>, <span class="n">4</span>, <span class="n">2</span>, <span class="n">3</span>]
+<span class="k">@example</span> seed_order(<span class="n">8</span>) == [<span class="n">1</span>, <span class="n">8</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">2</span>, <span class="n">7</span>, <span class="n">3</span>, <span class="n">6</span>]
+<span class="k">fn</span> seed_order(size: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Array</span>&lt;<span class="t">int</span>&gt; { … }
+
+<span class="cm">// glyph build src --out dist</span>
+<span class="del">example failed: bracket example #<span class="n">16</span>:</span>
+<span class="del">  (seed_order(<span class="n">8</span>)) != ([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">7</span>, <span class="n">8</span>])</span>
+<span class="del"><span class="n">1</span> of <span class="n">23</span> example(s) failed.            # exit <span class="n">1</span>, no <span class="s">"tsc passed"</span> line</span>
+
+<span class="cm">// glyph build src --out dist --json</span>
+<span class="del">{ <span class="s">"ok"</span>: <span class="k">false</span>, <span class="s">"errors"</span>: <span class="n">1</span>, <span class="s">"tsc"</span>: <span class="s">"passed"</span>,</span>
+<span class="del">  <span class="s">"examples"</span>: { <span class="s">"total"</span>: <span class="n">23</span>, <span class="s">"ran"</span>: <span class="k">true</span>, <span class="s">"skipped"</span>: <span class="k">false</span>,</span>
+<span class="del">    <span class="s">"failures"</span>: [<span class="s">"bracket example #16: …"</span>] } }</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">为什么不能悄悄跳过，以及 JSON 通道</span></summary><div class="body">
+        <p>
+          一个不成立的断言会像类型错误一样让构建失败，这正是目的所在：重写函数体的智能体不可能通过丢下断言来通过构建。<code>--no-test</code> 可以选择跳过，并打印跳过了多少个测试，所以绕过行为会在日志中留下痕迹。
+        </p>
+        <p>
+          智能体读取的 JSON 输出报告同样的结论。<code>glyph build --json</code> 在诊断旁边带有一个 <code>examples</code> 对象，失败的示例会让 <code>ok</code> 为 false，退出码非零。直到 0.1.43，示例只在 <code>--test</code> 下运行，JSON 路径在它们运行之前就返回了，所以智能体唯一能读的通道，对一个自身断言不成立的项目打印出 <code>"ok": true</code>。如果 <code>PATH</code> 上没有 <code>tsx</code>，构建会失败，而不是报告一个它从未检查过的通过。
+        </p>
+        <p>
+          下面的 bracket 应用带有 23 个这样的测试。<code>seed_order</code> 通过倍增构建标准的对阵顺序，这类函数很容易写出细微的错误，又很容易精确描述。改动倍增规则，构建就会停止，不需要测试文件、测试运行器或 flag。
+        </p>
+      </div></details>
+
+      <p class="ak-kicker">实际构建中发现的</p>
+      <h2 class="ak-h" id="four-more-found-by-building-with-it">实际构建中发现的另外四个<a class="ak-anchor" href="#four-more-found-by-building-with-it" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        下面每一个都能干净地编译并通过 <code>tsc --strict</code>，每一个都是通过编写应用发现的，而不是通过阅读编译器。它们是同一种失败出现在三个地方：类型说的是一回事，程序做的是另一回事。
+      </p>
+
+      <h3 class="ak-h3" id="map-keys">读取可能不存在的键<a class="ak-anchor" href="#map-keys" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">读取可能不存在的键：现在是 E0224</span>
+<pre><span class="k">fn</span> name_of(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
+}</pre>
+      </div>
+      <p class="ak-lede">现在它是一个指向 <code>record.get</code> 的编译错误，该函数返回 <code>Option&lt;V&gt;</code>，让不存在的情况有处可去。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">为什么读取 map 与数组索引不同</span></summary><div class="body">
+        <p>
+          map 的键是任意的，所以编译器无法知道键是否存在。把读取的类型定为 <code>string</code>，等于断言了一件没有检查过的事，而这个值被打印成文本 "undefined"。写入键不受影响，数组索引也不受影响：边界是程序可以检查的值，map 的键则不是。
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="equality"><code>==</code> 在任何地方都是值相等<a class="ak-anchor" href="#equality" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">代码失败时测试却通过了</span>
+<pre><span class="cm">@example wrap("a") == wrap("a")   // passed: deep equality</span>
+<span class="k">fn</span> same() <span class="op">-&gt;</span> <span class="t">bool</span> {
+  <span class="k">return</span> wrap(<span class="s">"a"</span>) == wrap(<span class="s">"a"</span>)   <span class="cm">// false. no diagnostic</span>
+}</pre>
+      </div>
+      <p class="ak-lede"><code>==</code> 现在在任何地方都是值相等；基本类型仍然编译为 <code>===</code>，所以普通的比较不受影响。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">测试是怎么在有问题的代码上通过的</span></summary><div class="body">
+        <p>
+          <code>==</code> 在文档中写的是值相等，却被降级为 <code>===</code>，而只要任何一边是记录、标签联合或数组，这就是<em>引用</em>相等。同一个表达式在测试中按结构比较，在旁边的程序中却按标识比较，所以测试可能在不能工作的代码上报告成功。
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="loop-binding">循环绑定保留其元素类型<a class="ak-anchor" href="#loop-binding" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">在循环中消失的穷尽检查</span>
+<pre><span class="k">for</span> t <span class="k">in</span> tiers {
+  <span class="k">match</span> t {
+    <span class="s">"free"</span> <span class="op">=&gt;</span> ...          <span class="cm">// "pro" unhandled: once merely a warning to add `else`</span>
+  }
+}</pre>
+      </div>
+      <p class="ak-lede">现在它会指出你没有处理的变体，这是让你满足检查的建议，而不是让你关掉检查。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">它以前给出的兜底分支建议</span></summary><div class="body">
+        <p>
+          循环绑定不带元素类型，所以对字符串字面量联合类型的 <code>match</code> 退化成了对 <code>string</code> 的 match，编译器还建议加一个兜底分支。
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="imported-generic">导入的泛型联合类型受检<a class="ak-anchor" href="#imported-generic" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">对导入的泛型联合类型做 match 时漏掉的变体</span>
+<pre><span class="k">import</span> tree { <span class="t">Tree</span>, <span class="t">Node</span> }
+
+<span class="k">fn</span> label(t: <span class="t">Tree</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> t {
+    <span class="t">Node</span>({ key: k }) <span class="op">=&gt;</span> k    <span class="cm">// Leaf unhandled: built clean, threw at run time</span>
+  }
+}</pre>
+      </div>
+      <p class="ak-lede">现在无论哪种情况都是 <code>E0200</code>，两种导入写法都一样，无论是开放的类型参数还是具体的实例化。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">检查为什么从未启动</span></summary><div class="body">
+        <p>
+          你自己模块声明的联合类型，无论是否带类型参数都会受检。从相邻模块导入的，只有不带类型参数时才受检。<code>Tree&lt;string&gt;</code> 进入跨模块覆盖检查路径时，是作为导入联合类型的一个应用，而不是联合类型本身，而启动检查的入口找的是后者，所以这个 <code>match</code> 根本没被计入：<code>tsc --strict</code> 通过，一个 <code>Leaf</code> 抛出了异常。把两个文件中的 <code>&lt;K&gt;</code> 删掉，同一个程序就是 <code>E0200</code>。
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="unchecked-parse"><code>parse</code> 不能声称做了它没做的检查<a class="ak-anchor" href="#unchecked-parse" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">未经检查就报告成功的 <code>parse</code>：现在是 E0304</span>
+<pre><span class="k">type</span> <span class="t">Conn</span> = { id: <span class="t">number</span>, sock: <span class="t">Socket</span> }
+
+<span class="t">Conn</span>.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the message said it was</span></pre>
+      </div>
+      <p class="ak-lede">在记录中持有 socket 是正常的，仍然可以编译。现在在写出校验的地方，以及每个导入该记录的模块中，校验它都会被拒绝，并指出字段及其类型，而且拒绝会沿着形状传递：穿过嵌套记录、<code>Array</code>、<code>Option</code>。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">为什么检查存在与否不算检查，以及它要求的修复</span></summary><div class="body">
+        <p>
+          每个记录类型都带有运行时描述符。对于编译器无法看清其类型的字段，比如 socket 或任何通过 <code>extern_ts</code> 得到的东西，生成的检查只是&ldquo;它是否存在&rdquo;，报告的信息却写着 <code>field `sock` must be Socket</code>。一个总是为真的布尔值没有用。一个总是为真、信息却声称检查了某个类型的布尔值更糟，因为 <code>parse</code> 正是边界被告知要信任的东西。
+        </p>
+        <p>
+          它要求的修复，就是你本来也会写的拆分：一个所有字段都可检查的线上类型，再由它构建一个领域记录。<code>unknown</code> 不会被这条规则拦下，因为它什么也不声称，检查是否存在确实就是全部检查。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-signature-change-invisible-at-the-call-site-closed-in-0-1">在调用处看不见的签名变化：已在 0.1.116 修复<a class="ak-anchor" href="#a-signature-change-invisible-at-the-call-site-closed-in-0-1" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        把一个函数改为接收负载而不是原始字符串，每一处仍在传旧形状的调用都照样构建通过。
+      </p>
+      <div class="code">
+        <span class="cap">billing.glyph：联合类型悄悄穿过一个 `string` 参数</span>
+<pre><span class="k">type</span> <span class="t">PaymentResult</span> = <span class="t">Settled</span>(<span class="t">string</span>) | <span class="t">Declined</span>(<span class="t">string</span>)
+
+<span class="k">fn</span> takes_string(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">number</span> { <span class="k">return</span> s.length }
+
+<span class="k">fn</span> charge(r: <span class="t">PaymentResult</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> takes_string(r)   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build，现在</span>
+<pre class="wraps"><span class="del"><span class="e">[E0211]</span> argument type mismatch: expected <span class="q">`string`</span>, found <span class="q">`PaymentResult`</span></span>
+   <span class="bx">╰─</span> Pass a value of the expected type, or change the parameter's type.</pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">检查在哪里触发，在哪里保持沉默</span></summary><div class="body">
+        <p>
+          类型为 <code>string</code>、<code>number</code> 或 <code>bool</code> 的参数，以前会毫无异议地接受一个已声明的联合类型或记录的值，而同样的调用如果传入不匹配的 <code>bool</code> 参数，早就是 <code>E0211</code> 了。
+        </p>
+        <p>
+          这项检查读取声明，所以只在答案确定的地方触发。基本类型的别名、字符串字面量联合类型（D30）、<code>extern_ts</code> 或 <code>typeof</code> 主体，以及 <code>interface</code>，都仍然不报，因为它们都不能像标签联合或记录那样被证明不是 <code>string</code>；<code>void</code> 也被排除。它同样覆盖参数、<code>return</code> 和 <code>let</code> 标注，因为三者共用同一个关系。
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="const">带标注的 <code>const</code> 有类型<a class="ak-anchor" href="#const" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>const</code> 在接收一侧有对应的漏洞。
+      </p>
+      <div class="code">
+        <span class="cap">catalog.glyph：带标注的 const，以及它没有的字段</span>
+<pre><span class="k">type</span> <span class="t">Sheet</span> = { rows: <span class="t">number</span>, cols: <span class="t">number</span> }
+<span class="k">const</span> <span class="t">ORIGIN</span>: <span class="t">Sheet</span> = { rows: <span class="n">0</span>, cols: <span class="n">0</span> }
+
+<span class="k">fn</span> f() <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> <span class="t">ORIGIN</span>.rowz   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build，现在</span>
+<pre class="wraps"><span class="del"><span class="e">[E0210]</span> type <span class="q">`Sheet`</span> has no field <span class="q">`rowz`</span>; did you mean <span class="q">`rows`</span>?</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">不带标注的 const，以及为什么两个修复都是 Breaking</span></summary><div class="body">
+        <p>
+          带类型标注的模块级 <code>const</code>，无论标注写的是什么，都会降级为 <code>Ty::Unknown</code>，所以它上面的字段拼写错误不可见，而函数内部同样带标注的 <code>let</code> 早就能报告这个错误。
+        </p>
+        <p>
+          不带标注的 <code>const</code> 什么也不声称，有意保持为 <code>Unknown</code>：从初始化表达式推断它的类型是另一个问题，误报的范围也不同。在 <code>glyph check --no-tsc</code>、语言服务器和 playground 下，两个修复都是 Breaking，因为每个都开始拒绝上一个版本接受的程序；而完整的 <code>glyph build</code> 在两种情况下早已通过 <code>tsc</code> 报错。
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="extra-field">多余的字段仍由 <code>tsc</code> 发现<a class="ak-anchor" href="#extra-field" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        有一项记录字面量检查仍归 <code>tsc</code> 而不归 Glyph。<code>glyph build</code> 会因它停止；<code>glyph check --no-tsc</code>、语言服务器和 playground 则不报（G273）。
+      </p>
+      <div class="code">
+        <span class="cap">point.glyph：多余的字段，留给 tsc</span>
+<pre data-check="expect-error TS2353"><span class="k">module</span> point
+
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Point</span> = {
+  x: <span class="t">number</span>,
+  y: <span class="t">number</span>,
+}
+
+<span class="k">pub</span> <span class="k">fn</span> origin() <span class="op">-&gt;</span> <span class="t">Point</span> {
+  <span class="k">return</span> { x: <span class="n">0</span>, y: <span class="n">0</span>, z: <span class="n">0</span> }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+}</pre>
+      </div>
+      <div class="ak-chips"><span class="chip ts">来自 tsc 的 TS2353</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">tsc 如何报告它</span></summary><div class="body">
+        <p>
+          带有声明的记录中没有的字段的字面量能通过 Glyph 的检查器，而 <code>tsc</code> 会在生成的 TypeScript 上以 <code>TS2353</code> 拒绝它，并映射回该字面量。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供 <span class="count">18</span></h3>
+
+          <p class="ak-st-group">匹配</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">对封闭联合类型的穷尽 <code>match</code>：你自己的或相邻模块的，泛型或非泛型，以及标准库的，比如 <code>fs.ErrorKind</code></span><span class="chip code">E0200</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">对 <code>number</code>/<code>string</code> 的穷尽 <code>match</code></span><span class="chip code">E0218</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">拼错的变体分支会被当作编译错误发现，并给出最接近的变体建议，而不是成为悄无声息的兜底分支</span><span class="chip code">E0220</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">负载位置上的变体按负载自身的标签分派，而不是绑定它</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">两个会对应同一标签的分支以 <code>E0305</code> 被拒绝，而不是让其中一个悄悄胜出</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">保留元素类型的 <code>for</code> 绑定</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">错误与测试</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>Result</code> 加上带错误类型检查的 <code>?</code> 运算符</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">丢弃 <code>Result</code> 时发出警告</span><span class="chip code">E0217</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">在每次构建时运行的 <code>@example</code> / <code>@doc @run</code> 测试，包括 <code>--json</code></span></span></li>
+          </ul>
+
+          <p class="ak-st-group">类型、记录与字面量</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">在需要 <code>string</code>/<code>number</code>/<code>bool</code> 的地方传入已声明的联合类型或记录</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">带标注的模块级 <code>const</code> 上的字段拼写错误</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> 在所有类型上都是值相等</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">从 map 中读取键会被拒绝</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">对象字面量和 JSX 属性按声明的类型检查</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">自 0.1.124 起</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>从 0.1.124 起，对象字面量具有其字段所构成的记录类型，所以 <code>let g: string = { x: 1 }</code>、缺少声明的记录所要求的字段的字面量，以及传到不匹配位置的字面量，都会是 E0204 或 E0211 并指出声明的类型，无论在 <code>let</code>、<code>const</code>、<code>return</code> 还是调用参数中；JSX 属性会按组件的 props 记录检查，所以 <code>&lt;Button variant="nope" /&gt;</code> 会引发 E0211 并列出可接受的值，记录中未声明的属性会引发 E0210，<code>glyph fix</code> 可以把它改名。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">缺少的必填字段或 prop 会被指出</span><span class="chip code">E0211</span><span class="chip code">E0229</span><span class="chip since">自 0.1.125 起</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>从 0.1.125 起，漏掉必填字段的记录字面量或组件元素会指出该字段，在信息中以及 <code>--json</code> 的 <code>missing_fields</code> 中都有；缺少必填 prop 的元素即使一个属性都没写，也是 E0211；唯一参数不是记录的组件是 E0229。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">记录的每个字段都按与记录相同的规则比较</span><span class="chip since">自 0.1.127 起</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>从 0.1.127 起，记录的每个字段都按与记录相同的规则比较，所以其中嵌套的记录、声明的类型或字符串字面量联合类型，会在 <code>tsc</code> 拒绝的地方被拒绝；声明为必填却给了可选字段、返回值不匹配的函数，以及本地接口的成员也是如此。所有字段都可选的记录，会拒绝一个与它没有任何共同字段的值，与 TS2559 一样。函数的参数目前还不做比较。</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">数据边界</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">运行时类型描述符</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">类型描述符上的 <code>@redact</code> PII 脱敏</span><span class="chip code">E0219</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在加强 <span class="count">13</span></h3>
+
+          <p class="ak-st-group">匹配</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">对导入联合类型的覆盖检查还不会深入变体的负载</span><span class="chip">下一步要加深</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>类型参数曾经会关闭检查：直到 0.1.90，对 <code>Tree&lt;K&gt;</code> 的 <code>match</code> 可以漏掉一个变体，构建通过，通过 <code>tsc --strict</code>，然后在运行时抛出异常，而同样的 match 作用在 <code>Tree</code> 上则是 <code>E0200</code>。对你自己模块声明的联合类型，这已经修复；从 0.1.95 起，对跨一次导入的联合类型也已修复。导入路径上仍然较浅的是深度而不是入口：为导入联合类型运行的检查从不深入变体的负载，所以当导入联合类型的负载本身也是联合类型时，<code>B(X)</code> 会匹配所有 <code>B</code>，而不是报告缺少的 <code>Y</code>，这与类型参数无关。这是下一步要加深的地方。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">导入联合类型的小写负载变体会让构建停止</span><span class="chip code">E0305</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>负载位置上的变体现在按负载联合类型的变体列表来读，所以对你模块中声明的联合类型，名字的大小写不再重要。对从其他模块导入的联合类型，没有可读的列表，仍然由名字的形式决定，这意味着 <code>Err(Blank)</code> 会分派，而 <code>Err(blank)</code> 会让构建在 <code>E0305</code> 停止：对一个合法程序大声失败，修复它需要与上面浅层覆盖检查相同的导入联合类型注册表。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">对记录负载的构造器模式（<code>Ok(Point)</code>）在 <code>tsc</code> 而不是 Glyph 中失败</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>对一个记录而非联合类型的负载使用构造器模式（<code>Ok(Point)</code>），会通过 <code>tsc</code> 失败，并提到一个你从没写过的 <code>.tag</code>，而它本应是一条指出类型和模式的 Glyph 诊断。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">拼错的不带参数分支对同一个名字报告两行</span><span class="chip code">E0220</span><span class="chip code">E0103</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>拼写检查（<code>E0220</code>）现在同样覆盖模块中声明的联合类型和通过命名空间导入得到的联合类型（<code>model.Nooo(_)</code>），无论是构造器形式还是不带参数的形式：直到 0.1.115，导入联合类型上拼错的不带参数分支头（<code>Loadign</code>，没有参数）会被当作覆盖了某个变体而不报任何东西，而本地联合类型上同样的拼写错误早已报告 <code>E0220</code>；现在两种写法都会报告。拼错的不带参数分支还会提前一个阶段触发 <code>E0103</code>，所以同一个名字你会得到两行。</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">类型、记录与字面量</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">包含展开的字面量没有类型，多余的字段仍被接受</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>包含展开的字面量没有类型，多余的字段仍被接受，而 <code>tsc</code> 会在新建的字面量上以 TS2353 拒绝它（G273）。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">导入的 <code>interface</code> 的成员和导入的 <code>const</code> 的类型还不能跨越边界</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>类型现在能完整地跨越模块边界：联合类型保留它们的穷尽性，标签联合和字符串字面量联合都是如此；记录保留它的字段集合，所以导入记录上拼错的字段是指出该记录自身类型的 <code>E0210</code>，对它的某个数组字段做 <code>for i, x</code> 无需标注，绑定的就是数字。还不能跨越的是 <code>interface</code> 的成员列表，所以在需要导入接口的地方传入的记录，没有可比较的对象；导入的 <code>const</code> 是同样的问题换了个位置：它仍然是 <code>Ty::Unknown</code>，所以无论源模块是否给它加了标注，通过具名导入或命名空间导入访问时字段拼写错误都不会被报告。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">更深入的流敏感类型收窄已在路线图上</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">数据边界</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">来自其他模块或标准库的 map 读取不受检</span><span class="chip code">E0224</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>来自其他模块或标准库的 map 读取仍然不受检，所以 E0224 还不覆盖 <code>sqlite.Row</code>，双绑定的 <code>for i, x in xs</code> 仍然会丢失类型。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">来自普通 <code>.d.ts</code> 的类型没有描述符；用 <code>glyph gen dts</code> 把它物化</span><span class="chip code">E0304</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>从另一个 Glyph 模块导入的类型现在通过它自己的描述符校验，字段位置上的 <code>where</code> 精化也是如此；从普通 <code>.d.ts</code> 导入的类型没有可用于校验的描述符，现在对包含这类类型的记录调用 <code>parse</code> 会被拒绝（<code>E0304</code>），而不是报告一个它并未检查的成功；用 <code>glyph gen dts</code> 把它物化，就能得到一个可校验的类型。</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">工具与标准库</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">九个 <code>std/string</code> 和 <code>std/array</code> 函数仍然返回无类型的值</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>检查器建模的标准库返回类型覆盖了 <code>std/string</code> 和 <code>std/array</code> 中固定参数个数的那一半；带有可选尾部参数的六个函数（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）以及 <code>array.map</code>/<code>flat_map</code>/<code>zip</code> 仍然没有类型，所以直接从这些函数得到的值，在用索引遍历之前需要加标注。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">在不运行 <code>tsc</code> 的地方，对基本类型和数组的成员访问没有诊断</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>对 <code>string</code>、<code>number</code>、<code>bool</code> 和 <code>Array&lt;T&gt;</code> 的成员访问和调用，按设计交给 <code>tsc</code>，而不是遗漏；Glyph 在这些地方允许原生 JS 成员，所以 <code>s.length</code> 和 <code>xs.length</code> 能编译并通过 <code>tsc --strict</code>，仍然缺少的是在四个从不运行 <code>tsc</code> 的场景中的诊断：<code>glyph check --no-tsc</code>、语言服务器、MCP 服务器和 playground。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">离线构建带示例的项目需要 <code>tsx</code> 或 <code>--no-test</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>示例运行器会调用 <code>tsx</code>，所以一个有示例而 <code>PATH</code> 上没有 <code>tsx</code> 的项目会构建失败，而不是悄悄跳过；这是有意的，但意味着离线构建需要安装 <code>tsx</code> 或使用 <code>--no-test</code>。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">普通 <code>fn</code> 中的 <code>await</code> 会针对你自己的源码报告</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>异步上下文曾经是 Glyph 唯一交给 <code>tsc</code> 的规则；现在普通 <code>fn</code> 中的 <code>await</code> 是针对你自己源码的 <code>E0222</code>，顶层 <code>const</code> 初始化表达式是唯一仍然允许的情况。这条规则以及另外两条提前了一个阶段的规则，见<a href="/zh-cn/answers/early-errors/">更早发现的错误</a>。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="detail">
+        <p>
+          为什么这是 Glyph 四大支柱中的第一个，以及它的保证止于何处，见<a href="/zh-cn/pillars/verifiability/">可验证性支柱页面</a>。
+        </p>
+      </div>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.149 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <nav class="prevnext" aria-label="上一篇和下一篇">
+        <div class="spacer"></div>
+        <a href="/zh-cn/answers/diff-stability/" class="nx cta">
+          <span class="dir">下一篇 &rarr;</span>
+          <span class="t">智能体的编辑会保持干净，还是会把整个文件重新格式化？</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>一门编译到 TypeScript 的类型化语言，让智能体修改代码时不会把它改坏。</p>
+          </div>
+          <div class="foot-col">
+            <h2>开始</h2>
+            <a href="/zh-cn/start/">第一个程序</a>
+            <a href="/zh-cn/from-typescript/">从 TypeScript 迁移过来</a>
+            <a href="/zh-cn/teams/">面向团队</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">五分钟速览</a>
+          </div>
+          <div class="foot-col">
+            <h2>学习</h2>
+            <a href="/zh-cn/answers/">问答</a>
+            <a href="/zh-cn/answers/verifiability/">按顺序阅读问答</a>
+            <a href="/zh-cn/answers/tooling/">编辑器与智能体工具</a>
+            <a href="/zh-cn/agents/">面向智能体</a>
+            <a href="/zh-cn/mcp/">MCP 服务器</a>
+            <a href="/llms-pages.txt">Markdown 版页面</a>
+            <a href="/zh-cn/design/">设计</a>
+            <a href="/zh-cn/pillars/verifiability/">四大支柱</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">语言规范</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">宣言</a>
+          </div>
+          <div class="foot-col">
+            <h2>证据</h2>
+            <a href="/zh-cn/catches/">能发现什么</a>
+            <a href="/zh-cn/evidence/">说法如何验证</a>
+            <a href="/zh-cn/hardening/">加固</a>
+            <a href="/zh-cn/benchmarks/">基准测试</a>
+            <a href="/versions/">版本</a>
+          </div>
+          <div class="foot-col">
+            <h2>源代码</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/zh-cn/contribute/">参与贡献</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub 上的 Releases</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/zh-cn/answers/verifiability/index.segments.json">编辑本页</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph：你的智能体没法悄悄改坏的 TypeScript。</span>
+          <span>&copy; 2026 Glyph &middot; MIT 或 Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "自动", light: "浅色", dark: "深色" };
+        var labels = { auto: "配色主题：自动（跟随系统）。切换为浅色。", light: "配色主题：浅色。切换为深色。", dark: "配色主题：深色。切换为自动。" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

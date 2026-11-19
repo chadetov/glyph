@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Para times · o que o Glyph garante e quanto custa · Glyph</title>
+    <meta name="description" content="Para quem lidera um time e está avaliando o Glyph: o que o compilador garante e onde para, como adotá-lo num app TypeScript, como sair, versão fixada e status pré-1.0." />
+    <link rel="canonical" href="https://glyphlang.io/pt-br/teams/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/pt-br/teams/" />
+    <meta property="og:title" content="Para times · o que o Glyph garante e quanto custa" />
+    <meta property="og:description" content="Para quem lidera um time e está avaliando o Glyph: o que o compilador garante e onde para, como adotá-lo num app TypeScript, como sair, versão fixada e status pré-1.0." />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/teams/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Para times","item":"https://glyphlang.io/pt-br/teams/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/teams/#article","headline":"Para times · o que o Glyph garante e quanto custa","description":"Para quem lidera um time e está avaliando o Glyph: o que o compilador garante e onde para, como adotá-lo num app TypeScript, como sair, versão fixada e status pré-1.0.","url":"https://glyphlang.io/pt-br/teams/","inLanguage":"pt-BR","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/teams/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/teams/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/teams/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/teams/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/teams/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/teams/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/teams/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/teams/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/teams/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/teams/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/teams/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/teams/" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Pular para o conteúdo</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Principal">
+        <div class="nav-brand">
+          <a href="/pt-br/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="Notas de versão">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-why">Por que Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Para quem é</p>
+                    <ul>
+                      <li><a href="/pt-br/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Para quem constrói agentes</span><span class="nav-desc">O servidor MCP e as consultas que ele responde</span></span></a></li>
+                      <li><a href="/pt-br/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">Para quem vem do TypeScript</span><span class="nav-desc">O que muda e o que continua igual</span></span></a></li>
+                      <li><a href="/pt-br/teams/" aria-current="page"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">Para times</span><span class="nav-desc">O que garante e quanto custa adotar</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">O design</p>
+                    <ul>
+                      <li><a href="/pt-br/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">O design</span><span class="nav-desc">Os quatro pilares e o que ficou de fora de propósito</span></span></a></li>
+                      <li><a href="/pt-br/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Os quatro pilares</span><span class="nav-desc">Verificabilidade, buscabilidade, abstração, diffs estáveis</span></span></a></li>
+                      <li><a href="/pt-br/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph vs Effect</span><span class="nav-desc">Uma linguagem e uma biblioteca, comparadas</span></span></a></li>
+                      <li><a href="/pt-br/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Por que não ReScript, Gleam ou Elm?</span><span class="nav-desc">Três linguagens tipadas que compilam para JavaScript</span></span></a></li>
+                      <li><a href="/pt-br/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph vs TypeScript com todo o ferramental</span><span class="nav-desc">O que tsc estrito, zod e eslint ainda deixam passar</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/pt-br/catches/">O que detecta</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">Aprender<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Primeiros passos</p>
+                    <ul>
+                      <li><a href="/pt-br/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">Comece em 10 minutos</span><span class="nav-desc">Instale, escreva um programa e rode</span></span></a></li>
+                      <li><a href="/pt-br/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Respostas <span class="nav-count">28</span></span><span class="nav-desc">Perguntas que engenheiros fazem, com exemplos resolvidos</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Referência da linguagem</span><span class="nav-desc">A especificação completa, no GitHub</span></span></a></li>
+                      <li><a href="/pt-br/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Contribuir</span><span class="nav-desc">Como o compilador é feito e como ajudar</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Conecte seu agente</p>
+                    <ul>
+                      <li><a href="/pt-br/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Servidor MCP</span><span class="nav-desc">Ligue seu agente às consultas do compilador</span></span></a></li>
+                      <li><a href="/pt-br/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">Pergunte ao compilador</span><span class="nav-desc">Consulte um símbolo, um tipo ou uma mudança antes de editar</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">llms.txt para agentes</span><span class="nav-desc">A linguagem em um único arquivo que um agente consegue ler</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">Evidências<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Como é verificado</p>
+                    <ul>
+                      <li><a href="/pt-br/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Como as afirmações são verificadas</span><span class="nav-desc">As fixtures e o gate de CI por trás de cada afirmação</span></span></a></li>
+                      <li><a href="/pt-br/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Hardening</span><span class="nav-desc">Agentes tentando quebrá-lo e o que encontraram</span></span></a></li>
+                      <li><a href="/pt-br/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Benchmarks</span><span class="nav-desc">Os quatro pilares em números, com ressalvas</span></span></a></li>
+                      <li><a href="/pt-br/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">O que ainda não detecta</span><span class="nav-desc">Falhas conhecidas, cada uma com sua reprodução</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/pt-br/catches/"><span class="nav-feature-big">21 de 37</span><span class="nav-feature-text">erros de TypeScript que nada detecta em um projeto configurado no máximo</span><span class="nav-feature-cta">Veja o que detecta <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">Versões</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="Idioma: Português (Brasil) (PT)"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">Português (Brasil)</span><span class="lang-short" aria-hidden="true">PT</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">Idioma</p>
+            <ul>
+              <li><a href="/teams/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/teams/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br" aria-current="true"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/es/teams/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/teams/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/teams/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/teams/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/teams/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/teams/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/teams/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/teams/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/teams/" hreflang="en" data-lang="en">Ler em inglês</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Tema de cores: automático (segue o sistema). Mudar para claro.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Abrir o menu">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Fechar o menu" : "Abrir o menu");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>Idioma: Português (Brasil)</span><span class="sep" aria-hidden="true">&middot;</span><a href="/teams/" hreflang="en" data-lang="en">Ler em inglês</a></p>
+      <button class="i18n-x" type="button" aria-label="Fechar"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>Esta página é uma tradução. A versão em inglês é a referência. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28pt-br%29%3A+%2Fpt-br%2Fteams%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fpt-br%2Fteams%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fteams%2F%0A%0AWhat+is+wrong%3A%0A">Relatar um problema na tradução</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">Para times</p>
+      <h1 class="q-title">O que garante, quanto custa adotar e como sair</h1>
+
+      <p class="short-answer">
+        O Glyph recusa uma lista específica e verificada de casos que um projeto TypeScript strict aceita, e compila para TypeScript que você pode manter se parar de usá-lo. É uma versão preliminar: pré-1.0, mantida principalmente por uma pessoa e com várias releases por semana.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="what-it-guarantees">O que garante<a class="h-anchor" href="#what-it-guarantees" aria-label="Link para esta seção">#</a></h2>
+        <p>
+          Toda afirmação sobre o que o Glyph detecta é um caso no diretório <code>catches/</code> do repositório: o mesmo programa em TypeScript e em Glyph, os dois rodados por um gate de CI. No total são 53 casos verificados: 37 erros de TypeScript, 5 armadilhas de JavaScript que não existem em Glyph e 11 brechas que o Glyph ainda não fecha. O Glyph recusa 28 deles no build (23 erros e 5 armadilhas). Dos erros que ele não recusa, 3 geram um aviso, 9 são dados ruins barrados numa checagem de fronteira em runtime e 2 param em tempo de execução. Os que mais pesam para quem revisa código escrito por agentes:
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Código</th><th>O que é recusado</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Code"><code>E0200</code></td><td data-label="What is refused">Um <code>match</code> que deixa de fora um caso de uma union, então adicionar um caso lista todos os lugares que precisam mudar</td></tr>
+            <tr><td data-label="Code"><code>E0013</code></td><td data-label="What is refused">Um cast (<code>as</code>, <code>as unknown as</code>); não existe cast, nem <code>any</code></td></tr>
+            <tr><td data-label="Code"><code>E0204</code></td><td data-label="What is refused">JSON parseado atribuído a um nome tipado sem ser verificado</td></tr>
+            <tr><td data-label="Code"><code>E0224</code></td><td data-label="What is refused">Uma leitura de um map tipada como se a chave sempre existisse</td></tr>
+            <tr><td data-label="Code"><code>E0217</code></td><td data-label="What is refused">Um <code>Result</code> ignorado (um aviso; <code>let _ =</code> diz que foi de propósito)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="/pt-br/catches/">A página de casos</a> lista cada caso com seu TypeScript, seu Glyph e o erro, e diz quais deles uma configuração completa do typescript-eslint também teria pegado.
+        </p>
+
+        <h2 class="block-label" id="where-it-stops">Onde para<a class="h-anchor" href="#where-it-stops" aria-label="Link para esta seção">#</a></h2>
+        <p>
+          As garantias cobrem código escrito em Glyph. Uma exceção lançada dentro de uma dependência do npm ainda passa por fora do <code>Result</code>, e um tipo importado do <code>.d.ts</code> de um pacote não tem checagem em runtime. Dentro do Glyph, as 11 falhas conhecidas em aberto estão listadas com seus números de gap em <a href="/pt-br/catches/#not-yet">o que ele ainda não detecta</a>, e o registro completo está em <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>. Para uma comparação com TypeScript strict mais zod, eslint e ts-pattern, incluindo onde essa configuração ainda está na frente, veja <a href="/pt-br/answers/vs-tooled-ts/">por que não TypeScript com ferramentas</a>.
+        </p>
+
+        <h2 class="block-label" id="adopting-it-inside-an-existing-app">Adotando dentro de um app existente<a class="h-anchor" href="#adopting-it-inside-an-existing-app" aria-label="Link para esta seção">#</a></h2>
+        <p>
+          Não há reescrita. Você escreve em Glyph a parte que não pode dar errado (modelos, permissões, transições de estado, dinheiro), e o resto do app continua em TypeScript e importa os módulos gerados como qualquer arquivo local. O passo a passo usa um scaffold padrão do Vite: <a href="/pt-br/answers/embedding/">Posso adotar o Glyph dentro da minha aplicação atual?</a>
+        </p>
+
+        <h2 class="block-label" id="the-exit-story">Como sair<a class="h-anchor" href="#the-exit-story" aria-label="Link para esta seção">#</a></h2>
+        <p>
+          <code>glyph build</code> gera TypeScript comum, um arquivo por módulo, que passa no <code>tsc --strict</code>. Se você parar de usar o Glyph, faz commit dessa saída e segue com <code>tsc</code>. A licença é MIT ou Apache-2.0, então um fork é sempre possível. <a href="/pt-br/from-typescript/">Para quem vem do TypeScript</a> mostra um módulo ao lado do arquivo gerado.
+        </p>
+
+        <h2 class="block-label" id="pinning-and-upgrades">Versão fixada e upgrades<a class="h-anchor" href="#pinning-and-upgrades" aria-label="Link para esta seção">#</a></h2>
+        <p>
+          <code>glyph init</code> fixa o compilador numa versão exata no <code>package.json</code>, sem <code>^</code>, então nenhuma release chega ao seu build por acidente. Três comandos cuidam do resto:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">fazendo upgrade de propósito</span>
+<pre><span class="f">glyph</span> doctor     <span class="cm"># your version against the latest release; never fails CI for that</span>
+<span class="f">glyph</span> upgrade    <span class="cm"># moves the project's pin, runs npm install, links the notes</span>
+<span class="f">glyph</span> <span class="fl">--update</span>   <span class="cm"># moves the installed compiler itself</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Detalhes em <a href="/pt-br/answers/upgrades/">Uma release nova do Glyph vai quebrar meu build?</a>
+        </p>
+
+        <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Frequência de releases e a marca Breaking<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Link para esta seção">#</a></h2>
+        <p>
+          A <a href="/versions/">página de versões</a> tem uma entrada para cada release da 0.1.0 à 0.1.149, 148 no total, e 22 delas saíram em novembro de 2026 até o dia 19. Uma release é marcada como Breaking quando recusa um programa que a versão anterior aceitava, que é como a maioria das correções de corretude chega. 32 entradas têm a marca. Ela é aplicada rodando o menor programa afetado nas duas versões, não lendo o diff, e as releases anteriores à 0.1.99 não foram testadas assim, então uma release antiga sem marca não foi testada, o que não quer dizer que seja segura.
+        </p>
+        <p>
+          O que uma release Breaking custou na prática: cada nota recente diz o que aconteceu quando a versão antiga e a nova foram rodadas sobre os apps de exemplo do repositório. Estas são as releases Breaking mais recentes, citadas das próprias notas:
+        </p>
+        <ul class="cost-list">
+          <li><a href="/versions/2026-11/#0.1.149">0.1.149</a>: <span lang="en">&ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, the only changes are three files that were already refused (two test fixtures and a benchmark that demonstrates a refusal, which still passes), and the emitted TypeScript is identical.&rdquo;</span></li>
+          <li><a href="/versions/2026-11/#0.1.148">0.1.148</a>: <span lang="en">&ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> and the emitted TypeScript are unchanged.&rdquo;</span></li>
+          <li><a href="/versions/2026-11/#0.1.147">0.1.147</a>: <span lang="en">&ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, nothing changes.&rdquo;</span></li>
+          <li><a href="/versions/2026-11/#0.1.146">0.1.146</a>: <span lang="en">&ldquo;On every other <code>.glyph</code> file in the repository and all 32 example apps, nothing changes.&rdquo;</span></li>
+          <li><a href="/versions/2026-11/#0.1.145">0.1.145</a>: <span lang="en">&ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> and the emitted TypeScript are identical to 0.1.144.&rdquo;</span></li>
+          <li><a href="/versions/2026-11/#0.1.143">0.1.143</a>: <span lang="en">&ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> gives the same result apart from the reworded E0304 note on one file that already failed, and the emitted TypeScript is identical.&rdquo;</span></li>
+        </ul>
+
+        <p>
+          Os apps de exemplo são código do próprio projeto, mantido compilando release após release, então um formato recém-recusado tem menos chance de aparecer neles do que no seu código. Cada nota diz quais formatos recusa, então leia antes de fazer o upgrade.
+        </p>
+
+        <h2 class="block-label" id="status">Status<a class="h-anchor" href="#status" aria-label="Link para esta seção">#</a></h2>
+        <p>
+          O Glyph é pré-1.0. Antes da 1.0, a sintaxe, a biblioteca padrão e o formato do TypeScript gerado podem mudar, e uma release pode recusar código que compilava antes. <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a> diz o que pode mudar e o que é mantido estável. <a href="https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md">MAINTAINERS.md</a> diz com clareza que hoje o projeto é mantido principalmente por uma pessoa.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="objections-answered">Objeções, respondidas<a class="h-anchor" href="#objections-answered" aria-label="Link para esta seção">#</a></h2>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/pt-br/answers/human-value/"><span class="q">Não usamos muita IA. Ainda vale a pena?</span><p>As checagens são as mesmas não importa quem escreve o código: menos surpresas em runtime, diffs menores, código que dá para buscar com grep.</p></a>
+        <a class="a-card" href="/pt-br/answers/vs-tooled-ts/"><span class="q">Já usamos TypeScript strict e lint.</span><p>Cada uma dessas checagens é opcional e pode ser desligada com uma linha. As do Glyph não podem.</p></a>
+        <a class="a-card" href="/pt-br/answers/ai-authoring/"><span class="q">Nossos agentes conseguem escrever uma linguagem que quase nunca viram?</span><p>A maior parte do que um modelo sabe de TypeScript se aproveita, e o compilador aponta o resto.</p></a>
+        <a class="a-card" href="/pt-br/answers/why-typescript/"><span class="q">Por que compilar para TypeScript?</span><p>É onde estão o npm, o React e o Node, e é por isso que dá para adotar um arquivo de cada vez.</p></a>
+        <a class="a-card" href="/pt-br/answers/debugging/"><span class="q">O que o plantão vê quando algo quebra?</span><p>TypeScript legível, source maps de volta para o arquivo <code>.glyph</code> e códigos de erro estáveis.</p></a>
+        <a class="a-card" href="/pt-br/evidence/"><span class="q">Como sabemos que tudo isso é verdade?</span><p>Como cada afirmação deste site é verificada, e como reproduzir uma você mesmo.</p></a>
+      </div>
+      <section class="next-steps">
+        <h2 class="block-label" id="where-to-go-next">Por onde seguir<a class="h-anchor" href="#where-to-go-next" aria-label="Link para esta seção">#</a></h2>
+        <a class="ns-primary" href="/pt-br/catches/">
+          <span class="ns-body"><span class="ns-eyebrow">Recomendado</span><span class="ns-title">Veja o que o TypeScript deixa passar</span><span class="ns-desc">Os casos que um projeto TypeScript strict aceita, classificados, cada um rodado com <code>tsc --strict</code> e com Glyph.</span><span class="ns-cta">Ver o que ele detecta <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
+          <span class="ns-art"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>
+        </a>
+        <div class="ns-grid">
+          <a class="ns-card span-3" href="/pt-br/start/"><span class="ns-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="ns-card-title">Escreva seu primeiro programa</span><span class="ns-card-desc">Instale, crie o projeto, rode, quebre de propósito, leia o erro. Uns dez minutos.</span><span class="ns-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+          <a class="ns-card span-3" href="/playground/"><span class="ns-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12.5 15H17"/></svg></span><span class="ns-card-title">Experimente no navegador</span><span class="ns-card-desc">O compilador roda na página, sem nada para instalar.</span><span class="ns-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+        </div>
+      </section>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/pt-br/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>Uma linguagem tipada que compila para TypeScript, feita para que agentes possam mudar código sem quebrá-lo.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Começar</h2>
+            <a href="/pt-br/start/">Seu primeiro programa</a>
+            <a href="/pt-br/from-typescript/">Para quem vem do TypeScript</a>
+            <a href="/pt-br/teams/">Para times</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">O tour de cinco minutos</a>
+          </div>
+          <div class="foot-col">
+            <h2>Aprender</h2>
+            <a href="/pt-br/answers/">Respostas</a>
+            <a href="/pt-br/answers/verifiability/">Ler as respostas em ordem</a>
+            <a href="/pt-br/answers/tooling/">Editor e ferramentas para agentes</a>
+            <a href="/pt-br/agents/">Para agentes</a>
+            <a href="/pt-br/mcp/">Servidor MCP</a>
+            <a href="/llms-pages.txt">Páginas em Markdown</a>
+            <a href="/pt-br/design/">Design</a>
+            <a href="/pt-br/pillars/verifiability/">Os quatro pilares</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Especificação da linguagem</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Evidências</h2>
+            <a href="/pt-br/catches/">O que detecta</a>
+            <a href="/pt-br/evidence/">Como as afirmações são verificadas</a>
+            <a href="/pt-br/hardening/">Hardening</a>
+            <a href="/pt-br/benchmarks/">Benchmarks</a>
+            <a href="/versions/">Versões</a>
+          </div>
+          <div class="foot-col">
+            <h2>Código-fonte</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/pt-br/contribute/">Contribuir</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases no GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/pt-br/teams/index.segments.json">Editar esta página</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript que seus agentes não conseguem quebrar sem você perceber.</span>
+          <span>&copy; 2026 Glyph &middot; MIT ou Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Claro", dark: "Escuro" };
+        var labels = { auto: "Tema de cores: automático (segue o sistema). Mudar para claro.", light: "Tema de cores: claro. Mudar para escuro.", dark: "Tema de cores: escuro. Mudar para automático." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

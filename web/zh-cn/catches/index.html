@@ -1,0 +1,1706 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TypeScript 放过、Glyph 能发现的问题 · Glyph</title>
+    <meta name="description" content="AI 智能体写出的、能通过 tsc --strict 的代码，每个都与同一程序的 Glyph 版本并排展示，附真实的编译器输出。构建检查会重新运行每个案例。" />
+    <link rel="canonical" href="https://glyphlang.io/zh-cn/catches/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/zh-cn/catches/" />
+    <meta property="og:title" content="TypeScript 放过、Glyph 能发现的问题" />
+    <meta property="og:description" content="AI 智能体写出的、能通过 tsc --strict 的代码，每个都与同一程序的 Glyph 版本并排展示，附真实的编译器输出。构建检查会重新运行每个案例。" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/catches.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"}]}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/catches/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/catches/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/catches/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/catches/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/catches/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/catches/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/catches/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/catches/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/catches/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="主导航">
+        <div class="nav-brand">
+          <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">为什么选 Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">适合谁用</p>
+                    <ul>
+                      <li><a href="/zh-cn/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">面向智能体开发者</span><span class="nav-desc">MCP 服务器及其能回答的查询</span></span></a></li>
+                      <li><a href="/zh-cn/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">从 TypeScript 迁移过来</span><span class="nav-desc">哪些变了，哪些保持不变</span></span></a></li>
+                      <li><a href="/zh-cn/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">面向团队</span><span class="nav-desc">它保证什么，引入它的成本是什么</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">设计</p>
+                    <ul>
+                      <li><a href="/zh-cn/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">设计</span><span class="nav-desc">四大支柱，以及有意没有做的部分</span></span></a></li>
+                      <li><a href="/zh-cn/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">四大支柱</span><span class="nav-desc">可验证性、可检索性、抽象、稳定的 diff</span></span></a></li>
+                      <li><a href="/zh-cn/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph 与 Effect 对比</span><span class="nav-desc">一门语言和一个库的比较</span></span></a></li>
+                      <li><a href="/zh-cn/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">为什么不用 ReScript、Gleam 或 Elm？</span><span class="nav-desc">三种编译为 JavaScript 的类型化语言</span></span></a></li>
+                      <li><a href="/zh-cn/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph 与配齐工具链的 TypeScript 对比</span><span class="nav-desc">严格模式的 tsc、zod 和 eslint 仍会放过的问题</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top active" href="/zh-cn/catches/" aria-current="page">它能发现什么</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">学习<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">上手</p>
+                    <ul>
+                      <li><a href="/zh-cn/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 分钟上手</span><span class="nav-desc">安装、写一个程序、运行</span></span></a></li>
+                      <li><a href="/zh-cn/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">问答 <span class="nav-count">28</span></span><span class="nav-desc">工程师常问的问题，附完整示例</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">语言参考</span><span class="nav-desc">完整规范，在 GitHub 上</span></span></a></li>
+                      <li><a href="/zh-cn/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">参与贡献</span><span class="nav-desc">编译器的实现方式，以及如何参与</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">连接你的智能体</p>
+                    <ul>
+                      <li><a href="/zh-cn/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP 服务器</span><span class="nav-desc">把智能体接入编译器的查询</span></span></a></li>
+                      <li><a href="/zh-cn/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">询问编译器</span><span class="nav-desc">编辑前先查询符号、类型或改动的影响</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">面向智能体的 llms.txt</span><span class="nav-desc">整门语言写在一个智能体能读的文件里</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">证据<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">如何验证</p>
+                    <ul>
+                      <li><a href="/zh-cn/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">说法如何验证</span><span class="nav-desc">每条说法背后的 fixture 和 CI 检查</span></span></a></li>
+                      <li><a href="/zh-cn/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">加固</span><span class="nav-desc">智能体尝试攻破它，以及它们的发现</span></span></a></li>
+                      <li><a href="/zh-cn/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">基准测试</span><span class="nav-desc">用数字衡量四大支柱，附注意事项</span></span></a></li>
+                      <li><a href="/zh-cn/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">尚未覆盖的问题</span><span class="nav-desc">已知漏洞，每个都附复现示例</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/zh-cn/catches/"><span class="nav-feature-big">37 个中有 21 个</span><span class="nav-feature-text">TypeScript 错误，即使项目配置拉满，也没有任何工具能发现</span><span class="nav-feature-cta">看看它能发现什么 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">版本</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="语言: 简体中文 (中文)"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">简体中文</span><span class="lang-short" aria-hidden="true">中文</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">语言</p>
+            <ul>
+              <li><a href="/catches/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/catches/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/catches/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/catches/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/catches/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/catches/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn" aria-current="true"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/ko/catches/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/catches/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/catches/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/catches/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/catches/" hreflang="en" data-lang="en">阅读英文版</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="配色主题：自动（跟随系统）。切换为浅色。">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">自动</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="打开菜单">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "关闭菜单" : "打开菜单");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>当前语言：简体中文</span><span class="sep" aria-hidden="true">&middot;</span><a href="/catches/" hreflang="en" data-lang="en">阅读英文版</a></p>
+      <button class="i18n-x" type="button" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>本页是译文，以英文版为准。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28zh-cn%29%3A+%2Fzh-cn%2Fcatches%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fzh-cn%2Fcatches%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fcatches%2F%0A%0AWhat+is+wrong%3A%0A">报告翻译问题</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <div class="wrap">
+      <header class="page-hero">
+        <p class="eyebrow">TypeScript 放过的案例</p>
+        <h1>上线之前就被发现</h1>
+        <p class="lede">共有 53 个经过检验的案例：37 个 TypeScript 错误、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 11 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个错误和 5 个陷阱）。</p>
+        <p class="lede">列表中所有 TypeScript 示例都能零错误通过 <code>tsc --strict</code>。每个示例还会在一个配置拉满的项目里再检查一遍：比 <code>--strict</code> 更严格的所有编译器 flag，再加上 typescript-eslint 的 <code>strictTypeChecked</code>。在 37 个案例中，有 21 个是这套配置里没有任何一项能发现的。有 5 个能被默认关闭的编译器 flag 发现，11 个能被某条 lint 规则发现。这些都需要项目自己去打开，而智能体也可以再把它们关掉。在 Glyph 里，这些都不是配置项。</p>
+        <p class="lede">
+          每个条目都是 <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 中的两个程序，每个程序下方的输出就是工具实际打印的内容。构建检查 <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a> 会重新运行每个案例，只要任何一半不再符合页面的描述就会失败。它用来对照的完整 TypeScript 配置就在这个脚本里。
+        </p>
+      </header>
+
+      <section class="c-cases" id="cases">
+        <h2 class="group-head">37 个 TypeScript 错误</h2>
+      <div class="c-legend">
+        <span class="c-score likely"><b>可能性</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> AI 智能体写出这种代码的频率</span>
+        <span class="c-score severe"><b>严重程度</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> 进入生产环境后造成的损害有多大</span>
+        <p>评分是我们的判断，从 1 到 5，依据是已发表的关于智能体所写代码的研究，以及我们自己运行智能体的结果。没有人直接测量过这些比例。列表按可能性乘以严重程度排序。</p>
+      </div>
+
+      <div class="c-filters" hidden>
+        <div class="c-fgroup" role="group" aria-label="TypeScript 中靠什么发现"><span class="c-flabel">TypeScript 中靠什么发现</span><button type="button" class="c-chip" data-group="ts" data-value="none" aria-pressed="false">无 <span>21</span></button><button type="button" class="c-chip" data-group="ts" data-value="flag" aria-pressed="false">编译器 flag <span>5</span></button><button type="button" class="c-chip" data-group="ts" data-value="lint" aria-pressed="false">lint 规则 <span>11</span></button></div>
+        <div class="c-fgroup" role="group" aria-label="Glyph 如何处理"><span class="c-flabel">Glyph 如何处理</span><button type="button" class="c-chip" data-group="glyph" data-value="build" aria-pressed="false">构建时拒绝 <span>23</span></button><button type="button" class="c-chip" data-group="glyph" data-value="data" aria-pressed="false">数据到达时检查 <span>6</span></button><button type="button" class="c-chip" data-group="glyph" data-value="warned" aria-pressed="false">给出警告 <span>3</span></button><button type="button" class="c-chip" data-group="glyph" data-value="run" aria-pressed="false">运行时拦下 <span>2</span></button><button type="button" class="c-chip" data-group="glyph" data-value="design" aria-pressed="false">语言中不存在 <span>3</span></button></div>
+        <p class="c-fstatus" aria-live="polite"></p>
+      </div>
+
+      <div class="c-list">
+      <article class="catch" id="data-from-outside-the-program" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">1</span>
+          <h3><a class="c-anchor" href="#data-from-outside-the-program">来自程序外部的数据</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 5/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5/5</span></span><span class="c-score severe" title="严重程度: 5/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5/5</span></span></div>
+        </div>
+        <p class="c-why">请求体、文件、API 响应。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时用的是错误数据</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> user = <span class="t">JSON</span>.parse(body) <span class="k">as</span> <span class="t">User</span>;
+console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">invoice for the undefined plan</span></pre></div>
+            <p class="c-result"><b>没有任何东西检查数据。</b><code>undefined</code> 被当作套餐一路传下去。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">数据到达时检查</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">User</span>&gt;(body) {
+  <span class="t">Ok</span>(user) <span class="op">=&gt;</span> send_invoice(user.plan),
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["plan"],"message":"field `plan` is required","code":"missing"}]</span></pre></div>
+            <p class="c-result"><b>不是真正 <code>User</code> 的请求体会得到 <code>Err</code>。</b>程序里永远不会出现假的 User。</p>
+          </div>
+        </div>
+        <p class="c-note"><code>as User</code> 什么都不检查，只是让编译器相信你。Glyph 没有 <code>as</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#data-from-outside-the-program" data-slug="data-from-outside-the-program">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/data-from-outside-the-program">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=data-from-outside-the-program&amp;title=Score%3A+Data+from+outside+the+program">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="non-exhaustive-match" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">2</span>
+          <h3><a class="c-anchor" href="#non-exhaustive-match">没人处理的情况</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 5/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">智能体新增了 <code>"archived"</code> 状态。负责通报每种状态的处理函数写于它出现之前。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，没有任何警告</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">switch</span> (s) {
+  <span class="k">case</span> <span class="s">"todo"</span>:
+    console.log(<span class="s">"not started"</span>);
+    <span class="k">break</span>;
+  <span class="k">case</span> <span class="s">"doing"</span>:
+    console.log(<span class="s">"in progress"</span>);
+    <span class="k">break</span>;
+  <span class="k">case</span> <span class="s">"done"</span>:
+    console.log(<span class="s">"finished"</span>);
+    <span class="k">break</span>;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">finished</span>
+<span class="e">archived logged nothing</span></pre></div>
+            <p class="c-result"><b>归档一个条目时什么日志都没有。</b>没有任何提示说这个 <code>switch</code> 已经过时。</p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>switch-exhaustiveness-check</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">match</span> s {
+  <span class="s">"todo"</span> <span class="op">=&gt;</span> print(<span class="s">"not started"</span>),
+  <span class="s">"doing"</span> <span class="op">=&gt;</span> print(<span class="s">"in progress"</span>),
+  <span class="s">"done"</span> <span class="op">=&gt;</span> print(<span class="s">"finished"</span>),
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0200] Error: typecheck: non-exhaustive match on `"todo" | "doing" | "done" | "archived"`: missing variants "archived"</span>
+<span class="h">Help: Add an arm for each missing variant.</span></pre></div>
+            <p class="c-result"><b>构建停止，并指出是哪种情况。</b></p>
+          </div>
+        </div>
+        <p class="c-note">只有当函数在每个分支都返回值，或者使用 <code>assertNever</code> 惯用法时，TypeScript 才会检查 <code>switch</code> 是否覆盖了每种情况。不返回任何值的处理函数两者都得不到。在 Glyph 中每个 <code>match</code> 都必须覆盖所有情况，所以新增一个变体就会列出每个需要修改的地方。</p>
+        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="trusting-find-with-bang" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">3</span>
+          <h3><a class="c-anchor" href="#trusting-find-with-bang">用 <code>!</code> 信任 <code>find</code> 的结果</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 5/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">按 id 查找一条记录。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时崩溃</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> users.find((u) <span class="op">=&gt;</span> u.id === id)!.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
+            <p class="c-result"><b><code>!</code> 告诉编译器“相信我”。</b>运行时它什么也不做。</p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>no-non-null-assertion</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> array.find(users, <span class="k">fn</span>(u: <span class="t">User</span>) <span class="op">-&gt;</span> <span class="t">bool</span> { u.id == id }).name</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0210] Error: typecheck: type `Option&lt;User&gt;` has no field `name`: an `Option` has no members</span>
+<span class="h">Help: Open it with `match array.find(...) { Some(u) =&gt; u.name, None =&gt; &lt;default&gt; }`. If the absence is a JSON `null` from the wire, declare the type `Nullable&lt;User&gt;` (D45).</span></pre></div>
+            <p class="c-result"><b><code>find</code> 返回 <code>Option</code>，</b>所以必须处理为空的情况。</p>
+          </div>
+        </div>
+        <p class="c-note">没有 <code>!</code> 时，<code>tsc --strict</code> 会拒绝这一行。正是 <code>!</code> 关掉了这项检查，而它在运行时什么也不做。Glyph 没有 <code>!</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="error-the-signature-hides" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">4</span>
+          <h3><a class="c-anchor" href="#error-the-signature-hides">函数签名隐藏的错误</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">一个可能失败的函数，调用它的代码却不知道它会失败。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时崩溃</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> loadConfig(): <span class="t">Config</span> {
+  <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"missing file"</span>);
+}
+
+<span class="k">const</span> cfg = loadConfig(); <span class="c">// no try</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Error: missing file</span></pre></div>
+            <p class="c-result"><b>类型写的是 <code>Config</code>。</b>没有任何地方说明它会抛异常。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> load_config() <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Config</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="t">Err</span>(<span class="s">"missing file"</span>)
+}
+
+<span class="k">let</span> cfg: <span class="t">Config</span> = load_config()</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `Config`, found `Result&lt;Config, string&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            <p class="c-result"><b>失败是返回类型的一部分，</b>所以调用方必须处理它。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript 函数的类型只列出它返回什么，从不列出它抛出什么。在 Glyph 中，失败是返回类型的一部分，每个调用方都能看到。</p>
+        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="error-nobody-looked-at" data-ts="none" data-glyph="warned">
+        <div class="c-head">
+          <span class="c-num">5</span>
+          <h3><a class="c-anchor" href="#error-nobody-looked-at">没人看的错误</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">调用一个可能失败的函数，然后就不管了。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，没有任何警告</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre>save(user); <span class="c">// returns { ok: false }</span>
+<span class="k">return</span> <span class="s">"done"</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">done</span></pre></div>
+            <p class="c-result"><b>失败被丢掉了，</b>用户却被告知操作成功。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl warn">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">给出警告</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>save(user)
+<span class="k">return</span> <span class="s">"done"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored</span>
+<span class="h">Help: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional.</span></pre></div>
+            <p class="c-result"><b>Glyph 会指出被丢掉的失败。</b></p>
+          </div>
+        </div>
+        <p class="c-note">这是警告，不是错误。要有意丢弃，就明确写出来：<code>let _ = save(user)</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#error-nobody-looked-at" data-slug="error-nobody-looked-at">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-nobody-looked-at">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-nobody-looked-at&amp;title=Score%3A+An+error+nobody+looked+at">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="filter-that-keeps-everyone" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">6</span>
+          <h3><a class="c-anchor" href="#filter-that-keeps-everyone">谁都能通过的过滤器</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">对每个用户调用异步的权限检查。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但结果是错的</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> active = names.filter(
+  <span class="k">async</span> (n) <span class="op">=&gt;</span> <span class="k">await</span> isActive(n));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ 'ada', 'mallory' ]</span></pre></div>
+            <p class="c-result"><b>什么都没被过滤掉。</b></p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>no-misused-promises</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> active = array.filter(names, <span class="k">async</span> <span class="k">fn</span>(n: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">bool</span> { <span class="k">await</span> is_active(n) })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `function`, found `async function`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>异步函数不是一个是/否的答案。</b></p>
+          </div>
+        </div>
+        <p class="c-note">异步函数返回 Promise，而任何 Promise 都算作 true。这样写的权限过滤器会放所有人通过。</p>
+        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="type-guard-that-checks-less" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">7</span>
+          <h3><a class="c-anchor" href="#type-guard-that-checks-less">检查得比它声称的少的类型守卫</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">手工校验请求体。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时崩溃</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> isUser(x: <span class="t">unknown</span>): x <span class="k">is</span> <span class="t">User</span> {
+  <span class="k">return</span> <span class="k">typeof</span> x === <span class="s">"object"</span> &amp;&amp; x !== <span class="k">null</span> &amp;&amp; <span class="s">"id"</span> <span class="k">in</span> x;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'toLowerCase')</span></pre></div>
+            <p class="c-result"><b>守卫只检查了一个字段就说这是“User”。</b></p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">数据到达时检查</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> <span class="t">User</span>.<span class="k">is</span>(body) {
+  <span class="k">true</span> <span class="op">=&gt;</span> <span class="s">"user"</span>,
+  <span class="k">false</span> <span class="op">=&gt;</span> <span class="s">"not a user"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">not a user</span></pre></div>
+            <p class="c-result"><b><code>User.is</code> 会检查每个字段。</b>Glyph 没有手写的守卫。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript 完全信任 <code>x is User</code> 函数，不管它的函数体到底检查了什么。</p>
+        <p class="c-links"><a class="c-copy" href="#type-guard-that-checks-less" data-slug="type-guard-that-checks-less">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/type-guard-that-checks-less">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=type-guard-that-checks-less&amp;title=Score%3A+A+type+guard+that+checks+less+than+it+claims">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="as-unknown-as" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">8</span>
+          <h3><a class="c-anchor" href="#as-unknown-as"><code>as unknown as T</code></a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">把一个值强行变成想要的类型。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时崩溃</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cfg = raw <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">Config</span>;
+console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'length')</span></pre></div>
+            <p class="c-result"><b>两次类型断言就把检查关掉了。</b></p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span><span class="c-verdict">根本写不出来</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cfg = raw <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">Config</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0013] Error: parse: a statement cannot begin on the line where `let cfg = raw` ends</span></pre></div>
+            <p class="c-result"><b>根本没有类型断言可写。</b>帮助信息会告诉你该怎么做。</p>
+          </div>
+        </div>
+        <p class="c-note">智能体修不好类型错误时，就用 <code>as unknown as T</code> 让它闭嘴。</p>
+        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="unvalidated-boundary-read" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">9</span>
+          <h3><a class="c-anchor" href="#unvalidated-boundary-read">未经检查就被赋予类型的解析结果</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">把请求体读进一个有类型的变量。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时用的是错误数据</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> user: <span class="t">User</span> = <span class="t">JSON</span>.parse(body);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
+            <p class="c-result"><b>类型标注是一个没人兑现的承诺。</b><code>JSON.parse</code> 返回 <code>any</code>，所以任何结构的请求体都能通过。</p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>no-unsafe-assignment</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> user: <span class="t">User</span> = json.parse(body)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `User`, found `Result&lt;unknown, Array&lt;Issue&gt;&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            <p class="c-result"><b><code>json.parse</code> 返回 <code>unknown</code> 的 <code>Result</code>，</b>而它不是 <code>User</code>。</p>
+          </div>
+        </div>
+        <p class="c-note">写 <code>const user: User</code> 看起来像检查，其实不是。在 Glyph 中，<code>json.parse&lt;User&gt;(body)</code> 会检查请求体，并返回一个可以 match 的 <code>Result</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="lost-update-across-await" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">10</span>
+          <h3><a class="c-anchor" href="#lost-update-across-await">跨 <code>await</code> 的丢失更新</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 5/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5/5</span></span></div>
+        </div>
+        <p class="c-why">两个请求同时向同一个账户扣款。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时丢钱</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = a.balance;
+<span class="k">const</span> f = <span class="k">await</span> fee();
+a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">balance 90</span></pre></div>
+            <p class="c-result"><b>有一笔扣款消失了。</b>没有哪个测试能稳定地发现它。</p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>require-atomic-updates</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> before = a.balance
+<span class="k">let</span> f = <span class="k">await</span> fee()
+<span class="k">mut</span> a.balance = before - f</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0225] Error: typecheck: `a.balance` is read before an `await` and written after it, so a concurrent write in between is lost</span>
+<span class="h">Help: Move the read after the `await`, so the value written is the one that is current when it is written.</span></pre></div>
+            <p class="c-result"><b>Glyph 能发现跨等待的先读后写。</b></p>
+          </div>
+        </div>
+        <p class="c-note">一个调用在等待 <code>fee()</code> 时，另一个调用可能更新了余额。随后第一个调用写回的是过期的值。</p>
+        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="split-into-a-pair" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">11</span>
+          <h3><a class="c-anchor" href="#split-into-a-pair">解构 <code>split</code> 的结果</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 5/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">把邮箱地址拆成用户名和主机。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但打印出错误的文本</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> [user, host] = s.split(<span class="s">"@"</span>);
+<span class="k">return</span> <span class="s">`</span><span class="ip">${</span>user<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span>host<span class="ip">}</span><span class="s">`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">nobody at undefined</span></pre></div>
+            <p class="c-result"><b>TypeScript 假定第二部分一定存在。</b>没有 <code>@</code> 时，文本显示为“nobody at undefined”。</p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>restrict-template-expressions</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> [user, host] = <span class="t">string</span>.split(s, <span class="s">"@"</span>)
+<span class="k">return</span> <span class="s">"</span><span class="ip">${</span>user<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span>host<span class="ip">}</span><span class="s">"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0230] Error: typecheck: the length of `Array&lt;string&gt;` is not known, so a name in the pattern could hold `undefined`</span>
+<span class="h">Help: Its length is known only at run time, so match on it with a fallback arm: `match xs { [a, b] =&gt; ..., else =&gt; ... }`.</span></pre></div>
+            <p class="c-result"><b>缺失的部分必须处理。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>split</code> 可能只返回一段。TypeScript 却照样把 <code>host</code> 的类型定为 <code>string</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="value-outside-the-list" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">12</span>
+          <h3><a class="c-anchor" href="#value-outside-the-list">列表之外的值</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">某个 API 开始返回你的代码从没见过的状态。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时用的是错误数据</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Account</span> = { status: <span class="s">"active"</span> | <span class="s">"banned"</span> };
+
+<span class="k">const</span> body = <span class="s">'{"status":"deleted"}'</span>;
+<span class="k">const</span> acc = <span class="t">JSON</span>.parse(body) <span class="k">as</span> <span class="t">Account</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">status deleted</span></pre></div>
+            <p class="c-result"><b><code>"deleted"</code> 被当作两者之一。</b>此后每一处对 <code>status</code> 的检查都是错的。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">数据到达时检查</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Account</span> = { status: <span class="s">"active"</span> | <span class="s">"banned"</span> }
+
+<span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Account</span>&gt;(body) {
+  <span class="t">Ok</span>(acc) <span class="op">=&gt;</span> <span class="s">"status </span><span class="ip">${</span>acc.status<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["status"],"message":"field `status` must be \"active\" | \"banned\"","code":"type"}]</span></pre></div>
+            <p class="c-result"><b>只有列出的值才能通过。</b></p>
+          </div>
+        </div>
+        <p class="c-note">在 TypeScript 中，<code>"active" | "banned"</code> 这样的联合类型只在编译时存在。运行时没有任何东西能阻止第三个值。Glyph 在数据进来时检查它。</p>
+        <p class="c-links"><a class="c-copy" href="#value-outside-the-list" data-slug="value-outside-the-list">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/value-outside-the-list">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=value-outside-the-list&amp;title=Score%3A+A+value+outside+the+list">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="config-with-a-setting-missing" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">13</span>
+          <h3><a class="c-anchor" href="#config-with-a-setting-missing">缺了一项设置的配置</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">每个套餐的限额，从一个有人忘了更新的文件加载。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时用的是错误数据</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> limits = <span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">Plan</span>, <span class="t">number</span>&gt;;
+console.log(limits.team * <span class="n">2</span>);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b>类型承诺每个套餐都有限额。</b>文件里却没有。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">数据到达时检查</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Record</span>&lt;<span class="t">Plan</span>, <span class="t">int</span>&gt;&gt;(text) {
+  <span class="t">Ok</span>(limits) <span class="op">=&gt;</span> <span class="s">"loaded"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":[],"message":"expected Record&lt;Plan, int&gt;"}]</span></pre></div>
+            <p class="c-result"><b>每个套餐都必须存在，且不能有多余的。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>Record&lt;Plan, number&gt;</code> 承诺每个套餐都有值，而 <code>as</code> 从来不检查。Glyph 要求类型里的每个键都存在，并拒绝多余的键。</p>
+        <p class="c-links"><a class="c-copy" href="#config-with-a-setting-missing" data-slug="config-with-a-setting-missing">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/config-with-a-setting-missing">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=config-with-a-setting-missing&amp;title=Score%3A+A+config+with+a+setting+missing">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="number-accepted-as-enum" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">14</span>
+          <h3><a class="c-anchor" href="#number-accepted-as-enum">被当作枚举接受的数字</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">从数据库读出的状态码。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但选中了错误的状态</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> fromDb: <span class="t">number</span> = <span class="n">7</span>;
+console.log(label(fromDb));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">suspended</span></pre></div>
+            <p class="c-result"><b>未知的状态码变成了一个真实的状态。</b></p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>no-unsafe-enum-assignment</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> from_db: <span class="t">number</span> = <span class="n">7</span>
+print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `Status`, found `number`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>数字不是 <code>Status</code>。</b></p>
+          </div>
+        </div>
+        <p class="c-note">在 TypeScript 中，任何数字都能赋给数字枚举，即使没有对应的成员。</p>
+        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="connection-left-open" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">15</span>
+          <h3><a class="c-anchor" href="#connection-left-open">没关闭的连接</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">在清理之前提前返回。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时泄漏连接</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> c = openConn();
+<span class="k">if</span> (!valid) <span class="k">return</span> <span class="s">"rejected"</span>;
+closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">rejected 1 still open</span></pre></div>
+            <p class="c-result"><b>每个被拒绝的请求都会泄漏一个连接。</b></p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> <span class="k">owned</span> c: <span class="t">Conn</span> = open()
+<span class="k">match</span> valid {
+  <span class="k">false</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="s">"rejected"</span> },
+  <span class="k">true</span> <span class="op">=&gt;</span> close(c),
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0206] Error: typecheck: `owned` resource `c` is not consumed on every path before the function returns</span>
+<span class="h">Help: Consume the handle on every path (move it into an `owned` parameter) before the function returns.</span></pre></div>
+            <p class="c-result"><b>每条路径都必须关闭它。</b></p>
+          </div>
+        </div>
+        <p class="c-note">这项检查只针对声明为 <code>owned</code> 的值。没有声明的资源不会被跟踪。</p>
+        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="typo-nobody-sees" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">16</span>
+          <h3><a class="c-anchor" href="#typo-nobody-sees">没人发现的拼写错误</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">从响应里读取字段。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时失败</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> data = <span class="k">await</span> res.json();
+<span class="k">return</span> data.usr.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
+            <p class="c-result"><b><code>res.json()</code> 是 <code>any</code>，</b>所以它的任何部分都不会被检查。</p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>no-unsafe-member-access</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span><span class="c-verdict">被 glyph check 拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> json.parse(text) {
+  <span class="t">Ok</span>(data) <span class="op">=&gt;</span> data.usr.name,
+  <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unreadable"</span>,
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[TS18046] Error: tsc: 'data' is of type 'unknown'.</span>
+<span class="h">Help: TypeScript's checker rejected the code this expression compiles to. The caret is on the Glyph expression that produced it.</span></pre></div>
+            <p class="c-result"><b>没有 <code>any</code>。</b>没人检查过的数据是 <code>unknown</code>；<code>json.parse&lt;User&gt;</code> 给它一个类型。</p>
+          </div>
+        </div>
+        <p class="c-note"><code>any</code> 会关掉它碰到的一切的类型检查，而且会扩散：<code>data.usr</code> 也是 <code>any</code>。Glyph 没有 <code>any</code>。这里的拒绝来自 <code>glyph check</code> 和 <code>glyph build</code> 运行的 <code>tsc</code> 步骤；Glyph 自己的检查器目前还看不到它（G381）。</p>
+        <p class="c-links"><a class="c-copy" href="#typo-nobody-sees" data-slug="typo-nobody-sees">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-nobody-sees">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-nobody-sees&amp;title=Score%3A+A+typo+nobody+sees">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="absent-map-key" data-ts="flag" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">17</span>
+          <h3><a class="c-anchor" href="#absent-map-key">可能不存在的键</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">从一行字符串里读取字段，字段名拼错了。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时打印 undefined</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> nameOf(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;): <span class="t">string</span> {
+  <span class="k">return</span> row.naem;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
+            <p class="c-result"><b>任何键读出来都是 <code>string</code>，</b>即使键根本不存在，所以拼错的字段打印出 <code>undefined</code>。</p>
+            <p class="c-cfg flag"><b>默认关闭</b>可由编译器 flag <code>noUncheckedIndexedAccess</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">pub</span> <span class="k">fn</span> name_of(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> row.naem
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0224] Error: typecheck: `Record&lt;string, string&gt;` is a map, so `naem` may not be there</span>
+<span class="h">Help: Use `record.get(map, "key")`, which returns `Option&lt;V&gt;` so the absent case has somewhere to go. `record.has` tests for the key alone.</span></pre></div>
+            <p class="c-result"><b>从 map 读取时会表明结果可能为空，</b>所以代码必须写明为空时怎么办。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript 的 <code>Record&lt;string, string&gt;</code> 声称每个可能的键都有一个字符串。Glyph 把它当作 map，查找可能什么都找不到，所以连拼写正确的 <code>row.name</code> 也会被拒绝。</p>
+        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="typo-in-an-options-object" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">18</span>
+          <h3><a class="c-anchor" href="#typo-in-an-options-object">选项对象里的拼写错误</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">先在变量里构造选项，再传进去。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但用了错误的设置</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> opts = { host: <span class="s">"db"</span>, timeoutMS: <span class="n">500</span> };
+console.log(<span class="s">"timeout"</span>, connect(opts));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">timeout 30000</span></pre></div>
+            <p class="c-result"><b>拼错的选项被悄悄丢掉了。</b></p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> opts = { host: <span class="s">"db"</span>, timeout_MS: <span class="t">Some</span>(<span class="n">500</span>) }
+print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<span class="ip">}</span><span class="s">"</span>)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `ConnectOptions`, found `record`: missing field `timeout_ms`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>名字写错就是错误。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript 只对直接写在调用里的字面量检查未知的键，对先在变量里构造好的对象不检查。</p>
+        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="invalid-date" data-ts="none" data-glyph="design">
+        <div class="c-head">
+          <span class="c-num">19</span>
+          <h3><a class="c-anchor" href="#invalid-date">无效日期</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">从表单解析日期。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但得到错误的日期或者崩溃</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="k">new</span> <span class="t">Date</span>(input).toISOString().slice(<span class="n">0</span>, <span class="n">10</span>);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">2025-03-02</span>
+<span class="e">RangeError: Invalid time value</span></pre></div>
+            <p class="c-result"><b>无效日期会顺延</b>成真实的日期。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">根本写不出来</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> time.parse_iso(input) {
+  <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="s">"ok </span><span class="ip">${</span>ms<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">None</span> <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>input<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: 2025-02-30</span>
+<span class="o">rejected: next friday</span></pre></div>
+            <p class="c-result"><b>解析可能失败，类型会说明这一点。</b></p>
+          </div>
+        </div>
+        <p class="c-note">JavaScript 的 <code>Date</code> 会把 2 月 30 日一声不吭地变成 3 月 2 日。Glyph 没有 <code>Date</code>；<code>time.parse_iso</code> 返回 <code>None</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#invalid-date" data-slug="invalid-date">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/invalid-date">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=invalid-date&amp;title=Score%3A+An+invalid+date">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="computed-value-never-used" data-ts="flag" data-glyph="warned">
+        <div class="c-head">
+          <span class="c-num">20</span>
+          <h3><a class="c-anchor" href="#computed-value-never-used">算出来却从没用过的值</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 4/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">清洗了输入，却不小心返回了原始值。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，没有任何警告</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cleaned = input.trim().toLowerCase();
+<span class="k">return</span> input;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">"  Ada@Example.COM "</span></pre></div>
+            <p class="c-result"><b>清洗根本没有生效。</b></p>
+            <p class="c-cfg flag"><b>默认关闭</b>可由编译器 flag <code>noUnusedLocals</code> 发现</p>
+          </div>
+          <div class="c-side gl warn">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">给出警告</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cleaned = <span class="t">string</span>.lower(<span class="t">string</span>.trim(input))
+<span class="k">return</span> input</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0107] Warning: lint: unused variable `cleaned`</span>
+<span class="h">Help: Remove the binding, or prefix its name with `_` if it is intentionally unused.</span></pre></div>
+            <p class="c-result"><b>Glyph 会指出这个没用到的值。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>noUnusedLocals</code> 不属于 <code>--strict</code>，所以 TypeScript 默认什么也不说。</p>
+        <p class="c-links"><a class="c-copy" href="#computed-value-never-used" data-slug="computed-value-never-used">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/computed-value-never-used">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=computed-value-never-used&amp;title=Score%3A+A+computed+value+that+is+never+used">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="template-prints-undefined" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">21</span>
+          <h3><a class="c-anchor" href="#template-prints-undefined">打印出“undefined”的模板</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 5/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5/5</span></span><span class="c-score severe" title="严重程度: 2/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2/5</span></span></div>
+        </div>
+        <p class="c-why">显示一个可选的关联对象。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但打印出错误的文本</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="s">`Reports to: </span><span class="ip">${</span>e.manager<span class="op">?.</span>name<span class="ip">}</span><span class="s">`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Reports to: undefined</span></pre></div>
+            <p class="c-result"><b>用户看到了“undefined”这个词。</b></p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>restrict-template-expressions</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="s">"Reports to: </span><span class="ip">${</span>e.manager<span class="op">?.</span>name<span class="ip">}</span><span class="s">"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0235] Error: typecheck: `?.name` over a `Nullable&lt;Manager&gt;` is `undefined` when the value is null, and it is not given a default with `??` or compared with `==`/`!=`</span>
+<span class="h">Help: Give the absent case a value with `??` (`n?.name ?? "none"`), or convert the whole value with `nullable.to_option(n)` and `match` on it.</span></pre></div>
+            <p class="c-result"><b>缺失的情况需要一个默认值。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>?.</code> 能避免崩溃，但它产生的 <code>undefined</code> 照样会被打印出来。</p>
+        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="number-that-is-not-a-number" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">22</span>
+          <h3><a class="c-anchor" href="#number-that-is-not-a-number">不是数字的数字</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">用户输入、查询字符串、CSV 单元格。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时用的是错误数据</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> total(input: <span class="t">string</span>): <span class="t">number</span> {
+  <span class="k">const</span> qty = parseInt(input);
+  <span class="k">return</span> qty * <span class="n">10</span>;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b><code>NaN</code> 会扩散到</b>它碰到的每一个求和里。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> total(input: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> qty: <span class="t">number</span> = <span class="t">number</span>.parse(input)
+  <span class="k">return</span> qty * <span class="n">10</span>
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `number`, found `Result&lt;number, string&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            <p class="c-result"><b>解析返回 <code>Result</code>：</b>要么是数字，要么是失败原因。</p>
+          </div>
+        </div>
+        <p class="c-note">错误指向这一行，那时 <code>total</code> 还根本没被调用。要通过编译，代码必须写明错误输入意味着什么：<code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code></p>
+        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="comparing-records-with-triple-equals" data-ts="none" data-glyph="design">
+        <div class="c-head">
+          <span class="c-num">23</span>
+          <h3><a class="c-anchor" href="#comparing-records-with-triple-equals">用 <code>===</code> 比较两个记录</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">没有变化时跳过保存。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但比较的是引用而不是数据</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = { x: <span class="n">1</span>, y: <span class="n">2</span> };
+<span class="k">const</span> after = { x: <span class="n">1</span>, y: <span class="n">2</span> };
+
+<span class="k">if</span> (before === after) skipSave();</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">skipped false</span></pre></div>
+            <p class="c-result"><b>数据相同，但 <code>===</code> 问的是它们是不是同一个对象。</b>每次都会保存。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">比较的是数据</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> before: <span class="t">Point</span> = { x: <span class="n">1</span>, y: <span class="n">2</span> }
+<span class="k">let</span> after: <span class="t">Point</span> = { x: <span class="n">1</span>, y: <span class="n">2</span> }
+
+<span class="k">let</span> same = before == after</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">same true</span></pre></div>
+            <p class="c-result"><b>字段相同的两个记录相等。</b></p>
+          </div>
+        </div>
+        <p class="c-note">这是 JavaScript 的设计本意：对象上的 <code>===</code> 比较的是引用，比较数据需要 lodash 的 <code>isEqual</code> 之类的辅助函数。错误在于本想比较数据，却用了 <code>===</code>。在 Glyph 中，记录上的 <code>==</code> 比较的是数据，所以最直观的写法就是正确的写法。</p>
+        <p class="c-links"><a class="c-copy" href="#comparing-records-with-triple-equals" data-slug="comparing-records-with-triple-equals">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/comparing-records-with-triple-equals">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=comparing-records-with-triple-equals&amp;title=Score%3A+Comparing+two+records+with+%3D%3D%3D">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="change-hidden-in-a-helper" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">24</span>
+          <h3><a class="c-anchor" href="#change-hidden-in-a-helper">藏在辅助函数里的修改</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">一个会修改传入对象的函数。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，没有任何警告</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> label(u: <span class="t">User</span>): <span class="t">string</span> {
+  u.name = <span class="s">"admin"</span>;
+  <span class="k">return</span> u.name;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">admin</span></pre></div>
+            <p class="c-result"><b>调用方的用户被改了名。</b>调用处看不出任何迹象。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span><span class="c-verdict">标注之前一直被拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>u.name = <span class="s">"admin"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0008] Error: parse: assignment requires `mut`</span>
+<span class="h">Help: Glyph marks every mutation (D5): write `mut x = ...` to reassign an existing binding, or `let x = ...` to introduce a new one.</span></pre></div>
+            <p class="c-result"><b>修改字段需要 <code>mut</code>。</b></p>
+          </div>
+        </div>
+        <p class="c-note">Glyph 并不禁止这种修改，而是让它可见：搜索 <code>mut</code> 就能列出函数写入的每个字段。</p>
+        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="negative-age" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">25</span>
+          <h3><a class="c-anchor" href="#negative-age">负数年龄</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">关于值的规则，而不只是关于类型。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时用的是错误数据</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Person</span> = { age: <span class="t">number</span> }; <span class="c">// must be &gt;= 0</span>
+
+<span class="k">const</span> text = <span class="s">'{"age": -5}'</span>;
+console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Person</span>).age);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">-5</span></pre></div>
+            <p class="c-result"><b>规则写在注释里，</b>没有任何东西强制执行它。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">数据到达时检查</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Age</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
+
+<span class="k">type</span> <span class="t">Person</span> = { age: <span class="t">Age</span> }
+
+<span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Person</span>&gt;(text) {
+  <span class="t">Ok</span>(p) <span class="op">=&gt;</span> <span class="s">"age </span><span class="ip">${</span>p.age<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["age"],"message":"expected Age (int where value &gt;= 0)","code":"refinement"}]</span></pre></div>
+            <p class="c-result"><b>规则是类型的一部分，</b>和类型一起检查。</p>
+          </div>
+        </div>
+        <p class="c-note">在 TypeScript 中，“不能为负”这样的规则只能写在注释或单独的校验器里。在 Glyph 中它是类型的一部分，所以每次对该类型的检查都会执行它。</p>
+        <p class="c-links"><a class="c-copy" href="#negative-age" data-slug="negative-age">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/negative-age">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=negative-age&amp;title=Score%3A+A+negative+age">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="one-function-many-names" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">26</span>
+          <h3><a class="c-anchor" href="#one-function-many-names">一个函数，好多名字</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">修改之前先找出所有调用方。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，没有任何警告</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">import</span> getUser <span class="k">from</span> <span class="s">"./users"</span>;
+<span class="k">import</span> fetchUser <span class="k">from</span> <span class="s">"./users"</span>;
+<span class="k">import</span> { <span class="k">default</span> <span class="k">as</span> load } <span class="k">from</span> <span class="s">"./users"</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">ada ada ada</span></pre></div>
+            <p class="c-result"><b><code>grep getUser</code> 漏掉了三个调用方中的两个。</b></p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span><span class="c-verdict">到处都是同一个名字</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">import</span> users { get_user <span class="k">as</span> fetch_user }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0002] Error: parse: expected `}`, found As</span>
+<span class="h">Help: Add the expected token. Glyph is deliberately stricter than TypeScript (e.g. trailing commas required, no `if`/`else`).</span></pre></div>
+            <p class="c-result"><b>没有默认导出，也不能重命名。</b><code>grep get_user</code> 能找到每个调用方。</p>
+          </div>
+        </div>
+        <p class="c-note">正是这一点让智能体能安全地修改函数：用普通文本搜索就能找到每个用到它的地方。</p>
+        <p class="c-links"><a class="c-copy" href="#one-function-many-names" data-slug="one-function-many-names">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/one-function-many-names">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=one-function-many-names&amp;title=Score%3A+One+function%2C+many+names">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="switch-fallthrough" data-ts="flag" data-glyph="design">
+        <div class="c-head">
+          <span class="c-num">27</span>
+          <h3><a class="c-anchor" href="#switch-fallthrough">switch 贯穿</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">按套餐打折。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但收错了价格</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"pro"</span>: pct = <span class="n">10</span>;
+<span class="k">case</span> <span class="s">"team"</span>: pct = <span class="n">20</span>; <span class="k">break</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">pro discount 20</span></pre></div>
+            <p class="c-result"><b>漏掉的 <code>break</code> 会接着执行下一个 case。</b></p>
+            <p class="c-cfg flag"><b>默认关闭</b>可由编译器 flag <code>noFallthroughCasesInSwitch</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">根本写不出来</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> plan {
+  <span class="s">"pro"</span> <span class="op">=&gt;</span> <span class="n">10</span>,
+  <span class="s">"team"</span> <span class="op">=&gt;</span> <span class="n">20</span>,
+  <span class="s">"free"</span> <span class="op">=&gt;</span> <span class="n">0</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">pro discount 10</span></pre></div>
+            <p class="c-result"><b><code>match</code> 的分支永远不会贯穿。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>noFallthroughCasesInSwitch</code> 不属于 <code>--strict</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#switch-fallthrough" data-slug="switch-fallthrough">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/switch-fallthrough">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=switch-fallthrough&amp;title=Score%3A+Switch+fallthrough">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="median-with-a-fractional-index" data-ts="none" data-glyph="run">
+        <div class="c-head">
+          <span class="c-num">28</span>
+          <h3><a class="c-anchor" href="#median-with-a-fractional-index">用小数下标求中位数</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">取排序后列表的中间值。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但结果是错的</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sorted[sorted.length / <span class="n">2</span>];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b>读取下标 1.5 得到 <code>undefined</code>，</b>调用方的算术运算又把它变成 <code>NaN</code>。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">运行时拦下</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> sorted[sorted.length / <span class="n">2</span>]</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="e">RangeError: index 1.5 is out of range for an array of length 3</span></pre></div>
+            <p class="c-result"><b>错误的下标会让程序停下，</b>而不是让 <code>NaN</code> 扩散。</p>
+          </div>
+        </div>
+        <p class="c-note">Glyph 在代码运行时检查每个数组下标。这个问题在构建时发现不了。</p>
+        <p class="c-links"><a class="c-copy" href="#median-with-a-fractional-index" data-slug="median-with-a-fractional-index">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/median-with-a-fractional-index">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=median-with-a-fractional-index&amp;title=Score%3A+A+median+with+a+fractional+index">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="one-step-past-the-end" data-ts="none" data-glyph="run">
+        <div class="c-head">
+          <span class="c-num">29</span>
+          <h3><a class="c-anchor" href="#one-step-past-the-end">越过末尾一步</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">用循环对列表求和。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但结果是错的</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt;= prices.length; i++)
+  sum += prices[i];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b><code>&lt;=</code> 多读了末尾之后的一个。</b></p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">运行时拦下</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">for</span> i <span class="k">in</span> array.range(prices.length + <span class="n">1</span>) {
+  <span class="k">mut</span> sum = sum + prices[i]
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="e">RangeError: index 3 is out of range for an array of length 3</span></pre></div>
+            <p class="c-result"><b>Glyph 没有 C 风格的 <code>for</code>。</b>越界读取会让程序停下。</p>
+          </div>
+        </div>
+        <p class="c-note">在 TypeScript 中，越界读取返回 <code>undefined</code>，算术运算再把它变成 <code>NaN</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#one-step-past-the-end" data-slug="one-step-past-the-end">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/one-step-past-the-end">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=one-step-past-the-end&amp;title=Score%3A+One+step+past+the+end">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="code-after-return" data-ts="flag" data-glyph="warned">
+        <div class="c-head">
+          <span class="c-num">30</span>
+          <h3><a class="c-anchor" href="#code-after-return"><code>return</code> 之后的代码</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">函数已经返回之后才加税。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，没有任何警告</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sum;
+sum = sum * (<span class="n">1</span> + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">30</span></pre></div>
+            <p class="c-result"><b>加税那一行永远不会执行。</b></p>
+            <p class="c-cfg flag"><b>默认关闭</b>可由编译器 flag <code>allowUnreachableCode: false</code> 发现</p>
+          </div>
+          <div class="c-side gl warn">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">给出警告</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> sum
+<span class="k">mut</span> sum = sum * (<span class="n">1</span> + tax_rate)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0108] Warning: lint: unreachable code</span>
+<span class="h">Help: Remove it, or move the earlier `return`/`break`/`continue` so this can run.</span></pre></div>
+            <p class="c-result"><b>Glyph 会指出这行死代码。</b></p>
+          </div>
+        </div>
+        <p class="c-note">默认情况下，TypeScript 只在编辑器里把不可达代码显示成淡色提示。</p>
+        <p class="c-links"><a class="c-copy" href="#code-after-return" data-slug="code-after-return">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/code-after-return">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=code-after-return&amp;title=Score%3A+Code+after+return">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="arrow-function-returns-nothing" data-ts="flag" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">31</span>
+          <h3><a class="c-anchor" href="#arrow-function-returns-nothing">什么都不返回的箭头函数</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 3/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">把用户映射成表格行。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但结果是错的</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> rows = users.map((u) <span class="op">=&gt;</span> { label: u.name });</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ undefined ]</span></pre></div>
+            <p class="c-result"><b>这对花括号是函数体，</b>而 <code>label:</code> 是语句标签。</p>
+            <p class="c-cfg flag"><b>默认关闭</b>可由编译器 flag <code>allowUnusedLabels: false</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span><span class="c-verdict">根本写不出来</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> rows = array.map(users, <span class="k">fn</span>(u: <span class="t">User</span>) <span class="op">-&gt;</span> <span class="t">Row</span> { label: u.name })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0003] Error: parse: unexpected token: Colon</span>
+<span class="h">Help: Remove or correct this token; it can't appear here.</span></pre></div>
+            <p class="c-result"><b>这种有歧义的写法在 Glyph 中不合法。</b></p>
+          </div>
+        </div>
+        <p class="c-note">要在 TypeScript 箭头函数里返回对象，花括号外面需要加括号：<code>u =&gt; ({ ... })</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="array-covariance" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">32</span>
+          <h3><a class="c-anchor" href="#array-covariance">数组协变</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 2/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">在需要动物列表的地方传入了狗的列表。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时崩溃</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> adopt(shelter: <span class="t">Animal</span>[]): <span class="k">void</span> {
+  shelter.push({ name: <span class="s">"Tom the cat"</span> });
+}
+
+adopt(dogs);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: d.bark is not a function</span></pre></div>
+            <p class="c-result"><b>一只猫进了狗的列表。</b></p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>adopt(dogs)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `Array&lt;Animal&gt;`, found `Array&lt;Dog&gt;`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>狗的列表不是可写的动物列表。</b></p>
+          </div>
+        </div>
+        <p class="c-note">即使函数会往数组里添加元素，TypeScript 也允许用 <code>Dog[]</code> 代替 <code>Animal[]</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="two-types-same-shape" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">33</span>
+          <h3><a class="c-anchor" href="#two-types-same-shape">结构相同的两个类型</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 2/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">已验证和未验证的邮箱地址。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，没有任何警告</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">UnverifiedEmail</span> = { address: <span class="t">string</span> };
+<span class="k">type</span> <span class="t">VerifiedEmail</span> = { address: <span class="t">string</span> };
+
+sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">invoice sent to typo@exmaple.com</span></pre></div>
+            <p class="c-result"><b>发票发到了未验证的地址。</b></p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>send_invoice(signup)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `VerifiedEmail`, found `UnverifiedEmail`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>两个具名类型就是不同的类型。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript 按结构比较对象类型，所以结构相同的类型无论叫什么名字都可以互换。</p>
+        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="unverifiable-parse" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">34</span>
+          <h3><a class="c-anchor" href="#unverifiable-parse">无法检查它所声称内容的校验器</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 2/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2/5</span></span><span class="c-score severe" title="严重程度: 4/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4/5</span></span></div>
+        </div>
+        <p class="c-why">一个持有 socket 的记录，用手写的守卫检查。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，但把字符串当作 socket 接受了</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> isConn(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">Conn</span> {
+  <span class="k">return</span> (
+    <span class="k">typeof</span> value === <span class="s">"object"</span> &amp;&amp;
+    value !== <span class="k">null</span> &amp;&amp;
+    <span class="k">typeof</span> (value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).id === <span class="s">"number"</span> &amp;&amp;
+    (value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).sock !== <span class="k">undefined</span>
+  );
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">{ id: 1, sock: 'not a socket' }</span></pre></div>
+            <p class="c-result"><b>守卫检查了 <code>sock</code> 存在就说这是 <code>Conn</code>。</b>一个字符串被当作 socket 放行了。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="t">Conn</span>.parse(v)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0304] Error: emit: cannot validate `Conn`: field `sock` has type `Socket`, which has no runtime check</span>
+<span class="h">Help: Split the wire type from the domain type: parse a record whose fields are all checkable, then build this one from it.</span></pre></div>
+            <p class="c-result"><b>socket 没有运行时检查，</b>所以 Glyph 拒绝 <code>Conn.parse</code>，而不是生成一个站不住的检查。</p>
+          </div>
+        </div>
+        <p class="c-note">把传输类型和领域类型分开：先解析能检查的字段，再围绕 socket 构造记录。</p>
+        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="method-forgets-its-object" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">35</span>
+          <h3><a class="c-anchor" href="#method-forgets-its-object">忘了自己对象的方法</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 2/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">把方法当作值传来传去。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时崩溃</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> up = name.toUpperCase;
+console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: String.prototype.toUpperCase called on null or undefined</span></pre></div>
+            <p class="c-result"><b>方法从它的字符串上被取了下来，</b>不再知道自己属于谁。</p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>unbound-method</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> up = name.toUpperCase</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0234] Error: typecheck: method `toUpperCase` of `string` is read without being called</span></pre></div>
+            <p class="c-result"><b>方法必须在读取的地方调用。</b>请改为传函数。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript 的方法依赖于调用它的对象（<code>this</code>）。从 <code>name.toUpperCase()</code> 中取出来当值用时，它就不知道该用哪个字符串了。</p>
+        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="quantity-of-one-and-a-half" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">36</span>
+          <h3><a class="c-anchor" href="#quantity-of-one-and-a-half">数量为 1.5</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 2/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">一个只能是整数的订单行。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时用的是错误数据</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: <span class="t">number</span> };
+
+<span class="k">const</span> text = <span class="s">'{"qty": 1.5}'</span>;
+console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Order</span>).qty);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">1.5</span></pre></div>
+            <p class="c-result"><b>TypeScript 只有一个 <code>number</code>。</b>结果发出了半件商品。</p>
+            <p class="c-cfg none"><b>没有任何工具能发现</b>即使打开所有编译器 flag 并启用严格模式的 typescript-eslint 也不行</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">数据到达时检查</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: <span class="t">int</span> }
+
+<span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Order</span>&gt;(text) {
+  <span class="t">Ok</span>(o) <span class="op">=&gt;</span> <span class="s">"qty </span><span class="ip">${</span>o.qty<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["qty"],"message":"field `qty` must be int","code":"type"}]</span></pre></div>
+            <p class="c-result"><b><code>int</code> 是单独的类型，</b>并且会被检查。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript 的整数和小数共用一个 <code>number</code> 类型。Glyph 有 <code>int</code>，并在数据到达时检查它。</p>
+        <p class="c-links"><a class="c-copy" href="#quantity-of-one-and-a-half" data-slug="quantity-of-one-and-a-half">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/quantity-of-one-and-a-half">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=quantity-of-one-and-a-half&amp;title=Score%3A+A+quantity+of+1.5">不同意这个评分？</a></p>
+      </article>
+      <article class="catch" id="duplicate-case" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">37</span>
+          <h3><a class="c-anchor" href="#duplicate-case">重复的 case</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="可能性: 2/5">可能性 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2/5</span></span><span class="c-score severe" title="严重程度: 3/5">严重程度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3/5</span></span></div>
+        </div>
+        <p class="c-why">判断哪些订单可以退款。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，没有任何警告</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"paid"</span>: <span class="k">return</span> <span class="k">true</span>;
+<span class="k">case</span> <span class="s">"shipped"</span>: <span class="k">return</span> <span class="k">true</span>;
+<span class="k">case</span> <span class="s">"paid"</span>: <span class="k">return</span> <span class="k">false</span>; <span class="c">// never runs</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">true</span></pre></div>
+            <p class="c-result"><b>第二条规则是死代码。</b>没人注意到。</p>
+            <p class="c-cfg lint"><b>仅 lint</b>可由 lint 规则 <code>no-duplicate-case</code> 发现</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">构建时拒绝</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="s">"paid"</span> <span class="op">=&gt;</span> <span class="k">true</span>,
+<span class="s">"shipped"</span> <span class="op">=&gt;</span> <span class="k">true</span>,
+<span class="s">"paid"</span> <span class="op">=&gt;</span> <span class="k">false</span>,</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0305] Error: emit: this match arm can never run: an earlier arm already matches `"paid"`</span>
+<span class="h">Help: Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.</span></pre></div>
+            <p class="c-result"><b>永远不会执行的分支是错误。</b></p>
+          </div>
+        </div>
+        <p class="c-note">tsc 不会标出出现两次的 <code>case</code> 标签。</p>
+        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">复制链接</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">不同意这个评分？</a></p>
+      </article>
+      </div>
+
+      </section>
+      <section class="c-section" id="traps">
+        <h2 class="group-head">5 个在 Glyph 中不存在的 JavaScript 陷阱</h2>
+        <p class="group-sub">
+          一些老陷阱，智能体仍然时不时会踩到。Glyph 会拒绝每个这样的程序，但不是因为发现了错误：导致错误的特性根本不在语言里，并且会给出替代写法。
+        </p>
+      <ul class="c-traps">
+        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> 的结果是 <code>[10, NaN, NaN]</code>，因为 <code>map</code> 把下标当作进制传了进去。Glyph 有 <code>number.parse</code>，它返回 <code>Result</code>。</li>
+        <li id="trap-regex-lastindex">用 <code>.test</code> 重复使用带 <code>/g</code> 的正则，每隔一次匹配就会失败，因为它记住了 <code>lastIndex</code>。Glyph 没有正则对象；<code>regex.matches(pattern, text)</code> 没有状态。</li>
+        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code> 在没有对象的情况下执行方法。Glyph 没有类，也没有 <code>this</code>。</li>
+        <li id="trap-math-max-empty"><code>Math.max(...[])</code> 是 <code>-Infinity</code>。Glyph 的 <code>array.max</code> 返回 <code>Option</code>，空列表得到空值。</li>
+        <li id="trap-array-holes"><code>Array(3).map(...)</code> 返回三个空位，因为 <code>map</code> 会跳过空位。Glyph 没有 <code>Array(n)</code>；数组用字面量书写。</li>
+      </ul>
+
+      </section>
+
+      <section class="c-section" id="not-yet">
+        <h2 class="group-head">Glyph 还发现不了的问题</h2>
+        <p class="group-sub">
+          11 个 Glyph 尚未堵上的漏洞。这些程序今天在 Glyph 中都能编译，并且和在 TypeScript 中一样出错。每个都在 <code>catches/</code> 中有复现，并有一个未关闭的 gap 编号；修复落地时检查会失败，所以条目不会比漏洞活得更久。
+        </p>
+      <ul class="c-gaps">
+        <li><code>requested || 3</code> 会把真实的 <code>0</code> 变成 <code>3</code>。 <span>G386</span></li>
+        <li>把记录放进 <code>"Welcome back, ${user}!"</code> 会打印出 <code>[object Object]</code>。 <span>G385</span></li>
+        <li><code>forEach(async ...)</code> 会丢掉每个 promise，于是这些工作在依赖它的代码之后才完成，而且没有任何警告。 <span>G384</span></li>
+        <li>可选字段里的 JSON <code>null</code> 能通过检查，所以用展开覆盖默认值时会留下 <code>null</code>。 <span>G391</span></li>
+        <li>辅助函数里的 <code>xs.sort(...)</code> 会重排调用方的数组，却没有 <code>mut</code> 标记。 <span>G380</span></li>
+        <li>对数字调用 <code>.sort()</code> 会按文本排序：<code>100,25,9</code>。 <span>G388</span></li>
+        <li>用 <code>${name}</code> 拼出来的 SQL 查询会被 <code>std/sqlite</code> 接受。 <span>G387</span></li>
+        <li>在 <code>c[0]</code> 上跨 <code>await</code> 的丢失更新，而对字段做同样的写入会被拒绝。 <span>G390</span></li>
+        <li>对字符串做 <code>input + 1</code>、<code>users.find(...).name</code>，以及在 <code>unknown</code> 上读取字段，这些只有 <code>tsc</code> 这一步能发现，Glyph 自己的检查器发现不了，所以编辑器和智能体工具都会漏掉。 <span>G381, G382, G392</span></li>
+      </ul>
+
+        <p class="group-sub c-after">
+          在每一项关于智能体所写代码的研究中，逻辑错误都是最大的一类，而任何类型检查器都看不到它们：写错的公式、理解错的任务，在 Glyph 中和在 TypeScript 中一样能编译。
+        </p>
+        <p class="group-sub">
+          Glyph 有一个逃生口 <code>extern_ts</code>，用于它无法表达的 TypeScript。它是固定的关键字，所以 <code>grep extern_ts</code> 能列出每一处规则被暂停的地方。
+        </p>
+      </section>
+    <script>
+      (function () {
+        var T = {"showing": "显示 {total} 个中的 {shown} 个。再次点击已选中的筛选条件即可取消。", "copied": "链接已复制"};
+        var bar = document.querySelector(".c-filters");
+        var items = Array.prototype.slice.call(document.querySelectorAll(".catch"));
+        var status = document.querySelector(".c-fstatus");
+        var chips = Array.prototype.slice.call(document.querySelectorAll(".c-chip"));
+        var state = { ts: "", glyph: "" };
+        function read() {
+          var q = new URLSearchParams(location.search);
+          state.ts = q.get("ts") || "";
+          state.glyph = q.get("glyph") || "";
+        }
+        function write() {
+          var q = new URLSearchParams(location.search);
+          ["ts", "glyph"].forEach(function (k) {
+            if (state[k]) q.set(k, state[k]); else q.delete(k);
+          });
+          var s = q.toString();
+          history.replaceState(null, "", location.pathname + (s ? "?" + s : "") + location.hash);
+        }
+        function apply() {
+          var shown = 0;
+          items.forEach(function (el) {
+            var ok = (!state.ts || el.dataset.ts === state.ts) && (!state.glyph || el.dataset.glyph === state.glyph);
+            el.hidden = !ok;
+            if (ok) shown++;
+          });
+          chips.forEach(function (c) {
+            c.setAttribute("aria-pressed", String(state[c.dataset.group] === c.dataset.value));
+          });
+          status.textContent = state.ts || state.glyph
+            ? T.showing.replace("{shown}", shown).replace("{total}", items.length)
+            : "";
+        }
+        if (bar) {
+          bar.hidden = false;
+          read();
+          apply();
+          chips.forEach(function (c) {
+            c.addEventListener("click", function () {
+              var g = c.dataset.group;
+              state[g] = state[g] === c.dataset.value ? "" : c.dataset.value;
+              write();
+              apply();
+            });
+          });
+        }
+        document.querySelectorAll(".c-copy").forEach(function (a) {
+          a.addEventListener("click", function (e) {
+            var url = location.origin + location.pathname + "#" + a.dataset.slug;
+            if (!navigator.clipboard) return;
+            e.preventDefault();
+            history.replaceState(null, "", "#" + a.dataset.slug);
+            navigator.clipboard.writeText(url).then(function () {
+              var prev = a.textContent;
+              a.textContent = T.copied;
+              setTimeout(function () { a.textContent = prev; }, 1400);
+            });
+          });
+        });
+      })();
+    </script>
+
+    </div>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>一门编译到 TypeScript 的类型化语言，让智能体修改代码时不会把它改坏。</p>
+          </div>
+          <div class="foot-col">
+            <h2>开始</h2>
+            <a href="/zh-cn/start/">第一个程序</a>
+            <a href="/zh-cn/from-typescript/">从 TypeScript 迁移过来</a>
+            <a href="/zh-cn/teams/">面向团队</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">五分钟速览</a>
+          </div>
+          <div class="foot-col">
+            <h2>学习</h2>
+            <a href="/zh-cn/answers/">问答</a>
+            <a href="/zh-cn/answers/verifiability/">按顺序阅读问答</a>
+            <a href="/zh-cn/answers/tooling/">编辑器与智能体工具</a>
+            <a href="/zh-cn/agents/">面向智能体</a>
+            <a href="/zh-cn/mcp/">MCP 服务器</a>
+            <a href="/llms-pages.txt">Markdown 版页面</a>
+            <a href="/zh-cn/design/">设计</a>
+            <a href="/zh-cn/pillars/verifiability/">四大支柱</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">语言规范</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">宣言</a>
+          </div>
+          <div class="foot-col">
+            <h2>证据</h2>
+            <a href="/zh-cn/catches/">能发现什么</a>
+            <a href="/zh-cn/evidence/">说法如何验证</a>
+            <a href="/zh-cn/hardening/">加固</a>
+            <a href="/zh-cn/benchmarks/">基准测试</a>
+            <a href="/versions/">版本</a>
+          </div>
+          <div class="foot-col">
+            <h2>源代码</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/zh-cn/contribute/">参与贡献</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub 上的 Releases</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/zh-cn/catches/index.segments.json">编辑本页</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph：你的智能体没法悄悄改坏的 TypeScript。</span>
+          <span>&copy; 2026 Glyph &middot; MIT 或 Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "自动", light: "浅色", dark: "深色" };
+        var labels = { auto: "配色主题：自动（跟随系统）。切换为浅色。", light: "配色主题：浅色。切换为深色。", dark: "配色主题：深色。切换为自动。" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

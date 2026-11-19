@@ -13,6 +13,15 @@
     <meta property="og:title" content="Can I generate a typed client from my API spec?" />
     <meta property="og:description" content="Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph." />
     <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
@@ -37,6 +46,45 @@
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I generate a typed client from my API spec?","item":"https://glyphlang.io/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/codegen/#article","headline":"Can I generate a typed client from my API spec?","description":"Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.","url":"https://glyphlang.io/answers/codegen/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/codegen/#breadcrumb"}}]}</script>
 
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/codegen/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/codegen/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/codegen/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/codegen/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/codegen/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/codegen/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/codegen/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/codegen/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/codegen/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/codegen/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/codegen/" />
+    <script>
+      (function () {
+        var pages = {"pt-br":"/pt-br/answers/codegen/","es":"/es/answers/codegen/","ja":"/ja/answers/codegen/","tr":"/tr/answers/codegen/","zh-cn":"/zh-cn/answers/codegen/","ko":"/ko/answers/codegen/","de":"/de/answers/codegen/","ru":"/ru/answers/codegen/","th":"/th/answers/codegen/"};
+        try {
+          if (localStorage.getItem("glyph-lang") !== null) return;
+          if (/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)) return;
+          var prefs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+          for (var i = 0; i < prefs.length; i++) {
+            var l = String(prefs[i]).toLowerCase(), loc = null;
+            if (/^en\b/.test(l)) return;
+            if (/^pt\b/.test(l)) loc = "pt-br";
+            else if (/^zh\b/.test(l)) {
+              if (/hant|-tw|-hk|-mo/.test(l)) continue;
+              loc = "zh-cn";
+            } else {
+              var base = l.split("-")[0];
+              if (["es", "ja", "tr", "ko", "de", "ru", "th"].indexOf(base) >= 0) loc = base;
+            }
+            if (!loc) continue;
+            if (!pages[loc]) return;
+            localStorage.setItem("glyph-lang", loc);
+            sessionStorage.setItem("glyph-lang-auto", "1");
+            location.replace(pages[loc] + location.search + location.hash);
+            return;
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -128,15 +176,15 @@
             <p class="lang-head">Language</p>
             <ul>
               <li><a href="/answers/codegen/" hreflang="en" lang="en" data-lang="en" aria-current="true"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span><span class="lang-tick" aria-hidden="true"></span></a></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="pt-BR">Português (Brasil)</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="es">Español</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ja">日本語</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="tr">Türkçe</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="zh-Hans">简体中文</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ko">한국어</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="de">Deutsch</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ru">Русский</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="th">ไทย</span><span class="lang-note">not translated yet</span></span></li>
+              <li><a href="/pt-br/answers/codegen/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/codegen/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/codegen/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/codegen/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/codegen/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/codegen/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/codegen/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/codegen/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/codegen/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
             </ul>
           </div>
         </details>

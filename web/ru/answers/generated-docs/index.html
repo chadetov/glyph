@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Генерируется ли документация, которую читает агент? · Glyph</title>
+    <meta name="description" content="glyph llms --json выдаёт диагностики, прелюдию, сигнатуры стандартной библиотеки и решения по языку из собственных таблиц компилятора, поэтому они не могут разойтись с ним." />
+    <link rel="canonical" href="https://glyphlang.io/ru/answers/generated-docs/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ru/answers/generated-docs/" />
+    <meta property="og:title" content="Генерируется ли документация, которую читает агент?" />
+    <meta property="og:description" content="glyph llms --json выдаёт диагностики, прелюдию, сигнатуры стандартной библиотеки и решения по языку из собственных таблиц компилятора, поэтому они не могут разойтись с ним." />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/generated-docs/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Генерируется ли документация, которую читает агент?","item":"https://glyphlang.io/ru/answers/generated-docs/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/generated-docs/#article","headline":"Генерируется ли документация, которую читает агент?","description":"glyph llms --json выдаёт диагностики, прелюдию, сигнатуры стандартной библиотеки и решения по языку из собственных таблиц компилятора, поэтому они не могут разойтись с ним.","url":"https://glyphlang.io/ru/answers/generated-docs/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/generated-docs/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/generated-docs/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/generated-docs/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/generated-docs/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/generated-docs/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/generated-docs/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/generated-docs/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/generated-docs/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/generated-docs/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/generated-docs/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/generated-docs/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/generated-docs/" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Перейти к содержимому</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Основная навигация">
+        <div class="nav-brand">
+          <a href="/ru/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="Примечания к выпуску">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">Почему Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Для кого он</p>
+                    <ul>
+                      <li><a href="/ru/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Для разработчиков агентов</span><span class="nav-desc">MCP-сервер и запросы, на которые он отвечает</span></span></a></li>
+                      <li><a href="/ru/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">Если вы пишете на TypeScript</span><span class="nav-desc">Что меняется, а что остаётся как было</span></span></a></li>
+                      <li><a href="/ru/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">Для команд</span><span class="nav-desc">Что он гарантирует и чего стоит его внедрение</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Дизайн</p>
+                    <ul>
+                      <li><a href="/ru/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Дизайн</span><span class="nav-desc">Четыре принципа и то, что намеренно оставили за бортом</span></span></a></li>
+                      <li><a href="/ru/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Четыре принципа</span><span class="nav-desc">Проверяемость, удобство поиска, абстракция, стабильные диффы</span></span></a></li>
+                      <li><a href="/ru/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph и Effect</span><span class="nav-desc">Сравнение языка и библиотеки</span></span></a></li>
+                      <li><a href="/ru/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Почему не ReScript, Gleam или Elm?</span><span class="nav-desc">Три типизированных языка, компилируемых в JavaScript</span></span></a></li>
+                      <li><a href="/ru/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph и TypeScript со всеми инструментами</span><span class="nav-desc">Что всё ещё пропускают строгий tsc, zod и eslint</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/ru/catches/">Что он ловит</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">Обучение<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">С чего начать</p>
+                    <ul>
+                      <li><a href="/ru/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">Начать за 10 минут</span><span class="nav-desc">Установите, напишите программу и запустите её</span></span></a></li>
+                      <li><a href="/ru/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Ответы <span class="nav-count">28</span></span><span class="nav-desc">Вопросы, которые задают инженеры, с разобранными примерами</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Справочник по языку</span><span class="nav-desc">Полная спецификация на GitHub</span></span></a></li>
+                      <li><a href="/ru/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Участие в разработке</span><span class="nav-desc">Как устроен компилятор и как помочь</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Подключите агента</p>
+                    <ul>
+                      <li><a href="/ru/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP-сервер</span><span class="nav-desc">Подключите агента к запросам компилятора</span></span></a></li>
+                      <li><a href="/ru/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">Спросите компилятор</span><span class="nav-desc">Узнайте о символе, типе или изменении до правки</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">llms.txt для агентов</span><span class="nav-desc">Весь язык в одном файле, который может прочитать агент</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">Доказательства<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Как это проверяется</p>
+                    <ul>
+                      <li><a href="/ru/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Как проверяются утверждения</span><span class="nav-desc">Фикстуры и проверка в CI за каждым утверждением</span></span></a></li>
+                      <li><a href="/ru/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Проверка на прочность</span><span class="nav-desc">Агенты пытаются его сломать, и что они нашли</span></span></a></li>
+                      <li><a href="/ru/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Бенчмарки</span><span class="nav-desc">Четыре принципа в цифрах, с оговорками</span></span></a></li>
+                      <li><a href="/ru/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Что пока не ловится</span><span class="nav-desc">Известные дыры, у каждой есть воспроизведение</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ru/catches/"><span class="nav-feature-big">21 из 37</span><span class="nav-feature-text">ошибок в TypeScript, которые не ловит ничто даже в максимально настроенном проекте</span><span class="nav-feature-cta">Посмотреть, что он ловит <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">Версии</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Песочница</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="Язык: Русский (RU)"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">Русский</span><span class="lang-short" aria-hidden="true">RU</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">Язык</p>
+            <ul>
+              <li><a href="/answers/generated-docs/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/generated-docs/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/generated-docs/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/generated-docs/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/generated-docs/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/generated-docs/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/generated-docs/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/generated-docs/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/generated-docs/" hreflang="ru" lang="ru" data-lang="ru" aria-current="true"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/th/answers/generated-docs/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/generated-docs/" hreflang="en" data-lang="en">Читать на английском</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Цветовая тема: авто (как в системе). Переключить на светлую.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Авто</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Открыть меню">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Закрыть меню" : "Открыть меню");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="Навигация по ответам">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/ru/answers/">Ответы</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/ru/answers/generated-docs/" aria-current="page"><span class="n">24</span> Документация, которая не устаревает</a></p>
+        <a class="ans-step prev" href="/ru/answers/repair-protocol/" aria-label="Предыдущий ответ: 23 Починить красную сборку">&lsaquo; 23</a><a class="ans-step next" href="/ru/answers/tooling/" aria-label="Следующий ответ: 25 Редактор и отладка">25 &rsaquo;</a>
+        <a class="ans-all-link" href="/ru/answers/">Все ответы</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">Все ответы<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>Язык: Русский</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/generated-docs/" hreflang="en" data-lang="en">Читать на английском</a></p>
+      <button class="i18n-x" type="button" aria-label="Закрыть"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>Эта страница является переводом. Основной считается английская версия. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ru%29%3A+%2Fru%2Fanswers%2Fgenerated-docs%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fru%2Fanswers%2Fgenerated-docs%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fgenerated-docs%2F%0A%0AWhat+is+wrong%3A%0A">Сообщить о проблеме с переводом</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side">
+      <p class="q-eyebrow">24 &middot; Документация, которая не устаревает</p>
+      <h1 class="q-title">Документация, которую читает агент, генерируется или пишется вручную и устаревает?</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="Ответы">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/ru/answers/">Все ответы</a><button class="ans-close" type="button" aria-label="Закрыть список ответов"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>Какую проблему решает</summary><ol>
+            <li><a href="/ru/answers/verifiability/"><span class="n">01</span><span class="t">Тихие поломки</span></a></li>
+            <li><a href="/ru/answers/diff-stability/"><span class="n">02</span><span class="t">Чистые диффы</span></a></li>
+            <li><a href="/ru/answers/greppability/"><span class="n">03</span><span class="t">Поиск по коду</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Стоит ли его брать</summary><ol>
+            <li><a href="/ru/answers/why-typescript/"><span class="n">04</span><span class="t">Почему TypeScript</span></a></li>
+            <li><a href="/ru/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">Почему не TS с инструментами</span></a></li>
+            <li><a href="/ru/answers/human-value/"><span class="n">06</span><span class="t">Без ИИ</span></a></li>
+            <li><a href="/ru/answers/ai-authoring/"><span class="n">07</span><span class="t">Код от ИИ</span></a></li>
+            <li><a href="/ru/answers/upgrades/"><span class="n">08</span><span class="t">Обновления</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>С вашим стеком</summary><ol>
+            <li><a href="/ru/answers/imports/"><span class="n">09</span><span class="t">Ваши библиотеки</span></a></li>
+            <li><a href="/ru/answers/embedding/"><span class="n">10</span><span class="t">Внутри вашего приложения</span></a></li>
+            <li><a href="/ru/answers/typed-apis/"><span class="n">11</span><span class="t">Типизированные API</span></a></li>
+            <li><a href="/ru/answers/codegen/"><span class="n">12</span><span class="t">Клиент и сервер</span></a></li>
+            <li><a href="/ru/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/ru/answers/state/"><span class="n">14</span><span class="t">Общее состояние</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Что на нём можно построить</summary><ol>
+            <li><a href="/ru/answers/language/"><span class="n">15</span><span class="t">Язык</span></a></li>
+            <li><a href="/ru/answers/finance/"><span class="n">16</span><span class="t">Деньги и безопасность</span></a></li>
+            <li><a href="/ru/answers/web-serving/"><span class="n">17</span><span class="t">Веб-сервер</span></a></li>
+            <li><a href="/ru/answers/interactive-cli/"><span class="n">18</span><span class="t">Интерактивные программы</span></a></li>
+            <li><a href="/ru/answers/long-running/"><span class="n">19</span><span class="t">Серверы и демоны</span></a></li>
+            <li><a href="/ru/answers/binary/"><span class="n">20</span><span class="t">Бинарные данные</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>Работа с агентом</summary><ol>
+            <li><a href="/ru/answers/impact/"><span class="n">21</span><span class="t">Перед правкой</span></a></li>
+            <li><a href="/ru/answers/ask-the-compiler/"><span class="n">22</span><span class="t">Спросите компилятор</span></a></li>
+            <li><a href="/ru/answers/repair-protocol/"><span class="n">23</span><span class="t">Починить красную сборку</span></a></li>
+            <li><a href="/ru/answers/generated-docs/" aria-current="page"><span class="n">24</span><span class="t">Документация, которая не устаревает</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Ошибки, редакторы и продакшен</summary><ol>
+            <li><a href="/ru/answers/tooling/"><span class="n">25</span><span class="t">Редактор и отладка</span></a></li>
+            <li><a href="/ru/answers/early-errors/"><span class="n">26</span><span class="t">Пойманное раньше</span></a></li>
+            <li><a href="/ru/answers/parse-errors/"><span class="n">27</span><span class="t">Почему не прошёл разбор</span></a></li>
+            <li><a href="/ru/answers/debugging/"><span class="n">28</span><span class="t">Отладка и эксплуатация</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        Генерируется. <code>glyph llms --json</code> выдаёт каталог диагностик, прелюдию, сигнатуры стандартной библиотеки, решения по языку и руководство по инструментам из собственных таблиц компилятора, а гейт роняет сборку, если рукописная копия с ними расходится. Каждый пример на Glyph в документе, с которого начинает агент, компилируется, включая неправильные.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-it-matters">Почему это важно<a class="h-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          Вопрос не риторический, потому что раньше правдивый ответ был «вручную, и да». Стартовый документ для агента утверждал, что MCP-сервер «предоставляет пять инструментов», и перечислял пять. Сервер отдавал семь. Те два, к которым собственные инструкции сервера велят агенту обращаться в первую очередь, не упоминались в нём ни разу. 58 кодов ошибок жили в трёх копиях, которые поддерживались вручную и проверялись только на то, есть ли в них строка кода. Из 19 примеров на Glyph в том документе 2 компилировались, а 17 пропускались как фрагменты.
+        </p>
+        <p>
+          Всё это один и тот же дефект. Документ о компиляторе, который поддерживают рядом с компилятором люди с благими намерениями. Агент, читающий его, не может понять, какие фразы всё ещё верны, и мы тоже не могли.
+        </p>
+
+        <h2 class="block-label" id="see-it">Посмотрите сами<a class="h-anchor" href="#see-it" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          Семь разделов, каждый считан из таблицы, которая у компилятора уже есть. Запись диагностики содержит фразу из каталога, исправление в одну строку, развёрнутое объяснение, а также help и note из диагностики, которую выдал компилятор. 51 из 77 кодов также несут неправильную программу, на которую выдаётся этот код, скомпилированную в момент запроса; остальные 26 сообщают, что в корпусе для них нет случая.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --json, запись E0200 (сокращено)</span>
+<pre>{
+  <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+  <span class="pk">"phase"</span>: <span class="s">"typechecker"</span>,
+  <span class="pk">"meaning"</span>: <span class="s">"Non-exhaustive `match` on a tagged union (yours, a prelude
+    `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a
+    string-literal union (`\"free\" | \"pro\"`, D30) missing a literal ..."</span>,
+  <span class="pk">"fix"</span>: <span class="s">"Add an arm for each missing variant"</span>,
+  <span class="pk">"help"</span>: <span class="s">"Add an arm for each missing variant."</span>,
+  <span class="pk">"note"</span>: <span class="s">"Tagged unions are sealed (D9): adding a variant forces every
+           match to be updated. A `_`/`else` catch-all is allowed but
+           forfeits that guarantee."</span>,
+  <span class="pk">"counter_example"</span>: {
+    <span class="pk">"name"</span>: <span class="s">"alias_of_local_union_not_exhaustive"</span>,
+    <span class="pk">"files"</span>: [ { <span class="pk">"source"</span>: <span class="s">"module main\n\ntype Shape =\n  | Circle\n ..."</span> } ],
+    <span class="pk">"diagnostic"</span>: { <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+      <span class="pk">"message"</span>: <span class="s">"non-exhaustive match on `Shape`: missing variants `Tri`"</span>,
+      <span class="pk">"missing_variants"</span>: [<span class="s">"Tri"</span>] },
+    <span class="pk">"corrected"</span>: <span class="k">null</span>,
+    <span class="pk">"corrected_absent"</span>: <span class="s">"`tests/negative/` pairs no repaired program with a
+      case: an entry is a wrong program and the code it draws. A fix
+      invented here would compile nowhere and be checked by nothing."</span>
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          77 кодов берутся из одной таблицы в компиляторе, а <code>docs/error-codes.md</code> и таблица каталога в стартовом документе для агента пишутся из неё скриптом, который падает при расхождении. Слияние трёх копий, существовавших раньше, выявило код с объяснением, но без места в списке, и строку, в которой экранированная вертикальная черта незаметно сломала всю таблицу.
+        </p>
+
+        <h2 class="block-label" id="the-prelude-the-stdlib-and-the-decisions">Прелюдия, стандартная библиотека и решения<a class="h-anchor" href="#the-prelude-the-stdlib-and-the-decisions" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          Прелюдия это 24 имени, по которым работает резолвер, с описанием каждого. Стандартная библиотека это 40 модулей и 340 экспортов, и каждая сигнатура считывается из собственных таблиц проверки типов и печатается тем же принтером типов, что и в диагностике, так что сигнатура в документе это та самая сигнатура, которую проверка типов будет от вас требовать. Экспорты делятся на три группы, и никогда на две: 129 сигнатур смоделированы во всех позициях, у 46 на месте типа параметра стоит <code>?</code>, они учитываются как <code>partially_modeled</code> со строкой о том, сколько позиций осталось, а у 165 сигнатуры нет вообще. <code>?</code> это отображённый <code>unknown</code>, поэтому такая сигнатура никогда не публикуется как полная.
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">"stdlib"</span>
+<pre>{ <span class="pk">"path"</span>: <span class="s">"std/array"</span>, <span class="pk">"exports"</span>: [
+  { <span class="pk">"name"</span>: <span class="s">"filter"</span>,
+    <span class="pk">"signature"</span>:
+      <span class="s">"fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;"</span> },
+  { <span class="pk">"name"</span>: <span class="s">"find"</span>,
+    <span class="pk">"signature"</span>:
+      <span class="s">"fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;"</span> },
+  { <span class="pk">"name"</span>: <span class="s">"fold"</span>,
+    <span class="pk">"signature"</span>:
+      <span class="s">"fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U"</span> } ] }
+
+<span class="pk">"modeled"</span>: <span class="n">129</span>, <span class="pk">"partially_modeled"</span>: <span class="n">46</span>,
+<span class="pk">"unmodeled"</span>: <span class="n">165</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">"prelude" и "decisions"</span>
+<pre><span class="pk">"prelude"</span>: { <span class="pk">"count"</span>: <span class="n">24</span>, <span class="pk">"names"</span>: [
+  { <span class="pk">"name"</span>: <span class="s">"int"</span>, <span class="pk">"role"</span>: <span class="s">"type"</span> },
+  { <span class="pk">"name"</span>: <span class="s">"Ok"</span>,  <span class="pk">"role"</span>: <span class="s">"value"</span> },
+  { <span class="pk">"name"</span>: <span class="s">"par"</span>, <span class="pk">"role"</span>: <span class="s">"namespace"</span> }, <span class="c">...</span> ] }
+
+<span class="pk">"decisions"</span>: { <span class="pk">"count"</span>: <span class="n">49</span>,
+  <span class="pk">"duplicate_numbers"</span>: [],
+  <span class="pk">"decisions"</span>: [
+    { <span class="pk">"id"</span>: <span class="s">"D9"</span>,
+      <span class="pk">"section"</span>: <span class="s">"Control flow &amp; expressions"</span>,
+      <span class="pk">"title"</span>: <span class="s">"`else` is a catch-all arm; `_` is a
+        position-level wildcard; a PascalCase arm
+        head is a variant reference ..."</span> }, <span class="c">...</span> ] }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>duplicate_numbers</code> существует потому, что генератор читает собственный список спецификации, и при первом запуске он нашёл два разных решения с одним номером D43 и напечатал <code>"duplicate_numbers": [43]</code>. Он сообщает о коллизии, а не устраняет дубликат, и только так о ней кто-то узнал. Ничто в компиляторе не опирается на номер D, так что ни одна программа не пострадала; пострадал читатель, переходящий по ссылке. Это исправлено: D43 это правило <code>mut</code> через <code>await</code>, а <code>never</code> это D47, так что список возвращается пустым. Сегодня решений 49, от D1 до D49.
+        </p>
+
+        <h2 class="block-label" id="the-wrong-programs-are-readable-too">Неправильные программы тоже можно прочитать<a class="h-anchor" href="#the-wrong-programs-are-readable-too" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          Негативный корпус компилятора это набор программ, которые должны падать, с кодом, который каждая должна вызвать. Раньше его видел только <code>cargo test</code>. Агент, который изучает, что отклоняет правило, это именно тот читатель, для которого корпус писался, поэтому теперь он отвечает, а каждый случай компилируется в момент запроса, так что диагностика рядом с ним выдана именно этим компилятором.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --negative E0008</span>
+<pre>{
+  <span class="pk">"code"</span>: <span class="s">"E0008"</span>,
+  <span class="pk">"meaning"</span>: <span class="s">"Assignment without `mut` (`x = e` should be `mut x = e`, or
+              `let x = e` for a new binding; D5)"</span>,
+  <span class="pk">"fix"</span>: <span class="s">"Write `mut x = e`, or `let x = e` for a new binding"</span>,
+  <span class="pk">"negative"</span>: [ {
+    <span class="pk">"name"</span>: <span class="s">"bare_assignment_without_mut"</span>,
+    <span class="pk">"files"</span>: [ { <span class="pk">"path"</span>: <span class="s">"bare_assignment_without_mut.glyph"</span>,
+      <span class="pk">"source"</span>: <span class="s">"module neg\n\nfn count() -&gt; number {\n  let total = 0\n
+                 total = total + 1\n  return total\n}\n"</span> } ],
+    <span class="pk">"diagnostic"</span>: { <span class="pk">"code"</span>: <span class="s">"E0008"</span>, <span class="pk">"stage"</span>: <span class="s">"parse"</span>,
+      <span class="pk">"message"</span>: <span class="s">"assignment requires `mut`"</span>,
+      <span class="pk">"help"</span>: <span class="s">"Glyph marks every mutation (D5): write `mut x = ...` to
+               reassign an existing binding, or `let x = ...` to
+               introduce a new one."</span>,
+      <span class="pk">"range"</span>: { <span class="pk">"start"</span>: { <span class="pk">"line"</span>: <span class="n">5</span>, <span class="pk">"col"</span>: <span class="n">3</span>, <span class="pk">"offset"</span>: <span class="n">53</span> }, <span class="c">...</span> } } } ],
+  <span class="pk">"catches"</span>: [],
+  <span class="pk">"catches_absent"</span>: <span class="s">"`catches/` pairs no TypeScript-accepted program with E0008"</span>
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Без кода команда перечисляет 117 случаев по 53 из 77 кодов в 0.1.149 и называет 24 кода, у которых случаев нет, а не оставляет вас выводить покрытие из того, что вернулось. Второй корпус, <code>catches/</code>, сопоставляет программу, которую принимает <code>tsc --strict</code>, с кодом на Glyph, который её отклоняет, и такие пары возвращаются в том же ответе, где они есть. Оба корпуса встраиваются прямо из своих каталогов, так что случай, добавленный в любой из них, попадает в ответ без второй правки, о которой надо помнить.
+        </p>
+
+        <h2 class="block-label" id="every-example-compiles-including-the-wrong-ones">Каждый пример компилируется, включая неправильные<a class="h-anchor" href="#every-example-compiles-including-the-wrong-ones" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          Генерация справочника это половина дела. Вторая половина это текст, с которого начинает агент, и примеры в нём он как раз копирует. Каждый блок кода на Glyph в этом документе либо является полной программой, которая компилируется, либо помечен как фрагмент названного полного примера, в строках которого он должен встречаться. Было 19 блоков, из них 2 компилировались; теперь их 24, из них 20 компилируются, 4 помечены, и ни один не пропущен. В справочнике по стандартной библиотеке стало 8 из 8 вместо 4 из 8.
+        </p>
+        <p>
+          Блок можно также пометить как программу, которая должна упасть, с указанием кода, который она вызывает. Так документ содержит пять неправильных форм, о которых он предупреждает: ту, что вызывает <code>E0228</code>, ту, что вызывает <code>E0008</code>, и ещё три. Предупреждение в паре с диагностикой можно проверить. Предупреждение, написанное текстом, это обещание.
+        </p>
+        <p>
+          Компиляция документов нашла две вещи, которые чтение никогда бы не нашло. Тройной обратный апостроф внутри строки читался как открытие блока, так что 250 строк считались одним фрагментом и ничего внутри них не проверялось. А рабочий пример сервера в справочнике по стандартной библиотеке вызывал <code>http.serve</code>, которую <code>std/http</code> не экспортирует. Функция называется <code>listen</code>.
+        </p>
+
+        <h2 class="block-label" id="what-it-costs-to-hand-over-and-what-it-stopped-costing">Во что обходится передача и во что перестала обходиться<a class="h-anchor" href="#what-it-costs-to-hand-over-and-what-it-stopped-costing" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          Одиннадцать инструментов MCP раньше несли всё своё руководство в ответе <code>tools/list</code>, за который платит каждая сессия при подключении: 31 446 байт описаний в ответе на 45 509 байт. Теперь те же одиннадцать инструментов несут 8 627 байт в ответе на 20 386 байт. Ничего не удалено. Прежний текст хранится дословно, по имени инструмента, и публикуется внутри <code>glyph llms --json</code>, так что контракт, нужный в момент вызова, находится в описании, а остальное доступно одной командой, а не в первом ответе каждой сессии. Тест читает список инструментов и документ вместе, так что документ, называющий инструмент, которого сервер не отдаёт, или число, расходящееся со списком, роняет сборку. Именно такая проверка была нужна фразе «предоставляет пять инструментов».
+        </p>
+        <p>
+          Всё это работает офлайн и локально. <code>glyph llms</code> печатает текст, <code>glyph llms --json</code> данные, <code>glyph llms --negative</code> неправильные программы. Тот же текст отдаётся по адресу <a href="/llms.txt">llms.txt</a> для агента, у которого есть сеть, но нет бинарника. То, что агент спрашивает о <em>вашем</em> коде, а не о языке, отвечают <a href="/ru/answers/ask-the-compiler/">инструменты запросов</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">Текущее состояние<a class="h-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p><code>glyph llms --json</code> выдаёт из компилятора семь разделов: 77 кодов диагностик, 51 из них со скомпилированным контрпримером, 32 зарезервированных слова, 24 имени прелюдии, 40 модулей стандартной библиотеки с 340 экспортами, 49 решений по языку, разобранных из спецификации, и одиннадцать инструментов с их командами <code>glyph query</code> и полными руководствами. <code>docs/error-codes.md</code> и таблица диагностик стартового документа пишутся из собственной таблицы кодов компилятора скриптом, который падает при расхождении и заодно заново синхронизирует <code>llms.txt</code>. Тест сверяет каталог инструментов с тем, что отдаёт сервер. Каждый блок кода на Glyph в стартовом документе и в справочнике по стандартной библиотеке компилируется или является помеченным фрагментом компилирующегося примера, а пять неправильных форм оформлены как программы в паре с кодом, который каждая вызывает. <code>glyph llms --negative</code> отвечает из тех же корпусов, которые запускает <code>cargo test</code>.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Где он останавливается</h3>
+          <p>В этом документе есть два числа неправильных программ, и они считают разное: 51 из 77 кодов несут контрпример из <code>tests/negative/</code>, а <code>glyph llms --negative</code> в 0.1.149 перечисляет 117 случаев по 53 кодам, потому что читает ещё и отказы в <code>catches/</code>; следующий выпуск добавляет 22 отказа, появившихся в <code>catches/</code> с тех пор, и получается 139 случаев по 55 кодам. В 0.1.149 у 24 кодов нет неправильной программы ни в одном корпусе, и ответ называет их, а не выдумывает пример. 165 из 340 экспортов стандартной библиотеки возвращаются без сигнатуры: реализация написана на TypeScript, который проверяет <code>tsc</code>, а собственные таблицы компилятора для неё ничего не моделируют, поэтому <code>glyph_symbol</code> для <code>std/result::all</code> или <code>std/io::println</code> сообщает <code>kind: null</code> с этой причиной. Из 175, у которых сигнатура есть, у 46 на месте типа параметра всё ещё стоит <code>?</code>. И документ это снимок, который вы скачиваете, а не сервис: нет слоя поиска, нет эмбеддингов и нет чата поверх него.</p>
+        </div>
+        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.149 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+      </div>
+      <nav class="prevnext" aria-label="Назад и вперёд">
+        <a href="/ru/answers/repair-protocol/">
+          <span class="dir">&larr; Назад</span>
+          <span class="t">Когда сборка падает, говорит ли компилятор агенту, как её починить?</span>
+        </a>
+        <a href="/ru/answers/tooling/" class="nx cta">
+          <span class="dir">Далее &rarr;</span>
+          <span class="t">Как обстоят дела с редактором, отладкой и ошибками?</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ru/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>Типизированный язык, который компилируется в TypeScript и устроен так, чтобы агенты могли менять код, не ломая его.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Начало</h2>
+            <a href="/ru/start/">Первая программа</a>
+            <a href="/ru/from-typescript/">Если вы пишете на TypeScript</a>
+            <a href="/ru/teams/">Для команд</a>
+            <a href="/playground/">Песочница</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Обзор за пять минут</a>
+          </div>
+          <div class="foot-col">
+            <h2>Обучение</h2>
+            <a href="/ru/answers/">Ответы</a>
+            <a href="/ru/answers/verifiability/">Читать ответы по порядку</a>
+            <a href="/ru/answers/tooling/">Редактор и инструменты для агентов</a>
+            <a href="/ru/agents/">Для агентов</a>
+            <a href="/ru/mcp/">MCP-сервер</a>
+            <a href="/llms-pages.txt">Страницы в Markdown</a>
+            <a href="/ru/design/">Дизайн</a>
+            <a href="/ru/pillars/verifiability/">Четыре принципа</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Спецификация языка</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Манифест</a>
+          </div>
+          <div class="foot-col">
+            <h2>Доказательства</h2>
+            <a href="/ru/catches/">Что он ловит</a>
+            <a href="/ru/evidence/">Как проверяются утверждения</a>
+            <a href="/ru/hardening/">Проверка на прочность</a>
+            <a href="/ru/benchmarks/">Бенчмарки</a>
+            <a href="/versions/">Версии</a>
+          </div>
+          <div class="foot-col">
+            <h2>Исходный код</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/ru/contribute/">Участие в разработке</a>
+            <a href="https://github.com/chadetov/glyph/releases">Релизы на GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ru/answers/generated-docs/index.segments.json">Редактировать эту страницу</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript, который агенты не сломают незаметно для вас.</span>
+          <span>&copy; 2026 Glyph &middot; MIT или Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Авто", light: "Светлая", dark: "Тёмная" };
+        var labels = { auto: "Цветовая тема: авто (как в системе). Переключить на светлую.", light: "Цветовая тема: светлая. Переключить на тёмную.", dark: "Цветовая тема: тёмная. Переключить на авто." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

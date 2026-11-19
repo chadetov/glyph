@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bleiben Änderungen von Agenten sauber, oder formatieren sie meine Datei um? · Glyph</title>
+    <meta name="description" content="Glyph hat ein kanonisches Layout und verlangt Trailing Commas, also ist eine einzeilige Änderung ein einzeiliger Diff. Agenten können eine echte Änderung nicht unter Umformatierungsrauschen begraben." />
+    <link rel="canonical" href="https://glyphlang.io/de/answers/diff-stability/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/de/answers/diff-stability/" />
+    <meta property="og:title" content="Bleiben Änderungen von Agenten sauber, oder formatieren sie meine Datei um?" />
+    <meta property="og:description" content="Glyph hat ein kanonisches Layout und verlangt Trailing Commas, also ist eine einzeilige Änderung ein einzeiliger Diff. Agenten können eine echte Änderung nicht unter Umformatierungsrauschen begraben." />
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Bleiben Änderungen von Agenten sauber, oder formatieren sie meine Datei um?","item":"https://glyphlang.io/de/answers/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/diff-stability/#article","headline":"Bleiben Änderungen von Agenten sauber, oder formatieren sie meine Datei um?","description":"Glyph hat ein kanonisches Layout und verlangt Trailing Commas, also ist eine einzeilige Änderung ein einzeiliger Diff. Agenten können eine echte Änderung nicht unter Umformatierungsrauschen begraben.","url":"https://glyphlang.io/de/answers/diff-stability/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/diff-stability/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/diff-stability/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/diff-stability/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/diff-stability/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/diff-stability/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/diff-stability/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/diff-stability/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/diff-stability/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/diff-stability/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/diff-stability/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/diff-stability/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/diff-stability/" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Zum Inhalt springen</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Hauptnavigation">
+        <div class="nav-brand">
+          <a href="/de/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="Release Notes">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">Warum Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Für wen es ist</p>
+                    <ul>
+                      <li><a href="/de/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Für Entwickler von Agenten</span><span class="nav-desc">Der MCP-Server und die Abfragen, die er beantwortet</span></span></a></li>
+                      <li><a href="/de/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">Umstieg von TypeScript</span><span class="nav-desc">Was sich ändert und was gleich bleibt</span></span></a></li>
+                      <li><a href="/de/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">Für Teams</span><span class="nav-desc">Was es garantiert und was die Einführung kostet</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Das Design</p>
+                    <ul>
+                      <li><a href="/de/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Das Design</span><span class="nav-desc">Die vier Säulen und was bewusst weggelassen wurde</span></span></a></li>
+                      <li><a href="/de/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Die vier Säulen</span><span class="nav-desc">Überprüfbarkeit, Durchsuchbarkeit, Abstraktion, stabile Diffs</span></span></a></li>
+                      <li><a href="/de/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph im Vergleich zu Effect</span><span class="nav-desc">Eine Sprache und eine Bibliothek im Vergleich</span></span></a></li>
+                      <li><a href="/de/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Warum nicht ReScript, Gleam oder Elm?</span><span class="nav-desc">Drei typisierte Sprachen, die zu JavaScript kompilieren</span></span></a></li>
+                      <li><a href="/de/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph im Vergleich zu TypeScript mit vollem Tooling</span><span class="nav-desc">Was striktes tsc, zod und eslint trotzdem durchlassen</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/de/catches/">Was es findet</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">Lernen<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Loslegen</p>
+                    <ul>
+                      <li><a href="/de/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">In 10 Minuten loslegen</span><span class="nav-desc">Installieren, ein Programm schreiben, ausführen</span></span></a></li>
+                      <li><a href="/de/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Antworten <span class="nav-count">28</span></span><span class="nav-desc">Fragen von Entwicklern, mit durchgearbeiteten Beispielen</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Sprachreferenz</span><span class="nav-desc">Die vollständige Spezifikation, auf GitHub</span></span></a></li>
+                      <li><a href="/de/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Mitmachen</span><span class="nav-desc">Wie der Compiler aufgebaut ist und wie du helfen kannst</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Agent anbinden</p>
+                    <ul>
+                      <li><a href="/de/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP-Server</span><span class="nav-desc">Verbinde deinen Agenten mit den Abfragen des Compilers</span></span></a></li>
+                      <li><a href="/de/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">Den Compiler fragen</span><span class="nav-desc">Symbol, Typ oder Änderung vor dem Bearbeiten nachschlagen</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">llms.txt für Agenten</span><span class="nav-desc">Die Sprache in einer Datei, die ein Agent lesen kann</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">Belege<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Wie es geprüft wird</p>
+                    <ul>
+                      <li><a href="/de/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Wie Aussagen geprüft werden</span><span class="nav-desc">Die Fixtures und das CI-Gate hinter jeder Aussage</span></span></a></li>
+                      <li><a href="/de/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Härtung</span><span class="nav-desc">Agenten, die es kaputtmachen wollten, und was sie gefunden haben</span></span></a></li>
+                      <li><a href="/de/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Benchmarks</span><span class="nav-desc">Die vier Säulen in Zahlen, mit Einschränkungen</span></span></a></li>
+                      <li><a href="/de/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Noch nicht erkannt</span><span class="nav-desc">Bekannte Lücken, jede mit einer Reproduktion</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/de/catches/"><span class="nav-feature-big">21 von 37</span><span class="nav-feature-text">TypeScript-Fehler, die in einem maximal konfigurierten Setup nichts findet</span><span class="nav-feature-cta">Sehen, was es findet <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">Versionen</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="Sprache: Deutsch (DE)"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">Deutsch</span><span class="lang-short" aria-hidden="true">DE</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">Sprache</p>
+            <ul>
+              <li><a href="/answers/diff-stability/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/diff-stability/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/diff-stability/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/diff-stability/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/diff-stability/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/diff-stability/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/diff-stability/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/diff-stability/" hreflang="de" lang="de" data-lang="de" aria-current="true"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/ru/answers/diff-stability/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/diff-stability/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/diff-stability/" hreflang="en" data-lang="en">Auf Englisch lesen</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Farbschema: automatisch (folgt dem System). Zu hell wechseln.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Menü öffnen">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Menü schließen" : "Menü öffnen");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="Navigation der Antworten">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/de/answers/">Antworten</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/de/answers/diff-stability/" aria-current="page"><span class="n">02</span> Saubere Diffs</a></p>
+        <a class="ans-step prev" href="/de/answers/verifiability/" aria-label="Vorherige Antwort: 01 Stille Fehler">&lsaquo; 01</a><a class="ans-step next" href="/de/answers/greppability/" aria-label="Nächste Antwort: 03 Dinge finden">03 &rsaquo;</a>
+        <a class="ans-all-link" href="/de/answers/">Alle Antworten</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">Alle Antworten<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>Sprache: Deutsch</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/diff-stability/" hreflang="en" data-lang="en">Auf Englisch lesen</a></p>
+      <button class="i18n-x" type="button" aria-label="Schließen"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>Diese Seite ist eine Übersetzung. Maßgeblich ist die englische Version. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28de%29%3A+%2Fde%2Fanswers%2Fdiff-stability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fde%2Fanswers%2Fdiff-stability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fdiff-stability%2F%0A%0AWhat+is+wrong%3A%0A">Ein Problem mit der Übersetzung melden</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side">
+      <p class="q-eyebrow">02 &middot; Reviewbare Änderungen</p>
+      <h1 class="q-title">Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="Antworten">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/de/answers/">Alle Antworten</a><button class="ans-close" type="button" aria-label="Liste der Antworten schließen"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp" open><summary>Das Problem, das es löst</summary><ol>
+            <li><a href="/de/answers/verifiability/"><span class="n">01</span><span class="t">Stille Fehler</span></a></li>
+            <li><a href="/de/answers/diff-stability/" aria-current="page"><span class="n">02</span><span class="t">Saubere Diffs</span></a></li>
+            <li><a href="/de/answers/greppability/"><span class="n">03</span><span class="t">Dinge finden</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Entscheiden, ob du es einsetzt</summary><ol>
+            <li><a href="/de/answers/why-typescript/"><span class="n">04</span><span class="t">Warum TypeScript</span></a></li>
+            <li><a href="/de/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">Warum nicht TS mit Tooling</span></a></li>
+            <li><a href="/de/answers/human-value/"><span class="n">06</span><span class="t">Ohne KI</span></a></li>
+            <li><a href="/de/answers/ai-authoring/"><span class="n">07</span><span class="t">Von KI geschrieben</span></a></li>
+            <li><a href="/de/answers/upgrades/"><span class="n">08</span><span class="t">Upgrades</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Einsatz mit deinem Stack</summary><ol>
+            <li><a href="/de/answers/imports/"><span class="n">09</span><span class="t">Deine Bibliotheken</span></a></li>
+            <li><a href="/de/answers/embedding/"><span class="n">10</span><span class="t">In deiner Anwendung</span></a></li>
+            <li><a href="/de/answers/typed-apis/"><span class="n">11</span><span class="t">Typisierte APIs</span></a></li>
+            <li><a href="/de/answers/codegen/"><span class="n">12</span><span class="t">Client und Server</span></a></li>
+            <li><a href="/de/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/de/answers/state/"><span class="n">14</span><span class="t">Gemeinsamer Zustand</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Was du damit bauen kannst</summary><ol>
+            <li><a href="/de/answers/language/"><span class="n">15</span><span class="t">Die Sprache</span></a></li>
+            <li><a href="/de/answers/finance/"><span class="n">16</span><span class="t">Geld und Sicherheit</span></a></li>
+            <li><a href="/de/answers/web-serving/"><span class="n">17</span><span class="t">Webserver</span></a></li>
+            <li><a href="/de/answers/interactive-cli/"><span class="n">18</span><span class="t">Interaktive Programme</span></a></li>
+            <li><a href="/de/answers/long-running/"><span class="n">19</span><span class="t">Server und Daemons</span></a></li>
+            <li><a href="/de/answers/binary/"><span class="n">20</span><span class="t">Binärdaten</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Mit einem Agenten arbeiten</summary><ol>
+            <li><a href="/de/answers/impact/"><span class="n">21</span><span class="t">Vor dem Bearbeiten</span></a></li>
+            <li><a href="/de/answers/ask-the-compiler/"><span class="n">22</span><span class="t">Den Compiler fragen</span></a></li>
+            <li><a href="/de/answers/repair-protocol/"><span class="n">23</span><span class="t">Einen roten Build reparieren</span></a></li>
+            <li><a href="/de/answers/generated-docs/"><span class="n">24</span><span class="t">Doku, die nicht veraltet</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Fehler, Editoren und Produktion</summary><ol>
+            <li><a href="/de/answers/tooling/"><span class="n">25</span><span class="t">Editor und Debugging</span></a></li>
+            <li><a href="/de/answers/early-errors/"><span class="n">26</span><span class="t">Früher gefunden</span></a></li>
+            <li><a href="/de/answers/parse-errors/"><span class="n">27</span><span class="t">Warum das Parsen scheiterte</span></a></li>
+            <li><a href="/de/answers/debugging/"><span class="n">28</span><span class="t">Debugging und Betrieb</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        Eine einzeilige Änderung ist ein <strong>einzeiliger Diff</strong>, jedes Mal. Glyph hat ein einziges kanonisches Layout, also <strong>kann ein Agent eine echte Änderung nicht unter einer Wand aus Umformatierung begraben</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-it-matters">Warum das wichtig ist<a class="h-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt">#</a></h2>
+        <p>
+          Wenn ein Agent einen Pull Request öffnet, <em>ist</em> der Diff das Review. Wenn ein echter einzeiliger Fix als Umformatierung über 200 Zeilen ankommt, kann niemand sehen, was sich tatsächlich geändert hat, und genau in diesem Rauschen schlüpft ein Bug durch. Stabile Diffs heißt, der Diff zeigt die Änderung und <strong>nichts als die Änderung</strong>.
+        </p>
+        <p>Zwei Regeln erledigen den Großteil der Arbeit. Hier ist jede, gezeigt als der Diff, den du reviewen würdest.</p>
+
+        <h2 class="block-label" id="example-1-trailing-commas-one-item-per-line">Beispiel 1: Trailing Commas, ein Eintrag pro Zeile<a class="h-anchor" href="#example-1-trailing-commas-one-item-per-line" aria-label="Link zu diesem Abschnitt">#</a></h2>
+        <p>Eine Route hinzufügen. Im üblichen TypeScript-Stil muss sich die bisher letzte Zeile ändern, nur um ein Komma zu bekommen. Zwei Zeilen bewegen sich für eine Änderung an einem Eintrag:</p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript: "/billing" hinzufügen</span>
+<pre> <span class="k">const</span> routes = [
+   <span class="s">"/home"</span>,
+<span class="del">-  <span class="s">"/about"</span></span>
+<span class="add">+  <span class="s">"/about"</span>,</span>
+<span class="add">+  <span class="s">"/billing"</span></span>
+ ]</pre>
+          <div style="padding:0 16px 14px"><span class="verdict bad">3 Zeilen bewegt für 1 Änderung</span></div>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph: "/billing" hinzufügen</span>
+<pre> <span class="k">let</span> routes = [
+   <span class="s">"/home"</span>,
+   <span class="s">"/about"</span>,
+<span class="add">+  <span class="s">"/billing"</span>,</span>
+ ]</pre>
+          <div style="padding:0 16px 14px"><span class="verdict good">1 Zeile hinzugefügt, genau die Änderung</span></div>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Trailing Commas sind <strong>Pflicht</strong>, und eine Liste, die nicht in eine Zeile passt, bekommt ein Element pro Zeile, statt neu gepackt zu werden, also stört Einfügen, Entfernen oder Umordnen eines Eintrags nie seine Nachbarn. Dasselbe gilt für Record-Felder, Parameter, match-Arme und Imports. Die Schwelle hat ihren Preis: Eine Umbenennung, die einen Aufruf über 100 Spalten schiebt, klappt die ganze Argumentliste auf ein Argument pro Zeile auf.
+        </p>
+
+        <h2 class="block-label" id="example-2-one-canonical-layout">Beispiel 2: ein kanonisches Layout<a class="h-anchor" href="#example-2-one-canonical-layout" aria-label="Link zu diesem Abschnitt">#</a></h2>
+        <p>
+          Es gibt genau eine korrekte Formatierung, erzeugt von <code>glyph fmt</code>. Leerraum, Umbrüche und Ausrichtung sind keine Entscheidungen, die ein Agent &ldquo;aufräumen&rdquo; kann, also kann eine inhaltliche Änderung keinen Umbruch mit sich ziehen. Ändere den Typ eines Feldes, und das ist der ganze Diff:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">user.glyph: ein Feld ändern, eine Zeile reviewen</span>
+<pre> <span class="k">type</span> <span class="t">User</span> = {
+   id: <span class="t">string</span>,
+<span class="del">-  age: <span class="t">string</span>,</span>
+<span class="add">+  age: <span class="t">number</span>,</span>
+   email: <span class="t">string</span>,
+ }</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Weil das Layout fest ist, erzeugen zwei verschiedene Agenten, die dieselbe Datei bearbeiten, <strong>byteidentische</strong> Formatierung, kein Umbruch-Rauschen, kein &ldquo;mein Formatter gegen deinen&rdquo;, und ein sauberes <code>git blame</code>, das auf den Commit zeigt, der eine Zeile tatsächlich geändert hat, nicht auf den, der sie umformatiert hat.
+        </p>
+
+        <h2 class="block-label" id="one-canonical-layout-so-does-the-formatter-move-my-comments">Ein kanonisches Layout, verschiebt der Formatter also meine Kommentare?<a class="h-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="Link zu diesem Abschnitt">#</a></h2>
+        <p>
+          Früher ja, und das war ein Bug, den man beim Namen nennen sollte. Glyph hat keine Blockkommentare und keine Doc-Comment-Syntax, also ist eine <code>//</code>-Zeile der einzige Weg, ein Record-Feld, eine Union-Variante oder einen <code>match</code>-Arm zu erklären. Der Formatter gab ausstehende Kommentare nur an Grenzen von Deklarationen und Anweisungen aus, was hieß, dass ein Kommentar, der <em>innerhalb</em> eines Konstrukts geschrieben wurde, zur nächsten Deklaration hinunterwanderte und sich als Dokumentation für das las, wo er gelandet war. Aufgefallen ist es beim Schreiben von Minesweeper in Glyph. Diese beiden Deklarationen stammen aus <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">der echten App</a> (Kommentare passend gekürzt), einmal durch den alten Formatter und einmal durch den neuen gelaufen.
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">0.1.37: ein fmt-Durchlauf</span>
+<pre><span class="k">type</span> <span class="t">Visibility</span> =
+  | <span class="t">Hidden</span>
+  | <span class="t">Flagged</span>
+  | <span class="t">Revealed</span>
+
+<span class="del"><span class="c">// Face down. Prints as `.`.</span></span>
+<span class="del"><span class="c">// Face down and marked by the player.</span></span>
+<span class="del"><span class="c">// Face up. `Cell.adjacent` is what gets printed.</span></span>
+<span class="k">type</span> <span class="t">Cell</span> = { mine: <span class="t">bool</span>, adjacent: <span class="t">int</span>, visibility: <span class="t">Visibility</span> }
+<span class="del"><span class="c">// Number of mined neighbours. Only meaningful</span></span>
+<span class="del"><span class="c">// once mines are placed.</span></span></pre>
+          <div style="padding:0 16px 14px"><span class="verdict bad">drei Varianten-Kommentare dokumentieren jetzt einen Record</span></div>
+        </div>
+        <div class="code">
+          <span class="cap">0.1.38: dieselbe Datei</span>
+<pre><span class="k">type</span> <span class="t">Visibility</span> =
+<span class="add">  <span class="c">// Face down. Prints as `.`.</span></span>
+  | <span class="t">Hidden</span>
+<span class="add">  <span class="c">// Face down and marked by the player.</span></span>
+  | <span class="t">Flagged</span>
+<span class="add">  <span class="c">// Face up. `Cell.adjacent` is what gets printed.</span></span>
+  | <span class="t">Revealed</span>
+
+<span class="k">type</span> <span class="t">Cell</span> = {
+  mine: <span class="t">bool</span>,
+<span class="add">  <span class="c">// Number of mined neighbours. Only meaningful</span></span>
+<span class="add">  <span class="c">// once mines are placed.</span></span>
+  adjacent: <span class="t">int</span>,
+  visibility: <span class="t">Visibility</span>,
+}</pre>
+          <div style="padding:0 16px 14px"><span class="verdict good">jeder Kommentar an dem, was er beschreibt</span></div>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Die Regel jetzt: Ein Kommentar wird über dem Element neu ausgegeben, über dem er geschrieben wurde, innerhalb eines Record-Rumpfs, einer Liste von Union-Varianten, eines Array- oder Objektliterals, einer Argument- oder Parameterliste und eines <code>match</code>. Und ein Konstrukt mit einem Kommentar im Inneren nimmt immer die Form mit einem Element pro Zeile an, in jeder Größe, damit der Kommentar ein Element hat, über dem er stehen kann. <code>type Shape = { w: int, h: int }</code> wird also weiterhin auf eine Zeile zusammengezogen, und sobald du <code>h</code> dokumentierst, bleibt der Record aufgeklappt.
+        </p>
+        <p>
+          Warum das als Korrektheits-Bug zählt und nicht als kosmetischer: Nichts schlug fehl. Der Build endete mit 0, <code>tsc</code> bestand, und die verunstaltete Ausgabe war selbst ein Fixpunkt, also wurde <code>glyph fmt --check</code> in CI grün für eine Datei, deren Kommentare jetzt etwas Falsches sagten. Das ist dieselbe Klasse von Fehlern, die Glyph beseitigen soll, nur im Formatter statt im Typsystem.
+        </p>
+
+        <h2 class="block-label" id="can-glyph-fmt-break-a-program-that-builds">Kann <code>glyph fmt</code> ein Programm kaputtmachen, das baut?<a class="h-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="Link zu diesem Abschnitt">#</a></h2>
+        <p>
+          Es konnte, und ein Fall ist noch offen. Zuerst der behobene. Ein Arm, der &ldquo;der leere Record&rdquo; bedeutet, wird <code>true =&gt; ({})</code> geschrieben. Die Position des Arm-Rumpfs ist die einzige Stelle in der Grammatik, an der eine führende <code>{</code> mehrdeutig ist, und der Parser löst das, indem er direkt nach der Klammer <code>key:</code> oder <code>...</code> verlangt. Ein leeres Objekt hat keins von beidem, also kam der Arm, als der Formatter die Klammern wegließ und <code>true =&gt; {}</code> neu ausgab, als leerer <em>Block</em> zurück, und die Datei baute nicht mehr: <code>E0223</code>, der Arm erzeugt keinen Wert. Du hast einen Formatter über funktionierenden Code laufen lassen und Code bekommen, der nicht mehr kompilierte.
+        </p>
+        <p>
+          Der Printer klammert jetzt einen Arm-Rumpf ein, dessen erstes Token eine <code>{</code> ist, die als Block neu geparst würde, also das leere Objekt und alles, was darauf aufbaut (<code>({}).size</code> kommt als <code>({}.size)</code> zurück). Ein Arm-Rumpf, der sich schon eindeutig liest, wie <code>false =&gt; { a: "x" }</code>, bleibt ohne Klammern, also gibt es nirgendwo sonst neue Satzzeichen zu lesen. <code>fmt</code> ist auf dem Ergebnis ein Fixpunkt, und das erzeugte TypeScript ist unverändert. Ein Formatter, den dein Programm überleben muss, ist schlimmer als ein fehlendes Feature, weil er Code beschädigt, der schon funktioniert hat.
+        </p>
+        <p>
+          Zwei weitere wurden in 0.1.138 behoben. Innerhalb eines Blocks setzt eine Zeile, die mit <code>(</code> beginnt, die Zeile darüber fort, und bis 0.1.137 gab der Formatter <code>load()?</code> gefolgt von <code>.run()</code> als <code>(load()?).run()</code> aus, also bedeutete die formatierte Datei nach <code>let a = 1</code> <code>let a = 1(…).run()</code>. Jetzt behält er <code>load()?</code> mit <code>.run()</code> eingerückt in der nächsten Zeile bei und schreibt <code>e?(x)</code>, <code>e?[0]</code> und <code>e? ?</code> ohne Klammern. Der andere war die <code>where</code>-Verfeinerung einer Union, die der Formatter wegließ, wodurch aus einem Programm, das <code>check</code> ablehnte, eins wurde, das es akzeptierte. Der Fuzzer parst jetzt die formatierte Datei und vergleicht den Baum mit dem des Originals, also scheitert ein Layout, das die Bedeutung einer Datei ändert, beim ersten Durchlauf, statt darauf zu warten, dass es jemand bemerkt.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Die Formatierungsregeln dahinter und der Tausch, den sie machen, stehen auf der <a href="/de/pillars/diff-stability/">Seite zur Säule stabile Diffs</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">Wo es steht<a class="h-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Pflicht-Trailing-Commas, Listen mit einem Eintrag pro Zeile und das eine kanonische Layout von <code>glyph fmt</code>, verlustfrei hin und zurück und idempotent, mit Formatieren beim Speichern im Editor. <code>glyph fmt</code> verschiebt einen Kommentar nie dorthin, wo er nicht hingehört. Kommentare bleiben über dem Element, über dem sie geschrieben wurden, auch innerhalb eines Records, eines Literals, einer Argumentliste, eines <code>match</code>, zwischen den Operanden eines Operators und zwischen den Schritten einer Methodenkette, die dann einen Schritt pro Zeile mit führendem Punkt bekommt.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Die Grenze, und was als Nächstes kommt</h3>
+          <p>Ein Kommentar wird immer in einer eigenen Zeile ausgegeben, also wandert einer, der am Ende einer Codezeile steht (<code>w: int, // width in cells</code>), in die Zeile über dem nächsten Element. Er überschreitet keine Deklarationsgrenze mehr, aber er bewegt sich; ihn am Zeilenende zu halten, verlangt, dass der Printer verfolgt, welche Zeile ein Kommentar sich teilt. Ein Kommentar, für den das Layout keinen Platz hat, etwa in einem Index, nach den Argumenten eines Aufrufs mitten in einer Kette oder vor einem Operanden von <code>!</code> oder <code>await</code>, wird nicht mehr verschoben: <code>glyph fmt</code> lehnt die Datei ab, lässt sie, wie sie war, und nennt die Zeile und wohin der Kommentar gehört, und <code>glyph check</code> meldet dasselbe als Warnung E0500. Ein Kommentar zwischen JSX-Attributen oder zwischen den Feldern eines Objekt-Patterns wird ebenfalls abgelehnt, wo ein Layout mit einem Element pro Zeile ihn unterbringen könnte; diese Layouts stehen auf der Liste. Der Printer hat auch noch keine Regel, um eine lange Methoden- oder <code>+</code>-Kette umzubrechen, also bricht eine zu lange Kette stattdessen die innerste Argumentliste um, was die falsche Stelle ist. Wir bauen außerdem einen Benchmark zur Diff-Größe gegen dieselben Änderungen in TypeScript, damit diese Säule eine Zahl wird, die du prüfen kannst.</p>
+        </div>
+        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.149 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      </div>
+      <nav class="prevnext" aria-label="Zurück und weiter">
+        <a href="/de/answers/verifiability/">
+          <span class="dir">&larr; Zurück</span>
+          <span class="t">Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?</span>
+        </a>
+        <a href="/de/answers/greppability/" class="nx cta">
+          <span class="dir">Weiter &rarr;</span>
+          <span class="t">Kann ein Agent (oder ich) finden, wo etwas definiert ist?</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/de/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>Eine typisierte Sprache, die zu TypeScript kompiliert, gebaut, damit Agenten Code ändern können, ohne ihn kaputtzumachen.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Loslegen</h2>
+            <a href="/de/start/">Dein erstes Programm</a>
+            <a href="/de/from-typescript/">Umstieg von TypeScript</a>
+            <a href="/de/teams/">Für Teams</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Die Fünf-Minuten-Tour</a>
+          </div>
+          <div class="foot-col">
+            <h2>Lernen</h2>
+            <a href="/de/answers/">Antworten</a>
+            <a href="/de/answers/verifiability/">Die Antworten der Reihe nach lesen</a>
+            <a href="/de/answers/tooling/">Editor- und Agenten-Tooling</a>
+            <a href="/de/agents/">Für Agenten</a>
+            <a href="/de/mcp/">MCP-Server</a>
+            <a href="/llms-pages.txt">Seiten als Markdown</a>
+            <a href="/de/design/">Design</a>
+            <a href="/de/pillars/verifiability/">Die vier Säulen</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Sprachspezifikation</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifest</a>
+          </div>
+          <div class="foot-col">
+            <h2>Belege</h2>
+            <a href="/de/catches/">Was es findet</a>
+            <a href="/de/evidence/">Wie Aussagen geprüft werden</a>
+            <a href="/de/hardening/">Härtung</a>
+            <a href="/de/benchmarks/">Benchmarks</a>
+            <a href="/versions/">Versionen</a>
+          </div>
+          <div class="foot-col">
+            <h2>Quellcode</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/de/contribute/">Mitmachen</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases auf GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/de/answers/diff-stability/index.segments.json">Diese Seite bearbeiten</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript, das deine Agenten nicht unbemerkt kaputtmachen können.</span>
+          <span>&copy; 2026 Glyph &middot; MIT oder Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Hell", dark: "Dunkel" };
+        var labels = { auto: "Farbschema: automatisch (folgt dem System). Zu hell wechseln.", light: "Farbschema: hell. Zu dunkel wechseln.", dark: "Farbschema: dunkel. Zu automatisch wechseln." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

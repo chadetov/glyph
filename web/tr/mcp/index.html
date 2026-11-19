@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ajanınızı MCP üzerinden Glyph'e bağlayın · Glyph</title>
+    <meta name="description" content="glyph mcp, on bir araçlı bir MCP sunucusu çalıştırır: bir sembolün ne olduğu, bir değişikliğin neyi bozacağı, diagnostic'ler, referanslar ve daha fazlası. Her biri aynı zamanda bir glyph query fiilidir." />
+    <link rel="canonical" href="https://glyphlang.io/tr/mcp/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/tr/mcp/" />
+    <meta property="og:title" content="Ajanınızı MCP üzerinden Glyph&#x27;e bağlayın" />
+    <meta property="og:description" content="glyph mcp, on bir araçlı bir MCP sunucusu çalıştırır: bir sembolün ne olduğu, bir değişikliğin neyi bozacağı, diagnostic&#x27;ler, referanslar ve daha fazlası. Her biri aynı zamanda bir glyph query fiilidir." />
+    <meta property="og:locale" content="tr_TR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/mcp/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Ajanınızı MCP üzerinden Glyph'e bağlayın","item":"https://glyphlang.io/tr/mcp/"}]}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/mcp/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/mcp/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/mcp/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/mcp/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/mcp/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/mcp/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/mcp/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/mcp/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/mcp/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/mcp/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/mcp/" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">İçeriğe geç</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Ana menü">
+        <div class="nav-brand">
+          <a href="/tr/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="Sürüm notları">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-why">Neden Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Kimler için</p>
+                    <ul>
+                      <li><a href="/tr/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Ajan geliştirenler için</span><span class="nav-desc">MCP sunucusu ve yanıtladığı sorgular</span></span></a></li>
+                      <li><a href="/tr/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript'ten geliyorsanız</span><span class="nav-desc">Neler değişiyor, neler aynı kalıyor</span></span></a></li>
+                      <li><a href="/tr/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">Ekipler için</span><span class="nav-desc">Neyi garanti ediyor ve benimsemenin maliyeti ne</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Tasarım</p>
+                    <ul>
+                      <li><a href="/tr/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Tasarım</span><span class="nav-desc">Dört temel ilke ve bilerek dışarıda bırakılanlar</span></span></a></li>
+                      <li><a href="/tr/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Dört temel ilke</span><span class="nav-desc">Doğrulanabilirlik, aranabilirlik, soyutlama, kararlı diff</span></span></a></li>
+                      <li><a href="/tr/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph ve Effect</span><span class="nav-desc">Bir dil ile bir kütüphanenin karşılaştırması</span></span></a></li>
+                      <li><a href="/tr/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Neden ReScript, Gleam ya da Elm değil?</span><span class="nav-desc">JavaScript'e derlenen üç tipli dil</span></span></a></li>
+                      <li><a href="/tr/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph ve araçlarla donatılmış TypeScript</span><span class="nav-desc">Strict tsc, zod ve eslint'in hâlâ gözden kaçırdıkları</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/tr/catches/">Neleri yakalıyor</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">Öğren<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Başlarken</p>
+                    <ul>
+                      <li><a href="/tr/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 dakikada başla</span><span class="nav-desc">Kurun, bir program yazın, çalıştırın</span></span></a></li>
+                      <li><a href="/tr/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Yanıtlar <span class="nav-count">28</span></span><span class="nav-desc">Mühendislerin sorduğu sorular, çalışan örneklerle</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Dil referansı</span><span class="nav-desc">Spesifikasyonun tamamı, GitHub'da</span></span></a></li>
+                      <li><a href="/tr/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Katkıda bulun</span><span class="nav-desc">Derleyici nasıl yapıldı ve nasıl yardım edebilirsiniz</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Ajanınızı bağlayın</p>
+                    <ul>
+                      <li><a href="/tr/mcp/" aria-current="page"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP sunucusu</span><span class="nav-desc">Ajanınızı derleyicinin sorgularına bağlayın</span></span></a></li>
+                      <li><a href="/tr/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">Derleyiciye sorun</span><span class="nav-desc">Düzenlemeden önce bir sembolü, tipi ya da değişikliği sorgulayın</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">Ajanlar için llms.txt</span><span class="nav-desc">Dilin tamamı, bir ajanın okuyabileceği tek bir dosyada</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">Kanıtlar<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Nasıl kontrol ediliyor</p>
+                    <ul>
+                      <li><a href="/tr/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">İddialar nasıl kontrol ediliyor</span><span class="nav-desc">Her iddianın arkasındaki fixture'lar ve CI kontrolü</span></span></a></li>
+                      <li><a href="/tr/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Sağlamlaştırma</span><span class="nav-desc">Onu bozmaya çalışan ajanlar ve buldukları</span></span></a></li>
+                      <li><a href="/tr/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Benchmark'lar</span><span class="nav-desc">Dört temel ilke rakamlarla, çekinceleriyle birlikte</span></span></a></li>
+                      <li><a href="/tr/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Henüz yakalanmayanlar</span><span class="nav-desc">Bilinen açıklar, her biri bir reprodüksiyonla</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/tr/catches/"><span class="nav-feature-big">21 / 37</span><span class="nav-feature-text">tamamen yapılandırılmış bir kurulumda hiçbir şeyin yakalamadığı TypeScript hatası</span><span class="nav-feature-cta">Neleri yakaladığını gör <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">Sürümler</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="Dil: Türkçe (TR)"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">Türkçe</span><span class="lang-short" aria-hidden="true">TR</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">Dil</p>
+            <ul>
+              <li><a href="/mcp/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/mcp/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/mcp/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/mcp/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/mcp/" hreflang="tr" lang="tr" data-lang="tr" aria-current="true"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/zh-cn/mcp/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/mcp/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/mcp/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/mcp/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/mcp/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/mcp/" hreflang="en" data-lang="en">İngilizce oku</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Renk teması: otomatik (sistemi izler). Açık temaya geç.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Otomatik</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Menüyü aç">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Menüyü kapat" : "Menüyü aç");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>Dil: Türkçe</span><span class="sep" aria-hidden="true">&middot;</span><a href="/mcp/" hreflang="en" data-lang="en">İngilizce oku</a></p>
+      <button class="i18n-x" type="button" aria-label="Kapat"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>Bu sayfa bir çeviridir. Referans alınan sürüm İngilizce sürümdür. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28tr%29%3A+%2Ftr%2Fmcp%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Ftr%2Fmcp%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fmcp%2F%0A%0AWhat+is+wrong%3A%0A">Çeviriyle ilgili bir sorun bildir</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">Ajanlar için &middot; Model Context Protocol</p>
+      <h1 class="q-title">Ajanınızı Glyph derleyicisine bağlayın</h1>
+
+      <p class="short-answer">
+        <code>glyph mcp</code>, projeniz üzerinde on bir araçlı bir <strong>Model Context Protocol sunucusu</strong> çalıştırır: bir sembolün ne olduğu, onu değiştirirseniz neyin bozulacağı, bir tipteki bir değerin başka bir tipin tanımlandığı yere girip giremeyeceği, bir tanımın neye bağlı olduğu, bir modülün neleri export ettiği, proje içinde kontrol edilen diagnostic'ler, imlecin bulunduğu yerdeki tip, bir ismin nerede tanımlandığı, ona yapılan her referans, bir union üzerindeki her <code>match</code> yeri ve sembol araması. Her biri aynı zamanda bir <code>glyph query</code> fiilidir; böylece MCP istemcisi olmayan bir ajan aynı soruları sorar ve aynı baytları alır.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-an-agent-wants-this">Bir ajan bunu neden ister<a class="h-anchor" href="#why-an-agent-wants-this" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          Bir kod tabanını düzenleyen ajan genellikle körlemesine çalışır. Dosyaları okur, tipleri tahmin eder ve bir şeyi bozup bozmadığını ancak build'den sonra öğrenir. Glyph bu soruları bir editör için zaten yanıtlıyor. <code>glyph mcp</code>, build çıktısını kazımadan ya da kimin neyi çağırdığını bulmak için her dosyayı okumadan, bir ajana aynı yanıtları doğrudan derleyiciden verir. Araçlardan ikisi bir editörün hiç sormadığı soruları yanıtlar: <code>glyph_symbol</code>, bir union'ın variant'larını her birini oluşturan sözdizimiyle birlikte döndürür (bir ajanın <code>match</code>'i yazmadan önce ihtiyaç duyduğu tam olarak budur), <code>glyph_impact</code> ise bir düzenlemenin neyi bozacağını düzenleme daha yapılmadan yanıtlar.
+        </p>
+
+        <h2 class="block-label" id="set-it-up">Kurulum<a class="h-anchor" href="#set-it-up" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          Herhangi bir MCP istemcisi onu başlatabilir. İstemciyi <code>mcp</code> alt komutuyla <code>glyph</code> binary'sine yönlendirin ve proje kök dizininizi argüman olarak geçin ya da sunucuyu proje dizininden çalıştırın. MCP'yi stdio üzerinden konuşur, yani port da daemon da yoktur.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">mcp istemci yapılandırması (genel)</span>
+<pre>{
+  <span class="pk">"mcpServers"</span>: {
+    <span class="pk">"glyph"</span>: {
+      <span class="pk">"command"</span>: <span class="s">"glyph"</span>,
+      <span class="pk">"args"</span>: [<span class="s">"mcp"</span>, <span class="s">"/path/to/your/project"</span>]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          İlk bağlantıda istemci <code>initialize</code> ve <code>tools/list</code>'i çağırır; sunucu aşağıdaki on bir aracı bildirir. Gönderdiğiniz konumlar LSP kuralını izler: 0 tabanlı bir <code>line</code> ve UTF-16 kod birimleri cinsinden 0 tabanlı bir <code>character</code>. Diagnostic aralıkları, <code>glyph check --json</code>'un yazdırdığı şekilde, 1 tabanlı <code>line</code> ve <code>col</code> artı bayt cinsinden <code>offset</code> ile döner.
+        </p>
+        <p>
+          Her aracın açıklaması, çağrı anında ihtiyaç duyduğunuz sözleşmeyi taşır; tam kılavuz ise <code>glyph llms --json</code> içinde <code>tools</code> altında, araç adına göre anahtarlanmış ve her aracın <code>glyph query</code> fiili yanında olacak şekilde durur. Bu yanıt eskiden tüm kılavuzları taşırdı: on bir araç, 45.509 baytlık bir yanıtta 31.446 bayt açıklama. Şimdi 20.386 baytlık bir yanıtta 8.627 bayt ve hiçbir şey silinmedi. Her oturum bağlanırken <code>tools/list</code>'in bedelini öder, kılavuzun bedelini ise yalnızca istediğinde. <a href="/tr/answers/generated-docs/">O belge</a> derleyicinin kendi tablolarından üretilir ve bu sunucunun sunmadığı bir aracı adıyla anarsa bir test build'i başarısız kılar.
+        </p>
+
+        <h2 class="block-label" id="the-eleven-tools">On bir araç<a class="h-anchor" href="#the-eleven-tools" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph mcp'nin sunduğu araçlar</span>
+<pre><span class="cm">// everything the compiler holds about one symbol: kind, identity,</span>
+<span class="cm">// visibility, a record's fields, a union's variants with payloads and</span>
+<span class="cm">// construction syntax, parameters and return, interface members,</span>
+<span class="cm">// whether a `match` over it must be exhaustive, its `@example`.</span>
+<span class="cm">// The identity reaches the stdlib: std/result::Result answers with</span>
+<span class="cm">// Ok(T) and Err(E), and `path` is null beside the reason why</span>
+glyph_symbol(entity)                       <span class="cm">// or (path, line, character)</span>
+
+<span class="cm">// what breaks if you make one named change to one declaration:</span>
+<span class="cm">// add_variant, remove_variant, rename, change_arity,</span>
+<span class="cm">// change_signature_type, remove. One verdict per site</span>
+glyph_impact(entity, change)
+
+<span class="cm">// can a value of `from` go where a `to` is declared? Asked of the</span>
+<span class="cm">// checker's own comparison. Each side is a `module::name` or a</span>
+<span class="cm">// Glyph type spelling read in the scope of `path`</span>
+glyph_assignable(path, from, to)
+
+<span class="cm">// every diagnostic for one file, checked inside its project, in the</span>
+<span class="cm">// shape `glyph check --json` prints, plus what was not checked</span>
+glyph_diagnostics(path)
+
+<span class="cm">// the type at a position: an expression, a declaration name, a</span>
+<span class="cm">// parameter, an annotation, a variant, or a binding</span>
+glyph_hover(path, line, character)
+
+<span class="cm">// where the name is defined, following imports across modules,</span>
+<span class="cm">// with the `module::name` so the answer chains into glyph_impact</span>
+glyph_definition(path, line, character)
+
+<span class="cm">// every edge into a symbol across the project, split by relation</span>
+<span class="cm">// (CALLS, REFERENCES, GENERATED_FROM), each with its provenance</span>
+glyph_references(path, name)               <span class="cm">// or by position</span>
+
+<span class="cm">// every `match` site over one tagged union and which variants each</span>
+<span class="cm">// site's arms name, with the union's own variants</span>
+glyph_variants(path, name)
+
+<span class="cm">// search top-level declarations and union variants by name, each</span>
+<span class="cm">// entry with its identity, `pub`, kind and one-line signature</span>
+glyph_symbols(query)
+
+<span class="cm">// what one declaration depends on: every declaration its own source</span>
+<span class="cm">// names, split by relation (CALLS, REFERENCES, FIELD_ACCESS), each</span>
+<span class="cm">// edge with both ends and its provenance. The mirror of references</span>
+glyph_dependencies(entity)
+
+<span class="cm">// what one module makes visible to an importer: every `pub`</span>
+<span class="cm">// declaration and every variant a `pub` union hoists, each with</span>
+<span class="cm">// its identity, kind and signature</span>
+glyph_exports(module)</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          Alan adında yazım hatası olan bir dosya için <code>glyph_diagnostics</code>'e yapılan bir <code>tools/call</code>, derleyicinin kendi diagnostic'ini döndürür. Bu, <code>glyph check --json</code>'un serileştirdiği Rust tipinin aynısıdır ve kontrolün neyi kapsamadığını da söyleyen bir zarfın içinde gelir.
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">istek</span>
+<pre>{
+  <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
+  <span class="pk">"params"</span>: {
+    <span class="pk">"name"</span>: <span class="s">"glyph_diagnostics"</span>,
+    <span class="pk">"arguments"</span>: { <span class="pk">"path"</span>: <span class="s">"src/user.glyph"</span> }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">sonuç (aracın JSON içeriği)</span>
+<pre>{
+  <span class="pk">"path"</span>: <span class="s">"src/user.glyph"</span>,
+  <span class="pk">"module"</span>: <span class="s">"user"</span>,
+  <span class="pk">"project_root"</span>: <span class="s">"src"</span>,
+  <span class="pk">"member"</span>: <span class="k">true</span>,
+  <span class="pk">"diagnostics"</span>: [
+    {
+      <span class="pk">"code"</span>: <span class="s">"E0210"</span>,
+      <span class="pk">"severity"</span>: <span class="s">"error"</span>,
+      <span class="pk">"stage"</span>: <span class="s">"typecheck"</span>,
+      <span class="pk">"message"</span>: <span class="s">"type `U` has no field `naem`; did you mean `name`?"</span>,
+      <span class="pk">"help"</span>: <span class="s">"Check the field name for a typo,
+        or add the field to the type."</span>,
+      <span class="pk">"entity"</span>: <span class="s">"user::greet"</span>,
+      <span class="pk">"file"</span>: <span class="s">"user"</span>,
+      <span class="pk">"range"</span>: {
+        <span class="pk">"start"</span>: { <span class="pk">"line"</span>: <span class="n">9</span>, <span class="pk">"col"</span>: <span class="n">10</span>, <span class="pk">"offset"</span>: <span class="n">99</span> },
+        <span class="pk">"end"</span>:   { <span class="pk">"line"</span>: <span class="n">9</span>, <span class="pk">"col"</span>: <span class="n">16</span>, <span class="pk">"offset"</span>: <span class="n">105</span> }
+      },
+      <span class="pk">"union"</span>: <span class="k">null</span>,
+      <span class="pk">"missing_variants"</span>: <span class="k">null</span>
+    }
+  ],
+  <span class="pk">"unindexed"</span>: [],
+  <span class="pk">"not_run"</span>: [ <span class="c">...</span> ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Dosya kendi projesi içinde kontrol edilir; bu yüzden import edilmiş bir record'daki yanlış bir alan ve import edilmiş bir union üzerinde arm'ları eksik bir <code>match</code>, burada <code>glyph check</code>'in bildirdiği şekilde bildirilir. Aracın kapsayamadığı şeyler size varsaymanız için bırakılmaz, yanıtta yer alır: <code>member</code>, proje taramasının dosyaya ulaşıp ulaşmadığını söyler; <code>unindexed</code>, parse edilemeyen proje dosyalarını adıyla belirtir; <code>not_run</code> ise <code>glyph check</code>'in yapıp bu aracın yapmadığı üç kontrolü adıyla belirtir: <code>tsc</code>; build'in <code>node_modules</code> görünümünü gerektiren, hiçbir modülü işaret etmeyen bir import için <code>E0104</code>; ve üretilen proje çalıştırılarak karar verilen, başarısız bir <code>@example</code> için <code>E0400</code>. Bir test iki yüzeyi de altı proje üzerinde çalıştırır ve JSON'u anahtar anahtar karşılaştırır, böylece ikisi birbirinden sapamaz.
+        </p>
+        <p>
+          <code>glyph_references</code> tüm çalışma alanını kapsar: bir sembol hakkında sorduğunuzda onun tanımını, her kullanımını ve onu import eden her modülün <code>import</code> bağlamasını, tüm dosyalar boyunca alırsınız. Editörün yeniden adlandırma işleminin kullandığı dosyalar arası kimliğin aynısını kullanır; bu yüzden yanıt yalnızca sorduğunuz dosyayı değil, tüm projeyi kapsar.
+        </p>
+
+        <h2 class="block-label" id="no-mcp-client-same-questions-on-the-command-line">MCP istemciniz yok mu? Aynı sorular komut satırında<a class="h-anchor" href="#no-mcp-client-same-questions-on-the-command-line" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          Her aracın, aracın kendi argümanlarını flag olarak alan ve aracın JSON'unu stdout'a yazdıran bir <code>glyph query</code> fiili vardır. Yanıtlanan bir soru 0 ile çıkar; reddedilen bir soru nedenini stderr'e yazar ve 2 ile çıkar. Fiiller, bir MCP istemcisinin ulaştığı giriş noktasının aynısından geçer ve bir entegrasyon testi iki yüzeye de aynı soruyu sorup yanıtları metin olarak karşılaştırır; yani yeniden biçimlendiren ya da özetleyen bir fiil bu testi geçemez.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">istemci olmadan aynı on bir soru</span>
+<pre><span class="f">glyph</span> query symbol       <span class="fl">--path</span> src/main.glyph <span class="fl">--entity</span> orders::OrderStatus
+<span class="f">glyph</span> query impact       <span class="fl">--entity</span> orders::OrderStatus <span class="fl">--change</span> add_variant <span class="fl">--variant</span> Refunded
+<span class="f">glyph</span> query assignable   <span class="fl">--path</span> src/main.glyph <span class="fl">--from</span> <span class="s">'Nullable&lt;int&gt;'</span> <span class="fl">--to</span> int
+<span class="f">glyph</span> query diagnostics  <span class="fl">--path</span> src/main.glyph
+<span class="f">glyph</span> query hover        <span class="fl">--path</span> src/main.glyph <span class="fl">--line</span> 9 <span class="fl">--character</span> 6
+<span class="f">glyph</span> query definition   <span class="fl">--path</span> src/main.glyph <span class="fl">--line</span> 9 <span class="fl">--character</span> 6
+<span class="f">glyph</span> query references   <span class="fl">--path</span> src/orders.glyph <span class="fl">--name</span> create
+<span class="f">glyph</span> query variants     <span class="fl">--path</span> src/orders.glyph <span class="fl">--name</span> OrderStatus
+<span class="f">glyph</span> query symbols      <span class="fl">--query</span> order
+<span class="f">glyph</span> query dependencies <span class="fl">--path</span> src/main.glyph <span class="fl">--entity</span> main::build
+<span class="f">glyph</span> query exports      <span class="fl">--path</span> src/main.glyph <span class="fl">--module</span> orders
+
+<span class="cm">// the same two, asked about a module the compiler carries</span>
+<span class="f">glyph</span> query symbol       <span class="fl">--path</span> src/main.glyph <span class="fl">--entity</span> std/result::Result
+<span class="f">glyph</span> query exports      <span class="fl">--path</span> src/main.glyph <span class="fl">--module</span> std/result</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="when-the-build-is-already-red">Build zaten kırmızıysa<a class="h-anchor" href="#when-the-build-is-already-red" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          Araçlar bir düzenlemeden önce sorulan soruları yanıtlar. Düzenlemeden sonra okunacak şey <code>glyph check --agent</code>'tır; <code>check --json</code>'un diagnostic'lerini her birine iki anahtar daha ekleyerek yazdırır: onarıcı bir düzenlemenin koruması gereken değişmezler olan <code>constraints</code> ve diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtı olan <code>symbols</code>; böylece sonraki düzenleme ikinci bir çağrıya ihtiyaç duymaz. Arm'ları eksik bir <code>match</code>'te bu, union'ın variant'larının payload'larıyla birlikte, onları isteyen hatayla aynı anda gelmesi demektir; yanında da bir <code>else</code> arm'ının diagnostic'in korumak için var olduğu garantiden vazgeçmek anlamına geldiğini söyleyen cümle bulunur. Onarımın tamamen belirli olduğu yerlerde <code>glyph fix</code> onu yazar ve neyi yapmayı reddettiğini söyler. Gerçek çıktılarla <a href="/tr/answers/repair-protocol/">tüm döngünün adım adım anlatımı</a> var.
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>stdio üzerinden on bir araçlı bir <code>glyph mcp [root]</code> sunucusu: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (tüm çalışma alanı), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> ve <code>glyph_exports</code>. Her birinin aynı JSON'u yazdıran bir <code>glyph query</code> fiili var. Yanıtlar derleyicinin kendi sorgularından gelir ve bir aracın elinde olmayan her bilgi, nedenini söyleyen bir <code>&lt;key&gt;_absent</code> cümlesinin yanında null olarak döner. Hover, başka bir modülde tanımlanmış bir isimde de yanıt verir; böylece çağrı yerindeki import edilmiş bir fonksiyonun da, import edilmiş bir record'dan okunan bir alanın da tipi olur. Varlık kimliği stdlib'e kadar uzanır: prelude'daki <code>Result</code>, <code>std/result::Result</code>'tır; bu, resolver'ın onu kaydettiği ve emitter'ın import'u yazdığı modüldür. Bu yüzden onun üzerinde <code>glyph_symbol</code>, <code>Ok(T)</code> ve <code>Err(E)</code> ile yanıt verir, <code>std/result</code> üzerinde <code>glyph_exports</code> da yüzeyi listeler. Arkasında Glyph kaynak kodu olmadığı için <code>path</code> ve <code>range</code> eksik değil, bu nedenle birlikte null döner.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Yolda olanlar</h3>
+          <p>Araçlar yalnızca okur: MCP üzerinden yeniden adlandırma yapamaz ya da bir düzenleme uygulayamazsınız. Yazma tarafı bunun yerine komut satırında, <code>glyph fix</code> olarak yaşar. Sunucu önbelleğe alınmış bir indeks tutmak yerine her çağrıda projeyi yeniden tarar ve parse edilemeyen dosyaları atlar. <code>tools/list</code> yanıtı 45.509 bayttan 20.386 bayta indi; bu yine de her oturumun bağlanırken ödediği bir bağlam maliyeti.</p>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Araçların yanı sıra bir ajan, dili ve diagnostic yüzeyini çevrimdışı okuyabilir: <a href="/llms.txt">llms.txt</a> düz metin hâli, <code>glyph llms --json</code> derleyicinin kendi tablolarından çıkan aynı bilginin veri hâli, <code>glyph build --json</code> ise tüm bir ağaç boyunca kodlu diagnostic'ler için toplu yol.
+        </p>
+      </div>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/tr/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript'e derlenen tipli bir dil; ajanlar kodu bozmadan değiştirebilsin diye tasarlandı.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Başla</h2>
+            <a href="/tr/start/">İlk programınız</a>
+            <a href="/tr/from-typescript/">TypeScript'ten geliyorsanız</a>
+            <a href="/tr/teams/">Ekipler için</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Beş dakikalık tur</a>
+          </div>
+          <div class="foot-col">
+            <h2>Öğren</h2>
+            <a href="/tr/answers/">Yanıtlar</a>
+            <a href="/tr/answers/verifiability/">Yanıtları sırayla oku</a>
+            <a href="/tr/answers/tooling/">Editör ve ajan araçları</a>
+            <a href="/tr/agents/">Ajanlar için</a>
+            <a href="/tr/mcp/">MCP sunucusu</a>
+            <a href="/llms-pages.txt">Markdown sayfaları</a>
+            <a href="/tr/design/">Tasarım</a>
+            <a href="/tr/pillars/verifiability/">Dört temel ilke</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Dil spesifikasyonu</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Kanıtlar</h2>
+            <a href="/tr/catches/">Yakaladıkları</a>
+            <a href="/tr/evidence/">İddialar nasıl kontrol ediliyor</a>
+            <a href="/tr/hardening/">Sağlamlaştırma</a>
+            <a href="/tr/benchmarks/">Benchmark'lar</a>
+            <a href="/versions/">Sürümler</a>
+          </div>
+          <div class="foot-col">
+            <h2>Kaynak kod</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issue'lar</a>
+            <a href="/tr/contribute/">Katkıda bulun</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub'daki release'ler</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/tr/mcp/index.segments.json">Bu sayfayı düzenle</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: ajanlarınızın siz fark etmeden bozamayacağı TypeScript.</span>
+          <span>&copy; 2026 Glyph &middot; MIT veya Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Otomatik", light: "Açık", dark: "Koyu" };
+        var labels = { auto: "Renk teması: otomatik (sistemi izler). Açık temaya geç.", light: "Renk teması: açık. Koyu temaya geç.", dark: "Renk teması: koyu. Otomatik temaya geç." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

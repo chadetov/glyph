@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>tsc が検出するものを、なぜ Glyph はより早く検出するのか · Glyph</title>
+    <meta name="description" content="async fn の外での await、値を生まない match アーム、mut の書き忘れを、Glyph は tsc より前に、あなたのソースに対して、ルールと修正方法付きで報告します。" />
+    <link rel="canonical" href="https://glyphlang.io/ja/answers/early-errors/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ja/answers/early-errors/" />
+    <meta property="og:title" content="tsc が検出するものを、なぜ Glyph はより早く検出するのか" />
+    <meta property="og:description" content="async fn の外での await、値を生まない match アーム、mut の書き忘れを、Glyph は tsc より前に、あなたのソースに対して、ルールと修正方法付きで報告します。" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/early-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"tsc が検出するものを、なぜ Glyph はより早く検出するのか","item":"https://glyphlang.io/ja/answers/early-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/early-errors/#article","headline":"tsc が検出するものを、なぜ Glyph はより早く検出するのか","description":"async fn の外での await、値を生まない match アーム、mut の書き忘れを、Glyph は tsc より前に、あなたのソースに対して、ルールと修正方法付きで報告します。","url":"https://glyphlang.io/ja/answers/early-errors/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/early-errors/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/early-errors/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/early-errors/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/early-errors/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/early-errors/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/early-errors/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/early-errors/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/early-errors/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/early-errors/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/early-errors/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/early-errors/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/early-errors/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">本文へスキップ</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="メイン">
+        <div class="nav-brand">
+          <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">なぜ Glyph か<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">対象となる人</p>
+                    <ul>
+                      <li><a href="/ja/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">エージェント開発者向け</span><span class="nav-desc">MCP サーバーと、それが答えるクエリ</span></span></a></li>
+                      <li><a href="/ja/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript から来た人へ</span><span class="nav-desc">変わること、変わらないこと</span></span></a></li>
+                      <li><a href="/ja/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">チーム向け</span><span class="nav-desc">何を保証し、導入にどれだけのコストがかかるか</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">設計</p>
+                    <ul>
+                      <li><a href="/ja/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">設計</span><span class="nav-desc">4 つの柱と、意図的に入れなかったもの</span></span></a></li>
+                      <li><a href="/ja/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">4 つの柱</span><span class="nav-desc">検証可能性、grep しやすさ、抽象化、差分の安定性</span></span></a></li>
+                      <li><a href="/ja/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph と Effect の比較</span><span class="nav-desc">言語とライブラリの比較</span></span></a></li>
+                      <li><a href="/ja/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">ReScript、Gleam、Elm ではなぜ駄目なのか</span><span class="nav-desc">JavaScript にコンパイルされる 3 つの型付き言語</span></span></a></li>
+                      <li><a href="/ja/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph とツールを揃えた TypeScript の比較</span><span class="nav-desc">strict な tsc、zod、eslint でも通ってしまうもの</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/ja/catches/">何を検出できるか</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">学ぶ<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">はじめよう</p>
+                    <ul>
+                      <li><a href="/ja/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 分で始める</span><span class="nav-desc">インストールし、プログラムを書いて、実行する</span></span></a></li>
+                      <li><a href="/ja/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Q&A <span class="nav-count">28</span></span><span class="nav-desc">エンジニアがよく聞く質問と、実例付きの回答</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">言語リファレンス</span><span class="nav-desc">GitHub にある完全な仕様</span></span></a></li>
+                      <li><a href="/ja/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">コントリビュート</span><span class="nav-desc">コンパイラの作りと、貢献の方法</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">エージェントをつなぐ</p>
+                    <ul>
+                      <li><a href="/ja/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP サーバー</span><span class="nav-desc">エージェントをコンパイラのクエリにつなぐ</span></span></a></li>
+                      <li><a href="/ja/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">コンパイラに聞く</span><span class="nav-desc">編集の前にシンボル、型、変更の影響を調べる</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">エージェント向けの llms.txt</span><span class="nav-desc">エージェントが読める 1 ファイルにまとめた言語仕様</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">根拠<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">検証の方法</p>
+                    <ul>
+                      <li><a href="/ja/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">主張の検証方法</span><span class="nav-desc">各主張を支える fixture と CI のゲート</span></span></a></li>
+                      <li><a href="/ja/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">堅牢化</span><span class="nav-desc">エージェントが壊そうとして見つけたもの</span></span></a></li>
+                      <li><a href="/ja/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">ベンチマーク</span><span class="nav-desc">4 つの柱を数値で、注意点とともに</span></span></a></li>
+                      <li><a href="/ja/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">まだ検出できないもの</span><span class="nav-desc">既知の穴と、それぞれの再現コード</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ja/catches/"><span class="nav-feature-big">37 件中 21 件</span><span class="nav-feature-text">最も厳しく設定した環境でも何も検出できない TypeScript のミス</span><span class="nav-feature-cta">検出できるものを見る <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">バージョン</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="言語: 日本語 (日本)"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">日本語</span><span class="lang-short" aria-hidden="true">日本</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">言語</p>
+            <ul>
+              <li><a href="/answers/early-errors/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/early-errors/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/early-errors/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/early-errors/" hreflang="ja" lang="ja" data-lang="ja" aria-current="true"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/tr/answers/early-errors/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/early-errors/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/early-errors/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/early-errors/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/early-errors/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/early-errors/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/early-errors/" hreflang="en" data-lang="en">英語で読む</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="カラーテーマ: 自動 (システム設定に従う)。ライトに切り替えます。">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">自動</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="メニューを開く">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "メニューを閉じる" : "メニューを開く");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="Q&amp;A のナビゲーション">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/ja/answers/">Q&amp;A</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/ja/answers/early-errors/" aria-current="page"><span class="n">26</span> 早い段階で検出</a></p>
+        <a class="ans-step prev" href="/ja/answers/tooling/" aria-label="前の Q&amp;A: 25 エディタとデバッグ">&lsaquo; 25</a><a class="ans-step next" href="/ja/answers/parse-errors/" aria-label="次の Q&amp;A: 27 パースが失敗した理由">27 &rsaquo;</a>
+        <a class="ans-all-link" href="/ja/answers/">すべての Q&amp;A</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">すべての Q&amp;A<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>表示言語: 日本語</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/early-errors/" hreflang="en" data-lang="en">英語で読む</a></p>
+      <button class="i18n-x" type="button" aria-label="閉じる"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fanswers%2Fearly-errors%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fanswers%2Fearly-errors%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fearly-errors%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side">
+      <p class="q-eyebrow">26 &middot; 早い段階で検出</p>
+      <h1 class="q-title">tsc が検出するものを、なぜ Glyph はより早く検出するのか</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/ja/answers/">すべての Q&amp;A</a><button class="ans-close" type="button" aria-label="Q&amp;A の一覧を閉じる"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>解決する問題</summary><ol>
+            <li><a href="/ja/answers/verifiability/"><span class="n">01</span><span class="t">気づかない破損</span></a></li>
+            <li><a href="/ja/answers/diff-stability/"><span class="n">02</span><span class="t">きれいな差分</span></a></li>
+            <li><a href="/ja/answers/greppability/"><span class="n">03</span><span class="t">コードを探す</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>導入するかどうかを決める</summary><ol>
+            <li><a href="/ja/answers/why-typescript/"><span class="n">04</span><span class="t">なぜ TypeScript か</span></a></li>
+            <li><a href="/ja/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">ツールを揃えた TS ではなぜ駄目か</span></a></li>
+            <li><a href="/ja/answers/human-value/"><span class="n">06</span><span class="t">AI なしでも</span></a></li>
+            <li><a href="/ja/answers/ai-authoring/"><span class="n">07</span><span class="t">AI が書くコード</span></a></li>
+            <li><a href="/ja/answers/upgrades/"><span class="n">08</span><span class="t">アップグレード</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>今のスタックで使う</summary><ol>
+            <li><a href="/ja/answers/imports/"><span class="n">09</span><span class="t">既存のライブラリ</span></a></li>
+            <li><a href="/ja/answers/embedding/"><span class="n">10</span><span class="t">アプリに組み込む</span></a></li>
+            <li><a href="/ja/answers/typed-apis/"><span class="n">11</span><span class="t">型付き API</span></a></li>
+            <li><a href="/ja/answers/codegen/"><span class="n">12</span><span class="t">クライアントとサーバー</span></a></li>
+            <li><a href="/ja/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/ja/answers/state/"><span class="n">14</span><span class="t">共有状態</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>何を作れるか</summary><ol>
+            <li><a href="/ja/answers/language/"><span class="n">15</span><span class="t">言語そのもの</span></a></li>
+            <li><a href="/ja/answers/finance/"><span class="n">16</span><span class="t">お金と安全性</span></a></li>
+            <li><a href="/ja/answers/web-serving/"><span class="n">17</span><span class="t">Web の配信</span></a></li>
+            <li><a href="/ja/answers/interactive-cli/"><span class="n">18</span><span class="t">対話型プログラム</span></a></li>
+            <li><a href="/ja/answers/long-running/"><span class="n">19</span><span class="t">サーバーとデーモン</span></a></li>
+            <li><a href="/ja/answers/binary/"><span class="n">20</span><span class="t">バイナリデータ</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>エージェントと一緒に使う</summary><ol>
+            <li><a href="/ja/answers/impact/"><span class="n">21</span><span class="t">編集する前に</span></a></li>
+            <li><a href="/ja/answers/ask-the-compiler/"><span class="n">22</span><span class="t">コンパイラに聞く</span></a></li>
+            <li><a href="/ja/answers/repair-protocol/"><span class="n">23</span><span class="t">赤いビルドを直す</span></a></li>
+            <li><a href="/ja/answers/generated-docs/"><span class="n">24</span><span class="t">ずれないドキュメント</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>エラー、エディタ、本番運用</summary><ol>
+            <li><a href="/ja/answers/tooling/"><span class="n">25</span><span class="t">エディタとデバッグ</span></a></li>
+            <li><a href="/ja/answers/early-errors/" aria-current="page"><span class="n">26</span><span class="t">早い段階で検出</span></a></li>
+            <li><a href="/ja/answers/parse-errors/"><span class="n">27</span><span class="t">パースが失敗した理由</span></a></li>
+            <li><a href="/ja/answers/debugging/"><span class="n">28</span><span class="t">デバッグと運用</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        生成された TypeScript に対するエラーは、自分が書いていないコードについてのエラーだからです。Glyph はこうしたエラーを、破ったルールと、それを直す編集とともに、あなたのソースに対して報告します。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          Glyph は TypeScript にコンパイルし、その出力を <code>tsc --strict</code> で型検査します。そのため Glyph がモデル化していないミスも失われはしません。ただし 1 段階遅れて、出力されたファイルの言葉で戻ってきます。自分で書いた覚えのない関数の中の <code>await</code> を指す <code>TS1308</code> や、書いていない <code>switch</code> についての <code>TS2366</code> です。行番号はあなたの <code>.glyph</code> に対応付けられますが、説明はそうなりません。
+        </p>
+        <p>
+          この隔たりこそ、コンパイラが教えるのをやめてしまう場所です。そこで Glyph が自分で判定できるルールは、1 つずつ前の段階に移しています。<code>async fn</code> の外での <code>await</code>（<code>E0222</code>）、値として使われている <code>match</code> の中で、値を生まない <code>match</code> アーム（<code>E0223</code>）、<code>mut</code> なしで書かれた代入（<code>E0008</code>）です。どれもルールを名指しし、その背後にある設計判断を示し、修正前と修正後を見せます。
+        </p>
+
+        <h2 class="block-label" id="see-it">実例<a class="h-anchor" href="#see-it" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          アームのケースは、以前はまったく検出されずにすり抜けていたものです。アームの位置にある <code>{}</code> は空のレコードではなく空の<em>ブロック</em>なので、アームは実行されても何も生みませんでした。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph：値が必要な位置で、何も生まないアーム</span>
+<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">let</span> text = <span class="k">match</span> s {
+<span class="del">    <span class="t">Loading</span> <span class="op">=&gt;</span> {},          <span class="c">// an empty block: the arm produces no value</span></span>
+    <span class="t">Ready</span> <span class="op">=&gt;</span> <span class="s">"done"</span>,
+    <span class="t">Failed</span>(msg) <span class="op">=&gt;</span> msg,
+  }
+  <span class="k">return</span> text
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre class="wraps"><span class="del"><span class="e">[E0223]</span> this <span class="q">`match`</span> arm produces no value, but the <span class="q">`match`</span> is used as a value</span>
+   <span class="bx">╰─</span> End the arm with an expression, or <span class="q">`return`</span> from it. <span class="q">`X =&gt; {}`</span> is a no-op
+      only where the <span class="q">`match`</span> is a statement.
+   <span class="f">note:</span> A value-position arm lowers to <span class="q">`case X: { break; }`</span> when it yields
+         nothing, so the value would be <span class="q">`undefined`</span> at run time.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          以前は、出力された <code>switch</code> が自分のケースを抜けてしまい、型は <code>string</code> なのに <code>text</code> には <code>undefined</code> が入っていました。<code>tsc</code> はこの形のいくつかは検出しますが、見逃すものもあります。今の Glyph は、位置から判定できるところではどこでもこれを判定します。<code>let</code>、<code>mut</code>、<code>return</code>、そして戻り値の型を宣言した関数の末尾です。文としての <code>match</code> では、<code>X =&gt; {}</code> は意図的な何もしない処理としてそのまま使えます。
+        </p>
+        <p>
+          <code>await</code> も同じ考え方です。Glyph にはユーザーから見える <code>Promise</code> がありません。<code>async fn -&gt; T</code> は await されて <code>T</code> になるので、それ以外の場所の <code>await</code> には中断すべきものがありません。以前は生成されたファイルに対する <code>tsc</code> の <code>TS1308</code> でしたが、今は <code>E0222</code> です。判定するのは最も内側の呼び出し可能なものなので、<code>async fn</code> の中にある同期ラムダはそれ自体が独立した文脈になります。TypeScript と同じルールです。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build、対象は `fn total() -&gt; number { return await fetch_count() }`</span>
+<pre class="wraps"><span class="del"><span class="e">[E0222]</span> <span class="q">`await`</span> is only valid inside an <span class="q">`async fn`</span></span>
+   <span class="bx">╰─</span> Mark the enclosing function <span class="q">`async fn`</span>, or call a non-async function here.
+
+<span class="cm">// before: no Glyph diagnostic, then</span>
+<span class="dim"><span class="lc">dist/main.ts:14:18</span> - <span class="e">error</span> <span class="e">TS1308</span>: 'await' expressions are only allowed
+within async functions and at the top levels of modules.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          3 つ目は、初日から破られるルールについてです。Glyph はすべての変更に印を付けるので、束縛への再代入は <code>mut x = e</code>、束縛の導入は <code>let x = e</code> と書きます。素の <code>x = e</code> は以前「unexpected token: Equals」と報告されていましたが、これはルールではなく文字を名指ししています。今は <code>E0008</code> になり、<code>glyph --explain E0008</code> がこの印がある理由を説明します。値が変わる場所はすべて <code>mut</code> で始まるので、<code>grep "mut total"</code> でそのすべてが見つかる、というものです。
+        </p>
+        <p>
+          <code>?</code> 演算子も、逆の方向から同じ扱いを受けています。<code>?</code> は、束縛と、それが置かれた文の前に配置される早期 <code>return</code> に展開されるので、展開先となる文が必要です。<code>let</code>、<code>return</code>、引数の中で使え、今では <code>match</code> アームの本体でも使えます。使えない場所では、演算子が未実装だと言うのではなく、それがどの位置なのか、どう束縛して外に出せばよいかをメッセージが示します（<code>E0302</code> と <code>E0303</code>）。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="the-worse-case-when-tsc-is-happy-too">もっと悪いケース：tsc も満足しているとき<a class="h-anchor" href="#the-worse-case-when-tsc-is-happy-too" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          間違った場所に出る <code>tsc</code> のエラーは厄介です。しかし本当の問題は、別の意味になったプログラムがきれいにビルドできてしまうことで、Glyph にはそれが 1 つありました。宣言したトップレベルの名前は、タグ付きユニオンのバリアントのコンストラクタも含め、すべてそのまま出力モジュールに入ります。そのため <code>Error</code> という名前のバリアントは、モジュールのトップレベルに <code>export function Error(...)</code> を出力します。するとその下でコンパイラが書く <code>new Error(...)</code> が、あなたのバリアントを呼び出してしまいます。
+        </p>
+        <p>
+          <code>type Key = string | number</code> は、見た目がもう少し穏やかな同じ欠陥です。Glyph では <code>A | B</code> はタグ付きユニオンを宣言し、そのメンバーはバリアントの<em>コンストラクタ</em>です。つまりこの行は <code>string</code> と <code>number</code> という名前のバリアントを宣言します。これはコンパイルが通り、<code>tsc --strict</code> も通り、prelude の <code>number</code> 名前空間を隠す <code>export const number</code> を出力しました。後で <code>number.to_string</code> を呼び出して失敗するまで、何も失敗しませんでした。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build、対象は `Error` バリアントを持つユニオン</span>
+<pre class="wraps"><span class="del"><span class="e">[E0110]</span> <span class="q">`Error`</span> cannot name a type, variant, or function: the emitted module
+        references the JavaScript global <span class="q">`Error`</span>, and this declaration would
+        shadow it</span>
+ 5 <span class="bx">│</span>   | <span class="e">Error</span>(string)
+   <span class="bx">│</span>     <span class="bx">──────┬─────</span>
+   <span class="bx">╰─</span> Rename it (e.g. <span class="q">`Error`</span> -&gt; <span class="q">`Failure`</span>). The name is legal TypeScript, so
+      nothing downstream catches the rebinding.
+
+<span class="cm">// before: no Glyph diagnostic, then, twenty lines later</span>
+<span class="dim"><span class="lc">dist/main.ts:31:12</span> - <span class="e">error</span> <span class="e">TS2345</span>: Argument of type 'string' is not
+assignable to parameter of type ...</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          スパンは宣言を指しています。名前を変える場所はそこだからです。保護される名前のリストは JavaScript のグローバル全般のリストからではなく、エミッタから導出されます。テストがエミッタを grep し、対応するエントリのない新しいグローバル参照が現れると失敗します。重要なのはこのテストです。<code>Number</code> は、<code>int</code> が出荷されて <code>Number.isInteger</code> を出力し始めるまでは無害でした。そもそもこの問題がリリースに入ってしまったのはそのためです。<code>Date</code>、<code>Math</code>、<code>JSON</code> は使えるままです。Glyph が出力するものの中にそれらは出てこないからです。
+        </p>
+        <p>
+          プリミティブのユニオンのケースには専用のコード <code>E0111</code> があります。説明なしに拒否しても何も伝わらないからです。メッセージは、その行が実際にどうパースされたかを示し、名前付きのバリアントを案内し、生の TypeScript のユニオンが欲しい境界では <code>extern_ts("string | number")</code> を使うよう示します。Glyph が使わせない名前はすべて <code>docs/reference/reserved-words.md</code> に表としてまとめてあります。32 個のキーワード、<code>E0109</code> の対象となる 33 個の TypeScript の予約語、そして隠蔽リストで、それぞれその名前が使えない理由が付いています。
+        </p>
+        <p>
+          これで何ができないのかも、はっきりさせておく価値があります。型やバリアントに <code>Error</code> という名前を付けることは、今もできません。この問題を見つけたスプレッドシートのアプリは、そのために <code>Cellerr</code> というバリアントを持っています。本来書きたかったプログラムは今も書けません。変わったのは、ビルドをグリーンにして別の意味にしてしまうのではなく、コンパイラが宣言の場所でそう言うようになったことです。この名前を使えるようにするには、TypeScript に渡すときに Glyph の名前を変換（マングリング）する必要があります。そうするとスタックトレース、<code>dist/</code> に対する <code>grep</code>、手書きの <code>extern/</code> シムから見えるものが変わるので、黙って入れられる修正ではありません。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-wrong-message-is-worse-than-no-message">間違ったメッセージは、メッセージがないより悪い<a class="h-anchor" href="#a-wrong-message-is-worse-than-no-message" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          隠蔽リストは、エミッタが<em>値</em>として書く名前から始まりました。<em>型</em>として書く名前が抜けていて、それがこの問題全体の中で最も鋭い形を生みました。すべてのディスクリプタの <code>parse</code> は <code>Result&lt;T, Issue[]&gt;</code> を返すので、出力モジュールはあなたが書いたかどうかにかかわらず <code>Issue</code> を書きます。自分のモジュールで <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> を宣言するとそちらが優先され、出力された <code>Issue</code> オブジェクトにはあなたの型が知らない <code>code</code> フィールドがあるので、ビルドは生成コードについての <code>tsc</code> のエラーで、別の場所を指すスパンとともに失敗します。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build、以前：これが 15 個、どれも原因の近くにない</span>
+<pre class="wraps"><span class="dim"><span class="lc">dist/corpus/infer_output.ts:52:9</span> - <span class="e">error</span> <span class="e">TS2353</span>: Object literal may only
+specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build、現在</span>
+<pre class="wraps"><span class="del"><span class="e">[E0110]</span> <span class="q">`Issue`</span> cannot name a type, variant, or function: the emitted module
+        references the Glyph prelude global <span class="q">`Issue`</span>, and this declaration
+        would shadow it</span>
+   <span class="bx">╰─</span> Rename it. The name is legal TypeScript, so nothing downstream catches
+      the rebinding.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Record</code> も同時にリストに加わりました。TypeScript の組み込みなので、prelude の名前ではなく JavaScript のグローバルと一緒に登録しています。そうしないと、その名前がどこから来たかについてメッセージが間違ったことを言ってしまうからです。エミッタを grep するずれ検出のテストは今では ambient な型もカバーしていて、型の位置にある <code>Issue[]</code> を認識できるようにする必要がありました。これがリリースに入ってしまった理由はそこにあります。<code>Schema</code>、<code>Component</code>、<code>Option</code> は、<code>Date</code> を使えるままにしているのと同じルールで使えます。エミッタがそれらを書くのはあなたが注釈に書いたときだけなので、宣言しても何も隠しません。
+        </p>
+        <p>
+          この種類のもう 1 つは import でした。ローカルの import パスは、import しているファイルのディレクトリではなく、ビルドルート（<code>glyph build</code> に渡したディレクトリ）から解決されます。外側のツリーをビルドすると <code>import catalog</code> は何も見つけられず、これまでそれを伝えるものはありませんでした。型は unknown に劣化し、それに対する <code>match</code> はマッチしていたバリアントを見失い、得られるのは、すべてのケースを網羅した <code>match</code> に対する <code>E0218</code>（網羅的でない match）でした。そのメッセージの言うとおりにすると、正しいコードに死んだ <code>else</code> アームを足すことになっていました。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build examples/apps、対象は csvql/ 内の `import catalog`</span>
+<pre class="wraps"><span class="del"><span class="e">[E0104]</span> unresolved import <span class="q">`catalog`</span>: no module <span class="q">`catalog`</span> under the build
+        root <span class="q">`examples/apps`</span>. There is a <span class="q">`csvql/catalog.glyph`</span> under the
+        root; a local import path is resolved from the build root, not from
+        the importing file's directory (D15)</span>
+   <span class="bx">╰─</span> Build that module's own directory as the root, or spell the import path
+      as it reads from the root.
+
+<span class="cm">// before: no import diagnostic, then</span>
+<span class="dim"><span class="e">[E0218]</span> non-exhaustive match on string   // on a match over all four values</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          この種のチェックの危険は、問題のないものにまで反応することです。npm パッケージのたびに誤報を出す import チェッカーは、それが置き換えた沈黙より悪いものです。そこでビルドはまず、<code>.glyph</code> ファイルなしで解決できるモジュール名を集めます。<code>&lt;root&gt;/.types/</code> の下と同梱の Node シムにあるすべての <code>declare module "X"</code>、そしてプロジェクトの <code>node_modules</code> にあるすべてのパッケージです。このリストにある名前は、たとえローカルファイルとベース名が同じでも報告されません。プロジェクトに <code>node_modules</code> がまったくない場合、コンパイラは未インストールの依存とタイプミスを区別できないので、証明できるものだけを報告します。つまり、ルート配下のどれかの <code>.glyph</code> ファイルが該当する import です。
+        </p>
+        <p>
+          解決の仕組み自体は変わっていません。同じプログラムがビルドでき、同じプログラムが失敗します。変わったのは、失敗が 2 ファイル先の <code>match</code> を責めるのではなく、import を名指しするようになったことで、それがすべてです。間違った原因を報告するコンパイラは、それを追いかけて費やす 1 時間を奪い、その後のすべてのメッセージに対する信頼も失います。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="naming-the-rule-not-the-token">トークンではなくルールを名指しする<a class="h-anchor" href="#naming-the-rule-not-the-token" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          同じ問題のもっと目立たない形は、正しいのに何も伝えないエラーです。赤黒木を書いていたエージェントが、ML 系のどの言語にもある位置引数のコンストラクタを使おうとしたところ、パーサは最初のカンマで止まり、「<code>)</code> が必要」と「必要なトークンを追加してください」という助言を出しました。そこに <code>)</code> を足すと、動くプログラムではなく別のプログラムになります。Glyph のバリアントはペイロードを 1 つだけ持ち、複数のフィールドを持つペイロードはレコードです。出力のどこにも、そのどちらの文もありませんでした。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check、以前と現在</span>
+<pre class="wraps"><span class="dim"><span class="e">[E0002]</span> parse: expected <span class="q">`)`</span> after variant payload, found Comma
+   <span class="bx">╰─</span> Add the expected token.</span>
+
+<span class="del"><span class="e">[E0010]</span> a union variant carries one payload, but <span class="q">`Node`</span> lists 6 positional
+        fields</span>
+   <span class="bx">╰─</span> Glyph has no tuple payload. Put the fields in one record and name them:
+      `Node({ /* name */: Color, /* name */: Tree&lt;K, V&gt;, /* name */: K,
+              /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
+      and destructure it by those names in a match arm.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          それを伝えるために、パーサは拒否する前にリスト全体を読む必要がありました。そのおかげで数えることもできます。スパンはたまたま止まった区切り文字ではなく 6 つのフィールド全体に下線を引き、提案されるレコードはバリアント名とファイル中の 6 つの型から組み立てられます。そのため修正案は、誰かの例ではなくあなたのプログラムを名指しします。フィールド名だけはコンパイラが用意できないので、穴として残します。
+        </p>
+        <p>
+          このメッセージの背後にあるルールは、穴ではなく選択です。<code>Node(Black, l, x, b, h, r)</code> は引数を入れ替えても型検査が通る形で、4 番目の位置は読み手に何も伝えません。レコードの書き方ならすべてのフィールドに名前が付き、match アームは使うフィールドだけを名指しします。どちらも <code>grep</code> で見つけられます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="two-more-the-checker-took-over-in-0-1-121">0.1.121 でチェッカーが引き受けたもう 2 つ<a class="h-anchor" href="#two-more-the-checker-took-over-in-0-1-121" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          <code>Order { id: "a", total: 1 }</code> は、TypeScript から来た人がレコードを作るときに書くものですが、Glyph にはこの形がありません。値は値だけで書き、型は注釈に書きます。以前この行についてコンパイラが言っていたのは、終了コード 0 のビルドでの <code>E0108</code>（到達不能なコード）でした。名前が型に解決され、波括弧が <code>return</code> の後のブロックとしてパースされたからです。型の名前を値として書くと今は <code>E0228</code> になり、メッセージは宣言から読み取られます。レコードならフィールドを、タグ付きユニオンならバリアントとそのペイロードの形を、文字列リテラルのユニオンならそのリテラルを列挙します。<code>Order.parse(raw)</code> と <code>Order.is(v)</code> は使えるままです。型自身のディスクリプタのレシーバは、型名が置かれるべき唯一の式の位置だからです。
+        </p>
+        <p>
+          これで名前が型だったケースは直りましたが、パースはそのままだったので、<code>return h() { k: 2 }</code> は相変わらず <code>h()</code> を返し、警告を出して波括弧を捨てていました。0.1.146 からは、文が終わった行にある <code>{</code> は、その前の名前が何であれ、パース時に <code>E0013</code> になり、その help が同じ書き換えを示します。0.1.149 からは、このルールが波括弧で始まるものだけでなくすべての文に適用されます。<code>let s = "a" "b"</code> は以前 <code>"a"</code> を束縛して <code>"b"</code> を捨てていましたし、Glyph にはキャストがないので <code>return x as User</code> は 3 つの文になっていました。ブロック内の各文は、それぞれ新しい行で始まります。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check、対象は TypeScript 流に作ったレコード</span>
+<pre class="wraps"><span class="del"><span class="e">[E0013]</span> a statement cannot begin on the line where
+        <span class="q">`return Order`</span> ends</span>
+   <span class="bx">╰─</span> Glyph has no <span class="q">`TypeName { ... }`</span> construction form. Write the literal
+      alone and put the type on the annotation: <span class="q">`let o: Order = { id: "a" }`</span>.
+
+<span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
+<span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          もう 1 つは、prelude のコンテナをプリミティブに代入するケースです。<code>o: Option&lt;int&gt;</code> のときの <code>let x: string = o</code> に対して Glyph のチェッカーは何も言わず、<code>int</code> と宣言された引数に <code>Nullable&lt;int&gt;</code> を渡しても同じでした。今は 5 つのコンテナが両方向でカバーされています。<code>Option</code>、<code>Result</code>、<code>Array</code>、<code>Record</code>、<code>Nullable</code> は、型引数が何であれ <code>string</code>、<code>number</code>、<code>bool</code> にはなりません。スカラーに対する <code>Nullable&lt;T&gt;</code> は 1 段内側の <code>T</code> で判定するので、<code>let v: Nullable&lt;int&gt; = 3</code> は正しいままで、<code>let v: Nullable&lt;int&gt; = "three"</code> は <code>E0204</code> です。<code>Nullable</code> のケースは他よりもこのページにふさわしいものです。<code>tsc</code> には判定できないからです。出力される <code>const v: number | null = 3</code> は呼び出しが検査される前に <code>number</code> に絞り込まれるので、<code>null</code> を見えるようにするために存在する境界の型が、<code>int</code> と宣言された場所を黙って通過していました。検出できる場所は Glyph のチェッカーだけでした。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          次に、同じコンテナを宣言済みのレコードやユニオンと比べるケースに取り組みました。0.1.130 からは、<code>let user: User = json.parse(body)</code> は <code>E0204</code> になり、<code>User</code> を期待したのに <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code> が見つかったと報告します。以前は <code>tsc</code> しかそれを言わなかったので、<code>glyph check --no-tsc</code>、エディタ、Playground では、境界が正しく扱うべきまさにその 1 行で、ファイルがきれいに見えていました。
+        </p>
+        <p>
+          配列や文字列のメンバーのつづり間違いも、以前は <code>tsc</code> を待っていたケースです。<code>xs.lenght</code> は「<code>length</code> ではありませんか」付きの <code>E0210</code> になります。レコードのフィールド読み取りをそのフィールドと照合するのと同じように、TypeScript のライブラリが配列と文字列に宣言しているメンバーと照合します。<code>tsc</code> はどちらも拒否していたので、それを実行するビルドはすでに赤くなっていました。変わったのは、チェッカーと、その上に作られたすべてのものが、先にそれを検出するようになったことです。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="and-three-more-since-0-1-133">さらに 3 つ、0.1.133 から<a class="h-anchor" href="#and-three-more-since-0-1-133" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          <code>let up = s.toUpperCase</code> は TypeScript では型検査を通りますが、<code>up()</code> を実行すると例外を投げます。読み取った時点で、属していた文字列が失われるからです。Glyph はこれを <code>E0234</code> として拒否し、それに対する <code>.bind(s)</code> も拒否します。代わりに呼び出しをラムダで包んでください。チェッカーは今では、TypeScript 自身の宣言から生成した表をもとに、配列と文字列の各メソッドが何を返すかを知っています。
+        </p>
+        <p>
+          <code>Result</code> に対する <code>r?.label</code> は、「エラーを伝播してからフィールドを読む」と読めてしまいます。実際にはオプショナルチェーンで、<code>Result</code> は決して null にならないので、<code>Result</code> オブジェクトからフィールドを読み、何も伝播しません。CSV クエリツールを作っていたエージェントが、まさにこれを書きました。今は <code>Option</code> に対しても <code>E0236</code> になり、help が先に <code>?</code> で束縛するよう示します。
+        </p>
+        <p>
+          型引数のない <code>json.parse(body)</code> は検査されない読み取りで、<code>Result&lt;unknown, ...&gt;</code> を返します。<code>Result&lt;User, ...&gt;</code> と宣言された場所にこれを書くと、以前の <code>tsc</code> は宣言から <code>User</code> を推論し、プログラムは最初のフィールド読み取りでクラッシュしていました。今はエミッタが <code>unknown</code> を明示的に書き出すので、<code>glyph check</code> は <code>tsc</code> を通じてこれを拒否します。Glyph 自身のチェッカーは、宣言された型の内側に <code>unknown</code> が入り込むケースをまだ検出しないので、<code>--no-tsc</code> とエディタは、<code>Result&lt;User, ...&gt;</code> と宣言された場所に書かれた <code>Result&lt;unknown, ...&gt;</code> を今も見逃します。（素の <code>let user: User = json.parse(body)</code> は、外側の型がすでに違うので、Glyph 自身のチェッカーで <code>E0204</code> になります。）あらゆる深さで <code>unknown</code> を拒否するのが G325 で、0.1.158 で予定しています。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="and-two-more-in-0-1-122">さらに 2 つ、0.1.122 で<a class="h-anchor" href="#and-two-more-in-0-1-122" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> は有限の文字列の集合を宣言しますが、Glyph のチェッカーは値をそれと何ひとつ照合していませんでした。数値、<code>bool</code>、レコード、集合外の文字列のどれもが、未使用変数の警告だけで <code>glyph check --no-tsc</code> を通過していました。一方 <code>tsc</code> は、出力された TypeScript に対してそのすべてを拒否していました。つまり完全な <code>glyph build</code> がこれについて間違うことはありませんでしたが、ループに <code>tsc</code> がない 4 つの場所は間違っていました。<code>--no-tsc</code>、言語サーバー、MCP ツール、Playground です。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc、対象は使える文字列を列挙した型</span>
+<pre>type Mode = "read" | "write"
+
+let a: Mode = 3
+let b: Mode = "rw"
+let c: Mode = takes_mode(true)
+let d: Mode = { x: 1 }
+<span class="cm">// before: four unused-variable warnings, exit 0</span>
+<span class="del"><span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`number`</span>
+<span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`"rw"`</span>
+<span class="e">[E0211]</span> argument type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`bool`</span>
+<span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`record`</span></span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>tsc</code> が報告していた 4 つを、同じ 4 つの文で、<code>tsc</code> を実行せずに報告しています。このルールはユニオンを実行時の姿、つまり <code>string</code> として読み、それぞれの方向で対応する <code>string</code> の問いをチェッカーに投げます。そのため、レコードやコンテナを <code>string</code> と比べて拒否する既存のルールを、形ごとに書き直すのではなくそのまま引き継ぎます。2 つのリテラル集合は集合として比較されるので、狭いユニオンは広いユニオンが宣言された場所に入れられます。エイリアスの連鎖は両側でたどられ、import したユニオンもローカルのものと同じように判定され、<code>Nullable&lt;Mode&gt;</code> はユニオンを保ったまま内側に降りて判定されます。
+        </p>
+        <p>
+          レコードのフィールドやジェネリック引数の中に入れ子になったユニオンは、0.1.122 では <code>tsc</code> に任せ、0.1.123 で判定するようにしました。下を見てください。
+        </p>
+        <p>
+          2 つ目は、<code>tsc</code> とはまったく関係のない話です。パーサは深さの上限を持たない再帰下降なので、2000 段の入れ子の式でプロセスのスタックが尽き、終了コード 134 で異常終了していました。<code>glyph check</code> でもまずいですが、ルート配下のすべてのファイルを読む <code>glyph lsp</code> と <code>glyph mcp</code> ではもっとまずく、1 つの異常なファイルがワークスペース全体のサーバーを落としていました。今は <code>E0011</code> になり、65 段目を開くはずだったトークンで報告されます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">0.1.123：値が出力される <code>string</code> ではなく、値そのもののリテラル<a class="h-anchor" href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> は集合を宣言の側に置き、値の側には何も置いていなかったので、<code>"read"</code> は <code>string</code>、<code>["read", "write"]</code> は <code>Array&lt;string&gt;</code> でした。そのため 2 つのプログラムが区別できませんでした。<code>Array&lt;Mode&gt;</code> と宣言された場所での <code>return ["read", "write"]</code>（<code>tsc</code> はコンパイルします）と、<code>xs: Array&lt;string&gt;</code> に対する <code>return xs</code>（こちらは拒否します）です。0.1.122 は間違えるよりはと、この組み合わせを判定しないことにし、その結果、誤ったプログラムを諦める代わりに正しいプログラムを通していました。<code>{ mode: Mode }</code> に対する <code>{ mode: "nope" }</code> には何も報告されませんでした。
+        </p>
+        <p>
+          今では、書かれた文字列リテラルはそれが表す 1 つのリテラルの型を持ち、配列リテラルの要素型はその要素の型を合わせたものになります。書かれた配列リテラルやオブジェクトリテラルは、宣言された型と要素ごと、フィールドごとに照合されるので、診断はそのリテラルを名指しして下線を引きます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc、対象はコンテナ 1 段内側のリテラル</span>
+<pre>type Mode = "read" | "write"
+type Cfg = { mode: Mode }
+
+fn <span class="o">ok</span>() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
+fn bad() -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }
+fn wrong() -&gt; Cfg { return { mode: "nope" } }
+<span class="cm">// 0.1.122: nothing, on all three</span>
+<span class="del"><span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`"nope"`</span>   (twice)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          リテラルは、TypeScript が広げるのと同じ場所で <code>string</code> に広がります。注釈のない <code>let</code>（出力される TypeScript の <code>let</code> も同じように広がります）と、書かれた配列に対する <code>for</code> の要素の束縛です。そのため <code>let l = "read"</code> の後の <code>takes_mode(l)</code> は、こちらでは拒否され、向こうでは <code>TS2345</code> になります。<code>const</code> は TypeScript の <code>const</code> を出力してリテラルを保つので、<code>takes_mode(CM)</code> はどちらでもコンパイルが通ります。名前を経由して届いたリテラル型は広げません。これは TypeScript 自身の freshness ルールです。これらはどの行も、推論で決めたのではなく、同等の TypeScript に <code>tsc --strict</code> を実行して確かめています。
+        </p>
+        <p>
+          1 つの組み合わせはまだ判定しません。<code>Record</code> のキー引数を別の <code>Record</code> のキー引数と比べるケースです。TypeScript は <code>Record&lt;string, V&gt;</code> を、<code>Record&lt;Mode, V&gt;</code> が宣言するすべてのキーをカバーするインデックスシグネチャとして書き、両方向で受け入れます。そのため拒否すると、コンパイルが通るプログラムを拒否することになります。チェッカーがまだ何も言わない形が、あと 2 つあります。<code>Some(...)</code> の中のリテラル（prelude のコンストラクタにはまだここで型がないため）と、注釈のない <code>let</code> に束縛されたレコードリテラル（オブジェクトリテラルに対してレコード型を合成しないため）です。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-module-under-std-was-dead-code-with-no-diagnostic"><code>std/</code> の下のモジュールが、診断なしの死んだコードになっていた<a class="h-anchor" href="#a-module-under-std-was-dead-code-with-no-diagnostic" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          <code>std/</code> と <code>extern/</code> はコンパイラが持ち運ぶモジュールの名前で、リゾルバはそれを import 用に予約していました。しかしプロジェクトのファイルがそれを<em>宣言</em>することを止めるものはありませんでした。自分の <code>src/io.glyph</code> に <code>module std/io</code> と書くときれいにコンパイルが通り、その後 <code>import std/io { shout }</code> はスタブに解決されて、<code>shout</code> はエクスポートされていないと報告しました。あなたのファイルは一度も読まれていなかったのです。何の診断も出さず、何のコードも実行しないファイルは、コンパイラが残しうる最悪の状態です。見た目にはどこもおかしくないからです。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc、対象は `module std/io` を宣言する src/io.glyph</span>
+<pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
+
+<span class="del"><span class="e">[E0113]</span> <span class="q">`std/io`</span> declares a module under <span class="q">`std/`</span>, a prefix reserved for the
+        modules the compiler carries (D15)</span>
+ 1 <span class="bx">│</span> module std/io
+   <span class="bx">│</span> <span class="bx">──────┬──────</span>
+   <span class="bx">╰─</span> Rename the module to a path of your own (<span class="q">`io`</span>, <span class="q">`app/io`</span>).</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          このプレフィックスは最初のセグメント全体として照合されるので、<code>standard</code>、<code>externals/io</code>、<code>app/std</code>、<code>app/extern/helper</code> は影響を受けず、どちらのプレフィックスの下からの import もこれまでどおり動きます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check、対象は `const x = ` の後に 2,000 個の入れ子の括弧</span>
+<pre><span class="cm">// before: thread 'main' has overflowed its stack
+//         fatal runtime error: stack overflow, aborting   (exit 134)</span>
+
+<span class="del"><span class="e">[E0011]</span> this array literal nests deeper than the parser's limit of 64 levels</span>
+   <span class="bx">╰─</span> Name the inner levels: pull them out into <span class="q">`let`</span> bindings, or into a
+      <span class="q">`fn`</span> that returns one of them, so no single expression, type or
+      pattern is more than 64 levels deep.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          上限は 64 で、適当に選んだのではなく測定して決めました。最もコストの高い構文である入れ子の配列リテラルは、1 段あたりリリースビルドで 7,792 バイト、デバッグビルドで 8,810 バイトのスタックを使います。ある深さをパースできる最小のスレッドスタックを二分探索して求めた値です。パーサが動く最も薄いスタックは生成されたスレッドの 2 MiB で、これは言語サーバーのワーカーが使うものです。64 段なら、コストの高いほうのビルドでもその 3 分の 1 未満しか使いません。このリポジトリにある 343 個の <code>.glyph</code> ファイルの中で最も深い入れ子は 16 です。上限は式、型、パターン、ブロック、JSX の子要素のすべてに適用され、兄弟関係にある 1000 個の配列は今もパースできます。深さは構文ごとの入れ子の深さであって、ファイル全体で消費される予算ではないからです。
+        </p>
+      </div>
+
+      <h2 class="block-label" id="when-neither-compiler-is-wrong">どちらのコンパイラも間違っていないとき<a class="h-anchor" href="#when-neither-compiler-is-wrong" aria-label="このセクションへのリンク">#</a></h2>
+      <div class="detail">
+        <p>
+          3 つ目の形があり、これが一番たちの悪いものです。Glyph は何も報告せず、<code>tsc</code> は正しいことを報告し、あなたが書いたプログラムには問題がない。失敗しているのは、その間の変換です。
+        </p>
+        <p>
+          Glyph の束縛は、その生存期間を通じて 1 つの型を持ちます。TypeScript は束縛を最後に代入されたものに絞り込み、その <code>boolean</code> は <code>true | false</code> というユニオンです。そのため <code>let done = false</code> は <code>false</code> 型として <code>tsc</code> に届き、出力された <code>switch</code> の <code>true</code> アームにはマッチするものがありませんでした。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">poll.glyph と、0.1.89 より前に tsc がそれについて言っていたこと</span>
+<pre><span class="k">fn</span> classify() <span class="op">-&gt;</span> <span class="t">int</span> {
+  <span class="k">let</span> done = <span class="k">false</span>
+  <span class="k">match</span> done {
+    <span class="k">true</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="n">1</span> },
+    <span class="k">false</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="n">0</span> },
+  }
+}
+
+<span class="cm">// no Glyph diagnostic, then</span>
+<span class="del">[<span class="t">TS2678</span>] <span class="t">Type</span> <span class="s">'true'</span> <span class="k">is</span> not comparable to <span class="k">type</span> <span class="s">'false'</span>.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          文字列リテラルの集合として宣言した型も同じように失敗し、<code>==</code> も同様で、こちらは <code>TS2367</code> として返ってきました。メッセージが 2 つ、コードが 2 つ、原因は 1 つです。これに当たったアプリは、タイマーのコールバックが設定するフラグをポーリングしていました。Glyph に手で作れる <code>Promise</code> がない間、イベントベースの API を値に変えるにはそうするしかないからです。結局コールバックは本質ではなく、コールバックのない 4 行でも再現します。
+        </p>
+        <p>
+          修正は新しい診断ではありません。診断すべきものがないからです。今はエミッタが、チェッカーがすでに決めた型を、値を判別する 2 つの場所で改めて書き出します。<code>match</code> の対象と、<code>==</code> や <code>!=</code> の両辺です。各辺は隣にあるものを無視してそれ自身の型で決まるので、2 つの束縛どうしの比較も、リテラルとの比較と同じようにカバーされます。
+        </p>
+        <p>
+          必要なチェックは今も働きます。<code>m</code> が <code>Mode</code> のときの <code>m == "nope"</code> は引き続き拒否され、今ではメッセージが、<code>m</code> がたまたま保持していた単一のメンバーではなく <code>Mode</code> を名指しします。これを代入の場所で行えばコードは少なく済みましたが、このチェックを捨てることになっていました。注釈付きの代入が受け入れられない場所でも <code>Mode</code> へのキャストは受け入れられますし、メンバーシップのチェックは Glyph が意図的に <code>tsc</code> に任せている部分だからです。
+        </p>
+        <p>
+          代償は小さいですが、明記しておく価値があります。キャストは確認だけでなく絞り込みもできるので、Glyph が <code>bool</code> と型付けした値の TypeScript の型が <code>unknown</code> になっていた場合、以前は <code>switch</code> がエラーを出していたところを今は通過します。それでも 2 つの型は比較可能でなければならないので、問題になるほどずれたモデル（<code>string</code> と <code>bool</code>）では、何も言わないのではなく <code>TS2352</code> が報告されます。
+        </p>
+      </div>
+
+      <h2 class="block-label" id="the-same-typo-two-answers">同じタイプミスに、2 つの答え<a class="h-anchor" href="#the-same-typo-two-answers" aria-label="このセクションへのリンク">#</a></h2>
+      <div class="detail">
+        <p>
+          標準ライブラリの関数名のつづりを間違えると、以前は import の書き方によって違う答えが返ってきました。こういう不一致があると、どちらの答えも信用しないようになってしまいます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">名前付き import、常に E0105</span>
+<pre>import std/string { repeeat }
+<span class="del"><span class="e">[E0105]</span> import: <span class="q">`repeeat`</span> is not exported by <span class="q">`std/string`</span></span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">名前空間からの読み取り、0.1.72 より前</span>
+<pre><span class="k">import</span> std/<span class="t">string</span>
+<span class="t">string</span>.repeeat(s, <span class="n">2</span>)
+<span class="del">[<span class="t">TS2551</span>] <span class="t">Property</span> <span class="s">'repeeat'</span> does not exist on <span class="k">type</span> ... <span class="t">Did</span> you mean <span class="s">'repeat'</span><span class="op">?</span></span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          1 つ目の書き方は、解決の段階でモジュールのエクスポート一覧と照合されていました。2 つ目はまったく照合されていなかったので <code>tsc</code> まで流れ、そこではそれをオブジェクトのプロパティアクセスとみなして、その言葉で答えていました。今はどちらの書き方もエクスポート一覧を通り、どちらも <code>E0105</code> で、欠けているメンバーとモジュールを名指しします。
+        </p>
+        <p>
+          これを有効にしたとたん、誰も探していなかったものが見つかりました。あるテストの fixture が、関数名は <code>write_text</code> なのに <code>fs.write</code> を呼び出していたのです。その fixture は型検査をオフにして実行されていて、コンパイラの他のどこも名前空間のメンバーを見ていなかったので、何か月も通過していました。今はエクスポート一覧が両方の書き方の基準なので、それをランタイムが実際にエクスポートしているものと一致させる別のチェックがあります。そのチェックは書いた後にわざと壊して失敗することを確かめました。そうして、最初の版が実は何もチェックしていなかったことがわかりました。
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p><code>async fn</code> の外での <code>await</code> に <code>E0222</code>、値の位置にある <code>match</code> で値を生まないアームに <code>E0223</code>、<code>mut</code> のない代入に <code>E0008</code>、存在するのはレコード形式なのにバリアントに複数の位置ペイロードフィールドを渡したときに <code>E0010</code>、伝播できない位置の <code>?</code> に <code>E0302</code>/<code>E0303</code>、出力モジュールがすでに依存している名前を隠してしまう宣言に <code>E0110</code>/<code>E0111</code>、ビルドルート配下のどのモジュールも指さないローカル import に <code>E0104</code>、モジュールがエクスポートしていない名前に（名前付き import 経由でも名前空間経由でも）<code>E0105</code>、値が期待される場所に書かれた型名に <code>E0228</code>、別の文が終わった行で始まる文（以前はその後の値を捨てていました）に <code>E0013</code>、prelude のコンテナをプリミティブや宣言済みのレコード・ユニオンに代入または渡したときに <code>E0204</code>/<code>E0211</code>（<code>tsc</code> が絞り込みで消してしまう <code>Nullable&lt;T&gt;</code> のケースを含む）、配列や文字列にないメンバーに <code>E0210</code>、文字列リテラルのユニオンの宣言された集合にない値にも同じ 2 つのコード、64 段を超えて入れ子になった構文に <code>E0011</code>、相対 import パス（以前はパーサで汎用的な「expected module path segment」として止まっていました）に <code>E0101</code>、そして <code>std/</code> や <code>extern/</code> の下に宣言されたプロジェクトのモジュール（以前はきれいにコンパイルが通り、到達不能でした）に <code>E0113</code>。隠蔽リストはエミッタが自分で書く型もカバーしているので、<code>Issue</code> と <code>Record</code> は宣言の場所で検出されます。どのコードにも 1 行の修正方法、ルールを説明する注記、<code>glyph --explain</code> の詳しい本文があります。<code>docs/error-codes.md</code> がカタログを一覧にし、テストが両者を一致させています。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">改善中</h3>
+          <p><code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、今も <code>async</code> コールバックを文句なく受け取り、保留中の値の配列を返します。これは <code>[object Promise]</code> と表示されます。述語を受け取る 5 つの配列関数は、コールバックに対する <code>E0211</code> でこれを止めます。残りの 3 つを同じようにモデル化すると、<code>par.all(array.map(items, async fn ...))</code> も拒否してしまいます。これは Glyph で処理を並行に実行する方法で、保留中の値の配列は言語の中で表す書き方がないからです。これは抜けているエントリではなく型システムの判断なので、未解決のままです。モジュールレベルの <code>const</code> の初期化式には外側の呼び出し可能なものがないので、トップレベルの <code>await</code> は許可され、出力される ESM がそれを実行します。Glyph が暗黙の非同期モジュール初期化を望むかどうかは、まだ仕様上の未解決の問いです。<code>E0223</code> が末尾の <code>match</code> を判定できるのは、関数が戻り値の型を宣言している場合だけなので、注釈のないラムダの中のアームは今も <code>tsc</code> まで届きます。隠蔽の側では、2 つのことが半分しか終わっていません。<code>E0110</code> は名前を残させるのではなく変更するよう伝えるので、<code>Error</code>、<code>Number</code>、<code>Object</code>、<code>Array</code>、<code>Promise</code> は今も型やバリアントの名前に使えません。また <code>E0111</code> は、<code>type Key = string | number</code> が間違った意味になるのを止めますが、それを表す方法を与えるわけではありません。2 つのプリミティブ型のユニオンは、Glyph では <code>extern_ts</code> 以外に書き方がなく、その中身は Glyph のチェッカーからは不透明として扱われます。タグなしユニオンは網羅性、実行時のディスクリプタ、<code>is</code> に関わるので、これは型システムの判断であり、予定は立っていません。<code>E0104</code> は <code>glyph build</code> と <code>glyph check</code> には届きますが、エディタには届きません。LSP はビルドルートなしでドキュメントのテキストを解析し、ワークスペースのフォルダもビルドルートではないので、推測するとこのチェックが避けるように設計された誤検出が出てしまうからです。また、予約語のパラメータは、同じファイル内の無関係なエラーの陰に今も隠れます。collect パスで失敗すると、それを見つけたはずの resolve パスがスキップされるからです。それとは別に、<code>bool</code> や文字列リテラルのユニオンの束縛をマッチ可能に保つための読み取り箇所での型の固定は、型エイリアスを出力中のモジュール内でしかたどりません。そのため、あるモジュールの <code>pub type Ready = bool</code> と、別のモジュールの <code>let r: catalog.Ready = false</code> は、今も <code>TS2678</code> として <code>tsc</code> まで届きます。文字列リテラルのユニオンは、3 つの import の書き方のすべてでモジュールをまたいでカバーされており、0.1.123 からは、どの書き方でも診断がリテラルの集合を表示するのではなく宣言（<code>Mode</code> を期待）を名指しします。</p>
+        </div>
+        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.149 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      </div>
+      <nav class="prevnext" aria-label="前へ・次へ">
+        <a href="/ja/answers/tooling/">
+          <span class="dir">&larr; 前へ</span>
+          <span class="t">エディタ、デバッグ、エラーの使い勝手はどうですか？</span>
+        </a>
+        <a href="/ja/answers/parse-errors/" class="nx cta">
+          <span class="dir">次へ &rarr;</span>
+          <span class="t">パースが失敗したとき、その理由はわかるのか</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript にトランスパイルされる型付き言語。エージェントがコードを壊さずに変更できるように作られています。</p>
+          </div>
+          <div class="foot-col">
+            <h2>はじめる</h2>
+            <a href="/ja/start/">最初のプログラム</a>
+            <a href="/ja/from-typescript/">TypeScript から来た人へ</a>
+            <a href="/ja/teams/">チーム向け</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">5 分でわかるツアー</a>
+          </div>
+          <div class="foot-col">
+            <h2>学ぶ</h2>
+            <a href="/ja/answers/">Q&amp;A</a>
+            <a href="/ja/answers/verifiability/">Q&amp;A を順番に読む</a>
+            <a href="/ja/answers/tooling/">エディタとエージェント向けツール</a>
+            <a href="/ja/agents/">エージェント向け</a>
+            <a href="/ja/mcp/">MCP サーバー</a>
+            <a href="/llms-pages.txt">Markdown 版のページ</a>
+            <a href="/ja/design/">設計</a>
+            <a href="/ja/pillars/verifiability/">4 つの柱</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">言語仕様</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">マニフェスト</a>
+          </div>
+          <div class="foot-col">
+            <h2>根拠</h2>
+            <a href="/ja/catches/">検出できるもの</a>
+            <a href="/ja/evidence/">主張の検証方法</a>
+            <a href="/ja/hardening/">堅牢化</a>
+            <a href="/ja/benchmarks/">ベンチマーク</a>
+            <a href="/versions/">バージョン</a>
+          </div>
+          <div class="foot-col">
+            <h2>ソースコード</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/ja/contribute/">コントリビュート</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub のリリース</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ja/answers/early-errors/index.segments.json">このページを編集する</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: エージェントが気づかれずに壊すことのできない TypeScript。</span>
+          <span>&copy; 2026 Glyph &middot; MIT または Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "自動", light: "ライト", dark: "ダーク" };
+        var labels = { auto: "カラーテーマ: 自動 (システム設定に従う)。ライトに切り替えます。", light: "カラーテーマ: ライト。ダークに切り替えます。", dark: "カラーテーマ: ダーク。自動に切り替えます。" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

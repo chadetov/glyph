@@ -1,0 +1,1704 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lo que TypeScript deja pasar y Glyph detecta · Glyph</title>
+    <meta name="description" content="Código que escriben los agentes de IA y que pasa tsc --strict, cada caso junto al mismo programa en Glyph con la salida real del compilador. Una comprobación en el build vuelve a ejecutar cada caso." />
+    <link rel="canonical" href="https://glyphlang.io/es/catches/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/es/catches/" />
+    <meta property="og:title" content="Lo que TypeScript deja pasar y Glyph detecta" />
+    <meta property="og:description" content="Código que escriben los agentes de IA y que pasa tsc --strict, cada caso junto al mismo programa en Glyph con la salida real del compilador. Una comprobación en el build vuelve a ejecutar cada caso." />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/catches.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/catches/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Lo que TypeScript deja pasar y Glyph detecta","item":"https://glyphlang.io/es/catches/"}]}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/catches/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/catches/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/catches/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/catches/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/catches/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/catches/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/catches/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/catches/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/catches/" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Principal">
+        <div class="nav-brand">
+          <a href="/es/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="Notas de la versión">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">Por qué Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Para quién es</p>
+                    <ul>
+                      <li><a href="/es/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Para quien construye agentes</span><span class="nav-desc">El servidor MCP y las consultas que responde</span></span></a></li>
+                      <li><a href="/es/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">Si vienes de TypeScript</span><span class="nav-desc">Qué cambia y qué se queda igual</span></span></a></li>
+                      <li><a href="/es/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">Para equipos</span><span class="nav-desc">Qué garantiza y cuánto cuesta adoptarlo</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">El diseño</p>
+                    <ul>
+                      <li><a href="/es/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">El diseño</span><span class="nav-desc">Los cuatro pilares y lo que se dejó fuera a propósito</span></span></a></li>
+                      <li><a href="/es/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Los cuatro pilares</span><span class="nav-desc">Verificabilidad, buscabilidad, abstracción, diffs estables</span></span></a></li>
+                      <li><a href="/es/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph frente a Effect</span><span class="nav-desc">Un lenguaje y una biblioteca, comparados</span></span></a></li>
+                      <li><a href="/es/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">¿Por qué no ReScript, Gleam o Elm?</span><span class="nav-desc">Tres lenguajes tipados que compilan a JavaScript</span></span></a></li>
+                      <li><a href="/es/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph frente a TypeScript con todas las herramientas</span><span class="nav-desc">Lo que tsc estricto, zod y eslint siguen dejando pasar</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top active" href="/es/catches/" aria-current="page">Qué detecta</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">Aprender<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Para empezar</p>
+                    <ul>
+                      <li><a href="/es/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">Empieza en 10 minutos</span><span class="nav-desc">Instálalo, escribe un programa y ejecútalo</span></span></a></li>
+                      <li><a href="/es/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Respuestas <span class="nav-count">28</span></span><span class="nav-desc">Preguntas que hacen los ingenieros, con ejemplos resueltos</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Referencia del lenguaje</span><span class="nav-desc">La especificación completa, en GitHub</span></span></a></li>
+                      <li><a href="/es/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Contribuir</span><span class="nav-desc">Cómo está hecho el compilador y cómo ayudar</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Conecta tu agente</p>
+                    <ul>
+                      <li><a href="/es/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Servidor MCP</span><span class="nav-desc">Conecta tu agente a las consultas del compilador</span></span></a></li>
+                      <li><a href="/es/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">Pregunta al compilador</span><span class="nav-desc">Consulta un símbolo, un tipo o un cambio antes de editar</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">llms.txt para agentes</span><span class="nav-desc">El lenguaje en un solo archivo que un agente puede leer</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">Pruebas<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Cómo se comprueba</p>
+                    <ul>
+                      <li><a href="/es/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Cómo se comprueban las afirmaciones</span><span class="nav-desc">Los fixtures y el gate de CI detrás de cada afirmación</span></span></a></li>
+                      <li><a href="/es/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Endurecimiento</span><span class="nav-desc">Agentes intentando romperlo y lo que encontraron</span></span></a></li>
+                      <li><a href="/es/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Benchmarks</span><span class="nav-desc">Los cuatro pilares en cifras, con sus salvedades</span></span></a></li>
+                      <li><a href="/es/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Lo que aún no detecta</span><span class="nav-desc">Agujeros conocidos, cada uno con su reproducción</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/es/catches/"><span class="nav-feature-big">21 de 37</span><span class="nav-feature-text">errores de TypeScript que nada detecta en un proyecto configurado al máximo</span><span class="nav-feature-cta">Ver qué detecta <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">Versiones</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="Idioma: Español (ES)"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">Español</span><span class="lang-short" aria-hidden="true">ES</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">Idioma</p>
+            <ul>
+              <li><a href="/catches/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/catches/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/catches/" hreflang="es" lang="es" data-lang="es" aria-current="true"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/ja/catches/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/catches/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/catches/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/catches/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/catches/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/catches/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/catches/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/catches/" hreflang="en" data-lang="en">Leer en inglés</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Tema de color: automático (sigue al sistema). Cambiar a claro.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Abrir el menú">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Cerrar el menú" : "Abrir el menú");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>Idioma: Español</span><span class="sep" aria-hidden="true">&middot;</span><a href="/catches/" hreflang="en" data-lang="en">Leer en inglés</a></p>
+      <button class="i18n-x" type="button" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>Esta página es una traducción. La versión en inglés es la de referencia. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28es%29%3A+%2Fes%2Fcatches%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fes%2Fcatches%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fcatches%2F%0A%0AWhat+is+wrong%3A%0A">Informar de un problema con la traducción</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <div class="wrap">
+      <header class="page-hero">
+        <p class="eyebrow">Casos que TypeScript deja pasar</p>
+        <h1>Detectado antes de llegar a producción</h1>
+        <p class="lede">En total hay 53 casos comprobados: 37 errores de TypeScript, 5 trampas de JavaScript que no existen en Glyph y 11 huecos que Glyph aún no cierra. Glyph rechaza 28 de ellos al compilar (23 errores y 5 trampas).</p>
+        <p class="lede">Todos los ejemplos de TypeScript de la lista pasan <code>tsc --strict</code> sin errores. Cada uno se comprueba además contra un proyecto configurado al máximo: todos los flags del compilador más estrictos que <code>--strict</code>, más typescript-eslint <code>strictTypeChecked</code>. En 21 de los 37 casos, nada de esa configuración lo detecta. Un flag del compilador que viene desactivado por defecto detecta 5, y una regla de lint detecta 11. Un proyecto tiene que activar cada uno de ellos, y un agente puede volver a desactivarlo. En Glyph ninguno es una opción de configuración.</p>
+        <p class="lede">
+          Cada entrada son dos programas en <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>, y la salida bajo cada uno es lo que imprimieron las herramientas. Una comprobación en el build, <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>, vuelve a ejecutar cada caso y falla si alguna de las dos mitades deja de hacer lo que dice la página. La configuración completa de TypeScript contra la que comprueba está en ese script.
+        </p>
+      </header>
+
+      <section class="c-cases" id="cases">
+        <h2 class="group-head">37 errores de TypeScript</h2>
+      <div class="c-legend">
+        <span class="c-score likely"><b>Probabilidad</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> con qué frecuencia lo escribe un agente de IA</span>
+        <span class="c-score severe"><b>Gravedad</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> cuánto daño hace cuando llega a producción</span>
+        <p>Las puntuaciones son nuestro criterio, de 1 a 5, a partir de estudios publicados sobre código escrito por agentes y de nuestras propias ejecuciones con agentes. Nadie ha medido estas tasas directamente. La lista está ordenada por probabilidad por gravedad.</p>
+      </div>
+
+      <div class="c-filters" hidden>
+        <div class="c-fgroup" role="group" aria-label="Qué lo detecta en TypeScript"><span class="c-flabel">Qué lo detecta en TypeScript</span><button type="button" class="c-chip" data-group="ts" data-value="none" aria-pressed="false">Nada <span>21</span></button><button type="button" class="c-chip" data-group="ts" data-value="flag" aria-pressed="false">Un flag del compilador <span>5</span></button><button type="button" class="c-chip" data-group="ts" data-value="lint" aria-pressed="false">Una regla de lint <span>11</span></button></div>
+        <div class="c-fgroup" role="group" aria-label="Cómo lo trata Glyph"><span class="c-flabel">Cómo lo trata Glyph</span><button type="button" class="c-chip" data-group="glyph" data-value="build" aria-pressed="false">Rechazado al compilar <span>23</span></button><button type="button" class="c-chip" data-group="glyph" data-value="data" aria-pressed="false">Comprobado cuando llegan los datos <span>6</span></button><button type="button" class="c-chip" data-group="glyph" data-value="warned" aria-pressed="false">Avisado <span>3</span></button><button type="button" class="c-chip" data-group="glyph" data-value="run" aria-pressed="false">Detenido al ejecutarse <span>2</span></button><button type="button" class="c-chip" data-group="glyph" data-value="design" aria-pressed="false">No existe en el lenguaje <span>3</span></button></div>
+        <p class="c-fstatus" aria-live="polite"></p>
+      </div>
+
+      <div class="c-list">
+      <article class="catch" id="data-from-outside-the-program" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">1</span>
+          <h3><a class="c-anchor" href="#data-from-outside-the-program">Datos de fuera del programa</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 5 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 de 5</span></span><span class="c-score severe" title="Gravedad: 5 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 de 5</span></span></div>
+        </div>
+        <p class="c-why">El cuerpo de una petición, un archivo, la respuesta de una API.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego trabaja con datos incorrectos</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> user = <span class="t">JSON</span>.parse(body) <span class="k">as</span> <span class="t">User</span>;
+console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">invoice for the undefined plan</span></pre></div>
+            <p class="c-result"><b>Nada comprueba los datos.</b> <code>undefined</code> sigue su camino como si fuera un plan.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">comprobado cuando llegan los datos</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">User</span>&gt;(body) {
+  <span class="t">Ok</span>(user) <span class="op">=&gt;</span> send_invoice(user.plan),
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["plan"],"message":"field `plan` is required","code":"missing"}]</span></pre></div>
+            <p class="c-result"><b>Un cuerpo que no es un <code>User</code> de verdad es un <code>Err</code>.</b> El programa nunca tiene uno falso.</p>
+          </div>
+        </div>
+        <p class="c-note"><code>as User</code> no comprueba nada. Le dice al compilador que confíe en ti. Glyph no tiene <code>as</code>.</p>
+        <p class="c-links"><a class="c-copy" href="#data-from-outside-the-program" data-slug="data-from-outside-the-program">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/data-from-outside-the-program">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=data-from-outside-the-program&amp;title=Score%3A+Data+from+outside+the+program">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="non-exhaustive-match" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">2</span>
+          <h3><a class="c-anchor" href="#non-exhaustive-match">Un caso que nadie manejó</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 5 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Un agente añade un estado <code>"archived"</code>. El handler que anuncia cada estado se escribió antes de que existiera.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila sin ningún aviso</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">switch</span> (s) {
+  <span class="k">case</span> <span class="s">"todo"</span>:
+    console.log(<span class="s">"not started"</span>);
+    <span class="k">break</span>;
+  <span class="k">case</span> <span class="s">"doing"</span>:
+    console.log(<span class="s">"in progress"</span>);
+    <span class="k">break</span>;
+  <span class="k">case</span> <span class="s">"done"</span>:
+    console.log(<span class="s">"finished"</span>);
+    <span class="k">break</span>;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">finished</span>
+<span class="e">archived logged nothing</span></pre></div>
+            <p class="c-result"><b>Archivar un elemento no registra nada.</b> Nada indica que el <code>switch</code> está desactualizado.</p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>switch-exhaustiveness-check</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">match</span> s {
+  <span class="s">"todo"</span> <span class="op">=&gt;</span> print(<span class="s">"not started"</span>),
+  <span class="s">"doing"</span> <span class="op">=&gt;</span> print(<span class="s">"in progress"</span>),
+  <span class="s">"done"</span> <span class="op">=&gt;</span> print(<span class="s">"finished"</span>),
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0200] Error: typecheck: non-exhaustive match on `"todo" | "doing" | "done" | "archived"`: missing variants "archived"</span>
+<span class="h">Help: Add an arm for each missing variant.</span></pre></div>
+            <p class="c-result"><b>La compilación se detiene y nombra el caso.</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript comprueba que un <code>switch</code> cubre todos los casos solo cuando la función devuelve un valor desde cada rama, o con el idioma <code>assertNever</code>. Un handler que no devuelve nada no tiene ninguna de las dos cosas. En Glyph todo <code>match</code> tiene que cubrir todos los casos, así que añadir una variante lista cada sitio que hay que cambiar.</p>
+        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="trusting-find-with-bang" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">3</span>
+          <h3><a class="c-anchor" href="#trusting-find-with-bang">Confiar en <code>find</code> con <code>!</code></a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 5 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Buscar un registro por id.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego falla en tiempo de ejecución</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> users.find((u) <span class="op">=&gt;</span> u.id === id)!.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
+            <p class="c-result"><b><code>!</code> le dice al compilador "confía en mí".</b> En tiempo de ejecución no hace nada.</p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>no-non-null-assertion</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> array.find(users, <span class="k">fn</span>(u: <span class="t">User</span>) <span class="op">-&gt;</span> <span class="t">bool</span> { u.id == id }).name</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0210] Error: typecheck: type `Option&lt;User&gt;` has no field `name`: an `Option` has no members</span>
+<span class="h">Help: Open it with `match array.find(...) { Some(u) =&gt; u.name, None =&gt; &lt;default&gt; }`. If the absence is a JSON `null` from the wire, declare the type `Nullable&lt;User&gt;` (D45).</span></pre></div>
+            <p class="c-result"><b><code>find</code> devuelve un <code>Option</code>,</b> así que hay que manejar el caso vacío.</p>
+          </div>
+        </div>
+        <p class="c-note">Sin el <code>!</code>, <code>tsc --strict</code> rechaza esta línea. El <code>!</code> es lo que desactiva esa comprobación, y no hace nada en tiempo de ejecución. Glyph no tiene <code>!</code>.</p>
+        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="error-the-signature-hides" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">4</span>
+          <h3><a class="c-anchor" href="#error-the-signature-hides">Un error que la firma oculta</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Una función que puede fallar, llamada por código que no lo sabe.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego falla en tiempo de ejecución</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> loadConfig(): <span class="t">Config</span> {
+  <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"missing file"</span>);
+}
+
+<span class="k">const</span> cfg = loadConfig(); <span class="c">// no try</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Error: missing file</span></pre></div>
+            <p class="c-result"><b>El tipo dice <code>Config</code>.</b> Nada indica que pueda lanzar una excepción.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> load_config() <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Config</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="t">Err</span>(<span class="s">"missing file"</span>)
+}
+
+<span class="k">let</span> cfg: <span class="t">Config</span> = load_config()</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `Config`, found `Result&lt;Config, string&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            <p class="c-result"><b>El fallo forma parte del tipo de retorno,</b> así que quien llama tiene que manejarlo.</p>
+          </div>
+        </div>
+        <p class="c-note">El tipo de una función de TypeScript dice qué devuelve, nunca qué lanza. En Glyph el fallo forma parte del tipo de retorno, así que todos los que llaman lo ven.</p>
+        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="error-nobody-looked-at" data-ts="none" data-glyph="warned">
+        <div class="c-head">
+          <span class="c-num">5</span>
+          <h3><a class="c-anchor" href="#error-nobody-looked-at">Un error que nadie miró</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Llamar a algo que puede fallar y seguir adelante.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila sin ningún aviso</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre>save(user); <span class="c">// returns { ok: false }</span>
+<span class="k">return</span> <span class="s">"done"</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">done</span></pre></div>
+            <p class="c-result"><b>El fallo se descarta</b> y al usuario se le dice que funcionó.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl warn">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">avisado</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>save(user)
+<span class="k">return</span> <span class="s">"done"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored</span>
+<span class="h">Help: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional.</span></pre></div>
+            <p class="c-result"><b>Glyph señala el fallo descartado.</b></p>
+          </div>
+        </div>
+        <p class="c-note">Un aviso, no un error. Para descartarlo a propósito, dilo: <code>let _ = save(user)</code>.</p>
+        <p class="c-links"><a class="c-copy" href="#error-nobody-looked-at" data-slug="error-nobody-looked-at">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-nobody-looked-at">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-nobody-looked-at&amp;title=Score%3A+An+error+nobody+looked+at">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="filter-that-keeps-everyone" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">6</span>
+          <h3><a class="c-anchor" href="#filter-that-keeps-everyone">Un filtro que deja pasar a todos</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Comprobar cada usuario con una llamada de permisos asíncrona.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego da una respuesta incorrecta</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> active = names.filter(
+  <span class="k">async</span> (n) <span class="op">=&gt;</span> <span class="k">await</span> isActive(n));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ 'ada', 'mallory' ]</span></pre></div>
+            <p class="c-result"><b>No se filtra nada.</b></p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>no-misused-promises</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> active = array.filter(names, <span class="k">async</span> <span class="k">fn</span>(n: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">bool</span> { <span class="k">await</span> is_active(n) })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `function`, found `async function`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>Una función async no es una respuesta de sí o no.</b></p>
+          </div>
+        </div>
+        <p class="c-note">Una función async devuelve una Promise, y cualquier Promise cuenta como verdadera. Un filtro de permisos escrito así deja pasar a todo el mundo.</p>
+        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="type-guard-that-checks-less" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">7</span>
+          <h3><a class="c-anchor" href="#type-guard-that-checks-less">Un type guard que comprueba menos de lo que afirma</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Validar a mano el cuerpo de una petición.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego falla en tiempo de ejecución</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> isUser(x: <span class="t">unknown</span>): x <span class="k">is</span> <span class="t">User</span> {
+  <span class="k">return</span> <span class="k">typeof</span> x === <span class="s">"object"</span> &amp;&amp; x !== <span class="k">null</span> &amp;&amp; <span class="s">"id"</span> <span class="k">in</span> x;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'toLowerCase')</span></pre></div>
+            <p class="c-result"><b>El guard dice "User" después de comprobar un solo campo.</b></p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">comprobado cuando llegan los datos</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> <span class="t">User</span>.<span class="k">is</span>(body) {
+  <span class="k">true</span> <span class="op">=&gt;</span> <span class="s">"user"</span>,
+  <span class="k">false</span> <span class="op">=&gt;</span> <span class="s">"not a user"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">not a user</span></pre></div>
+            <p class="c-result"><b><code>User.is</code> comprueba todos los campos.</b> Glyph no tiene guards escritos a mano.</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript confía por completo en una función <code>x is User</code>, compruebe lo que compruebe su cuerpo.</p>
+        <p class="c-links"><a class="c-copy" href="#type-guard-that-checks-less" data-slug="type-guard-that-checks-less">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/type-guard-that-checks-less">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=type-guard-that-checks-less&amp;title=Score%3A+A+type+guard+that+checks+less+than+it+claims">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="as-unknown-as" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">8</span>
+          <h3><a class="c-anchor" href="#as-unknown-as"><code>as unknown as T</code></a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Forzar un valor al tipo que quieres.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego falla en tiempo de ejecución</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cfg = raw <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">Config</span>;
+console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'length')</span></pre></div>
+            <p class="c-result"><b>Un doble cast desactiva la comprobación.</b></p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span><span class="c-verdict">no se puede escribir</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cfg = raw <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">Config</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0013] Error: parse: a statement cannot begin on the line where `let cfg = raw` ends</span></pre></div>
+            <p class="c-result"><b>No hay ningún cast que escribir.</b> La ayuda dice qué hacer en su lugar.</p>
+          </div>
+        </div>
+        <p class="c-note"><code>as unknown as T</code> es como los agentes silencian un error de tipos que no saben corregir.</p>
+        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="unvalidated-boundary-read" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">9</span>
+          <h3><a class="c-anchor" href="#unvalidated-boundary-read">Un cuerpo parseado al que se le da un tipo sin comprobarlo</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Leer el cuerpo de una petición en una variable tipada.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego trabaja con datos incorrectos</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> user: <span class="t">User</span> = <span class="t">JSON</span>.parse(body);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
+            <p class="c-result"><b>La anotación es una promesa que nada cumple.</b> <code>JSON.parse</code> devuelve <code>any</code>, así que pasa un cuerpo con cualquier forma.</p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>no-unsafe-assignment</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> user: <span class="t">User</span> = json.parse(body)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `User`, found `Result&lt;unknown, Array&lt;Issue&gt;&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            <p class="c-result"><b><code>json.parse</code> devuelve un <code>Result</code> de <code>unknown</code>,</b> y eso no es un <code>User</code>.</p>
+          </div>
+        </div>
+        <p class="c-note">Escribir <code>const user: User</code> parece una comprobación y no lo es. En Glyph, <code>json.parse&lt;User&gt;(body)</code> comprueba el cuerpo y devuelve un <code>Result</code> sobre el que hacer match.</p>
+        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="lost-update-across-await" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">10</span>
+          <h3><a class="c-anchor" href="#lost-update-across-await">Una actualización perdida a través de <code>await</code></a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 5 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 de 5</span></span></div>
+        </div>
+        <p class="c-why">Dos peticiones cobran a la misma cuenta a la vez.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego pierde dinero en tiempo de ejecución</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = a.balance;
+<span class="k">const</span> f = <span class="k">await</span> fee();
+a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">balance 90</span></pre></div>
+            <p class="c-result"><b>Un cobro desaparece.</b> Ningún test lo detecta de forma fiable.</p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>require-atomic-updates</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> before = a.balance
+<span class="k">let</span> f = <span class="k">await</span> fee()
+<span class="k">mut</span> a.balance = before - f</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0225] Error: typecheck: `a.balance` is read before an `await` and written after it, so a concurrent write in between is lost</span>
+<span class="h">Help: Move the read after the `await`, so the value written is the one that is current when it is written.</span></pre></div>
+            <p class="c-result"><b>Glyph detecta la lectura y posterior escritura alrededor de la espera.</b></p>
+          </div>
+        </div>
+        <p class="c-note">Mientras una llamada espera a <code>fee()</code>, otra puede actualizar el saldo. La primera escribe después un valor desactualizado.</p>
+        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="split-into-a-pair" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">11</span>
+          <h3><a class="c-anchor" href="#split-into-a-pair">Desestructurar un <code>split</code></a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 5 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Dividir una dirección en usuario y host.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego imprime el texto equivocado</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> [user, host] = s.split(<span class="s">"@"</span>);
+<span class="k">return</span> <span class="s">`</span><span class="ip">${</span>user<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span>host<span class="ip">}</span><span class="s">`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">nobody at undefined</span></pre></div>
+            <p class="c-result"><b>TypeScript da por hecho que la segunda parte existe.</b> Sin una <code>@</code>, el texto dice "nobody at undefined".</p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>restrict-template-expressions</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> [user, host] = <span class="t">string</span>.split(s, <span class="s">"@"</span>)
+<span class="k">return</span> <span class="s">"</span><span class="ip">${</span>user<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span>host<span class="ip">}</span><span class="s">"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0230] Error: typecheck: the length of `Array&lt;string&gt;` is not known, so a name in the pattern could hold `undefined`</span>
+<span class="h">Help: Its length is known only at run time, so match on it with a fallback arm: `match xs { [a, b] =&gt; ..., else =&gt; ... }`.</span></pre></div>
+            <p class="c-result"><b>La parte que falta tiene que manejarse.</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>split</code> puede devolver una sola pieza. TypeScript tipa <code>host</code> como <code>string</code> de todos modos.</p>
+        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="value-outside-the-list" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">12</span>
+          <h3><a class="c-anchor" href="#value-outside-the-list">Un valor fuera de la lista</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Una API empieza a enviar un estado que tu código nunca ha visto.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego trabaja con datos incorrectos</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Account</span> = { status: <span class="s">"active"</span> | <span class="s">"banned"</span> };
+
+<span class="k">const</span> body = <span class="s">'{"status":"deleted"}'</span>;
+<span class="k">const</span> acc = <span class="t">JSON</span>.parse(body) <span class="k">as</span> <span class="t">Account</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">status deleted</span></pre></div>
+            <p class="c-result"><b><code>"deleted"</code> se trata como uno de los dos.</b> Cada comprobación sobre <code>status</code> es ahora incorrecta.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">comprobado cuando llegan los datos</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Account</span> = { status: <span class="s">"active"</span> | <span class="s">"banned"</span> }
+
+<span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Account</span>&gt;(body) {
+  <span class="t">Ok</span>(acc) <span class="op">=&gt;</span> <span class="s">"status </span><span class="ip">${</span>acc.status<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["status"],"message":"field `status` must be \"active\" | \"banned\"","code":"type"}]</span></pre></div>
+            <p class="c-result"><b>Solo pasan los valores de la lista.</b></p>
+          </div>
+        </div>
+        <p class="c-note">En TypeScript una unión como <code>"active" | "banned"</code> solo existe mientras se compila. En tiempo de ejecución nada impide un tercer valor. Glyph lo comprueba cuando entran los datos.</p>
+        <p class="c-links"><a class="c-copy" href="#value-outside-the-list" data-slug="value-outside-the-list">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/value-outside-the-list">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=value-outside-the-list&amp;title=Score%3A+A+value+outside+the+list">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="config-with-a-setting-missing" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">13</span>
+          <h3><a class="c-anchor" href="#config-with-a-setting-missing">Una configuración a la que le falta un ajuste</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Un límite por plan, cargado de un archivo que alguien olvidó actualizar.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego trabaja con datos incorrectos</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> limits = <span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">Plan</span>, <span class="t">number</span>&gt;;
+console.log(limits.team * <span class="n">2</span>);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b>El tipo promete que cada plan tiene un límite.</b> El archivo no.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">comprobado cuando llegan los datos</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Record</span>&lt;<span class="t">Plan</span>, <span class="t">int</span>&gt;&gt;(text) {
+  <span class="t">Ok</span>(limits) <span class="op">=&gt;</span> <span class="s">"loaded"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":[],"message":"expected Record&lt;Plan, int&gt;"}]</span></pre></div>
+            <p class="c-result"><b>Cada plan tiene que estar, y nada más.</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>Record&lt;Plan, number&gt;</code> promete un valor para cada plan, y <code>as</code> nunca lo comprueba. Glyph exige cada clave del tipo y rechaza las que sobran.</p>
+        <p class="c-links"><a class="c-copy" href="#config-with-a-setting-missing" data-slug="config-with-a-setting-missing">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/config-with-a-setting-missing">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=config-with-a-setting-missing&amp;title=Score%3A+A+config+with+a+setting+missing">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="number-accepted-as-enum" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">14</span>
+          <h3><a class="c-anchor" href="#number-accepted-as-enum">Un número aceptado como enum</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Un código de estado leído de la base de datos.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego elige el estado equivocado</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> fromDb: <span class="t">number</span> = <span class="n">7</span>;
+console.log(label(fromDb));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">suspended</span></pre></div>
+            <p class="c-result"><b>Un código desconocido se convierte en un estado real.</b></p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>no-unsafe-enum-assignment</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> from_db: <span class="t">number</span> = <span class="n">7</span>
+print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `Status`, found `number`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>Un número no es un <code>Status</code>.</b></p>
+          </div>
+        </div>
+        <p class="c-note">En TypeScript cualquier número se puede asignar a un enum numérico, incluso uno sin miembro correspondiente.</p>
+        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="connection-left-open" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">15</span>
+          <h3><a class="c-anchor" href="#connection-left-open">Una conexión que se queda abierta</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Retornar antes de tiempo, sin limpiar.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego pierde una conexión</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> c = openConn();
+<span class="k">if</span> (!valid) <span class="k">return</span> <span class="s">"rejected"</span>;
+closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">rejected 1 still open</span></pre></div>
+            <p class="c-result"><b>Cada petición rechazada deja una conexión abierta.</b></p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> <span class="k">owned</span> c: <span class="t">Conn</span> = open()
+<span class="k">match</span> valid {
+  <span class="k">false</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="s">"rejected"</span> },
+  <span class="k">true</span> <span class="op">=&gt;</span> close(c),
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0206] Error: typecheck: `owned` resource `c` is not consumed on every path before the function returns</span>
+<span class="h">Help: Consume the handle on every path (move it into an `owned` parameter) before the function returns.</span></pre></div>
+            <p class="c-result"><b>Todos los caminos tienen que cerrarla.</b></p>
+          </div>
+        </div>
+        <p class="c-note">Esta comprobación se aplica a los valores declarados <code>owned</code>. Un recurso sin él no se sigue.</p>
+        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="typo-nobody-sees" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">16</span>
+          <h3><a class="c-anchor" href="#typo-nobody-sees">Una errata que nadie ve</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Leer un campo de una respuesta.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego falla en tiempo de ejecución</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> data = <span class="k">await</span> res.json();
+<span class="k">return</span> data.usr.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
+            <p class="c-result"><b><code>res.json()</code> es <code>any</code>,</b> así que no se comprueba nada de él.</p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>no-unsafe-member-access</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span><span class="c-verdict">rechazado por glyph check</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> json.parse(text) {
+  <span class="t">Ok</span>(data) <span class="op">=&gt;</span> data.usr.name,
+  <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unreadable"</span>,
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[TS18046] Error: tsc: 'data' is of type 'unknown'.</span>
+<span class="h">Help: TypeScript's checker rejected the code this expression compiles to. The caret is on the Glyph expression that produced it.</span></pre></div>
+            <p class="c-result"><b>No existe <code>any</code>.</b> Los datos que nadie ha comprobado son <code>unknown</code>; <code>json.parse&lt;User&gt;</code> les da un tipo.</p>
+          </div>
+        </div>
+        <p class="c-note"><code>any</code> desactiva la comprobación de tipos en todo lo que toca, y se propaga: <code>data.usr</code> también es <code>any</code>. Glyph no tiene <code>any</code>. El rechazo aquí viene del paso de <code>tsc</code> que ejecutan <code>glyph check</code> y <code>glyph build</code>; el checker propio de Glyph todavía no lo ve (G381).</p>
+        <p class="c-links"><a class="c-copy" href="#typo-nobody-sees" data-slug="typo-nobody-sees">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-nobody-sees">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-nobody-sees&amp;title=Score%3A+A+typo+nobody+sees">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="absent-map-key" data-ts="flag" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">17</span>
+          <h3><a class="c-anchor" href="#absent-map-key">Una clave que quizá no exista</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Leer un campo de una fila de strings, con el nombre mal escrito.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego imprime undefined</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> nameOf(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;): <span class="t">string</span> {
+  <span class="k">return</span> row.naem;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
+            <p class="c-result"><b>Cualquier clave se lee como <code>string</code>,</b> incluso una que no existe, así que el campo mal escrito imprime <code>undefined</code>.</p>
+            <p class="c-cfg flag"><b>Desactivado por defecto</b>lo detecta el flag del compilador <code>noUncheckedIndexedAccess</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">pub</span> <span class="k">fn</span> name_of(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> row.naem
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0224] Error: typecheck: `Record&lt;string, string&gt;` is a map, so `naem` may not be there</span>
+<span class="h">Help: Use `record.get(map, "key")`, which returns `Option&lt;V&gt;` so the absent case has somewhere to go. `record.has` tests for the key alone.</span></pre></div>
+            <p class="c-result"><b>Leer de un mapa indica que puede no haber nada,</b> así que el código tiene que decir qué pasa entonces.</p>
+          </div>
+        </div>
+        <p class="c-note">El <code>Record&lt;string, string&gt;</code> de TypeScript afirma que toda clave posible tiene un string. Glyph lo trata como un mapa, donde una búsqueda puede no encontrar nada, así que también rechaza <code>row.name</code> bien escrito.</p>
+        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="typo-in-an-options-object" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">18</span>
+          <h3><a class="c-anchor" href="#typo-in-an-options-object">Una errata en un objeto de opciones</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Construir las opciones en una variable y luego pasarlas.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego usa el ajuste equivocado</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> opts = { host: <span class="s">"db"</span>, timeoutMS: <span class="n">500</span> };
+console.log(<span class="s">"timeout"</span>, connect(opts));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">timeout 30000</span></pre></div>
+            <p class="c-result"><b>La opción mal escrita se descarta sin avisar.</b></p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> opts = { host: <span class="s">"db"</span>, timeout_MS: <span class="t">Some</span>(<span class="n">500</span>) }
+print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<span class="ip">}</span><span class="s">"</span>)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `ConnectOptions`, found `record`: missing field `timeout_ms`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>El nombre incorrecto es un error.</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript solo comprueba claves desconocidas en un literal escrito directamente en la llamada, no en uno construido antes en una variable.</p>
+        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="invalid-date" data-ts="none" data-glyph="design">
+        <div class="c-head">
+          <span class="c-num">19</span>
+          <h3><a class="c-anchor" href="#invalid-date">Una fecha inválida</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Parsear una fecha de un formulario.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego da una fecha incorrecta o falla</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="k">new</span> <span class="t">Date</span>(input).toISOString().slice(<span class="n">0</span>, <span class="n">10</span>);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">2025-03-02</span>
+<span class="e">RangeError: Invalid time value</span></pre></div>
+            <p class="c-result"><b>Las fechas incorrectas se desbordan</b> y se convierten en fechas reales.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">no se puede escribir</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> time.parse_iso(input) {
+  <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="s">"ok </span><span class="ip">${</span>ms<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">None</span> <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>input<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: 2025-02-30</span>
+<span class="o">rejected: next friday</span></pre></div>
+            <p class="c-result"><b>Parsear puede fallar, y el tipo lo dice.</b></p>
+          </div>
+        </div>
+        <p class="c-note">El <code>Date</code> de JavaScript convierte el 30 de febrero en el 2 de marzo sin quejarse. Glyph no tiene <code>Date</code>; <code>time.parse_iso</code> devuelve <code>None</code>.</p>
+        <p class="c-links"><a class="c-copy" href="#invalid-date" data-slug="invalid-date">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/invalid-date">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=invalid-date&amp;title=Score%3A+An+invalid+date">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="computed-value-never-used" data-ts="flag" data-glyph="warned">
+        <div class="c-head">
+          <span class="c-num">20</span>
+          <h3><a class="c-anchor" href="#computed-value-never-used">Un valor calculado que nunca se usa</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 4 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Limpiar una entrada y luego devolver la original por error.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila sin ningún aviso</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cleaned = input.trim().toLowerCase();
+<span class="k">return</span> input;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">"  Ada@Example.COM "</span></pre></div>
+            <p class="c-result"><b>La limpieza nunca ocurre.</b></p>
+            <p class="c-cfg flag"><b>Desactivado por defecto</b>lo detecta el flag del compilador <code>noUnusedLocals</code></p>
+          </div>
+          <div class="c-side gl warn">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">avisado</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cleaned = <span class="t">string</span>.lower(<span class="t">string</span>.trim(input))
+<span class="k">return</span> input</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0107] Warning: lint: unused variable `cleaned`</span>
+<span class="h">Help: Remove the binding, or prefix its name with `_` if it is intentionally unused.</span></pre></div>
+            <p class="c-result"><b>Glyph señala el valor sin usar.</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>noUnusedLocals</code> no forma parte de <code>--strict</code>, así que por defecto TypeScript no dice nada.</p>
+        <p class="c-links"><a class="c-copy" href="#computed-value-never-used" data-slug="computed-value-never-used">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/computed-value-never-used">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=computed-value-never-used&amp;title=Score%3A+A+computed+value+that+is+never+used">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="template-prints-undefined" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">21</span>
+          <h3><a class="c-anchor" href="#template-prints-undefined">Una plantilla que imprime "undefined"</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 5 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 de 5</span></span><span class="c-score severe" title="Gravedad: 2 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2 de 5</span></span></div>
+        </div>
+        <p class="c-why">Mostrar una relación opcional.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego imprime el texto equivocado</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="s">`Reports to: </span><span class="ip">${</span>e.manager<span class="op">?.</span>name<span class="ip">}</span><span class="s">`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Reports to: undefined</span></pre></div>
+            <p class="c-result"><b>El usuario ve la palabra "undefined".</b></p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>restrict-template-expressions</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="s">"Reports to: </span><span class="ip">${</span>e.manager<span class="op">?.</span>name<span class="ip">}</span><span class="s">"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0235] Error: typecheck: `?.name` over a `Nullable&lt;Manager&gt;` is `undefined` when the value is null, and it is not given a default with `??` or compared with `==`/`!=`</span>
+<span class="h">Help: Give the absent case a value with `??` (`n?.name ?? "none"`), or convert the whole value with `nullable.to_option(n)` and `match` on it.</span></pre></div>
+            <p class="c-result"><b>El caso que falta necesita un valor por defecto.</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>?.</code> evita el fallo, pero el <code>undefined</code> que produce se sigue imprimiendo.</p>
+        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="number-that-is-not-a-number" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">22</span>
+          <h3><a class="c-anchor" href="#number-that-is-not-a-number">Un número que no es un número</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Entrada del usuario, un query string, una celda de un CSV.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego trabaja con datos incorrectos</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> total(input: <span class="t">string</span>): <span class="t">number</span> {
+  <span class="k">const</span> qty = parseInt(input);
+  <span class="k">return</span> qty * <span class="n">10</span>;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b><code>NaN</code> se propaga</b> por cada suma que toca.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> total(input: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> qty: <span class="t">number</span> = <span class="t">number</span>.parse(input)
+  <span class="k">return</span> qty * <span class="n">10</span>
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `number`, found `Result&lt;number, string&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            <p class="c-result"><b>Parsear devuelve un <code>Result</code>:</b> un número, o el motivo del fallo.</p>
+          </div>
+        </div>
+        <p class="c-note">El error señala esta línea, antes de que se llame a <code>total</code>. Para compilar, el código tiene que decir qué significa una entrada incorrecta: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code></p>
+        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="comparing-records-with-triple-equals" data-ts="none" data-glyph="design">
+        <div class="c-head">
+          <span class="c-num">23</span>
+          <h3><a class="c-anchor" href="#comparing-records-with-triple-equals">Comparar dos records con <code>===</code></a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Saltarse un guardado cuando nada ha cambiado.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego compara identidad, no datos</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = { x: <span class="n">1</span>, y: <span class="n">2</span> };
+<span class="k">const</span> after = { x: <span class="n">1</span>, y: <span class="n">2</span> };
+
+<span class="k">if</span> (before === after) skipSave();</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">skipped false</span></pre></div>
+            <p class="c-result"><b>Mismos datos, pero <code>===</code> pregunta si son el mismo objeto.</b> Todos los guardados se ejecutan.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">compara los datos</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> before: <span class="t">Point</span> = { x: <span class="n">1</span>, y: <span class="n">2</span> }
+<span class="k">let</span> after: <span class="t">Point</span> = { x: <span class="n">1</span>, y: <span class="n">2</span> }
+
+<span class="k">let</span> same = before == after</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">same true</span></pre></div>
+            <p class="c-result"><b>Dos records con los mismos campos son iguales.</b></p>
+          </div>
+        </div>
+        <p class="c-note">Es JavaScript funcionando como está diseñado: <code>===</code> sobre objetos compara identidad, y comparar datos requiere un helper como <code>isEqual</code> de lodash. El error es usar <code>===</code> cuando lo que se quería comparar eran los datos. En Glyph, <code>==</code> sobre records compara los datos, así que la forma obvia de escribirlo es la correcta.</p>
+        <p class="c-links"><a class="c-copy" href="#comparing-records-with-triple-equals" data-slug="comparing-records-with-triple-equals">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/comparing-records-with-triple-equals">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=comparing-records-with-triple-equals&amp;title=Score%3A+Comparing+two+records+with+%3D%3D%3D">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="change-hidden-in-a-helper" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">24</span>
+          <h3><a class="c-anchor" href="#change-hidden-in-a-helper">Un cambio escondido en un helper</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Una función que modifica el objeto que recibe.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila sin ningún aviso</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> label(u: <span class="t">User</span>): <span class="t">string</span> {
+  u.name = <span class="s">"admin"</span>;
+  <span class="k">return</span> u.name;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">admin</span></pre></div>
+            <p class="c-result"><b>El usuario del llamador cambia de nombre.</b> Nada en la llamada lo indica.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span><span class="c-verdict">rechazado hasta que se marca</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>u.name = <span class="s">"admin"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0008] Error: parse: assignment requires `mut`</span>
+<span class="h">Help: Glyph marks every mutation (D5): write `mut x = ...` to reassign an existing binding, or `let x = ...` to introduce a new one.</span></pre></div>
+            <p class="c-result"><b>Cambiar un campo requiere <code>mut</code>.</b></p>
+          </div>
+        </div>
+        <p class="c-note">Glyph no prohíbe el cambio. Lo hace visible: buscar <code>mut</code> lista cada campo que escribe una función.</p>
+        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="negative-age" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">25</span>
+          <h3><a class="c-anchor" href="#negative-age">Una edad negativa</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Una regla sobre un valor, no solo sobre su tipo.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego trabaja con datos incorrectos</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Person</span> = { age: <span class="t">number</span> }; <span class="c">// must be &gt;= 0</span>
+
+<span class="k">const</span> text = <span class="s">'{"age": -5}'</span>;
+console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Person</span>).age);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">-5</span></pre></div>
+            <p class="c-result"><b>La regla vive en un comentario,</b> donde nada la hace cumplir.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">comprobado cuando llegan los datos</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Age</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
+
+<span class="k">type</span> <span class="t">Person</span> = { age: <span class="t">Age</span> }
+
+<span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Person</span>&gt;(text) {
+  <span class="t">Ok</span>(p) <span class="op">=&gt;</span> <span class="s">"age </span><span class="ip">${</span>p.age<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["age"],"message":"expected Age (int where value &gt;= 0)","code":"refinement"}]</span></pre></div>
+            <p class="c-result"><b>La regla forma parte del tipo,</b> y se comprueba con él.</p>
+          </div>
+        </div>
+        <p class="c-note">En TypeScript, una regla como "nunca negativo" vive en un comentario o en un validador aparte. En Glyph forma parte del tipo, así que cada comprobación del tipo la hace cumplir.</p>
+        <p class="c-links"><a class="c-copy" href="#negative-age" data-slug="negative-age">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/negative-age">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=negative-age&amp;title=Score%3A+A+negative+age">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="one-function-many-names" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">26</span>
+          <h3><a class="c-anchor" href="#one-function-many-names">Una función, muchos nombres</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Encontrar a todos los que llaman antes de cambiar algo.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila sin ningún aviso</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">import</span> getUser <span class="k">from</span> <span class="s">"./users"</span>;
+<span class="k">import</span> fetchUser <span class="k">from</span> <span class="s">"./users"</span>;
+<span class="k">import</span> { <span class="k">default</span> <span class="k">as</span> load } <span class="k">from</span> <span class="s">"./users"</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">ada ada ada</span></pre></div>
+            <p class="c-result"><b><code>grep getUser</code> no encuentra dos de las tres llamadas.</b></p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span><span class="c-verdict">un solo nombre en todas partes</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">import</span> users { get_user <span class="k">as</span> fetch_user }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0002] Error: parse: expected `}`, found As</span>
+<span class="h">Help: Add the expected token. Glyph is deliberately stricter than TypeScript (e.g. trailing commas required, no `if`/`else`).</span></pre></div>
+            <p class="c-result"><b>Sin exports por defecto, sin renombrar.</b> <code>grep get_user</code> encuentra todas las llamadas.</p>
+          </div>
+        </div>
+        <p class="c-note">Esto es lo que permite a un agente cambiar una función con seguridad: puede encontrar cada sitio donde se usa con una búsqueda de texto simple.</p>
+        <p class="c-links"><a class="c-copy" href="#one-function-many-names" data-slug="one-function-many-names">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/one-function-many-names">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=one-function-many-names&amp;title=Score%3A+One+function%2C+many+names">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="switch-fallthrough" data-ts="flag" data-glyph="design">
+        <div class="c-head">
+          <span class="c-num">27</span>
+          <h3><a class="c-anchor" href="#switch-fallthrough">Fallthrough en switch</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Un descuento por plan.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego cobra el precio equivocado</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"pro"</span>: pct = <span class="n">10</span>;
+<span class="k">case</span> <span class="s">"team"</span>: pct = <span class="n">20</span>; <span class="k">break</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">pro discount 20</span></pre></div>
+            <p class="c-result"><b>El <code>break</code> que falta ejecuta el caso siguiente.</b></p>
+            <p class="c-cfg flag"><b>Desactivado por defecto</b>lo detecta el flag del compilador <code>noFallthroughCasesInSwitch</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">no se puede escribir</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> plan {
+  <span class="s">"pro"</span> <span class="op">=&gt;</span> <span class="n">10</span>,
+  <span class="s">"team"</span> <span class="op">=&gt;</span> <span class="n">20</span>,
+  <span class="s">"free"</span> <span class="op">=&gt;</span> <span class="n">0</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">pro discount 10</span></pre></div>
+            <p class="c-result"><b>Los brazos de <code>match</code> nunca caen al siguiente.</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>noFallthroughCasesInSwitch</code> no forma parte de <code>--strict</code>.</p>
+        <p class="c-links"><a class="c-copy" href="#switch-fallthrough" data-slug="switch-fallthrough">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/switch-fallthrough">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=switch-fallthrough&amp;title=Score%3A+Switch+fallthrough">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="median-with-a-fractional-index" data-ts="none" data-glyph="run">
+        <div class="c-head">
+          <span class="c-num">28</span>
+          <h3><a class="c-anchor" href="#median-with-a-fractional-index">Una mediana con un índice fraccionario</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Tomar el elemento central de una lista ordenada.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego da una respuesta incorrecta</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sorted[sorted.length / <span class="n">2</span>];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b>Leer el índice 1.5 da <code>undefined</code>,</b> y la aritmética de quien llama lo convierte en <code>NaN</code>.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">detenido al ejecutarse</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> sorted[sorted.length / <span class="n">2</span>]</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="e">RangeError: index 1.5 is out of range for an array of length 3</span></pre></div>
+            <p class="c-result"><b>Un índice incorrecto detiene el programa</b> en lugar de propagar <code>NaN</code>.</p>
+          </div>
+        </div>
+        <p class="c-note">Glyph comprueba cada índice de array cuando se ejecuta el código. Este no se detecta al compilar.</p>
+        <p class="c-links"><a class="c-copy" href="#median-with-a-fractional-index" data-slug="median-with-a-fractional-index">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/median-with-a-fractional-index">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=median-with-a-fractional-index&amp;title=Score%3A+A+median+with+a+fractional+index">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="one-step-past-the-end" data-ts="none" data-glyph="run">
+        <div class="c-head">
+          <span class="c-num">29</span>
+          <h3><a class="c-anchor" href="#one-step-past-the-end">Un paso más allá del final</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Sumar una lista con un bucle.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego da una respuesta incorrecta</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt;= prices.length; i++)
+  sum += prices[i];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b><code>&lt;=</code> lee uno más allá del final.</b></p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">detenido al ejecutarse</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">for</span> i <span class="k">in</span> array.range(prices.length + <span class="n">1</span>) {
+  <span class="k">mut</span> sum = sum + prices[i]
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="e">RangeError: index 3 is out of range for an array of length 3</span></pre></div>
+            <p class="c-result"><b>Glyph no tiene <code>for</code> al estilo de C.</b> Leer más allá del final detiene el programa.</p>
+          </div>
+        </div>
+        <p class="c-note">En TypeScript, las lecturas fuera de rango devuelven <code>undefined</code>, y la aritmética lo convierte en <code>NaN</code>.</p>
+        <p class="c-links"><a class="c-copy" href="#one-step-past-the-end" data-slug="one-step-past-the-end">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/one-step-past-the-end">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=one-step-past-the-end&amp;title=Score%3A+One+step+past+the+end">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="code-after-return" data-ts="flag" data-glyph="warned">
+        <div class="c-head">
+          <span class="c-num">30</span>
+          <h3><a class="c-anchor" href="#code-after-return">Código después de <code>return</code></a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Sumar el impuesto cuando la función ya ha retornado.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila sin ningún aviso</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sum;
+sum = sum * (<span class="n">1</span> + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">30</span></pre></div>
+            <p class="c-result"><b>La línea del impuesto nunca se ejecuta.</b></p>
+            <p class="c-cfg flag"><b>Desactivado por defecto</b>lo detecta el flag del compilador <code>allowUnreachableCode: false</code></p>
+          </div>
+          <div class="c-side gl warn">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">avisado</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> sum
+<span class="k">mut</span> sum = sum * (<span class="n">1</span> + tax_rate)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0108] Warning: lint: unreachable code</span>
+<span class="h">Help: Remove it, or move the earlier `return`/`break`/`continue` so this can run.</span></pre></div>
+            <p class="c-result"><b>Glyph señala la línea muerta.</b></p>
+          </div>
+        </div>
+        <p class="c-note">Por defecto, TypeScript solo muestra el código inalcanzable como una pista atenuada en el editor.</p>
+        <p class="c-links"><a class="c-copy" href="#code-after-return" data-slug="code-after-return">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/code-after-return">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=code-after-return&amp;title=Score%3A+Code+after+return">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="arrow-function-returns-nothing" data-ts="flag" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">31</span>
+          <h3><a class="c-anchor" href="#arrow-function-returns-nothing">Una arrow function que no devuelve nada</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 3 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Convertir usuarios en filas.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego da una respuesta incorrecta</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> rows = users.map((u) <span class="op">=&gt;</span> { label: u.name });</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ undefined ]</span></pre></div>
+            <p class="c-result"><b>Las llaves son el cuerpo de una función,</b> y <code>label:</code> es una etiqueta de sentencia.</p>
+            <p class="c-cfg flag"><b>Desactivado por defecto</b>lo detecta el flag del compilador <code>allowUnusedLabels: false</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span><span class="c-verdict">no se puede escribir</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> rows = array.map(users, <span class="k">fn</span>(u: <span class="t">User</span>) <span class="op">-&gt;</span> <span class="t">Row</span> { label: u.name })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0003] Error: parse: unexpected token: Colon</span>
+<span class="h">Help: Remove or correct this token; it can't appear here.</span></pre></div>
+            <p class="c-result"><b>La forma ambigua no es Glyph válido.</b></p>
+          </div>
+        </div>
+        <p class="c-note">Para devolver un objeto desde una arrow function de TypeScript, las llaves necesitan paréntesis: <code>u =&gt; ({ ... })</code>.</p>
+        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="array-covariance" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">32</span>
+          <h3><a class="c-anchor" href="#array-covariance">Covarianza de arrays</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 2 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Pasar una lista de perros donde se espera una lista de animales.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego falla en tiempo de ejecución</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> adopt(shelter: <span class="t">Animal</span>[]): <span class="k">void</span> {
+  shelter.push({ name: <span class="s">"Tom the cat"</span> });
+}
+
+adopt(dogs);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: d.bark is not a function</span></pre></div>
+            <p class="c-result"><b>Un gato acaba en la lista de perros.</b></p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>adopt(dogs)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `Array&lt;Animal&gt;`, found `Array&lt;Dog&gt;`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>Una lista de perros no es una lista de animales en la que se pueda escribir.</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript deja que <code>Dog[]</code> ocupe el lugar de <code>Animal[]</code> incluso cuando la función le añade elementos.</p>
+        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="two-types-same-shape" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">33</span>
+          <h3><a class="c-anchor" href="#two-types-same-shape">Dos tipos con la misma forma</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 2 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Direcciones de email verificadas y sin verificar.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila sin ningún aviso</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">UnverifiedEmail</span> = { address: <span class="t">string</span> };
+<span class="k">type</span> <span class="t">VerifiedEmail</span> = { address: <span class="t">string</span> };
+
+sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">invoice sent to typo@exmaple.com</span></pre></div>
+            <p class="c-result"><b>Una dirección sin verificar recibe la factura.</b></p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>send_invoice(signup)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `VerifiedEmail`, found `UnverifiedEmail`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>Dos tipos con nombre son tipos distintos.</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript compara los tipos de objeto por su forma, así que los tipos con la misma forma son intercambiables, se llamen como se llamen.</p>
+        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="unverifiable-parse" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">34</span>
+          <h3><a class="c-anchor" href="#unverifiable-parse">Un validador que no puede comprobar lo que afirma</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 2 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2 de 5</span></span><span class="c-score severe" title="Gravedad: 4 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 de 5</span></span></div>
+        </div>
+        <p class="c-why">Un record que contiene un socket, comprobado con un guard escrito a mano.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego acepta un string como socket</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> isConn(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">Conn</span> {
+  <span class="k">return</span> (
+    <span class="k">typeof</span> value === <span class="s">"object"</span> &amp;&amp;
+    value !== <span class="k">null</span> &amp;&amp;
+    <span class="k">typeof</span> (value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).id === <span class="s">"number"</span> &amp;&amp;
+    (value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).sock !== <span class="k">undefined</span>
+  );
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">{ id: 1, sock: 'not a socket' }</span></pre></div>
+            <p class="c-result"><b>El guard dice <code>Conn</code> después de comprobar que <code>sock</code> existe.</b> Un string pasa por un socket.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="t">Conn</span>.parse(v)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0304] Error: emit: cannot validate `Conn`: field `sock` has type `Socket`, which has no runtime check</span>
+<span class="h">Help: Split the wire type from the domain type: parse a record whose fields are all checkable, then build this one from it.</span></pre></div>
+            <p class="c-result"><b>Un socket no tiene comprobación en tiempo de ejecución,</b> así que Glyph rechaza <code>Conn.parse</code> en lugar de generar una comprobación que no puede cumplirse.</p>
+          </div>
+        </div>
+        <p class="c-note">Separa el tipo de transporte del tipo de dominio: parsea los campos que se pueden comprobar y luego construye el record alrededor del socket.</p>
+        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="method-forgets-its-object" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">35</span>
+          <h3><a class="c-anchor" href="#method-forgets-its-object">Un método que olvida su objeto</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 2 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Pasar un método como valor.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego falla en tiempo de ejecución</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> up = name.toUpperCase;
+console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: String.prototype.toUpperCase called on null or undefined</span></pre></div>
+            <p class="c-result"><b>El método se separa de su string</b> y pierde la referencia a él.</p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>unbound-method</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> up = name.toUpperCase</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0234] Error: typecheck: method `toUpperCase` of `string` is read without being called</span></pre></div>
+            <p class="c-result"><b>Un método tiene que llamarse donde se lee.</b> Pasa una función en su lugar.</p>
+          </div>
+        </div>
+        <p class="c-note">Un método de TypeScript depende del objeto sobre el que se llama (<code>this</code>). Sacado de <code>name.toUpperCase()</code> como valor, ya no sabe qué string usar.</p>
+        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="quantity-of-one-and-a-half" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">36</span>
+          <h3><a class="c-anchor" href="#quantity-of-one-and-a-half">Una cantidad de 1.5</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 2 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Una línea de pedido que solo puede ser un número entero.</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila y luego trabaja con datos incorrectos</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: <span class="t">number</span> };
+
+<span class="k">const</span> text = <span class="s">'{"qty": 1.5}'</span>;
+console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Order</span>).qty);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">1.5</span></pre></div>
+            <p class="c-result"><b>TypeScript tiene un solo <code>number</code>.</b> Se envía medio artículo.</p>
+            <p class="c-cfg none"><b>Nada lo detecta</b>ni siquiera con todos los flags del compilador y typescript-eslint en modo estricto</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">comprobado cuando llegan los datos</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: <span class="t">int</span> }
+
+<span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Order</span>&gt;(text) {
+  <span class="t">Ok</span>(o) <span class="op">=&gt;</span> <span class="s">"qty </span><span class="ip">${</span>o.qty<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["qty"],"message":"field `qty` must be int","code":"type"}]</span></pre></div>
+            <p class="c-result"><b><code>int</code> es un tipo propio,</b> y se comprueba.</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript tiene un solo tipo <code>number</code> para enteros y fracciones por igual. Glyph tiene <code>int</code>, y lo comprueba cuando llegan los datos.</p>
+        <p class="c-links"><a class="c-copy" href="#quantity-of-one-and-a-half" data-slug="quantity-of-one-and-a-half">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/quantity-of-one-and-a-half">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=quantity-of-one-and-a-half&amp;title=Score%3A+A+quantity+of+1.5">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      <article class="catch" id="duplicate-case" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">37</span>
+          <h3><a class="c-anchor" href="#duplicate-case">Un caso duplicado</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="Probabilidad: 2 de 5">Probabilidad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2 de 5</span></span><span class="c-score severe" title="Gravedad: 3 de 5">Gravedad <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 de 5</span></span></div>
+        </div>
+        <p class="c-why">Decidir qué pedidos se pueden reembolsar.</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compila sin ningún aviso</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"paid"</span>: <span class="k">return</span> <span class="k">true</span>;
+<span class="k">case</span> <span class="s">"shipped"</span>: <span class="k">return</span> <span class="k">true</span>;
+<span class="k">case</span> <span class="s">"paid"</span>: <span class="k">return</span> <span class="k">false</span>; <span class="c">// never runs</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">true</span></pre></div>
+            <p class="c-result"><b>La segunda regla está muerta.</b> Nadie se da cuenta.</p>
+            <p class="c-cfg lint"><b>Solo lint</b>lo detecta la regla de lint <code>no-duplicate-case</code></p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="s">"paid"</span> <span class="op">=&gt;</span> <span class="k">true</span>,
+<span class="s">"shipped"</span> <span class="op">=&gt;</span> <span class="k">true</span>,
+<span class="s">"paid"</span> <span class="op">=&gt;</span> <span class="k">false</span>,</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0305] Error: emit: this match arm can never run: an earlier arm already matches `"paid"`</span>
+<span class="h">Help: Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.</span></pre></div>
+            <p class="c-result"><b>Un brazo que nunca se puede ejecutar es un error.</b></p>
+          </div>
+        </div>
+        <p class="c-note">tsc no marca una etiqueta <code>case</code> que aparece dos veces.</p>
+        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">¿No estás de acuerdo con la puntuación?</a></p>
+      </article>
+      </div>
+
+      </section>
+      <section class="c-section" id="traps">
+        <h2 class="group-head">5 trampas de JavaScript que no existen en Glyph</h2>
+        <p class="group-sub">
+          Trampas más antiguas en las que los agentes todavía caen de vez en cuando. Glyph rechaza cada programa, pero no porque detecte el error: la característica que hay detrás no está en el lenguaje, y se indica qué usar en su lugar.
+        </p>
+      <ul class="c-traps">
+        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> es <code>[10, NaN, NaN]</code>, porque <code>map</code> pasa el índice como base numérica. Glyph tiene <code>number.parse</code>, que devuelve un <code>Result</code>.</li>
+        <li id="trap-regex-lastindex">Una regex <code>/g</code> reutilizada con <code>.test</code> falla una de cada dos coincidencias, porque recuerda <code>lastIndex</code>. Glyph no tiene objetos regex; <code>regex.matches(pattern, text)</code> no tiene estado.</li>
+        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code> ejecuta el método sin su objeto. Glyph no tiene clases ni <code>this</code>.</li>
+        <li id="trap-math-max-empty"><code>Math.max(...[])</code> es <code>-Infinity</code>. El <code>array.max</code> de Glyph devuelve un <code>Option</code>, vacío para una lista vacía.</li>
+        <li id="trap-array-holes"><code>Array(3).map(...)</code> devuelve tres huecos, porque <code>map</code> los salta. Glyph no tiene <code>Array(n)</code>; los arrays se escriben como literales.</li>
+      </ul>
+
+      </section>
+
+      <section class="c-section" id="not-yet">
+        <h2 class="group-head">Lo que Glyph todavía no detecta</h2>
+        <p class="group-sub">
+          11 huecos que Glyph todavía no cierra. Cada uno compila hoy en Glyph y hace lo mismo mal que en TypeScript. Todos tienen una reproducción en <code>catches/</code> y un número de gap abierto, y la comprobación falla cuando llega un arreglo, así que la entrada no puede sobrevivir al hueco.
+        </p>
+      <ul class="c-gaps">
+        <li><code>requested || 3</code> convierte un <code>0</code> legítimo en <code>3</code>. <span>G386</span></li>
+        <li><code>"Welcome back, ${user}!"</code> con un record imprime <code>[object Object]</code>. <span>G385</span></li>
+        <li><code>forEach(async ...)</code> descarta todas las promesas, así que el trabajo termina después del código que depende de él, y nada avisa. <span>G384</span></li>
+        <li>Un <code>null</code> de JSON en un campo opcional pasa la comprobación, así que un spread sobre un valor por defecto deja <code>null</code> detrás. <span>G391</span></li>
+        <li><code>xs.sort(...)</code> dentro de un helper reordena el array de quien llama, y ningún <code>mut</code> lo marca. <span>G380</span></li>
+        <li><code>.sort()</code> sobre números los ordena como texto: <code>100,25,9</code>. <span>G388</span></li>
+        <li><code>std/sqlite</code> acepta una consulta SQL construida con <code>${name}</code>. <span>G387</span></li>
+        <li>Una actualización perdida a través de <code>await</code> sobre <code>c[0]</code>, cuando la misma escritura en un campo se rechaza. <span>G390</span></li>
+        <li><code>input + 1</code> sobre un string, <code>users.find(...).name</code> y la lectura de un campo de <code>unknown</code> solo los detecta el paso de <code>tsc</code>, no el checker propio de Glyph, así que el editor y las herramientas de agentes no los ven. <span>G381, G382, G392</span></li>
+      </ul>
+
+        <p class="group-sub c-after">
+          Los errores de lógica son la categoría más grande en todos los estudios sobre código escrito por agentes, y ningún type checker los ve: una fórmula equivocada, o una tarea mal entendida, compila en Glyph igual que en TypeScript.
+        </p>
+        <p class="group-sub">
+          Glyph tiene una sola vía de escape, <code>extern_ts</code>, para el TypeScript que no puede expresar. Es una palabra clave fija, así que <code>grep extern_ts</code> lista cada sitio donde se suspenden las reglas.
+        </p>
+      </section>
+    <script>
+      (function () {
+        var T = {"showing": "Se muestran {shown} de {total}. Vuelve a pulsar un filtro seleccionado para quitarlo.", "copied": "Enlace copiado"};
+        var bar = document.querySelector(".c-filters");
+        var items = Array.prototype.slice.call(document.querySelectorAll(".catch"));
+        var status = document.querySelector(".c-fstatus");
+        var chips = Array.prototype.slice.call(document.querySelectorAll(".c-chip"));
+        var state = { ts: "", glyph: "" };
+        function read() {
+          var q = new URLSearchParams(location.search);
+          state.ts = q.get("ts") || "";
+          state.glyph = q.get("glyph") || "";
+        }
+        function write() {
+          var q = new URLSearchParams(location.search);
+          ["ts", "glyph"].forEach(function (k) {
+            if (state[k]) q.set(k, state[k]); else q.delete(k);
+          });
+          var s = q.toString();
+          history.replaceState(null, "", location.pathname + (s ? "?" + s : "") + location.hash);
+        }
+        function apply() {
+          var shown = 0;
+          items.forEach(function (el) {
+            var ok = (!state.ts || el.dataset.ts === state.ts) && (!state.glyph || el.dataset.glyph === state.glyph);
+            el.hidden = !ok;
+            if (ok) shown++;
+          });
+          chips.forEach(function (c) {
+            c.setAttribute("aria-pressed", String(state[c.dataset.group] === c.dataset.value));
+          });
+          status.textContent = state.ts || state.glyph
+            ? T.showing.replace("{shown}", shown).replace("{total}", items.length)
+            : "";
+        }
+        if (bar) {
+          bar.hidden = false;
+          read();
+          apply();
+          chips.forEach(function (c) {
+            c.addEventListener("click", function () {
+              var g = c.dataset.group;
+              state[g] = state[g] === c.dataset.value ? "" : c.dataset.value;
+              write();
+              apply();
+            });
+          });
+        }
+        document.querySelectorAll(".c-copy").forEach(function (a) {
+          a.addEventListener("click", function (e) {
+            var url = location.origin + location.pathname + "#" + a.dataset.slug;
+            if (!navigator.clipboard) return;
+            e.preventDefault();
+            history.replaceState(null, "", "#" + a.dataset.slug);
+            navigator.clipboard.writeText(url).then(function () {
+              var prev = a.textContent;
+              a.textContent = T.copied;
+              setTimeout(function () { a.textContent = prev; }, 1400);
+            });
+          });
+        });
+      })();
+    </script>
+
+    </div>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/es/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>Un lenguaje tipado que compila a TypeScript, pensado para que los agentes puedan cambiar código sin romperlo.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Empezar</h2>
+            <a href="/es/start/">Tu primer programa</a>
+            <a href="/es/from-typescript/">Si vienes de TypeScript</a>
+            <a href="/es/teams/">Para equipos</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">El recorrido de cinco minutos</a>
+          </div>
+          <div class="foot-col">
+            <h2>Aprender</h2>
+            <a href="/es/answers/">Respuestas</a>
+            <a href="/es/answers/verifiability/">Leer las respuestas en orden</a>
+            <a href="/es/answers/tooling/">Editor y herramientas para agentes</a>
+            <a href="/es/agents/">Para agentes</a>
+            <a href="/es/mcp/">Servidor MCP</a>
+            <a href="/llms-pages.txt">Páginas en Markdown</a>
+            <a href="/es/design/">Diseño</a>
+            <a href="/es/pillars/verifiability/">Los cuatro pilares</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Especificación del lenguaje</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifiesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Pruebas</h2>
+            <a href="/es/catches/">Lo que detecta</a>
+            <a href="/es/evidence/">Cómo se comprueban las afirmaciones</a>
+            <a href="/es/hardening/">Endurecimiento</a>
+            <a href="/es/benchmarks/">Benchmarks</a>
+            <a href="/versions/">Versiones</a>
+          </div>
+          <div class="foot-col">
+            <h2>Código fuente</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/es/contribute/">Contribuir</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases en GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/es/catches/index.segments.json">Editar esta página</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript que tus agentes no pueden romper sin que te enteres.</span>
+          <span>&copy; 2026 Glyph &middot; MIT o Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Claro", dark: "Oscuro" };
+        var labels = { auto: "Tema de color: automático (sigue al sistema). Cambiar a claro.", light: "Tema de color: claro. Cambiar a oscuro.", dark: "Tema de color: oscuro. Cambiar a automático." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

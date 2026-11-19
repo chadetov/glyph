@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API마다 검증기를 직접 작성해야 하나요? · Glyph</title>
+    <meta name="description" content="아니요. Glyph에서는 타입이 곧 런타임 검증기이므로, 요청과 응답 본문을 검증기를 작성하지 않고 검사하며, 타입은 OpenAPI 명세나 .d.ts에서 가져올 수도 있습니다." />
+    <link rel="canonical" href="https://glyphlang.io/ko/answers/typed-apis/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ko/answers/typed-apis/" />
+    <meta property="og:title" content="API마다 검증기를 직접 작성해야 하나요?" />
+    <meta property="og:description" content="아니요. Glyph에서는 타입이 곧 런타임 검증기이므로, 요청과 응답 본문을 검증기를 작성하지 않고 검사하며, 타입은 OpenAPI 명세나 .d.ts에서 가져올 수도 있습니다." />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"API마다 검증기를 직접 작성해야 하나요?","item":"https://glyphlang.io/ko/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/typed-apis/#article","headline":"API마다 검증기를 직접 작성해야 하나요?","description":"아니요. Glyph에서는 타입이 곧 런타임 검증기이므로, 요청과 응답 본문을 검증기를 작성하지 않고 검사하며, 타입은 OpenAPI 명세나 .d.ts에서 가져올 수도 있습니다.","url":"https://glyphlang.io/ko/answers/typed-apis/","inLanguage":"ko","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/typed-apis/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/typed-apis/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/typed-apis/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/typed-apis/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/typed-apis/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/typed-apis/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/typed-apis/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/typed-apis/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/typed-apis/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/typed-apis/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/typed-apis/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/typed-apis/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="주 메뉴">
+        <div class="nav-brand">
+          <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">왜 Glyph인가<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">누구를 위한 언어인가</p>
+                    <ul>
+                      <li><a href="/ko/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">에이전트 개발자를 위한 안내</span><span class="nav-desc">MCP 서버와 서버가 답하는 쿼리</span></span></a></li>
+                      <li><a href="/ko/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript 사용자라면</span><span class="nav-desc">무엇이 바뀌고 무엇이 그대로인가</span></span></a></li>
+                      <li><a href="/ko/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">팀을 위한 안내</span><span class="nav-desc">무엇을 보장하고 도입 비용은 얼마인가</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">설계</p>
+                    <ul>
+                      <li><a href="/ko/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">설계</span><span class="nav-desc">네 가지 원칙과 일부러 넣지 않은 것들</span></span></a></li>
+                      <li><a href="/ko/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">네 가지 기둥</span><span class="nav-desc">검증 가능성, 검색 용이성, 추상화, 안정적인 diff</span></span></a></li>
+                      <li><a href="/ko/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph와 Effect 비교</span><span class="nav-desc">언어와 라이브러리의 비교</span></span></a></li>
+                      <li><a href="/ko/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">왜 ReScript, Gleam, Elm이 아닌가?</span><span class="nav-desc">JavaScript로 컴파일되는 세 가지 타입 언어</span></span></a></li>
+                      <li><a href="/ko/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph와 도구를 갖춘 TypeScript 비교</span><span class="nav-desc">strict tsc, zod, eslint로도 여전히 통과하는 것들</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/ko/catches/">무엇을 잡아내는가</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">배우기<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">시작하기</p>
+                    <ul>
+                      <li><a href="/ko/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10분 만에 시작하기</span><span class="nav-desc">설치하고, 프로그램을 작성하고, 실행하기</span></span></a></li>
+                      <li><a href="/ko/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">답변 <span class="nav-count">28</span></span><span class="nav-desc">엔지니어들이 묻는 질문과 예제로 보는 답</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">언어 레퍼런스</span><span class="nav-desc">GitHub에 있는 전체 명세</span></span></a></li>
+                      <li><a href="/ko/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">기여하기</span><span class="nav-desc">컴파일러의 구조와 기여하는 방법</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">에이전트 연결</p>
+                    <ul>
+                      <li><a href="/ko/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP 서버</span><span class="nav-desc">에이전트를 컴파일러 쿼리에 연결합니다</span></span></a></li>
+                      <li><a href="/ko/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">컴파일러에게 묻기</span><span class="nav-desc">편집하기 전에 심볼, 타입, 변경의 영향을 조회합니다</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">에이전트를 위한 llms.txt</span><span class="nav-desc">에이전트가 읽을 수 있는 파일 하나에 담은 언어</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">근거<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">검증 방법</p>
+                    <ul>
+                      <li><a href="/ko/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">주장을 검증하는 방법</span><span class="nav-desc">각 주장 뒤에 있는 fixture와 CI 게이트</span></span></a></li>
+                      <li><a href="/ko/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">하드닝</span><span class="nav-desc">에이전트가 깨뜨리려 시도한 기록과 찾아낸 것들</span></span></a></li>
+                      <li><a href="/ko/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">벤치마크</span><span class="nav-desc">네 가지 원칙을 숫자로, 단서와 함께</span></span></a></li>
+                      <li><a href="/ko/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">아직 잡아내지 못하는 것</span><span class="nav-desc">알려진 구멍과 각각의 재현 코드</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ko/catches/"><span class="nav-feature-big">37개 중 21개</span><span class="nav-feature-text">최대한 엄격하게 설정한 환경의 어떤 도구도 잡지 못하는 TypeScript 실수</span><span class="nav-feature-cta">무엇을 잡아내는지 보기 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">버전</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">플레이그라운드</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="언어: 한국어 (한국)"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">한국어</span><span class="lang-short" aria-hidden="true">한국</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">언어</p>
+            <ul>
+              <li><a href="/answers/typed-apis/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/typed-apis/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/typed-apis/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/typed-apis/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/typed-apis/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/typed-apis/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/typed-apis/" hreflang="ko" lang="ko" data-lang="ko" aria-current="true"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/de/answers/typed-apis/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/typed-apis/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/typed-apis/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/typed-apis/" hreflang="en" data-lang="en">영어로 읽기</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="색상 테마: 자동(시스템 설정을 따름). 라이트로 전환.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">자동</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="메뉴 열기">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "메뉴 닫기" : "메뉴 열기");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="답변 탐색">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/ko/answers/">답변</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/ko/answers/typed-apis/" aria-current="page"><span class="n">11</span> 타입이 있는 API</a></p>
+        <a class="ans-step prev" href="/ko/answers/embedding/" aria-label="이전 답변: 10 기존 앱 안에서">&lsaquo; 10</a><a class="ans-step next" href="/ko/answers/codegen/" aria-label="다음 답변: 12 클라이언트와 서버">12 &rsaquo;</a>
+        <a class="ans-all-link" href="/ko/answers/">전체 답변</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">전체 답변<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>언어: 한국어</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/typed-apis/" hreflang="en" data-lang="en">영어로 읽기</a></p>
+      <button class="i18n-x" type="button" aria-label="닫기"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>이 페이지는 번역본입니다. 기준은 영어판입니다. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ko%29%3A+%2Fko%2Fanswers%2Ftyped-apis%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fko%2Fanswers%2Ftyped-apis%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Ftyped-apis%2F%0A%0AWhat+is+wrong%3A%0A">번역 문제 신고하기</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side ak">
+      <p class="q-eyebrow">11 &middot; 데이터 경계</p>
+      <h1 class="q-title">API마다 검증기를 직접 작성해야 하나요?</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="답변">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/ko/answers/">전체 답변</a><button class="ans-close" type="button" aria-label="답변 목록 닫기"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>해결하는 문제</summary><ol>
+            <li><a href="/ko/answers/verifiability/"><span class="n">01</span><span class="t">조용한 파손</span></a></li>
+            <li><a href="/ko/answers/diff-stability/"><span class="n">02</span><span class="t">깔끔한 diff</span></a></li>
+            <li><a href="/ko/answers/greppability/"><span class="n">03</span><span class="t">코드 찾기</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>도입할지 결정하기</summary><ol>
+            <li><a href="/ko/answers/why-typescript/"><span class="n">04</span><span class="t">왜 TypeScript인가</span></a></li>
+            <li><a href="/ko/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">왜 도구를 갖춘 TS가 아닌가</span></a></li>
+            <li><a href="/ko/answers/human-value/"><span class="n">06</span><span class="t">AI 없이</span></a></li>
+            <li><a href="/ko/answers/ai-authoring/"><span class="n">07</span><span class="t">AI가 작성한 코드</span></a></li>
+            <li><a href="/ko/answers/upgrades/"><span class="n">08</span><span class="t">업그레이드</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>기존 스택과 함께 쓰기</summary><ol>
+            <li><a href="/ko/answers/imports/"><span class="n">09</span><span class="t">사용 중인 라이브러리</span></a></li>
+            <li><a href="/ko/answers/embedding/"><span class="n">10</span><span class="t">기존 앱 안에서</span></a></li>
+            <li><a href="/ko/answers/typed-apis/" aria-current="page"><span class="n">11</span><span class="t">타입이 있는 API</span></a></li>
+            <li><a href="/ko/answers/codegen/"><span class="n">12</span><span class="t">클라이언트와 서버</span></a></li>
+            <li><a href="/ko/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/ko/answers/state/"><span class="n">14</span><span class="t">공유 상태</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>만들 수 있는 것</summary><ol>
+            <li><a href="/ko/answers/language/"><span class="n">15</span><span class="t">언어</span></a></li>
+            <li><a href="/ko/answers/finance/"><span class="n">16</span><span class="t">돈과 안전</span></a></li>
+            <li><a href="/ko/answers/web-serving/"><span class="n">17</span><span class="t">웹 서빙</span></a></li>
+            <li><a href="/ko/answers/interactive-cli/"><span class="n">18</span><span class="t">입력을 받는 프로그램</span></a></li>
+            <li><a href="/ko/answers/long-running/"><span class="n">19</span><span class="t">서버와 데몬</span></a></li>
+            <li><a href="/ko/answers/binary/"><span class="n">20</span><span class="t">바이너리 데이터</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>에이전트와 함께 작업하기</summary><ol>
+            <li><a href="/ko/answers/impact/"><span class="n">21</span><span class="t">편집하기 전에</span></a></li>
+            <li><a href="/ko/answers/ask-the-compiler/"><span class="n">22</span><span class="t">컴파일러에게 묻기</span></a></li>
+            <li><a href="/ko/answers/repair-protocol/"><span class="n">23</span><span class="t">실패한 빌드 고치기</span></a></li>
+            <li><a href="/ko/answers/generated-docs/"><span class="n">24</span><span class="t">어긋나지 않는 문서</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>오류, 에디터, 프로덕션</summary><ol>
+            <li><a href="/ko/answers/tooling/"><span class="n">25</span><span class="t">에디터와 디버깅</span></a></li>
+            <li><a href="/ko/answers/early-errors/"><span class="n">26</span><span class="t">더 일찍 잡기</span></a></li>
+            <li><a href="/ko/answers/parse-errors/"><span class="n">27</span><span class="t">파싱 실패 이유</span></a></li>
+            <li><a href="/ko/answers/debugging/"><span class="n">28</span><span class="t">디버깅과 운영</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        아니요. Glyph에서는 <strong>타입이 곧 검증기</strong>입니다. <code>type</code>을 선언하면 컴파일러가 그 옆에 런타임 디스크립터를 생성하므로, 신뢰할 수 없는 요청이나 응답 본문을 호출 한 번으로 검증하며, 따로 작성하고 맞춰 둘 <code>zod</code> 스키마가 없습니다.
+      </p>
+
+      <figure class="ak-hero" id="the-boundary">
+        <div class="ak-flow">
+          <div class="ak-node in"><span class="k">신뢰할 수 없는 본문</span><span class="v">req.body</span><span class="n">unknown, 예: {"title": 123}</span></div>
+          <div class="ak-arrow" aria-hidden="true"><svg viewBox="0 0 40 16" preserveAspectRatio="none"><path d="M3 8h32M30 3.5l5 4.5-5 4.5"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-node gate"><span class="k">디스크립터</span><span class="v">NewTask.parse</span><span class="n"><code>type NewTask</code>에서 생성됨</span></div>
+          <div class="ak-arrow fork" aria-hidden="true"><svg viewBox="0 0 44 100" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M0 50H16M16 24V76M16 24H42M16 76H42"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-outs">
+            <div class="ak-node ok"><span class="k">Ok</span><span class="v">NewTask</span><span class="n">모든 필드가 검사된, 타입이 있는 값</span></div>
+            <div class="ak-node err"><span class="k">Err</span><span class="v">Array&lt;Issue&gt;</span><span class="n">잘못된 본문은 여기서 멈춤</span></div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>선언 하나, 검사 하나. 디스크립터는 타입에서 생성되므로 둘이 서로 다를 수 없고, <code>NewTask</code>를 얻는 유일한 방법은 이를 거치는 것입니다.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#see-it">직접 보기</a></li>
+          <li><a href="#the-parse-result-is-an-ordinary-result">평범한 Result</a></li>
+          <li><a href="#composing-your-own-the-output-type-is-derived-not-trusted">조합자</a></li>
+          <li><a href="#if-i-parse-a-date-do-i-get-a-real-date">날짜</a></li>
+          <li><a href="#you-don-t-even-have-to-write-the-types">생성되는 타입</a></li>
+          <li><a href="#the-database-is-a-boundary-too">데이터베이스</a></li>
+          <li><a href="#a-signed-webhook-is-a-boundary-too">웹훅</a></li>
+          <li><a href="#where-it-stands">현재 상태</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">왜 중요한가<a class="ak-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        대부분의 TypeScript 스택에서 모든 페이로드는 <em>두 번</em> 기술됩니다. 한 번은 컴파일러를 위한 <code>type</code>으로, 또 한 번은 값이 런타임에 실제로 그 모양이 되도록 직접 작성한 검증기로.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>둘은 어긋나고, 잘못된 데이터가 들어오는 곳이 바로 그 어긋남입니다. Glyph는 둘을 선언 하나로 합칩니다. 타입이 검증기를 <em>만들어</em> 내므로 서로 다를 수 없습니다.</p></div>
+
+      <h2 class="ak-h" id="see-it">직접 보기<a class="ak-anchor" href="#see-it" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        DTO를 한 번 선언합니다. 그 디스크립터가 <code>.parse</code>(신뢰할 수 없는 값을 그 타입으로 검증)와 <code>.is</code>(타입 가드)를 주고, 그 밖에 작성할 것은 없습니다.
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">api.glyph</span>
+<pre><span class="k">type</span> <span class="t">NewTask</span> = {
+  title: <span class="t">string</span>,
+  done: <span class="t">bool</span>,
+}
+
+<span class="k">fn</span> create(req: <span class="t">Request</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> <span class="t">NewTask</span>.parse(req.body) {
+    <span class="t">Ok</span>(task) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">201</span>, task)),
+    <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">400</span>, {
+      error: <span class="s">"invalid task"</span>,
+    })),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">작성하지 <em>않은</em> 것</span>
+<pre><span class="c">// No zod schema:</span>
+<span class="k">const</span> <span class="t">NewTask</span> = z.<span class="t">object</span>({
+  title: z.<span class="t">string</span>(),
+  done: z.<span class="t">boolean</span>(),
+});
+<span class="c">// No drift between the type and</span>
+<span class="c">// the validator, because there is</span>
+<span class="c">// only one declaration.</span>
+
+<span class="c">// A bad body, {"title": 123},</span>
+<span class="c">// takes the Err arm. Only a</span>
+<span class="c">// well-formed body reaches Ok.</span></pre>
+        </div>
+      </div>
+
+      <h3 class="ak-h3" id="typed-value"><code>match</code> 뒤에도 타입이 있는 값을 유지하기<a class="ak-anchor" href="#typed-value" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        arm 안에서 작업하는 대신 값을 밖으로 꺼낼 수도 있습니다.
+      </p>
+      <div class="code">
+        <span class="cap">api.glyph: 값이 타입을 가진 채 match를 나옴</span>
+<pre><span class="k">let</span> task = <span class="k">match</span> <span class="t">NewTask</span>.parse(req.body) {
+  <span class="t">Ok</span>(t) <span class="op">=&gt;</span> t,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> { <span class="k">return</span> bad_request(issues) },
+}
+task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; did you mean `title`?</span></pre>
+      </div>
+      <div class="ak-chips"><span class="chip since">0.1.45부터</span><span class="chip">제네릭 타입: 아직</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">타입이 전달되는 방식과 제네릭의 예외</span></summary><div class="body">
+        <p>
+          <code>T.parse</code>의 타입은 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>이고 arm이 일치하는 <code>match</code>는 그 타입을 가지므로, <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code>는 함수의 나머지에서 <code>NewTask</code>를 주며, 필드 이름은 생성된 TypeScript에 대한 <code>tsc</code>가 아니라 Glyph가 검사합니다. 0.1.45에 들어왔고, 그 전에는 값이 <code>match</code>를 나오면 타입을 잃었습니다. 아직 그렇지 않은 것은 제네릭 타입의 <code>parse</code>입니다. 그 디스크립터는 타입 매개변수마다 런타임 검사기를 받기 때문입니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-parse-result-is-an-ordinary-result">파싱 결과는 평범한 <code>Result</code>입니다<a class="ak-anchor" href="#the-parse-result-is-an-ordinary-result" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph에서 <code>T.parse</code>는 언어의 실패할 수 있는 모든 함수가 반환하는 것과 같은 <code>Result</code>를 반환하므로, 그대로 돌려주거나, <code>map_err</code>로 검증 문제를 자신의 오류 타입으로 바꾸거나, <code>?</code>로 전달할 수 있습니다.
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">boundary.glyph</span>
+<pre><span class="c">// Hand it straight back.</span>
+<span class="k">fn</span> read_task(body: <span class="t">unknown</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">NewTask</span>, <span class="t">Array</span>&lt;<span class="t">Issue</span>&gt;&gt; {
+  <span class="k">return</span> <span class="t">NewTask</span>.parse(body)
+}
+
+<span class="c">// Or restate the failure in your own terms.</span>
+<span class="k">fn</span> read_checked(body: <span class="t">unknown</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">NewTask</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="t">NewTask</span>.parse(body).map_err(
+    <span class="k">fn</span>(issues: <span class="t">Array</span>&lt;<span class="t">Issue</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+      <span class="k">return</span> <span class="s">"invalid task: </span><span class="ip">${</span>issue_text(issues)<span class="ip">}</span><span class="s">"</span>
+    },
+  )
+}
+
+<span class="c">// Or propagate it and get on with the work.</span>
+<span class="k">fn</span> create(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">let</span> task = read_checked(body)<span class="op">?</span>
+  <span class="k">return</span> <span class="t">Ok</span>(json(<span class="n">201</span>, save(task)))
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">이것이 대신한 것</span>
+<pre><span class="c">// Until 0.1.52 the generated descriptor</span>
+<span class="c">// returned a bare { tag, value } object,</span>
+<span class="c">// so both of the first two shapes were</span>
+<span class="c">// tsc errors (TS2322 and TS2339) even</span>
+<span class="c">// though Glyph's own checker reported</span>
+<span class="c">// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround</span>
+<span class="c">// was an identity re-wrap:</span>
+
+<span class="k">match</span> <span class="t">NewTask</span>.parse(body) {
+  <span class="t">Ok</span>(t)  <span class="op">=&gt;</span> <span class="t">Ok</span>(t),          <span class="c">// does nothing</span>
+  <span class="t">Err</span>(e) <span class="op">=&gt;</span> <span class="t">Err</span>(reword(e)),
+}
+
+<span class="c">// Four lines to say map_err. bracket.glyph</span>
+<span class="c">// carried this twice until the fix landed.</span></pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">여기서 Result를 쓰는 런타임 비용</span></summary><div class="body">
+        <p>
+          자기만의 모양으로 값을 돌려주는 검증기는 절반만 쓸모 있습니다. 나머지 오류 처리가 그 값을 다룰 수 없기 때문입니다. 파싱 결과에는 특별한 것이 하나도 없습니다.
+        </p>
+        <p>
+          예전에 그렇지 않았던 이유는 이렇습니다. 디스크립터는 <code>type</code> 옆에 생성되는데, 순수 객체를 생성하면 타입을 선언한 모듈이 런타임에 <code>std/result</code>에 의존하지 않아도 되었습니다. 이제는 그 거래를 반대로 합니다. <code>pub type</code>이 있는 모듈은 <code>Result</code>를 쓰든 안 쓰든 <code>std/result</code> import를 가지고, <code>parse</code> 호출은 어떤 <code>Ok(...)</code>든 할당하는 조합자 클로저를 할당합니다. 그 대가로 검증된 경계와 나머지 오류 처리가 같은 API가 됩니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="composing-your-own-the-output-type-is-derived-not-trusted">직접 조합하기: 출력 타입은 믿는 것이 아니라 끌어냅니다<a class="ak-anchor" href="#composing-your-own-the-output-type-is-derived-not-trusted" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph의 <code>infer_output&lt;Shape&gt;</code>는 모양에서 출력 타입을 <strong>끌어내고</strong>, <code>tsc</code>가 여러분의 타입 표기를 그에 대해 검사합니다. 주장하는 타입의 필드를 빠뜨린 모양은 컴파일되지 않습니다.
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">schema.glyph</span>
+<pre><span class="k">fn</span> object_schema&lt;<span class="t">Shape</span>: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">Schema</span>&lt;<span class="t">unknown</span>&gt;&gt;&gt;(
+  shape: <span class="t">Shape</span>,
+) <span class="op">-&gt;</span> <span class="t">Schema</span>&lt;infer_output&lt;<span class="t">Shape</span>&gt;&gt; { ... }
+
+<span class="k">type</span> <span class="t">User</span> = { name: <span class="t">string</span>, age: <span class="t">number</span> }
+
+<span class="c">// The shape must produce a User, or this</span>
+<span class="c">// line does not compile:</span>
+<span class="k">const</span> user_schema: <span class="t">Schema</span>&lt;<span class="t">User</span>&gt; =
+  object_schema({
+    name: string_schema(),
+    age: number_schema(),
+  })</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph가 없애는 어긋남</span>
+<pre><span class="c">// TS/zod: shape and output type are two</span>
+<span class="c">// separate things you keep in sync by hand.</span>
+<span class="k">const</span> s = z.<span class="t">object</span>({ name: z.<span class="t">string</span>() });
+<span class="k">type</span> <span class="t">User</span> = { name: <span class="t">string</span>; age: <span class="t">number</span> };
+<span class="c">// `s` is inferred { name }, but nothing</span>
+<span class="c">// checks it against User. The `age` you</span>
+<span class="c">// forgot is caught at runtime, if ever.</span>
+
+<span class="c">// Glyph: drop `age` from the shape and</span>
+<span class="c">// `Schema&lt;User&gt;` fails to compile. The</span>
+<span class="c">// shape is the single source of truth.</span></pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">TypeScript의 함정, 그리고 0.1.92부터 return을 따라가는 캐스트</span></summary><div class="body">
+        <p>
+          <code>zod</code> 스타일의 조합자가 필요할 때가 있습니다. 작은 검증기를 조합해 검증기를 만드는 것입니다. TypeScript의 함정은 조합자의 <em>출력 타입</em>과 넘긴 <em>모양</em>이 서로 어긋난다는 것입니다. 모양을 쓰고, 두 번째 타입 매개변수에 같은 것을 반복하며, 둘이 일치하는지 검사하는 것은 없습니다.
+        </p>
+        <p>
+          끌어낸 타입은 조합자가 어떻게 반환하든 성립합니다. <code>infer_output</code>은 함수 경계에서 캐스트 하나가 필요합니다. 본문이 만드는 값이 모양에서 끌어낸 타입을 가진다는 것을 타입 시스템이 증명할 수 없기 때문이며, 컴파일러가 그 캐스트를 대신 씁니다. 0.1.91까지는 평범한 <code>return &lt;value&gt;</code>에 붙었습니다. <code>return</code>과 값 사이에 <code>match</code>를 두거나 본문을 <code>r?</code>로 끝내면 같은 함수가 컴파일되지 않았습니다. 컴파일러가 이미 받아들인 Glyph에 대해, 생성된 TypeScript 기준의 <code>TS2322</code>였습니다. 0.1.92부터 캐스트는 표기가 아니라 return을 따라가므로, <code>return match strict { ... }</code>는 같은 본문을 단일 <code>return</code>으로 쓴 것과 똑같이 타입 검사를 통과합니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-rest-of-the-boundary">신뢰할 수 없는 경계의 나머지<a class="ak-anchor" href="#the-rest-of-the-boundary" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        디스크립터는 <code>json.parse&lt;T&gt;</code>를 안전하게 만드는 것과 같은 것입니다. JSON 문자열을 주면 한 단계에서 파싱<em>하고</em> 검증합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>입력</th><th>호출</th><th>반환</th></tr></thead>
+          <tbody>
+            <tr><td>JSON 문자열</td><td><code>json.parse&lt;T&gt;(text)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>디코딩된 본문</td><td><code>T.parse(value)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>헤더</td><td><code>header(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+            <tr><td>쿼리 매개변수</td><td><code>query_param(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">요청 본문, 헤더, 쿼리 매개변수</span></summary><div class="body">
+        <p>
+          요청 본문은 이미 <code>unknown</code>으로 디코딩되어 도착하므로, 거기서는 대신 <code>T.parse(value)</code>를 씁니다. 같은 보장이고 캐스트는 없습니다.
+        </p>
+        <p>
+          신뢰할 수 없는 경계의 나머지도 같은 방식으로 타입이 지정됩니다. <code>header(req, name)</code>와 <code>query_param(req, name)</code>은 <code>Option&lt;string&gt;</code>을 반환하므로, 헤더나 쿼리 매개변수가 없으면 <code>None</code>이고 <code>match</code>가 이를 처리하도록 <em>강제</em>합니다. <code>None</code> arm을 빠뜨리면 컴파일되지 않습니다. 없는 입력을 있는 것처럼 읽을 수 없습니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="does-a-map-keyed-by-an-enum-check-its-keys">enum을 키로 하는 맵은 키를 검사하나요?<a class="ak-anchor" href="#does-a-map-keyed-by-an-enum-check-its-keys" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        네, 0.1.148부터입니다. <code>type Tier = "free" | "pro"</code>일 때 <code>Record&lt;Tier, int&gt;</code>는 키가 정확히 <code>free</code>와 <code>pro</code>인 객체만 파싱합니다. 엉뚱한 키와 빠진 키는 둘 다 <code>Err</code>이며, 같은 객체를 리터럴로 썼을 때 <code>tsc</code>가 하는 말도 그렇습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>키 타입</th><th><code>parse</code>가 각 키에 대해 검사하는 것</th></tr></thead>
+          <tbody>
+            <tr><td>문자열 리터럴 유니언</td><td>나열된 키 정확히, 빠진 것도 남는 것도 없이</td></tr>
+            <tr><td><code>where</code>로 정제한 타입</td><td>조건식</td></tr>
+            <tr><td><code>int</code></td><td>정수의 평범한 표기. <code>"01"</code>과 <code>"1.5"</code>는 실패</td></tr>
+            <tr><td><code>string</code></td><td>새로운 것 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">정제된 키와 int 키, 그리고 여전히 tsc에 맡겨진 것</span></summary><div class="body">
+        <p>
+          <code>where</code>로 정제한 키 타입은 모든 키에 조건식을 실행하고, <code>int</code> 키는 정수의 평범한 표기여야 하므로 <code>"01"</code>과 <code>"1.5"</code>는 거부됩니다. <code>Record&lt;string, V&gt;</code>는 이전과 똑같이 검사됩니다. Glyph 자체 검사기는 코드에 작성한 값의 키를 여전히 <code>tsc</code>에 맡기며, 자신의 타입 매개변수를 키로 하는 제네릭 레코드는 그 매개변수가 <code>string</code>이 아니면 거부됩니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="if-i-parse-a-date-do-i-get-a-real-date">날짜를 파싱하면 진짜 날짜를 얻나요?<a class="ak-anchor" href="#if-i-parse-a-date-do-i-get-a-real-date" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        네, 그리고 흥미로운 부분은 날짜가 아닌 입력에 대해 무엇을 돌려받느냐입니다. <code>time.parse_iso</code>는 <code>Option&lt;number&gt;</code>를 반환하며, ISO-8601이 아닌 모든 것에 대해 <code>None</code>입니다.
+      </p>
+      <div class="two-up fit">
+        <div class="code">
+          <span class="cap">받아들임</span>
+<pre><span class="s">"2026-01-03"</span>              <span class="c">// UTC midnight</span>
+<span class="s">"2026-07-25T18:33:08.000Z"</span>
+<span class="s">"2026-03-15T09:30:00-05:00"</span>
+<span class="s">"2028-02-29"</span>              <span class="c">// a real leap day</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">모두 None</span>
+<pre><span class="s">"January 5 2026"</span>   <span class="c">// not ISO</span>
+<span class="s">"2026-1-3"</span>         <span class="c">// not padded</span>
+<span class="s">"2026-13-01"</span>       <span class="c">// no month 13</span>
+<span class="s">"2026-02-31"</span>       <span class="c">// no such day</span>
+<span class="s">"2026-02-29"</span>       <span class="c">// not a leap year</span>
+<span class="s">"2026-01-03T10:00"</span> <span class="c">// no offset</span></pre>
+        </div>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>마지막 것이 사람들을 놀라게 하는데, 그것이 핵심입니다. <code>Z</code>도 <code>+HH:MM</code> 오프셋도 없는 날짜시간은 ECMAScript 문법상 로컬 시간이므로, 이를 받아들이면 같은 문자열이 프로그램을 실행한 컴퓨터에 따라 다른 날짜를 가리키게 됩니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">Date.parse는 대신 무엇을 하는가, 그리고 왜 UTC인가</span></summary><div class="body">
+        <p>
+          이는 JavaScript의 <code>Date.parse</code>보다 강한 주장입니다. 그 함수는 자유 형식 텍스트(<code>"January 5 2026"</code>)를 받고, <code>"2026-1-3"</code>처럼 자릿수를 채우지 않은 날짜는 프로세스가 마침 실행되는 시간대로 읽으며, 불가능한 날짜는 앞으로 넘겨서 성공으로 보고합니다. <code>"2026-02-31"</code>은 3월 3일이 되고, 무슨 일이 있었는지 아무 표시 없이 숫자를 돌려받습니다.
+        </p>
+        <p>
+          Glyph의 달력 접근자(<code>time.year</code>, <code>time.month</code>, <code>time.day</code>)는 UTC이며 그렇다고 밝힙니다. 호스트의 시간대를 조용히 가져오는 검증기는 이들이 거짓말하게 만들 것입니다. 그래서 문자열을 거부하고, 그것이 무엇을 뜻했는지는 여러분이 정합니다.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="the-guard-moved">방어 코드가 기본 요소 안으로 옮겨졌습니다<a class="ak-anchor" href="#the-guard-moved" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        애플리케이션이 표준 라이브러리 기본 요소 주위에 정확성 방어 코드를 쓴다면, 그 방어 코드는 기본 요소 안에 있어야 합니다. 앱에서 지운 것은 다음과 같습니다.
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">이전: 앱이 stdlib를 방어함</span>
+<pre><span class="k">const</span> <span class="t">ISO_DATE</span> = <span class="s">"^\\d{4}-\\d{2}-\\d{2}$"</span>
+
+<span class="k">fn</span> parse_date(line: <span class="t">int</span>, value: <span class="t">string</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, <span class="t">RowError</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> regex.matches(<span class="t">ISO_DATE</span>, value) {
+    <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
+    <span class="k">true</span> <span class="op">=&gt;</span> <span class="k">match</span> time.parse_iso(value) {
+      <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="k">match</span> <span class="t">string</span>.starts_with(
+        time.format_iso(ms), value
+      ) {
+        <span class="k">true</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(ms),
+        <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
+      },
+      <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
+    },
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">이후: 기본 요소가 선을 지킴</span>
+<pre><span class="k">fn</span> parse_date(line: <span class="t">int</span>, value: <span class="t">string</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, <span class="t">RowError</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> time.parse_iso(value) {
+    <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="t">Ok</span>(ms),
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
+  }
+}</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        <code>import std/regex</code>도 함께 사라졌습니다. 같은 원장, 같은 거부된 행, 바이트 단위로 같은 보고서입니다.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">이것이 나온 경비 보고서 앱</span></summary><div class="body">
+        <p>
+          이는 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph">Glyph로 경비 보고서 CLI</a>를 작성하면서 나왔습니다. 원장의 모든 행에는 날짜가 있고, 행을 엉뚱한 달에 넣는 것이 중요한 버그이므로, 앱은 예전 <code>parse_iso</code>를 믿지 않았습니다. 먼저 정규식으로 모양을 검사하고, 그다음 타임스탬프를 텍스트로 되돌려 넘어간 날짜를 잡아냈습니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="you-don-t-even-have-to-write-the-types">타입조차 작성할 필요가 없습니다<a class="ak-anchor" href="#you-don-t-even-have-to-write-the-types" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        모양이 이미 OpenAPI 명세나 TypeScript 선언 파일에 있다면 거기서 Glyph 타입을 생성하세요. 추론된 유령이 아니라, 각각 디스크립터를 가진 실제로 커밋되고 grep할 수 있는 <code>type</code> 선언입니다.
+      </p>
+      <div class="two-up fit">
+        <div class="code term">
+          <span class="cap">OpenAPI / JSON Schema 명세에서</span>
+<pre><span class="f">glyph</span> gen openapi petstore.yaml \
+  <span class="fl">--out</span> src/</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">설치된 패키지에서, 이름으로</span>
+<pre><span class="f">glyph</span> gen dts api-types \
+  <span class="fl">--out</span> src/types</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        전송 타입이 직접 작성한 것 없이 검증되는 경계가 됩니다.
+      </p>
+      <div class="code">
+        <span class="cap">webhook.glyph</span>
+<pre><span class="k">import</span> types/api_types { <span class="t">Customer</span> }
+
+<span class="k">match</span> <span class="t">Customer</span>.parse(webhook_body) {
+  <span class="t">Ok</span>(c) <span class="op">=&gt;</span> handle(c),
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> reject(issues),
+}</pre>
+      </div>
+      <p class="ak-lede">생성은 <strong>전송 형식에 충실</strong>합니다. 명세가 값에 대해 말하는 것이 <code>parse</code>가 검사하는 것입니다.</p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>명세나 <code>.d.ts</code>에서</th><th>생성된 Glyph</th></tr></thead>
+          <tbody>
+            <tr><td>문자열 enum</td><td>문자열 리터럴 유니언. <code>parse</code>가 멤버십을 검사</td></tr>
+            <tr><td><code>integer</code> 필드</td><td><code>int</code>. 전송된 <code>3.5</code>는 실패</td></tr>
+            <tr><td>객체 스키마</td><td><code>@open</code>이 붙은 레코드. <code>additionalProperties: false</code>면 엄격</td></tr>
+            <tr><td><code>interface Page&lt;T&gt;</code></td><td><code>type Page&lt;T&gt;</code>, 각 항목을 <code>T</code>로 검사</td></tr>
+            <tr><td>판별자 없는 유니언</td><td>출력되는 안내와 함께 좁혀짐</td></tr>
+            <tr><td>닿을 수 있는 두 파일에 있는 이름</td><td>바인딩하지 않고 안내와 함께 표시</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">현재 실체화되는 것, 다시 생성하기, 제네릭 타입</span></summary><div class="body">
+        <p>
+          <code>glyph gen dts</code>에 <code>.d.ts</code> 파일을 주거나, 위처럼 설치된 npm 패키지 이름을 주면 됩니다. <code>node_modules</code>에서 패키지 자체의 선언 진입점을 찾아, import해서 쓰는 커밋된 타입을 씁니다.
+        </p>
+        <p>
+          현재 실체화되는 것: <code>gen dts</code>는 패키지가 export하는 <code>interface</code>와 <code>type</code> 선언을 읽으며, <code>declare namespace</code> 트리 안의 것(단순 상호 참조는 스코프를 통해 해석됩니다)과 <code>index</code> barrel이 재export하는 형제 파일의 것(진입 <code>.d.ts</code>와 상대 경로로 import된 모든 <code>.d.ts</code>를 순회합니다)도 포함합니다. 제네릭은 일급으로 유지됩니다. <code>interface Page&lt;T&gt;</code>는 <code>type Page&lt;T&gt;</code>로 실체화되고, 각 항목이 있는지만이 아니라 타입 인자로서 검증하는 디스크립터를 받습니다. 별칭과 <code>export * as</code> 재export는 파일별 바인딩 맵으로 해석됩니다. 안전하게 만들 수 없는 경우 하나, 즉 닿을 수 있는 두 파일에서 충돌하는 타입 이름은 잘못된 모양을 조용히 바인딩하는 대신 <em>안내와 함께 표시</em>합니다. 실체화기가 닿지 못하는 것은 경계에서 쓰는 모양을 직접 작성하거나 <code>extern_ts</code> 탈출구를 쓰세요.
+        </p>
+        <p>
+          다시 생성하는 것은 멱등이므로 명세 변경은 깔끔하고 리뷰할 수 있는 diff입니다. 생성은 <strong>전송 형식에 충실</strong>합니다. 문자열 enum은 문자열 리터럴 유니언(<code>"free" | "pro"</code>)으로 실체화되므로 <code>parse</code>는 값이 문자열인지만이 아니라 멤버십을 검사하고, 그에 대한 <code>match</code>는 <code>else</code> 없이 망라적입니다. <code>integer</code> 필드는 <code>int</code>가 되므로, 평범한 숫자라면 통과했을 전송된 <code>3.5</code>가 <code>parse</code>에서 실패합니다. 정확한 Glyph 형태가 없는 구문(판별자 없는 유니언)은 실제 데이터를 거부할 검증기를 생성하는 대신 좁히고 <em>안내를 출력</em>합니다. 생성된 레코드에는 <code>@open</code>도 붙으므로, <code>parse</code>는 선언한 모든 필드를 검증하면서도 API가 나중에 추가하는 필드를 허용합니다. <code>additionalProperties: false</code>를 설정한 스키마는 엄격하게 유지됩니다. Glyph에서 레코드는 기본적으로 엄격하고, 이는 직접 작성한 레코드가 쓰는 것과 같은 grep할 수 있는 선언 위치의 표시이므로, 레코드의 의미는 바뀌지 않습니다.
+        </p>
+        <p>
+          제네릭 타입도 검증됩니다. <code>Paginated&lt;T&gt;</code>는 <code>parse</code>가 타입 인자를 받는 디스크립터를 가집니다. <code>Paginated.parse&lt;User&gt;(body)</code>는 모든 <code>items</code> 항목이 있는지만이 아니라 <em><code>User</code>로서</em> 검사하고, <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code>도 같은 방식으로 좁힙니다. 이는 모듈 경계를 넘어서도 성립합니다. 한 파일에서 <code>Paginated&lt;T&gt;</code>를 정의하고 다른 파일로 <code>import</code>해도, 거기서 <code>Paginated.parse&lt;User&gt;(body)</code>와 <code>is Paginated&lt;User&gt;</code> 모두 각 요소를 <code>User</code>로 검사합니다. 컴파일러는 호출 위치의 타입 인자로 요소별 검사를 만들므로, 제네릭 타입이 어느 파일에 있는지는 무엇이 검증되는지와 상관없습니다.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+          한계: 디스크립터는 대부분의 페이로드를 이루는 모양을 다룹니다. 객체, 원시 타입, 배열, 참조, 선택 및 nullable 필드, 그리고 이제 주어진 인스턴스화에서의 제네릭 타입입니다. Glyph가 생성하지 않은 타입(import만 하는 외부 패키지나 <code>.d.ts</code>)은 타입 검사는 되지만 실체화하기 전까지 디스크립터가 없으며, 실체화는 이제 설치된 패키지에 대한 명령 하나입니다(<code>glyph gen dts &lt;package&gt;</code>, 패키지가 export하는 최상위 인터페이스와 타입 별칭 대상). 이 경계는 의도한 것입니다. Glyph가 생성하지 않은 타입은 런타임 검증을 약속할 수 없으므로, 패키지마다 직접 선택하고, 결과는 빌드할 때마다 만들어지는 것이 아니라 커밋되고 grep할 수 있습니다.</p></div>
+
+      <h2 class="ak-h" id="the-database-is-a-boundary-too">데이터베이스도 경계입니다<a class="ak-anchor" href="#the-database-is-a-boundary-too" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        데이터베이스에서 읽은 행은 요청 본문과 똑같이 신뢰할 수 없습니다. 요청 본문에 쓰는 것과 같은 <code>.parse</code>로 행을 검증합니다.
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre><span class="k">type</span> <span class="t">Task</span>    = { id: <span class="t">int</span>, title: <span class="t">string</span>, done: <span class="t">bool</span> }
+<span class="k">type</span> <span class="t">TaskRow</span> = { id: <span class="t">int</span>, title: <span class="t">string</span>, done: <span class="t">int</span> }
+
+<span class="k">fn</span> row_to_task(r: <span class="t">TaskRow</span>) <span class="op">-&gt;</span> <span class="t">Task</span> {
+  <span class="k">return</span> { id: r.id, title: r.title,
+           done: r.done != <span class="n">0</span> }
+}
+
+<span class="c">// A row is validated, then mapped. No cast.</span>
+<span class="k">match</span> <span class="t">TaskRow</span>.parse(row) {
+  <span class="t">Ok</span>(r)  <span class="op">=&gt;</span> <span class="t">Ok</span>(row_to_task(r)),
+  <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="s">"row failed validation"</span>),
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">없애는 버그</span>
+<pre><span class="c">// TS, better-sqlite3 / node:sqlite:</span>
+<span class="k">const</span> row = stmt.<span class="k">get</span>(id) <span class="k">as</span> <span class="t">Task</span>;
+<span class="c">// `row.done` is really 0 or 1, a number.</span>
+<span class="c">// Nothing complains. Then:</span>
+<span class="k">if</span> (row.done === <span class="k">true</span>) { ... }   <span class="c">// never runs</span>
+
+<span class="c">// The row was `unknown`; the cast invented</span>
+<span class="c">// a type. Glyph makes you validate the row</span>
+<span class="c">// into TaskRow, and the int-to-bool step is</span>
+<span class="c">// a line of code, not a silent lie.</span></pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">std/sqlite, 그리고 0 또는 1인 불리언</span></summary><div class="body">
+        <p>
+          데이터베이스에서 읽은 행은 요청 본문과 똑같이 신뢰할 수 없습니다. 데이터베이스 스키마와 코드가 생각하는 행이 다를 수 있고, 캐스트(<code>row as Task</code>)가 이를 덮습니다. Node 내장 SQLite 위의 DB 모듈인 <code>std/sqlite</code>는 이 점을 적극 활용합니다. 쿼리는 <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>를 반환하므로, 검증하지 않고는 행을 <code>Task</code>로 다룰 방법이 없습니다.
+        </p>
+        <p>
+          이는 사람들이 끊임없이 배포하는 버그를 잡습니다. SQLite에는 불리언 타입이 없으므로 <code>done</code> 열은 정수 <code>0</code>이나 <code>1</code>로 돌아옵니다. 행을 <code>bool</code> 필드가 있는 레코드로 캐스트하면 <code>task.done === true</code>는 조용히 절대 참이 되지 않습니다. Glyph에서는 저장 모양과 도메인 모양이 별개의 타입이고, 둘 사이의 매핑은 실제로 보이는 한 줄입니다.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="3.8" rx="5" ry="1.9"/><path d="M3 3.8v8.4c0 1 2.2 1.9 5 1.9s5-.9 5-1.9V3.8M3 8c0 1 2.2 1.9 5 1.9s5-.9 5-1.9"/></svg><p>
+          전체가 동작하는 예제입니다. <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph"><code>examples/apps/tasks/main.glyph</code></a>는 저장에 <code>std/sqlite</code>, 라우트에 <code>std/http</code>를 쓰는 영속 작업 API로, 데이터는 재시작해도 남고 전송 쪽과 데이터베이스 쪽 모두에서 검증합니다. 직접 작성한 검증기는 어디에도 없습니다.</p></div>
+
+      <h2 class="ak-h" id="a-signed-webhook-is-a-boundary-too">서명된 웹훅도 경계입니다<a class="ak-anchor" href="#a-signed-webhook-is-a-boundary-too" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        웹훅 서명을 검증하려면 다시 직렬화한 사본이 아니라 보낸 쪽이 서명한 정확한 바이트가 필요합니다(파싱한 본문을 다시 문자열로 만들면 공백과 키 순서가 바뀌어 HMAC이 절대 맞지 않습니다). <code>http.raw(req)</code>가 그 바이트를 주므로 검사는 Glyph 안에 머뭅니다.
+      </p>
+<pre><span class="k">fn</span> handle(req: <span class="t">Request</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">let</span> expected = crypto.hmac_sha256(secret, raw(req))
+  <span class="k">return</span> <span class="k">match</span> header(req, <span class="s">"x-hook-signature"</span>) {
+    <span class="t">Some</span>(sig) <span class="op">=&gt;</span> <span class="k">match</span> sig == expected {
+      <span class="k">true</span>  <span class="op">=&gt;</span> accept(req),          <span class="c">// then validate req.body with T.parse</span>
+      <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(text(<span class="n">401</span>, <span class="s">"bad signature"</span>)),
+    },
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(text(<span class="n">401</span>, <span class="s">"missing signature"</span>)),
+  }
+}</pre>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">서명에는 원본 바이트, 모양에는 파싱된 본문</span></summary><div class="body">
+        <p>
+          <code>req.body</code>는 여전히 모양 검사를 위한 파싱된 값이고, <code>raw</code>는 서명을 계산하는 변조되지 않은 페이로드입니다. 서명을 검증하고 본문을 검증하는 수신기에 직접 작성한 TypeScript는 필요 없습니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-type-can-validate-its-invariants-not-just-its-shape">타입은 모양만이 아니라 불변식도 검증할 수 있습니다<a class="ak-anchor" href="#a-type-can-validate-its-invariants-not-just-its-shape" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        모양 검사는 필드가 숫자라는 것을 알려 줍니다. 금액이 음수가 아니라거나 평점이 1에서 5 사이라는 것은 알려 주지 않습니다. <code>where</code> 정제는 그 불변식을 타입에 넣고, 디스크립터가 경계에서 이를 강제합니다.
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">refinements.glyph</span>
+<pre><span class="k">type</span> <span class="t">Amount</span>   = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
+<span class="k">type</span> <span class="t">Rating</span>   = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">1</span> &amp;&amp; value &lt;= <span class="n">5</span>
+<span class="k">type</span> <span class="t">NonEmpty</span> = <span class="t">string</span> <span class="k">where</span> value.length &gt; <span class="n">0</span>
+
+<span class="c">// Amount.parse(-1)  -&gt; Err   (not just "is a number")</span>
+<span class="c">// Rating.parse(6)   -&gt; Err</span>
+<span class="c">// Amount.parse(3.5) -&gt; Err   (int check too)</span>
+
+<span class="k">type</span> <span class="t">Line</span> = { amount: <span class="t">Amount</span>, }
+<span class="c">// Line.parse({ amount: -1 }) -&gt; Err too:</span>
+<span class="c">// the predicate follows the type into</span>
+<span class="c">// the field, and across modules.</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">작성하지 않는 것</span>
+<pre><span class="c">// The check that usually lives three</span>
+<span class="c">// functions away from the boundary,</span>
+<span class="c">// if someone remembers it:</span>
+<span class="k">if</span> (amount &lt; <span class="n">0</span>) <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(...);
+
+<span class="c">// In Glyph it's the type. A value that</span>
+<span class="c">// fails the predicate never becomes an</span>
+<span class="c">// Amount in the first place.</span></pre>
+        </div>
+      </div>
+
+      <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">10</span></h3>
+
+          <p class="ak-st-group">디스크립터</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">선언된 모든 레코드와 태그 유니언은 제네릭 레코드를 포함해 런타임 디스크립터(<code>.parse</code>, <code>.is</code>, <code>.schema</code>)를 가집니다</span><span class="chip">제네릭 태그 유니언은 제외</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>.parse</code>는 언어의 나머지가 쓰는 것과 같은 <code>Result</code>를 반환하므로, <code>map_err</code>, <code>?</code>, 그리고 그것을 반환하는 어떤 함수와도 조합됩니다</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>where</code> 정제(<code>int where value &gt;= 0</code>)는 경계에서 모양만이 아니라 불변식을 검증합니다</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>json.parse&lt;T&gt;</code>가 JSON을 검증합니다</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>infer_output&lt;Shape&gt;</code>는 조합자의 출력 타입을 모양에서 끌어내므로 둘이 어긋날 수 없습니다</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">생성</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code> / <code>glyph gen dts</code>는 명세, <code>.d.ts</code>, 또는 이름으로 지정한 설치된 패키지에서 디스크립터를 가진 커밋되는 타입을 생성합니다</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">경계</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/sqlite</code>는 행을 <code>unknown</code>으로 돌려주므로 데이터베이스도 다른 경계처럼 검증됩니다</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">서명된 웹훅 수신기가 완전히 Glyph 안에 머뭅니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>http.raw(req)</code>가 파싱하지 않은 요청 본문을 제공하므로, 웹훅 서명을 정확한 바이트에 대해 검증하고 서명된 웹훅 수신기가 완전히 Glyph 안에 머뭅니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">신뢰할 수 없는 입력은 <code>sanitize</code> 없이 SQL이나 셸 싱크에 닿을 수 없습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>std/taint</code>의 <code>Tainted</code>/<code>Trusted</code> 타입은 명시적인 <code>sanitize</code> 없이 신뢰할 수 없는 입력이 SQL이나 셸 싱크에 닿지 못하게 하므로, <code>tsc</code>가 컴파일 시점에 인젝션 경로를 거부합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>time.parse_iso</code>는 ISO-8601만 받습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>더 작은 경계 기본 요소도 같은 선을 지킵니다. <code>time.parse_iso</code>는 ISO-8601을 받고, 자유 형식 텍스트, 불가능한 날짜, 그리고 오프셋이 없어서 그렇지 않으면 호스트의 로컬 시간대로 읽힐 날짜시간에 대해서는 <code>None</code>을 반환합니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 앞으로 할 것 <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">판별 유니언은 명세와 <code>.d.ts</code>에서 생성됩니다. 다음은 enum과 매핑된 타입 지원</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>판별 유니언은 이제 OpenAPI <code>discriminator</code>와 TypeScript <code>.d.ts</code> 유니언 모두에서 생성됩니다(<code>parse_&lt;Name&gt;</code> 디스패처가 태그를 읽고 올바른 variant로 검증합니다). 다음은 더 풍부한 enum과 매핑된 타입 지원입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">명세에서 타입이 있는 클라이언트와 서버 코드를 만드는 것은 이미 제공됩니다</span> <a class="chip" href="/ko/answers/codegen/">클라이언트와 서버 보기</a></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">타임스탬프와 기간이 둘 다 <code>number</code>입니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>날짜에서는 엄격함이 기능의 전부이고, 파싱에서 멈춥니다. <code>parse_iso</code>는 epoch 밀리초를 돌려주므로 타임스탬프와 기간이 둘 다 <code>number</code>이고, 하나를 다른 것에 더하는 것을 막는 것은 없습니다. 별도의 날짜 타입은 나중에 내릴 결정이며, 작은 결정이 아닙니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>
+      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.149으로 검사합니다. 마지막 변경: <time datetime="2026-11-20">2026년 11월 20일</time>.</p>
+      <nav class="prevnext" aria-label="이전과 다음">
+        <a href="/ko/answers/embedding/">
+          <span class="dir">&larr; 이전</span>
+          <span class="t">기존 앱 안에서 Glyph를 도입할 수 있나요, 아니면 전부 아니면 전무인가요?</span>
+        </a>
+        <a href="/ko/answers/codegen/" class="nx cta">
+          <span class="dir">다음 &rarr;</span>
+          <span class="t">API 명세에서 타입이 있는 클라이언트와 서버를 생성할 수 있나요?</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript로 트랜스파일되는 타입 언어로, 에이전트가 코드를 깨뜨리지 않고 수정할 수 있도록 만들었습니다.</p>
+          </div>
+          <div class="foot-col">
+            <h2>시작하기</h2>
+            <a href="/ko/start/">첫 번째 프로그램</a>
+            <a href="/ko/from-typescript/">TypeScript 사용자라면</a>
+            <a href="/ko/teams/">팀을 위한 안내</a>
+            <a href="/playground/">플레이그라운드</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">5분 둘러보기</a>
+          </div>
+          <div class="foot-col">
+            <h2>배우기</h2>
+            <a href="/ko/answers/">답변</a>
+            <a href="/ko/answers/verifiability/">답변을 순서대로 읽기</a>
+            <a href="/ko/answers/tooling/">에디터와 에이전트 도구</a>
+            <a href="/ko/agents/">에이전트 개발자를 위한 안내</a>
+            <a href="/ko/mcp/">MCP 서버</a>
+            <a href="/llms-pages.txt">Markdown 버전 페이지</a>
+            <a href="/ko/design/">설계</a>
+            <a href="/ko/pillars/verifiability/">네 가지 기둥</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">언어 명세</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">매니페스토</a>
+          </div>
+          <div class="foot-col">
+            <h2>근거</h2>
+            <a href="/ko/catches/">잡아내는 것</a>
+            <a href="/ko/evidence/">주장을 검증하는 방법</a>
+            <a href="/ko/hardening/">하드닝</a>
+            <a href="/ko/benchmarks/">벤치마크</a>
+            <a href="/versions/">버전</a>
+          </div>
+          <div class="foot-col">
+            <h2>소스 코드</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">이슈</a>
+            <a href="/ko/contribute/">기여하기</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub 릴리스</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ko/answers/typed-apis/index.segments.json">이 페이지 편집</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: 에이전트가 몰래 깨뜨릴 수 없는 TypeScript.</span>
+          <span>&copy; 2026 Glyph &middot; MIT 또는 Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "자동", light: "라이트", dark: "다크" };
+        var labels = { auto: "색상 테마: 자동(시스템 설정을 따름). 라이트로 전환.", light: "색상 테마: 라이트. 다크로 전환.", dark: "색상 테마: 다크. 자동으로 전환." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

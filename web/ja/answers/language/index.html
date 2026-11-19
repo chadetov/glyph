@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>これは本物の言語か、それとも穴だらけのおもちゃか · Glyph</title>
+    <meta name="description" content="モジュールの可視性、ジェネリクスの境界を指定する構造的インターフェース、defer、構造化並行性、値としての match、そして JavaScript から受け継ぐセマンティクス。" />
+    <link rel="canonical" href="https://glyphlang.io/ja/answers/language/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ja/answers/language/" />
+    <meta property="og:title" content="これは本物の言語か、それとも穴だらけのおもちゃか" />
+    <meta property="og:description" content="モジュールの可視性、ジェネリクスの境界を指定する構造的インターフェース、defer、構造化並行性、値としての match、そして JavaScript から受け継ぐセマンティクス。" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"これは本物の言語か、それとも穴だらけのおもちゃか","item":"https://glyphlang.io/ja/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/language/#article","headline":"これは本物の言語か、それとも穴だらけのおもちゃか","description":"モジュールの可視性、ジェネリクスの境界を指定する構造的インターフェース、defer、構造化並行性、値としての match、そして JavaScript から受け継ぐセマンティクス。","url":"https://glyphlang.io/ja/answers/language/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/language/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/language/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/language/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/language/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/language/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/language/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/language/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/language/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/language/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/language/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/language/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/language/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">本文へスキップ</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="メイン">
+        <div class="nav-brand">
+          <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">なぜ Glyph か<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">対象となる人</p>
+                    <ul>
+                      <li><a href="/ja/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">エージェント開発者向け</span><span class="nav-desc">MCP サーバーと、それが答えるクエリ</span></span></a></li>
+                      <li><a href="/ja/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript から来た人へ</span><span class="nav-desc">変わること、変わらないこと</span></span></a></li>
+                      <li><a href="/ja/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">チーム向け</span><span class="nav-desc">何を保証し、導入にどれだけのコストがかかるか</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">設計</p>
+                    <ul>
+                      <li><a href="/ja/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">設計</span><span class="nav-desc">4 つの柱と、意図的に入れなかったもの</span></span></a></li>
+                      <li><a href="/ja/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">4 つの柱</span><span class="nav-desc">検証可能性、grep しやすさ、抽象化、差分の安定性</span></span></a></li>
+                      <li><a href="/ja/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph と Effect の比較</span><span class="nav-desc">言語とライブラリの比較</span></span></a></li>
+                      <li><a href="/ja/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">ReScript、Gleam、Elm ではなぜ駄目なのか</span><span class="nav-desc">JavaScript にコンパイルされる 3 つの型付き言語</span></span></a></li>
+                      <li><a href="/ja/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph とツールを揃えた TypeScript の比較</span><span class="nav-desc">strict な tsc、zod、eslint でも通ってしまうもの</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/ja/catches/">何を検出できるか</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">学ぶ<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">はじめよう</p>
+                    <ul>
+                      <li><a href="/ja/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 分で始める</span><span class="nav-desc">インストールし、プログラムを書いて、実行する</span></span></a></li>
+                      <li><a href="/ja/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Q&A <span class="nav-count">28</span></span><span class="nav-desc">エンジニアがよく聞く質問と、実例付きの回答</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">言語リファレンス</span><span class="nav-desc">GitHub にある完全な仕様</span></span></a></li>
+                      <li><a href="/ja/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">コントリビュート</span><span class="nav-desc">コンパイラの作りと、貢献の方法</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">エージェントをつなぐ</p>
+                    <ul>
+                      <li><a href="/ja/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP サーバー</span><span class="nav-desc">エージェントをコンパイラのクエリにつなぐ</span></span></a></li>
+                      <li><a href="/ja/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">コンパイラに聞く</span><span class="nav-desc">編集の前にシンボル、型、変更の影響を調べる</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">エージェント向けの llms.txt</span><span class="nav-desc">エージェントが読める 1 ファイルにまとめた言語仕様</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">根拠<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">検証の方法</p>
+                    <ul>
+                      <li><a href="/ja/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">主張の検証方法</span><span class="nav-desc">各主張を支える fixture と CI のゲート</span></span></a></li>
+                      <li><a href="/ja/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">堅牢化</span><span class="nav-desc">エージェントが壊そうとして見つけたもの</span></span></a></li>
+                      <li><a href="/ja/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">ベンチマーク</span><span class="nav-desc">4 つの柱を数値で、注意点とともに</span></span></a></li>
+                      <li><a href="/ja/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">まだ検出できないもの</span><span class="nav-desc">既知の穴と、それぞれの再現コード</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ja/catches/"><span class="nav-feature-big">37 件中 21 件</span><span class="nav-feature-text">最も厳しく設定した環境でも何も検出できない TypeScript のミス</span><span class="nav-feature-cta">検出できるものを見る <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">バージョン</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="言語: 日本語 (日本)"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">日本語</span><span class="lang-short" aria-hidden="true">日本</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">言語</p>
+            <ul>
+              <li><a href="/answers/language/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/language/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/language/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/language/" hreflang="ja" lang="ja" data-lang="ja" aria-current="true"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/tr/answers/language/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/language/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/language/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/language/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/language/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/language/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/language/" hreflang="en" data-lang="en">英語で読む</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="カラーテーマ: 自動 (システム設定に従う)。ライトに切り替えます。">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">自動</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="メニューを開く">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "メニューを閉じる" : "メニューを開く");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="Q&amp;A のナビゲーション">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/ja/answers/">Q&amp;A</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/ja/answers/language/" aria-current="page"><span class="n">15</span> 言語そのもの</a></p>
+        <a class="ans-step prev" href="/ja/answers/state/" aria-label="前の Q&amp;A: 14 共有状態">&lsaquo; 14</a><a class="ans-step next" href="/ja/answers/finance/" aria-label="次の Q&amp;A: 16 お金と安全性">16 &rsaquo;</a>
+        <a class="ans-all-link" href="/ja/answers/">すべての Q&amp;A</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">すべての Q&amp;A<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>表示言語: 日本語</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/language/" hreflang="en" data-lang="en">英語で読む</a></p>
+      <button class="i18n-x" type="button" aria-label="閉じる"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fanswers%2Flanguage%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fanswers%2Flanguage%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Flanguage%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side">
+      <p class="q-eyebrow">15 &middot; 言語としての完成度</p>
+      <h1 class="q-title">これは本物の言語ですか。それとも穴だらけのおもちゃですか。</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/ja/answers/">すべての Q&amp;A</a><button class="ans-close" type="button" aria-label="Q&amp;A の一覧を閉じる"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>解決する問題</summary><ol>
+            <li><a href="/ja/answers/verifiability/"><span class="n">01</span><span class="t">気づかない破損</span></a></li>
+            <li><a href="/ja/answers/diff-stability/"><span class="n">02</span><span class="t">きれいな差分</span></a></li>
+            <li><a href="/ja/answers/greppability/"><span class="n">03</span><span class="t">コードを探す</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>導入するかどうかを決める</summary><ol>
+            <li><a href="/ja/answers/why-typescript/"><span class="n">04</span><span class="t">なぜ TypeScript か</span></a></li>
+            <li><a href="/ja/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">ツールを揃えた TS ではなぜ駄目か</span></a></li>
+            <li><a href="/ja/answers/human-value/"><span class="n">06</span><span class="t">AI なしでも</span></a></li>
+            <li><a href="/ja/answers/ai-authoring/"><span class="n">07</span><span class="t">AI が書くコード</span></a></li>
+            <li><a href="/ja/answers/upgrades/"><span class="n">08</span><span class="t">アップグレード</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>今のスタックで使う</summary><ol>
+            <li><a href="/ja/answers/imports/"><span class="n">09</span><span class="t">既存のライブラリ</span></a></li>
+            <li><a href="/ja/answers/embedding/"><span class="n">10</span><span class="t">アプリに組み込む</span></a></li>
+            <li><a href="/ja/answers/typed-apis/"><span class="n">11</span><span class="t">型付き API</span></a></li>
+            <li><a href="/ja/answers/codegen/"><span class="n">12</span><span class="t">クライアントとサーバー</span></a></li>
+            <li><a href="/ja/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/ja/answers/state/"><span class="n">14</span><span class="t">共有状態</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>何を作れるか</summary><ol>
+            <li><a href="/ja/answers/language/" aria-current="page"><span class="n">15</span><span class="t">言語そのもの</span></a></li>
+            <li><a href="/ja/answers/finance/"><span class="n">16</span><span class="t">お金と安全性</span></a></li>
+            <li><a href="/ja/answers/web-serving/"><span class="n">17</span><span class="t">Web の配信</span></a></li>
+            <li><a href="/ja/answers/interactive-cli/"><span class="n">18</span><span class="t">対話型プログラム</span></a></li>
+            <li><a href="/ja/answers/long-running/"><span class="n">19</span><span class="t">サーバーとデーモン</span></a></li>
+            <li><a href="/ja/answers/binary/"><span class="n">20</span><span class="t">バイナリデータ</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>エージェントと一緒に使う</summary><ol>
+            <li><a href="/ja/answers/impact/"><span class="n">21</span><span class="t">編集する前に</span></a></li>
+            <li><a href="/ja/answers/ask-the-compiler/"><span class="n">22</span><span class="t">コンパイラに聞く</span></a></li>
+            <li><a href="/ja/answers/repair-protocol/"><span class="n">23</span><span class="t">赤いビルドを直す</span></a></li>
+            <li><a href="/ja/answers/generated-docs/"><span class="n">24</span><span class="t">ずれないドキュメント</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>エラー、エディタ、本番運用</summary><ol>
+            <li><a href="/ja/answers/tooling/"><span class="n">25</span><span class="t">エディタとデバッグ</span></a></li>
+            <li><a href="/ja/answers/early-errors/"><span class="n">26</span><span class="t">早い段階で検出</span></a></li>
+            <li><a href="/ja/answers/parse-errors/"><span class="n">27</span><span class="t">パースが失敗した理由</span></a></li>
+            <li><a href="/ja/answers/debugging/"><span class="n">28</span><span class="t">デバッグと運用</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        実際のコードベースで必要になるものは揃っています。<strong>モジュールの可視性</strong>、ジェネリクスを制約する<strong>インターフェース</strong>、後始末のための <strong>defer</strong>、そして<strong>並行処理</strong>のヘルパーです。JavaScript に頼っている部分は、そうでないふりをせずにそう明記しています。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          1 ファイルは書けてもプロジェクトを構成できない言語に、コードベースを賭ける人はいません。問題になる穴は特殊なものではありません。ヘルパーを隠せるか、ジェネリクスにある能力を要求できるか、どの終了経路でもファイルハンドルを解放できるか、2 つの処理を同時に走らせて両方を待てるか。Glyph はこの 4 つに答えています。しかも、意図的に捨てたアノテーション中心の方向を蒸し返すことなく答えています。
+        </p>
+
+        <h2 class="block-label" id="see-it">実例<a class="h-anchor" href="#see-it" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          宣言は <code>pub</code> を付けるまでモジュール内で非公開です。そのため公開されている面は一度の検索（<code>grep '^pub'</code>）でわかり、ヘルパーがうっかり漏れることはありません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">可視性：デフォルトで非公開</span>
+<pre><span class="add">pub fn</span> charge(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Receipt</span>, <span class="t">string</span>&gt; { validate(cents)<span class="op">?</span> ... }
+
+<span class="dim">fn</span> validate(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">int</span>, <span class="t">string</span>&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>interface</code> は TypeScript と同じく構造的です。ジェネリクスが要求できるメンバーシグネチャの集合です。<code>implements</code> も名前的型付けの儀式もありません。そのメンバーを持つ値ならどれでも当てはまり、<code>tsc</code> がそれを強制します。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">インターフェースでジェネリクスを制約する</span>
+<pre><span class="add">interface</span> <span class="t">Named</span> {
+  <span class="k">fn</span> name() <span class="op">-&gt;</span> <span class="t">string</span>
+}
+
+<span class="k">pub</span> <span class="k">fn</span> label&lt;<span class="t">T</span>: <span class="add">Named</span>&gt;(x: <span class="t">T</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  x.name()
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>defer</code> は、ブロックを抜けるときにどの経路でも後始末を実行します。早期 return でも、エラーが投げられた場合でもです。複数の defer は後入れ先出しで実行され、<code>owned</code> ハンドルとも組み合わせられます。また <code>std/task</code> は、切り離された Promise を放置するのではなく、並行処理を 1 つのライフタイムにまとめて待ち合わせます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">defer と構造化並行性</span>
+<pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
+
+<span class="k">let</span> both = <span class="k">await</span> task.<span class="add">all</span>([<span class="k">fn</span>() { fetch_a() }, <span class="k">fn</span>() { fetch_b() }])</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph は TypeScript にコンパイルされ JavaScript エンジンで動くため、評価順序、ミューテーションにおける参照のセマンティクス、シングルスレッドでガベージコレクションのあるモデルを引き継ぎます。違うのは等価性です。<code>==</code> は値を比較し、レコードはフィールドごとに比べます。一方 JavaScript の <code>===</code> は参照を比較します。仕様はこれらを、あとで気づくものではなく保証として明記しています。手動メモリ管理や GC のないモデルはロードマップにありません。TypeScript にトランスパイルする言語の範囲外です。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="there-s-no-if-so-match-has-to-carry-everything"><code>if</code> がないので、<code>match</code> がすべてを担う<a class="h-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          網羅性の話を聞いた TypeScript 開発者が最初に聞くのは、<code>match</code> が本当に汎用の条件分岐なのか、それともユニオンを分解する便利な書き方にすぎないのか、ということです。答えは前者で、それを示すのが代入です。<code>let</code> や <code>mut</code> の値全体になっている <code>match</code> は、文が受け取れるものなら何でも受け取れます。アームはブロックにでき、<code>await</code> でき、外側のループから <code>break</code> でき、代入先の束縛を読むこともできます。最後のものを使えば、<code>if</code> なしでループを通して状態を畳み込めます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">リンクチェッカーより：コードブロックの追跡と、await するアーム</span>
+<pre><span class="k">for</span> raw <span class="k">in</span> lines {
+  <span class="k">let</span> fence = is_fence(raw)
+  <span class="add">mut</span> in_fence = <span class="add">match</span> fence {      <span class="cm"># reads the binding it assigns</span>
+    <span class="k">true</span> <span class="op">=&gt;</span> !in_fence,
+    <span class="k">false</span> <span class="op">=&gt;</span> in_fence,
+  }
+}
+
+<span class="k">let</span> cache = <span class="add">match</span> args.offline {
+  <span class="k">true</span> <span class="op">=&gt;</span> no_cache(),
+  <span class="k">false</span> <span class="op">=&gt;</span> <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          どちらもアームごとに束縛へ代入する素朴な <code>switch</code> にコンパイルされるので、<code>await</code> は外側の async 関数の中に置かれ、累積値は TypeScript が推論できる普通の変数になります。大きな式の<em>中</em>、たとえば引数やオペランドとして使われた <code>match</code> は今もクロージャになるので、そのアームは単一の式でなければなりません。それ自身の <code>let</code> に持ち上げれば、この制限はなくなります。どちらのスニペットも <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a> からのもので、これはまさにこの種の問題を見つけるために書かれた Markdown のリンクチェッカーです。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-pattern-can-name-a-shape-more-than-one-level-down">パターンで 2 段以上深い形を指定できる<a class="h-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          複数のフィールドを持つバリアントはレコードを運ぶので、形を認識したいアームはレコードのフィールドの中まで入り込む必要があります。0.1.90 までは、フィールドの位置には名前しか書けませんでした。名前を変えることはできても、それだけでした。そこでタグをマッチさせるとコンパイルエラーになり、入れ子のコンストラクタはパーサーが扱えませんでした。回避策はすべてのフィールドを束縛して、階層ごとに入れ子の <code>match</code> を書くことで、赤黒木のリバランスのようなものでは別のプログラムになってしまいます。アームがケースと対応しなくなり、各階層で上の束縛を引き回すことになります。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">赤黒木のリバランスの回転ケース 1 つを、1 つのアームで</span>
+<pre><span class="k">type</span> <span class="t">Tree</span> =
+  | <span class="t">Leaf</span>
+  | <span class="t">Node</span>({ color: <span class="t">Color</span>, left: <span class="t">Tree</span>, value: <span class="t">number</span>, right: <span class="t">Tree</span> })
+
+<span class="k">match</span> t {
+  <span class="t">Node</span>({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) <span class="op">=&gt;</span>
+    <span class="t">Node</span>({ color: <span class="t">Red</span>, left: <span class="t">Node</span>({ color: <span class="t">Black</span>, left: a, value: x, right: b }), value: y, right: c }),
+  other <span class="op">=&gt;</span> other,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          今はフィールドにどんなパターンでも書けます。バリアントのタグ、入れ子のコンストラクタ、入れ子の分解、リテラル、配列パターンです。書く前に知っておくべき帰結が 1 つあります。値を検査するフィールドは失敗しうるので、そのアームはもうバリアントを網羅したとは数えられません。<code>Node</code> のアームが <code>Node({ color: Red, ... })</code> だけの match は、兄弟のアームか <code>else</code> が残りを引き受けるまで、網羅的でないと報告されます。チェッカーが網羅性を証明するのはタグの集合についてであって、フィールドの直積についてではないので、<code>Red</code> のアームと <code>Black</code> のアームを合わせれば <code>Node</code> を網羅する、とは判断しません。catch-all を求めるのは、実行時に match が末尾から抜け落ちることを許さない解釈です。数えるバリアントがまったくない場合も同じです。どのアームもフィールドを検査する、素のレコードに対する match には、後ろに <code>else</code> が必要です。
+        </p>
+        <p>
+          意外かもしれない影響が 1 つ、配列の位置に及びます。以前はアーム全体としての <code>[Black]</code> が任意の 1 要素配列にマッチするとみなされていたので、それに頼った match は網羅的と認定され、<code>[Red]</code> でもそのアームに入っていました。ここでも PascalCase の要素はバリアントの参照なので、そうした match は今、長さ 1 の配列に対して <code>E0208</code> になります。要素を束縛して、それ自体を match してください。下の変換処理はまだ古いままで、検査の側が先に提供されたのはそのためです。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="and-the-compiler-knows-what-the-match-produced">そしてコンパイラは <code>match</code> が何を生んだかを知っている<a class="h-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          次の質問が、これが本当に役に立つかどうかを決めます。分岐から値を束縛したとき、Glyph はその型を知っているのか、それとも肩をすくめて後で <code>tsc</code> に任せるのか。0.1.45 までは任せていました。<code>match</code> 式はすべて unknown と型付けされていたので、言語で唯一の分岐構文から出てきた値は、そこから先は型がありませんでした。今は <code>match</code> はアームの型が一致すればその型を取り、<code>T.parse</code> は <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> を返すと分かっています。これは実際のコードの多くが分岐する形です。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">割り勘アプリより：アノテーションなしで、<code>i</code> は number</span>
+<pre><span class="k">let</span> wire = <span class="add">match</span> <span class="t">WireLedger</span>.parse(decoded) {
+  <span class="t">Ok</span>(w) <span class="op">=&gt;</span> w,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> {
+    <span class="k">return</span> <span class="t">Err</span>(<span class="t">BadInput</span>({ message: <span class="s">"</span><span class="ip">${</span>path<span class="ip">}</span><span class="s"> is not a settle ledger: </span><span class="ip">${</span>describe_issues(issues)<span class="ip">}</span><span class="s">"</span> }))
+  },
+}
+
+<span class="k">for</span> i, w <span class="k">in</span> wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", "1", "2"</span>
+  ...
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          どちらの半分も、以前は気づかれずにおかしくなっていたものです。このループは <code>wire.expenses.entries()</code> を出力します。反復対象の型が unknown のときは代わりに <code>Object.entries(...)</code> を出力し、<code>i</code> は<em>文字列</em> <code>"0"</code> になります。これは正しい TypeScript なのでビルドはきれいに通り、プログラムは <code>1:a</code> のつもりで <code>01:a</code> と出力していました。また <code>wire.expensez</code> は今、生成された TypeScript 上の <code>TS2339</code> ではなく、<code>.glyph</code> の行で Glyph から <code>[E0210] type WireLedger has no field expensez</code> として報告されます。型の合流は先頭での等価性です。<code>return</code> で終わるアームは投票せず、型が食い違うアームがあれば結果は以前と同じく unknown のままです。1 段深く見るのは型引数だけなので、<code>None =&gt; []</code> は <code>match</code> 全体を台無しにせず <code>Array&lt;string&gt;</code> のアームと一致し、その後のループも number を束縛します。<code>record.get</code> に対する同じ連鎖も同じ理由で動きます。<code>std/record</code> の 6 つの関数はすべて、渡したレコードから値の型を引き継ぎます。このスニペットは <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a> からのもので、この変更で不要になったアノテーションが付いていました。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">依存関係リゾルバより：検索、空のフォールバック、インデックス付きの走査</span>
+<pre><span class="k">let</span> path = <span class="add">match</span> <span class="k">record</span>.get(res.reached, name) {
+  <span class="t">Some</span>(p) <span class="op">=&gt;</span> p,
+  <span class="t">None</span> <span class="op">=&gt;</span> [],
+}
+
+<span class="k">for</span> i, hop <span class="k">in</span> path {               <span class="cm"># i is a number, so the indent nests</span>
+  <span class="k">let</span> indent = <span class="t">string</span>.repeat(<span class="t">STEP</span>, i + <span class="n">1</span>)
+  <span class="k">mut</span> out = array.push(out, <span class="s">"</span><span class="ip">${</span>indent<span class="ip">}</span><span class="ip">${</span>hop<span class="ip">}</span><span class="s">"</span>)
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          これが最もコストの大きかった形です。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>[]</code> は要素の型が特に決まっていない配列です。そのため 2 つのアームは <code>Array</code> で一致し、要素の型は型を持っている方のアームから取られます。0.1.55 までは等価性で比較されていて、<code>[]</code> は不一致とみなされ、下のループは診断が 1 つもなく <code>tsc --strict</code> も通るビルドで <code>01:x</code> と出力していました。コードは <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a> で、以前は冒頭に <code>let path: Array&lt;string&gt;</code> があり、このアノテーションが外せない理由を説明する 3 行のコメントが付いていました。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="do-i-have-to-write-pad-start-myself"><code>pad_start</code> は自分で書く必要があるか<a class="h-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          実際のプログラムで最初にぶつかる穴は、型システムの機能ではありません。<code>string.slice</code> を使おうとしたら何もない、というものです。ドッグフーディングを 5 回続けて同じ一覧が報告され、0.1.47 までは、このリポジトリの 6 つのアプリが自前の <code>repeat</code> を、5 つが自前の <code>pad_start</code> を持ち、どれも fold を使うべき場所にループを書いていました。この 11 個の名前は今は提供されていて、それを持っていた 7 つのアプリすべてからコピーが削除されています。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">追加されたもの</span>
+<pre><span class="t">string</span>.<span class="add">repeat</span>(s, n)           <span class="t">string</span>.<span class="add">slice</span>(s, start, end<span class="op">?</span>)       array.<span class="add">fold</span>(xs, init, f)
+<span class="t">string</span>.<span class="add">pad_start</span>(s, w, pad<span class="op">?</span>)   <span class="t">string</span>.<span class="add">index_of</span>(s, needle, from<span class="op">?</span>)  array.<span class="add">index_of</span>(xs, x)
+<span class="t">string</span>.<span class="add">pad_end</span>(s, w, pad<span class="op">?</span>)     <span class="t">string</span>.<span class="add">replace_all</span>(s, from, to)     array.<span class="add">flat_map</span>(xs, f)
+<span class="t">string</span>.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span>(s)
+
+<span class="cm"># the 25-line block six apps each carried, and what replaced it:</span>
+<span class="k">let</span> total = array.<span class="add">fold</span>(expenses, <span class="n">0</span>, <span class="k">fn</span>(sum, e) { sum + e.cents })
+io.println(<span class="s">"</span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_end</span>(name, width)<span class="ip">}</span><span class="s">  </span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_start</span>(amount, <span class="n">9</span>)<span class="ip">}</span><span class="s">"</span>)</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          そのうち 3 つは、意図的に TypeScript の同名の関数と違う動きをします。<code>repeat</code> は負の回数に対して、TS のように例外を投げるのではなく <code>""</code> を返します。そのおかげで、すでに長すぎる文字列に対しても <code>repeat(pad, width - len(s))</code> が安全です。2 つの <code>index_of</code> はどちらも <code>-1</code> ではなく <code>Option&lt;number&gt;</code> を返します。<code>-1</code> は本物のインデックスが通る場所ならどこでも型チェックを通ってしまい、呼び出し位置から遠く離れた場所で失敗する数値だからです。置換は <code>replace_all</code> としてのみ提供されるので、1 か所だけをこっそり置き換える <code>String.prototype.replace</code> と混同する、最初の 1 つだけの形はありません。
+        </p>
+        <p>
+          <code>fold</code> は、タイプ量を減らすのではなく柱の 1 つを支えるものです。<code>mut</code> は状態が変わるすべての場所を grep できる形で記録したものですが、fold がないと、<code>grep mut</code> はレビュアーが気にするものを何も変更しない数え上げのループだらけになります。手書きの実装を削除したことで、<code>examples/apps/</code> の変更箇所は 192 から 161 になりました。この書き換えはレビューではなく出力で確認しました。7 つのアプリすべてを固定の入力で書き換えの前後に実行し、標準出力、終了コード、HTTP レスポンスの 26 ファイルがすべてバイト単位で一致しました。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="can-i-walk-a-directory-and-tell-what-broke">ディレクトリを走査して、何が壊れたかを判別できるか<a class="h-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          <code>std/fs</code> は 6 つの関数を提供していましたが、ディレクトリを一覧するものはありませんでした。このリポジトリのリンクチェッカーは stdlib を飛び越えて node の <code>readdirSync</code> を使い、どのパスがディレクトリかは、読もうとして返ってきた <code>errno</code> を調べて判断していました。どちらも修正済みです。<code>fs.read_dir</code> は 1 階層下のエントリ名を返し、<code>fs.is_dir</code> は <code>fs.exists</code> と同じく <code>bool</code> で答えます。<code>fs.stat</code> は <code>is_dir</code>、<code>is_file</code>、バイト単位の <code>size</code>、エポックミリ秒の <code>modified</code> からなる <code>FileInfo</code> を返し、この時刻は <code>time.format_iso</code> でそのまま表示できます。再帰的な <code>walk</code> や glob はありません。走査はこの 3 つと <code>path.join</code> で 10 行ほどで書けます。
+        </p>
+        <p>
+          失敗の側はもっと大きく変わりました。<code>FsError.kind</code> は <code>{ tag: string }</code> で、分類は <code>NotFound</code> だけでした。そのため「そのパスはディレクトリだ」と「そのパスが存在しない」を区別するには errno の文字列を比較する必要がありました。今は、プログラムが実際に回復処理を行う 5 種類に名前があり、名前のない errno は <code>Other</code> の末尾にそのまま入ります。
+        </p>
+        <p>
+          チェッカーはこの分類が閉じていることを知っているので、<code>err.kind</code> に対する <code>match</code> は、自分で宣言したユニオンと同じ基準で検査されます。6 つすべてを扱えば <code>else</code> は要らず、1 つ漏らせば <code>fs.ErrorKind</code> を名指しした <code>E0200</code> でビルドが失敗します。<code>fs.FsError</code> と <code>fs.FileInfo</code> のフィールドも検査されるので、<code>err.mesage</code> は生成された TypeScript に対する <code>tsc</code> のエラーではなく、Glyph のソースに対する <code>E0210</code> になります。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">ツリーを走査し、何がおかしかったかを名前で示す</span>
+<pre><span class="k">let</span> names = fs.<span class="add">read_dir</span>(dir)<span class="op">?</span>
+<span class="k">for</span> name <span class="k">in</span> names {
+  <span class="k">let</span> child = path.join([dir, name])
+  <span class="k">match</span> fs.<span class="add">is_dir</span>(child) {
+    <span class="k">true</span>  <span class="op">=&gt;</span> visit(child),
+    <span class="k">false</span> <span class="op">=&gt;</span> {
+      <span class="k">let</span> info = fs.<span class="add">stat</span>(child)<span class="op">?</span>
+      report_size(child, info.size)
+    },
+  }
+}
+
+<span class="k">match</span> err.<span class="add">kind</span> {                        <span class="cm"># no else arm: E0200 if you miss one</span>
+  fs.<span class="t">ErrorKind</span>.<span class="add">NotFound</span>         <span class="op">=&gt;</span> io.eprintln(<span class="s">"no such path"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">NotADirectory</span>    <span class="op">=&gt;</span> io.eprintln(<span class="s">"that is a file"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">IsADirectory</span>     <span class="op">=&gt;</span> io.eprintln(<span class="s">"that is a directory"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">AlreadyExists</span>    <span class="op">=&gt;</span> io.eprintln(<span class="s">"already there"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">PermissionDenied</span> <span class="op">=&gt;</span> io.eprintln(<span class="s">"cannot read it"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">Other</span>({ code })   <span class="op">=&gt;</span> io.eprintln(<span class="s">"errno </span><span class="ip">${</span>code<span class="ip">}</span><span class="s">"</span>),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          同じアプリから出た小さなものが 2 つ、一緒に入りました。<code>regex.captures_all</code> は、マッチしたテキストだけでなく、すべてのマッチのキャプチャグループを返します。これでフラットな <code>key=value</code> の走査が手書きのループでなくなります。また <code>task.pool_settled</code> は、<code>all_settled</code> の失敗時の振る舞いを持った <code>task.pool</code> です。並行数に上限があり、タスクごとに 1 つの結果が返り、ホストが 1 つ落ちても失うのはそのホストの結果だけで、プールがそれまでに集めた結果をすべて失うことはありません。
+        </p>
+        <p>
+          この検査は実際に動いています。上の <code>match</code> から <code>PermissionDenied</code> のアームを消すと、<code>glyph check --no-tsc</code> は <code>E0200</code> で止まります。<code>fs.ErrorKind</code> に対する網羅的でない match で、欠けているバリアントは <code>PermissionDenied</code> です。stdlib のモデルを最初に書いたときは戻り値の型しか扱っていなかったので、このような match はきれいにコンパイルされ、実行時に例外を投げていました。今は <code>fs.FsError</code>、<code>fs.FileInfo</code>、<code>fs.ErrorKind</code> のフィールドとバリアントの形もモデル化されています。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="how-do-you-know-the-functions-are-the-right-ones">それが正しい関数だと、どうしてわかるのか<a class="h-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          それを求めたアプリが回避策をやめるまで、リリースを完了とみなさなかったからです。ライブラリ関数を提供することと、回避策がそれより長生きすることは別の話です。そこで、この 4 つを追加した変更で、リンクチェッカーにあったコピーも削除しました。<code>readdirSync</code> の import、2 つの <code>errno</code> 文字列の比較、97 行の手書きスキャナ、そして最初の失敗で止まるプールです。合計 122 行が消えました。
+        </p>
+        <p>
+          そのうち 2 つの削除はプログラムの動作を変えたので、その違いは議論ではなく測定で確かめました。読み取れないディレクトリを含むツリーに旧版と新版を向けると、新版は <code>permission denied</code> と出力してそのパスを読めないものとして数えます。旧版は errno が <code>EISDIR</code> かどうかしか聞けなかったので、そのパスをレポートからまるごと落としていました。3 つの URL のうち 1 つで例外を投げさせると、<code>pool_settled</code> は 3 行すべてを出力して失敗を名指ししましたが、<code>pool</code> は何も出力せずに未処理の reject で終了し、成功した 2 つの結果も道連れにしました。
+        </p>
+        <p>
+          スキャナの書き換えは設計上の懸念も解消しました。参加しなかったキャプチャグループは、空文字列にマッチしたグループと同じく <code>""</code> として読まれるので、<code>captures_all</code> では選択肢のどの分岐がマッチしたのかわからないように見えました。実際にはわかります。各分岐のグループを、欲しい部分ではなく構文全体を囲むように書けばよいのです。マッチしたグループは <code>`</code>、<code>[</code>、<code>!</code>、<code>&lt;</code> のいずれかで始まり、空にはなりません。空になりうる部分、つまりリンク先はその内側に入れ子になり、判定に使うことはありません。これで 180 行の文字単位の走査が、2 つのパターンと 12 行の振り分けになりました。リポジトリ自身のドキュメントと、壊すために作った fixture の両方で、出力はバイト単位で一致しました。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="money-doesn-t-run-on-floats">お金の計算に浮動小数点数は使わない<a class="h-anchor" href="#money-doesn-t-run-on-floats" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          フィンテックの評価をその場で打ち切らせる穴は、IEEE-754 の <code>number</code> でお金を扱うことです。そこでは <code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は気づかないうちに精度を失います。<code>std/decimal</code> は BigInt の上に作った正確な 10 進固定小数点です。任意精度の整数に固定桁数の小数部を持たせたもので、加算、減算、乗算は正確で、除算にはスケールと丸め方を明示します。不正な金額はパースすると <code>Err</code> になり、黙って <code>NaN</code> になることはありません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">std/decimal</span>
+<pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
+<span class="k">let</span> tax   = decimal(<span class="s">"0.84"</span>)<span class="op">?</span>
+price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
+
+decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>).to_string()   <span class="cm"># "0.67", half away from zero</span>
+decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(decimal(<span class="s">"2"</span>)<span class="op">?</span>)   <span class="cm"># exact past 2^53</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          大きな<em>整数</em>を正確に扱う必要がある場合、たとえばアカウント ID やカウンタには <code>bigint</code> 型があります。リテラルは <code>123n</code> で、TypeScript の本物の <code>bigint</code> として出力されます。<code>bigint</code> 型のレコードフィールドは境界で <code>typeof === "bigint"</code> を検証するので、JSON の <code>number</code> として送られてきた ID は、2<sup>53</sup> を超えて黙って丸められるのではなく拒否されます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="an-async-callback-finally-has-a-type">非同期コールバックにようやく型ができた<a class="h-anchor" href="#an-async-callback-finally-has-a-type" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          関数型は <code>fn(A) -&gt; T</code> しかなく、これは <code>(a: A) =&gt; T</code> として出力されます。非同期の本体はこれに合わないので、遅延タスクを返す関数や非同期ハンドラのレコードはアノテーションなしにするしかなく、チェッカーはそこで検査をやめていました。<code>async fn(A) -&gt; T</code> がその欠けていた型です。<code>(a0: A) =&gt; Promise&lt;T&gt;</code> として出力され、戻り値のない <code>async fn()</code> は <code>() =&gt; Promise&lt;void&gt;</code> になります。
+        </p>
+        <p>
+          Glyph は <code>tsc</code> に任せず、自分で両者を区別します。非同期関数が期待される場所に普通の関数を渡すと、return では <code>E0204</code>、呼び出しの引数では <code>E0211</code> になり、メッセージには両方の側が示されます。判定しないのは戻り値が <code>void</code> の場合だけで、TypeScript ではそこにどんな関数でも置けます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">遅延タスクと、ハンドラのマップ</span>
+<pre><span class="k">fn</span> task_for(url: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="add">async fn() -&gt; Fetched</span> {
+  <span class="k">return</span> <span class="k">async</span> <span class="k">fn</span>() <span class="op">-&gt;</span> <span class="t">Fetched</span> { <span class="k">return</span> { url: url, body: <span class="k">await</span> fetch_one(url) } }
+}
+
+<span class="k">type</span> <span class="t">Handler</span> = <span class="add">async fn(string) -&gt; string</span>
+
+<span class="k">async</span> <span class="k">fn</span> dispatch(routes: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">Handler</span>&gt;, name: <span class="t">string</span>, arg: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> <span class="k">record</span>.get(routes, name) {
+    <span class="t">Some</span>(h) <span class="op">=&gt;</span> <span class="k">await</span> h(arg),
+    <span class="t">None</span>    <span class="op">=&gt;</span> <span class="s">"no route"</span>,
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-recursive-type-matched-all-the-way-down">再帰的な型を、最後までマッチする<a class="h-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          ユニオンは自身のペイロードの中で、型パラメータ付きで自分自身を指定でき、match のアームはコンストラクタパターンのフィールドの中に別のコンストラクタパターンを入れ子にできます。この 2 つを組み合わせると、赤黒木のバランス規則は 4 つのアームになります。各アームが書き換える形を正確に示し、その形を検査するのは、上に書かれたコメントではなくコンパイラです。<code>examples/apps/leaderboard/main.glyph</code> がプログラム全体で、すべてのスコアを木に保持し、ログを並べ直すのではなく木を走査して順位、上位 N 件、範囲のクエリに答えるリーダーボードです。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">4 つの回転ケースのうちの 1 つ</span>
+<pre><span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; =
+  | <span class="t">Leaf</span>
+  | <span class="t">Node</span>({ color: <span class="t">Color</span>, left: <span class="add">Tree&lt;K, V&gt;</span>, key: <span class="t">K</span>, value: <span class="t">V</span>, size: <span class="t">int</span>, right: <span class="add">Tree&lt;K, V&gt;</span> })
+
+<span class="k">fn</span> balance&lt;<span class="t">K</span>, <span class="t">V</span>&gt;(t: <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt;) <span class="op">-&gt;</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> t {
+    <span class="t">Node</span>({ color: <span class="t">Black</span>, left: <span class="add">Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b })</span>, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) <span class="op">=&gt;</span> node(
+      <span class="t">Red</span>,
+      node(<span class="t">Black</span>, a, xk, xv, b),
+      yk,
+      yv,
+      node(<span class="t">Black</span>, c, zk, zv, d),
+    ),
+    <span class="cm">// the other three cases, then:</span>
+    other <span class="op">=&gt;</span> other,
+  }
+}</pre>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>兄弟モジュールの型を指定する 2 つの方法（名前付き import と <code>lib.Secret</code> のアノテーション）の両方で強制される <code>pub</code> の可視性、構造的な <code>interface</code> による境界、<code>defer</code>、<code>std/task</code>（<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>）、型として書ける <code>async fn(A) -&gt; T</code>、自身のペイロードで自分を指定するユニオンと、コンストラクタパターンのフィールドに別のコンストラクタパターンを入れ子にしてそれにマッチするアーム、アームにブロック・<code>await</code>・ループ制御を書ける <code>let</code> や <code>mut</code> の値としての <code>match</code>、アームの型が一致すればその型をプログラムの残りへ持ち越す <code>match</code>、型付きの <code>T.parse</code>、正確なお金の計算のための <code>std/decimal</code>、大きな整数を正確に扱う <code>bigint</code>、数値の桁区切り、JS から受け継ぐセマンティクスを定める仕様書の節、そして <code>string.slice</code>、<code>index_of</code>、<code>repeat</code>、<code>pad_start</code>、<code>pad_end</code>、<code>replace_all</code>、<code>trim_start</code>、<code>trim_end</code> と <code>array.fold</code>、<code>index_of</code>、<code>flat_map</code>、さらに <code>fs.read_dir</code>、<code>fs.is_dir</code>、<code>fs.stat</code>、チェッカーが網羅を求める <code>FsError.kind</code> の分類、<code>regex.captures_all</code> を備えた標準ライブラリです。<code>std/string</code> と <code>std/array</code> の大半は戻り値の型をプログラムに持ち込むようになったので、<code>string.split</code> は <code>Array&lt;string&gt;</code> になり、それを回すループは数値のインデックスを束縛します。<code>std/record</code> もモデル化されていて、値の型は渡したレコードから読み取られます。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get(t, k)</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>record.keys(t)</code> は <code>Array&lt;string&gt;</code> なので、<code>array.sort(record.keys(t), cmp)</code> は要素の型を保ちます。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">限界</h3>
+          <p>非公開のものを import すると、存在しない名前と同じ「not exported by M」というメッセージが出ます。「非公開なので <code>pub</code> を付ける」と「そんな名前はない」を区別するのは、予定済みの改善です。可視性が検査されるのは型アノテーションで、名前空間を通して読む値ではありません。<code>helper</code> が非公開のときの <code>lib.helper()</code> は、今も Glyph ではなく <code>tsc</code> のエラーです。非同期コンテキストは今は検査されます（<code>E0222</code>）が、1 か所だけ例外があります。モジュールレベルの <code>const</code> の初期化式には外側の呼び出し可能なものがないので、そこではトップレベルの <code>await</code> が許され、出力された ESM がそれを実行します。アームの型の合流には、今も型の先頭が一致している必要があります。アームが異なる型を生むと、結果は Glyph にとって unknown になり、それをどう使うかは <code>tsc</code> だけが検査します。stdlib の 9 つの関数も同じ状況です。6 つは省略可能な末尾の引数を取り（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）、引数の個数の検査は 1 つの数値と 1 つの数値を比べるだけなので、これらをモデル化すると最後の引数を省略したすべての呼び出しで誤ったエラーが出てしまいます。<code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、チェッカーが中まで見ないコールバックから要素の型を取ります。この 9 つから直接得た値をインデックス付きで反復するにはアノテーションが必要で、<code>None</code> のアームがない <code>string.index_of</code> への <code>match</code> は、今もきれいにビルドされて実行時に例外を投げます。<code>array.index_of</code> はモデル化されていて、ちゃんと <code>E0200</code> を報告します。チェッカーが型付けできなかった値に対するメンバーや呼び出しの引数の個数は、その境界ではまだエラーにならず検査されません。ライブラリの側では、<code>string</code> は <code>len</code> や <code>split</code> が以前からそうであるように UTF-16 のコード単位でインデックスします。これは確定事項です。<code>chars</code> や <code>char_at</code> はなく、追加の予定もありません。返されたサロゲートペアの片割れは、書き出されるその瞬間まで文字のように見えるからです。<code>encoding.hex_encode</code> でエンコードし、16 進数を 2 桁ずつ読んでください。<code>captures_all</code> はグループを返しますがオフセットは返さないので、行のどこでマッチが始まったかを知る必要のあるスキャナは今もループを自分で書きます。<code>fs.read_dir</code> は OS の順序でエントリを返すので、出力を再現可能にする必要があるときはソートしてください。入れ子のフィールドパターンには 1 つだけ限界が残っています。名前空間 import を通して参照するユニオンの、フィールドに置いたペイロード付きのコンストラクタです。<code>import tree { Node }</code> の後の <code>Node({ left: Node({ key: k }) })</code> はコンパイルされますが、<code>import tree</code> の後の <code>tree.Node({ left: tree.Node({ key: k }) })</code> は、同じユニオンなのに <code>E0300</code> になります。もう 1 つの限界は解消しました。自身のパラメータについてジェネリックなユニオン（<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>）は、パラメータのない同じユニオンなら受け入れる入れ子のアームを以前は拒否していましたが、今は開いた型パラメータでも具体的なインスタンス化でも受け入れます。同じ検索処理が、そもそも match の欠けたバリアントを検査するかどうかも決めていたので、このリリースまでは <code>Tree&lt;K&gt;</code> への <code>match</code> は <code>Leaf</code> を省いてもきれいにビルドされ、<code>tsc --strict</code> も通り、実行時に例外を投げていました。非ジェネリックな書き方なら <code>E0200</code> になっていたのにです。今はどちらの書き方でも報告され、ユニオンを別のモジュールから import しても答えは変わりません。import した <code>Tree&lt;string&gt;</code> への <code>Leaf</code> を省いた <code>match</code> は、import した非ジェネリックな <code>Tree</code> と同じく、<code>Leaf</code> を名指しした <code>E0200</code> になります。これは別々に検査される別のコードパスで、このリリースまでは逆の結果、つまりきれいにビルドされて実行時に例外を投げていました。import したユニオンの網羅性について、頼る前に知っておくべきことがもう 1 つあります。そのバリアントのペイロードも検査されないので、<code>X</code> がペイロード自身のユニオンのバリアントであるとき、<code>B(X)</code> は欠けている <code>Y</code> を報告せずにすべての <code>B</code> にマッチします。これはジェネリクスとは関係ありません。フィールドを束縛すること、あるいはペイロードのないタグをフィールドでマッチすることは、どの場合でも動きます。</p>
+        </div>
+        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.149 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      </div>
+      <nav class="prevnext" aria-label="前へ・次へ">
+        <a href="/ja/answers/state/">
+          <span class="dir">&larr; 前へ</span>
+          <span class="t">関数の間で可変の状態をどう共有するか</span>
+        </a>
+        <a href="/ja/answers/finance/" class="nx cta">
+          <span class="dir">次へ &rarr;</span>
+          <span class="t">お金や、自分で制御できない入力を任せられるか</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript にトランスパイルされる型付き言語。エージェントがコードを壊さずに変更できるように作られています。</p>
+          </div>
+          <div class="foot-col">
+            <h2>はじめる</h2>
+            <a href="/ja/start/">最初のプログラム</a>
+            <a href="/ja/from-typescript/">TypeScript から来た人へ</a>
+            <a href="/ja/teams/">チーム向け</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">5 分でわかるツアー</a>
+          </div>
+          <div class="foot-col">
+            <h2>学ぶ</h2>
+            <a href="/ja/answers/">Q&amp;A</a>
+            <a href="/ja/answers/verifiability/">Q&amp;A を順番に読む</a>
+            <a href="/ja/answers/tooling/">エディタとエージェント向けツール</a>
+            <a href="/ja/agents/">エージェント向け</a>
+            <a href="/ja/mcp/">MCP サーバー</a>
+            <a href="/llms-pages.txt">Markdown 版のページ</a>
+            <a href="/ja/design/">設計</a>
+            <a href="/ja/pillars/verifiability/">4 つの柱</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">言語仕様</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">マニフェスト</a>
+          </div>
+          <div class="foot-col">
+            <h2>根拠</h2>
+            <a href="/ja/catches/">検出できるもの</a>
+            <a href="/ja/evidence/">主張の検証方法</a>
+            <a href="/ja/hardening/">堅牢化</a>
+            <a href="/ja/benchmarks/">ベンチマーク</a>
+            <a href="/versions/">バージョン</a>
+          </div>
+          <div class="foot-col">
+            <h2>ソースコード</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/ja/contribute/">コントリビュート</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub のリリース</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ja/answers/language/index.segments.json">このページを編集する</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: エージェントが気づかれずに壊すことのできない TypeScript。</span>
+          <span>&copy; 2026 Glyph &middot; MIT または Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "自動", light: "ライト", dark: "ダーク" };
+        var labels = { auto: "カラーテーマ: 自動 (システム設定に従う)。ライトに切り替えます。", light: "カラーテーマ: ライト。ダークに切り替えます。", dark: "カラーテーマ: ダーク。自動に切り替えます。" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า? · Glyph</title>
+    <meta name="description" content="Glyph รายงาน await นอก async fn, arm ของ match ที่ไม่ให้ค่า และ mut ที่ขาดไป เทียบกับซอร์สของคุณ พร้อมกฎและวิธีแก้ ก่อน tsc" />
+    <link rel="canonical" href="https://glyphlang.io/th/answers/early-errors/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/th/answers/early-errors/" />
+    <meta property="og:title" content="ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?" />
+    <meta property="og:description" content="Glyph รายงาน await นอก async fn, arm ของ match ที่ไม่ให้ค่า และ mut ที่ขาดไป เทียบกับซอร์สของคุณ พร้อมกฎและวิธีแก้ ก่อน tsc" />
+    <meta property="og:locale" content="th_TH" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/early-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?","item":"https://glyphlang.io/th/answers/early-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/early-errors/#article","headline":"ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?","description":"Glyph รายงาน await นอก async fn, arm ของ match ที่ไม่ให้ค่า และ mut ที่ขาดไป เทียบกับซอร์สของคุณ พร้อมกฎและวิธีแก้ ก่อน tsc","url":"https://glyphlang.io/th/answers/early-errors/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/early-errors/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/early-errors/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/early-errors/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/early-errors/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/early-errors/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/early-errors/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/early-errors/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/early-errors/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/early-errors/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/early-errors/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/early-errors/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/early-errors/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">ข้ามไปที่เนื้อหา</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="เมนูหลัก">
+        <div class="nav-brand">
+          <a href="/th/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="บันทึกประจำรุ่น">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">ทำไมต้อง Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">เหมาะกับใคร</p>
+                    <ul>
+                      <li><a href="/th/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">สำหรับคนสร้างเอเจนต์</span><span class="nav-desc">เซิร์ฟเวอร์ MCP และคิวรีที่ตอบได้</span></span></a></li>
+                      <li><a href="/th/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">สำหรับคนที่มาจาก TypeScript</span><span class="nav-desc">อะไรเปลี่ยน และอะไรเหมือนเดิม</span></span></a></li>
+                      <li><a href="/th/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">สำหรับทีม</span><span class="nav-desc">รับประกันอะไร และการนำมาใช้ต้องแลกกับอะไร</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">การออกแบบ</p>
+                    <ul>
+                      <li><a href="/th/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">การออกแบบ</span><span class="nav-desc">หลักสี่ข้อ และสิ่งที่ตั้งใจตัดออกไป</span></span></a></li>
+                      <li><a href="/th/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">สี่เสาหลัก</span><span class="nav-desc">ตรวจสอบได้ ค้นหาได้ด้วย grep นามธรรม และ diff ที่คงที่</span></span></a></li>
+                      <li><a href="/th/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph เทียบกับ Effect</span><span class="nav-desc">เปรียบเทียบภาษากับไลบรารี</span></span></a></li>
+                      <li><a href="/th/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">ทำไมไม่ใช้ ReScript, Gleam หรือ Elm?</span><span class="nav-desc">ภาษาที่มีชนิดข้อมูลสามภาษาที่คอมไพล์เป็น JavaScript</span></span></a></li>
+                      <li><a href="/th/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph เทียบกับ TypeScript ที่ใส่เครื่องมือครบ</span><span class="nav-desc">สิ่งที่ tsc แบบ strict, zod และ eslint ยังปล่อยผ่าน</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/th/catches/">จับอะไรได้บ้าง</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">เรียนรู้<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">เริ่มต้นใช้งาน</p>
+                    <ul>
+                      <li><a href="/th/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">เริ่มได้ใน 10 นาที</span><span class="nav-desc">ติดตั้ง เขียนโปรแกรม แล้วรัน</span></span></a></li>
+                      <li><a href="/th/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">คำตอบ <span class="nav-count">28</span></span><span class="nav-desc">คำถามที่วิศวกรถามบ่อย พร้อมตัวอย่างประกอบ</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">เอกสารอ้างอิงภาษา</span><span class="nav-desc">สเปกฉบับเต็มบน GitHub</span></span></a></li>
+                      <li><a href="/th/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">ร่วมพัฒนา</span><span class="nav-desc">คอมไพเลอร์สร้างขึ้นอย่างไร และช่วยได้อย่างไร</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">เชื่อมต่อเอเจนต์</p>
+                    <ul>
+                      <li><a href="/th/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">เซิร์ฟเวอร์ MCP</span><span class="nav-desc">เชื่อมเอเจนต์ของคุณเข้ากับคิวรีของคอมไพเลอร์</span></span></a></li>
+                      <li><a href="/th/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">ถามคอมไพเลอร์</span><span class="nav-desc">ค้นสัญลักษณ์ ชนิด หรือผลของการเปลี่ยนแปลงก่อนแก้ไข</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">llms.txt สำหรับเอเจนต์</span><span class="nav-desc">ทั้งภาษาในไฟล์เดียวที่เอเจนต์อ่านได้</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">หลักฐาน<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">ตรวจสอบอย่างไร</p>
+                    <ul>
+                      <li><a href="/th/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">ข้อกล่าวอ้างถูกตรวจสอบอย่างไร</span><span class="nav-desc">fixture และ CI gate ที่อยู่เบื้องหลังแต่ละข้อกล่าวอ้าง</span></span></a></li>
+                      <li><a href="/th/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">การทดสอบความแข็งแรง</span><span class="nav-desc">เอเจนต์ที่พยายามทำให้พัง และสิ่งที่พวกมันเจอ</span></span></a></li>
+                      <li><a href="/th/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Benchmark</span><span class="nav-desc">หลักสี่ข้อในรูปตัวเลข พร้อมข้อควรระวัง</span></span></a></li>
+                      <li><a href="/th/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">สิ่งที่ยังจับไม่ได้</span><span class="nav-desc">ช่องโหว่ที่รู้แล้ว แต่ละจุดมีโค้ดสำหรับทำซ้ำ</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/th/catches/"><span class="nav-feature-big">21 จาก 37</span><span class="nav-feature-text">ข้อผิดพลาดใน TypeScript ที่ไม่มีอะไรในโปรเจกต์ที่ตั้งค่าเต็มที่จับได้</span><span class="nav-feature-cta">ดูว่าจับอะไรได้บ้าง <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">เวอร์ชัน</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="ภาษา: ไทย (ไทย)"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">ไทย</span><span class="lang-short" aria-hidden="true">ไทย</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">ภาษา</p>
+            <ul>
+              <li><a href="/answers/early-errors/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/early-errors/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/early-errors/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/early-errors/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/early-errors/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/early-errors/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/early-errors/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/early-errors/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/early-errors/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/early-errors/" hreflang="th" lang="th" data-lang="th" aria-current="true"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/early-errors/" hreflang="en" data-lang="en">อ่านเป็นภาษาอังกฤษ</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="ธีมสี: อัตโนมัติ (ตามระบบ) สลับเป็นสว่าง">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">อัตโนมัติ</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="เปิดเมนู">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "ปิดเมนู" : "เปิดเมนู");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="การนำทางคำตอบ">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/th/answers/">คำตอบ</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/th/answers/early-errors/" aria-current="page"><span class="n">26</span> จับได้เร็วกว่า</a></p>
+        <a class="ans-step prev" href="/th/answers/tooling/" aria-label="คำตอบก่อนหน้า: 25 editor และการดีบัก">&lsaquo; 25</a><a class="ans-step next" href="/th/answers/parse-errors/" aria-label="คำตอบถัดไป: 27 ทำไม parse ไม่ผ่าน">27 &rsaquo;</a>
+        <a class="ans-all-link" href="/th/answers/">คำตอบทั้งหมด</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">คำตอบทั้งหมด<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>ภาษา: ไทย</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/early-errors/" hreflang="en" data-lang="en">อ่านเป็นภาษาอังกฤษ</a></p>
+      <button class="i18n-x" type="button" aria-label="ปิด"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>หน้านี้เป็นฉบับแปล ฉบับภาษาอังกฤษคือฉบับอ้างอิง <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28th%29%3A+%2Fth%2Fanswers%2Fearly-errors%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fth%2Fanswers%2Fearly-errors%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fearly-errors%2F%0A%0AWhat+is+wrong%3A%0A">แจ้งปัญหาเกี่ยวกับคำแปล</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side">
+      <p class="q-eyebrow">26 &middot; จับได้เร็วกว่า</p>
+      <h1 class="q-title">ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/th/answers/">คำตอบทั้งหมด</a><button class="ans-close" type="button" aria-label="ปิดรายการคำตอบ"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>ปัญหาที่แก้</summary><ol>
+            <li><a href="/th/answers/verifiability/"><span class="n">01</span><span class="t">พังแบบเงียบๆ</span></a></li>
+            <li><a href="/th/answers/diff-stability/"><span class="n">02</span><span class="t">diff ที่สะอาด</span></a></li>
+            <li><a href="/th/answers/greppability/"><span class="n">03</span><span class="t">การค้นหาโค้ด</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>ตัดสินใจว่าจะใช้หรือไม่</summary><ol>
+            <li><a href="/th/answers/why-typescript/"><span class="n">04</span><span class="t">ทำไมต้อง TypeScript</span></a></li>
+            <li><a href="/th/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">ทำไมไม่ใช้ TS ที่ใส่เครื่องมือครบ</span></a></li>
+            <li><a href="/th/answers/human-value/"><span class="n">06</span><span class="t">เมื่อไม่ใช้ AI</span></a></li>
+            <li><a href="/th/answers/ai-authoring/"><span class="n">07</span><span class="t">โค้ดที่ AI เขียน</span></a></li>
+            <li><a href="/th/answers/upgrades/"><span class="n">08</span><span class="t">การอัปเกรด</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>ใช้กับ stack ที่คุณมี</summary><ol>
+            <li><a href="/th/answers/imports/"><span class="n">09</span><span class="t">ไลบรารีของคุณ</span></a></li>
+            <li><a href="/th/answers/embedding/"><span class="n">10</span><span class="t">ฝังในแอปของคุณ</span></a></li>
+            <li><a href="/th/answers/typed-apis/"><span class="n">11</span><span class="t">API ที่มี type</span></a></li>
+            <li><a href="/th/answers/codegen/"><span class="n">12</span><span class="t">client และ server</span></a></li>
+            <li><a href="/th/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/th/answers/state/"><span class="n">14</span><span class="t">state ที่ใช้ร่วมกัน</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>สร้างอะไรได้บ้าง</summary><ol>
+            <li><a href="/th/answers/language/"><span class="n">15</span><span class="t">ตัวภาษา</span></a></li>
+            <li><a href="/th/answers/finance/"><span class="n">16</span><span class="t">เงินและความปลอดภัย</span></a></li>
+            <li><a href="/th/answers/web-serving/"><span class="n">17</span><span class="t">ให้บริการเว็บ</span></a></li>
+            <li><a href="/th/answers/interactive-cli/"><span class="n">18</span><span class="t">โปรแกรมแบบโต้ตอบ</span></a></li>
+            <li><a href="/th/answers/long-running/"><span class="n">19</span><span class="t">server และ daemon</span></a></li>
+            <li><a href="/th/answers/binary/"><span class="n">20</span><span class="t">ข้อมูลไบนารี</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>ทำงานกับเอเจนต์</summary><ol>
+            <li><a href="/th/answers/impact/"><span class="n">21</span><span class="t">ก่อนแก้ไข</span></a></li>
+            <li><a href="/th/answers/ask-the-compiler/"><span class="n">22</span><span class="t">ถามคอมไพเลอร์</span></a></li>
+            <li><a href="/th/answers/repair-protocol/"><span class="n">23</span><span class="t">แก้ build ที่แดง</span></a></li>
+            <li><a href="/th/answers/generated-docs/"><span class="n">24</span><span class="t">เอกสารที่ไม่ล้าหลัง</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>error, editor และ production</summary><ol>
+            <li><a href="/th/answers/tooling/"><span class="n">25</span><span class="t">editor และการดีบัก</span></a></li>
+            <li><a href="/th/answers/early-errors/" aria-current="page"><span class="n">26</span><span class="t">จับได้เร็วกว่า</span></a></li>
+            <li><a href="/th/answers/parse-errors/"><span class="n">27</span><span class="t">ทำไม parse ไม่ผ่าน</span></a></li>
+            <li><a href="/th/answers/debugging/"><span class="n">28</span><span class="t">การดีบักและการดูแลระบบ</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        เพราะ error บน TypeScript ที่ generate คือ error เกี่ยวกับโค้ดที่คุณไม่ได้เขียน Glyph รายงานสิ่งเหล่านี้เทียบกับซอร์สของคุณ พร้อมกฎที่คุณละเมิดและการแก้ที่ทำให้ถูก
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          Glyph คอมไพล์เป็น TypeScript แล้วตรวจ type ของ output ด้วย <code>tsc --strict</code> ความผิดพลาดที่ Glyph ไม่ได้ model จึงไม่หายไป มันกลับมาในขั้นถัดไป โดยพูดในแง่ของไฟล์ที่ emit: <code>TS1308</code> ที่ชี้ไปที่ <code>await</code> ในฟังก์ชันที่คุณไม่เคยเขียน หรือ <code>TS2366</code> เกี่ยวกับ <code>switch</code> ที่คุณไม่ได้เขียน บรรทัดถูก map กลับไปยัง <code>.glyph</code> ของคุณ แต่คำอธิบายไม่ได้ถูก map
+        </p>
+        <p>
+          ช่องว่างนั้นคือที่ที่คอมไพเลอร์เลิกสอน กฎแต่ละข้อที่ Glyph ตัดสินเองได้จึงย้ายขึ้นมา: <code>await</code> นอก <code>async fn</code> (<code>E0222</code>), arm ของ <code>match</code> ที่ไม่ให้ค่าในขณะที่ <code>match</code> ถูกใช้เป็นค่า (<code>E0223</code>) และการ assign ที่เขียนโดยไม่มี <code>mut</code> (<code>E0008</code>) แต่ละข้อระบุกฎ อ้าง decision ที่อยู่เบื้องหลัง และแสดงก่อนและหลัง
+        </p>
+
+        <h2 class="block-label" id="see-it">ดูของจริง<a class="h-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          กรณีของ arm คือตัวที่เคยหลุดไปทั้งหมด <code>{}</code> ในตำแหน่ง arm คือ <em>block</em> ว่าง ไม่ใช่ record ว่าง arm จึงรันและไม่ให้อะไรออกมา:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph: arm ที่ไม่ให้อะไรเลย ในตำแหน่งที่ต้องการค่า</span>
+<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">let</span> text = <span class="k">match</span> s {
+<span class="del">    <span class="t">Loading</span> <span class="op">=&gt;</span> {},          <span class="c">// an empty block: the arm produces no value</span></span>
+    <span class="t">Ready</span> <span class="op">=&gt;</span> <span class="s">"done"</span>,
+    <span class="t">Failed</span>(msg) <span class="op">=&gt;</span> msg,
+  }
+  <span class="k">return</span> text
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre class="wraps"><span class="del"><span class="e">[E0223]</span> this <span class="q">`match`</span> arm produces no value, but the <span class="q">`match`</span> is used as a value</span>
+   <span class="bx">╰─</span> End the arm with an expression, or <span class="q">`return`</span> from it. <span class="q">`X =&gt; {}`</span> is a no-op
+      only where the <span class="q">`match`</span> is a statement.
+   <span class="f">note:</span> A value-position arm lowers to <span class="q">`case X: { break; }`</span> when it yields
+         nothing, so the value would be <span class="q">`undefined`</span> at run time.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ก่อนหน้านี้ <code>switch</code> ที่ emit หลุดออกจาก case ของตัวเอง และ <code>text</code> ถือ <code>undefined</code> ขณะที่ type บอกว่า <code>string</code> <code>tsc</code> จับบางรูปแบบได้และพลาดบางรูปแบบ ตอนนี้ Glyph ตัดสินทุกที่ที่ตำแหน่งตัดสินได้: <code>let</code>, <code>mut</code>, <code>return</code> หรือส่วนท้ายของฟังก์ชันที่ประกาศ return type <code>match</code> แบบ statement ยังเก็บ <code>X =&gt; {}</code> ไว้เป็นการไม่ทำอะไรโดยตั้งใจตามที่มันเป็น
+        </p>
+        <p>
+          <code>await</code> ก็ย้ายแบบเดียวกัน Glyph ไม่มี <code>Promise</code> ที่ผู้ใช้มองเห็น: <code>async fn -&gt; T</code> ถูก await ได้เป็น <code>T</code> <code>await</code> ที่อื่นจึงไม่มีอะไรให้พักรอ สิ่งนั้นเคยเป็น <code>TS1308</code> ของ <code>tsc</code> บนไฟล์ที่ generate ตอนนี้เป็น <code>E0222</code> และสิ่งที่เรียกได้ซึ่งครอบอยู่ชั้นในสุดเป็นตัวตัดสิน lambda แบบ synchronous ภายใน <code>async fn</code> จึงเป็นบริบทของตัวเอง ซึ่งเป็นกฎเดียวกับที่ TypeScript ใช้
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build บน `fn total() -&gt; number { return await fetch_count() }`</span>
+<pre class="wraps"><span class="del"><span class="e">[E0222]</span> <span class="q">`await`</span> is only valid inside an <span class="q">`async fn`</span></span>
+   <span class="bx">╰─</span> Mark the enclosing function <span class="q">`async fn`</span>, or call a non-async function here.
+
+<span class="cm">// before: no Glyph diagnostic, then</span>
+<span class="dim"><span class="lc">dist/main.ts:14:18</span> - <span class="e">error</span> <span class="e">TS1308</span>: 'await' expressions are only allowed
+within async functions and at the top levels of modules.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ตัวที่สามเกี่ยวกับกฎที่คนละเมิดตั้งแต่วันแรก Glyph ทำเครื่องหมายทุกการแก้ค่า การ assign binding ใหม่คือ <code>mut x = e</code> และการสร้างใหม่คือ <code>let x = e</code> <code>x = e</code> เปล่าๆ เคยรายงาน "unexpected token: Equals" ซึ่งระบุอักขระแทนที่จะระบุกฎ ตอนนี้เป็น <code>E0008</code> และ <code>glyph --explain E0008</code> อธิบายว่าทำไมเครื่องหมายนี้มีอยู่: ทุกที่ที่ค่าเปลี่ยนขึ้นต้นด้วย <code>mut</code> <code>grep "mut total"</code> จึงเจอทุกจุด
+        </p>
+        <p>
+          operator <code>?</code> ได้การดูแลแบบเดียวกันจากอีกทาง <code>?</code> ขยายเป็น binding บวก <code>return</code> ก่อนเวลาที่วางไว้ก่อน statement ที่มันอยู่ มันจึงต้องมี statement ให้ขยายเข้าไป มันใช้ได้ใน <code>let</code>, <code>return</code>, argument และตอนนี้ใน body ของ arm ของ <code>match</code> ด้วย ตรงไหนที่ใช้ไม่ได้ ข้อความจะบอกว่าเป็นตำแหน่งไหนและจะ bind ออกมาอย่างไร (<code>E0302</code> และ <code>E0303</code>) แทนที่จะอ้างว่า operator ยังไม่ได้ implement
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="the-worse-case-when-tsc-is-happy-too">กรณีที่แย่กว่า: เมื่อ tsc ก็พอใจด้วย<a class="h-anchor" href="#the-worse-case-when-tsc-is-happy-too" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          error ของ <code>tsc</code> ในที่ผิดเป็นเรื่องน่ารำคาญ build ที่สะอาดบนโปรแกรมที่มีความหมายอีกอย่างคือปัญหาจริง และ Glyph เคยมี ทุกชื่อระดับบนสุดที่คุณประกาศเข้าไปใน module ที่ emit ตรงตัว รวมถึง constructor ของ variant ใน tagged union variant ชื่อ <code>Error</code> จึง emit <code>export function Error(...)</code> ที่ระดับบนสุดของ module แล้ว <code>new Error(...)</code> ที่คอมไพเลอร์เขียนไว้ข้างล่างก็เรียก variant ของคุณ
+        </p>
+        <p>
+          <code>type Key = string | number</code> คือข้อบกพร่องเดียวกันในหน้าตาที่เป็นมิตรกว่า ใน Glyph <code>A | B</code> ประกาศ tagged union ที่สมาชิกเป็น<em>constructor</em>ของ variant บรรทัดนั้นจึงประกาศ variant ชื่อ <code>string</code> และ <code>number</code> มันคอมไพล์ผ่าน ผ่าน <code>tsc --strict</code> และ emit <code>export const number</code> ที่บัง namespace <code>number</code> ของ prelude ไม่มีอะไร fail จนกระทั่งการเรียก <code>number.to_string</code> ทีหลัง fail
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build บน union ที่มี variant `Error`</span>
+<pre class="wraps"><span class="del"><span class="e">[E0110]</span> <span class="q">`Error`</span> cannot name a type, variant, or function: the emitted module
+        references the JavaScript global <span class="q">`Error`</span>, and this declaration would
+        shadow it</span>
+ 5 <span class="bx">│</span>   | <span class="e">Error</span>(string)
+   <span class="bx">│</span>     <span class="bx">──────┬─────</span>
+   <span class="bx">╰─</span> Rename it (e.g. <span class="q">`Error`</span> -&gt; <span class="q">`Failure`</span>). The name is legal TypeScript, so
+      nothing downstream catches the rebinding.
+
+<span class="cm">// before: no Glyph diagnostic, then, twenty lines later</span>
+<span class="dim"><span class="lc">dist/main.ts:31:12</span> - <span class="e">error</span> <span class="e">TS2345</span>: Argument of type 'string' is not
+assignable to parameter of type ...</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          span คือ declaration ซึ่งเป็นที่ที่ต้องเปลี่ยนชื่อ รายการที่ป้องกันไว้ derive มาจาก emitter ไม่ใช่จากรายการ global ของ JavaScript ทั่วไป และมีเทสต์ที่ grep emitter แล้ว fail เมื่อมีการอ้างถึง global ใหม่โดยไม่มีรายการที่ตรงกัน เทสต์นั้นคือประเด็น: <code>Number</code> ไม่มีพิษภัยจนกระทั่ง <code>int</code> ออกมาและเริ่ม emit <code>Number.isInteger</code> ซึ่งเป็นวิธีที่เรื่องนี้หลุดไปถึงรุ่นที่ออกตั้งแต่แรก <code>Date</code>, <code>Math</code> และ <code>JSON</code> ยังใช้ได้ เพราะไม่มีอะไรที่ Glyph emit อ้างถึงมัน
+        </p>
+        <p>
+          กรณี union ของ primitive ได้รหัสของตัวเองคือ <code>E0111</code> เพราะการปฏิเสธโดยไม่อธิบายไม่ได้สอนอะไร มันบอกว่าบรรทัดนั้นถูก parse เป็นอะไรจริงๆ ชี้ไปที่ variant ที่มีชื่อ และระบุ <code>extern_ts("string | number")</code> สำหรับขอบเขตที่คุณต้องการ union ของ TypeScript ดิบ ทุกชื่อที่ Glyph ไม่ให้ใช้อยู่ในตารางใน <code>docs/reference/reserved-words.md</code>: keyword 32 คำ คำสงวนของ TypeScript 33 คำที่อยู่เบื้องหลัง <code>E0109</code> และรายการชื่อที่บังกัน แต่ละคำมีเหตุผลว่าทำไมชื่อนั้นถูกจองไว้
+        </p>
+        <p>
+          ควรพูดให้ชัดว่าสิ่งนี้ไม่ได้ทำอะไร คุณยังตั้งชื่อ type หรือ variant ว่า <code>Error</code> ไม่ได้ และ spreadsheet ที่ทำให้เรื่องนี้โผล่ขึ้นมาก็มี variant ชื่อ <code>Cellerr</code> เพราะเหตุนี้ โปรแกรมที่มันอยากเป็นยังเขียนไม่ได้ สิ่งที่เปลี่ยนคือตอนนี้คอมไพเลอร์บอกที่ declaration แทนที่จะปล่อยให้ build เขียวแล้วมีความหมายอีกอย่าง การทำให้ชื่อนั้นใช้ได้หมายถึงต้องแปลงชื่อของ Glyph ตอนเข้าสู่ TypeScript ซึ่งเปลี่ยนสิ่งที่ stack trace, <code>grep</code> บน <code>dist/</code> และ shim <code>extern/</code> ที่เขียนเองมองเห็น จึงไม่ใช่ patch ที่เราทำแบบเงียบๆ ได้
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-wrong-message-is-worse-than-no-message">ข้อความที่ผิดแย่กว่าไม่มีข้อความ<a class="h-anchor" href="#a-wrong-message-is-worse-than-no-message" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          รายการชื่อที่บังกันเริ่มจากชื่อที่ emitter เขียนเป็น<em>ค่า</em> มันขาดชื่อที่ emitter เขียนเป็น<em>type</em> และนั่นทำให้เกิดปัญหานี้ในแบบที่แหลมคมที่สุด <code>parse</code> ของทุก descriptor คืน <code>Result&lt;T, Issue[]&gt;</code> module ที่ emit จึงเขียน <code>Issue</code> ไม่ว่าคุณจะเขียนหรือไม่ ประกาศ <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> ใน module ของคุณเอง แล้วของคุณจะชนะ object <code>Issue</code> ที่ emit มี field <code>code</code> ที่ของคุณไม่รู้จัก และ build fail ด้วย error ของ <code>tsc</code> เกี่ยวกับโค้ดที่ generate ที่ span ซึ่งชี้ไปที่อื่น
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build ก่อน: แบบนี้สิบห้าตัว ไม่มีตัวไหนอยู่ใกล้ต้นเหตุ</span>
+<pre class="wraps"><span class="dim"><span class="lc">dist/corpus/infer_output.ts:52:9</span> - <span class="e">error</span> <span class="e">TS2353</span>: Object literal may only
+specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build ตอนนี้</span>
+<pre class="wraps"><span class="del"><span class="e">[E0110]</span> <span class="q">`Issue`</span> cannot name a type, variant, or function: the emitted module
+        references the Glyph prelude global <span class="q">`Issue`</span>, and this declaration
+        would shadow it</span>
+   <span class="bx">╰─</span> Rename it. The name is legal TypeScript, so nothing downstream catches
+      the rebinding.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Record</code> เข้ารายการในเวลาเดียวกัน โดยจัดไว้กับ global ของ JavaScript แทนที่จะเป็นชื่อใน prelude เพราะมันเป็น built-in ของ TypeScript และการอ้างเป็นอย่างอื่นจะทำให้ข้อความผิดเรื่องที่มาของชื่อ เทสต์ตรวจความเพี้ยนที่ grep emitter ตอนนี้ครอบคลุม type แบบ ambient ด้วย และต้องเรียนรู้ที่จะเห็น <code>Issue[]</code> ในตำแหน่ง type ซึ่งเป็นเหตุผลที่เรื่องนี้หลุดไปถึงรุ่นที่ออก <code>Schema</code>, <code>Component</code> และ <code>Option</code> ยังใช้ได้ตามกฎเดียวกับที่ทำให้ <code>Date</code> ใช้ได้: emitter เขียนมันก็เพราะคุณเขียนไว้ใน annotation การประกาศมันจึงไม่บังอะไร
+        </p>
+        <p>
+          อีกตัวในกลุ่มนี้คือ import path ของ import ในเครื่อง resolve จาก build root คือไดเรกทอรีที่คุณส่งให้ <code>glyph build</code> ไม่ใช่จากไดเรกทอรีของไฟล์ที่ import build tree ที่ครอบอยู่แล้ว <code>import catalog</code> หาอะไรไม่เจอ และจนถึงตอนนี้ไม่มีอะไรบอก type ลดลงเป็น unknown <code>match</code> บนมันเสีย variant ที่มันกำลัง match และสิ่งที่คุณได้คือ <code>E0218</code> match ไม่ครบ บน <code>match</code> ที่ครอบคลุมทุก case ถ้าทำตามที่ข้อความนั้นขอ ก็จะเพิ่ม arm <code>else</code> ที่ไม่มีวันรันให้โค้ดที่ถูกต้อง
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build examples/apps บน `import catalog` ภายใน csvql/</span>
+<pre class="wraps"><span class="del"><span class="e">[E0104]</span> unresolved import <span class="q">`catalog`</span>: no module <span class="q">`catalog`</span> under the build
+        root <span class="q">`examples/apps`</span>. There is a <span class="q">`csvql/catalog.glyph`</span> under the
+        root; a local import path is resolved from the build root, not from
+        the importing file's directory (D15)</span>
+   <span class="bx">╰─</span> Build that module's own directory as the root, or spell the import path
+      as it reads from the root.
+
+<span class="cm">// before: no import diagnostic, then</span>
+<span class="dim"><span class="e">[E0218]</span> non-exhaustive match on string   // on a match over all four values</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ความเสี่ยงของการตรวจแบบนี้คือมันเตือนสิ่งที่ไม่ได้ผิด และตัวตรวจ import ที่ร้องเตือนทุกแพ็กเกจ npm แย่กว่าความเงียบที่มันมาแทน build จึงรวบรวมชื่อ module ที่ resolve ได้โดยไม่ต้องมีไฟล์ <code>.glyph</code> ก่อน: ทุก <code>declare module "X"</code> ใต้ <code>&lt;root&gt;/.types/</code> และใน Node shim ที่มาด้วย บวกทุกแพ็กเกจใน <code>node_modules</code> ของโปรเจกต์ ชื่อที่อยู่ในรายการนั้นไม่เคยถูกรายงาน แม้ไฟล์ในเครื่องจะบังเอิญชื่อเดียวกัน เมื่อโปรเจกต์ไม่มี <code>node_modules</code> เลย คอมไพเลอร์แยก dependency ที่ยังไม่ได้ติดตั้งออกจากคำผิดไม่ได้ มันจึงรายงานเฉพาะสิ่งที่พิสูจน์ได้: import ที่มีไฟล์ <code>.glyph</code> ใต้ root ตอบรับอยู่
+        </p>
+        <p>
+          การ resolve เองไม่ได้เปลี่ยน โปรแกรมเดิม build ผ่าน และโปรแกรมเดิม fail สิ่งที่เปลี่ยนคือความล้มเหลวตอนนี้ระบุ import แทนที่จะกล่าวหา <code>match</code> ที่อยู่ห่างไปสองไฟล์ ซึ่งคือทั้งหมดของเรื่อง: คอมไพเลอร์ที่รายงานต้นเหตุผิดทำให้คุณเสียเวลาหนึ่งชั่วโมงไปไล่มัน และเสียความเชื่อใจในทุกข้อความหลังจากนั้น
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="naming-the-rule-not-the-token">ระบุกฎ ไม่ใช่ token<a class="h-anchor" href="#naming-the-rule-not-the-token" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          ปัญหาเดียวกันในแบบที่เงียบกว่าคือ error ที่ถูกต้องแต่ไม่บอกอะไรเลย เอเจนต์ที่เขียน red-black tree หยิบ constructor ตามตำแหน่งที่ทุกภาษาตระกูล ML มี แล้ว parser หยุดที่ comma ตัวแรกพร้อม &ldquo;expected <code>)</code>&rdquo; และคำแนะนำ &ldquo;add the expected token&rdquo; การเพิ่ม <code>)</code> ตรงนั้นได้โปรแกรมอีกตัว ไม่ใช่โปรแกรมที่ใช้งานได้ variant ของ Glyph มี payload เดียว และ payload ที่มีหลาย field คือ record ไม่มีประโยคไหนในสองประโยคนั้นอยู่ใน output เลย
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check ก่อนและตอนนี้</span>
+<pre class="wraps"><span class="dim"><span class="e">[E0002]</span> parse: expected <span class="q">`)`</span> after variant payload, found Comma
+   <span class="bx">╰─</span> Add the expected token.</span>
+
+<span class="del"><span class="e">[E0010]</span> a union variant carries one payload, but <span class="q">`Node`</span> lists 6 positional
+        fields</span>
+   <span class="bx">╰─</span> Glyph has no tuple payload. Put the fields in one record and name them:
+      `Node({ /* name */: Color, /* name */: Tree&lt;K, V&gt;, /* name */: K,
+              /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
+      and destructure it by those names in a match arm.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          การจะพูดแบบนั้นได้ parser ต้องอ่านทั้ง list ก่อนปฏิเสธ ซึ่งก็ทำให้มันนับได้ด้วย span ขีดเส้นใต้ทั้งหก field แทนที่จะเป็นตัวคั่นที่มันบังเอิญไปตาย และ record ที่แนะนำสร้างจากชื่อ variant และหก type ในไฟล์ วิธีแก้จึงระบุโปรแกรมของคุณ ไม่ใช่ตัวอย่างของคนอื่น ชื่อ field เป็นสิ่งเดียวที่คอมไพเลอร์ใส่ให้ไม่ได้ มันจึงเว้นไว้เป็นช่องว่าง
+        </p>
+        <p>
+          กฎเบื้องหลังข้อความเป็นการเลือก ไม่ใช่ช่องว่าง <code>Node(Black, l, x, b, h, r)</code> คือการสลับ argument ที่ตรวจ type ผ่าน และตำแหน่งที่สี่ไม่บอกอะไรคนอ่าน การเขียนแบบ record ระบุทุก field arm ของ match ระบุแค่ field ที่ใช้ และทั้งสองอย่างเป็นสิ่งที่ <code>grep</code> หาเจอ
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="two-more-the-checker-took-over-in-0-1-121">อีกสองอย่างที่ตัวตรวจรับมาทำใน 0.1.121<a class="h-anchor" href="#two-more-the-checker-took-over-in-0-1-121" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          <code>Order { id: "a", total: 1 }</code> คือสิ่งที่คนที่มาจาก TypeScript เขียนเพื่อสร้าง record และ Glyph ไม่มีรูปแบบนั้น: ค่าเขียนแยกต่างหาก และ type อยู่ที่ annotation สิ่งที่คอมไพเลอร์เคยบอกเกี่ยวกับบรรทัดนั้นคือ <code>E0108</code> โค้ดที่ไปไม่ถึง บน build ที่ exit 0 เพราะชื่อ resolve ไปที่ type และวงเล็บปีกกาถูก parse เป็น block หลัง <code>return</code> ชื่อของ type ที่เขียนเป็นค่าคือ <code>E0228</code> และข้อความอ่านจาก declaration record จึงแสดง field ของมัน tagged union แสดง variant พร้อมรูปร่างของ payload และ union ของ string literal แสดง literal ของมัน <code>Order.parse(raw)</code> และ <code>Order.is(v)</code> ยังใช้ได้ เพราะตัวรับ descriptor ของ type เองเป็นตำแหน่ง expression เดียวที่ชื่อ type ควรอยู่
+        </p>
+        <p>
+          นั่นแก้กรณีที่ชื่อเป็น type และไม่ได้แตะการ parse <code>return h() { k: 2 }</code> จึงยัง return <code>h()</code> และทิ้งวงเล็บปีกกาพร้อมคำเตือน ตั้งแต่ 0.1.146 <code>{</code> บนบรรทัดที่ statement จบไปแล้วคือ <code>E0013</code> ตอน parse ไม่ว่าชื่อก่อนหน้าจะเป็นอะไร และข้อความช่วยเหลือให้การเขียนใหม่แบบเดียวกัน ตั้งแต่ 0.1.149 กฎครอบคลุมทุก statement ไม่ใช่แค่ตัวที่ขึ้นต้นด้วยวงเล็บปีกกา: <code>let s = "a" "b"</code> เคย bind <code>"a"</code> แล้วทิ้ง <code>"b"</code> และ <code>return x as User</code> เคยเป็นสาม statement เพราะ Glyph ไม่มี cast แต่ละ statement ใน block เริ่มบรรทัดของตัวเอง
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check บน record ที่สร้างแบบ TypeScript</span>
+<pre class="wraps"><span class="del"><span class="e">[E0013]</span> a statement cannot begin on the line where
+        <span class="q">`return Order`</span> ends</span>
+   <span class="bx">╰─</span> Glyph has no <span class="q">`TypeName { ... }`</span> construction form. Write the literal
+      alone and put the type on the annotation: <span class="q">`let o: Order = { id: "a" }`</span>.
+
+<span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
+<span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          อีกตัวคือ container ของ prelude ที่ถูก assign ให้ primitive <code>let x: string = o</code> ที่ <code>o: Option&lt;int&gt;</code> ไม่ได้อะไรเลยจากตัวตรวจของ Glyph และการส่ง <code>Nullable&lt;int&gt;</code> ให้ parameter ที่ประกาศเป็น <code>int</code> ก็เช่นกัน ตอนนี้ container ห้าตัวถูกครอบคลุมทั้งสองทิศ: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> และ <code>Nullable</code> ไม่เคยเป็น <code>string</code>, <code>number</code> หรือ <code>bool</code> ไม่ว่า argument จะเป็นอะไร และ <code>Nullable&lt;T&gt;</code> เทียบกับ scalar ตัดสินลึกลงไปหนึ่งชั้นเทียบกับ <code>T</code> <code>let v: Nullable&lt;int&gt; = 3</code> จึงยังถูก และ <code>let v: Nullable&lt;int&gt; = "three"</code> เป็น <code>E0204</code> กรณี <code>Nullable</code> ควรอยู่ในหน้านี้มากกว่าตัวอื่น เพราะ <code>tsc</code> จับไม่ได้: <code>const v: number | null = 3</code> ที่ emit ถูก narrow กลับเป็น <code>number</code> ก่อนการเรียกจะถูกตรวจ type ของขอบเขตที่มีไว้ทำให้ <code>null</code> มองเห็นได้จึงผ่านไปเงียบๆ ในที่ที่ประกาศ <code>int</code> และตัวตรวจของ Glyph เป็นที่เดียวที่จะจับได้
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          container เดียวกันเทียบกับ record หรือ union ที่ประกาศไว้มาเป็นลำดับถัดไป ตั้งแต่ 0.1.130 <code>let user: User = json.parse(body)</code> เป็น <code>E0204</code> expected <code>User</code>, found <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code> ก่อนหน้านี้มีแค่ <code>tsc</code> ที่บอก ซึ่งหมายความว่า <code>glyph check --no-tsc</code>, editor และ playground แสดงไฟล์ที่สะอาดบนบรรทัดเดียวที่ขอบเขตมีไว้ให้ทำให้ถูก
+        </p>
+        <p>
+          member ที่สะกดผิดบน array หรือ string คืออีกกรณีที่เคยต้องรอ <code>tsc</code> <code>xs.lenght</code> เป็น <code>E0210</code> พร้อม "did you mean <code>length</code>" ตรวจเทียบกับ member ที่ไลบรารีของ TypeScript ประกาศไว้สำหรับ array และ string แบบเดียวกับที่การอ่าน field ของ record ถูกตรวจเทียบกับ field ของมัน <code>tsc</code> ก็จะปฏิเสธทั้งคู่ build ที่รันมันจึงแดงอยู่แล้ว สิ่งที่เปลี่ยนคือตัวตรวจและทุกอย่างที่สร้างบนมันเห็นก่อน
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="and-three-more-since-0-1-133">และอีกสามอย่าง ตั้งแต่ 0.1.133<a class="h-anchor" href="#and-three-more-since-0-1-133" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          <code>let up = s.toUpperCase</code> ตรวจ type ผ่านใน TypeScript และ throw เมื่อ <code>up()</code> รัน เพราะการอ่านทิ้ง string ที่มันเป็นของ Glyph ปฏิเสธมันเป็น <code>E0234</code> และปฏิเสธ <code>.bind(s)</code> บนมันด้วย: ให้ครอบการเรียกด้วย lambda แทน ตอนนี้ตัวตรวจรู้ว่า method ของ array และ string แต่ละตัวคืนอะไร จากตารางที่ generate จาก declaration ของ TypeScript เอง
+        </p>
+        <p>
+          <code>r?.label</code> บน <code>Result</code> อ่านแล้วเหมือน "ส่งต่อ error แล้วอ่าน field" แต่มันคือ optional chaining และ <code>Result</code> ไม่เคยเป็น null มันจึงอ่าน field จาก object <code>Result</code> และไม่ได้ส่งต่ออะไร เอเจนต์เขียนแบบนั้นพอดีตอนสร้างเครื่องมือคิวรี CSV ตอนนี้เป็น <code>E0236</code> บน <code>Option</code> ด้วย และข้อความช่วยเหลือบอกให้ bind ด้วย <code>?</code> ก่อน
+        </p>
+        <p>
+          <code>json.parse(body)</code> ที่ไม่มี type argument คือการอ่านที่ไม่ตรวจ ได้ <code>Result&lt;unknown, ...&gt;</code> เมื่อเขียนในที่ที่ประกาศ <code>Result&lt;User, ...&gt;</code> <code>tsc</code> เคยอนุมาน <code>User</code> จาก declaration และโปรแกรม crash ตอนอ่าน field แรก ตอนนี้ emitter เขียน <code>unknown</code> ออกมาตรงๆ <code>glyph check</code> จึงปฏิเสธมันผ่าน <code>tsc</code> ตัวตรวจของ Glyph เองยังจับ <code>unknown</code> ที่ไปตกอยู่ภายใน type ที่ประกาศไว้ไม่ได้ <code>--no-tsc</code> และ editor จึงยังพลาด <code>Result&lt;unknown, ...&gt;</code> ที่เขียนในที่ที่ประกาศ <code>Result&lt;User, ...&gt;</code> (<code>let user: User = json.parse(body)</code> แบบเปล่าๆ เป็น <code>E0204</code> จากตัวตรวจของ Glyph เอง เพราะ type ชั้นนอกผิดอยู่แล้ว) การปฏิเสธ <code>unknown</code> ทุกระดับความลึกคือ G325 ซึ่งวางแผนไว้สำหรับ 0.1.158
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="and-two-more-in-0-1-122">และอีกสองอย่างใน 0.1.122<a class="h-anchor" href="#and-two-more-in-0-1-122" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> ประกาศชุดจำกัดของ string และตัวตรวจของ Glyph เปรียบเทียบค่ากับมันด้วยอะไรก็ไม่ใช่เลย ตัวเลข <code>bool</code> record และ string ที่อยู่นอกชุด ผ่าน <code>glyph check --no-tsc</code> ได้หมด โดยมีแค่คำเตือนเรื่องตัวแปรที่ไม่ได้ใช้ ขณะที่ <code>tsc</code> ปฏิเสธทุกตัวบน TypeScript ที่ emit <code>glyph build</code> เต็มจึงไม่เคยผิดเรื่องนี้ แต่ช่องทางสี่ทางที่ไม่มี <code>tsc</code> ใน loop ผิด: <code>--no-tsc</code>, language server, เครื่องมือ MCP และ playground
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc บน type ที่แสดง string ที่ถูกต้องของมัน</span>
+<pre>type Mode = "read" | "write"
+
+let a: Mode = 3
+let b: Mode = "rw"
+let c: Mode = takes_mode(true)
+let d: Mode = { x: 1 }
+<span class="cm">// before: four unused-variable warnings, exit 0</span>
+<span class="del"><span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`number`</span>
+<span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`"rw"`</span>
+<span class="e">[E0211]</span> argument type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`bool`</span>
+<span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`record`</span></span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          นั่นคือสี่ข้อที่ <code>tsc</code> รายงาน ที่สี่ statement เดียวกัน โดยไม่ต้องรัน <code>tsc</code> กฎอ่าน union ตามที่มันเป็นตอนรัน คือ <code>string</code> และถามตัวตรวจด้วยคำถาม <code>string</code> ที่สอดคล้องกันในแต่ละทิศ มันจึงสืบทอดกฎที่ปฏิเสธ record หรือ container เทียบกับ <code>string</code> อยู่แล้ว แทนที่จะเขียนใหม่ทีละรูปร่าง ชุดของ literal สองชุดเทียบกันแบบเซต union ที่แคบกว่าจึงไปอยู่ในที่ที่ประกาศตัวที่กว้างกว่าได้ chain ของ alias ถูกตามทั้งสองฝั่ง union ที่ import มาถูกตัดสินแบบเดียวกับตัวในเครื่อง และ <code>Nullable&lt;Mode&gt;</code> ถูกไล่ลงไปโดยรักษา union ไว้
+        </p>
+        <p>
+          union ที่ซ้อนอยู่ใน field ของ record หรือ argument ของ generic ถูกปล่อยให้ <code>tsc</code> ใน 0.1.122 และถูกตัดสินใน 0.1.123 ดูด้านล่าง
+        </p>
+        <p>
+          ตัวที่สองไม่ใช่เรื่องของ <code>tsc</code> เลย parser เป็นแบบ recursive descent ที่ไม่มีการป้องกันความลึก expression ที่ซ้อนกันสองพันชั้นจึงทำให้ process หมด stack และ abort ด้วย exit 134 นั่นแย่กับ <code>glyph check</code> และแย่กว่ากับ <code>glyph lsp</code> และ <code>glyph mcp</code> ซึ่งอ่านทุกไฟล์ใต้ root: ไฟล์ผิดปกติไฟล์เดียวทำให้ server ล่มทั้ง workspace ตอนนี้เป็น <code>E0011</code> แจ้งที่ token ที่จะเปิดชั้นที่ 65
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">0.1.123: literal ที่ค่าเป็นจริง ไม่ใช่ <code>string</code> ที่มันถูก emit ไป<a class="h-anchor" href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> ใส่ชุดไว้ที่ declaration และไม่ได้ใส่อะไรไว้ที่ค่า <code>"read"</code> จึงเป็น <code>string</code> และ <code>["read", "write"]</code> เป็น <code>Array&lt;string&gt;</code> นั่นทำให้สองโปรแกรมแยกกันไม่ออก: <code>return ["read", "write"]</code> ในที่ที่ประกาศ <code>Array&lt;Mode&gt;</code> ซึ่ง <code>tsc</code> คอมไพล์ผ่าน กับ <code>return xs</code> สำหรับ <code>xs: Array&lt;string&gt;</code> ซึ่งมันปฏิเสธ 0.1.122 ปฏิเสธที่จะตัดสินการจับคู่นั้นแทนที่จะตัดสินผิด และนั่นได้โปรแกรมที่ถูกมาโดยแลกกับการยอมปล่อยโปรแกรมที่ผิด: <code>{ mode: "nope" }</code> เทียบกับ <code>{ mode: Mode }</code> ไม่ได้อะไรเลย
+        </p>
+        <p>
+          ตอนนี้ string literal ที่เขียนไว้มี type เป็น literal เดียวตามที่มันเขียน type ของ element ใน array literal คือการรวมของ element ทั้งหมด และ array หรือ object literal ที่เขียนไว้ถูกตรวจทีละ element และทีละ field เทียบกับ type ที่ประกาศ diagnostic จึงระบุ literal และขีดเส้นใต้มัน
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc บน literal ที่อยู่ใน container หนึ่งชั้น</span>
+<pre>type Mode = "read" | "write"
+type Cfg = { mode: Mode }
+
+fn <span class="o">ok</span>() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
+fn bad() -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }
+fn wrong() -&gt; Cfg { return { mode: "nope" } }
+<span class="cm">// 0.1.122: nothing, on all three</span>
+<span class="del"><span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`"nope"`</span>   (twice)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          literal ขยายกลับเป็น <code>string</code> ในที่ที่ TypeScript ขยาย: ที่ <code>let</code> ที่ไม่มี annotation ซึ่ง <code>let</code> ของ TypeScript ที่ emit ก็ขยายแบบเดียวกัน และที่ binding ของ element ใน <code>for</code> บน array ที่เขียนไว้ <code>let l = "read"</code> ตามด้วย <code>takes_mode(l)</code> จึงถูกปฏิเสธที่นี่และเป็น <code>TS2345</code> ที่นั่น <code>const</code> emit เป็น <code>const</code> ของ TypeScript และรักษา literal ไว้ <code>takes_mode(CM)</code> จึงคอมไพล์ผ่านทั้งสองฝั่ง literal type ที่มาถึงผ่านชื่อจะไม่ถูกขยาย ซึ่งเป็นกฎความสดใหม่ของ TypeScript เอง ทุกแถวในนั้นตัดสินโดยการรัน <code>tsc --strict</code> บน TypeScript ที่เทียบเท่า ไม่ใช่โดยการให้เหตุผลเอา
+        </p>
+        <p>
+          ยังมีการจับคู่หนึ่งที่ปฏิเสธจะตัดสิน: argument ที่เป็น key ของ <code>Record</code> เทียบกับของ <code>Record</code> อีกตัว TypeScript เขียน <code>Record&lt;string, V&gt;</code> เป็น index signature ที่ครอบคลุมทุก key ที่ <code>Record&lt;Mode, V&gt;</code> ประกาศ และยอมรับทั้งสองทิศ การปฏิเสธจึงจะปฏิเสธโปรแกรมที่คอมไพล์ผ่าน อีกสองรูปร่างที่ตัวตรวจยังไม่บอกอะไร: literal ภายใน <code>Some(...)</code> เพราะ constructor ของ prelude ยังไม่มี type ที่นี่ และ record literal ที่ bind กับ <code>let</code> ที่ไม่มี annotation เพราะไม่มี record type ถูกสังเคราะห์ให้ object literal
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-module-under-std-was-dead-code-with-no-diagnostic">module ใต้ <code>std/</code> เคยเป็นโค้ดที่ไม่มีวันรันโดยไม่มี diagnostic<a class="h-anchor" href="#a-module-under-std-was-dead-code-with-no-diagnostic" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          <code>std/</code> และ <code>extern/</code> ระบุ module ที่คอมไพเลอร์พามาด้วย และ resolver สงวนไว้สำหรับ import ไม่มีอะไรห้ามไฟล์ในโปรเจกต์<em>ประกาศ</em>ตัวหนึ่ง <code>module std/io</code> ใน <code>src/io.glyph</code> ของคุณเองคอมไพล์ผ่านสะอาด แล้ว <code>import std/io { shout }</code> ก็ resolve ไปที่ stub และรายงานว่า <code>shout</code> ไม่ได้ถูก export: ไฟล์ของคุณไม่เคยถูกอ่าน ไฟล์ที่ไม่มี diagnostic และไม่รันโค้ดคือรูปแบบที่แย่ที่สุดที่คอมไพเลอร์ทิ้งคุณไว้ได้ เพราะไม่มีอะไรเกี่ยวกับมันดูผิด
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc บน src/io.glyph ที่ประกาศ `module std/io`</span>
+<pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
+
+<span class="del"><span class="e">[E0113]</span> <span class="q">`std/io`</span> declares a module under <span class="q">`std/`</span>, a prefix reserved for the
+        modules the compiler carries (D15)</span>
+ 1 <span class="bx">│</span> module std/io
+   <span class="bx">│</span> <span class="bx">──────┬──────</span>
+   <span class="bx">╰─</span> Rename the module to a path of your own (<span class="q">`io`</span>, <span class="q">`app/io`</span>).</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          prefix ถูก match เป็น segment แรกทั้งตัว <code>standard</code>, <code>externals/io</code>, <code>app/std</code> และ <code>app/extern/helper</code> จึงไม่ถูกแตะ และการ import ใต้ prefix ใดก็ยังทำงานแบบที่เคยเป็นมาตลอด
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check บน `const x = ` ตามด้วยวงเล็บซ้อนกัน 2,000 ชั้น</span>
+<pre><span class="cm">// before: thread 'main' has overflowed its stack
+//         fatal runtime error: stack overflow, aborting   (exit 134)</span>
+
+<span class="del"><span class="e">[E0011]</span> this array literal nests deeper than the parser's limit of 64 levels</span>
+   <span class="bx">╰─</span> Name the inner levels: pull them out into <span class="q">`let`</span> bindings, or into a
+      <span class="q">`fn`</span> that returns one of them, so no single expression, type or
+      pattern is more than 64 levels deep.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ขีดจำกัดคือ 64 และมาจากการวัด ไม่ใช่การเลือกเอา construct ที่แพงที่สุดหนึ่งชั้น คือ array literal ที่ซ้อนกัน ใช้ stack 7,792 ไบต์ใน release build และ 8,810 ใน debug ซึ่งหาได้จากการ binary search หา thread stack ที่เล็กที่สุดที่ความลึกหนึ่งๆ จะ parse ได้ stack ที่บางที่สุดที่ parser รันคือ 2 MiB ของ thread ที่ spawn ขึ้นมา ซึ่งเป็นสิ่งที่ worker ของ language server ได้ และ 64 ชั้นใช้ไม่ถึงหนึ่งในสามของมันใน build ที่แพงกว่า การซ้อนที่ลึกที่สุดในไฟล์ <code>.glyph</code> 343 ไฟล์ของ repository นี้คือ 16 ขีดจำกัดครอบคลุม expression, type, pattern, block และ children ของ JSX เหมือนกัน และ array ข้างเคียงกันพันตัวยัง parse ได้ เพราะความลึกคือการซ้อนต่อ construct ไม่ใช่งบที่ใช้ไปทั้งไฟล์
+        </p>
+      </div>
+
+      <h2 class="block-label" id="when-neither-compiler-is-wrong">เมื่อไม่มีคอมไพเลอร์ตัวไหนผิด<a class="h-anchor" href="#when-neither-compiler-is-wrong" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <div class="detail">
+        <p>
+          มีรูปแบบที่สาม และเป็นตัวที่อ่านแล้วแย่ที่สุด Glyph ไม่รายงานอะไร <code>tsc</code> รายงานบางอย่างที่จริง และโปรแกรมที่คุณเขียนก็ไม่ได้ผิด สิ่งที่ล้มเหลวคือการแปลระหว่างสองตัวนั้น
+        </p>
+        <p>
+          binding ใน Glyph มี type เดียวตลอดอายุของมัน TypeScript narrow binding ให้เป็นสิ่งที่เห็นถูก assign ล่าสุด และ <code>boolean</code> ของมันคือ union <code>true | false</code> <code>let done = false</code> จึงไปถึง <code>tsc</code> ด้วย type <code>false</code> และ arm <code>true</code> ของ <code>switch</code> ที่ emit ก็ไม่มีอะไรให้ match
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">poll.glyph และสิ่งที่ tsc บอกเกี่ยวกับมันก่อน 0.1.89</span>
+<pre><span class="k">fn</span> classify() <span class="op">-&gt;</span> <span class="t">int</span> {
+  <span class="k">let</span> done = <span class="k">false</span>
+  <span class="k">match</span> done {
+    <span class="k">true</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="n">1</span> },
+    <span class="k">false</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="n">0</span> },
+  }
+}
+
+<span class="cm">// no Glyph diagnostic, then</span>
+<span class="del">[<span class="t">TS2678</span>] <span class="t">Type</span> <span class="s">'true'</span> <span class="k">is</span> not comparable to <span class="k">type</span> <span class="s">'false'</span>.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          type ที่ประกาศเป็นชุดของ string literal ล้มเหลวแบบเดียวกัน และ <code>==</code> ก็เช่นกัน ซึ่งกลับมาเป็น <code>TS2367</code> แทน: สองข้อความ สองรหัส ต้นเหตุเดียว แอปที่เจอมันกำลัง poll flag ที่ callback ของ timer ตั้ง ซึ่งเป็นวิธีเปลี่ยน API แบบ event ให้เป็นค่า ในขณะที่ Glyph ไม่มี <code>Promise</code> ที่คุณสร้างเองได้ callback กลายเป็นว่าไม่ใช่ประเด็น: สี่บรรทัดที่ไม่มี callback ก็ทำให้เกิดได้
+        </p>
+        <p>
+          การแก้ไม่ใช่ diagnostic ใหม่ เพราะไม่มีอะไรให้วินิจฉัย ตอนนี้ emitter ระบุ type ที่ตัวตรวจตัดสินไว้แล้วซ้ำอีกครั้ง ในสองที่ที่แยกแยะตามค่า: scrutinee ของ <code>match</code> และทั้งสองฝั่งของ <code>==</code> หรือ <code>!=</code> แต่ละฝั่งตัดสินด้วย type ของตัวเองและไม่สนสิ่งที่อยู่ข้างๆ การเปรียบเทียบระหว่างสอง binding จึงถูกครอบคลุมแบบเดียวกับการเปรียบเทียบกับ literal
+        </p>
+        <p>
+          การตรวจที่คุณต้องการยังทำงาน <code>m == "nope"</code> ที่ <code>m</code> เป็น <code>Mode</code> ยังถูกปฏิเสธ และตอนนี้ข้อความระบุ <code>Mode</code> แทนที่จะเป็นสมาชิกตัวเดียวที่ <code>m</code> บังเอิญถืออยู่ การทำที่การ assign แทนจะใช้โค้ดน้อยกว่าและจะทิ้งสิ่งนั้นไป: cast เป็น <code>Mode</code> ถูกยอมรับในที่ที่การ assign แบบมี annotation ไม่ถูกยอมรับ และการตรวจความเป็นสมาชิกคือส่วนที่ Glyph ตั้งใจปล่อยให้ <code>tsc</code>
+        </p>
+        <p>
+          ต้นทุนมีน้อยและควรระบุ cast narrow ได้เช่นเดียวกับยืนยัน ค่าที่ Glyph ให้ type เป็น <code>bool</code> ซึ่ง type ใน TypeScript ออกมาเป็น <code>unknown</code> จึงผ่านในที่ที่ <code>switch</code> เคยบ่น type ทั้งสองยังต้องเทียบกันได้ model ที่เพี้ยนไปไกลพอจะมีผล อย่าง <code>string</code> เทียบกับ <code>bool</code> จึงรายงาน <code>TS2352</code> แทนที่จะไม่บอกอะไร
+        </p>
+      </div>
+
+      <h2 class="block-label" id="the-same-typo-two-answers">คำผิดเดียวกัน สองคำตอบ<a class="h-anchor" href="#the-same-typo-two-answers" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <div class="detail">
+        <p>
+          ฟังก์ชันของ standard library ที่สะกดผิดเคยได้คำตอบต่างกันขึ้นกับว่าคุณเขียน import แบบไหน ซึ่งเป็นความไม่สม่ำเสมอแบบที่สอนให้คุณไม่เชื่อคำตอบทั้งสอง
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">import ด้วยชื่อ เป็น E0105 เสมอ</span>
+<pre>import std/string { repeeat }
+<span class="del"><span class="e">[E0105]</span> import: <span class="q">`repeeat`</span> is not exported by <span class="q">`std/string`</span></span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">การอ่านผ่าน namespace ก่อน 0.1.72</span>
+<pre><span class="k">import</span> std/<span class="t">string</span>
+<span class="t">string</span>.repeeat(s, <span class="n">2</span>)
+<span class="del">[<span class="t">TS2551</span>] <span class="t">Property</span> <span class="s">'repeeat'</span> does not exist on <span class="k">type</span> ... <span class="t">Did</span> you mean <span class="s">'repeat'</span><span class="op">?</span></span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          การเขียนแบบแรกถูกตรวจกับรายการ export ของ module ตอน resolve แบบที่สองไม่ถูกตรวจเลย มันจึงตกไปถึง <code>tsc</code> ซึ่งเห็นการเข้าถึง property บน object และตอบในแง่นั้น ตอนนี้ทั้งสองแบบผ่านรายการ export และทั้งคู่บอก <code>E0105</code> โดยระบุ member และ module ที่มันขาดไป
+        </p>
+        <p>
+          การเปิดใช้มันเจอสิ่งที่ไม่มีใครมองหาทันที: test fixture ตัวหนึ่งเรียก <code>fs.write</code> ทั้งที่ฟังก์ชันชื่อ <code>write_text</code> มันผ่านมาหลายเดือนเพราะ fixture นั้นรันโดยปิดการตรวจ type และไม่มีอะไรอื่นในคอมไพเลอร์ดู member ของ namespace ตอนนี้รายการ export เป็นแหล่งอ้างอิงของทั้งสองแบบ การตรวจแยกต่างหากจึงรักษามันให้ตรงกับสิ่งที่ runtime export จริง การตรวจนั้นถูกเขียนขึ้น แล้วตั้งใจทำให้พังเพื่อยืนยันว่ามัน fail ซึ่งเป็นวิธีที่เราพบว่าเวอร์ชันแรกของมันไม่ได้ตรวจอะไรเลยแบบเงียบๆ
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p><code>E0222</code> สำหรับ <code>await</code> นอก <code>async fn</code>, <code>E0223</code> สำหรับ arm ของ <code>match</code> ในตำแหน่งค่าที่ไม่ให้ค่า, <code>E0008</code> สำหรับการ assign ที่ขาด <code>mut</code>, <code>E0010</code> สำหรับ variant ที่ได้ payload ตามตำแหน่งหลาย field ในขณะที่รูปแบบ record คือรูปแบบที่มีอยู่, <code>E0302</code>/<code>E0303</code> สำหรับ <code>?</code> ในตำแหน่งที่ส่งต่อไม่ได้, <code>E0110</code>/<code>E0111</code> สำหรับ declaration ที่จะบังชื่อที่ module ที่ emit พึ่งพาอยู่, <code>E0104</code> สำหรับ import ในเครื่องที่ไม่ได้ระบุ module ใต้ build root, <code>E0105</code> สำหรับชื่อที่ module ไม่ได้ export ไม่ว่าคุณจะเข้าถึงผ่าน import ด้วยชื่อหรือผ่าน namespace, <code>E0228</code> สำหรับชื่อของ type ที่เขียนในที่ที่ต้องการค่า, <code>E0013</code> สำหรับ statement ที่เริ่มบนบรรทัดที่อีกตัวจบ ซึ่งเคยทิ้งค่าที่ตามมา, <code>E0204</code>/<code>E0211</code> สำหรับ container ของ prelude ที่ถูก assign หรือส่งเป็น primitive หรือ record หรือ union ที่ประกาศไว้ รวมถึงกรณี <code>Nullable&lt;T&gt;</code> ที่ <code>tsc</code> narrow ทิ้งไป, <code>E0210</code> สำหรับ member ที่ array หรือ string ไม่มี, สองรหัสเดียวกันสำหรับค่าที่ไม่อยู่ในชุดที่ union ของ string literal ประกาศไว้, <code>E0011</code> สำหรับ construct ที่ซ้อนเกิน 64 ชั้น, <code>E0101</code> สำหรับ path ของ import แบบ relative ซึ่งเคยหยุดใน parser ด้วย "expected module path segment" ทั่วไป และ <code>E0113</code> สำหรับ module ในโปรเจกต์ที่ประกาศใต้ <code>std/</code> หรือ <code>extern/</code> ซึ่งเคยคอมไพล์ผ่านสะอาดแต่เข้าถึงไม่ได้ รายการชื่อที่บังกันครอบคลุม type ที่ emitter เขียนเอง <code>Issue</code> และ <code>Record</code> จึงถูกจับที่ declaration ทุกรหัสมีวิธีแก้หนึ่งบรรทัด note ที่อธิบายกฎ และคำอธิบายแบบยาวใน <code>glyph --explain</code> <code>docs/error-codes.md</code> แสดงแคตตาล็อก และมีเทสต์รักษาทั้งสองให้ตรงกัน</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังคมขึ้น</h3>
+          <p><code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น และคืน array ของค่าที่ยังค้างอยู่ ซึ่งพิมพ์ออกมาเป็น <code>[object Promise]</code> ฟังก์ชัน array ห้าตัวที่รับ predicate หยุดมันได้ ด้วย <code>E0211</code> ที่ callback การ model อีกสามตัวแบบเดียวกันจะปฏิเสธ <code>par.all(array.map(items, async fn ...))</code> ด้วย ซึ่งเป็นวิธีที่ Glyph รันงานพร้อมกัน เพราะ array ของค่าที่ยังค้างไม่มีวิธีเขียนในภาษา นั่นเป็นการตัดสินใจเรื่อง type system ไม่ใช่รายการที่ขาด จึงยังเปิดอยู่ initializer ของ <code>const</code> ระดับ module ไม่มีสิ่งที่เรียกได้ครอบอยู่ <code>await</code> ระดับบนสุดจึงได้รับอนุญาต และ ESM ที่ emit ก็รันมัน Glyph ต้องการการเริ่ม module แบบ async โดยนัยหรือไม่ยังเป็นคำถามในสเปกที่เปิดอยู่ <code>E0223</code> ตัดสิน <code>match</code> ท้ายฟังก์ชันได้ก็ต่อเมื่อฟังก์ชันประกาศ return type arm ภายใน lambda ที่ไม่มี annotation จึงยังไปถึง <code>tsc</code> ฝั่งชื่อที่บังกัน มีสองอย่างที่ทำไปได้แค่ครึ่ง <code>E0110</code> บอกให้คุณเปลี่ยนชื่อแทนที่จะให้เก็บชื่อไว้ <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> และ <code>Promise</code> จึงยังใช้เป็นชื่อ type หรือ variant ไม่ได้ และ <code>E0111</code> หยุด <code>type Key = string | number</code> ไม่ให้มีความหมายผิด โดยไม่ได้ให้วิธีเขียนสิ่งที่ตั้งใจ: union ของ primitive สอง type ไม่มีวิธีเขียนใน Glyph นอกจาก <code>extern_ts</code> ซึ่งตัวตรวจของมันเองมองเนื้อหาเป็นของทึบ union ที่ไม่มี tag แตะเรื่องความครบถ้วน runtime descriptor และ <code>is</code> ข้อนั้นจึงเป็นการตัดสินใจเรื่อง type system และยังไม่ได้กำหนดเวลา <code>E0104</code> ไปถึง <code>glyph build</code> และ <code>glyph check</code> แต่ไม่ถึง editor: LSP วิเคราะห์ข้อความของเอกสารโดยไม่มี build root และโฟลเดอร์ของ workspace ก็ไม่ใช่ build root การเดาจะทำให้เกิดการเตือนผิดที่การตรวจนี้ออกแบบมาให้หลีกเลี่ยง และ parameter ที่เป็นคำสงวนยังซ่อนอยู่หลัง error ที่ไม่เกี่ยวข้องในไฟล์เดียวกัน เพราะความล้มเหลวใน pass รวบรวมจะข้าม pass resolve ที่จะเจอมัน อีกเรื่องหนึ่ง การตรึงที่จุดอ่านซึ่งทำให้ binding แบบ <code>bool</code> หรือ union ของ string literal ยัง match ได้ ตาม type alias เฉพาะภายใน module ที่กำลัง emit <code>pub type Ready = bool</code> ใน module หนึ่ง และ <code>let r: catalog.Ready = false</code> ในอีก module จึงยังไปถึง <code>tsc</code> เป็น <code>TS2678</code> union ของ string literal ถูกครอบคลุมข้าม module ในการ import ทั้งสามแบบ และตั้งแต่ 0.1.123 diagnostic ระบุ declaration (expected <code>Mode</code>) ในทุกแบบ แทนที่จะพิมพ์ชุด literal ในแบบใดแบบหนึ่ง</p>
+        </div>
+        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.149 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      </div>
+      <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
+        <a href="/th/answers/tooling/">
+          <span class="dir">&larr; ก่อนหน้า</span>
+          <span class="t">ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?</span>
+        </a>
+        <a href="/th/answers/parse-errors/" class="nx cta">
+          <span class="dir">ถัดไป &rarr;</span>
+          <span class="t">เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/th/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>ภาษาแบบมี type ที่คอมไพล์เป็น TypeScript สร้างมาให้เอเจนต์แก้โค้ดได้โดยไม่ทำให้พัง</p>
+          </div>
+          <div class="foot-col">
+            <h2>เริ่มต้น</h2>
+            <a href="/th/start/">โปรแกรมแรกของคุณ</a>
+            <a href="/th/from-typescript/">สำหรับคนที่มาจาก TypeScript</a>
+            <a href="/th/teams/">สำหรับทีม</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">ทัวร์ห้านาที</a>
+          </div>
+          <div class="foot-col">
+            <h2>เรียนรู้</h2>
+            <a href="/th/answers/">คำตอบ</a>
+            <a href="/th/answers/verifiability/">อ่านคำตอบตามลำดับ</a>
+            <a href="/th/answers/tooling/">เครื่องมือสำหรับ editor และเอเจนต์</a>
+            <a href="/th/agents/">สำหรับเอเจนต์</a>
+            <a href="/th/mcp/">เซิร์ฟเวอร์ MCP</a>
+            <a href="/llms-pages.txt">หน้าเว็บแบบ Markdown</a>
+            <a href="/th/design/">การออกแบบ</a>
+            <a href="/th/pillars/verifiability/">สี่เสาหลัก</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">สเปกของภาษา</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">แถลงการณ์</a>
+          </div>
+          <div class="foot-col">
+            <h2>หลักฐาน</h2>
+            <a href="/th/catches/">สิ่งที่จับได้</a>
+            <a href="/th/evidence/">ข้อกล่าวอ้างถูกตรวจสอบอย่างไร</a>
+            <a href="/th/hardening/">การทดสอบความแข็งแรง</a>
+            <a href="/th/benchmarks/">Benchmark</a>
+            <a href="/versions/">เวอร์ชัน</a>
+          </div>
+          <div class="foot-col">
+            <h2>ซอร์สโค้ด</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/th/contribute/">ร่วมพัฒนา</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases บน GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/th/answers/early-errors/index.segments.json">แก้ไขหน้านี้</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript ที่เอเจนต์ของคุณทำพังแบบเงียบๆ ไม่ได้</span>
+          <span>&copy; 2026 Glyph &middot; MIT หรือ Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "อัตโนมัติ", light: "สว่าง", dark: "มืด" };
+        var labels = { auto: "ธีมสี: อัตโนมัติ (ตามระบบ) สลับเป็นสว่าง", light: "ธีมสี: สว่าง สลับเป็นมืด", dark: "ธีมสี: มืด สลับเป็นอัตโนมัติ" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

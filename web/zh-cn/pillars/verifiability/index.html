@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>可验证性 · 没有 any，match 必须穷尽 · Glyph</title>
+    <meta name="description" content="Glyph 的第一个支柱：没有 any 和 as，match 必须穷尽，你声明的类型自带运行时校验器。这是 tsc 之上的一层严格检查，并写明了它的边界。" />
+    <link rel="canonical" href="https://glyphlang.io/zh-cn/pillars/verifiability/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/zh-cn/pillars/verifiability/" />
+    <meta property="og:title" content="可验证性 · 没有 any，match 必须穷尽" />
+    <meta property="og:description" content="Glyph 的第一个支柱：没有 any 和 as，match 必须穷尽，你声明的类型自带运行时校验器。这是 tsc 之上的一层严格检查，并写明了它的边界。" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"可验证性","item":"https://glyphlang.io/zh-cn/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/pillars/verifiability/#article","headline":"可验证性 · 没有 any，match 必须穷尽","description":"Glyph 的第一个支柱：没有 any 和 as，match 必须穷尽，你声明的类型自带运行时校验器。这是 tsc 之上的一层严格检查，并写明了它的边界。","url":"https://glyphlang.io/zh-cn/pillars/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/pillars/verifiability/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/verifiability/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/verifiability/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/pillars/verifiability/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/pillars/verifiability/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/pillars/verifiability/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/pillars/verifiability/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/pillars/verifiability/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/pillars/verifiability/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/pillars/verifiability/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/pillars/verifiability/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/pillars/verifiability/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="主导航">
+        <div class="nav-brand">
+          <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-why">为什么选 Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">适合谁用</p>
+                    <ul>
+                      <li><a href="/zh-cn/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">面向智能体开发者</span><span class="nav-desc">MCP 服务器及其能回答的查询</span></span></a></li>
+                      <li><a href="/zh-cn/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">从 TypeScript 迁移过来</span><span class="nav-desc">哪些变了，哪些保持不变</span></span></a></li>
+                      <li><a href="/zh-cn/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">面向团队</span><span class="nav-desc">它保证什么，引入它的成本是什么</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">设计</p>
+                    <ul>
+                      <li><a href="/zh-cn/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">设计</span><span class="nav-desc">四大支柱，以及有意没有做的部分</span></span></a></li>
+                      <li><a href="/zh-cn/pillars/verifiability/" aria-current="page"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">四大支柱</span><span class="nav-desc">可验证性、可检索性、抽象、稳定的 diff</span></span></a></li>
+                      <li><a href="/zh-cn/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph 与 Effect 对比</span><span class="nav-desc">一门语言和一个库的比较</span></span></a></li>
+                      <li><a href="/zh-cn/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">为什么不用 ReScript、Gleam 或 Elm？</span><span class="nav-desc">三种编译为 JavaScript 的类型化语言</span></span></a></li>
+                      <li><a href="/zh-cn/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph 与配齐工具链的 TypeScript 对比</span><span class="nav-desc">严格模式的 tsc、zod 和 eslint 仍会放过的问题</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/zh-cn/catches/">它能发现什么</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">学习<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">上手</p>
+                    <ul>
+                      <li><a href="/zh-cn/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 分钟上手</span><span class="nav-desc">安装、写一个程序、运行</span></span></a></li>
+                      <li><a href="/zh-cn/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">问答 <span class="nav-count">28</span></span><span class="nav-desc">工程师常问的问题，附完整示例</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">语言参考</span><span class="nav-desc">完整规范，在 GitHub 上</span></span></a></li>
+                      <li><a href="/zh-cn/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">参与贡献</span><span class="nav-desc">编译器的实现方式，以及如何参与</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">连接你的智能体</p>
+                    <ul>
+                      <li><a href="/zh-cn/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP 服务器</span><span class="nav-desc">把智能体接入编译器的查询</span></span></a></li>
+                      <li><a href="/zh-cn/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">询问编译器</span><span class="nav-desc">编辑前先查询符号、类型或改动的影响</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">面向智能体的 llms.txt</span><span class="nav-desc">整门语言写在一个智能体能读的文件里</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">证据<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">如何验证</p>
+                    <ul>
+                      <li><a href="/zh-cn/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">说法如何验证</span><span class="nav-desc">每条说法背后的 fixture 和 CI 检查</span></span></a></li>
+                      <li><a href="/zh-cn/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">加固</span><span class="nav-desc">智能体尝试攻破它，以及它们的发现</span></span></a></li>
+                      <li><a href="/zh-cn/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">基准测试</span><span class="nav-desc">用数字衡量四大支柱，附注意事项</span></span></a></li>
+                      <li><a href="/zh-cn/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">尚未覆盖的问题</span><span class="nav-desc">已知漏洞，每个都附复现示例</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/zh-cn/catches/"><span class="nav-feature-big">37 个中有 21 个</span><span class="nav-feature-text">TypeScript 错误，即使项目配置拉满，也没有任何工具能发现</span><span class="nav-feature-cta">看看它能发现什么 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">版本</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="语言: 简体中文 (中文)"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">简体中文</span><span class="lang-short" aria-hidden="true">中文</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">语言</p>
+            <ul>
+              <li><a href="/pillars/verifiability/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/pillars/verifiability/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/pillars/verifiability/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/pillars/verifiability/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/pillars/verifiability/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/pillars/verifiability/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn" aria-current="true"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/ko/pillars/verifiability/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/pillars/verifiability/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/pillars/verifiability/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/pillars/verifiability/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/pillars/verifiability/" hreflang="en" data-lang="en">阅读英文版</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="配色主题：自动（跟随系统）。切换为浅色。">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">自动</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="打开菜单">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "关闭菜单" : "打开菜单");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="subnav-wrap" aria-label="章节">
+      <div class="subnav">
+        <a href="/zh-cn/pillars/verifiability/" class="active" aria-current="page"><span class="n">01</span> 可验证性</a>
+        <a href="/zh-cn/pillars/greppability/"><span class="n">02</span> 可检索性</a>
+        <a href="/zh-cn/pillars/diff-stability/"><span class="n">03</span> diff 稳定性</a>
+        <a href="/zh-cn/pillars/abstraction/"><span class="n">04</span> 抽象</a>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>当前语言：简体中文</span><span class="sep" aria-hidden="true">&middot;</span><a href="/pillars/verifiability/" hreflang="en" data-lang="en">阅读英文版</a></p>
+      <button class="i18n-x" type="button" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>本页是译文，以英文版为准。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28zh-cn%29%3A+%2Fzh-cn%2Fpillars%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fzh-cn%2Fpillars%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fpillars%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">报告翻译问题</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page answer-page pillar-page">
+      <p class="q-eyebrow">支柱 01 &middot; <span class="wedge">切入点</span></p>
+      <h1 class="q-title">可验证性</h1>
+
+      <p class="short-answer">
+        Glyph 堵上了智能体会掉进去的漏洞：<strong>没有可以写的 <code>any</code> 和 <code>as</code></strong>，<code>match</code> <strong>可证明是穷尽的</strong>，你声明的类型会得到<strong>严格的运行时校验器</strong>，这些都作为 <code>tsc</code> 之上的一层严格检查来强制执行。它并不自己验证一切，下文会明确说明保证在哪里止步。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="the-lie-a-type-can-tell">类型会说的谎<a class="h-anchor" href="#the-lie-a-type-can-tell" aria-label="链接到本节">#</a></h2>
+        <p class="lede">
+          在 TypeScript 中，类型是一个编译时的承诺，代码运行之前就蒸发了。<code>User</code> 标注会被擦除得一干二净；你从网络调用、JSON 解析或表单字段实际拿到的对象，可能是任何结构。更糟的是，语言还给了你三种合法的方式就此向检查器撒谎：<code>any</code>、<code>as</code> 类型断言，以及非空断言 <code>!</code>。赶进度的智能体三种都会用，而 <code>tsc --strict</code> 一直是绿的，bug 就这样上线了。
+        </p>
+        <p class="lede">
+          Glyph 的首要任务就是堵上这些漏洞。不是靠更多的标注，而是去掉逃生口，让每个类型把它的证明一直带到运行时。下面逐条说明这意味着什么。
+        </p>
+
+        <h2 class="block-label" id="there-is-no-any"><span class="ex-label">01</span> 没有 <code>any</code><a class="h-anchor" href="#there-is-no-any" aria-label="链接到本节">#</a></h2>
+        <p>
+          <code>any</code> 是 TypeScript 中代价最高的关键字：它会对一个值<em>以及这个值碰到的一切</em>关掉类型系统。边界上的一个 <code>any</code> 会悄悄污染下游的整个调用图。Glyph 没有它。顶层类型是 <code>unknown</code>，而 <code>unknown</code> 是惰性的：在你<em>证明</em>它是什么之前，不能调用它、不能索引它，也不能把它传给任何有类型的地方。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript：能编译，然后崩溃</span>
+          <span class="cap">handler.ts</span>
+<pre><span class="k">function</span> handle(body: <span class="t">any</span>) {
+  <span class="cm">// tsc --strict: fine.</span>
+  <span class="cm">// runtime: throws on {}.</span>
+  <span class="k">return</span> body.user.name.toUpperCase();
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph：收窄本身就是证明</span>
+          <span class="cap">handler.glyph</span>
+<pre><span class="k">fn</span> handle(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(body) {
+    <span class="t">Ok</span>(u) <span class="op">=&gt;</span> <span class="t">string</span>.upper(u.name),
+    <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unknown"</span>,
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          不经过编译器看得见的检查，你就无法从 <code>unknown</code> 中得到有类型的值。在 Glyph 中，收窄<strong>就是</strong>运行时证明。没有任何语法可以跳过它。
+        </p>
+
+        <h2 class="block-label" id="types-are-real-at-runtime"><span class="ex-label">02</span> 类型在运行时是真实存在的<a class="h-anchor" href="#types-are-real-at-runtime" aria-label="链接到本节">#</a></h2>
+        <p>
+          <code>User.parse</code> 是怎么来的？因为每个记录类型，以及每个非泛型的标签联合，都会同时生成一个<strong>运行时描述符</strong>：一个 <code>is</code> 守卫，一个把 <code>unknown</code> 校验成 <code>Result</code> 的 <code>parse</code>，以及一个可组合的 <code>schema</code>。记录的结构在运行时会被真正检查，而不是假定，所以 <code>is User</code> 检查是真正的检查，而不是被擦除的空操作。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">你写的类型，以及由它生成的描述符</span>
+<pre><span class="k">type</span> <span class="t">User</span> = {
+  id: <span class="t">number</span>,
+  name: <span class="t">string</span>,
+  email: <span class="t">string</span>,
+}
+
+<span class="cm">// generated: User.is(v), User.parse(v) -&gt; Result&lt;User, ...&gt;, User.schema</span>
+
+<span class="k">fn</span> create(req: <span class="t">Request</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(req.body) {   <span class="cm">// untrusted input, validated</span>
+    <span class="t">Ok</span>(user) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">201</span>, user)),
+    <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">400</span>, issues)),
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          这就是对“每个 API 都要手写校验器”的回答。类型本身就是校验器。边界（请求体、配置文件、第三方响应）只有通过一个真正能拒绝错误数据的检查，才会获得类型。
+        </p>
+        <p>
+          它在哪里止步：记录的描述符默认是严格的。它确认声明的字段，并拒绝带有未声明键的值（在类型上加 <code>@open</code> 可以允许额外的键）。记录类型都有描述符，包括泛型记录，所以 <code>Paginated&lt;User&gt;</code> 会把每个元素当作 <code>User</code> 来检查；标签联合的描述符先检查标签，再检查该变体的负载字段。仍然没有描述符的是泛型标签联合（<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> 没有 <code>Box.parse</code>），以及只是引用的 <code>.d.ts</code> 中导入的类型。如果某个检查只能证明结构的一部分，编译器会直接说明，而不是暗示一个它做不到的保证。
+        </p>
+
+        <h2 class="block-label" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> 覆盖每种情况，否则无法编译<a class="h-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="链接到本节">#</a></h2>
+        <p>
+          对封闭联合类型的 <code>match</code> 必须处理每个变体。以后新增一个变体，<em>每一个</em>没有考虑它的 match 都会停止编译（<code>E0200</code>）。新情况不会像遗漏的 <code>switch</code> 分支那样悄悄落到 <code>undefined</code>。而且不只是联合类型：对 <code>number</code> 或 <code>string</code> 按字面值匹配时必须有 <code>else</code>（<code>E0218</code>），因为这些取值范围是无界的，一组字面值永远不可能完整。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">status.glyph</span>
+<pre><span class="k">type</span> <span class="t">Status</span> = <span class="t">Active</span> | <span class="t">Paused</span> | <span class="t">Cancelled</span>
+
+<span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> s {
+    <span class="t">Active</span> <span class="op">=&gt;</span> <span class="s">"on"</span>,
+    <span class="t">Paused</span> <span class="op">=&gt;</span> <span class="s">"hold"</span>,
+    <span class="cm">// forgot Cancelled...</span>
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-bad">编译错误，而不是运行时的 undefined</span>
+          <span class="cap">$ glyph build</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on
+<span class="q">`Status`</span>: missing variant <span class="q">`Cancelled`</span></span>
+
+<span class="cm"># the equivalent TS switch returns
+# undefined at runtime and compiles
+# clean. here it does not build.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="errors-are-values-not-surprises"><span class="ex-label">04</span> 错误是值，不是意外<a class="h-anchor" href="#errors-are-values-not-surprises" aria-label="链接到本节">#</a></h2>
+        <p>
+          可能失败的函数返回 <code>Result&lt;T, E&gt;</code>。你用 <code>match</code> 处理它，或者用 <code>?</code> 运算符向上传递，而且错误类型必须对得上（没有隐式转换来掩盖不匹配）。如果完全忽略一个 <code>Result</code>（只为了副作用调用它，丢掉返回值），Glyph 会给出警告（<code>E0217</code>），因为被丢弃的错误就是被吞掉的失败。你只能用 <code>let _ = ...</code> 有意地让它安静，绝不会是无意的。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">pipeline.glyph</span>
+<pre><span class="k">fn</span> load(id: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">AppError</span>&gt; {
+  <span class="k">let</span> raw = fetch_user(id)<span class="op">?</span>           <span class="cm">// Err short-circuits to the caller</span>
+  <span class="k">let</span> user = <span class="t">User</span>.parse(raw.body)<span class="op">?</span>    <span class="cm">// validation Err propagates too</span>
+  <span class="k">return</span> <span class="t">Ok</span>(user)
+}
+
+<span class="k">fn</span> main() <span class="op">-&gt;</span> <span class="t">number</span> {
+  save(user)   <span class="cm">// E0217: this returns a Result whose Err is dropped</span>
+  <span class="k">return</span> <span class="n">0</span>
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="even-pii-is-type-level"><span class="ex-label">05</span> 连 PII 也在类型层面处理<a class="h-anchor" href="#even-pii-is-type-level" aria-label="链接到本节">#</a></h2>
+        <p>
+          同样是“交给编译器，而不是靠约定”的思路，一直延伸到敏感数据。在类型上加 <code>@redact</code>，它的描述符就会多一个屏蔽这些字段的 <code>redact()</code>，所以随手写的 <code>json.stringify(User.redact(u))</code> 不会泄露它们。如果写了类型中不存在的字段，就是编译错误（<code>E0219</code>），而不是一个悄悄什么都没保护的屏蔽。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">patient.glyph</span>
+<pre><span class="k">@redact</span> fields: [diagnosis, notes]
+<span class="k">type</span> <span class="t">Patient</span> = {
+  name: <span class="t">string</span>,
+  diagnosis: <span class="t">string</span>,
+  notes: <span class="t">string</span>,
+}
+
+<span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
+<span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          五种不同的失败方式（未检查的输入、漏掉的情况、丢掉的错误、泄露的机密、未校验的键），每一种的修复都是同一个形状：<strong>编译器拒绝假装。</strong>
+        </p>
+
+        <h2 class="block-label" id="how-it-s-enforced-and-where-the-guarantee-stops">如何强制执行，以及保证在哪里止步<a class="h-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="链接到本节">#</a></h2>
+        <p>
+          这里要说得准确，因为区别很重要：Glyph 是<strong>建立在 <code>tsc</code> 之上、强制执行的严格方言</strong>，而不是一个独立的验证器。有些东西它自己证明：穷尽性、<code>?</code> 的错误类型、源码中不存在 <code>any</code>/<code>as</code>、严格的键校验。其余的类型兼容性，它通过生成 TypeScript 并运行 <code>tsc --strict</code> 来强制执行，不通过就让构建失败。切入点在于这些检查就是<em>语言本身</em>，而不是智能体可以关掉的可选 lint，并不在于 Glyph 重新实现了一个类型检查器。
+        </p>
+        <p>
+          这里早先的两个边界在 0.1.10 中已经堵上。代码生成器过去会在<em>每个</em>泛型函数中插入一个由 Glyph 而不是 <code>tsc</code> 检查的返回值类型断言；现在只有在校验器组合子组装一个由结构推导出的类型（<code>infer_output&lt;Shape&gt;</code>）的值时才会插入，所有正常的泛型生成的代码都完全没有类型断言。另外，校验器的输出类型不再被无条件信任：<code>infer_output</code> 根据你传入的结构推导它，<code>tsc</code> 会拿你的标注去对照：如果结构缺少你所声称类型中的某个字段，现在就无法编译。
+        </p>
+        <p>
+          泛型类型现在也会深度校验：<code>Paginated&lt;User&gt;</code> 的描述符会<em>把每个元素当作 <code>User</code></em> 来检查，而不只是检查是否存在。还剩一个边界，直接说明：从外部 <code>.d.ts</code> <em>导入</em>、你只是引用的类型，在你用 <code>glyph gen dts</code> 把它具体化之前没有描述符，所以这种类型的字段只检查是否存在，不检查结构。这个边界是有意的（Glyph 没有生成的类型无法承诺运行时校验），把它具体化就能堵上。
+        </p>
+
+        <h2 class="block-label" id="the-benchmark-coming">基准测试：即将进行<a class="h-anchor" href="#the-benchmark-coming" aria-label="链接到本节">#</a></h2>
+        <p>
+          这个说法是经验性的，所以我们打算测量它：取一批真实的、由智能体编写的改动，分别用 <code>tsc --strict</code> 和 Glyph 检查，统计各自真正发现了什么。Glyph 还没有在实际项目中使用，所以没有数字可以报告。下面的图表是占位，一旦有了真实使用，就会填入真实数据。
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">发现的智能体引入的 bug &middot; 越高越好</span>
+        <h3>tsc --strict 对比 Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 64%;">待定</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">tsc --strict</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 34%;">待定</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">尚未测量</span> 方法已经确定；语料需要来自真实的 Glyph 使用。数字一旦出来（无论结果如何），我们就会在这里公布。
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          这一切都不靠繁琐的仪式换来。没有证明标注，没有契约，没有需要满足的验证器。上面的代码就是普通的 Glyph。可验证性不是一个需要打开的特性；它是撒谎的途径都被去掉之后剩下的东西。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="strict-typescript-and-a-lint-config-do-this">“严格模式的 TypeScript 加一套 lint 配置也能做到”<a class="h-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="链接到本节">#</a></h2>
+        <p>
+          在程序内部，它们很接近。<code>strict</code>、<code>noUncheckedIndexedAccess</code> 和一条禁止显式 <code>any</code> 的规则，能拦住智能体原本会溜过去的大部分问题。它们在边界处止步。<code>JSON.parse(body) as User</code> 在任何设置下都能编译，而通常的修补办法 zod schema，是 <code>User</code> 的第二份描述，必须手动与第一份保持同步。在 Glyph 中，类型本身就是校验器：<code>json.parse&lt;User&gt;(body)</code> 直接对照 <code>User</code> 检查，而 Glyph 无法在运行时检查的类型会被拒绝，而不是被信任。
+        </p>
+        <p>
+          另一个区别在于谁能依赖它。lint 配置是某个仓库自己做的选择。打开一个陌生 TypeScript 代码库的智能体，不能假定那里禁止了 <code>any</code>；而在 Glyph 中，任何地方都写不出它。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          同样的保证，从智能体会犯的错误以及拦住它们的报错的角度，在<a href="/zh-cn/answers/verifiability/">什么能防止智能体悄悄改坏我的代码？</a>中有解答。
+        </p>
+      </div>
+      <nav class="prevnext" aria-label="上一篇和下一篇">
+        <a href="/zh-cn/">
+          <span class="dir">&larr; 首页</span>
+          <span class="t">Glyph 为什么胜出</span>
+        </a>
+        <a href="/zh-cn/pillars/greppability/" class="nx cta">
+          <span class="dir">下一个支柱 &rarr;</span>
+          <span class="t">可检索性：一个名字，一个位置</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>一门编译到 TypeScript 的类型化语言，让智能体修改代码时不会把它改坏。</p>
+          </div>
+          <div class="foot-col">
+            <h2>开始</h2>
+            <a href="/zh-cn/start/">第一个程序</a>
+            <a href="/zh-cn/from-typescript/">从 TypeScript 迁移过来</a>
+            <a href="/zh-cn/teams/">面向团队</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">五分钟速览</a>
+          </div>
+          <div class="foot-col">
+            <h2>学习</h2>
+            <a href="/zh-cn/answers/">问答</a>
+            <a href="/zh-cn/answers/verifiability/">按顺序阅读问答</a>
+            <a href="/zh-cn/answers/tooling/">编辑器与智能体工具</a>
+            <a href="/zh-cn/agents/">面向智能体</a>
+            <a href="/zh-cn/mcp/">MCP 服务器</a>
+            <a href="/llms-pages.txt">Markdown 版页面</a>
+            <a href="/zh-cn/design/">设计</a>
+            <a href="/zh-cn/pillars/verifiability/">四大支柱</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">语言规范</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">宣言</a>
+          </div>
+          <div class="foot-col">
+            <h2>证据</h2>
+            <a href="/zh-cn/catches/">能发现什么</a>
+            <a href="/zh-cn/evidence/">说法如何验证</a>
+            <a href="/zh-cn/hardening/">加固</a>
+            <a href="/zh-cn/benchmarks/">基准测试</a>
+            <a href="/versions/">版本</a>
+          </div>
+          <div class="foot-col">
+            <h2>源代码</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/zh-cn/contribute/">参与贡献</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub 上的 Releases</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/zh-cn/pillars/verifiability/index.segments.json">编辑本页</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph：你的智能体没法悄悄改坏的 TypeScript。</span>
+          <span>&copy; 2026 Glyph &middot; MIT 或 Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "自动", light: "浅色", dark: "深色" };
+        var labels = { auto: "配色主题：自动（跟随系统）。切换为浅色。", light: "配色主题：浅色。切换为深色。", dark: "配色主题：深色。切换为自动。" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

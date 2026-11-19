@@ -13,6 +13,15 @@
     <meta property="og:title" content="Can I write a program someone types into?" />
     <meta property="og:description" content="io.read_line returns as soon as a line arrives instead of waiting for stdin to close, so a REPL, a game loop or a chat client answers while you type." />
     <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
@@ -37,6 +46,45 @@
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/interactive-cli/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I write a program someone types into?","item":"https://glyphlang.io/answers/interactive-cli/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/interactive-cli/#article","headline":"Can I write a program someone types into?","description":"io.read_line returns as soon as a line arrives instead of waiting for stdin to close, so a REPL, a game loop or a chat client answers while you type.","url":"https://glyphlang.io/answers/interactive-cli/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/interactive-cli/#breadcrumb"}}]}</script>
 
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/interactive-cli/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/interactive-cli/" />
+    <script>
+      (function () {
+        var pages = {"pt-br":"/pt-br/answers/interactive-cli/","es":"/es/answers/interactive-cli/","ja":"/ja/answers/interactive-cli/","tr":"/tr/answers/interactive-cli/","zh-cn":"/zh-cn/answers/interactive-cli/","ko":"/ko/answers/interactive-cli/","de":"/de/answers/interactive-cli/","ru":"/ru/answers/interactive-cli/","th":"/th/answers/interactive-cli/"};
+        try {
+          if (localStorage.getItem("glyph-lang") !== null) return;
+          if (/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)) return;
+          var prefs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+          for (var i = 0; i < prefs.length; i++) {
+            var l = String(prefs[i]).toLowerCase(), loc = null;
+            if (/^en\b/.test(l)) return;
+            if (/^pt\b/.test(l)) loc = "pt-br";
+            else if (/^zh\b/.test(l)) {
+              if (/hant|-tw|-hk|-mo/.test(l)) continue;
+              loc = "zh-cn";
+            } else {
+              var base = l.split("-")[0];
+              if (["es", "ja", "tr", "ko", "de", "ru", "th"].indexOf(base) >= 0) loc = base;
+            }
+            if (!loc) continue;
+            if (!pages[loc]) return;
+            localStorage.setItem("glyph-lang", loc);
+            sessionStorage.setItem("glyph-lang-auto", "1");
+            location.replace(pages[loc] + location.search + location.hash);
+            return;
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -128,15 +176,15 @@
             <p class="lang-head">Language</p>
             <ul>
               <li><a href="/answers/interactive-cli/" hreflang="en" lang="en" data-lang="en" aria-current="true"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span><span class="lang-tick" aria-hidden="true"></span></a></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="pt-BR">Português (Brasil)</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="es">Español</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ja">日本語</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="tr">Türkçe</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="zh-Hans">简体中文</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ko">한국어</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="de">Deutsch</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ru">Русский</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="th">ไทย</span><span class="lang-note">not translated yet</span></span></li>
+              <li><a href="/pt-br/answers/interactive-cli/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/interactive-cli/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/interactive-cli/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/interactive-cli/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/interactive-cli/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/interactive-cli/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/interactive-cli/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/interactive-cli/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/interactive-cli/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
             </ul>
           </div>
         </details>

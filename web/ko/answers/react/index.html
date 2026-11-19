@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>React의 hook, Context와 함께 쓸 수 있나요? · Glyph</title>
+    <meta name="description" content="React가 내장되어 있습니다. component는 함수 컴포넌트로 컴파일되고, JSX는 createElement로 변환되며, reducer의 액션은 망라적으로 매칭됩니다." />
+    <link rel="canonical" href="https://glyphlang.io/ko/answers/react/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ko/answers/react/" />
+    <meta property="og:title" content="React의 hook, Context와 함께 쓸 수 있나요?" />
+    <meta property="og:description" content="React가 내장되어 있습니다. component는 함수 컴포넌트로 컴파일되고, JSX는 createElement로 변환되며, reducer의 액션은 망라적으로 매칭됩니다." />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/react/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"React의 hook, Context와 함께 쓸 수 있나요?","item":"https://glyphlang.io/ko/answers/react/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/react/#article","headline":"React의 hook, Context와 함께 쓸 수 있나요?","description":"React가 내장되어 있습니다. component는 함수 컴포넌트로 컴파일되고, JSX는 createElement로 변환되며, reducer의 액션은 망라적으로 매칭됩니다.","url":"https://glyphlang.io/ko/answers/react/","inLanguage":"ko","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/react/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/react/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/react/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/react/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/react/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/react/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/react/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/react/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/react/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/react/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/react/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/react/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="주 메뉴">
+        <div class="nav-brand">
+          <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">왜 Glyph인가<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">누구를 위한 언어인가</p>
+                    <ul>
+                      <li><a href="/ko/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">에이전트 개발자를 위한 안내</span><span class="nav-desc">MCP 서버와 서버가 답하는 쿼리</span></span></a></li>
+                      <li><a href="/ko/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript 사용자라면</span><span class="nav-desc">무엇이 바뀌고 무엇이 그대로인가</span></span></a></li>
+                      <li><a href="/ko/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">팀을 위한 안내</span><span class="nav-desc">무엇을 보장하고 도입 비용은 얼마인가</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">설계</p>
+                    <ul>
+                      <li><a href="/ko/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">설계</span><span class="nav-desc">네 가지 원칙과 일부러 넣지 않은 것들</span></span></a></li>
+                      <li><a href="/ko/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">네 가지 기둥</span><span class="nav-desc">검증 가능성, 검색 용이성, 추상화, 안정적인 diff</span></span></a></li>
+                      <li><a href="/ko/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph와 Effect 비교</span><span class="nav-desc">언어와 라이브러리의 비교</span></span></a></li>
+                      <li><a href="/ko/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">왜 ReScript, Gleam, Elm이 아닌가?</span><span class="nav-desc">JavaScript로 컴파일되는 세 가지 타입 언어</span></span></a></li>
+                      <li><a href="/ko/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph와 도구를 갖춘 TypeScript 비교</span><span class="nav-desc">strict tsc, zod, eslint로도 여전히 통과하는 것들</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/ko/catches/">무엇을 잡아내는가</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">배우기<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">시작하기</p>
+                    <ul>
+                      <li><a href="/ko/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10분 만에 시작하기</span><span class="nav-desc">설치하고, 프로그램을 작성하고, 실행하기</span></span></a></li>
+                      <li><a href="/ko/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">답변 <span class="nav-count">28</span></span><span class="nav-desc">엔지니어들이 묻는 질문과 예제로 보는 답</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">언어 레퍼런스</span><span class="nav-desc">GitHub에 있는 전체 명세</span></span></a></li>
+                      <li><a href="/ko/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">기여하기</span><span class="nav-desc">컴파일러의 구조와 기여하는 방법</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">에이전트 연결</p>
+                    <ul>
+                      <li><a href="/ko/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP 서버</span><span class="nav-desc">에이전트를 컴파일러 쿼리에 연결합니다</span></span></a></li>
+                      <li><a href="/ko/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">컴파일러에게 묻기</span><span class="nav-desc">편집하기 전에 심볼, 타입, 변경의 영향을 조회합니다</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">에이전트를 위한 llms.txt</span><span class="nav-desc">에이전트가 읽을 수 있는 파일 하나에 담은 언어</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">근거<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">검증 방법</p>
+                    <ul>
+                      <li><a href="/ko/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">주장을 검증하는 방법</span><span class="nav-desc">각 주장 뒤에 있는 fixture와 CI 게이트</span></span></a></li>
+                      <li><a href="/ko/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">하드닝</span><span class="nav-desc">에이전트가 깨뜨리려 시도한 기록과 찾아낸 것들</span></span></a></li>
+                      <li><a href="/ko/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">벤치마크</span><span class="nav-desc">네 가지 원칙을 숫자로, 단서와 함께</span></span></a></li>
+                      <li><a href="/ko/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">아직 잡아내지 못하는 것</span><span class="nav-desc">알려진 구멍과 각각의 재현 코드</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ko/catches/"><span class="nav-feature-big">37개 중 21개</span><span class="nav-feature-text">최대한 엄격하게 설정한 환경의 어떤 도구도 잡지 못하는 TypeScript 실수</span><span class="nav-feature-cta">무엇을 잡아내는지 보기 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">버전</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">플레이그라운드</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="언어: 한국어 (한국)"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">한국어</span><span class="lang-short" aria-hidden="true">한국</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">언어</p>
+            <ul>
+              <li><a href="/answers/react/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/react/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/react/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/react/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/react/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/react/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/react/" hreflang="ko" lang="ko" data-lang="ko" aria-current="true"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/de/answers/react/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/react/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/react/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/react/" hreflang="en" data-lang="en">영어로 읽기</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="색상 테마: 자동(시스템 설정을 따름). 라이트로 전환.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">자동</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="메뉴 열기">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "메뉴 닫기" : "메뉴 열기");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="답변 탐색">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/ko/answers/">답변</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/ko/answers/react/" aria-current="page"><span class="n">13</span> React</a></p>
+        <a class="ans-step prev" href="/ko/answers/codegen/" aria-label="이전 답변: 12 클라이언트와 서버">&lsaquo; 12</a><a class="ans-step next" href="/ko/answers/state/" aria-label="다음 답변: 14 공유 상태">14 &rsaquo;</a>
+        <a class="ans-all-link" href="/ko/answers/">전체 답변</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">전체 답변<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>언어: 한국어</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/react/" hreflang="en" data-lang="en">영어로 읽기</a></p>
+      <button class="i18n-x" type="button" aria-label="닫기"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>이 페이지는 번역본입니다. 기준은 영어판입니다. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ko%29%3A+%2Fko%2Fanswers%2Freact%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fko%2Fanswers%2Freact%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Freact%2F%0A%0AWhat+is+wrong%3A%0A">번역 문제 신고하기</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side">
+      <p class="q-eyebrow">13 &middot; 프런트엔드</p>
+      <h1 class="q-title">React의 컴포넌트, hook, Context와 함께 쓸 수 있나요?</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="답변">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/ko/answers/">전체 답변</a><button class="ans-close" type="button" aria-label="답변 목록 닫기"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>해결하는 문제</summary><ol>
+            <li><a href="/ko/answers/verifiability/"><span class="n">01</span><span class="t">조용한 파손</span></a></li>
+            <li><a href="/ko/answers/diff-stability/"><span class="n">02</span><span class="t">깔끔한 diff</span></a></li>
+            <li><a href="/ko/answers/greppability/"><span class="n">03</span><span class="t">코드 찾기</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>도입할지 결정하기</summary><ol>
+            <li><a href="/ko/answers/why-typescript/"><span class="n">04</span><span class="t">왜 TypeScript인가</span></a></li>
+            <li><a href="/ko/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">왜 도구를 갖춘 TS가 아닌가</span></a></li>
+            <li><a href="/ko/answers/human-value/"><span class="n">06</span><span class="t">AI 없이</span></a></li>
+            <li><a href="/ko/answers/ai-authoring/"><span class="n">07</span><span class="t">AI가 작성한 코드</span></a></li>
+            <li><a href="/ko/answers/upgrades/"><span class="n">08</span><span class="t">업그레이드</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>기존 스택과 함께 쓰기</summary><ol>
+            <li><a href="/ko/answers/imports/"><span class="n">09</span><span class="t">사용 중인 라이브러리</span></a></li>
+            <li><a href="/ko/answers/embedding/"><span class="n">10</span><span class="t">기존 앱 안에서</span></a></li>
+            <li><a href="/ko/answers/typed-apis/"><span class="n">11</span><span class="t">타입이 있는 API</span></a></li>
+            <li><a href="/ko/answers/codegen/"><span class="n">12</span><span class="t">클라이언트와 서버</span></a></li>
+            <li><a href="/ko/answers/react/" aria-current="page"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/ko/answers/state/"><span class="n">14</span><span class="t">공유 상태</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>만들 수 있는 것</summary><ol>
+            <li><a href="/ko/answers/language/"><span class="n">15</span><span class="t">언어</span></a></li>
+            <li><a href="/ko/answers/finance/"><span class="n">16</span><span class="t">돈과 안전</span></a></li>
+            <li><a href="/ko/answers/web-serving/"><span class="n">17</span><span class="t">웹 서빙</span></a></li>
+            <li><a href="/ko/answers/interactive-cli/"><span class="n">18</span><span class="t">입력을 받는 프로그램</span></a></li>
+            <li><a href="/ko/answers/long-running/"><span class="n">19</span><span class="t">서버와 데몬</span></a></li>
+            <li><a href="/ko/answers/binary/"><span class="n">20</span><span class="t">바이너리 데이터</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>에이전트와 함께 작업하기</summary><ol>
+            <li><a href="/ko/answers/impact/"><span class="n">21</span><span class="t">편집하기 전에</span></a></li>
+            <li><a href="/ko/answers/ask-the-compiler/"><span class="n">22</span><span class="t">컴파일러에게 묻기</span></a></li>
+            <li><a href="/ko/answers/repair-protocol/"><span class="n">23</span><span class="t">실패한 빌드 고치기</span></a></li>
+            <li><a href="/ko/answers/generated-docs/"><span class="n">24</span><span class="t">어긋나지 않는 문서</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>오류, 에디터, 프로덕션</summary><ol>
+            <li><a href="/ko/answers/tooling/"><span class="n">25</span><span class="t">에디터와 디버깅</span></a></li>
+            <li><a href="/ko/answers/early-errors/"><span class="n">26</span><span class="t">더 일찍 잡기</span></a></li>
+            <li><a href="/ko/answers/parse-errors/"><span class="n">27</span><span class="t">파싱 실패 이유</span></a></li>
+            <li><a href="/ko/answers/debugging/"><span class="n">28</span><span class="t">디버깅과 운영</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        네. <code>component</code>는 React 함수 컴포넌트로 컴파일되고, JSX는 <code>createElement</code>로 변환되며, React 자체의 hook은 이름으로 import하고 그 쌍은 구조 분해하며, reducer 상태는 평범한 TypeScript에 없는 망라성 검사를 받습니다. 페이지 자체(제목, 마운트 지점, 저장된 상태)는 <code>std/dom</code>과 <code>std/storage</code>로 다룹니다. 먼저 알아 둘 빈틈은 Glyph 자체 검사기가 hook이 반환하는 값에 타입을 매기지 않는다는 점이며, 그 값들은 <code>tsc</code>가 검사합니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-it-matters">왜 중요한가<a class="h-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          에이전트가 작성하는 코드의 상당 부분이 React입니다. Glyph는 React를 덧붙인 것이 아니라 일급 대상으로 다룹니다. <code>component</code>는 별도의 키워드이므로 <code>grep "^component "</code>로 UI 전체를 감사할 수 있습니다. React의 hook은 <code>react</code>에서 import하고 실제 이름과 타입으로 호출하며, <code>tsc</code>가 React 자체의 선언에 대해 검사합니다.
+        </p>
+
+        <h2 class="block-label" id="see-it">직접 보기<a class="h-anchor" href="#see-it" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>태그 유니언에 대한 reducer를 쓰는 React의 실제 <code>useReducer</code>입니다. 모든 액션을 처리해야 하고, 컴파일러가 이를 검사합니다.</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">counter.glyph, react@18과 그 타입 기준</span>
+<pre><span class="k">import</span> react { useReducer }
+
+<span class="k">type</span> <span class="t">Action</span> = <span class="t">Inc</span> | <span class="t">Dec</span> | <span class="t">Reset</span>
+
+<span class="k">fn</span> reducer(n: <span class="t">number</span>, a: <span class="t">Action</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> <span class="k">match</span> a {
+    <span class="t">Inc</span> <span class="op">=&gt;</span> n + <span class="n">1</span>,
+    <span class="t">Dec</span> <span class="op">=&gt;</span> n - <span class="n">1</span>,
+    <span class="t">Reset</span> <span class="op">=&gt;</span> <span class="n">0</span>,
+<span class="add">    <span class="c">// add an Action variant and this match is E0200</span></span>
+  }
+}
+
+<span class="k">pub</span> <span class="k">component</span> <span class="t">Counter</span>() {
+  <span class="k">let</span> [count, dispatch] = useReducer(reducer, <span class="n">0</span>)
+  <span class="k">return</span> &lt;<span class="t">button</span> on_click={<span class="k">fn</span>() { dispatch(<span class="t">Inc</span>) }}&gt;<span class="ip">{</span>count<span class="ip">}</span>&lt;/<span class="t">button</span>&gt;
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Double</code> 액션을 추가하면 reducer는 그것을 짚는 <code>E0200</code>으로 컴파일을 멈춥니다. 평범한 TypeScript <code>switch</code>라면 그대로 배포되었을 것입니다. 쌍은 <code>let [count, dispatch]</code>로 구조 분해하고, 생성된 TypeScript는 <code>satisfies readonly [unknown, unknown]</code>을 덧붙이므로, <code>tsc</code>가 hook이 쌍을 반환했다는 것을 증명하면서 각 요소의 타입도 추론합니다. Glyph 자체 검사기는 React에서 온 값에 타입을 매기지 않으므로, <code>dispatch</code>나 상태 setter에 넘긴 잘못된 인자는 에디터나 <code>--no-tsc</code>가 아니라 빌드의 <code>tsc</code>가 보고합니다. React <strong>Context</strong>는 지금 <code>createContext</code> / <code>useContext</code>로 동작하고, 멤버 표현식 요소 이름(<code>&lt;ThemeContext.Provider&gt;</code>)도 우회 없이 바로 동작합니다.
+        </p>
+        <p>
+          JSX prop spread도 동작합니다. <code>&lt;input {...register("email")} /&gt;</code>는 props 안의 객체 spread로 변환되므로 react-hook-form 관용구에 어댑터가 필요 없습니다. Zod의 값 기반 타입도 일급입니다. <code>type FormData = z.infer&lt;typeof schema&gt;</code>가 탈출구 없이 바로 동작합니다. 다른 점은 하나입니다. 컴포넌트는 위치 매개변수 여러 개가 아니라 props 레코드 하나를 받습니다. 그 경계가 정확히 어디인지는 <a href="/ko/answers/imports/">라이브러리 사용하기</a>와 <a href="/ko/hardening/">하드닝 페이지</a>를 보세요.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="are-props-checked-before-tsc">props는 tsc 전에 검사되나요?<a class="h-anchor" href="#are-props-checked-before-tsc" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          네. Glyph가 각 요소를 컴포넌트의 props 레코드와 직접 비교하므로, 잘못된 값, 철자가 틀린 prop, 빠진 필수 prop은 그 prop을 짚는 Glyph 오류입니다. 전체 빌드뿐 아니라 에디터와 MCP에서도 보입니다. 컴포넌트를 이름으로 import했든 모듈을 통해 썼든 똑같이 동작합니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph, <code>ui.glyph</code>에 선언된 <code>Card</code>와 함께</span>
+<pre><span class="k">import</span> ui
+
+<span class="k">pub</span> <span class="k">component</span> <span class="t">App</span>() {
+  <span class="k">return</span> &lt;<span class="t">div</span>&gt;
+    &lt;<span class="t">ui.Card</span> title=<span class="s">"Q3"</span> /&gt;
+    &lt;<span class="t">ui.Card</span> title=<span class="s">"Q4"</span> cout={<span class="n">2</span>} /&gt;
+  &lt;/<span class="t">div</span>&gt;
+}
+
+<span class="add"><span class="c">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span>
+<span class="c">// E0210 type `CardProps` has no field `cout`; did you mean `count`?</span>
+<span class="c">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>--json</code>은 빠진 이름을 <code>missing_fields</code> 목록으로 담으므로, 에이전트는 메시지를 파싱하지 않고 props를 추가할 수 있습니다. 컴포넌트는 props를 레코드 하나로 받아야 합니다. <code>component Greeting(name: string)</code>은 매개변수 위치에서 E0229입니다. React는 언제나 props 객체만 넘기므로 그런 요소는 타입 검사를 통과할 수 없기 때문입니다. 렌더링하지 않고 함수로 호출한다면 <code>fn</code>으로 선언하세요.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="is-a-match-in-jsx-checked-like-a-match">JSX 안의 &lt;match&gt;도 match처럼 검사되나요?<a class="h-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          같은 것입니다. 각 <code>&lt;case&gt;</code>는 <code>match</code> arm과 같은 패턴을 받고, 컴파일러는 arm에 쓰는 코드로 이를 처리합니다. case가 바인딩하는 이름은 payload의 타입을 가지고, payload 레코드에 없는 필드는 E0210이며, 빠진 variant는 E0200입니다. 값을 검사하는 case는 variant의 일부만 다루므로, 나머지를 받을 형제 case나 <code>&lt;case else&gt;</code>가 필요합니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">results.glyph</span>
+<pre><span class="k">type</span> <span class="t">Page</span> =
+  | <span class="t">Loading</span>
+  | <span class="t">Loaded</span>({ users: <span class="t">Array</span>&lt;<span class="t">User</span>&gt;, total: <span class="t">number</span> })
+  | <span class="t">Failed</span>(<span class="t">string</span>)
+
+<span class="k">component</span> <span class="t">Results</span>(props: { page: <span class="t">Page</span> }) {
+  <span class="k">return</span> &lt;<span class="t">match</span> value={props.page}&gt;
+    &lt;<span class="t">case</span> <span class="t">Loading</span>&gt;&lt;<span class="t">p</span>&gt;Loading...&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;<span class="t">case</span> <span class="t">Loaded</span>({ users, totl })&gt;&lt;<span class="t">p</span>&gt;<span class="ip">{</span>users.length<span class="ip">}</span> of <span class="ip">{</span>totl<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;<span class="t">case</span> <span class="t">Failed</span>(message)&gt;&lt;<span class="t">p</span>&gt;<span class="ip">{</span>message<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+  &lt;/<span class="t">match</span>&gt;
+}
+
+<span class="add"><span class="c">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="how-does-a-page-start-it">페이지는 이것을 어떻게 시작하나요?<a class="h-anchor" href="#how-does-a-page-start-it" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          Glyph에는 최상위 문장이 없으므로, 페이지가 export된 <code>main</code>을 직접 호출합니다. 앱은 모듈 두 개입니다. 하나는 컴포넌트를 담고, 다른 하나는 <code>std/dom</code>과 react-dom의 <code>createRoot</code>로 이를 <code>#root</code>에 마운트합니다. 이벤트 속성은 snake case이고(<code>on_change</code>는 React의 <code>onChange</code>로 생성됩니다), 핸들러는 람다이며, input의 텍스트는 <code>e.currentTarget.value</code>입니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">app.glyph</span>
+<pre data-check="needs-react"><span class="k">module</span> app
+
+<span class="k">import</span> react { useState }
+
+<span class="k">pub</span> <span class="k">component</span> <span class="t">App</span>() {
+  <span class="k">let</span> [name, set_name] = useState(<span class="s">""</span>)
+  <span class="k">return</span> &lt;<span class="t">main</span>&gt;
+    &lt;<span class="t">input</span> value={name} on_change={<span class="k">fn</span>(e) { set_name(e.currentTarget.value) }} /&gt;
+    &lt;<span class="t">p</span>&gt;Hello, <span class="ip">{</span>name<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;
+  &lt;/<span class="t">main</span>&gt;
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-react"><span class="k">module</span> main
+
+<span class="k">import</span> react-dom/client { createRoot }
+<span class="k">import</span> std/dom
+<span class="k">import</span> std/console
+<span class="k">import</span> std/option { <span class="t">Some</span>, <span class="t">None</span> }
+<span class="k">import</span> app { <span class="t">App</span> }
+
+<span class="k">pub</span> <span class="k">fn</span> main() <span class="op">-&gt;</span> <span class="k">void</span> {
+  <span class="k">match</span> dom.element_by_id(<span class="s">"root"</span>) {
+    <span class="t">Some</span>(root) <span class="op">=&gt;</span> createRoot(root).render(&lt;<span class="t">App</span> /&gt;),
+    <span class="t">None</span> <span class="op">=&gt;</span> console.error(<span class="s">"the page has no #root element"</span>),
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">index.html, 두 모듈 옆에</span>
+<pre>&lt;<span class="t">div</span> id=<span class="s">"root"</span>&gt;&lt;/<span class="t">div</span>&gt;
+&lt;<span class="t">script</span> type=<span class="s">"module"</span>&gt;
+  <span class="k">import</span> { main } <span class="k">from</span> <span class="s">"./dist/gen/main.ts"</span>;
+  main();
+&lt;/<span class="t">script</span>&gt;</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>npx glyph build . --out dist/gen</code>은 모듈을 검사하고, React의 선언에 대해 <code>tsc --strict</code>를 실행하고, TypeScript를 <code>dist/gen</code>에 씁니다. 그다음 <code>npx vite build --outDir dist/web</code>이 <code>index.html</code>을 읽고 import를 따라가 React와 함께 번들합니다. 스크립트가 인자 없이 호출하므로 이 <code>main</code>은 아무것도 받지 않고 아무것도 반환하지 않습니다. <code>glyph init</code>이 쓰는 <code>main(argv) -&gt; number</code>는 node에서 <code>glyph run</code>이 호출하는 것입니다. <code>package.json</code>과 설치 명령을 포함한 전체 안내는 <code>glyph llms</code>가 출력하는 레퍼런스의 <a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">브라우저 페이지에서 Glyph 실행하기</a>에 있습니다. CI는 <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a>를 같은 방식으로 빌드하고 headless Chromium에서 렌더링합니다.
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">현재 상태<a class="h-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">지금 제공되는 것</h3>
+          <p>컴포넌트, JSX, fragment(<code>&lt;&gt;...&lt;/&gt;</code>), 멤버 표현식 요소 이름(<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread(<code>{...register()}</code>), 모든 import 표기에서 <code>tsc</code> 전에 컴포넌트에 대해 검사되는 props, 이름으로 import하는 React 자체 hook(<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>)과 tsc의 타입 검사 및 쌍 구조 분해(<code>let [count, set_count] = useState(0)</code>), 망라적인 태그 유니언 액션을 쓰는 <code>useReducer</code>, arm의 패턴으로 <code>match</code>처럼 검사되고 변환되는 <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>, <code>createContext</code>/<code>useContext</code>를 통한 Context, 그리고 <code>std/dom</code>(제목, 마운트 지점, 주소), <code>std/storage</code>, <code>std/console</code>로 다루는 페이지. JSX 텍스트는 TSX와 같은 방식으로 읽으므로 <code>&lt;p&gt;Don't stop&lt;/p&gt;</code>는 평범한 텍스트입니다. 텍스트 안의 <code>}</code>, <code>&gt;</code>, <code>//</code>, 그리고 <code>&amp;amp;</code> 같은 HTML 엔티티는 대신 쓸 표기와 함께 거부됩니다(E0012). 배열에 대한 멤버 읽기는 검사되므로 <code>Array&lt;string&gt;</code>에 대한 <code>{items.foo}</code>는 E0210입니다. <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a>는 Vite로 번들하고 브라우저에서 렌더링되는 React 18 기반 앱 전체입니다.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">앞으로 할 것</h3>
+          <p>Glyph 검사기는 hook의 결과에 타입을 매기지 않으므로, 숫자 상태에 대한 <code>set_count("x")</code>는 에디터의 Glyph 오류가 아니라 빌드의 <code>tsc</code> 오류입니다. <code>std/dom</code>은 페이지를 읽고 제목을 설정하는 데서 멈춥니다. React가 자신이 렌더링하는 DOM을 소유하므로 요소 setter나 이벤트 리스너는 없습니다. effect는 <code>fn() -&gt; void { ... }</code>로 써야 합니다. 람다는 마지막 표현식을 반환하고, React는 이를 정리 함수로 호출할 것이기 때문입니다. 인라인으로 쓴 props 타입은 이 메시지들에서 여전히 <code>record</code>로 표시되고, 이름 붙은 타입은 이름이 표시됩니다. UI는 TypeScript로 두고 기존 Vite 앱에 Glyph 출력을 넣는 방법은 <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">배포 가이드</a>에 있습니다.</p>
+        </div>
+        <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.149으로 검사합니다. 마지막 변경: <time datetime="2026-11-20">2026년 11월 20일</time>.</p>
+      </div>
+      <nav class="prevnext" aria-label="이전과 다음">
+        <a href="/ko/answers/codegen/">
+          <span class="dir">&larr; 이전</span>
+          <span class="t">API 명세에서 타입이 있는 클라이언트와 서버를 생성할 수 있나요?</span>
+        </a>
+        <a href="/ko/answers/state/" class="nx cta">
+          <span class="dir">다음 &rarr;</span>
+          <span class="t">함수 사이에서 변경 가능한 상태를 어떻게 공유하나요?</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript로 트랜스파일되는 타입 언어로, 에이전트가 코드를 깨뜨리지 않고 수정할 수 있도록 만들었습니다.</p>
+          </div>
+          <div class="foot-col">
+            <h2>시작하기</h2>
+            <a href="/ko/start/">첫 번째 프로그램</a>
+            <a href="/ko/from-typescript/">TypeScript 사용자라면</a>
+            <a href="/ko/teams/">팀을 위한 안내</a>
+            <a href="/playground/">플레이그라운드</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">5분 둘러보기</a>
+          </div>
+          <div class="foot-col">
+            <h2>배우기</h2>
+            <a href="/ko/answers/">답변</a>
+            <a href="/ko/answers/verifiability/">답변을 순서대로 읽기</a>
+            <a href="/ko/answers/tooling/">에디터와 에이전트 도구</a>
+            <a href="/ko/agents/">에이전트 개발자를 위한 안내</a>
+            <a href="/ko/mcp/">MCP 서버</a>
+            <a href="/llms-pages.txt">Markdown 버전 페이지</a>
+            <a href="/ko/design/">설계</a>
+            <a href="/ko/pillars/verifiability/">네 가지 기둥</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">언어 명세</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">매니페스토</a>
+          </div>
+          <div class="foot-col">
+            <h2>근거</h2>
+            <a href="/ko/catches/">잡아내는 것</a>
+            <a href="/ko/evidence/">주장을 검증하는 방법</a>
+            <a href="/ko/hardening/">하드닝</a>
+            <a href="/ko/benchmarks/">벤치마크</a>
+            <a href="/versions/">버전</a>
+          </div>
+          <div class="foot-col">
+            <h2>소스 코드</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">이슈</a>
+            <a href="/ko/contribute/">기여하기</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub 릴리스</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ko/answers/react/index.segments.json">이 페이지 편집</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: 에이전트가 몰래 깨뜨릴 수 없는 TypeScript.</span>
+          <span>&copy; 2026 Glyph &middot; MIT 또는 Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "자동", light: "라이트", dark: "다크" };
+        var labels = { auto: "색상 테마: 자동(시스템 설정을 따름). 라이트로 전환.", light: "색상 테마: 라이트. 다크로 전환.", dark: "색상 테마: 다크. 자동으로 전환." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

@@ -210,7 +210,7 @@ def check_structured_data():
     """Every JSON-LD block parses, every @id it refers to is defined on the
     same page or on the home page (which defines the site, the project, the
     software and its source; see scripts/site_jsonld.py), and every page but
-    a home page and the 404 carries a BreadcrumbList."""
+    a home page and a 404 page (in any language) carries a BreadcrumbList."""
     pages = {}
     for f in sorted(html_files()):
         rel = os.path.relpath(f, WEB)
@@ -230,7 +230,7 @@ def check_structured_data():
     for url, (f, defined, refs, types) in sorted(pages.items()):
         for ref in sorted(refs - defined - home):
             errors.append(f"{f}: JSON-LD refers to {ref}, which neither this page nor / defines")
-        if url not in HOMES and url != "/404.html" and "BreadcrumbList" not in types:
+        if url not in HOMES and not url.endswith("/404.html") and "BreadcrumbList" not in types:
             errors.append(f"{f}: no BreadcrumbList in its JSON-LD")
 
 

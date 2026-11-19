@@ -29,6 +29,10 @@ takes the indented lines that follow it. Keys:
   subnav                 name of a sub-nav, site/partials/subnav-<name>.html
   prev, next             "href | direction label | title" for the prev/next pair
   sitemap                "lastmod changefreq priority" for sitemap.xml
+  next_steps             the "where to go next" block at the end of the page
+                         (|-block): a heading line, then the primary step as
+                         "label | href | icon | title | description | cta",
+                         then each other step as "href | icon | title | description"
   head                   extra markup for <head> (|-block)
 
 The page body is copied byte for byte, so <pre> blocks reach web/ exactly as
@@ -64,7 +68,7 @@ EDIT_BASE = "https://github.com/chadetov/glyph/blob/main/site/pages/"
 
 LAYOUTS = {"home", "article", "wide", "index"}
 KEYS = {"title", "description", "canonical", "layout", "article_class", "nav",
-        "subnav", "prev", "next", "sitemap", "head"}
+        "subnav", "prev", "next", "sitemap", "head", "next_steps"}
 
 
 class SiteError(Exception):
@@ -285,6 +289,54 @@ def section_anchors(body: str) -> str:
     return re.sub(r'<h2 class="block-label"([^>]*)>(.*?)</h2>', sub, body)
 
 
+def secondary_spans(n: int) -> list[int]:
+    """Column spans, in a six-column grid, that fill every row evenly: rows of
+    three, with a remainder laid out as one or two rows of two."""
+    if n == 1:
+        return [6]
+    if n == 2:
+        return [3, 3]
+    if n == 4:
+        return [3] * 4
+    threes = n - 4 if n % 3 == 1 else n - 2 if n % 3 == 2 else n
+    return [2] * threes + [3] * (n - threes)
+
+
+def next_steps(site: dict, value: str, where: str) -> str:
+    """The shared next-steps block from a page's `next_steps` front matter:
+    one dominant primary card, then the other steps in rows that fill evenly."""
+    lines = [ln.strip() for ln in value.split("\n") if ln.strip()]
+    if len(lines) < 2:
+        raise SiteError(f"{where}: next_steps needs a heading line and a primary step")
+    heading, primary, rest = lines[0], lines[1], lines[2:]
+    parts = [s.strip() for s in primary.split(" | ")]
+    if len(parts) != 6:
+        raise SiteError(f"{where}: next_steps primary must be 'label | href | icon | title | description | cta'")
+    label, href, ico, title, desc, cta = parts
+    arrow = icon(site, "arrow", where)
+    out = ['      <section class="next-steps">',
+           f'        <h2 class="block-label">{heading}</h2>',
+           f'        <a class="ns-primary" href="{href}">',
+           f'          <span class="ns-body"><span class="ns-eyebrow">{label}</span>'
+           f'<span class="ns-title">{title}</span><span class="ns-desc">{desc}</span>'
+           f'<span class="ns-cta">{cta} {arrow}</span></span>',
+           f'          <span class="ns-art">{icon(site, ico, where)}</span>',
+           '        </a>']
+    if rest:
+        out.append('        <div class="ns-grid">')
+        for line, span in zip(rest, secondary_spans(len(rest))):
+            f = [s.strip() for s in line.split(" | ")]
+            if len(f) != 4:
+                raise SiteError(f"{where}: a next_steps step must be 'href | icon | title | description', got {line!r}")
+            href, ico, title, desc = f
+            out.append(f'          <a class="ns-card span-{span}" href="{href}"><span class="ns-ico">{icon(site, ico, where)}</span>'
+                       f'<span class="ns-card-title">{title}</span><span class="ns-card-desc">{desc}</span>'
+                       f'<span class="ns-go">{arrow}</span></a>')
+        out.append('        </div>')
+    out.append('      </section>')
+    return "\n".join(out) + "\n"
+
+
 def page_url(path: pathlib.Path) -> str:
     rel = path.relative_to(PAGES).parent.as_posix()
     return "/" if rel == "." else f"/{rel}/"
@@ -295,6 +347,8 @@ def render(path: pathlib.Path, site: dict, version: str) -> str:
     fm, body = parse_page(path)
     url = page_url(path)
     body = body.replace("{{version}}", version)
+    if fm.get("next_steps"):
+        body += next_steps(site, fm["next_steps"], where)
     body = section_anchors(body)
     try:
         body = site_catches.expand(body, where)

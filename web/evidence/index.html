@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Evidence · how each claim on this site is checked · Glyph</title>
+    <meta name="description" content="How Glyph's claims are checked rather than asserted: the catches fixtures and the CI gate that runs them under tsc and Glyph, the fully configured TypeScript setup behind the "would TypeScript catch it" tags, how to reproduce a case yourself, the gate that compiles every snippet on the site, the open gaps, and how the Breaking marker is decided." />
+    <link rel="canonical" href="https://glyphlang.io/evidence/" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Main">
+        <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+        <div class="nav-links">
+          <a href="/playground/">Playground</a>
+          <a href="/pillars/verifiability/">Why Glyph</a>
+          <a href="/answers/">Answers</a>
+          <a href="/hardening/">Hardening</a>
+          <a href="/benchmarks/">Benchmarks</a>
+          <a href="/llms.txt">For agents</a>
+          <a href="/mcp/">MCP</a>
+          <a href="https://github.com/chadetov/glyph">GitHub</a>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Colour theme: auto (follows your system). Switch to light.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+      </nav>
+    </header>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">Evidence</p>
+      <h1 class="q-title">How each claim on this site is checked</h1>
+
+      <p class="short-answer">
+        A claim that Glyph catches something is a pair of programs in the repository, one in
+        TypeScript and one in Glyph, and a CI gate runs both on every change. If the TypeScript
+        stops compiling or the Glyph stops being refused, the build fails. You can run any case
+        yourself in two commands.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">The fixtures</p>
+        <p>
+          Each directory under <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>
+          holds <code>ts.ts</code>, <code>glyph.glyph</code> and a <code>case.toml</code> saying
+          what each one does. <code>scripts/check_catches.py</code> runs in CI. It requires
+          every <code>ts.ts</code> to pass <code>tsc --strict</code>, since a TypeScript program
+          that doesn't compile proves nothing, and checks the Glyph half according to the case's
+          kind. These are the 53 cases today:
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Kind</th><th>Cases</th><th>What the gate requires of the Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Kind"><code>refused</code></td><td data-label="Cases">28</td><td data-label="What the gate requires of the Glyph">The build fails with the code in <code>case.toml</code></td></tr>
+            <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">The build passes and reports that code as a warning</td></tr>
+            <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">The program runs, and the check at the boundary turns the bad data into an <code>Err</code></td></tr>
+            <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">The program builds, then stops when it runs, with the stated output</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">11</td><td data-label="What the gate requires of the Glyph">Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          A case that stops being demonstrable is deleted rather than softened, and the
+          <a href="https://github.com/chadetov/glyph/blob/main/catches/README.md">catches README</a>
+          lists the six that were deleted and why. One of them turned out to be caught by
+          <code>tsc</code> too; another only worked because its TypeScript took a value as
+          <code>any</code>.
+        </p>
+
+        <p class="block-label">The TypeScript it is compared against</p>
+        <p>
+          Each case also says whether a fully configured TypeScript project would have caught the
+          mistake, which is where the "would TypeScript catch it" tag comes from. "Fully
+          configured" is <code>tsc --strict</code> plus every option that makes it stricter, and a
+          typescript-eslint run. The gate installs the packages fresh on each run (TypeScript 6,
+          eslint 9, typescript-eslint 8, tsx 4 and the latest <code>@types/node</code>) and fails,
+          rather than skips, without the network.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tsconfig options on top of strict</span>
+<pre>noUncheckedIndexedAccess: true
+noFallthroughCasesInSwitch: true
+noUnusedLocals: true
+noUnusedParameters: true
+noImplicitReturns: true
+noImplicitOverride: true
+allowUnreachableCode: false
+allowUnusedLabels: false
+exactOptionalPropertyTypes: true
+noPropertyAccessFromIndexSignature: true</pre>
+        </div>
+        <div class="code">
+          <span class="cap">eslint.config.mjs</span>
+<pre>export default tseslint.config(
+  js.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  { rules: {
+    "@typescript-eslint/switch-exhaustiveness-check": "error",
+    "@typescript-eslint/strict-boolean-expressions": "error",
+    "@typescript-eslint/require-array-sort-compare": "error",
+    "require-atomic-updates": "error",
+  } },
+);</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          A case's tag is <code>none</code>, <code>flag:</code> plus the one option that reports
+          it, or <code>lint:</code> plus the rule. When the corrected program also trips a rule
+          for an unrelated reason, the case carries <code>ts_ok.ts</code> and the tag only counts
+          what fires on the mistake. For example, <code>non-exhaustive-match</code> is
+          <code>lint:switch-exhaustiveness-check</code>: typescript-eslint catches it if you turn
+          that rule on, and the page says so.
+        </p>
+
+        <p class="block-label">Reproduce one case</p>
+        <p>
+          Run the gate on a single case from a clone of the repository, or do it by hand. Both
+          halves of <code>non-exhaustive-match</code>, as they ran for this page:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">the gate, one case</span>
+<pre>$ python3 scripts/check_catches.py non-exhaustive-match
+catches: 1/1 cases hold every claim they make.
+TypeScript checked with tsc --strict and the full flag set (typescript 6.0.3),
+typescript-eslint 8.73.0 strictTypeChecked on eslint 9.39.5, run with
+tsx 4.23.15, and @types/node 26.6.6.</pre>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">the TypeScript half, by hand</span>
+<pre>$ npm i -D typescript@6 tsx@4
+$ npx tsc --strict --noEmit ts.ts
+$ echo $?
+0
+$ npx tsx ts.ts
+finished
+archived logged nothing</pre>
+        </div>
+        <div class="code">
+          <span class="cap">the Glyph half, by hand</span>
+<pre>$ glyph check --no-tsc catches/non-exhaustive-match
+<span class="del">[E0200] Error: typecheck: non-exhaustive match
+  on `"todo" | "doing" | "done" | "archived"`:
+  missing variants "archived"</span>
+glyph check: 1 error(s) across 1 module(s)</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">The snippets on this site compile</p>
+        <p>
+          <code>scripts/check_docs_compile.py</code> runs in CI and compiles every Glyph snippet on
+          the site that stands on its own (it opens with <code>module</code> and declares
+          something), plus the ones in the docs and <code>llms.txt</code>. A snippet that is meant
+          to fail has to name the error it draws, and it has to draw exactly that one. Snippets
+          that need React or an npm package are compiled against those packages' real types.
+          Fragments are counted and skipped, and the count is printed so the skipped share stays
+          visible.
+        </p>
+
+        <p class="block-label">What it does not catch yet</p>
+        <p>
+          The 11 <code>gap</code> cases are on <a href="/catches/#not-yet">the catches page</a>,
+          each with its gap number. Every gap found by building real apps is in the ledger,
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>,
+          where a bracketed marker is the only live status (<code>[FIXED]</code>,
+          <code>[HALF FIXED]</code>, or none for open) and
+          <code>scripts/check_gaps.py</code> fails CI when an open entry was last reproduced more
+          than five releases ago.
+        </p>
+
+        <p class="block-label">How a release is marked Breaking</p>
+        <p>
+          A release is marked Breaking when it rejects a program the previous version accepted.
+          That is decided by writing the smallest affected program and running it under the
+          published previous release and the new binary, then comparing exit codes. It is not
+          inferred from the wording of the notes. Releases before 0.1.99 were never tested this
+          way, so an unmarked one is untested rather than safe. The record is on
+          <a href="/versions/">the versions page</a>.
+        </p>
+
+        <p class="block-label">The rest of the record</p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/catches/"><span class="q">Catches</span><p>Every case: the TypeScript, the Glyph, the error, and whether tooled TypeScript would catch it.</p></a>
+        <a class="a-card" href="/hardening/"><span class="q">Hardening</span><p>How agents playing skeptical engineers attack the compiler, and the bugs that found.</p></a>
+        <a class="a-card" href="/benchmarks/"><span class="q">Benchmarks</span><p>What is measured (token density, grep, diffs) and the reliability study that isn't done yet.</p></a>
+        <a class="a-card" href="/versions/"><span class="q">Versions</span><p>Every release, what it changed, and which ones are Breaking.</p></a>
+      </div>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>A typed language that transpiles to TypeScript, built so agents can change code without breaking it.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Product</h2>
+            <a href="/playground/">Playground</a>
+            <a href="/versions/">Versions</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases on GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+          </div>
+          <div class="foot-col">
+            <h2>Learn</h2>
+            <a href="/answers/">Answers</a>
+            <a href="/answers/verifiability/">Read the answers in order</a>
+            <a href="/answers/tooling/">Editor &amp; agent tooling</a>
+            <a href="/hardening/">Hardening</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">The five-minute tour</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Language spec</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Source</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/pages/evidence/index.html">Edit this page</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript your agents can't quietly break.</span>
+          <span>&copy; 2026 Glyph &middot; MIT or Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Light", dark: "Dark" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          var next = order[(order.indexOf(mode) + 1) % order.length];
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute(
+            "aria-label",
+            "Colour theme: " + names[mode].toLowerCase() + (mode === "auto" ? " (follows your system)" : "") + ". Switch to " + names[next].toLowerCase() + "."
+          );
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+  </body>
+</html>

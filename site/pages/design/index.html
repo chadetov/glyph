@@ -1,0 +1,91 @@
+---
+title: Design · the four pillars and the decisions behind Glyph · Glyph
+description: The design argument for Glyph: four pillars (verifiability, greppability, diff stability, abstraction) that every decision is tested against, the numbered D-decisions in the spec, what the language deliberately leaves out, and comparisons with TypeScript, tooled TypeScript and Effect.
+layout: article
+nav: design
+sitemap: 2026-11-19 monthly 0.8
+---
+      <p class="q-eyebrow">Design</p>
+      <h1 class="q-title">Four pillars, and a decision record for every rule</h1>
+
+      <p class="short-answer">
+        Every rule in Glyph is tested against four properties, and each rule is a numbered
+        decision in the spec with the pillar it serves. The pillars are properties of the
+        language rather than of a project's configuration, so an agent opening an unfamiliar
+        Glyph codebase can rely on them without first finding out which settings it chose.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">The pillars</p>
+        <p>
+          In order of what matters most. The first two are the wedge, the problems you feel every
+          day. The last two are the polish that makes it pleasant. When they conflict, the wedge
+          wins.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/pillars/verifiability/"><span class="n">Pillar 01</span><span class="q">Verifiability</span><p>No <code>any</code> and no <code>as</code> you can write; <code>match</code> must cover every case; and your record and union types generate strict runtime validators, so a boundary value is checked, not assumed. A strict layer over <code>tsc</code> that can't be switched off: the mistakes an agent ships that <code>tsc --strict</code> waves through don't compile here.</p></a>
+        <a class="a-card" href="/pillars/greppability/"><span class="n">Pillar 02</span><span class="q">Greppability</span><p>One name, one place. Every symbol has exactly one syntactic form at its declaration, with no overloads, decorators, implicit <code>this</code>, or namespace merging. <code>grep "fn parseUser"</code> finds the definition.</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">Pillar 03</span><span class="q">Diff stability</span><p>A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">Pillar 04</span><span class="q">Abstraction</span><p>Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.</p></a>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">The spec is a list of decisions</p>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">docs/language/spec.md</a>
+          holds 49 numbered decisions, D1 to D49, each ending with the pillar it serves. The
+          grammar follows the spec: an ambiguity is resolved there first, then encoded in the
+          parser. <code>glyph llms --json</code> parses the list out of the spec, so an agent reads
+          the same decisions you do. One of them, shortened:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">D9, from docs/language/spec.md (shortened)</span>
+<pre>D9. `else` is a catch-all arm; `_` is a position-level wildcard;
+a PascalCase arm head is a variant reference, not a binding.
+
+... a PascalCase head that names no variant of that union is a
+compile error (E0220, with a nearest-variant suggestion), never a
+silent catch-all that would mask a missing variant (E0200) and
+misroute values at runtime. ...
+
+*[verifiability, abstraction]*</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">What it deliberately leaves out</p>
+        <p>
+          The <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">manifesto</a>
+          states the stance, and the short version is that each restriction earns its place
+          against a pillar. Glyph has no <code>if</code>/<code>else</code> (<code>match</code> is
+          the only conditional), no classes, no overloads or decorators, no casts, no
+          <code>any</code>, no relative imports and no formatter options. It is also not
+          configurable: one formatter, one module resolution, one strictness level. Annoying
+          restrictions get documentation, not a looser rule.
+        </p>
+
+        <p class="block-label">Comparisons</p>
+        <p>
+          Glyph is close to several existing things, and each comparison below names what the
+          other option does better.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">Why TypeScript, and not Go or a new language?</span><p>Why the target is TypeScript, and what that makes possible: adoption one file at a time.</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">Why not strict TypeScript + zod + eslint + ts-pattern?</span><p>The same checks as configuration versus as language, and where tooled TypeScript is still ahead.</p></a>
+        <a class="a-card" href="/design/vs-effect/"><span class="q">How does it compare with Effect?</span><p>A TypeScript library with typed errors and a large ecosystem, against a language that removes the escape hatches.</p></a>
+        <a class="a-card" href="/answers/language/"><span class="q">Is this a real language, or a toy with gaps?</span><p>Module visibility, interfaces, defer, the standard library, and the edges it still has.</p></a>
+      </div>
+
+      <div class="detail">
+        <p>
+          The bet behind all of it, stated as a hypothesis rather than a result: an agent given the
+          same task produces correct code more reliably in Glyph than in TypeScript, and the
+          reviewer spends less time confirming it. That study has not been run, so this site puts
+          no number on it. <a href="/benchmarks/">Benchmarks</a> says what is measured so far.
+        </p>
+      </div>

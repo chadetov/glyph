@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Design · the four pillars and the decisions behind Glyph · Glyph</title>
+    <meta name="description" content="The design argument for Glyph: four pillars (verifiability, greppability, diff stability, abstraction) that every decision is tested against, the numbered D-decisions in the spec, what the language deliberately leaves out, and comparisons with TypeScript, tooled TypeScript and Effect." />
+    <link rel="canonical" href="https://glyphlang.io/design/" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Main">
+        <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+        <div class="nav-links">
+          <a href="/playground/">Playground</a>
+          <a href="/pillars/verifiability/">Why Glyph</a>
+          <a href="/answers/">Answers</a>
+          <a href="/hardening/">Hardening</a>
+          <a href="/benchmarks/">Benchmarks</a>
+          <a href="/llms.txt">For agents</a>
+          <a href="/mcp/">MCP</a>
+          <a href="https://github.com/chadetov/glyph">GitHub</a>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Colour theme: auto (follows your system). Switch to light.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+      </nav>
+    </header>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">Design</p>
+      <h1 class="q-title">Four pillars, and a decision record for every rule</h1>
+
+      <p class="short-answer">
+        Every rule in Glyph is tested against four properties, and each rule is a numbered
+        decision in the spec with the pillar it serves. The pillars are properties of the
+        language rather than of a project's configuration, so an agent opening an unfamiliar
+        Glyph codebase can rely on them without first finding out which settings it chose.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">The pillars</p>
+        <p>
+          In order of what matters most. The first two are the wedge, the problems you feel every
+          day. The last two are the polish that makes it pleasant. When they conflict, the wedge
+          wins.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/pillars/verifiability/"><span class="n">Pillar 01</span><span class="q">Verifiability</span><p>No <code>any</code> and no <code>as</code> you can write; <code>match</code> must cover every case; and your record and union types generate strict runtime validators, so a boundary value is checked, not assumed. A strict layer over <code>tsc</code> that can't be switched off: the mistakes an agent ships that <code>tsc --strict</code> waves through don't compile here.</p></a>
+        <a class="a-card" href="/pillars/greppability/"><span class="n">Pillar 02</span><span class="q">Greppability</span><p>One name, one place. Every symbol has exactly one syntactic form at its declaration, with no overloads, decorators, implicit <code>this</code>, or namespace merging. <code>grep "fn parseUser"</code> finds the definition.</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">Pillar 03</span><span class="q">Diff stability</span><p>A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">Pillar 04</span><span class="q">Abstraction</span><p>Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.</p></a>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">The spec is a list of decisions</p>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">docs/language/spec.md</a>
+          holds 49 numbered decisions, D1 to D49, each ending with the pillar it serves. The
+          grammar follows the spec: an ambiguity is resolved there first, then encoded in the
+          parser. <code>glyph llms --json</code> parses the list out of the spec, so an agent reads
+          the same decisions you do. One of them, shortened:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">D9, from docs/language/spec.md (shortened)</span>
+<pre>D9. `else` is a catch-all arm; `_` is a position-level wildcard;
+a PascalCase arm head is a variant reference, not a binding.
+
+... a PascalCase head that names no variant of that union is a
+compile error (E0220, with a nearest-variant suggestion), never a
+silent catch-all that would mask a missing variant (E0200) and
+misroute values at runtime. ...
+
+*[verifiability, abstraction]*</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">What it deliberately leaves out</p>
+        <p>
+          The <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">manifesto</a>
+          states the stance, and the short version is that each restriction earns its place
+          against a pillar. Glyph has no <code>if</code>/<code>else</code> (<code>match</code> is
+          the only conditional), no classes, no overloads or decorators, no casts, no
+          <code>any</code>, no relative imports and no formatter options. It is also not
+          configurable: one formatter, one module resolution, one strictness level. Annoying
+          restrictions get documentation, not a looser rule.
+        </p>
+
+        <p class="block-label">Comparisons</p>
+        <p>
+          Glyph is close to several existing things, and each comparison below names what the
+          other option does better.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">Why TypeScript, and not Go or a new language?</span><p>Why the target is TypeScript, and what that makes possible: adoption one file at a time.</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">Why not strict TypeScript + zod + eslint + ts-pattern?</span><p>The same checks as configuration versus as language, and where tooled TypeScript is still ahead.</p></a>
+        <a class="a-card" href="/design/vs-effect/"><span class="q">How does it compare with Effect?</span><p>A TypeScript library with typed errors and a large ecosystem, against a language that removes the escape hatches.</p></a>
+        <a class="a-card" href="/answers/language/"><span class="q">Is this a real language, or a toy with gaps?</span><p>Module visibility, interfaces, defer, the standard library, and the edges it still has.</p></a>
+      </div>
+
+      <div class="detail">
+        <p>
+          The bet behind all of it, stated as a hypothesis rather than a result: an agent given the
+          same task produces correct code more reliably in Glyph than in TypeScript, and the
+          reviewer spends less time confirming it. That study has not been run, so this site puts
+          no number on it. <a href="/benchmarks/">Benchmarks</a> says what is measured so far.
+        </p>
+      </div>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>A typed language that transpiles to TypeScript, built so agents can change code without breaking it.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Product</h2>
+            <a href="/playground/">Playground</a>
+            <a href="/versions/">Versions</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases on GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+          </div>
+          <div class="foot-col">
+            <h2>Learn</h2>
+            <a href="/answers/">Answers</a>
+            <a href="/answers/verifiability/">Read the answers in order</a>
+            <a href="/answers/tooling/">Editor &amp; agent tooling</a>
+            <a href="/hardening/">Hardening</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">The five-minute tour</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Language spec</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Source</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/pages/design/index.html">Edit this page</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript your agents can't quietly break.</span>
+          <span>&copy; 2026 Glyph &middot; MIT or Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Light", dark: "Dark" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          var next = order[(order.indexOf(mode) + 1) % order.length];
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute(
+            "aria-label",
+            "Colour theme: " + names[mode].toLowerCase() + (mode === "auto" ? " (follows your system)" : "") + ". Switch to " + names[next].toLowerCase() + "."
+          );
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+  </body>
+</html>

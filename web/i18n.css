@@ -1,0 +1,317 @@
+/* Languages: the header's language menu, the notices on translated pages,
+   and the type settings for scripts other than Latin and Cyrillic. Loaded on
+   every page after style.css. See scripts/site_i18n.py. */
+
+/* ============ the language menu ============ */
+.lang-menu {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+}
+.lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 500 var(--fs-xs) / 1 var(--sans);
+  color: var(--on-band-2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 5px 10px;
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+}
+.lang-btn::-webkit-details-marker {
+  display: none;
+}
+.lang-btn::marker {
+  content: "";
+}
+.lang-btn:hover,
+.lang-menu[open] > .lang-btn {
+  color: var(--on-band);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.lang-btn:focus-visible {
+  outline: 2px solid var(--on-band-accent);
+  outline-offset: 2px;
+}
+.lang-globe {
+  flex: none;
+}
+.lang-short {
+  display: none;
+}
+.lang-btn .nav-chev {
+  width: 5px;
+  height: 5px;
+}
+.lang-menu[open] .nav-chev {
+  transform: translateY(1px) rotate(225deg);
+}
+.lang-drop {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 75;
+  width: max-content;
+  min-width: 220px;
+  max-width: calc(100vw - 2 * var(--gutter));
+  padding: var(--s3);
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-line);
+  border-radius: var(--r);
+  box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.2);
+  color: var(--on-band);
+}
+.lang-head {
+  margin: 0 0 var(--s2);
+  padding: 0 10px;
+  font: 600 var(--fs-xs) / 1.4 var(--sans);
+  color: var(--on-band-2);
+}
+.lang-drop ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+}
+.lang-drop li > a,
+.lang-off {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+.lang-drop li > a {
+  color: var(--on-band);
+}
+.lang-drop li > a:hover {
+  background: var(--menu-hover);
+  text-decoration: none;
+}
+.lang-drop a[aria-current] {
+  background: rgba(124, 92, 255, 0.24);
+}
+.lang-tick {
+  width: 8px;
+  height: 4px;
+  border-left: 1.5px solid var(--on-band-accent);
+  border-bottom: 1.5px solid var(--on-band-accent);
+  transform: translateY(-3px) rotate(-45deg);
+}
+.lang-off {
+  color: var(--on-band-2);
+  opacity: 0.65;
+}
+.lang-note {
+  font-size: var(--fs-xs);
+}
+.lang-en {
+  display: block;
+  margin-top: var(--s2);
+  padding: 8px 10px 4px;
+  border-top: 1px solid var(--menu-line);
+  font-size: var(--fs-sm);
+  color: var(--on-band-accent);
+}
+
+/* The bar is never wider than --w-wide, and translated nav labels run
+   longer than English ones, so the GitHub link gives up its text (it keeps
+   it as its accessible name) to make room for the language name. */
+.gh-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.nav-gh {
+  padding: 6px;
+}
+@media (min-width: 861px) {
+  .site-nav {
+    gap: var(--s4);
+  }
+  .nav-panel {
+    gap: var(--s3);
+  }
+}
+
+/* When the bar's contents do not fit (set by a script in the page), the
+   language button shows its short label, and then the spacing tightens. */
+.nav-fit-1 .lang-cur {
+  display: none;
+}
+.nav-fit-1 .lang-short {
+  display: inline;
+}
+.nav-fit-2 .site-nav {
+  gap: var(--s3);
+}
+.nav-fit-2 .nav-panel {
+  gap: var(--s2);
+}
+.nav-fit-2 .nav-top {
+  padding: 6px 8px;
+}
+
+/* Narrower: the menu shows the globe and a short label. */
+@media (max-width: 1100px) {
+  .lang-cur {
+    display: none;
+  }
+  .lang-short {
+    display: inline;
+  }
+}
+@media (max-width: 860px) {
+  .lang-menu {
+    margin-left: auto;
+  }
+  .lang-menu ~ .theme-toggle {
+    margin-left: 0;
+  }
+  .lang-btn {
+    height: 34px;
+    padding: 0 9px;
+  }
+  .lang-drop {
+    position: fixed;
+    top: 60px;
+    right: var(--gutter);
+  }
+}
+@media (min-width: 861px) {
+  /* beside the nav, not pushed away from it */
+  .nav-panel + .lang-menu {
+    margin-left: 0;
+  }
+}
+
+/* ============ notices on a translated page ============ */
+.i18n-note,
+.i18n-auto {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.i18n-note {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+.i18n-note p,
+.i18n-auto p {
+  max-width: var(--w-wide);
+  margin: 0 auto;
+  padding: 8px var(--gutter);
+}
+.i18n-note p + p {
+  padding-top: 0;
+}
+.i18n-stale {
+  color: var(--amber);
+}
+.i18n-auto {
+  position: relative;
+  background: var(--violet-bg);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+.i18n-auto[hidden] {
+  display: none;
+}
+.i18n-auto p {
+  padding-right: calc(var(--gutter) + 36px);
+}
+.i18n-auto .sep {
+  margin: 0 8px;
+  color: var(--muted);
+}
+.i18n-x {
+  position: absolute;
+  top: 50%;
+  right: max(var(--gutter), calc((100% - var(--w-wide)) / 2 + var(--gutter)));
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.i18n-x:hover {
+  color: var(--ink);
+  background: var(--card);
+}
+
+/* ============ scripts ============ */
+/* Plex Sans first, so Latin text and code-like words keep their shapes, then
+   the script's own Plex (or Noto for Simplified Chinese). */
+:root:lang(ja) {
+  --sans: "IBM Plex Sans", "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+:root:lang(ko) {
+  --sans: "IBM Plex Sans", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+:root:lang(th) {
+  --sans: "IBM Plex Sans", "IBM Plex Sans Thai", "Thonburi", "Leelawadee UI", sans-serif;
+}
+:root:lang(zh-Hans) {
+  --sans: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+/* An English island inside a translated page keeps the English stack. */
+[lang="en"] {
+  --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+body {
+  font-family: var(--sans);
+}
+/* Tight negative tracking is drawn for Latin capitals; CJK and Thai set
+   solid, and need more leading. */
+:lang(ja) h1,
+:lang(ja) h2,
+:lang(ja) h3,
+:lang(ko) h1,
+:lang(ko) h2,
+:lang(ko) h3,
+:lang(zh-Hans) h1,
+:lang(zh-Hans) h2,
+:lang(zh-Hans) h3,
+:lang(th) h1,
+:lang(th) h2,
+:lang(th) h3 {
+  letter-spacing: 0;
+}
+:root:lang(ja) .home .hero h1,
+:root:lang(zh-Hans) .home .hero h1,
+:root:lang(ko) .home .hero h1 {
+  line-height: 1.25;
+}
+:root:lang(th) .home .hero h1 {
+  line-height: 1.4;
+}
+:root:lang(th) body {
+  line-height: 1.75;
+}
+:lang(ja) h1,
+:lang(ja) h2,
+:lang(ja) h3 {
+  word-break: auto-phrase;
+}
+:lang(ja),
+:lang(zh-Hans) {
+  line-break: strict;
+}
+:lang(ko) {
+  word-break: keep-all;
+}

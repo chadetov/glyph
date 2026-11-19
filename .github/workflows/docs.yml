@@ -14,6 +14,8 @@ on:
       - "scripts/build_site.py"
       - "scripts/check_site_built.py"
       - "scripts/site_versions.py"
+      - "scripts/site_i18n.py"
+      - "scripts/check_i18n.py"
       - "scripts/check_releases.py"
       - "glyph-compiler/Cargo.toml"
       - "npm/glyph/README.md"
@@ -38,6 +40,8 @@ jobs:
         run: python3 scripts/check_site.py
       - name: Check web/ is what site/ renders (edit site/, then run scripts/build_site.py)
         run: python3 scripts/check_site_built.py
+      - name: Check the translations (structure, code blocks, wording; reports stale ones without failing)
+        run: python3 scripts/check_i18n.py
       - name: Check every released version has notes in site/releases/
         run: python3 scripts/check_releases.py
       - name: Confirm the npm package still ships a README

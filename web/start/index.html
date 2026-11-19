@@ -22,6 +22,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/i18n.css" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -103,6 +104,24 @@
             <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
           </div>
         </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="Language: English"><svg class="lang-globe" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg><span class="lang-cur">English</span><span class="lang-short" aria-hidden="true">EN</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">Language</p>
+            <ul>
+              <li><a href="/start/" hreflang="en" lang="en" data-lang="en" aria-current="true"><span class="lang-name">English</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><span class="lang-off"><span class="lang-name" lang="pt-BR">Português (Brasil)</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><span class="lang-name" lang="es">Español</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><span class="lang-name" lang="ja">日本語</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><span class="lang-name" lang="tr">Türkçe</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><span class="lang-name" lang="zh-Hans">简体中文</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><span class="lang-name" lang="ko">한국어</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><span class="lang-name" lang="de">Deutsch</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><span class="lang-name" lang="ru">Русский</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><span class="lang-name" lang="th">ไทย</span><span class="lang-note">not translated yet</span></span></li>
+            </ul>
+          </div>
+        </details>
         <button class="theme-toggle" type="button" data-theme-toggle aria-label="Colour theme: auto (follows your system). Switch to light.">
           <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
         </button>
@@ -531,6 +550,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
       (function () {
         var order = ["auto", "light", "dark"];
         var names = { auto: "Auto", light: "Light", dark: "Dark" };
+        var labels = { auto: "Colour theme: auto (follows your system). Switch to light.", light: "Colour theme: light. Switch to dark.", dark: "Colour theme: dark. Switch to auto." };
         var root = document.documentElement;
         var btn = document.querySelector("[data-theme-toggle]");
         if (!btn) return;
@@ -539,13 +559,9 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
           return t === "light" || t === "dark" ? t : "auto";
         }
         function show(mode) {
-          var next = order[(order.indexOf(mode) + 1) % order.length];
           btn.querySelector(".theme-label").textContent = names[mode];
           btn.setAttribute("data-mode", mode);
-          btn.setAttribute(
-            "aria-label",
-            "Colour theme: " + names[mode].toLowerCase() + (mode === "auto" ? " (follows your system)" : "") + ". Switch to " + names[next].toLowerCase() + "."
-          );
+          btn.setAttribute("aria-label", labels[mode]);
         }
         btn.addEventListener("click", function () {
           var mode = order[(order.indexOf(current()) + 1) % order.length];
@@ -559,6 +575,39 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
         });
         show(current());
       })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
     </script>
   </body>
 </html>

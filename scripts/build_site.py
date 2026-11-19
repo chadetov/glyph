@@ -54,6 +54,12 @@ file per release: /versions/ shows the newest month, /versions/YYYY-MM/ each
 month, and web/versions/feed.xml is the Atom feed. Writing a release's notes
 is adding its file under site/releases/ and running this script.
 
+Translations live in site/i18n/<locale>/ and render to web/<locale>/:
+scripts/site_i18n.py holds the locales, the UI strings the partials use as
+{{t:key}}, the language menu and the hreflang links, and
+scripts/check_i18n.py checks them. Every page, English or not, is rendered
+by render() with a site_i18n.Ctx saying which language it is in.
+
 Python standard library only.
 """
 from __future__ import annotations
@@ -65,6 +71,7 @@ import re
 import sys
 
 import site_catches
+import site_i18n
 import site_versions
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -91,7 +98,8 @@ def workspace_version() -> str:
     return m.group(1)
 
 
-def parse_page(path: pathlib.Path) -> tuple[dict, str]:
+def parse_front(path: pathlib.Path, keys: set[str] = KEYS) -> tuple[dict, str]:
+    """A source file's front matter and body, allowing only `keys`."""
     text = path.read_text()
     if not text.startswith("---\n"):
         raise SiteError(f"{path}: no front matter (the file must start with '---')")
@@ -111,7 +119,7 @@ def parse_page(path: pathlib.Path) -> tuple[dict, str]:
         if not m:
             raise SiteError(f"{path}: front matter line {i + 2} is not 'key: value': {line!r}")
         key, value = m.group(1), (m.group(2) or "")
-        if key not in KEYS:
+        if key not in keys:
             raise SiteError(f"{path}: unknown front-matter key {key!r}")
         if key in fm:
             raise SiteError(f"{path}: front-matter key {key!r} given twice")
@@ -125,6 +133,11 @@ def parse_page(path: pathlib.Path) -> tuple[dict, str]:
             continue
         fm[key] = value
         i += 1
+    return fm, body
+
+
+def parse_page(path: pathlib.Path) -> tuple[dict, str]:
+    fm, body = parse_front(path)
     for key in ("title", "description", "layout"):
         if not fm.get(key):
             raise SiteError(f"{path}: front matter needs {key!r}")
@@ -164,7 +177,7 @@ def icon(site: dict, name: str, where: str) -> str:
             f'{site["icons"][name]}</svg>')
 
 
-def nav_item(site: dict, it: dict, url: str, where: str) -> str:
+def nav_item(site: dict, it: dict, url: str, where: str, s: site_i18n.Strings) -> str:
     cur = ' aria-current="page"' if it["href"] == url else ""
     count = ""
     if it.get("count") == "answers":
@@ -172,11 +185,11 @@ def nav_item(site: dict, it: dict, url: str, where: str) -> str:
     elif it.get("count"):
         raise SiteError(f"site.json: unknown nav count {it['count']!r}")
     return (f'<li><a href="{it["href"]}"{cur}><span class="nav-ico">{icon(site, it["icon"], where)}</span>'
-            f'<span class="nav-text"><span class="nav-label">{it["label"]}{count}</span>'
-            f'<span class="nav-desc">{it["desc"]}</span></span></a></li>')
+            f'<span class="nav-text"><span class="nav-label">{s.nav(it["label"])}{count}</span>'
+            f'<span class="nav-desc">{s.nav(it["desc"])}</span></span></a></li>')
 
 
-def nav_links(site: dict, active: str | None, url: str, where: str) -> str:
+def nav_links(site: dict, active: str | None, url: str, where: str, s: site_i18n.Strings) -> str:
     """The main nav: a <details> dropdown per menu in site.json, its items in
     titled columns with an optional featured card, and a plain link per link
     entry. The entry whose `match` holds the page's `nav:` key is highlighted,
@@ -189,31 +202,31 @@ def nav_links(site: dict, active: str | None, url: str, where: str) -> str:
         if "menu" not in entry:
             cur = ' aria-current="page"' if entry["href"] == url else ""
             out.append(f'            <li class="nav-li-link"><a class="nav-top{on}" href="{entry["href"]}"{cur}>'
-                       f'{entry["label"]}</a></li>')
+                       f'{s.nav(entry["label"])}</a></li>')
             continue
         pid = f'nav-{entry["menu"]}'
         cols = []
         for col in entry["columns"]:
-            items = "\n".join(f"                      {nav_item(site, it, url, where)}" for it in col["items"])
+            items = "\n".join(f"                      {nav_item(site, it, url, where, s)}" for it in col["items"])
             cols.append(f'                  <div class="nav-col">\n'
-                        f'                    <p class="nav-col-title">{col["title"]}</p>\n'
+                        f'                    <p class="nav-col-title">{s.nav(col["title"])}</p>\n'
                         f'                    <ul>\n{items}\n                    </ul>\n'
                         f'                  </div>')
         feat = entry.get("featured")
         if feat:
             try:
-                big = site_catches.expand(feat["big"], "site.json")
-                text = site_catches.expand(feat["text"], "site.json")
+                big = site_catches.expand(s.nav(feat["big"]), "site.json")
+                text = site_catches.expand(s.nav(feat["text"]), "site.json")
             except site_catches.CatchesError as e:
                 raise SiteError(str(e)) from None
             cols.append(f'                  <a class="nav-feature" href="{feat["href"]}">'
                         f'<span class="nav-feature-big">{big}</span>'
                         f'<span class="nav-feature-text">{text}</span>'
-                        f'<span class="nav-feature-cta">{feat["cta"]} {icon(site, "arrow", where)}</span></a>')
+                        f'<span class="nav-feature-cta">{s.nav(feat["cta"])} {icon(site, "arrow", where)}</span></a>')
         n = len(entry["columns"]) + (1 if feat else 0)
         out.append(f'            <li class="nav-li-menu">\n'
                    f'              <details class="nav-menu">\n'
-                   f'                <summary class="nav-top{on}" aria-controls="{pid}">{entry["label"]}'
+                   f'                <summary class="nav-top{on}" aria-controls="{pid}">{s.nav(entry["label"])}'
                    f'<span class="nav-chev" aria-hidden="true"></span></summary>\n'
                    f'                <div class="nav-drop cols-{n}{" has-feature" if feat else ""}" id="{pid}">\n' + "\n".join(cols) + "\n"
                    f'                </div>\n'
@@ -243,7 +256,7 @@ def subnav_entries(key: str, where: str) -> list[tuple[str | None, str, str]]:
     return out
 
 
-def subnav(key: str, url: str, where: str) -> str:
+def subnav(key: str, url: str, where: str, s: site_i18n.Strings) -> str:
     """A numbered sub-nav row from site/partials/subnav-<key>.html, with the
     current page's link marked active."""
     links, found = [], False
@@ -254,11 +267,11 @@ def subnav(key: str, url: str, where: str) -> str:
         links.append(f'        <a href="{href}"{attrs}>{label}</a>')
     if not found:
         raise SiteError(f"{where}: sub-nav {key!r} has no entry for {url}")
-    return ('    <nav class="subnav-wrap" aria-label="Sections">\n'
+    return (f'    <nav class="subnav-wrap" aria-label="{s("subnav.aria")}">\n'
             '      <div class="subnav">\n' + "\n".join(links) + "\n      </div>\n    </nav>\n")
 
 
-def answers_nav(url: str, where: str) -> tuple[str, str]:
+def answers_nav(url: str, where: str, s: site_i18n.Strings) -> tuple[str, str]:
     """The answers navigation as (bar, side). The side list holds every
     answer under its group, the current group open; wide screens show it as a
     sticky sidebar beside the article. Narrower screens show the bar instead:
@@ -283,10 +296,10 @@ def answers_nav(url: str, where: str) -> tuple[str, str]:
         if not groups or groups[-1][0] != g:
             groups.append((g, []))
         groups[-1][1].append((href, label))
-    side = ['      <nav class="ans-side" id="ans-nav" aria-label="Answers">',
+    side = [f'      <nav class="ans-side" id="ans-nav" aria-label="{s("answers.label")}">',
             '        <div class="subnav ans-list">',
-            '          <p class="ans-side-head"><a href="/answers/">All answers</a>'
-            '<button class="ans-close" type="button" aria-label="Close the list of answers">'
+            f'          <p class="ans-side-head"><a href="/answers/">{s("answers.all")}</a>'
+            f'<button class="ans-close" type="button" aria-label="{s("answers.close")}">'
             '<span aria-hidden="true">&times;</span></button></p>']
     for g, items in groups:
         open_ = " open" if g == cur_group else ""
@@ -302,25 +315,25 @@ def answers_nav(url: str, where: str) -> tuple[str, str]:
         if j < 0 or j >= len(entries):
             return f'<span class="ans-step {cls} off" aria-hidden="true"></span>'
         href, label = entries[j][1], entries[j][2]
-        word = "Previous" if arrow_before else "Next"
+        word = s("answers.prev" if arrow_before else "answers.next", answer=f"{num(label)} {text(label)}")
         body = f"&lsaquo; {num(label)}" if arrow_before else f"{num(label)} &rsaquo;"
         return (f'<a class="ans-step {cls}" href="{href}" '
-                f'aria-label="{word} answer: {num(label)} {text(label)}">{body}</a>')
+                f'aria-label="{word}">{body}</a>')
 
-    bar = ('    <nav class="ans-bar" aria-label="Answer navigation">\n'
+    bar = (f'    <nav class="ans-bar" aria-label="{s("answers.bar")}">\n'
            '      <div class="ans-bar-in">\n'
-           f'        <p class="ans-crumb"><a href="/answers/">Answers</a><span class="sep" aria-hidden="true">/</span>'
+           f'        <p class="ans-crumb"><a href="/answers/">{s("answers.label")}</a><span class="sep" aria-hidden="true">/</span>'
            f'<a class="cur" href="{url}" aria-current="page"><span class="n">{num(entries[i][2])}</span> {text(entries[i][2])}</a></p>\n'
            f'        {step(i - 1, "prev", True)}{step(i + 1, "next", False)}\n'
-           '        <a class="ans-all-link" href="/answers/">All answers</a>\n'
+           f'        <a class="ans-all-link" href="/answers/">{s("answers.all")}</a>\n'
            '        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">'
-           'All answers<span class="nav-chev" aria-hidden="true"></span></button>\n'
+           f'{s("answers.all")}<span class="nav-chev" aria-hidden="true"></span></button>\n'
            '      </div>\n'
            '    </nav>\n')
     return bar, "\n".join(side) + "\n"
 
 
-def prevnext(fm: dict, where: str) -> str:
+def prevnext(fm: dict, where: str, s: site_i18n.Strings) -> str:
     if "prev" not in fm and "next" not in fm:
         return ""
 
@@ -334,7 +347,7 @@ def prevnext(fm: dict, where: str) -> str:
                 f'          <span class="t">{title}</span>\n'
                 f"        </a>\n")
 
-    out = '      <nav class="prevnext" aria-label="Previous and next">\n'
+    out = f'      <nav class="prevnext" aria-label="{s("prevnext.aria")}">\n'
     out += link(fm["prev"], "") if "prev" in fm else '        <div class="spacer"></div>\n'
     if "next" in fm:
         out += link(fm["next"], ' class="nx cta"')
@@ -350,7 +363,7 @@ def slug(text: str) -> str:
     return s or "section"
 
 
-def section_anchors(body: str) -> str:
+def section_anchors(body: str, s: site_i18n.Strings) -> str:
     """Give every `<h2 class="block-label">` section heading an id (kept when
     the source sets one, else a slug of its text, unique on the page) and a
     "#" link to itself, so any section can be linked to."""
@@ -368,7 +381,7 @@ def section_anchors(body: str) -> str:
             taken.add(hid)
             attrs += f' id="{hid}"'
         return (f'<h2 class="block-label"{attrs}>{inner}'
-                f'<a class="h-anchor" href="#{hid}" aria-label="Link to this section">#</a></h2>')
+                f'<a class="h-anchor" href="#{hid}" aria-label="{s("anchor.aria")}">#</a></h2>')
     return re.sub(r'<h2 class="block-label"([^>]*)>(.*?)</h2>', sub, body)
 
 
@@ -425,43 +438,50 @@ def page_url(path: pathlib.Path) -> str:
     return "/" if rel == "." else f"/{rel}/"
 
 
-def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str) -> str:
+def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str,
+           ctx: site_i18n.Ctx) -> str:
+    """One page. `url` is the page's English URL; `ctx` says which language
+    this rendering is in and which others the page has."""
     where = str(path.relative_to(ROOT))
+    t = ctx.s
     body = body.replace("{{version}}", version)
     if fm.get("next_steps"):
         body += next_steps(site, fm["next_steps"], where)
-    body = section_anchors(body)
+    body = section_anchors(body, t)
     try:
         body = site_catches.expand(body, where)
     except site_catches.CatchesError as e:
         raise SiteError(str(e)) from None
+    body = site_i18n.english_island(body, ctx)
     head_values = {
         "title": fm["title"],
         "description": fm["description"],
-        "canonical": fm.get("canonical", ORIGIN + url),
+        "canonical": fm.get("canonical", ORIGIN + ctx.here),
     }
-    head = fill(partial("head.html"), head_values, where)
+    head = fill(site_i18n.apply_strings(partial("head.html"), t), head_values, where)
+    head += site_i18n.head_extra(ctx)
     if fm.get("head"):
         head += "".join(f"    {line}\n" if line else "\n" for line in fm["head"].split("\n"))
     actions = site["actions"]
-    header = fill(partial("header.html"), {
-        "nav_links": nav_links(site, fm.get("nav"), url, where),
+    header = fill(site_i18n.apply_strings(partial("header.html"), t), {
+        "nav_links": nav_links(site, fm.get("nav"), url, where, t),
         "version": version,
         "playground_href": actions["playground"]["href"],
-        "playground_label": actions["playground"]["label"],
+        "playground_label": t.nav(actions["playground"]["label"]),
         "github_href": actions["github"]["href"],
-        "github_label": actions["github"]["label"],
+        "github_label": t.nav(actions["github"]["label"]),
+        "lang_switcher": site_i18n.switcher(ctx),
     }, where)
-    edit = EDIT_BASE + path.relative_to(PAGES).as_posix()
-    footer = fill(partial("footer.html"), {"edit_url": edit}, where)
+    edit = site_i18n.edit_url(ctx, EDIT_BASE + path.relative_to(ROOT).as_posix().removeprefix("site/pages/"))
+    footer = fill(site_i18n.apply_strings(partial("footer.html"), t), {"edit_url": edit}, where)
     side = ""
     if fm.get("subnav") == "answers" and fm["layout"] == "article":
-        sub, side = answers_nav(url, where)
+        sub, side = answers_nav(url, where, t)
         if "</h1>" not in body:
             raise SiteError(f"{where}: the answers sidebar goes after the page's <h1>, and there is none")
         body = body.replace("</h1>\n", "</h1>\n" + side, 1)
     else:
-        sub = subnav(fm["subnav"], url, where) if fm.get("subnav") else ""
+        sub = subnav(fm["subnav"], url, where, t) if fm.get("subnav") else ""
 
     layout = fm["layout"]
     if layout == "home":
@@ -469,7 +489,7 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
     elif layout == "article":
         cls = "answer-page" + (" has-side" if side else "") + (f" {fm['article_class']}" if fm.get("article_class") else "")
         main = (f'    <main id="main">\n    <article class="{cls}">\n{body}'
-                f"{prevnext(fm, where)}    </article>\n    </main>\n")
+                f"{prevnext(fm, where, t)}    </article>\n    </main>\n")
     elif layout == "wide":
         main = f'    <main id="main">\n    <div class="wrap">\n{body}    </div>\n    </main>\n'
     else:  # index
@@ -477,25 +497,25 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
     if layout != "article" and ("prev" in fm or "next" in fm):
         raise SiteError(f"{where}: prev/next is only rendered by the article layout")
 
+    page = site_i18n.localize_links(f"{header}{sub}{site_i18n.notices(ctx)}{main}{footer}", ctx)
     return ("<!doctype html>\n"
-            '<html lang="en">\n'
+            f'<html lang="{ctx.lang}">\n'
             "  <head>\n"
             f"{head}"
             "  </head>\n"
             "  <body>\n"
-            f"{header}"
-            f"{sub}"
-            f"{main}"
-            f"{footer}"
+            f"{page}"
+            f"{site_i18n.CHOICE_SCRIPT}"
             "  </body>\n"
             "</html>\n")
 
 
 def sitemap(entries: list[dict]) -> str:
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
-           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">']
     for e in entries:
         out += ["  <url>", f"    <loc>{ORIGIN}{e['loc']}</loc>"]
+        out += e.get("alternates", [])
         if e.get("lastmod"):
             out.append(f"    <lastmod>{e['lastmod']}</lastmod>")
         if e.get("changefreq"):
@@ -530,19 +550,42 @@ def build() -> dict[str, str]:
     version = workspace_version()
     files: dict[str, str] = {}
     entries = []
+    try:
+        translations = site_i18n.discover(parse_front)
+        site_i18n.strings("en")
+    except site_i18n.I18nError as e:
+        raise SiteError(str(e)) from None
+    translated_urls: dict[str, set[str]] = {}
+    for eng, by_loc in translations.items():
+        for loc in by_loc:
+            translated_urls.setdefault(loc, set()).add(page_url(eng))
     for path in page_files():
         for url, fm, body in expand_pages(path):
-            rel = url.strip("/") + "/index.html" if url != "/" else "index.html"
-            files[rel] = render(path, site, version, fm, body, url)
+            by_loc = translations.get(path, {})
+            available = ["en"] + [loc for loc in site_i18n.TRANSLATED if loc in by_loc]
+            versions = [("en", fm, body, path, None)]
+            for loc in available[1:]:
+                tr = by_loc[loc]
+                versions.append((loc, site_i18n.merge_front(fm, tr), tr.body, tr.path, tr))
             lastmod = changefreq = priority = None
             if fm.get("sitemap"):
                 parts = fm["sitemap"].split()
                 if len(parts) != 3:
-                    raise SiteError(f"{rel}: sitemap must be 'lastmod changefreq priority'")
+                    raise SiteError(f"{path.relative_to(ROOT)}: sitemap must be 'lastmod changefreq priority'")
                 lastmod, changefreq, priority = parts
                 if lastmod == "-":
                     lastmod = None
-            entries.append({"loc": url, "lastmod": lastmod, "changefreq": changefreq, "priority": priority})
+            alternates = site_i18n.sitemap_alternates(url, available)
+            for loc, vfm, vbody, src, tr in versions:
+                try:
+                    ctx = site_i18n.Ctx(loc, url, available, tr, translated_urls)
+                    here = ctx.here
+                    rel = here.strip("/") + "/index.html" if here != "/" else "index.html"
+                    files[rel] = render(src, site, version, vfm, vbody, url, ctx)
+                except site_i18n.I18nError as e:
+                    raise SiteError(str(e)) from None
+                entries.append({"loc": here, "lastmod": lastmod, "changefreq": changefreq,
+                                "priority": priority, "alternates": alternates})
     try:
         files["versions/feed.xml"] = site_versions.feed()
     except site_versions.VersionsError as e:

@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/web-serving/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I serve a web page, or only a JSON API?","item":"https://glyphlang.io/answers/web-serving/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/web-serving/#article","headline":"Can I serve a web page, or only a JSON API?","description":"std/http serves HTML pages, redirects, custom response headers and form posts, not only JSON, with the response headers modeled by the type checker.","url":"https://glyphlang.io/answers/web-serving/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/web-serving/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -458,34 +459,34 @@
 
       <div class="code">
         <span class="cap">shortlink.glyph: an HTML page, a form post, and the 302</span>
-<pre>fn handle_home(req: Request) -&gt; Response {
-  return match req.method {
-    "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
-    "POST" =&gt; {
-      let fields = form(req)
-      match create_link(form_field(fields, "url"), form_field(fields, "alias")) {
-        Ok(link) =&gt; redirect(303, "/${link.code}+"),
-        Err(message) =&gt; redirect(303, "/?error=${url_encode(message)}"),
+<pre><span class="k">fn</span> handle_home(req: <span class="t">Request</span>) <span class="op">-&gt;</span> <span class="t">Response</span> {
+  <span class="k">return</span> <span class="k">match</span> req.method {
+    <span class="s">"GET"</span> <span class="op">=&gt;</span> html(<span class="n">200</span>, home_page(links.get(), query_param(req, <span class="s">"error"</span>))),
+    <span class="s">"POST"</span> <span class="op">=&gt;</span> {
+      <span class="k">let</span> fields = form(req)
+      <span class="k">match</span> create_link(form_field(fields, <span class="s">"url"</span>), form_field(fields, <span class="s">"alias"</span>)) {
+        <span class="t">Ok</span>(link) <span class="op">=&gt;</span> redirect(<span class="n">303</span>, <span class="s">"/</span><span class="ip">${</span>link.code<span class="ip">}</span><span class="s">+"</span>),
+        <span class="t">Err</span>(message) <span class="op">=&gt;</span> redirect(<span class="n">303</span>, <span class="s">"/?error=</span><span class="ip">${</span>url_encode(message)<span class="ip">}</span><span class="s">"</span>),
       }
     },
-    else =&gt; html(405, page("405", "&lt;h1&gt;405&lt;/h1&gt;")),
+    <span class="k">else</span> <span class="op">=&gt;</span> html(<span class="n">405</span>, page(<span class="s">"405"</span>, <span class="s">"&lt;h1&gt;405&lt;/h1&gt;"</span>)),
   }
 }
 
-fn route(req: Request) -&gt; Result&lt;Response, string&gt; {
-  return match segments(req) {
-    [] =&gt; Ok(handle_home(req)),
-    [one] =&gt; match stats_code(percent_decode(one)) {
-      Some(code) =&gt; Ok(handle_stats(code)),
-      None =&gt; Ok(handle_code(percent_decode(one))),
+<span class="k">fn</span> route(req: <span class="t">Request</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> segments(req) {
+    [] <span class="op">=&gt;</span> <span class="t">Ok</span>(handle_home(req)),
+    [one] <span class="op">=&gt;</span> <span class="k">match</span> stats_code(percent_decode(one)) {
+      <span class="t">Some</span>(code) <span class="op">=&gt;</span> <span class="t">Ok</span>(handle_stats(code)),
+      <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(handle_code(percent_decode(one))),
     },
-    else =&gt; Ok(html(404, not_found_page(path(req)))),
+    <span class="k">else</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(html(<span class="n">404</span>, not_found_page(path(req)))),
   }
 }
 
-async fn main(argv: Array&lt;string&gt;) -&gt; number {
-  let outcome = await serve(8138, route)
-  return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
+<span class="k">async</span> <span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> outcome = <span class="k">await</span> serve(<span class="n">8138</span>, route)
+  <span class="k">return</span> <span class="k">match</span> outcome { <span class="t">Ok</span>(_) <span class="op">=&gt;</span> <span class="n">0</span>, <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="n">1</span>, }
 }</pre>
       </div>
 

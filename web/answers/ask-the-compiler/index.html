@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/ask-the-compiler/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can my agent ask the compiler about a symbol first?","item":"https://glyphlang.io/answers/ask-the-compiler/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/ask-the-compiler/#article","headline":"Can my agent ask the compiler about a symbol first?","description":"glyph_symbol answers in one call: a union's variants, a record's fields, a function's signature, and whether a match over it must be exhaustive.","url":"https://glyphlang.io/answers/ask-the-compiler/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/ask-the-compiler/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -465,27 +466,27 @@
       <div class="code">
         <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
 <pre>{
-  "entity": "orders::OrderStatus",
-  "kind": "union",
-  "pub": true,
-  "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
-  "exhaustive_match": true,
-  "variants": [
-    { "name": "Pending",   "payload": null, "construct": "Pending",
-      "payload_absent": "`Pending` is declared with no payload." },
-    { "name": "Paid",      "payload": "{ transaction_id: string }",
-      "construct": "Paid({ transaction_id: string })" },
-    { "name": "Cancelled", "payload": null, "construct": "Cancelled",
-      "payload_absent": "`Cancelled` is declared with no payload." }
+  <span class="pk">"entity"</span>: <span class="s">"orders::OrderStatus"</span>,
+  <span class="pk">"kind"</span>: <span class="s">"union"</span>,
+  <span class="pk">"pub"</span>: <span class="k">true</span>,
+  <span class="pk">"type"</span>: <span class="s">"Pending | Paid({ transaction_id: string }) | Cancelled"</span>,
+  <span class="pk">"exhaustive_match"</span>: <span class="k">true</span>,
+  <span class="pk">"variants"</span>: [
+    { <span class="pk">"name"</span>: <span class="s">"Pending"</span>,   <span class="pk">"payload"</span>: <span class="k">null</span>, <span class="pk">"construct"</span>: <span class="s">"Pending"</span>,
+      <span class="pk">"payload_absent"</span>: <span class="s">"`Pending` is declared with no payload."</span> },
+    { <span class="pk">"name"</span>: <span class="s">"Paid"</span>,      <span class="pk">"payload"</span>: <span class="s">"{ transaction_id: string }"</span>,
+      <span class="pk">"construct"</span>: <span class="s">"Paid({ transaction_id: string })"</span> },
+    { <span class="pk">"name"</span>: <span class="s">"Cancelled"</span>, <span class="pk">"payload"</span>: <span class="k">null</span>, <span class="pk">"construct"</span>: <span class="s">"Cancelled"</span>,
+      <span class="pk">"payload_absent"</span>: <span class="s">"`Cancelled` is declared with no payload."</span> }
   ],
-  "fields": null,
-  "fields_absent": "`orders::OrderStatus` is a union and declares no record fields.",
-  "path": "src/orders.glyph",
-  "range": { "start": { "line": 2, "character": 4 },
-             "end":   { "line": 5, "character": 13 } },
-  "origin": "glyph",
-  "origin_detail": "`orders::OrderStatus` is declared in src/orders.glyph, a Glyph
-    module this project holds, and the compiler parsed and resolved that declaration"
+  <span class="pk">"fields"</span>: <span class="k">null</span>,
+  <span class="pk">"fields_absent"</span>: <span class="s">"`orders::OrderStatus` is a union and declares no record fields."</span>,
+  <span class="pk">"path"</span>: <span class="s">"src/orders.glyph"</span>,
+  <span class="pk">"range"</span>: { <span class="pk">"start"</span>: { <span class="pk">"line"</span>: <span class="n">2</span>, <span class="pk">"character"</span>: <span class="n">4</span> },
+             <span class="pk">"end"</span>:   { <span class="pk">"line"</span>: <span class="n">5</span>, <span class="pk">"character"</span>: <span class="n">13</span> } },
+  <span class="pk">"origin"</span>: <span class="s">"glyph"</span>,
+  <span class="pk">"origin_detail"</span>: <span class="s">"`orders::OrderStatus` is declared in src/orders.glyph, a Glyph
+    module this project holds, and the compiler parsed and resolved that declaration"</span>
 }</pre>
       </div>
 
@@ -515,39 +516,39 @@
         <div class="code">
           <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
 <pre>{
-  "verdict": "WILL_FAIL",
-  "because": "the checker's own comparison
+  <span class="pk">"verdict"</span>: <span class="s">"WILL_FAIL"</span>,
+  <span class="pk">"because"</span>: <span class="s">"the checker's own comparison
     refuses a `Nullable&lt;number&gt;` value where a
     `number` is declared, so every site that
-    writes this pairing is a diagnostic",
-  "diagnostics": [
-    { "code": "E0204",
-      "at": "an annotated `let` or `const`,
-             and a `return`" },
-    { "code": "E0211", "at": "a call argument" }
+    writes this pairing is a diagnostic"</span>,
+  <span class="pk">"diagnostics"</span>: [
+    { <span class="pk">"code"</span>: <span class="s">"E0204"</span>,
+      <span class="pk">"at"</span>: <span class="s">"an annotated `let` or `const`,
+             and a `return`"</span> },
+    { <span class="pk">"code"</span>: <span class="s">"E0211"</span>, <span class="pk">"at"</span>: <span class="s">"a call argument"</span> }
   ],
-  "from": { "asked": "Nullable&lt;int&gt;",
-            "form": "spelling",
-            "read_as": "Nullable&lt;number&gt;" },
-  "to":   { "asked": "int", "form": "spelling",
-            "read_as": "number" }
+  <span class="pk">"from"</span>: { <span class="pk">"asked"</span>: <span class="s">"Nullable&lt;int&gt;"</span>,
+            <span class="pk">"form"</span>: <span class="s">"spelling"</span>,
+            <span class="pk">"read_as"</span>: <span class="s">"Nullable&lt;number&gt;"</span> },
+  <span class="pk">"to"</span>:   { <span class="pk">"asked"</span>: <span class="s">"int"</span>, <span class="pk">"form"</span>: <span class="s">"spelling"</span>,
+            <span class="pk">"read_as"</span>: <span class="s">"number"</span> }
 }</pre>
         </div>
         <div class="code">
           <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
 <pre>{
-  "verdict": "COMPATIBLE",
-  "because": "two generic applications are
+  <span class="pk">"verdict"</span>: <span class="s">"COMPATIBLE"</span>,
+  <span class="pk">"because"</span>: <span class="s">"two generic applications are
     compared by arity, by base and by argument,
     and every one of those pairings is itself
     accepted, so the checker accepts a
     `Option&lt;number&gt;` value where a
     `Option&lt;number&gt;` is declared. This is a rule
-    accepting rather than a rule staying silent",
-  "diagnostics": null,
-  "diagnostics_absent": "the checker refuses
+    accepting rather than a rule staying silent"</span>,
+  <span class="pk">"diagnostics"</span>: <span class="k">null</span>,
+  <span class="pk">"diagnostics_absent"</span>: <span class="s">"the checker refuses
     nothing for this pairing, so no code is
-    raised for it anywhere"
+    raised for it anywhere"</span>
 }</pre>
         </div>
       </div>

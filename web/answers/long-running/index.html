@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/long-running/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I write a server, or does the process just exit?","item":"https://glyphlang.io/answers/long-running/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/long-running/#article","headline":"Can I write a server, or does the process just exit?","description":"A Glyph program can be a long-running server. main sets up and returns; the process stays alive while sockets and timers are pending, exactly as Node does.","url":"https://glyphlang.io/answers/long-running/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/long-running/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -464,27 +465,27 @@
 
       <div class="code">
         <span class="cap">A server, start to finish</span>
-<pre>module main
+<pre><span class="k">module</span> main
 
-import std/io
-import std/process
-import net { createServer }
+<span class="k">import</span> std/io
+<span class="k">import</span> std/process
+<span class="k">import</span> net { createServer }
 
-fn main(argv: Array&lt;string&gt;) -&gt; number {
-  let server = createServer(fn(socket) {
-    mut socket.write("hello\n")
-    mut socket.end()
+<span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> server = createServer(<span class="k">fn</span>(socket) {
+    <span class="k">mut</span> socket.write(<span class="s">"hello\n"</span>)
+    <span class="k">mut</span> socket.end()
   })
 
-  mut server.on("error", fn(err) {
-    io.eprintln("cannot listen: ${err.message}")
-    process.exit(1)
+  <span class="k">mut</span> server.on(<span class="s">"error"</span>, <span class="k">fn</span>(err) {
+    io.eprintln(<span class="s">"cannot listen: </span><span class="ip">${</span>err.message<span class="ip">}</span><span class="s">"</span>)
+    process.exit(<span class="n">1</span>)
   })
 
-  mut server.listen(4000, fn() {
-    io.println("listening on 4000")
+  <span class="k">mut</span> server.listen(<span class="n">4000</span>, <span class="k">fn</span>() {
+    io.println(<span class="s">"listening on 4000"</span>)
   })
-  return 0
+  <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
 
@@ -538,12 +539,12 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 
       <div class="code">
         <span class="cap">examples/apps/chat/framing.glyph</span>
-<pre>@example feed("", "hel").lines == []
-@example feed("hel", "lo\n").lines == ["hello"]
-@example feed("", "a\nb\nc\n").lines == ["a", "b", "c"]
-@example feed("", "a\nb").rest == "b"
-@example feed("", "hi\r\n").lines == ["hi"]
-pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
+<pre><span class="k">@example</span> feed(<span class="s">""</span>, <span class="s">"hel"</span>).lines == []
+<span class="k">@example</span> feed(<span class="s">"hel"</span>, <span class="s">"lo\n"</span>).lines == [<span class="s">"hello"</span>]
+<span class="k">@example</span> feed(<span class="s">""</span>, <span class="s">"a\nb\nc\n"</span>).lines == [<span class="s">"a"</span>, <span class="s">"b"</span>, <span class="s">"c"</span>]
+<span class="k">@example</span> feed(<span class="s">""</span>, <span class="s">"a\nb"</span>).rest == <span class="s">"b"</span>
+<span class="k">@example</span> feed(<span class="s">""</span>, <span class="s">"hi\r\n"</span>).lines == [<span class="s">"hi"</span>]
+<span class="k">pub</span> <span class="k">fn</span> feed(buffered: <span class="t">string</span>, chunk: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Framed</span> {</pre>
       </div>
 
       <div class="detail">
@@ -568,10 +569,10 @@ pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
 
       <div class="code">
         <span class="cap">examples/apps/discord/session.glyph</span>
-<pre>@example a_close_while_a_reconnect_is_pending_is_ignored()
-@example a_failed_attempt_schedules_another()
-@example a_rejected_token_stops_rather_than_retrying()
-pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</pre>
+<pre><span class="k">@example</span> a_close_while_a_reconnect_is_pending_is_ignored()
+<span class="k">@example</span> a_failed_attempt_schedules_another()
+<span class="k">@example</span> a_rejected_token_stops_rather_than_retrying()
+<span class="k">pub</span> <span class="k">fn</span> disconnected(current: <span class="t">Session</span>, code: <span class="t">int</span>, reason: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Step</span> {</pre>
       </div>
 
       <div class="detail">

@@ -3596,6 +3596,49 @@ main :is(p, li, td, dd, figcaption, blockquote) a:not([class]):not(nav a) {
   margin: 0;
 }
 
+/* site/highlight.css */
+/* Syntax highlighting, for the markup scripts/site_highlight.py adds to every
+   code block at build time. Code blocks are dark in both themes, so there is
+   one set of colours. Each is at least 5:1 against --code-bg in either theme.
+
+   k keyword, s string, t type, c comment, f function or command (style.css)
+   n number, op operator (-> => ?), ip interpolation and JSX braces,
+   pk JSON key, fl shell flag, pr shell prompt,
+   e error, w warning, o ok, lc file:line location, q quoted code in output,
+   bx diagnostic box drawing */
+:root {
+  --code-num: #f3c26b;
+  --code-warn: #f3c26b;
+}
+pre .n {
+  color: var(--code-num);
+}
+pre .op,
+pre .ip {
+  color: var(--code-kw);
+}
+pre .pk,
+pre .fl,
+pre .q {
+  color: var(--code-ty);
+}
+pre .pr,
+pre .bx {
+  color: var(--code-cm);
+}
+pre .e {
+  color: var(--code-err);
+}
+pre .w {
+  color: var(--code-warn);
+}
+pre .o {
+  color: var(--code-ok);
+}
+pre .lc {
+  color: var(--code-cap);
+}
+
 /* site/i18n.css */
 /* Languages: the header's language menu, the notices on translated pages,
    and the type settings for scripts other than Latin and Cyrillic. Loaded on

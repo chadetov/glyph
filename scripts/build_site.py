@@ -112,6 +112,7 @@ import re
 import sys
 
 import site_catches
+import site_highlight
 import site_i18n
 import site_jsonld
 import site_markdown
@@ -608,7 +609,7 @@ class LastMod:
 
 # Every page loads one stylesheet: the fonts, site/style.css and
 # site/i18n.css, then the sheets its `head` front matter links, in that order.
-BASE_SHEETS = ["fonts.css", "style.css", "i18n.css"]
+BASE_SHEETS = ["fonts.css", "style.css", "highlight.css", "i18n.css"]
 SHEET_LINK = re.compile(r'<link rel="stylesheet" href="/([a-z0-9-]+\.css)" />')
 
 
@@ -690,6 +691,10 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
         raise SiteError(str(e)) from None
     body = stack_wide_pairs(body)
     body = mark_wrapping_blocks(body)
+    try:
+        body = site_highlight.highlight_pres(body, where)
+    except site_highlight.HighlightError as e:
+        raise SiteError(str(e)) from None
     body = site_i18n.english_island(body, ctx)
     # The content as it stands before the version is filled in, so that a
     # version bump alone does not change any page's date.

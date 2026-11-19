@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I generate a typed client from my API spec?","item":"https://glyphlang.io/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/codegen/#article","headline":"Can I generate a typed client from my API spec?","description":"Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.","url":"https://glyphlang.io/answers/codegen/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/codegen/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -459,36 +460,36 @@
       <div class="two-up">
         <div class="code">
           <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
-<pre class="wraps">async fn createTask(
-  base: string,
-  body: NewTask,
-) -&gt; Result&lt;Response, HttpError&gt; {
-  return await post(
-    "${base}/tasks",
+<pre class="wraps"><span class="k">async</span> <span class="k">fn</span> createTask(
+  base: <span class="t">string</span>,
+  body: <span class="t">NewTask</span>,
+) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">HttpError</span>&gt; {
+  <span class="k">return</span> <span class="k">await</span> post(
+    <span class="s">"</span><span class="ip">${</span>base<span class="ip">}</span><span class="s">/tasks"</span>,
     body,
   )
 }
 
-async fn getTask(base: string, id: number)
-  -&gt; Result&lt;Response, HttpError&gt; {
-  return await get("${base}/tasks/${id}")
+<span class="k">async</span> <span class="k">fn</span> getTask(base: <span class="t">string</span>, id: <span class="t">number</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">HttpError</span>&gt; {
+  <span class="k">return</span> <span class="k">await</span> get(<span class="s">"</span><span class="ip">${</span>base<span class="ip">}</span><span class="s">/tasks/</span><span class="ip">${</span>id<span class="ip">}</span><span class="s">"</span>)
 }</pre>
         </div>
         <div class="code">
           <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
-<pre class="wraps">fn route(req: Request)
-  -&gt; Result&lt;Response, string&gt; {
-  return match req.method {
-    "GET" =&gt; match segments(req) {
-      ["tasks"] =&gt; listTasks(req),
-      // id captured from the path:
-      ["tasks", id] =&gt; getTask(req, id),
-      else =&gt; Ok(json(404, {
-        error: "not found",
+<pre class="wraps"><span class="k">fn</span> route(req: <span class="t">Request</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> req.method {
+    <span class="s">"GET"</span> <span class="op">=&gt;</span> <span class="k">match</span> segments(req) {
+      [<span class="s">"tasks"</span>] <span class="op">=&gt;</span> listTasks(req),
+      <span class="c">// id captured from the path:</span>
+      [<span class="s">"tasks"</span>, id] <span class="op">=&gt;</span> getTask(req, id),
+      <span class="k">else</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">404</span>, {
+        error: <span class="s">"not found"</span>,
       })),
     },
-    else =&gt; Ok(json(405, {
-      error: "method not allowed",
+    <span class="k">else</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">405</span>, {
+      error: <span class="s">"method not allowed"</span>,
     })),
   }
 }</pre>
@@ -512,21 +513,21 @@ async fn getTask(base: string, id: number)
       <div class="two-up">
         <div class="code">
           <span class="cap">schemas.ts</span>
-<pre>export const Task = z.object({
-  id: z.number(),
-  title: z.string(),
-  done: z.boolean(),
+<pre><span class="k">export</span> <span class="k">const</span> <span class="t">Task</span> = z.<span class="t">object</span>({
+  id: z.<span class="t">number</span>(),
+  title: z.<span class="t">string</span>(),
+  done: z.<span class="t">boolean</span>(),
 })</pre>
         </div>
         <div class="code">
           <span class="cap">$ glyph gen zod schemas.ts --out src/</span>
-<pre class="wraps">type Task = {
-  id: number,
-  title: string,
-  done: bool,
+<pre class="wraps"><span class="k">type</span> <span class="t">Task</span> = {
+  id: <span class="t">number</span>,
+  title: <span class="t">string</span>,
+  done: <span class="t">bool</span>,
 }
-// + a runtime descriptor, so
-// Task.parse(value) validates.</pre>
+<span class="c">// + a runtime descriptor, so</span>
+<span class="c">// Task.parse(value) validates.</span></pre>
         </div>
       </div>
 

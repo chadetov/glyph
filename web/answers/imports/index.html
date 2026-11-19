@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I use my TypeScript, JavaScript and npm code?","item":"https://glyphlang.io/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/imports/#article","headline":"Can I use my TypeScript, JavaScript and npm code?","description":"Glyph compiles to ordinary TypeScript and rides npm: a .glyph module imports any package and is importable from your existing .ts. Adopt it one file at a time.","url":"https://glyphlang.io/answers/imports/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/imports/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -454,18 +455,18 @@
       <div class="two-up">
         <div class="code">
           <span class="cap">form.glyph</span>
-<pre>import react { useState }
-import react-hook-form { useForm }
-import @hookform/resolvers/zod {
+<pre><span class="k">import</span> react { useState }
+<span class="k">import</span> react-hook-form { useForm }
+<span class="k">import</span> <span class="k">@hookform</span>/resolvers/zod {
   zodResolver,
 }</pre>
         </div>
         <div class="code">
           <span class="cap">form.ts: emitted</span>
-<pre>import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver }
-  from "@hookform/resolvers/zod";</pre>
+<pre><span class="k">import</span> { useState } <span class="k">from</span> <span class="s">"react"</span>;
+<span class="k">import</span> { useForm } <span class="k">from</span> <span class="s">"react-hook-form"</span>;
+<span class="k">import</span> { zodResolver }
+  <span class="k">from</span> <span class="s">"@hookform/resolvers/zod"</span>;</pre>
         </div>
       </div>
 
@@ -484,30 +485,30 @@ import { zodResolver }
       <div class="two-up">
         <div class="code">
           <span class="cap">main.glyph</span>
-<pre>import zod { z }
+<pre><span class="k">import</span> zod { z }
 
-let user_schema = z.object({
-  name: z.string(),
-  age: z.number(),
+<span class="k">let</span> user_schema = z.<span class="t">object</span>({
+  name: z.<span class="t">string</span>(),
+  age: z.<span class="t">number</span>(),
 })
-let user = user_schema.parse(input)
+<span class="k">let</span> user = user_schema.parse(input)
 print(user.name)</pre>
         </div>
         <div class="code">
           <span class="cap">a call zod doesn't define</span>
-<pre data-check="needs-npm expect-error TS2339">module main
+<pre data-check="needs-npm expect-error TS2339"><span class="k">module</span> main
 
-import zod { z }
+<span class="k">import</span> zod { z }
 
-pub fn main() -&gt; number {
-  // ZodString has no such method:
-  let n = z.string().nonexistent_method()
-  return 0
+<span class="k">pub</span> <span class="k">fn</span> main() <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="c">// ZodString has no such method:</span>
+  <span class="k">let</span> n = z.<span class="t">string</span>().nonexistent_method()
+  <span class="k">return</span> <span class="n">0</span>
 }
 
-// [TS2339] Property 'nonexistent_method'
-//   does not exist on type 'ZodString'.
-//   mapped back onto main.glyph:7</pre>
+<span class="c">// [TS2339] Property 'nonexistent_method'</span>
+<span class="c">//   does not exist on type 'ZodString'.</span>
+<span class="c">//   mapped back onto main.glyph:7</span></pre>
         </div>
       </div>
 
@@ -545,11 +546,11 @@ pub fn main() -&gt; number {
           node-stream loop, a <code>new Promise</code>, a worker thread. Put the <code>.ts</code>
           under <code>&lt;src&gt;/extern/</code> and reach it with <code>import extern/&lt;name&gt;</code>.
         </p>
-<pre>// src/extern/raw_server.ts   (hand-written TypeScript)
-export function serve_raw(port: number, handler: (raw: string) =&gt; string): void { ... }
+<pre><span class="c">// src/extern/raw_server.ts   (hand-written TypeScript)</span>
+<span class="k">export</span> <span class="k">function</span> serve_raw(port: <span class="t">number</span>, handler: (raw: <span class="t">string</span>) <span class="op">=&gt;</span> <span class="t">string</span>): <span class="k">void</span> { ... }
 
-// src/main.glyph
-import extern/raw_server { serve_raw }   // typed from the .ts; a wrong arg is a real tsc error</pre>
+<span class="c">// src/main.glyph</span>
+<span class="k">import</span> extern/raw_server { serve_raw }   <span class="c">// typed from the .ts; a wrong arg is a real tsc error</span></pre>
         <p>
           The build stages <code>&lt;src&gt;/extern/**</code> into the output and emits a relative
           specifier, so <code>tsc</code> type-checks the extern together with your Glyph code and a
@@ -567,24 +568,24 @@ import extern/raw_server { serve_raw }   // typed from the .ts; a wrong arg is a
           <code>child_process</code>, not just the blocking one, so a tool that reports a long
           command's output while it runs is Glyph rather than an extern:
         </p>
-<pre>module main
+<pre><span class="k">module</span> main
 
-import child_process { spawn }
-import std/io
+<span class="k">import</span> child_process { spawn }
+<span class="k">import</span> std/io
 
-pub async fn main(argv: Array&lt;string&gt;) -&gt; number {
-  let child = spawn(&quot;git&quot;, [&quot;status&quot;, &quot;--short&quot;])
+<span class="k">pub</span> <span class="k">async</span> <span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> child = spawn(<span class="s">"git"</span>, [<span class="s">"status"</span>, <span class="s">"--short"</span>])
 
-  // Ask for text and node decodes for you, holding back a character whose
-  // bytes straddle two chunks. Decoding a raw chunk yourself does not.
-  child.stdout.setEncoding(&quot;utf8&quot;)
-  child.stdout.on(&quot;data&quot;, fn(chunk) {
-    io.print(&quot;${chunk}&quot;)
+  <span class="c">// Ask for text and node decodes for you, holding back a character whose</span>
+  <span class="c">// bytes straddle two chunks. Decoding a raw chunk yourself does not.</span>
+  child.stdout.setEncoding(<span class="s">"utf8"</span>)
+  child.stdout.on(<span class="s">"data"</span>, <span class="k">fn</span>(chunk) {
+    io.print(<span class="s">"</span><span class="ip">${</span>chunk<span class="ip">}</span><span class="s">"</span>)
   })
-  child.on(&quot;close&quot;, fn(code) {
-    io.println(&quot;git exited ${code}&quot;)
+  child.on(<span class="s">"close"</span>, <span class="k">fn</span>(code) {
+    io.println(<span class="s">"git exited </span><span class="ip">${</span>code<span class="ip">}</span><span class="s">"</span>)
   })
-  return 0
+  <span class="k">return</span> <span class="n">0</span>
 }</pre>
         <p>
           <code>io.print</code> and not <code>io.println</code>: a chunk is a slice of the stream,
@@ -595,14 +596,14 @@ pub async fn main(argv: Array&lt;string&gt;) -&gt; number {
           here and <code>TS18047</code> with the real typings, rather than two different stories
           about the same value:
         </p>
-<pre data-check="expect-error TS18047">module main
+<pre data-check="expect-error TS18047"><span class="k">module</span> main
 
-import child_process { spawn }
+<span class="k">import</span> child_process { spawn }
 
-pub fn main() -&gt; void {
-  let child = spawn(&quot;git&quot;, [&quot;status&quot;], { stdio: &quot;inherit&quot; })
-  // [TS18047] 'child.stdout' is possibly 'null'.
-  child.stdout.setEncoding(&quot;utf8&quot;)
+<span class="k">pub</span> <span class="k">fn</span> main() <span class="op">-&gt;</span> <span class="k">void</span> {
+  <span class="k">let</span> child = spawn(<span class="s">"git"</span>, [<span class="s">"status"</span>], { stdio: <span class="s">"inherit"</span> })
+  <span class="c">// [TS18047] 'child.stdout' is possibly 'null'.</span>
+  child.stdout.setEncoding(<span class="s">"utf8"</span>)
 }</pre>
 
         <h2 class="block-label" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">Edit the shim, and the next run is the shim you edited<a class="h-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="Link to this section">#</a></h2>
@@ -624,11 +625,11 @@ pub fn main() -&gt; void {
       <div class="two-up stack">
         <div class="code">
           <span class="cap">src/extern/web.ts</span>
-<pre>export type WebResponse = {
-  status: number;
-  content_type: string;
-  location: string;   // "" when not a redirect
-  body: string;
+<pre><span class="k">export</span> <span class="k">type</span> <span class="t">WebResponse</span> = {
+  status: <span class="t">number</span>;
+  content_type: <span class="t">string</span>;
+  location: <span class="t">string</span>;   <span class="c">// "" when not a redirect</span>
+  body: <span class="t">string</span>;
 };</pre>
         </div>
         <div class="code">
@@ -672,24 +673,24 @@ exist in type 'WebResponse'.
       <div class="two-up">
         <div class="code">
           <span class="cap">a class-based client (kafkajs)</span>
-<pre>import kafkajs { Kafka }
+<pre><span class="k">import</span> kafkajs { <span class="t">Kafka</span> }
 
-let kafka = new Kafka({
-  clientId: "app",
-  brokers: ["localhost:9092"],
+<span class="k">let</span> kafka = <span class="k">new</span> <span class="t">Kafka</span>({
+  clientId: <span class="s">"app"</span>,
+  brokers: [<span class="s">"localhost:9092"</span>],
 })
-let producer = kafka.producer()
-await producer.connect()</pre>
+<span class="k">let</span> producer = kafka.producer()
+<span class="k">await</span> producer.connect()</pre>
         </div>
         <div class="code">
           <span class="cap">a factory client needs no <code>new</code></span>
-<pre>import redis { createClient }
+<pre><span class="k">import</span> redis { createClient }
 
-// createClient() is a function, so you
-// just call it. No new, no wrapper.
-let client = createClient()
-await client.connect()
-await client.set("k", "v")</pre>
+<span class="c">// createClient() is a function, so you</span>
+<span class="c">// just call it. No new, no wrapper.</span>
+<span class="k">let</span> client = createClient()
+<span class="k">await</span> client.connect()
+<span class="k">await</span> client.set(<span class="s">"k"</span>, <span class="s">"v"</span>)</pre>
         </div>
       </div>
 

@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Coming from TypeScript","item":"https://glyphlang.io/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/from-typescript/#article","headline":"Coming from TypeScript · what changes in Glyph","description":"Glyph reads almost like TypeScript and compiles to it. What changes: a few syntax deltas, no any, as or !, one greppable escape hatch, and how npm works.","url":"https://glyphlang.io/from-typescript/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/from-typescript/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -480,10 +481,10 @@
 
       <div class="code">
         <span class="cap">src/clock.glyph</span>
-<pre>module clock
+<pre><span class="k">module</span> clock
 
-pub fn now_ms() -&gt; number {
-  return extern_ts("Date.now()")
+<span class="k">pub</span> <span class="k">fn</span> now_ms() <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> extern_ts(<span class="s">"Date.now()"</span>)
 }</pre>
       </div>
 
@@ -500,41 +501,41 @@ pub fn now_ms() -&gt; number {
       <div class="two-up stack">
         <div class="code">
           <span class="cap">plan.glyph</span>
-<pre>module plan
+<pre><span class="k">module</span> plan
 
-pub type Plan = Free | Pro | Team
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Plan</span> = <span class="t">Free</span> | <span class="t">Pro</span> | <span class="t">Team</span>
 
-pub fn seats(p: Plan) -&gt; number {
-  return match p {
-    Free =&gt; 1,
-    Pro =&gt; 5,
-    Team =&gt; 50,
+<span class="k">pub</span> <span class="k">fn</span> seats(p: <span class="t">Plan</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Free</span> <span class="op">=&gt;</span> <span class="n">1</span>,
+    <span class="t">Pro</span> <span class="op">=&gt;</span> <span class="n">5</span>,
+    <span class="t">Team</span> <span class="op">=&gt;</span> <span class="n">50</span>,
   }
 }</pre>
         </div>
         <div class="code">
           <span class="cap">plan.ts (emitted, trimmed)</span>
-<pre>export type Plan =
-  | { tag: "Free" }
-  | { tag: "Pro" }
-  | { tag: "Team" };
+<pre><span class="k">export</span> <span class="k">type</span> <span class="t">Plan</span> =
+  | { tag: <span class="s">"Free"</span> }
+  | { tag: <span class="s">"Pro"</span> }
+  | { tag: <span class="s">"Team"</span> };
 
-export const Free: Plan = { tag: "Free" };
-export const Pro: Plan = { tag: "Pro" };
-export const Team: Plan = { tag: "Team" };
-export const Plan = {
-  is(value: unknown): value is Plan { ... },
-  parse(value: unknown) { ... },
+<span class="k">export</span> <span class="k">const</span> <span class="t">Free</span>: <span class="t">Plan</span> = { tag: <span class="s">"Free"</span> };
+<span class="k">export</span> <span class="k">const</span> <span class="t">Pro</span>: <span class="t">Plan</span> = { tag: <span class="s">"Pro"</span> };
+<span class="k">export</span> <span class="k">const</span> <span class="t">Team</span>: <span class="t">Plan</span> = { tag: <span class="s">"Team"</span> };
+<span class="k">export</span> <span class="k">const</span> <span class="t">Plan</span> = {
+  <span class="k">is</span>(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">Plan</span> { ... },
+  parse(value: <span class="t">unknown</span>) { ... },
   schema: ...,
 };
 
-export function seats(p: Plan): number {
-  const __m0 = p;
-  switch (__m0.tag) {
-    case "Free": { return 1; }
-    case "Pro": { return 5; }
-    case "Team": { return 50; }
-    default: throw new Error("non-exhaustive match");
+<span class="k">export</span> <span class="k">function</span> seats(p: <span class="t">Plan</span>): <span class="t">number</span> {
+  <span class="k">const</span> __m0 = p;
+  <span class="k">switch</span> (__m0.tag) {
+    <span class="k">case</span> <span class="s">"Free"</span>: { <span class="k">return</span> <span class="n">1</span>; }
+    <span class="k">case</span> <span class="s">"Pro"</span>: { <span class="k">return</span> <span class="n">5</span>; }
+    <span class="k">case</span> <span class="s">"Team"</span>: { <span class="k">return</span> <span class="n">50</span>; }
+    <span class="k">default</span>: <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"non-exhaustive match"</span>);
   }
 }</pre>
         </div>

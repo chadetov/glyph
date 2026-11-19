@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/agents/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"For agents and tool builders","item":"https://glyphlang.io/agents/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/agents/#article","headline":"For agents and tool builders","description":"How an agent works with Glyph: an MCP server with eleven tools, the same queries on the command line, and glyph check --agent for repairing a red build.","url":"https://glyphlang.io/agents/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/agents/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -398,10 +399,10 @@
       <div class="code">
         <span class="cap">.mcp.json, as glyph init writes it</span>
 <pre>{
-  "mcpServers": {
-    "glyph": {
-      "command": "glyph",
-      "args": ["mcp"]
+  <span class="pk">"mcpServers"</span>: {
+    <span class="pk">"glyph"</span>: {
+      <span class="pk">"command"</span>: <span class="s">"glyph"</span>,
+      <span class="pk">"args"</span>: [<span class="s">"mcp"</span>]
     }
   }
 }</pre>
@@ -421,11 +422,11 @@
         <div class="code">
           <span class="cap">request</span>
 <pre>{
-  "method": "tools/call",
-  "params": {
-    "name": "glyph_diagnostics",
-    "arguments": {
-      "path": "src/user.glyph"
+  <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
+  <span class="pk">"params"</span>: {
+    <span class="pk">"name"</span>: <span class="s">"glyph_diagnostics"</span>,
+    <span class="pk">"arguments"</span>: {
+      <span class="pk">"path"</span>: <span class="s">"src/user.glyph"</span>
     }
   }
 }</pre>
@@ -433,31 +434,31 @@
         <div class="code">
           <span class="cap">result</span>
 <pre>{
-  "diagnostics": [ {
-    "code": "E0210",
-    "severity": "error",
-    "stage": "typecheck",
-    "message": "type `U` has no field
-      `naem`; did you mean `name`?",
-    "alternatives": ["name", "email"],
-    "alternatives_kind": "fields",
-    "cause": "user::U",
-    "entity": "user::greet",
-    "file": "user.glyph",
-    "range": {
-      "start": { "line": 9, "col": 10 },
-      "end": { "line": 9, "col": 16 } },
-    ...
+  <span class="pk">"diagnostics"</span>: [ {
+    <span class="pk">"code"</span>: <span class="s">"E0210"</span>,
+    <span class="pk">"severity"</span>: <span class="s">"error"</span>,
+    <span class="pk">"stage"</span>: <span class="s">"typecheck"</span>,
+    <span class="pk">"message"</span>: <span class="s">"type `U` has no field
+      `naem`; did you mean `name`?"</span>,
+    <span class="pk">"alternatives"</span>: [<span class="s">"name"</span>, <span class="s">"email"</span>],
+    <span class="pk">"alternatives_kind"</span>: <span class="s">"fields"</span>,
+    <span class="pk">"cause"</span>: <span class="s">"user::U"</span>,
+    <span class="pk">"entity"</span>: <span class="s">"user::greet"</span>,
+    <span class="pk">"file"</span>: <span class="s">"user.glyph"</span>,
+    <span class="pk">"range"</span>: {
+      <span class="pk">"start"</span>: { <span class="pk">"line"</span>: <span class="n">9</span>, <span class="pk">"col"</span>: <span class="n">10</span> },
+      <span class="pk">"end"</span>: { <span class="pk">"line"</span>: <span class="n">9</span>, <span class="pk">"col"</span>: <span class="n">16</span> } },
+    <span class="c">...</span>
   } ],
-  "member": true,
-  "module": "user",
-  "not_run": [
-    { "what": "tsc", ... },
-    { "what": "E0104, ...", ... },
-    { "what": "E0400, ...", ... } ],
-  "path": "src/user.glyph",
-  "project_root": "src",
-  "unindexed": []
+  <span class="pk">"member"</span>: <span class="k">true</span>,
+  <span class="pk">"module"</span>: <span class="s">"user"</span>,
+  <span class="pk">"not_run"</span>: [
+    { <span class="pk">"what"</span>: <span class="s">"tsc"</span>, <span class="c">...</span> },
+    { <span class="pk">"what"</span>: <span class="s">"E0104, ..."</span>, <span class="c">...</span> },
+    { <span class="pk">"what"</span>: <span class="s">"E0400, ..."</span>, <span class="c">...</span> } ],
+  <span class="pk">"path"</span>: <span class="s">"src/user.glyph"</span>,
+  <span class="pk">"project_root"</span>: <span class="s">"src"</span>,
+  <span class="pk">"unindexed"</span>: []
 }</pre>
         </div>
       </div>
@@ -483,8 +484,8 @@
 
       <div class="code">
         <span class="cap">the same question on the command line</span>
-<pre>glyph query impact --path value.glyph --entity value::Value \
-  --change add_variant --variant Blob</pre>
+<pre><span class="f">glyph</span> query impact <span class="fl">--path</span> value.glyph <span class="fl">--entity</span> value::Value \
+  <span class="fl">--change</span> add_variant <span class="fl">--variant</span> Blob</pre>
       </div>
 
       <div class="detail">

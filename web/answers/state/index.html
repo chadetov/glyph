@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/state/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"How do I share mutable state between functions?","item":"https://glyphlang.io/answers/state/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/state/#article","headline":"How do I share mutable state between functions?","description":"Glyph has no mutable globals. Shared state lives in a std/store: a module-level const whose get, set and update are the only writes, found in one search.","url":"https://glyphlang.io/answers/state/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/state/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -451,40 +452,40 @@
       <div class="two-up stack">
         <div class="code">
           <span class="cap">tasks.glyph</span>
-<pre>import std/store { create }
-import std/array
+<pre><span class="k">import</span> std/store { create }
+<span class="k">import</span> std/array
 
-type Task = {
-  id: number,
-  title: string,
+<span class="k">type</span> <span class="t">Task</span> = {
+  id: <span class="t">number</span>,
+  title: <span class="t">string</span>,
 }
 
-const tasks = create&lt;Array&lt;Task&gt;&gt;([])
-const next_id = create(0)
+<span class="k">const</span> tasks = create&lt;<span class="t">Array</span>&lt;<span class="t">Task</span>&gt;&gt;([])
+<span class="k">const</span> next_id = create(<span class="n">0</span>)
 
-fn add(title: string) -&gt; Task {
-  next_id.update(fn(n: number) -&gt; number {
-    return n + 1
+<span class="k">fn</span> add(title: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Task</span> {
+  next_id.update(<span class="k">fn</span>(n: <span class="t">number</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+    <span class="k">return</span> n + <span class="n">1</span>
   })
-  let task = { id: next_id.get(), title: title }
-  tasks.update(fn(cur: Array&lt;Task&gt;) -&gt; Array&lt;Task&gt; {
-    return array.push(cur, task)
+  <span class="k">let</span> task = { id: next_id.get(), title: title }
+  tasks.update(<span class="k">fn</span>(cur: <span class="t">Array</span>&lt;<span class="t">Task</span>&gt;) <span class="op">-&gt;</span> <span class="t">Array</span>&lt;<span class="t">Task</span>&gt; {
+    <span class="k">return</span> array.push(cur, task)
   })
-  return task
+  <span class="k">return</span> task
 }
 
-fn all() -&gt; Array&lt;Task&gt; {
-  return tasks.get()
+<span class="k">fn</span> all() <span class="op">-&gt;</span> <span class="t">Array</span>&lt;<span class="t">Task</span>&gt; {
+  <span class="k">return</span> tasks.get()
 }</pre>
         </div>
         <div class="code">
           <span class="cap">the whole write-surface, in one grep</span>
-<pre class="wraps">$ grep -rn 'tasks\.\(set\|update\)' src/
-src/tasks.glyph:16:  tasks.update(fn(cur...
+<pre class="wraps"><span class="pr">$</span> <span class="f">grep</span> <span class="fl">-rn</span> <span class="s">'tasks\.\(set\|update\)'</span> src/
+<span class="lc">src/tasks.glyph:16</span>:  tasks.update(fn(cur...
 
 # every place the task list can change,
 # enumerated. nothing hides in an
-# ordinary `x = ...` assignment
+# ordinary <span class="q">`x = ...`</span> assignment
 # somewhere else in the file.</pre>
         </div>
       </div>

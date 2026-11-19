@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/binary/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I handle binary data, or is everything a string?","item":"https://glyphlang.io/answers/binary/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/binary/#article","headline":"Can I handle binary data, or is everything a string?","description":"std/bytes gives Glyph an immutable byte sequence, with hex, base64 and base32 codecs that refuse malformed input, plus file I/O and HMACs over bytes.","url":"https://glyphlang.io/answers/binary/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/binary/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -464,34 +465,34 @@
 
       <div class="code">
         <span class="cap">One-time password, start to finish</span>
-<pre>module totp
+<pre><span class="k">module</span> totp
 
-import std/bytes
-import std/crypto
-import std/math
-import std/array
-import std/option { Some, None }
-import std/result { Result, Ok }
+<span class="k">import</span> std/bytes
+<span class="k">import</span> std/crypto
+<span class="k">import</span> std/math
+<span class="k">import</span> std/array
+<span class="k">import</span> std/option { <span class="t">Some</span>, <span class="t">None</span> }
+<span class="k">import</span> std/result { <span class="t">Result</span>, <span class="t">Ok</span> }
 
-fn at(b: bytes.Bytes, i: int) -&gt; int {
-  return match bytes.get(b, i) {
-    Some(v) =&gt; v,
-    None =&gt; 0,
+<span class="k">fn</span> at(b: bytes.<span class="t">Bytes</span>, i: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">int</span> {
+  <span class="k">return</span> <span class="k">match</span> bytes.get(b, i) {
+    <span class="t">Some</span>(v) <span class="op">=&gt;</span> v,
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="n">0</span>,
   }
 }
 
-pub fn code(secret: string, counter: number) -&gt; Result&lt;number, bytes.BytesError&gt; {
-  let key = bytes.from_base32(secret)?
-  let message = bytes.from_array(array.map(array.range(8), fn(i: int) -&gt; int {
-    return math.floor(counter / math.pow(256, 7 - i)) % 256
-  }))?
+<span class="k">pub</span> <span class="k">fn</span> code(secret: <span class="t">string</span>, counter: <span class="t">number</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, bytes.<span class="t">BytesError</span>&gt; {
+  <span class="k">let</span> key = bytes.from_base32(secret)<span class="op">?</span>
+  <span class="k">let</span> message = bytes.from_array(array.map(array.range(<span class="n">8</span>), <span class="k">fn</span>(i: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">int</span> {
+    <span class="k">return</span> math.floor(counter / math.pow(<span class="n">256</span>, <span class="n">7</span> - i)) % <span class="n">256</span>
+  }))<span class="op">?</span>
 
-  let mac = crypto.hmac_sha1_bytes(key, message)
-  let offset = at(mac, bytes.len(mac) - 1) % 16
-  return Ok((((at(mac, offset) % 128) * 16777216)
-    + (at(mac, offset + 1) * 65536)
-    + (at(mac, offset + 2) * 256)
-    + at(mac, offset + 3)) % 100000000)
+  <span class="k">let</span> mac = crypto.hmac_sha1_bytes(key, message)
+  <span class="k">let</span> offset = at(mac, bytes.len(mac) - <span class="n">1</span>) % <span class="n">16</span>
+  <span class="k">return</span> <span class="t">Ok</span>((((at(mac, offset) % <span class="n">128</span>) * <span class="n">16777216</span>)
+    + (at(mac, offset + <span class="n">1</span>) * <span class="n">65536</span>)
+    + (at(mac, offset + <span class="n">2</span>) * <span class="n">256</span>)
+    + at(mac, offset + <span class="n">3</span>)) % <span class="n">100000000</span>)
 }</pre>
       </div>
 
@@ -513,21 +514,21 @@ pub fn code(secret: string, counter: number) -&gt; Result&lt;number, bytes.Bytes
 
       <div class="code">
         <span class="cap">What the platform does quietly</span>
-<pre>Buffer.from("zz", "hex")        // an empty buffer, no error
-Buffer.from("a-b_", "base64")   // skips - and _, decodes the rest, no error
-buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
+<pre><span class="t">Buffer</span>.<span class="k">from</span>(<span class="s">"zz"</span>, <span class="s">"hex"</span>)        <span class="c">// an empty buffer, no error</span>
+<span class="t">Buffer</span>.<span class="k">from</span>(<span class="s">"a-b_"</span>, <span class="s">"base64"</span>)   <span class="c">// skips - and _, decodes the rest, no error</span>
+buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD for anything malformed, no error</span></pre>
       </div>
 
       <div class="code">
         <span class="cap">What Glyph does</span>
-<pre>match bytes.from_hex(input) {
-  Ok(b) =&gt; use(b),
-  Err(e) =&gt; io.eprintln("${e.message} at ${number.to_string(e.index)}"),
+<pre><span class="k">match</span> bytes.from_hex(input) {
+  <span class="t">Ok</span>(b) <span class="op">=&gt;</span> use(b),
+  <span class="t">Err</span>(e) <span class="op">=&gt;</span> io.eprintln(<span class="s">"</span><span class="ip">${</span>e.message<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span><span class="t">number</span>.to_string(e.index)<span class="ip">}</span><span class="s">"</span>),
 }
 
-// "z" is not a hex digit at 0
-// a trailing base64 group cannot be 1 character(s) long at 3
-// not valid UTF-8 at 2</pre>
+<span class="c">// "z" is not a hex digit at 0</span>
+<span class="c">// a trailing base64 group cannot be 1 character(s) long at 3</span>
+<span class="c">// not valid UTF-8 at 2</span></pre>
       </div>
 
       <div class="detail">

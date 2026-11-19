@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/start/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Start Here","item":"https://glyphlang.io/start/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/start/#article","headline":"Start Here · your first Glyph program in 10 minutes","description":"Install Glyph, scaffold a project, run it, break it on purpose, read the compiler error and fix it. Ten minutes, no prior Glyph knowledge needed.","url":"https://glyphlang.io/start/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/start/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -404,21 +405,21 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
       </div>
       <div class="code">
         <span class="cap">terminal</span>
-<pre>glyph init hello
-cd hello</pre>
+<pre><span class="f">glyph</span> init hello
+<span class="f">cd</span> hello</pre>
       </div>
       <div class="detail">
         <p>Open <code>src/main.glyph</code>. It's a hello-world:</p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
-<pre>module main
+<pre><span class="k">module</span> main
 
-import std/io
+<span class="k">import</span> std/io
 
-fn main(argv: Array&lt;string&gt;) -&gt; number {
-  io.println("hello from glyph")
-  return 0
+<span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  io.println(<span class="s">"hello from glyph"</span>)
+  <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
       <div class="detail">
@@ -450,21 +451,21 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
-<pre>module main
+<pre><span class="k">module</span> main
 
-type Status = Todo | Doing | Done
+<span class="k">type</span> <span class="t">Status</span> = <span class="t">Todo</span> | <span class="t">Doing</span> | <span class="t">Done</span>
 
-fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
-    Done =&gt; "finished",
+<span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> s {
+    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
+    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
+    <span class="t">Done</span> <span class="op">=&gt;</span> <span class="s">"finished"</span>,
   }
 }
 
-fn main(argv: Array&lt;string&gt;) -&gt; number {
-  print(label(Done))
-  return 0
+<span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  print(label(<span class="t">Done</span>))
+  <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
       <div class="code">
@@ -483,10 +484,10 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
       </div>
       <div class="code">
         <span class="cap">src/main.glyph (with the Done arm deleted)</span>
-<pre>fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
+<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> s {
+    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
+    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
   }
 }</pre>
       </div>

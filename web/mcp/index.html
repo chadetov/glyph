@@ -35,6 +35,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/mcp/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Wire your agent into Glyph over MCP","item":"https://glyphlang.io/mcp/"}]}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -411,10 +412,10 @@
       <div class="code">
         <span class="cap">mcp client config (generic)</span>
 <pre>{
-  "mcpServers": {
-    "glyph": {
-      "command": "glyph",
-      "args": ["mcp", "/path/to/your/project"]
+  <span class="pk">"mcpServers"</span>: {
+    <span class="pk">"glyph"</span>: {
+      <span class="pk">"command"</span>: <span class="s">"glyph"</span>,
+      <span class="pk">"args"</span>: [<span class="s">"mcp"</span>, <span class="s">"/path/to/your/project"</span>]
     }
   }
 }</pre>
@@ -510,40 +511,40 @@ glyph_exports(module)</pre>
         <div class="code">
           <span class="cap">request</span>
 <pre>{
-  "method": "tools/call",
-  "params": {
-    "name": "glyph_diagnostics",
-    "arguments": { "path": "src/user.glyph" }
+  <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
+  <span class="pk">"params"</span>: {
+    <span class="pk">"name"</span>: <span class="s">"glyph_diagnostics"</span>,
+    <span class="pk">"arguments"</span>: { <span class="pk">"path"</span>: <span class="s">"src/user.glyph"</span> }
   }
 }</pre>
         </div>
         <div class="code">
           <span class="cap">result (the tool's JSON content)</span>
 <pre>{
-  "path": "src/user.glyph",
-  "module": "user",
-  "project_root": "src",
-  "member": true,
-  "diagnostics": [
+  <span class="pk">"path"</span>: <span class="s">"src/user.glyph"</span>,
+  <span class="pk">"module"</span>: <span class="s">"user"</span>,
+  <span class="pk">"project_root"</span>: <span class="s">"src"</span>,
+  <span class="pk">"member"</span>: <span class="k">true</span>,
+  <span class="pk">"diagnostics"</span>: [
     {
-      "code": "E0210",
-      "severity": "error",
-      "stage": "typecheck",
-      "message": "type `U` has no field `naem`; did you mean `name`?",
-      "help": "Check the field name for a typo,
-        or add the field to the type.",
-      "entity": "user::greet",
-      "file": "user",
-      "range": {
-        "start": { "line": 9, "col": 10, "offset": 99 },
-        "end":   { "line": 9, "col": 16, "offset": 105 }
+      <span class="pk">"code"</span>: <span class="s">"E0210"</span>,
+      <span class="pk">"severity"</span>: <span class="s">"error"</span>,
+      <span class="pk">"stage"</span>: <span class="s">"typecheck"</span>,
+      <span class="pk">"message"</span>: <span class="s">"type `U` has no field `naem`; did you mean `name`?"</span>,
+      <span class="pk">"help"</span>: <span class="s">"Check the field name for a typo,
+        or add the field to the type."</span>,
+      <span class="pk">"entity"</span>: <span class="s">"user::greet"</span>,
+      <span class="pk">"file"</span>: <span class="s">"user"</span>,
+      <span class="pk">"range"</span>: {
+        <span class="pk">"start"</span>: { <span class="pk">"line"</span>: <span class="n">9</span>, <span class="pk">"col"</span>: <span class="n">10</span>, <span class="pk">"offset"</span>: <span class="n">99</span> },
+        <span class="pk">"end"</span>:   { <span class="pk">"line"</span>: <span class="n">9</span>, <span class="pk">"col"</span>: <span class="n">16</span>, <span class="pk">"offset"</span>: <span class="n">105</span> }
       },
-      "union": null,
-      "missing_variants": null
+      <span class="pk">"union"</span>: <span class="k">null</span>,
+      <span class="pk">"missing_variants"</span>: <span class="k">null</span>
     }
   ],
-  "unindexed": [],
-  "not_run": [ ... ]
+  <span class="pk">"unindexed"</span>: [],
+  <span class="pk">"not_run"</span>: [ <span class="c">...</span> ]
 }</pre>
         </div>
       </div>

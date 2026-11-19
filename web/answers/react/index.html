@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/react/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Does it work with React, hooks and Context?","item":"https://glyphlang.io/answers/react/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/react/#article","headline":"Does it work with React, hooks and Context?","description":"React is built in: a component compiles to a function component, JSX lowers to createElement, and a reducer's actions are matched exhaustively.","url":"https://glyphlang.io/answers/react/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/react/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -580,44 +581,44 @@ component Results(props: { page: Page }) {
 
       <div class="code">
         <span class="cap">app.glyph</span>
-<pre data-check="needs-react">module app
+<pre data-check="needs-react"><span class="k">module</span> app
 
-import react { useState }
+<span class="k">import</span> react { useState }
 
-pub component App() {
-  let [name, set_name] = useState("")
-  return &lt;main&gt;
-    &lt;input value={name} on_change={fn(e) { set_name(e.currentTarget.value) }} /&gt;
-    &lt;p&gt;Hello, {name}&lt;/p&gt;
-  &lt;/main&gt;
+<span class="k">pub</span> <span class="k">component</span> <span class="t">App</span>() {
+  <span class="k">let</span> [name, set_name] = useState(<span class="s">""</span>)
+  <span class="k">return</span> &lt;<span class="t">main</span>&gt;
+    &lt;<span class="t">input</span> value={name} on_change={<span class="k">fn</span>(e) { set_name(e.currentTarget.value) }} /&gt;
+    &lt;<span class="t">p</span>&gt;Hello, <span class="ip">{</span>name<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;
+  &lt;/<span class="t">main</span>&gt;
 }</pre>
       </div>
 
       <div class="code">
         <span class="cap">main.glyph</span>
-<pre data-check="needs-react">module main
+<pre data-check="needs-react"><span class="k">module</span> main
 
-import react-dom/client { createRoot }
-import std/dom
-import std/console
-import std/option { Some, None }
-import app { App }
+<span class="k">import</span> react-dom/client { createRoot }
+<span class="k">import</span> std/dom
+<span class="k">import</span> std/console
+<span class="k">import</span> std/option { <span class="t">Some</span>, <span class="t">None</span> }
+<span class="k">import</span> app { <span class="t">App</span> }
 
-pub fn main() -&gt; void {
-  match dom.element_by_id("root") {
-    Some(root) =&gt; createRoot(root).render(&lt;App /&gt;),
-    None =&gt; console.error("the page has no #root element"),
+<span class="k">pub</span> <span class="k">fn</span> main() <span class="op">-&gt;</span> <span class="k">void</span> {
+  <span class="k">match</span> dom.element_by_id(<span class="s">"root"</span>) {
+    <span class="t">Some</span>(root) <span class="op">=&gt;</span> createRoot(root).render(&lt;<span class="t">App</span> /&gt;),
+    <span class="t">None</span> <span class="op">=&gt;</span> console.error(<span class="s">"the page has no #root element"</span>),
   }
 }</pre>
       </div>
 
       <div class="code">
         <span class="cap">index.html, next to the two modules</span>
-<pre>&lt;div id="root"&gt;&lt;/div&gt;
-&lt;script type="module"&gt;
-  import { main } from "./dist/gen/main.ts";
+<pre>&lt;<span class="t">div</span> id=<span class="s">"root"</span>&gt;&lt;/<span class="t">div</span>&gt;
+&lt;<span class="t">script</span> type=<span class="s">"module"</span>&gt;
+  <span class="k">import</span> { main } <span class="k">from</span> <span class="s">"./dist/gen/main.ts"</span>;
   main();
-&lt;/script&gt;</pre>
+&lt;/<span class="t">script</span>&gt;</pre>
       </div>
 
       <div class="detail">

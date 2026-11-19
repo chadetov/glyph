@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Do I have to hand-write a validator for every API?","item":"https://glyphlang.io/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/typed-apis/#article","headline":"Do I have to hand-write a validator for every API?","description":"No. In Glyph a type is its own runtime validator, so request and response bodies are checked for free, and the types can come from an OpenAPI spec or a .d.ts.","url":"https://glyphlang.io/answers/typed-apis/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -484,35 +485,35 @@
       <div class="two-up">
         <div class="code">
           <span class="cap">api.glyph</span>
-<pre>type NewTask = {
-  title: string,
-  done: bool,
+<pre><span class="k">type</span> <span class="t">NewTask</span> = {
+  title: <span class="t">string</span>,
+  done: <span class="t">bool</span>,
 }
 
-fn create(req: Request)
-  -&gt; Result&lt;Response, string&gt; {
-  return match NewTask.parse(req.body) {
-    Ok(task) =&gt; Ok(json(201, task)),
-    Err(issues) =&gt; Ok(json(400, {
-      error: "invalid task",
+<span class="k">fn</span> create(req: <span class="t">Request</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> <span class="t">NewTask</span>.parse(req.body) {
+    <span class="t">Ok</span>(task) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">201</span>, task)),
+    <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">400</span>, {
+      error: <span class="s">"invalid task"</span>,
     })),
   }
 }</pre>
         </div>
         <div class="code">
           <span class="cap">what you did <em>not</em> write</span>
-<pre>// No zod schema:
-const NewTask = z.object({
-  title: z.string(),
-  done: z.boolean(),
+<pre><span class="c">// No zod schema:</span>
+<span class="k">const</span> <span class="t">NewTask</span> = z.<span class="t">object</span>({
+  title: z.<span class="t">string</span>(),
+  done: z.<span class="t">boolean</span>(),
 });
-// No drift between the type and
-// the validator, because there is
-// only one declaration.
+<span class="c">// No drift between the type and</span>
+<span class="c">// the validator, because there is</span>
+<span class="c">// only one declaration.</span>
 
-// A bad body, {"title": 123},
-// takes the Err arm. Only a
-// well-formed body reaches Ok.</pre>
+<span class="c">// A bad body, {"title": 123},</span>
+<span class="c">// takes the Err arm. Only a</span>
+<span class="c">// well-formed body reaches Ok.</span></pre>
         </div>
       </div>
 
@@ -555,45 +556,45 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
       <div class="two-up stack">
         <div class="code">
           <span class="cap">boundary.glyph</span>
-<pre>// Hand it straight back.
-fn read_task(body: unknown)
-  -&gt; Result&lt;NewTask, Array&lt;Issue&gt;&gt; {
-  return NewTask.parse(body)
+<pre><span class="c">// Hand it straight back.</span>
+<span class="k">fn</span> read_task(body: <span class="t">unknown</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">NewTask</span>, <span class="t">Array</span>&lt;<span class="t">Issue</span>&gt;&gt; {
+  <span class="k">return</span> <span class="t">NewTask</span>.parse(body)
 }
 
-// Or restate the failure in your own terms.
-fn read_checked(body: unknown)
-  -&gt; Result&lt;NewTask, string&gt; {
-  return NewTask.parse(body).map_err(
-    fn(issues: Array&lt;Issue&gt;) -&gt; string {
-      return "invalid task: ${issue_text(issues)}"
+<span class="c">// Or restate the failure in your own terms.</span>
+<span class="k">fn</span> read_checked(body: <span class="t">unknown</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">NewTask</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="t">NewTask</span>.parse(body).map_err(
+    <span class="k">fn</span>(issues: <span class="t">Array</span>&lt;<span class="t">Issue</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+      <span class="k">return</span> <span class="s">"invalid task: </span><span class="ip">${</span>issue_text(issues)<span class="ip">}</span><span class="s">"</span>
     },
   )
 }
 
-// Or propagate it and get on with the work.
-fn create(body: unknown) -&gt; Result&lt;Response, string&gt; {
-  let task = read_checked(body)?
-  return Ok(json(201, save(task)))
+<span class="c">// Or propagate it and get on with the work.</span>
+<span class="k">fn</span> create(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">let</span> task = read_checked(body)<span class="op">?</span>
+  <span class="k">return</span> <span class="t">Ok</span>(json(<span class="n">201</span>, save(task)))
 }</pre>
         </div>
         <div class="code">
           <span class="cap">what this replaced</span>
-<pre>// Until 0.1.52 the generated descriptor
-// returned a bare { tag, value } object,
-// so both of the first two shapes were
-// tsc errors (TS2322 and TS2339) even
-// though Glyph's own checker reported
-// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround
-// was an identity re-wrap:
+<pre><span class="c">// Until 0.1.52 the generated descriptor</span>
+<span class="c">// returned a bare { tag, value } object,</span>
+<span class="c">// so both of the first two shapes were</span>
+<span class="c">// tsc errors (TS2322 and TS2339) even</span>
+<span class="c">// though Glyph's own checker reported</span>
+<span class="c">// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround</span>
+<span class="c">// was an identity re-wrap:</span>
 
-match NewTask.parse(body) {
-  Ok(t)  =&gt; Ok(t),          // does nothing
-  Err(e) =&gt; Err(reword(e)),
+<span class="k">match</span> <span class="t">NewTask</span>.parse(body) {
+  <span class="t">Ok</span>(t)  <span class="op">=&gt;</span> <span class="t">Ok</span>(t),          <span class="c">// does nothing</span>
+  <span class="t">Err</span>(e) <span class="op">=&gt;</span> <span class="t">Err</span>(reword(e)),
 }
 
-// Four lines to say map_err. bracket.glyph
-// carried this twice until the fix landed.</pre>
+<span class="c">// Four lines to say map_err. bracket.glyph</span>
+<span class="c">// carried this twice until the fix landed.</span></pre>
         </div>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the runtime cost of using Result here</span></summary><div class="body">
@@ -624,15 +625,15 @@ match NewTask.parse(body) {
       <div class="two-up stack">
         <div class="code">
           <span class="cap">schema.glyph</span>
-<pre>fn object_schema&lt;Shape: Record&lt;string, Schema&lt;unknown&gt;&gt;&gt;(
-  shape: Shape,
-) -&gt; Schema&lt;infer_output&lt;Shape&gt;&gt; { ... }
+<pre><span class="k">fn</span> object_schema&lt;<span class="t">Shape</span>: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">Schema</span>&lt;<span class="t">unknown</span>&gt;&gt;&gt;(
+  shape: <span class="t">Shape</span>,
+) <span class="op">-&gt;</span> <span class="t">Schema</span>&lt;infer_output&lt;<span class="t">Shape</span>&gt;&gt; { ... }
 
-type User = { name: string, age: number }
+<span class="k">type</span> <span class="t">User</span> = { name: <span class="t">string</span>, age: <span class="t">number</span> }
 
-// The shape must produce a User, or this
-// line does not compile:
-const user_schema: Schema&lt;User&gt; =
+<span class="c">// The shape must produce a User, or this</span>
+<span class="c">// line does not compile:</span>
+<span class="k">const</span> user_schema: <span class="t">Schema</span>&lt;<span class="t">User</span>&gt; =
   object_schema({
     name: string_schema(),
     age: number_schema(),
@@ -640,17 +641,17 @@ const user_schema: Schema&lt;User&gt; =
         </div>
         <div class="code">
           <span class="cap">the drift Glyph removes</span>
-<pre>// TS/zod: shape and output type are two
-// separate things you keep in sync by hand.
-const s = z.object({ name: z.string() });
-type User = { name: string; age: number };
-// `s` is inferred { name }, but nothing
-// checks it against User. The `age` you
-// forgot is caught at runtime, if ever.
+<pre><span class="c">// TS/zod: shape and output type are two</span>
+<span class="c">// separate things you keep in sync by hand.</span>
+<span class="k">const</span> s = z.<span class="t">object</span>({ name: z.<span class="t">string</span>() });
+<span class="k">type</span> <span class="t">User</span> = { name: <span class="t">string</span>; age: <span class="t">number</span> };
+<span class="c">// `s` is inferred { name }, but nothing</span>
+<span class="c">// checks it against User. The `age` you</span>
+<span class="c">// forgot is caught at runtime, if ever.</span>
 
-// Glyph: drop `age` from the shape and
-// `Schema&lt;User&gt;` fails to compile. The
-// shape is the single source of truth.</pre>
+<span class="c">// Glyph: drop `age` from the shape and</span>
+<span class="c">// `Schema&lt;User&gt;` fails to compile. The</span>
+<span class="c">// shape is the single source of truth.</span></pre>
         </div>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the TypeScript trap, and the cast that follows the return since 0.1.92</span></summary><div class="body">
@@ -744,19 +745,19 @@ type User = { name: string; age: number };
       <div class="two-up fit">
         <div class="code">
           <span class="cap">accepted</span>
-<pre>"2026-01-03"              // UTC midnight
-"2026-07-25T18:33:08.000Z"
-"2026-03-15T09:30:00-05:00"
-"2028-02-29"              // a real leap day</pre>
+<pre><span class="s">"2026-01-03"</span>              <span class="c">// UTC midnight</span>
+<span class="s">"2026-07-25T18:33:08.000Z"</span>
+<span class="s">"2026-03-15T09:30:00-05:00"</span>
+<span class="s">"2028-02-29"</span>              <span class="c">// a real leap day</span></pre>
         </div>
         <div class="code">
           <span class="cap">None, every one of them</span>
-<pre>"January 5 2026"   // not ISO
-"2026-1-3"         // not padded
-"2026-13-01"       // no month 13
-"2026-02-31"       // no such day
-"2026-02-29"       // not a leap year
-"2026-01-03T10:00" // no offset</pre>
+<pre><span class="s">"January 5 2026"</span>   <span class="c">// not ISO</span>
+<span class="s">"2026-1-3"</span>         <span class="c">// not padded</span>
+<span class="s">"2026-13-01"</span>       <span class="c">// no month 13</span>
+<span class="s">"2026-02-31"</span>       <span class="c">// no such day</span>
+<span class="s">"2026-02-29"</span>       <span class="c">// not a leap year</span>
+<span class="s">"2026-01-03T10:00"</span> <span class="c">// no offset</span></pre>
         </div>
       </div>
       <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The last one is the one that surprises people, and it is the whole point. A datetime with
@@ -789,31 +790,31 @@ type User = { name: string; age: number };
       <div class="two-up stack">
         <div class="code">
           <span class="cap">before: the app guards the stdlib</span>
-<pre>const ISO_DATE = "^\\d{4}-\\d{2}-\\d{2}$"
+<pre><span class="k">const</span> <span class="t">ISO_DATE</span> = <span class="s">"^\\d{4}-\\d{2}-\\d{2}$"</span>
 
-fn parse_date(line: int, value: string)
-  -&gt; Result&lt;number, RowError&gt; {
-  return match regex.matches(ISO_DATE, value) {
-    false =&gt; Err(BadDate({ line: line, value: value })),
-    true =&gt; match time.parse_iso(value) {
-      Some(ms) =&gt; match string.starts_with(
+<span class="k">fn</span> parse_date(line: <span class="t">int</span>, value: <span class="t">string</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, <span class="t">RowError</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> regex.matches(<span class="t">ISO_DATE</span>, value) {
+    <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
+    <span class="k">true</span> <span class="op">=&gt;</span> <span class="k">match</span> time.parse_iso(value) {
+      <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="k">match</span> <span class="t">string</span>.starts_with(
         time.format_iso(ms), value
       ) {
-        true =&gt; Ok(ms),
-        false =&gt; Err(BadDate({ line: line, value: value })),
+        <span class="k">true</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(ms),
+        <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
       },
-      None =&gt; Err(BadDate({ line: line, value: value })),
+      <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
     },
   }
 }</pre>
         </div>
         <div class="code">
           <span class="cap">after: the primitive holds the line</span>
-<pre>fn parse_date(line: int, value: string)
-  -&gt; Result&lt;number, RowError&gt; {
-  return match time.parse_iso(value) {
-    Some(ms) =&gt; Ok(ms),
-    None =&gt; Err(BadDate({ line: line, value: value })),
+<pre><span class="k">fn</span> parse_date(line: <span class="t">int</span>, value: <span class="t">string</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, <span class="t">RowError</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> time.parse_iso(value) {
+    <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="t">Ok</span>(ms),
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
   }
 }</pre>
         </div>
@@ -841,13 +842,13 @@ fn parse_date(line: int, value: string)
       <div class="two-up fit">
         <div class="code term">
           <span class="cap">from an OpenAPI / JSON Schema spec</span>
-<pre>glyph gen openapi petstore.yaml \
-  --out src/</pre>
+<pre><span class="f">glyph</span> gen openapi petstore.yaml \
+  <span class="fl">--out</span> src/</pre>
         </div>
         <div class="code term">
           <span class="cap">from an installed package, by name</span>
-<pre>glyph gen dts api-types \
-  --out src/types</pre>
+<pre><span class="f">glyph</span> gen dts api-types \
+  <span class="fl">--out</span> src/types</pre>
         </div>
       </div>
       <p class="ak-lede">
@@ -855,11 +856,11 @@ fn parse_date(line: int, value: string)
       </p>
       <div class="code">
         <span class="cap">webhook.glyph</span>
-<pre>import types/api_types { Customer }
+<pre><span class="k">import</span> types/api_types { <span class="t">Customer</span> }
 
-match Customer.parse(webhook_body) {
-  Ok(c) =&gt; handle(c),
-  Err(issues) =&gt; reject(issues),
+<span class="k">match</span> <span class="t">Customer</span>.parse(webhook_body) {
+  <span class="t">Ok</span>(c) <span class="op">=&gt;</span> handle(c),
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> reject(issues),
 }</pre>
       </div>
       <p class="ak-lede">Generation is <strong>wire-faithful</strong>: what the spec says about a value is what <code>parse</code> checks.</p>
@@ -944,32 +945,32 @@ match Customer.parse(webhook_body) {
       <div class="two-up stack">
         <div class="code">
           <span class="cap">tasks.glyph</span>
-<pre>type Task    = { id: int, title: string, done: bool }
-type TaskRow = { id: int, title: string, done: int }
+<pre><span class="k">type</span> <span class="t">Task</span>    = { id: <span class="t">int</span>, title: <span class="t">string</span>, done: <span class="t">bool</span> }
+<span class="k">type</span> <span class="t">TaskRow</span> = { id: <span class="t">int</span>, title: <span class="t">string</span>, done: <span class="t">int</span> }
 
-fn row_to_task(r: TaskRow) -&gt; Task {
-  return { id: r.id, title: r.title,
-           done: r.done != 0 }
+<span class="k">fn</span> row_to_task(r: <span class="t">TaskRow</span>) <span class="op">-&gt;</span> <span class="t">Task</span> {
+  <span class="k">return</span> { id: r.id, title: r.title,
+           done: r.done != <span class="n">0</span> }
 }
 
-// A row is validated, then mapped. No cast.
-match TaskRow.parse(row) {
-  Ok(r)  =&gt; Ok(row_to_task(r)),
-  Err(_) =&gt; Err("row failed validation"),
+<span class="c">// A row is validated, then mapped. No cast.</span>
+<span class="k">match</span> <span class="t">TaskRow</span>.parse(row) {
+  <span class="t">Ok</span>(r)  <span class="op">=&gt;</span> <span class="t">Ok</span>(row_to_task(r)),
+  <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="s">"row failed validation"</span>),
 }</pre>
         </div>
         <div class="code">
           <span class="cap">the bug this removes</span>
-<pre>// TS, better-sqlite3 / node:sqlite:
-const row = stmt.get(id) as Task;
-// `row.done` is really 0 or 1, a number.
-// Nothing complains. Then:
-if (row.done === true) { ... }   // never runs
+<pre><span class="c">// TS, better-sqlite3 / node:sqlite:</span>
+<span class="k">const</span> row = stmt.<span class="k">get</span>(id) <span class="k">as</span> <span class="t">Task</span>;
+<span class="c">// `row.done` is really 0 or 1, a number.</span>
+<span class="c">// Nothing complains. Then:</span>
+<span class="k">if</span> (row.done === <span class="k">true</span>) { ... }   <span class="c">// never runs</span>
 
-// The row was `unknown`; the cast invented
-// a type. Glyph makes you validate the row
-// into TaskRow, and the int-to-bool step is
-// a line of code, not a silent lie.</pre>
+<span class="c">// The row was `unknown`; the cast invented</span>
+<span class="c">// a type. Glyph makes you validate the row</span>
+<span class="c">// into TaskRow, and the int-to-bool step is</span>
+<span class="c">// a line of code, not a silent lie.</span></pre>
         </div>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">std/sqlite, and the 0-or-1 boolean</span></summary><div class="body">
@@ -1002,14 +1003,14 @@ if (row.done === true) { ... }   // never runs
         HMAC would never match). <code>http.raw(req)</code> hands you those bytes, so the check
         stays in Glyph:
       </p>
-<pre>fn handle(req: Request) -&gt; Result&lt;Response, string&gt; {
-  let expected = crypto.hmac_sha256(secret, raw(req))
-  return match header(req, "x-hook-signature") {
-    Some(sig) =&gt; match sig == expected {
-      true  =&gt; accept(req),          // then validate req.body with T.parse
-      false =&gt; Ok(text(401, "bad signature")),
+<pre><span class="k">fn</span> handle(req: <span class="t">Request</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">let</span> expected = crypto.hmac_sha256(secret, raw(req))
+  <span class="k">return</span> <span class="k">match</span> header(req, <span class="s">"x-hook-signature"</span>) {
+    <span class="t">Some</span>(sig) <span class="op">=&gt;</span> <span class="k">match</span> sig == expected {
+      <span class="k">true</span>  <span class="op">=&gt;</span> accept(req),          <span class="c">// then validate req.body with T.parse</span>
+      <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(text(<span class="n">401</span>, <span class="s">"bad signature"</span>)),
     },
-    None =&gt; Ok(text(401, "missing signature")),
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(text(<span class="n">401</span>, <span class="s">"missing signature"</span>)),
   }
 }</pre>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">raw bytes for the signature, parsed body for the shape</span></summary><div class="body">
@@ -1030,29 +1031,29 @@ if (row.done === true) { ... }   // never runs
       <div class="two-up stack">
         <div class="code">
           <span class="cap">refinements.glyph</span>
-<pre>type Amount   = int where value &gt;= 0
-type Rating   = int where value &gt;= 1 &amp;&amp; value &lt;= 5
-type NonEmpty = string where value.length &gt; 0
+<pre><span class="k">type</span> <span class="t">Amount</span>   = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
+<span class="k">type</span> <span class="t">Rating</span>   = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">1</span> &amp;&amp; value &lt;= <span class="n">5</span>
+<span class="k">type</span> <span class="t">NonEmpty</span> = <span class="t">string</span> <span class="k">where</span> value.length &gt; <span class="n">0</span>
 
-// Amount.parse(-1)  -&gt; Err   (not just "is a number")
-// Rating.parse(6)   -&gt; Err
-// Amount.parse(3.5) -&gt; Err   (int check too)
+<span class="c">// Amount.parse(-1)  -&gt; Err   (not just "is a number")</span>
+<span class="c">// Rating.parse(6)   -&gt; Err</span>
+<span class="c">// Amount.parse(3.5) -&gt; Err   (int check too)</span>
 
-type Line = { amount: Amount, }
-// Line.parse({ amount: -1 }) -&gt; Err too:
-// the predicate follows the type into
-// the field, and across modules.</pre>
+<span class="k">type</span> <span class="t">Line</span> = { amount: <span class="t">Amount</span>, }
+<span class="c">// Line.parse({ amount: -1 }) -&gt; Err too:</span>
+<span class="c">// the predicate follows the type into</span>
+<span class="c">// the field, and across modules.</span></pre>
         </div>
         <div class="code">
           <span class="cap">what you're not writing</span>
-<pre>// The check that usually lives three
-// functions away from the boundary,
-// if someone remembers it:
-if (amount &lt; 0) throw new Error(...);
+<pre><span class="c">// The check that usually lives three</span>
+<span class="c">// functions away from the boundary,</span>
+<span class="c">// if someone remembers it:</span>
+<span class="k">if</span> (amount &lt; <span class="n">0</span>) <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(...);
 
-// In Glyph it's the type. A value that
-// fails the predicate never becomes an
-// Amount in the first place.</pre>
+<span class="c">// In Glyph it's the type. A value that</span>
+<span class="c">// fails the predicate never becomes an</span>
+<span class="c">// Amount in the first place.</span></pre>
         </div>
       </div>
 

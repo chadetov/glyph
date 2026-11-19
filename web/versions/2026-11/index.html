@@ -35,6 +35,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/versions.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/versions/2026-11/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Versions & changelog","item":"https://glyphlang.io/versions/"},{"@type":"ListItem","position":3,"name":"November 2026 releases","item":"https://glyphlang.io/versions/2026-11/"}]}]}</script>
+
     <link rel="alternate" type="application/atom+xml" title="Glyph releases" href="/versions/feed.xml" />
   </head>
   <body>
@@ -491,7 +492,7 @@
           <div class="rel-body">
             <p>A <code>{</code> on the line where a statement just ended is now a parse error, E0013. Before, <code>return h() { k: 2 }</code> compiled as <code>return h()</code> followed by an object literal that never ran, and the only hint was an unreachable-code warning. The value the line was written to return was silently dropped.</p>
 
-<pre>`{` cannot begin a new statement on the line where `return h()` ends</pre>
+<pre><span class="q">`{`</span> cannot begin a new statement on the line where <span class="q">`return h()`</span> ends</pre>
 
             <p>The help gives the fix. Glyph has no <code>Order { … }</code> form, so write the literal on its own and put the type on the annotation, or drop the braces if they were not meant to be the value. <code>return Order { … }</code> now reports this error instead of E0228.</p>
 
@@ -596,12 +597,12 @@
 
             <div class="code">
               <span class="cap">page.glyph</span>
-<pre>pub type Page&lt;T&gt; = { items: Array&lt;T&gt;, h: Handle }
+<pre><span class="k">pub</span> <span class="k">type</span> <span class="t">Page</span>&lt;<span class="t">T</span>&gt; = { items: <span class="t">Array</span>&lt;<span class="t">T</span>&gt;, h: <span class="t">Handle</span> }
 
-let page = json.parse&lt;Page&lt;User&gt;&gt;(body)</pre>
+<span class="k">let</span> page = json.parse&lt;<span class="t">Page</span>&lt;<span class="t">User</span>&gt;&gt;(body)</pre>
             </div>
 
-<pre>cannot validate `Page&lt;User&gt;`: `Page`'s field `h` has type `Handle`, which has no runtime check</pre>
+<pre>cannot validate <span class="q">`Page&lt;User&gt;`</span>: <span class="q">`Page`</span>'s field <span class="q">`h`</span> has type <span class="q">`Handle`</span>, which has no runtime check</pre>
 
             <p>Here <code>Handle</code> is an <code>extern_ts</code> type, which Glyph cannot check at run time. A record with the same field was already refused; a generic one and a union variant carrying it now get the same answer, whether you call <code>json.parse</code>, <code>Page.parse</code>, <code>U.is</code> or <code>json.parse_with</code> with its <code>schema</code>, put the type inside another record, an <code>Option</code> or an <code>Array</code>, pass it as a generic's type argument, or reach it through another module.</p>
 
@@ -625,11 +626,11 @@ let page = json.parse&lt;Page&lt;User&gt;&gt;(body)</pre>
 
             <div class="code">
               <span class="cap">rows.glyph</span>
-<pre data-check="needs-deps">module rows
+<pre data-check="needs-deps"><span class="k">module</span> rows
 
-import user { User }
+<span class="k">import</span> user { <span class="t">User</span> }
 
-pub type Rows = Array&lt;User&gt;</pre>
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Rows</span> = <span class="t">Array</span>&lt;<span class="t">User</span>&gt;</pre>
             </div>
 
             <p>The check follows <code>User</code> into the module that declares it, by name or through a namespace, through as many modules as it takes, and a generic such as <code>Page&lt;User&gt;</code> is checked the same way. Names are always read where they were written. If the file calling <code>json.parse</code> has its own <code>User</code> with different fields, the document is checked against <code>rows</code>'s <code>User</code>, and one shaped like yours comes back <code>Err</code>.</p>
@@ -652,14 +653,14 @@ pub type Rows = Array&lt;User&gt;</pre>
           <div class="rel-body">
             <p>Reading a member off an <code>Option</code> or a <code>Result</code> is now checked. An <code>Option</code> has no members, and a <code>Result</code> has two, <code>map</code> and <code>map_err</code>. Anything else is E0210, and the message says which members exist:</p>
 
-<pre>type `Result&lt;Note, string&gt;` has no field `value`: a `Result`'s only members are `map` and `map_err`</pre>
+<pre>type <span class="q">`Result&lt;Note, string&gt;`</span> has no field <span class="q">`value`</span>: a <span class="q">`Result`</span>'s only members are <span class="q">`map`</span> and <span class="q">`map_err`</span></pre>
 
             <p>Before, <code>r.value</code>, <code>r.tag</code> and <code>o.tag</code> passed <code>glyph check</code> and the full build, because they are how the emitted TypeScript stores the value and <code>tsc</code> could see them. They are not part of the language: reading <code>r.value</code> on an <code>Err</code> gives you the error where you expected the success value, and nothing warns you. Open the value with <code>match</code>, or bind a <code>Result</code> with <code>?</code> first and read the field after:</p>
 
             <div class="code">
               <span class="cap">note.glyph</span>
-<pre>let note = load()?
-return Ok(note.name)</pre>
+<pre><span class="k">let</span> note = load()<span class="op">?</span>
+<span class="k">return</span> <span class="t">Ok</span>(note.name)</pre>
             </div>
 
             <p>A misspelled method gets a suggestion (<code>r.mapp(f)</code> points at <code>map</code>). <code>.map_err(f)?</code>, the most common way to use a <code>Result</code>, is unchanged.</p>
@@ -687,11 +688,11 @@ return Ok(note.name)</pre>
 
             <div class="code">
               <span class="cap">job.glyph</span>
-<pre>pub fn f() -&gt; Result&lt;number, string&gt; {
-  let a = 1
-  load()?
+<pre><span class="k">pub</span> <span class="k">fn</span> f() <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, <span class="t">string</span>&gt; {
+  <span class="k">let</span> a = <span class="n">1</span>
+  load()<span class="op">?</span>
     .run()
-  return Ok(a)
+  <span class="k">return</span> <span class="t">Ok</span>(a)
 }</pre>
             </div>
 
@@ -722,17 +723,17 @@ return Ok(note.name)</pre>
 
             <div class="code">
               <span class="cap">first.glyph</span>
-<pre>module first
+<pre><span class="k">module</span> first
 
-pub fn first(xs: Array&lt;number&gt;) -&gt; number {
-  return xs[
-    // the oldest entry
-    0
+<span class="k">pub</span> <span class="k">fn</span> first(xs: <span class="t">Array</span>&lt;<span class="t">number</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> xs[
+    <span class="c">// the oldest entry</span>
+    <span class="n">0</span>
   ]
 }</pre>
             </div>
 
-<pre>first.glyph:5:5: comment inside an index expression has no canonical place; move it above the statement</pre>
+<pre><span class="lc">first.glyph:5:5</span>: comment inside an index expression has no canonical place; move it above the statement</pre>
 
             <p>Before, the formatter printed <code>xs[0]</code> and put the comment below the statement, or inside the next argument list, where it described something else, and the result looked deliberate. A comment you write is a claim about the line it sits on, and a formatter that moves it makes the file say something false about itself.</p>
 
@@ -763,10 +764,10 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
 
             <div class="code">
               <span class="cap">count.glyph</span>
-<pre>fn count(s: string) -&gt; number {
-  return s
+<pre><span class="k">fn</span> count(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> s
     .trim()
-    // then count what is left
+    <span class="c">// then count what is left</span>
     .length
 }</pre>
             </div>
@@ -796,14 +797,14 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
 
             <div class="code">
               <span class="cap">notes.glyph</span>
-<pre>pub component Notes() {
-  return &lt;div&gt;
-    {
-      // the heading comes from the route
-    }
-    &lt;h1&gt;Notes&lt;/h1&gt;
-    &lt;p&gt;Don't stop; 50% off "today"&lt;/p&gt;
-  &lt;/div&gt;
+<pre><span class="k">pub</span> <span class="k">component</span> <span class="t">Notes</span>() {
+  <span class="k">return</span> &lt;<span class="t">div</span>&gt;
+    <span class="ip">{</span>
+      <span class="c">// the heading comes from the route</span>
+    <span class="ip">}</span>
+    &lt;<span class="t">h1</span>&gt;Notes&lt;/<span class="t">h1</span>&gt;
+    &lt;<span class="t">p</span>&gt;Don't stop; 50% off "today"&lt;/<span class="t">p</span>&gt;
+  &lt;/<span class="t">div</span>&gt;
 }</pre>
             </div>
 
@@ -871,11 +872,11 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
             <h4><code>json.parse</code> never casts</h4>
             <div class="code">
               <span class="cap">read.glyph</span>
-<pre>fn read&lt;T&gt;(s: string) -&gt; Result&lt;T, Array&lt;Issue&gt;&gt; {
-  return json.parse(s)
+<pre><span class="k">fn</span> read&lt;<span class="t">T</span>&gt;(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">T</span>, <span class="t">Array</span>&lt;<span class="t">Issue</span>&gt;&gt; {
+  <span class="k">return</span> json.parse(s)
 }
 
-let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
+<span class="k">let</span> user = read&lt;<span class="t">User</span>&gt;(<span class="s">"42"</span>)   <span class="c">// Ok, and then a crash</span></pre>
             </div>
             <p>That program passed <code>glyph check</code> and <code>tsc</code> in 0.1.132 and crashed on the first field read. The emitter wrote <code>json.parse(s)</code> with no type argument, and <code>tsc</code> inferred <code>T</code> from the return type, which made the unchecked read a cast with no <code>as</code> anywhere. A call with no type argument is now emitted as <code>json.parse&lt;unknown&gt;(s)</code>, so <code>tsc</code> refuses it there, at a <code>let</code> annotated <code>Result&lt;User, ...&gt;</code>, at an argument and in a record field. <code>glyph check --no-tsc</code> does not refuse an <code>unknown</code> value where another type is declared yet; that is 0.1.158.</p>
             <p><code>json.parse&lt;T&gt;</code> with a <code>T</code> nothing can check at run time is E0304: a type parameter, an <code>extern_ts</code> or package type, an interface, <code>Result</code>, a generic union, an <code>Option</code>, <code>Nullable</code> or <code>Record</code> of one, or a generic record applied to one (<code>Pair&lt;Shape&gt;</code>, whose check tested <code>a</code> only for being there). The note says which. A container of <code>unknown</code> is checked by its shape, so <code>json.parse&lt;Array&lt;unknown&gt;&gt;("{}")</code> is an <code>Err</code>. An <code>Array</code> alias imported from another module validates when its body names types that module declares. If it names one the module imports, that is E0304 for now. It used to look the name up in your module, and validate against your own <code>User</code> if you had one. Assigning <code>json.parse</code> to a variable gives you the unchecked read: <code>let p = json.parse</code> takes no type arguments.</p>
@@ -920,8 +921,8 @@ let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
             <h4>Reading through a <code>Nullable</code></h4>
             <div class="code">
               <span class="cap">note.glyph</span>
-<pre>pub fn label(n: Nullable&lt;Note&gt;) -&gt; string {
-  return n?.name ?? "none"
+<pre><span class="k">pub</span> <span class="k">fn</span> label(n: <span class="t">Nullable</span>&lt;<span class="t">Note</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> n<span class="op">?.</span>name <span class="op">??</span> <span class="s">"none"</span>
 }</pre>
             </div>
             <p><code>n?.name</code> is now checked against <code>Note</code>'s fields. Its value is the name or JavaScript's <code>undefined</code>, and Glyph has no type for <code>undefined</code>, so it can only be the left side of <code>??</code> or compared with <code>==</code>. Anywhere else, such as a <code>let</code> or a <code>"${...}"</code>, it is the new E0235. That catches <code>"${n?.name}"</code> printing the text "undefined", which <code>tsc</code> accepts. <code>n.name</code> without the <code>?</code> is E0235 too.</p>
@@ -958,10 +959,10 @@ let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
             <h4>A field called <code>type</code></h4>
             <div class="code">
               <span class="cap">event.glyph</span>
-<pre>type Event = { type: string, id: number, }
+<pre><span class="k">type</span> <span class="t">Event</span> = { <span class="k">type</span>: <span class="t">string</span>, id: <span class="t">number</span>, }
 
-pub fn kind(e: Event) -&gt; string {
-  return e.type
+<span class="k">pub</span> <span class="k">fn</span> kind(e: <span class="t">Event</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> e.<span class="k">type</span>
 }</pre>
             </div>
             <p>The record was accepted and the read was not: <code>e.type</code> was E0002, because <code>type</code> is a reserved word. A JSON discriminator is usually called exactly that. Any keyword after <code>.</code> or <code>?.</code> is now a member name, so <code>e.type</code> reads and <code>Sized.is(v)</code> can be called. A keyword used as a type, like <code>fn f(x: match)</code>, says it is reserved instead of giving a generic parse error.</p>
@@ -1001,7 +1002,7 @@ pub fn kind(e: Event) -&gt; string {
             <h4>Glyph's own checker refuses an unchecked boundary read</h4>
             <div class="code">
               <span class="cap">user.glyph</span>
-<pre>let user: User = json.parse(body)</pre>
+<pre><span class="k">let</span> user: <span class="t">User</span> = json.parse(body)</pre>
             </div>
             <p><code>json.parse</code> returns a <code>Result</code>, so this was always an error, but only <code>tsc</code> reported it. <code>glyph check --no-tsc</code>, the editor and the playground said nothing. It is E0204 now: a <code>Result</code>, <code>Option</code>, <code>Array</code>, <code>Record</code> or <code>Nullable</code> where a declared record or union is expected is a type mismatch in the checker. All five <code>catches/</code> programs are now refused by Glyph itself, and all five reproduce in the playground.</p>
 
@@ -1038,11 +1039,11 @@ pub fn kind(e: Event) -&gt; string {
             <p><code>&lt;case Loaded bind={items}&gt;</code> read a field called <code>items</code> whatever the payload was, so on a positional payload it bound <code>undefined</code>, and the checker never typed the name. A case now takes the pattern a <code>match</code> arm takes:</p>
             <div class="code">
               <span class="cap">view.glyph</span>
-<pre>&lt;match value={props.load}&gt;
-  &lt;case Loading&gt;&lt;p&gt;loading&lt;/p&gt;&lt;/case&gt;
-  &lt;case Loaded({ users, total })&gt;&lt;p&gt;{total} users&lt;/p&gt;&lt;/case&gt;
-  &lt;case Failed(message)&gt;&lt;p&gt;{message}&lt;/p&gt;&lt;/case&gt;
-&lt;/match&gt;</pre>
+<pre>&lt;<span class="t">match</span> value={props.load}&gt;
+  &lt;<span class="t">case</span> <span class="t">Loading</span>&gt;&lt;<span class="t">p</span>&gt;loading&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+  &lt;<span class="t">case</span> <span class="t">Loaded</span>({ users, total })&gt;&lt;<span class="t">p</span>&gt;<span class="ip">{</span>total<span class="ip">}</span> users&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+  &lt;<span class="t">case</span> <span class="t">Failed</span>(message)&gt;&lt;<span class="t">p</span>&gt;<span class="ip">{</span>message<span class="ip">}</span>&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">case</span>&gt;
+&lt;/<span class="t">match</span>&gt;</pre>
             </div>
             <p>The bindings are typed, and a case that only matches some values of its variant does not count as covering it. <code>bind=</code> is now E0231, and its help writes the pattern for you. The same change closed a hole in ordinary <code>match</code> arms: <code>Loaded({ totl })</code> on a record with no <code>totl</code> field passed the checker and only <code>tsc</code> complained. It is E0210 now, listing the fields the record has.</p>
 
@@ -1076,10 +1077,10 @@ pub fn kind(e: Event) -&gt; string {
             <p>Three small modules. <code>std/dom</code> reads and sets the title, finds an element by id and gives you the page's address. <code>std/storage</code> wraps <code>localStorage</code>: a read is an <code>Option</code> and a write is a <code>Result</code>, because a full or blocked store is an ordinary failure in a real browser. <code>std/console</code> writes a line at three levels. An element is opaque to Glyph: you hand it to React, you don't poke at it.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>pub fn main() -&gt; void {
-  match dom.element_by_id("root") {
-    Some(root) =&gt; createRoot(root).render(&lt;App /&gt;),
-    None =&gt; console.error("the page has no #root element"),
+<pre><span class="k">pub</span> <span class="k">fn</span> main() <span class="op">-&gt;</span> <span class="k">void</span> {
+  <span class="k">match</span> dom.element_by_id(<span class="s">"root"</span>) {
+    <span class="t">Some</span>(root) <span class="op">=&gt;</span> createRoot(root).render(&lt;<span class="t">App</span> /&gt;),
+    <span class="t">None</span> <span class="op">=&gt;</span> console.error(<span class="s">"the page has no #root element"</span>),
   }
 }</pre>
             </div>

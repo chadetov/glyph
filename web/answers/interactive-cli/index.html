@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/interactive-cli/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I write a program someone types into?","item":"https://glyphlang.io/answers/interactive-cli/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/interactive-cli/#article","headline":"Can I write a program someone types into?","description":"io.read_line returns as soon as a line arrives instead of waiting for stdin to close, so a REPL, a game loop or a chat client answers while you type.","url":"https://glyphlang.io/answers/interactive-cli/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/interactive-cli/#breadcrumb"}}]}</script>
+
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -461,24 +462,24 @@
 
       <div class="code">
         <span class="cap">examples/apps/chat/main.glyph</span>
-<pre>fn converse(limit: Option&lt;int&gt;) -&gt; Server {
-  let state = server.empty()
-  io.println(LIVE_BANNER)
-  loop {
-    let text = match io.read_line() {
-      Some(l) =&gt; l,
-      None =&gt; { break },
+<pre><span class="k">fn</span> converse(limit: <span class="t">Option</span>&lt;<span class="t">int</span>&gt;) <span class="op">-&gt;</span> <span class="t">Server</span> {
+  <span class="k">let</span> state = server.empty()
+  io.println(<span class="t">LIVE_BANNER</span>)
+  <span class="k">loop</span> {
+    <span class="k">let</span> text = <span class="k">match</span> io.read_line() {
+      <span class="t">Some</span>(l) <span class="op">=&gt;</span> l,
+      <span class="t">None</span> <span class="op">=&gt;</span> { <span class="k">break</span> },
     }
-    match client_line(text) {
-      None =&gt; { io.println(LIVE_HINT) },
-      Some(sent) =&gt; {
-        let done = turn(state, sent.from, sent.line)
+    <span class="k">match</span> client_line(text) {
+      <span class="t">None</span> <span class="op">=&gt;</span> { io.println(<span class="t">LIVE_HINT</span>) },
+      <span class="t">Some</span>(sent) <span class="op">=&gt;</span> {
+        <span class="k">let</span> done = turn(state, sent.from, sent.line)
         report(done.lines)
-        mut state = done.state
+        <span class="k">mut</span> state = done.state
       },
     }
   }
-  return state
+  <span class="k">return</span> state
 }</pre>
       </div>
 
@@ -528,8 +529,8 @@
 
       <div class="code">
         <span class="cap">A header line, then the body</span>
-<pre>let header = io.read_line()
-let body = io.read_to_string()</pre>
+<pre><span class="k">let</span> header = io.read_line()
+<span class="k">let</span> body = io.read_to_string()</pre>
       </div>
 
       <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>

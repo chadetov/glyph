@@ -27,8 +27,8 @@ pub(crate) fn parse_block(p: &mut Cursor) -> Result<Block, ParseError> {
             // before `g` and `return h()` before `{ k: 2 }`, and reads what
             // follows as a separate statement, so a value the author wrote
             // was dropped or never ran without an error.
-            if let Some(start) = same_line_start(p.peek()) {
-                if !p.line_break_before_current() {
+            if let Some(start) = same_line_start(p) {
+                if !p.line_break_before_current() && !keeps_older_error(&s, start) {
                     let stmt = s.span();
                     let text = p.slice(stmt.start, stmt.end);
                     // Quoted only when it reads as one short line; a statement
@@ -54,11 +54,85 @@ pub(crate) fn parse_block(p: &mut Cursor) -> Result<Block, ParseError> {
     })
 }
 
-/// What a token after a statement would begin, for E0013, or `None` for a
-/// token that cannot begin a statement at all. Those (`}`, `)`, `,`, `=`, a
-/// binary operator the expression did not take) keep the error the next step
-/// gives them, which names the token rather than a second statement.
-fn same_line_start(t: &Token) -> Option<SameLineStart> {
+/// TypeScript keywords that lex as identifiers in Glyph, and `const`, which
+/// demotes to one in expression position. None of them can be bound (`const`
+/// is a Glyph keyword, the rest are E0109 in the resolver, whose
+/// `is_reserved_ts_word` holds every name here; a resolver test checks it),
+/// so a bare one is always an unresolved name. `null`, `this`, `super`,
+/// `eval` and `arguments` are left out: they are values in TypeScript, not
+/// the start of a statement form.
+pub const TS_STATEMENT_WORDS: &[&str] = &[
+    "const",
+    "var",
+    "throw",
+    "typeof",
+    "delete",
+    "yield",
+    "function",
+    "try",
+    "catch",
+    "finally",
+    "while",
+    "do",
+    "switch",
+    "case",
+    "default",
+    "class",
+    "enum",
+    "export",
+    "extends",
+    "implements",
+    "instanceof",
+    "debugger",
+    "with",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "static",
+];
+
+/// Whether E0013 stands aside for `stmt` so the error 0.1.148 gave stays
+/// (record 117, B1). `const y = 1` and `var y = 1` read as the name `const`
+/// and then `y = 1`, which is E0008 with help to write `let`; `throw new
+/// Error("x")` reads as the name `throw`, which is E0103. Both say what is
+/// wrong, where E0013's "start the statement on its own line" would split
+/// `const` from `y = 1` and lead nowhere.
+///
+/// Standing aside drops nothing silently: the word cannot be bound, so the
+/// program fails to resolve even when nothing after it is an error. A `{`
+/// keeps E0013, as G351 refused it in 0.1.146 (`try { ... }`).
+fn keeps_older_error(stmt: &Stmt, start: SameLineStart) -> bool {
+    start != SameLineStart::Brace
+        && matches!(stmt, Stmt::Expr(Expr::Ident { name, .. })
+            if TS_STATEMENT_WORDS.contains(&name.as_ref()))
+}
+
+/// What the token after a statement would begin, for E0013, or `None` when
+/// another error says more. That is a token that cannot begin a statement at
+/// all (`}`, `)`, `,`, `=`, `@`, `$`, a binary operator the expression did not
+/// take), which keeps the error the next step gives it, naming the token
+/// rather than a second statement. It is also a token whose statement already
+/// has a dedicated error: `if` (E0006, record 117 N1), `const [` (E0230), and
+/// a `name:` label (E0003 on the `:`, record 117 N2).
+///
+/// After a postfix `?` the token is a TypeScript `? :` conditional, or a
+/// statement after error propagation, whatever it is (record 117, B2).
+fn same_line_start(p: &mut Cursor) -> Option<SameLineStart> {
+    let start = token_start(p.peek())?;
+    if matches!(p.previous_token(), Some(Token::Question)) {
+        return Some(SameLineStart::Ternary);
+    }
+    let next_is = |p: &mut Cursor, t: Token| p.peek_at(1) == Some(&t);
+    let has_own_error = match p.peek() {
+        Token::Identifier(_) => next_is(p, Token::Colon),
+        Token::Const => next_is(p, Token::LBracket),
+        _ => false,
+    };
+    (!has_own_error).then_some(start)
+}
+
+fn token_start(t: &Token) -> Option<SameLineStart> {
     Some(match t {
         Token::LBrace => SameLineStart::Brace,
         Token::As => SameLineStart::As,
@@ -100,7 +174,10 @@ fn same_line_start(t: &Token) -> Option<SameLineStart> {
         | Token::Pipe
         | Token::Amp
         | Token::Caret
+        | Token::If
         | Token::Else
+        | Token::At
+        | Token::Dollar
         | Token::In
         | Token::Is
         | Token::Where

@@ -190,6 +190,11 @@ impl<'a> Cursor<'a> {
         }
     }
 
+    /// The token just consumed, or `None` at the start of the file.
+    pub fn previous_token(&self) -> Option<&Token> {
+        self.pos.checked_sub(1).map(|prev| &self.buf[prev].token.token)
+    }
+
     /// Scan the JSX text run that starts right after the token just consumed,
     /// a tag's `>` or an `{expr}` child's `}` (D6, record 85).
     ///

@@ -34,6 +34,11 @@ const KEYWORD_AFTER_STATEMENT_HELP: &str = "Start the statement on its own line.
 /// The help for E0013 before anything else (G370): `let x = h() g`.
 const OTHER_AFTER_STATEMENT_HELP: &str = "Start the statement on its own line. If it was meant to be part of the expression before it, something is missing between them: Glyph does not combine two expressions written side by side, so write the operator, `.` or `,` that joins them.";
 
+/// The help for E0013 after a postfix `?` (record 117, B2). `let x = a > 0
+/// ? 1 : 2` is a TypeScript conditional: `?` took `a > 0` as error
+/// propagation, and `1` began a statement.
+const TERNARY_AFTER_STATEMENT_HELP: &str = "Glyph has no `cond ? a : b` conditional: a `?` after an expression propagates an error, so the statement ended there. Write the conditional as a `match` on the condition: `match cond { true => a, false => b, }`. If the `?` was meant to propagate an error, start the next statement on its own line.";
+
 /// What begins the statement E0013 refuses, which decides its help.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SameLineStart {
@@ -46,6 +51,9 @@ pub enum SameLineStart {
     /// A keyword that begins a statement: `let`, `mut`, `return`, `for`,
     /// `loop`, `break`, `continue`, `defer`, `const`.
     Keyword,
+    /// Any token that can begin a statement, after a postfix `?`: a
+    /// TypeScript `? :` conditional.
+    Ternary,
     /// Any other token that can begin a statement.
     Other,
 }
@@ -494,6 +502,7 @@ impl ParseError {
                 SameLineStart::As => AS_AFTER_STATEMENT_HELP,
                 SameLineStart::Literal => LITERAL_AFTER_STATEMENT_HELP,
                 SameLineStart::Keyword => KEYWORD_AFTER_STATEMENT_HELP,
+                SameLineStart::Ternary => TERNARY_AFTER_STATEMENT_HELP,
                 SameLineStart::Other => OTHER_AFTER_STATEMENT_HELP,
             }),
         })

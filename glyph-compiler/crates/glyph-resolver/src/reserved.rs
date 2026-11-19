@@ -618,4 +618,36 @@ mod tests {
         }
         out
     }
+
+    /// The parser lets E0013 stand aside after a bare word from
+    /// `TS_STATEMENT_WORDS` (record 117, B1) because such a word can never be
+    /// bound, so the program still fails to resolve. That holds only while
+    /// every word there is reserved here, or is the Glyph keyword `const`.
+    #[test]
+    fn every_ts_statement_word_the_parser_trusts_is_unbindable() {
+        for w in glyph_parser::TS_STATEMENT_WORDS {
+            assert!(
+                *w == "const" || is_reserved_ts_word(w),
+                "`{w}` can be bound, so a bare `{w}` before a statement on its line would compile"
+            );
+        }
+    }
+
+    /// And end to end: the line the parser lets through still fails, as an
+    /// unresolved name.
+    #[test]
+    fn a_bare_ts_statement_word_before_a_statement_does_not_resolve() {
+        for w in glyph_parser::TS_STATEMENT_WORDS {
+            let src = format!("module m\n\nfn f(x: int) -> void {{\n  {w} x\n}}\n");
+            let module = glyph_parser::parse(&src).unwrap_or_else(|e| panic!("{w}: {e:?}"));
+            let symbols = crate::collect_module_symbols(&module).expect("collect");
+            let (_, errors) = crate::resolve_module(&module, symbols, &crate::build_prelude());
+            assert!(
+                errors.iter().any(
+                    |e| matches!(e, crate::ResolveError::UnresolvedName { name, .. } if name == w)
+                ),
+                "`{w} x` resolved: {errors:?}"
+            );
+        }
+    }
 }

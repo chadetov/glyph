@@ -39,6 +39,7 @@ mod types;
 
 pub use cursor::MAX_NESTING_DEPTH;
 pub use error::{LetPatternRefusal, NameRole, ParseError, SameLineStart, RELATIVE_IMPORT_HELP};
+pub use stmt::TS_STATEMENT_WORDS;
 
 use glyph_ast::Module;
 use glyph_lexer::{Comment, Span};

@@ -48,11 +48,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">TypeScript'te hiçbir şeyin yakalamadığı vakalar</h2>
         <p class="friction-intro">
-          Tüm ek flag'ler açıkken ve typescript-eslint strict moddayken
-          <code>tsc --strict</code>'ten geçen vakalar arasında en üst sıradaki
-          üçü. Sıralama, bir ajanın onları ne sıklıkla yazdığına ve production'a
-          çıktıklarında ne kadar zarar verdiklerine göre yapıldı. Örnekler,
-          repoda oldukları gibi İngilizce gösteriliyor.
+          Tüm ek flag'ler açıkken ve typescript-eslint strict moddayken <code>tsc --strict</code>'ten geçen vakalar arasında en üst sıradaki üçü. Sıralama, bir ajanın onları ne sıklıkla yazdığına ve production'a çıktıklarında ne kadar zarar verdiklerine göre yapıldı. Örnekler, repoda oldukları gibi İngilizce gösteriliyor.
         </p>
 {{catches:top}}
         <p class="h-more"><a class="card-more" href="/catches/">{{catches:count}} vakanın tümünü gör &rarr;</a></p>
@@ -63,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big">{{catches:count}} vakadan <span>{{catches:none}}</span> tanesi</p>
-          <p>Listedeki her TypeScript örneği <code>tsc --strict</code>'ten hatasız geçer. Her biri ayrıca en sıkı şekilde yapılandırılmış bir projeye karşı da kontrol edilir: <code>--strict</code>'ten daha katı tüm derleyici flag'leri, artı typescript-eslint <code>strictTypeChecked</code>. {{catches:count}} vakanın {{catches:none}} tanesini bu yapılandırmadaki hiçbir şey yakalamıyor. Varsayılan olarak kapalı olan bir derleyici flag'i {{catches:flag}} tanesini, bir lint kuralı da {{catches:lint}} tanesini yakalıyor. Bunların her birini projenin açması gerekir ve bir ajan onu yeniden kapatabilir. Glyph'te bunların hiçbiri bir yapılandırma seçeneği değil. Toplam {{catches:total}} doğrulanmış vaka var: {{catches:count}} TypeScript hatası, Glyph'te var olmayan {{catches:trap-count}} JavaScript tuzağı ve Glyph'in henüz kapatmadığı {{catches:gap-cases}} açık. Glyph bunların {{catches:refused-all}} tanesini derleme sırasında reddeder ({{catches:refused}} hata ve {{catches:traps-refused}} tuzak).</p>
+          <p>{{catches:measured}} Toplam {{catches:total}} doğrulanmış vaka var: {{catches:count}} TypeScript hatası, Glyph'te var olmayan {{catches:trap-count}} JavaScript tuzağı ve Glyph'in henüz kapatmadığı {{catches:gap-cases}} açık. Glyph bunların {{catches:refused-all}} tanesini derleme sırasında reddeder ({{catches:refused}} hata ve {{catches:traps-refused}} tuzak).</p>
         </div>
       </div>
     </section>
@@ -72,9 +68,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">Gerçek bir uygulamada tek bir değişiklik</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code>, bu repoda bulunan ve merkezinde bir
-          <code>Value</code> union'ı olan bir CSV sorgu motoru. Ona yeni bir case
-          eklemeden önce derleyiciye bunun hangi yerlere ulaştığını sorun.
+          <code>examples/apps/csvql</code>, bu repoda bulunan ve merkezinde bir <code>Value</code> union'ı olan bir CSV sorgu motoru. Ona yeni bir case eklemeden önce derleyiciye bunun hangi yerlere ulaştığını sorun.
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -86,12 +80,7 @@ head: |
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          Tahmin sekizinde de doğru çıktı. Diğer ikisi,
-          <code>exec::total</code> ve <code>render::literal_text</code>,
-          derlenmeye devam ediyor ve yeni case'i catch-all'ları nereye
-          gösteriyorsa oraya yolluyor. Sekiz hatayı düzeltip duran bir ajanın
-          elinde yeşil bir build ve canlı iki bug kalır; bunları gösteren de
-          sorgunun kendisidir.
+          Tahmin sekizinde de doğru çıktı. Diğer ikisi, <code>exec::total</code> ve <code>render::literal_text</code>, derlenmeye devam ediyor ve yeni case'i catch-all'ları nereye gösteriyorsa oraya yolluyor. Sekiz hatayı düzeltip duran bir ajanın elinde yeşil bir build ve canlı iki bug kalır; bunları gösteren de sorgunun kendisidir.
         </p>
       </div>
     </section>
@@ -99,10 +88,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph henüz her şeyi yakalamıyor. Bilinen {{catches:gap-count}} açığın
-          bir reprodüksiyonu ve bir gap numarası var; mantık hataları da
-          TypeScript'te olduğu gibi Glyph'ten de geçiyor.
-          <a href="/catches/#not-yet">Henüz yakalamadıkları &rarr;</a>
+          Glyph henüz her şeyi yakalamıyor. Bilinen {{catches:gap-count}} açığın bir reprodüksiyonu ve bir gap numarası var; mantık hataları da TypeScript'te olduğu gibi Glyph'ten de geçiyor. <a href="/catches/#not-yet">Henüz yakalamadıkları &rarr;</a>
         </p>
       </div>
     </section>

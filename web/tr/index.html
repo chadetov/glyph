@@ -479,11 +479,7 @@
       <div class="wrap">
         <h2 class="section-head">TypeScript'te hiçbir şeyin yakalamadığı vakalar</h2>
         <p class="friction-intro">
-          Tüm ek flag'ler açıkken ve typescript-eslint strict moddayken
-          <code>tsc --strict</code>'ten geçen vakalar arasında en üst sıradaki
-          üçü. Sıralama, bir ajanın onları ne sıklıkla yazdığına ve production'a
-          çıktıklarında ne kadar zarar verdiklerine göre yapıldı. Örnekler,
-          repoda oldukları gibi İngilizce gösteriliyor.
+          Tüm ek flag'ler açıkken ve typescript-eslint strict moddayken <code>tsc --strict</code>'ten geçen vakalar arasında en üst sıradaki üçü. Sıralama, bir ajanın onları ne sıklıkla yazdığına ve production'a çıktıklarında ne kadar zarar verdiklerine göre yapıldı. Örnekler, repoda oldukları gibi İngilizce gösteriliyor.
         </p>
         <div class="c-cards">
           <a class="c-card" href="/catches/#data-from-outside-the-program">
@@ -523,9 +519,7 @@
       <div class="wrap">
         <h2 class="section-head">Gerçek bir uygulamada tek bir değişiklik</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code>, bu repoda bulunan ve merkezinde bir
-          <code>Value</code> union'ı olan bir CSV sorgu motoru. Ona yeni bir case
-          eklemeden önce derleyiciye bunun hangi yerlere ulaştığını sorun.
+          <code>examples/apps/csvql</code>, bu repoda bulunan ve merkezinde bir <code>Value</code> union'ı olan bir CSV sorgu motoru. Ona yeni bir case eklemeden önce derleyiciye bunun hangi yerlere ulaştığını sorun.
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -537,12 +531,7 @@
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          Tahmin sekizinde de doğru çıktı. Diğer ikisi,
-          <code>exec::total</code> ve <code>render::literal_text</code>,
-          derlenmeye devam ediyor ve yeni case'i catch-all'ları nereye
-          gösteriyorsa oraya yolluyor. Sekiz hatayı düzeltip duran bir ajanın
-          elinde yeşil bir build ve canlı iki bug kalır; bunları gösteren de
-          sorgunun kendisidir.
+          Tahmin sekizinde de doğru çıktı. Diğer ikisi, <code>exec::total</code> ve <code>render::literal_text</code>, derlenmeye devam ediyor ve yeni case'i catch-all'ları nereye gösteriyorsa oraya yolluyor. Sekiz hatayı düzeltip duran bir ajanın elinde yeşil bir build ve canlı iki bug kalır; bunları gösteren de sorgunun kendisidir.
         </p>
       </div>
     </section>
@@ -550,10 +539,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph henüz her şeyi yakalamıyor. Bilinen 11 açığın
-          bir reprodüksiyonu ve bir gap numarası var; mantık hataları da
-          TypeScript'te olduğu gibi Glyph'ten de geçiyor.
-          <a href="/catches/#not-yet">Henüz yakalamadıkları &rarr;</a>
+          Glyph henüz her şeyi yakalamıyor. Bilinen 11 açığın bir reprodüksiyonu ve bir gap numarası var; mantık hataları da TypeScript'te olduğu gibi Glyph'ten de geçiyor. <a href="/catches/#not-yet">Henüz yakalamadıkları &rarr;</a>
         </p>
       </div>
     </section>

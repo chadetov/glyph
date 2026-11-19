@@ -1,0 +1,236 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "index.html",
+  "locale": "de",
+  "source_hash": "a5087688a56d8e43",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Glyph: typed, compiles to TypeScript, built for AI agents",
+      "tr": "Glyph: typisiert, kompiliert zu TypeScript, für KI-Agenten"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph is a statically typed language that compiles to TypeScript, built so code an AI agent writes can be read, checked and changed without guessing.",
+      "tr": "Glyph ist eine statisch typisierte Sprache, die zu TypeScript kompiliert, damit sich Code eines KI-Agenten ohne Rätselraten lesen, prüfen und ändern lässt."
+    },
+    {
+      "id": "keywords",
+      "kind": "keywords",
+      "en": "glyph, glyph language, glyph lang, glyphlang, programming language, typescript, transpiler, ai agents, llm",
+      "tr": "glyph, glyph language, glyphlang, programmiersprache, typescript, transpiler, ki-agenten, llm"
+    },
+    {
+      "id": "a-0295b602",
+      "kind": "attr:title",
+      "en": "See what's new",
+      "tr": "Was ist neu"
+    },
+    {
+      "id": "h-9710b5cd",
+      "kind": "html",
+      "en": "v{{version}} · early preview →",
+      "tr": "v{{version}} · Early Preview →"
+    },
+    {
+      "id": "h-c893d480",
+      "kind": "html",
+      "en": "Your AI agent writes it. <span class=\"accent\">The compiler checks it.</span>",
+      "tr": "Dein KI-Agent schreibt den Code. <span class=\"accent\">Der Compiler prüft ihn.</span>"
+    },
+    {
+      "id": "h-312ac4ca",
+      "kind": "html",
+      "en": "Glyph reads like TypeScript, with the escape hatches removed: no <code>any</code>, no casts, no unchecked data, every case handled. It compiles to readable TypeScript, so you keep node, npm and the code you already have.",
+      "tr": "Glyph liest sich wie TypeScript, nur ohne die Hintertüren: kein <code>any</code>, keine Casts, keine ungeprüften Daten, jeder Fall behandelt. Es kompiliert zu lesbarem TypeScript, du behältst also node, npm und deinen bestehenden Code."
+    },
+    {
+      "id": "a-0963fe9f",
+      "kind": "attr:title",
+      "en": "Requires Node.js 18+",
+      "tr": "Benötigt Node.js 18 oder neuer"
+    },
+    {
+      "id": "h-6f5a6034",
+      "kind": "html",
+      "en": "copy",
+      "tr": "kopieren"
+    },
+    {
+      "id": "h-7985262d",
+      "kind": "html",
+      "en": "No global install needed. To put <code>glyph</code> on your PATH instead: <code>npm install -g @glyphlang/glyph tsx typescript</code>",
+      "tr": "Ohne globale Installation. Wer <code>glyph</code> lieber im PATH hat: <code>npm install -g @glyphlang/glyph tsx typescript</code>"
+    },
+    {
+      "id": "h-5939e6e0",
+      "kind": "html",
+      "en": "See what it catches →",
+      "tr": "Sehen, was es findet →"
+    },
+    {
+      "id": "h-32d27690",
+      "kind": "html",
+      "en": "Start in 10 minutes →",
+      "tr": "In 10 Minuten loslegen →"
+    },
+    {
+      "id": "h-92f76a10",
+      "kind": "html",
+      "en": "Where to go from here",
+      "tr": "Wie es weitergeht"
+    },
+    {
+      "id": "h-1ee95dbf",
+      "kind": "html",
+      "en": "I write TypeScript",
+      "tr": "Ich schreibe TypeScript"
+    },
+    {
+      "id": "h-90b72e29",
+      "kind": "html",
+      "en": "What changes, what stays, and how npm packages come along.",
+      "tr": "Was sich ändert, was bleibt und wie deine npm-Pakete mitkommen."
+    },
+    {
+      "id": "h-415dd5bc",
+      "kind": "html",
+      "en": "I'm deciding for a team",
+      "tr": "Ich entscheide für ein Team"
+    },
+    {
+      "id": "h-eddd22eb",
+      "kind": "html",
+      "en": "What it guarantees, what it does not, and what leaving costs.",
+      "tr": "Was es garantiert, was nicht und was ein Ausstieg kostet."
+    },
+    {
+      "id": "h-1777f1a3",
+      "kind": "html",
+      "en": "I build agents and tools",
+      "tr": "Ich baue Agenten und Tools"
+    },
+    {
+      "id": "h-a7f97874",
+      "kind": "html",
+      "en": "The MCP server, the queries it answers, and the diagnostic format.",
+      "tr": "Der MCP-Server, die Abfragen, die er beantwortet, und das Format der Diagnosen."
+    },
+    {
+      "id": "h-110f049e",
+      "kind": "html",
+      "en": "Show me the evidence",
+      "tr": "Zeig mir die Belege"
+    },
+    {
+      "id": "h-e218dac1",
+      "kind": "html",
+      "en": "How each claim is checked, and how to reproduce it.",
+      "tr": "Wie jede Aussage geprüft wird und wie du sie nachvollziehst."
+    },
+    {
+      "id": "h-f1cd7a9b",
+      "kind": "html",
+      "en": "Why a new language?",
+      "tr": "Warum eine neue Sprache?"
+    },
+    {
+      "id": "h-c459657e",
+      "kind": "html",
+      "en": "The design argument, and what was left out on purpose.",
+      "tr": "Die Begründung des Designs und was bewusst weggelassen wurde."
+    },
+    {
+      "id": "h-0a00e35d",
+      "kind": "html",
+      "en": "Just let me try it",
+      "tr": "Ich will es einfach ausprobieren"
+    },
+    {
+      "id": "h-6e3f25ec",
+      "kind": "html",
+      "en": "Start in 10 minutes",
+      "tr": "In 10 Minuten loslegen"
+    },
+    {
+      "id": "h-a6273fb5",
+      "kind": "html",
+      "en": "Playground",
+      "tr": "Playground"
+    },
+    {
+      "id": "h-aa8e1bd8",
+      "kind": "html",
+      "en": "Cases nothing in TypeScript catches",
+      "tr": "Fälle, die in TypeScript nichts findet"
+    },
+    {
+      "id": "h-8bfb0506",
+      "kind": "html",
+      "en": "The three highest-ranked cases that pass <code>tsc --strict</code> with every extra flag on and typescript-eslint strict, ranked by how often an agent writes them and how bad they are when they ship.",
+      "tr": "Die drei am höchsten eingestuften Fälle, die <code>tsc --strict</code> mit allen zusätzlichen Flags und typescript-eslint im Strict-Modus bestehen, sortiert danach, wie oft ein Agent sie schreibt und wie schlimm sie sind, wenn sie in Produktion landen. Die Fälle werden auf Englisch gezeigt, so wie sie im Repository stehen."
+    },
+    {
+      "id": "h-bb229a74",
+      "kind": "html",
+      "en": "See all {{catches:count}} &rarr;",
+      "tr": "Alle {{catches:count}} ansehen &rarr;"
+    },
+    {
+      "id": "h-57a571c1",
+      "kind": "html",
+      "en": "<span>{{catches:none}}</span> of {{catches:count}}",
+      "tr": "<span>{{catches:none}}</span> von {{catches:count}}"
+    },
+    {
+      "id": "h-fa646db9",
+      "kind": "html",
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript mistakes, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} mistakes and {{catches:traps-refused}} traps).",
+      "tr": "{{catches:measured}} Insgesamt gibt es {{catches:total}} geprüfte Fälle: {{catches:count}} TypeScript-Fehler, {{catches:trap-count}} JavaScript-Fallen, die es in Glyph nicht gibt, und {{catches:gap-cases}} Lücken, die Glyph noch nicht schließt. Glyph lehnt {{catches:refused-all}} davon beim Build ab ({{catches:refused}} Fehler und {{catches:traps-refused}} Fallen)."
+    },
+    {
+      "id": "h-cda6f98d",
+      "kind": "html",
+      "en": "One change, on a real application",
+      "tr": "Eine Änderung in einer echten Anwendung"
+    },
+    {
+      "id": "h-2e4f29c6",
+      "kind": "html",
+      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a case to it, ask the compiler which places it reaches.",
+      "tr": "<code>examples/apps/csvql</code> ist eine Query-Engine für CSV-Dateien in diesem Repository, mit einer <code>Value</code>-Union im Zentrum. Bevor du einen Fall hinzufügst, frag den Compiler, welche Stellen er erreicht."
+    },
+    {
+      "id": "h-bb44e881",
+      "kind": "html",
+      "en": "glyph_variants { name: \"Value\" }",
+      "tr": "glyph_variants { name: \"Value\" }"
+    },
+    {
+      "id": "h-dd6a6de7",
+      "kind": "html",
+      "en": "then add the case and run glyph check",
+      "tr": "dann den Fall hinzufügen und glyph check ausführen"
+    },
+    {
+      "id": "h-dcb7c936",
+      "kind": "html",
+      "en": "The prediction was right on all eight. The other two, <code>exec::total</code> and <code>render::literal_text</code>, keep compiling and send the new case wherever their catch-all points. An agent that fixes the eight errors and stops has a green build and two live bugs, and the query is what names them.",
+      "tr": "Die Vorhersage traf bei allen acht zu. Die anderen beiden, <code>exec::total</code> und <code>render::literal_text</code>, kompilieren weiter und schicken den neuen Fall dorthin, wohin ihr Catch-all zeigt. Ein Agent, der die acht Fehler behebt und dann aufhört, hat einen grünen Build und zwei lebende Bugs, und erst die Abfrage benennt sie."
+    },
+    {
+      "id": "h-35b0b48e",
+      "kind": "html",
+      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
+      "tr": "Glyph findet noch nicht alles. {{catches:gap-count}} bekannte Lücken haben eine Reproduktion und eine Gap-Nummer, und Logikfehler kommen in Glyph genauso durch wie in TypeScript. <a href=\"/catches/#not-yet\">Was es noch nicht findet &rarr;</a>"
+    },
+    {
+      "id": "j-fb30593c",
+      "kind": "script",
+      "en": "copied",
+      "tr": "kopiert"
+    }
+  ]
+}

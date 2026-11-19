@@ -479,11 +479,7 @@
       <div class="wrap">
         <h2 class="section-head">Casos que nada en TypeScript detecta</h2>
         <p class="friction-intro">
-          Los tres casos mejor clasificados que pasan <code>tsc --strict</code>
-          con todos los flags adicionales activados y typescript-eslint en modo
-          strict, ordenados por la frecuencia con que un agente los escribe y por
-          lo graves que son cuando llegan a producción. Los casos se muestran en
-          inglés, tal como están en el repositorio.
+          Los tres casos mejor clasificados que pasan <code>tsc --strict</code> con todos los flags adicionales activados y typescript-eslint en modo strict, ordenados por la frecuencia con que un agente los escribe y por lo graves que son cuando llegan a producción. Los casos se muestran en inglés, tal como están en el repositorio.
         </p>
         <div class="c-cards">
           <a class="c-card" href="/catches/#data-from-outside-the-program">
@@ -523,9 +519,7 @@
       <div class="wrap">
         <h2 class="section-head">Un cambio, en una aplicación real</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code> es un motor de consultas sobre CSV que
-          vive en este repositorio, con una unión <code>Value</code> en el centro.
-          Antes de añadirle un caso, pregúntale al compilador a qué sitios llega.
+          <code>examples/apps/csvql</code> es un motor de consultas sobre CSV que vive en este repositorio, con una unión <code>Value</code> en el centro. Antes de añadirle un caso, pregúntale al compilador a qué sitios llega.
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -537,11 +531,7 @@
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          La predicción acertó en los ocho. Los otros dos,
-          <code>exec::total</code> y <code>render::literal_text</code>, siguen
-          compilando y mandan el caso nuevo adonde apunte su catch-all. Un agente
-          que corrige los ocho errores y se detiene tiene una build en verde y dos
-          bugs vivos, y es la consulta la que los señala.
+          La predicción acertó en los ocho. Los otros dos, <code>exec::total</code> y <code>render::literal_text</code>, siguen compilando y mandan el caso nuevo adonde apunte su catch-all. Un agente que corrige los ocho errores y se detiene tiene una build en verde y dos bugs vivos, y es la consulta la que los señala.
         </p>
       </div>
     </section>
@@ -549,10 +539,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph todavía no lo detecta todo. 11 agujeros conocidos
-          tienen una reproducción y un número de gap, y los errores de lógica pasan
-          en Glyph igual que en TypeScript.
-          <a href="/catches/#not-yet">Lo que todavía no detecta &rarr;</a>
+          Glyph todavía no lo detecta todo. 11 agujeros conocidos tienen una reproducción y un número de gap, y los errores de lógica pasan en Glyph igual que en TypeScript. <a href="/catches/#not-yet">Lo que todavía no detecta &rarr;</a>
         </p>
       </div>
     </section>

@@ -479,11 +479,7 @@
       <div class="wrap">
         <h2 class="section-head">Случаи, которые в TypeScript не ловит ничто</h2>
         <p class="friction-intro">
-          Три случая с самым высоким рейтингом среди тех, что проходят
-          <code>tsc --strict</code> со всеми дополнительными флагами и
-          typescript-eslint в режиме strict. Рейтинг учитывает, как часто агент
-          их пишет и насколько они опасны в продакшене. Примеры показаны
-          на английском, в том виде, в каком они лежат в репозитории.
+          Три случая с самым высоким рейтингом среди тех, что проходят <code>tsc --strict</code> со всеми дополнительными флагами и typescript-eslint в режиме strict. Рейтинг учитывает, как часто агент их пишет и насколько они опасны в продакшене. Примеры показаны на английском, в том виде, в каком они лежат в репозитории.
         </p>
         <div class="c-cards">
           <a class="c-card" href="/catches/#data-from-outside-the-program">
@@ -523,10 +519,7 @@
       <div class="wrap">
         <h2 class="section-head">Одно изменение в реальном приложении</h2>
         <p class="friction-intro">
-          В этом репозитории лежит <code>examples/apps/csvql</code>, движок
-          запросов к CSV. В его центре union-тип <code>Value</code>.
-          Прежде чем добавить в него новый вариант, спросите компилятор, какие
-          места это затронет.
+          В этом репозитории лежит <code>examples/apps/csvql</code>, движок запросов к CSV. В его центре union-тип <code>Value</code>. Прежде чем добавить в него новый вариант, спросите компилятор, какие места это затронет.
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -538,12 +531,7 @@
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          Прогноз совпал во всех восьми местах. Остальные два,
-          <code>exec::total</code> и <code>render::literal_text</code>,
-          продолжают компилироваться и отправляют новый вариант туда, куда
-          указывает их catch-all. Агент, который исправит восемь ошибок и
-          остановится, получит зелёную сборку и два живых бага, а указывает на них
-          запрос.
+          Прогноз совпал во всех восьми местах. Остальные два, <code>exec::total</code> и <code>render::literal_text</code>, продолжают компилироваться и отправляют новый вариант туда, куда указывает их catch-all. Агент, который исправит восемь ошибок и остановится, получит зелёную сборку и два живых бага, а указывает на них запрос.
         </p>
       </div>
     </section>
@@ -551,10 +539,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph пока ловит не всё. Известных дыр, у каждой из которых есть
-          воспроизведение и номер gap: 11. Логические ошибки
-          проходят в Glyph так же, как в TypeScript.
-          <a href="/catches/#not-yet">Что он пока не ловит &rarr;</a>
+          Glyph пока ловит не всё. Известных дыр, у каждой из которых есть воспроизведение и номер gap: 11. Логические ошибки проходят в Glyph так же, как в TypeScript. <a href="/catches/#not-yet">Что он пока не ловит &rarr;</a>
         </p>
       </div>
     </section>

@@ -59,7 +59,9 @@
     "footer.edit": "このページを編集する",
     "footer.tagline": "Glyph: エージェントが気づかれずに壊すことのできない TypeScript。",
     "footer.license": "MIT または Apache-2.0",
-    "footer.pillars": "4 つの柱"
+    "footer.pillars": "4 つの柱",
+    "catches.measured": "リストにある TypeScript の例は、どれも <code>tsc --strict</code> をエラーなしで通過します。さらに各例を、最も厳しく設定したプロジェクトでも検証しています。<code>--strict</code> より厳しいコンパイラフラグをすべて有効にし、typescript-eslint の <code>strictTypeChecked</code> も加えた設定です。{count} 件のケースのうち {none} 件は、この設定のどれにも検出されません。デフォルトでは無効のコンパイラフラグで検出できるのが {flag} 件、lint ルールで検出できるのが {lint} 件です。これらはプロジェクトごとに 1 つずつ有効にする必要があり、エージェントが無効に戻すこともできます。Glyph では、どれも設定項目ではありません。",
+    "catches.breakdown": "チェック済みのケースは全部で {total} 件です。TypeScript のミスが {count} 件、Glyph には存在しない JavaScript の落とし穴が {trap_count} 件、Glyph がまだ塞いでいない穴が {gap_cases} 件です。そのうち {refused_all} 件はビルド時に Glyph が拒否します（ミス {refused} 件と落とし穴 {traps_refused} 件）。"
   },
   "nav": {
     "Why Glyph": "なぜ Glyph か",

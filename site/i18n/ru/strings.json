@@ -59,7 +59,9 @@
     "footer.edit": "Редактировать эту страницу",
     "footer.tagline": "Glyph: TypeScript, который агенты не сломают незаметно для вас.",
     "footer.license": "MIT или Apache-2.0",
-    "footer.pillars": "Четыре принципа"
+    "footer.pillars": "Четыре принципа",
+    "catches.measured": "Все примеры на TypeScript из списка проходят <code>tsc --strict</code> без ошибок. Каждый из них дополнительно проверяется на проекте с максимально строгой настройкой: все флаги компилятора строже <code>--strict</code> плюс typescript-eslint <code>strictTypeChecked</code>. Из {count} случаев такая настройка не ловит {none}. Флаг компилятора, выключенный по умолчанию, ловит {flag}, правило линтера ловит {lint}. Каждый из них проект должен включить сам, и агент может снова его выключить. В Glyph ни одна из этих проверок не является настройкой.",
+    "catches.breakdown": "Всего проверенных случаев: {total}. Из них ошибок в TypeScript: {count}, ловушек JavaScript, которых нет в Glyph: {trap_count}, и дыр, которые Glyph пока не закрывает: {gap_cases}. При сборке Glyph отклоняет {refused_all} из них (ошибок: {refused}, ловушек: {traps_refused})."
   },
   "nav": {
     "Why Glyph": "Почему Glyph",

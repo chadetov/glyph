@@ -1,0 +1,164 @@
+---
+title: Start Here · your first Glyph program in 10 minutes · Glyph
+description: Install Glyph, scaffold a project, run it, break it on purpose, read the real compiler error, and fix it. A linear 10-minute first run: no prior Glyph knowledge assumed.
+layout: article
+prev: / | &larr; Home | TypeScript your agents can't quietly break
+next: /answers/verifiability/ | Next &rarr; | What stops an agent from silently breaking my code?
+sitemap: 2026-08-09 weekly 0.9
+---
+      <p class="q-eyebrow">Start here &middot; ~10 minutes</p>
+      <h1 class="q-title">Your first Glyph program</h1>
+
+      <p class="short-answer">
+        Install it, scaffold a project, run it, then <strong>break it on purpose</strong> and read
+        the error the compiler gives you. No prior Glyph knowledge assumed. If you've written
+        a little TypeScript, you'll follow every line.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">1 &middot; Install</p>
+        <p>
+          Glyph ships as a single prebuilt binary. You also need Node with <code>tsx</code> and
+          <code>typescript</code>, which Glyph uses to run and type-check.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npm install -g @glyphlang/glyph
+npm install -g tsx typescript   <span class="cm"># run &amp; type-check toolchain</span>
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">2 &middot; Scaffold a project</p>
+        <p><code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a <code>package.json</code>, a <code>.gitignore</code>, and two files coding agents read on their own: <code>AGENTS.md</code>, which points at <code>glyph llms</code> for the full language reference, and <code>.mcp.json</code>, which registers <code>glyph mcp</code> so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, <code>glyph agents</code> writes those two. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.</p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>glyph init hello
+cd hello</pre>
+      </div>
+      <div class="detail">
+        <p>Open <code>src/main.glyph</code>. It's a hello-world:</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+import std/io
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  io.println("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Two things to notice: a program runs its <code>main(argv)</code>, and <code>main</code>
+          returns a <code>number</code>, the process exit code. Returning sets that code without
+          forcing the process to stop, so a program that starts a server keeps serving.
+        </p>
+
+        <p class="block-label">3 &middot; Run it</p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>glyph run
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That's
+          the whole loop.
+        </p>
+
+        <p class="block-label">4 &middot; Add something real</p>
+        <p>
+          Now replace the body with a tiny bit of logic: a task status and a function that
+          labels it. This introduces the two things you'll use constantly: a <em>tagged union</em>
+          (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">5 &middot; Break it on purpose</p>
+        <p>
+          Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm
+          from the <code>match</code> (the kind of thing an agent does when it adds a case
+          somewhere and forgets to handle it), and run again.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph (with the Done arm deleted)</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          It didn't run. In TypeScript the equivalent <code>switch</code> would compile clean and
+          return <code>undefined</code> at runtime; here the missing case is a compile error with a
+          stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run
+          <code>glyph --explain E0200</code> any time you want the long version.
+        </p>
+
+        <p class="block-label">6 &middot; Fix it</p>
+        <p>Put the arm back (or add an <code>else</code>), and it runs again.</p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          That's the core loop: write, run, and when something's wrong the compiler tells you exactly
+          what and how, before your code ships, not after. From here:
+        </p>
+        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 8px; padding-left: 22px;">
+          <li>The <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">five-minute tour</a>: the whole language, quickly.</li>
+          <li><a href="/answers/">The answers</a>: straight replies to the questions engineers actually ask (React, typed APIs, why not tooled TS).</li>
+          <li><a href="/playground/">The playground</a>: try Glyph in your browser, no install.</li>
+        </ul>
+      </div>

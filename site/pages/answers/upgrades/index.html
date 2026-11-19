@@ -1,0 +1,170 @@
+---
+title: Will a new Glyph release break my build? · Glyph
+description: A Glyph project pins its compiler exactly, so a release never reaches you by accident. glyph doctor tells you one exists and glyph upgrade moves you to it.
+layout: article
+nav: answers
+subnav: answers
+prev: /answers/long-running/ | &larr; Previous | Can I write a server, or does the process just exit?
+next: /answers/binary/ | Next &rarr; | Can I handle binary data, or is everything a string?
+sitemap: 2026-08-23 weekly 0.8
+---
+      <p class="q-eyebrow">27 &middot; Upgrades</p>
+      <h1 class="q-title">Will a new Glyph release break my build?</h1>
+
+      <p class="short-answer">
+        Not without you asking for it. A Glyph project pins its compiler to an
+        <strong>exact version</strong>, so a release published this morning does not reach
+        your build this afternoon. Before 1.0 a release is allowed to add a diagnostic that
+        rejects code which compiled yesterday, and that is usually the point of the
+        release, so the decision to take one is yours and it is one command.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Most tools you pin with a caret, because a patch release is a bug fix.
+          A compiler before 1.0 is not that. Glyph's whole job is to reject programs, and
+          getting better at it means new errors: a stricter check on an import, an
+          exhaustiveness hole that used to slip through, an arity the checker had not
+          modeled. Those releases are the good ones. They are also exactly the ones you do
+          not want arriving through an <code>npm install</code> you ran to add a date
+          library.
+        </p>
+        <p>
+          So <code>glyph init</code> writes no <code>^</code>. On a <code>0.x</code>
+          version a caret still floats the patch, which is the trap:
+          <code>^0.1.9</code> quietly accepts every later 0.1.x.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">package.json, as scaffolded</span>
+<pre>"devDependencies": {
+  <span class="cm">// exact. no caret, no tilde.</span>
+  "@glyphlang/glyph": "0.1.72",
+  "typescript": "^6.0.0",
+  "tsx": "^4.19.0"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Commit the <code>package-lock.json</code> next to it and a fresh clone builds
+          with the toolchain you tested, not with whatever shipped since.
+        </p>
+
+        <p class="block-label">The other half</p>
+        <p>
+          A pin has one obvious failure mode: you sit on an old compiler for a year and
+          never find out. Nothing on your machine would tell you, and a website you have to
+          remember to visit is not a channel. So the compiler tells you, when you ask it
+          anything about your setup:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph doctor</span>
+<pre>glyph &mdash; 0.1.72
+  [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
+             what changed: https://glyphlang.io/versions/
+
+glyph doctor &mdash; JavaScript toolchain
+  [ok]       node: v22.1.0
+  [ok]       tsx: tsx v4.19.0
+  [ok]       tsc: Version 6.0.2
+All good. `glyph run` and `glyph build --check` are ready.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Finding a newer release <em>never</em> changes the exit code, so this is safe to
+          run in CI. A published release is not a broken toolchain, and a green pipeline
+          should not go red because somebody shipped ten minutes ago. If the machine is
+          offline the check says so and moves on; <code>--offline</code> skips it entirely
+          and makes no network call at all.
+        </p>
+        <p>
+          Nothing else reaches the registry. <code>build</code>, <code>run</code> and
+          <code>check</code> never do. A compiler that phones home on every build is a
+          different product.
+        </p>
+
+        <p class="block-label">Taking the upgrade</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">One line changes, and you decide when</span>
+<pre>$ glyph upgrade --dry-run
+glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
+
+$ glyph upgrade
+glyph upgrade: /app/package.json now pins 0.1.73 (was 0.1.72).
+glyph upgrade: what changed: https://glyphlang.io/versions/
+glyph upgrade: build before you commit; a new release may report diagnostics
+               this project did not have.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          It rewrites one line and runs <code>npm install</code>. It does not touch your
+          source, and it does not pretend the upgrade is finished: building afterwards is
+          the point, because the release you just took is allowed to have opinions your
+          code has not met yet. <code>--to &lt;version&gt;</code> names a specific one,
+          including an older one when you want to go back, and <code>--no-install</code>
+          leaves the install to you.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Moving the tool, not the project</p>
+        <p>
+          <code>upgrade</code> moves a pin in a <code>package.json</code>. That is the
+          wrong command when what is behind is the compiler on your <code>PATH</code>, and
+          for a while <code>doctor</code> printed it anyway, pointing a global install at a
+          manifest it may not have. <code>glyph --update</code> is the other half. The
+          split is a rule now rather than a coincidence: flags act on the tool, the way
+          <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and
+          subcommands act on your code. <code>--update-dry-run</code> stops after printing
+          the <code>npm</code> command it would have run.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --update</span>
+<pre>$ glyph --update
+glyph 0.1.72 is installed; 0.1.73 is published.
+Release notes: https://glyphlang.io/versions/
+A 0.1.x release may reject code that compiled before, so read the notes for anything between these two.
+
+Running: npm install -g @glyphlang/glyph@0.1.73
+<span class="cm">   ... npm output ...</span>
+
+npm finished. Confirm with:
+    glyph --version</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          It only moves an install it can identify. A compiler reached through
+          <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does
+          not recognise gets the command printed and nothing overwritten, because
+          replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess
+          leaves <code>PATH</code> pointing at something nobody chose. It also stops short
+          of claiming the update landed: npm can exit zero having skipped an
+          <code>optionalDependency</code> it could not fetch, which is how a Glyph release
+          once shipped with no platform binary, so the last line names
+          <code>glyph --version</code> as the check rather than asserting success.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too. <code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Getting sharper</p>
+          <p>The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between. <code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.</p>
+        </div>
+      </div>

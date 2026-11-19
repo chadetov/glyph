@@ -6,28 +6,43 @@
     <title>Can the compiler tell me what a change will break before I make it? · Glyph</title>
     <meta name="description" content="glyph_impact takes the declaration you're about to change and the edit itself, and answers with one verdict per site from a closed list, and the reason, before you touch the file." />
     <link rel="canonical" href="https://glyphlang.io/answers/impact/" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#0b1326" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <nav>
-      <a href="/" class="brand">GLYPH</a>
-      <div class="nav-links">
-        <a href="/playground/">Playground</a>
-        <a href="/pillars/verifiability/">Why Glyph</a>
-        <a href="/answers/" class="active">Answers</a>
-        <a href="/hardening/">Hardening</a>
-        <a href="/benchmarks/">Benchmarks</a>
-        <a href="/llms.txt">For agents</a>
-        <a href="/mcp/">MCP</a>
-        <a href="https://github.com/chadetov/glyph">GitHub</a>
-      </div>
-    </nav>
-    <div class="subnav-wrap">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Main">
+        <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+        <div class="nav-links">
+          <a href="/playground/">Playground</a>
+          <a href="/pillars/verifiability/">Why Glyph</a>
+          <a href="/answers/" class="active" aria-current="page">Answers</a>
+          <a href="/hardening/">Hardening</a>
+          <a href="/benchmarks/">Benchmarks</a>
+          <a href="/llms.txt">For agents</a>
+          <a href="/mcp/">MCP</a>
+          <a href="https://github.com/chadetov/glyph">GitHub</a>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Colour theme: auto (follows your system). Switch to light.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+      </nav>
+    </header>
+    <nav class="subnav-wrap" aria-label="Sections">
       <div class="subnav">
         <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
         <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
@@ -43,7 +58,7 @@
         <a href="/answers/human-value/"><span class="n">12</span> Without AI</a>
         <a href="/answers/ai-authoring/"><span class="n">13</span> AI-authored</a>
         <a href="/answers/tooling/"><span class="n">14</span> Editor &amp; debugging</a>
-        <a href="/answers/impact/" class="active"><span class="n">15</span> Before you edit</a>
+        <a href="/answers/impact/" class="active" aria-current="page"><span class="n">15</span> Before you edit</a>
         <a href="/answers/ask-the-compiler/"><span class="n">16</span> Ask the compiler</a>
         <a href="/answers/repair-protocol/"><span class="n">17</span> Fixing a red build</a>
         <a href="/answers/generated-docs/"><span class="n">18</span> Docs that can't drift</a>
@@ -58,8 +73,8 @@
         <a href="/answers/upgrades/"><span class="n">27</span> Upgrades</a>
         <a href="/answers/binary/"><span class="n">28</span> Binary data</a>
       </div>
-    </div>
-
+    </nav>
+    <main id="main">
     <article class="answer-page">
       <p class="q-eyebrow">15 &middot; Before you edit</p>
       <h1 class="q-title">Can the compiler tell me what a change will break before I make it?</h1>
@@ -204,8 +219,7 @@
           <p>Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. <code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there). <code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.</p>
         </div>
       </div>
-
-      <nav class="prevnext">
+      <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/tooling/">
           <span class="dir">&larr; Previous</span>
           <span class="t">What's the editor, debugging, and error experience?</span>
@@ -216,12 +230,76 @@
         </a>
       </nav>
     </article>
-
-    <footer>
-      <div class="wrap">
-        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
-        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/impact/index.html">Edit this page</a></span>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>A typed language that transpiles to TypeScript, built so agents can change code without breaking it.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Product</h2>
+            <a href="/playground/">Playground</a>
+            <a href="/versions/">Versions</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases on GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+          </div>
+          <div class="foot-col">
+            <h2>Learn</h2>
+            <a href="/answers/">Answers</a>
+            <a href="/answers/verifiability/">Read the answers in order</a>
+            <a href="/answers/tooling/">Editor &amp; agent tooling</a>
+            <a href="/hardening/">Hardening</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">The five-minute tour</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Language spec</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Source</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/pages/answers/impact/index.html">Edit this page</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript your agents can't quietly break.</span>
+          <span>&copy; 2026 Glyph &middot; MIT or Apache-2.0</span>
+        </div>
       </div>
     </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Light", dark: "Dark" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          var next = order[(order.indexOf(mode) + 1) % order.length];
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute(
+            "aria-label",
+            "Colour theme: " + names[mode].toLowerCase() + (mode === "auto" ? " (follows your system)" : "") + ". Switch to " + names[next].toLowerCase() + "."
+          );
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
   </body>
 </html>

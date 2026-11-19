@@ -1,0 +1,80 @@
+---
+title: Can an agent (or I) find where anything is defined? · Glyph
+description: Every construct in Glyph has one shape to search for, so grep (or an agent's search) lands on the one definition, not fifty near-misses.
+layout: article
+nav: answers
+subnav: answers
+prev: /answers/diff-stability/ | &larr; Previous | Will agent edits stay clean, or reformat my whole file?
+next: /answers/imports/ | Next &rarr; | Can I use my existing TypeScript, JavaScript, and npm libraries?
+sitemap: 2026-08-23 weekly 0.8
+---
+      <p class="q-eyebrow">03 &middot; Navigation by search</p>
+      <h1 class="q-title">Can an agent (or I) find where anything is defined?</h1>
+
+      <p class="short-answer">
+        Every construct has <strong>exactly one shape</strong> to search for. A plain
+        <code>grep</code> (the way agents actually navigate) lands on the one
+        definition, <strong>not fifty near-misses</strong>.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. If a
+          concept can be written five different ways, search misses cases, and a confident
+          agent that can't find the existing definition invents a second one. One shape per
+          concept means search is complete, so the agent edits what's there instead of
+          duplicating it.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">grep -rn "mut " src/ (every mutation in the codebase)</span>
+<pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
+<span class="dim">src/cart.glyph:22:</span>   mut total = total + price
+<span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Three mutations, all of them, in one search. In TypeScript a mutation can hide behind
+          <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a
+          spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo;
+          has no reliable answer. The same one-shape rule makes whole categories auditable:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">one search = one complete answer</span>
+<pre><span class="cm"># every UI component</span>
+grep -rn <span class="add">"^component "</span> src/
+
+<span class="cm"># every function</span>
+grep -rn <span class="add">"^fn "</span> src/
+
+<span class="cm"># the entire resource-ownership surface</span>
+grep -rn <span class="add">"owned"</span> src/</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          There's no object-literal shorthand, no second way to declare a component, no
+          overloaded syntax to disambiguate. Fewer ways to write a thing is a real constraint,
+          and it's the point: it's what makes an agent's search, and yours, trustworthy.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>One canonical form per construct, mutation restricted to two greppable shapes (<code>mut</code>), and single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Layered on top</p>
+          <p>The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.</p>
+        </div>
+      </div>

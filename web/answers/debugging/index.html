@@ -6,28 +6,43 @@
     <title>When it breaks in production, what does on-call see? · Glyph</title>
     <meta name="description" content="Glyph compiles to readable TypeScript you own, and every emitted .ts ships a v3 source map back to your .glyph. tsc errors map back to Glyph source, and glyph run reports what glyph build reports. An ops-focused answer, with its two limitations named." />
     <link rel="canonical" href="https://glyphlang.io/answers/debugging/" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#0b1326" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <nav>
-      <a href="/" class="brand">GLYPH</a>
-      <div class="nav-links">
-        <a href="/playground/">Playground</a>
-        <a href="/pillars/verifiability/">Why Glyph</a>
-        <a href="/answers/" class="active">Answers</a>
-        <a href="/hardening/">Hardening</a>
-        <a href="/benchmarks/">Benchmarks</a>
-        <a href="/llms.txt">For agents</a>
-        <a href="/mcp/">MCP</a>
-        <a href="https://github.com/chadetov/glyph">GitHub</a>
-      </div>
-    </nav>
-    <div class="subnav-wrap">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Main">
+        <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+        <div class="nav-links">
+          <a href="/playground/">Playground</a>
+          <a href="/pillars/verifiability/">Why Glyph</a>
+          <a href="/answers/" class="active" aria-current="page">Answers</a>
+          <a href="/hardening/">Hardening</a>
+          <a href="/benchmarks/">Benchmarks</a>
+          <a href="/llms.txt">For agents</a>
+          <a href="/mcp/">MCP</a>
+          <a href="https://github.com/chadetov/glyph">GitHub</a>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Colour theme: auto (follows your system). Switch to light.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+      </nav>
+    </header>
+    <nav class="subnav-wrap" aria-label="Sections">
       <div class="subnav">
         <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
         <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
@@ -47,7 +62,7 @@
         <a href="/answers/ask-the-compiler/"><span class="n">16</span> Ask the compiler</a>
         <a href="/answers/repair-protocol/"><span class="n">17</span> Fixing a red build</a>
         <a href="/answers/generated-docs/"><span class="n">18</span> Docs that can't drift</a>
-        <a href="/answers/debugging/" class="active"><span class="n">19</span> Debugging &amp; ops</a>
+        <a href="/answers/debugging/" class="active" aria-current="page"><span class="n">19</span> Debugging &amp; ops</a>
         <a href="/answers/language/"><span class="n">20</span> The language</a>
         <a href="/answers/finance/"><span class="n">21</span> Money &amp; safety</a>
         <a href="/answers/web-serving/"><span class="n">22</span> Serving the web</a>
@@ -58,8 +73,8 @@
         <a href="/answers/upgrades/"><span class="n">27</span> Upgrades</a>
         <a href="/answers/binary/"><span class="n">28</span> Binary data</a>
       </div>
-    </div>
-
+    </nav>
+    <main id="main">
     <article class="answer-page">
       <p class="q-eyebrow">19 &middot; Operations</p>
       <h1 class="q-title">When it breaks in production at 3am, what does on-call see?</h1>
@@ -170,8 +185,7 @@ glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
           <p>Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too), a decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero, and richer editor debugging via the LSP.</p>
         </div>
       </div>
-
-      <nav class="prevnext">
+      <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/generated-docs/">
           <span class="dir">&larr; Previous</span>
           <span class="t">Is the documentation my agent reads generated, or written by hand and out of date?</span>
@@ -182,12 +196,76 @@ glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
         </a>
       </nav>
     </article>
-
-    <footer>
-      <div class="wrap">
-        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
-        <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/debugging/index.html">Edit this page</a></span>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>A typed language that transpiles to TypeScript, built so agents can change code without breaking it.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Product</h2>
+            <a href="/playground/">Playground</a>
+            <a href="/versions/">Versions</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases on GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+          </div>
+          <div class="foot-col">
+            <h2>Learn</h2>
+            <a href="/answers/">Answers</a>
+            <a href="/answers/verifiability/">Read the answers in order</a>
+            <a href="/answers/tooling/">Editor &amp; agent tooling</a>
+            <a href="/hardening/">Hardening</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">The five-minute tour</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Language spec</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Source</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/pages/answers/debugging/index.html">Edit this page</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript your agents can't quietly break.</span>
+          <span>&copy; 2026 Glyph &middot; MIT or Apache-2.0</span>
+        </div>
       </div>
     </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Light", dark: "Dark" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          var next = order[(order.indexOf(mode) + 1) % order.length];
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute(
+            "aria-label",
+            "Colour theme: " + names[mode].toLowerCase() + (mode === "auto" ? " (follows your system)" : "") + ". Switch to " + names[next].toLowerCase() + "."
+          );
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
   </body>
 </html>

@@ -1,0 +1,201 @@
+---
+title: Can my agent ask the compiler what a symbol is before it writes code? · Glyph
+description: glyph_symbol answers in one call with a union's variants and the syntax that constructs each, a record's fields with types, a callable's parameters and return, and whether a match over it must be exhaustive. Eleven tools over MCP, each with a glyph query verb.
+layout: article
+nav: answers
+subnav: answers
+prev: /answers/impact/ | &larr; Previous | Can the compiler tell me what a change will break before I make it?
+next: /answers/repair-protocol/ | Next &rarr; | When the build fails, does the compiler tell my agent how to fix it?
+sitemap: 2026-09-11 weekly 0.8
+---
+      <p class="q-eyebrow">16 &middot; Ask the compiler</p>
+      <h1 class="q-title">Can my agent ask the compiler what a symbol is before it writes code?</h1>
+
+      <p class="short-answer">
+        In one call. <code>glyph_symbol</code> takes the <code>module::name</code> a diagnostic
+        already printed, or a position in a file, and answers with a record's fields and their
+        types, a union's variants with their payloads <em>and the syntax that constructs each</em>,
+        a callable's parameters and return, an interface's members, and whether a
+        <code>match</code> over it must be exhaustive.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          An agent asked to handle a new case in a union it didn't declare has to know what the
+          variants carry. Reading the declaration means finding the file first. Symbol search used
+          to give it a name and a byte range, and a variant listing used to give it
+          <code>["Pending", "Paid", "Cancelled"]</code>. From that an agent writes
+          <code>Paid("tx_1")</code>, which is not the shape, and finds out from a diagnostic. The
+          compiler had the payload the whole time. The tool dropped it one line before the reply.
+        </p>
+        <p>
+          That's the pattern the agent surface was built to remove: facts the compiler already
+          computes and memoizes, that no tool hands over. An audit of a three-module project found
+          hover answering two of fourteen positions and every union arriving without its payloads.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>.
+          Asked from <code>main.glyph</code>, which doesn't import it:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
+<pre>{
+  "entity": "orders::OrderStatus",
+  "kind": "union",
+  "pub": true,
+  "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+  "exhaustive_match": true,
+  "variants": [
+    { "name": "Pending",   "payload": null, "construct": "Pending",
+      "payload_absent": "`Pending` is declared with no payload." },
+    { "name": "Paid",      "payload": "{ transaction_id: string }",
+      "construct": "Paid({ transaction_id: string })" },
+    { "name": "Cancelled", "payload": null, "construct": "Cancelled",
+      "payload_absent": "`Cancelled` is declared with no payload." }
+  ],
+  "fields": null,
+  "fields_absent": "`orders::OrderStatus` is a union and declares no record fields.",
+  "path": "src/orders.glyph",
+  "range": { "start": { "line": 2, "character": 4 },
+             "end":   { "line": 5, "character": 13 } },
+  "origin": "glyph",
+  "origin_detail": "`orders::OrderStatus` is declared in src/orders.glyph, a Glyph
+    module this project holds, and the compiler parsed and resolved that declaration"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>,
+          <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>,
+          <code>async</code> and <code>examples</code>. Every one of them is a pair. A key is null
+          only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never
+          has to guess whether a missing answer means the symbol has none or the tool didn't look.
+          An unannotated <code>const</code> reports no type on that rule: the checker deliberately
+          doesn't infer a declaration's type from its initializer, so printing the initializer's
+          type would tell a caller that uses of the name are checked against something that checks
+          nothing.
+        </p>
+
+        <p class="block-label">The second question an agent asks</p>
+        <p>
+          Having the shape, the next thing it wants to know is whether the value it holds can go
+          where it's about to put it. <code>glyph_assignable</code> asks the checker's own
+          comparison. Each side is a <code>module::name</code> or a Glyph type spelling, read in the
+          scope of the file you name, and the verdict says which of three things happened.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
+<pre>{
+  "verdict": "WILL_FAIL",
+  "because": "the checker's own comparison
+    refuses a `Nullable&lt;number&gt;` value where a
+    `number` is declared, so every site that
+    writes this pairing is a diagnostic",
+  "diagnostics": [
+    { "code": "E0204",
+      "at": "an annotated `let` or `const`,
+             and a `return`" },
+    { "code": "E0211", "at": "a call argument" }
+  ],
+  "from": { "asked": "Nullable&lt;int&gt;",
+            "form": "spelling",
+            "read_as": "Nullable&lt;number&gt;" },
+  "to":   { "asked": "int", "form": "spelling",
+            "read_as": "number" }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
+<pre>{
+  "verdict": "COMPATIBLE",
+  "because": "two generic applications are
+    compared by arity, by base and by argument,
+    and every one of those pairings is itself
+    accepted, so the checker accepts a
+    `Option&lt;number&gt;` value where a
+    `Option&lt;number&gt;` is declared. This is a rule
+    accepting rather than a rule staying silent",
+  "diagnostics": null,
+  "diagnostics_absent": "the checker refuses
+    nothing for this pairing, so no code is
+    raised for it anywhere"
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The word is <code>COMPATIBLE</code>, not <code>SAFE</code>, and the difference is worth a
+          sentence. <code>SAFE</code> is <code>glyph_impact</code>'s word, and it means a particular
+          site stays correct after a particular edit. This answer is about two types with no site
+          and no edit in the question. The third verdict is <code>UNDETERMINED</code>, claimed
+          whenever no rule covers the pairing: two function types come back that way, because the
+          relation underneath compares the returns and says nothing about the parameters. Its
+          silence there is not an acceptance, and the tool won't report it as one.
+        </p>
+
+        <p class="block-label">The other direction: what does this depend on, and what does that module give me</p>
+        <p>
+          <code>glyph_references</code> answers who uses a symbol. <code>glyph_dependencies</code>
+          is the same tables read from the other end: what one declaration depends on, every
+          declaration its own source names, split into <code>CALLS</code>,
+          <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and
+          where it sits. <code>glyph_exports</code> answers what a module makes visible to an
+          importer, from the compiler's own export query rather than from a scan: every
+          <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as
+          an entry with its identity, kind and signature. An agent about to write an import can
+          ask what is on the other side instead of opening the file.
+        </p>
+        <p>
+          Building the mirror of a relation is what caught a bug in the original. Every edge
+          carries a provenance, and <code>PROVED</code> is meant to say the compiler read both
+          ends. It was answering <code>PROVED</code> for an edge into a module that does not
+          parse, where nothing had been read. It answers <code>UNDETERMINED</code> with the reason
+          now, and since <code>glyph_references</code> and <code>glyph_impact</code> call the same
+          function, both were wrong the same way and both are fixed.
+        </p>
+
+        <p class="block-label">Eleven tools, and no client required</p>
+        <p>
+          <code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>,
+          <code>glyph_impact</code>, <code>glyph_assignable</code>,
+          <code>glyph_diagnostics</code>, <code>glyph_hover</code>,
+          <code>glyph_definition</code>, <code>glyph_references</code>,
+          <code>glyph_variants</code>, <code>glyph_symbols</code>,
+          <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a
+          <code>glyph query</code> verb taking the same arguments as flags and printing the same
+          JSON, routed through the same entry point a client reaches, so an agent that only runs
+          shell commands asks the same questions. <code>glyph_diagnostics</code> checks a file
+          inside its project and returns the diagnostic <code>glyph check --json</code> prints, from
+          the same Rust type, with a test that runs both surfaces on six projects and compares the
+          JSON key for key. Full details on the <a href="/mcp/">MCP page</a>.
+        </p>
+        <p>
+          All of that is asked before an edit. After one, the compiler answers in the other
+          direction: <code>glyph check --agent</code> prints each diagnostic with the invariants a
+          repairing edit has to keep and the <code>glyph_symbol</code> description of every symbol
+          it names, so the shape an agent needs arrives with the error that asked for it. That has
+          <a href="/answers/repair-protocol/">a page of its own</a>.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Eleven read tools over MCP, each with a <code>glyph query</code> verb. <code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why. The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing. Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type. <code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for. <code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything. <code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Where it stops</p>
+          <p>No tool here writes: no rename, no applied edit. The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field. A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads. <code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.</p>
+        </div>
+      </div>

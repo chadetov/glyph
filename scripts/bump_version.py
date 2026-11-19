@@ -31,7 +31,7 @@ TARGETS = [
     ("npm/platform/win32-x64/package.json", 1),
     ("README.md", 2),                        # one Socket badge, url twice
     ("npm/glyph/README.md", 2),
-    ("web/index.html", 1),
+    ("web/index.html", 1),                  # hero pill; build_site.py renders it from Cargo.toml, so the two agree
     (".github/ISSUE_TEMPLATE/bug_report.yml", 1),   # the version placeholder in the bug form
 ]
 

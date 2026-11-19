@@ -1,14 +1,19 @@
 name: Site checks
 
-# Guard the site against broken internal links, malformed HTML, and answers
-# sub-nav drift. Runs when the site, its checker, or the npm README changes.
+# Guard the site against broken internal links, malformed HTML, answers
+# sub-nav drift, and a web/ that is not what site/ renders. Runs when the site,
+# its source, its checkers, or the npm README changes.
 on:
   push:
     branches: [main]
     paths:
       - "web/**"
+      - "site/**"
       - "playground/**"
       - "scripts/check_site.py"
+      - "scripts/build_site.py"
+      - "scripts/check_site_built.py"
+      - "glyph-compiler/Cargo.toml"
       - "npm/glyph/README.md"
       - ".github/workflows/docs.yml"
   # No `paths` filter on pull requests, deliberately. This job is a required
@@ -29,6 +34,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check the site (links resolve, HTML well-formed, sub-nav consistent)
         run: python3 scripts/check_site.py
+      - name: Check web/ is what site/ renders (edit site/, then run scripts/build_site.py)
+        run: python3 scripts/check_site_built.py
       - name: Confirm the npm package still ships a README
         working-directory: npm/glyph
         run: |

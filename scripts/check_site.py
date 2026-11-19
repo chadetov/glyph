@@ -114,15 +114,18 @@ def check_answers_subnav():
 def check_sitemap():
     """Every served page is in sitemap.xml, and every entry points at a page.
 
-    The sitemap is hand-maintained, so a new page reaches the site and never
-    reaches a crawler. Four pages had accumulated that way (the answers index
-    and the binary, embedding, and upgrades answers) before anything looked.
+    The sitemap used to be hand-maintained, so a new page reached the site and
+    never reached a crawler. Four pages had accumulated that way (the answers
+    index and the binary, embedding, and upgrades answers) before anything
+    looked. scripts/build_site.py now generates it from site/pages/, and this
+    check still holds the served set and the sitemap to each other.
     Both directions are checked: a missing entry hides a page, and a leftover
     entry advertises a 404.
 
-    The lastmod dates are not checked. Keeping them true needs either a
-    generated sitemap or git history the CI checkout does not fetch, and that
-    choice is open; see the sitemap entry in docs/roadmap/releases.md.
+    The lastmod dates are not checked. The generator copies each page's date
+    from its front matter, so they are still written by hand; keeping them
+    true needs git history the CI checkout does not fetch, and that choice is
+    open; see the sitemap entry in docs/roadmap/releases.md.
     """
     sm = os.path.join(WEB, "sitemap.xml")
     if not os.path.isfile(sm):

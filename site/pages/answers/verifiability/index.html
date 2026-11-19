@@ -1,0 +1,616 @@
+---
+title: What stops an agent from silently breaking my code? · Glyph
+description: In Glyph, changes that silently compile-and-break in TypeScript, like a missing case, an unhandled error, or a renamed field, become compile errors the agent must fix first.
+layout: article
+nav: answers
+subnav: answers
+next: /answers/diff-stability/ | Next &rarr; | Will agent edits stay clean, or reformat my whole file?
+sitemap: 2026-08-27 weekly 0.9
+---
+      <p class="q-eyebrow">01 &middot; The core promise</p>
+      <h1 class="q-title">What stops an agent from silently breaking my code?</h1>
+
+      <p class="short-answer">
+        A whole class of change that <strong>quietly compiles</strong> in TypeScript (a
+        missing case, an unhandled error, a renamed field) becomes a
+        <strong>compile error the agent has to fix before it can ship</strong>.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Agents don't usually break code loudly. They break it <strong>confidently</strong>:
+          they add a state, drop a branch, or rename a field, everything still type-checks,
+          and the bug surfaces in production. The expensive failures are the ones that
+          <em>compiled and were wrong</em>.
+        </p>
+        <p>
+          Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into
+          &ldquo;the compiler proved you did.&rdquo; Tagged unions are <strong>sealed</strong>,
+          so <code>match</code> must cover every case. Errors are <strong>values</strong> you
+          have to unwrap, not exceptions that vanish. And every type carries a runtime
+          descriptor, so data crossing a boundary is checked against its shape.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph: one new variant, and the compiler finds every gap</span>
+<pre><span class="dim">type Status = Loading | Ready | Failed(string)<span class="cm">   // + Cancelled</span></span>
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Loading =&gt; "…",
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+<span class="add">    // no arm for Cancelled ⇒ this match no longer compiles</span>
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Cancelled`</span>
+   ╰─ add an arm for `Cancelled`</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The equivalent TypeScript <code>switch</code> compiles clean and returns
+          <code>undefined</code> at runtime. Same for errors: a function that returns
+          <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or
+          propagated with <code>?</code> (and the compiler checks the error type lines up). And if
+          you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and
+          ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded
+          error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>,
+          never by accident.
+        </p>
+        <p>
+          The bar is the same for a union the standard library owns. <code>fs.ErrorKind</code>
+          is a closed set of six kinds, and the checker knows its shape, so
+          <code>match e.kind</code> on a filesystem error needs no <code>else</code> arm and
+          fails with <code>E0200</code> when you leave a kind out. <code>e.mesage</code> is
+          <code>E0210</code> rather than something <code>tsc</code> catches downstream. Return
+          types travel too: <code>string.split(text, ",")</code> is an
+          <code>Array&lt;string&gt;</code>, so <code>for i, part in string.split(text, ",")</code>
+          binds <code>i</code> as a number instead of the string key you'd get from an
+          untyped iterand.
+        </p>
+        <p>
+          Exhaustiveness isn't just for unions. A <code>match</code> on a <code>number</code> or
+          <code>string</code> with only literal arms can't cover an unbounded domain, so Glyph
+          requires an <code>else</code> (<code>E0218</code>) rather than letting the uncovered value
+          fall through to a runtime throw. The rule is the same everywhere: a <code>match</code> that
+          doesn't account for a case doesn't compile.
+        </p>
+        <p>
+          A typo can't quietly paper over a gap either. A capitalized arm head is a
+          <strong>reference to a variant</strong>, not a fresh binding, so if you misspell
+          <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a
+          catch-all that bound every value and made the match look total. Now the head has to
+          name a real variant of the union you're matching. When it doesn't, the build stops
+          with <code>E0220</code> and points at the nearest real name, and the variant you
+          actually skipped still shows up as <code>E0200</code> right next to it.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph: a misspelled arm is a gap, not a catch-all</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+<span class="del">    Loadign =&gt; "…",        // typo for Loading, read as a variant, not a binding</span>
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0220] `Loadign` is not a variant of `Status`; did you mean `Loading`?</span>
+   ╰─ a lowercase name would be a binding; a PascalCase name is read as a variant
+<span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Loading`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          That reading holds one level down, where the variant is the payload of
+          another one. <code>Err(Blank)</code> beside <code>Err(e)</code> reads as
+          "ignore a blank line, print every other parse error", and until 0.1.93 it
+          compiled to two <code>case "Err":</code> labels on the outer tag whose
+          first bound the whole payload under the name <code>Blank</code>. Every
+          error took the first arm, the second was dead code, and nothing said so:
+          Glyph reported no diagnostics and <code>tsc --strict</code> accepts a
+          duplicate case label. The arm now dispatches on the payload's own tag,
+          whatever the outer variant is, and the compiler reads the name the way
+          the typechecker does: the payload union's own variant list decides, and
+          only when that list is out of reach does the name's shape decide. For a
+          union declared in the same file the capitalization no longer matters.
+          For one imported from another module the variant list is out of reach
+          today, so a capitalized variant dispatches and a lowercase one stops the
+          build.
+        </p>
+        <p>
+          It stops because the switch is guarded now. Two arms that would write
+          the same <code>case</code> label are <code>E0305</code>, not a switch
+          whose second label can never run. That is what makes the class loud
+          instead of silent: a lowering that reaches for the same tag twice fails
+          the build rather than picking the wrong arm at run time.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">repl.glyph: the inner arm tests the payload, it doesn't bind it</span>
+<pre>fn step(z: Zipper, line: string) -&gt; Zipper {
+  return match parse_command(line) {
+    Err(Blank) =&gt; z,                          // a comment or an empty line
+    Err(e) =&gt; { io.println(explain(e)) z },   // every other parse error
+    Ok(command) =&gt; execute(z, command),
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          How the union got into scope doesn't change any of this. Glyph lets you
+          write a variant arm two ways, and both are checked the same:
+          <code>import model { Cond, Yes, No }</code> with bare arms, or
+          <code>import model</code> (or <code>import model as m</code>) with
+          <code>model.Yes(_)</code>. That holds for the standard library's unions too, so
+          <code>match o { option.Some(s) =&gt; … }</code> on an
+          <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing
+          <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling
+          is. Until 0.1.56 the qualified spelling skipped the check entirely and the build
+          reported no diagnostics on a match that threw at run time.
+        </p>
+        <p>
+          A string enum crosses the boundary too. <code>type ColType = "text" | "int" |
+          "real" | "bool"</code> declared in <code>catalog.glyph</code> and imported into
+          another module keeps its four values, so a match covering all four compiles with
+          no <code>else</code>, and dropping one is <code>E0200</code> naming the value you
+          dropped. Until 0.1.57 it was <code>E0218</code>, with help text telling you to add
+          an <code>else</code> arm. That help was wrong about the code in front of it, and
+          taking it turned a compile error into a runtime fallthrough. All three import
+          spellings work: <code>import catalog { ColType }</code>,
+          <code>import catalog</code> with <code>catalog.ColType</code>, and
+          <code>import catalog as c</code> with <code>c.ColType</code>.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">interp.glyph: the import list came out, the match is still checked</span>
+<pre><span class="del">import model { Action, All, Any, AtLeast, Clear, Condition, Context, Counter,</span>
+<span class="del">               Equals, Flag, FlagSet, Increment, Not, Set, Slot, Text }</span>
+import model
+import std/result
+
+pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;bool, SlotError&gt; {
+  return match c {
+    model.Equals({ key, value }) =&gt; result.Ok(read_text(ctx, key, "equals")? == value),
+    model.AtLeast({ key, least }) =&gt; result.Ok(read_count(ctx, key, "at-least")? &gt;= least),
+    model.FlagSet({ key }) =&gt; result.Ok(read_flag(ctx, key, "flag-set")?),
+    model.All({ of }) =&gt; all_of(ctx, of),
+    model.Any({ of }) =&gt; any_of(ctx, of),
+    model.Not({ of }) =&gt; result.Ok(!(evaluate(ctx, of)?)),
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, after deleting the last arm</span>
+<pre><span class="del">[E0200] non-exhaustive match on `Condition`: missing variants Not</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Records cross now too, and until 0.1.58 they did not. A type declared in one
+          file and used in another arrived with nothing known about it, which cost two
+          separate checks. A misspelled field on it drew no Glyph error at all, so
+          <code>sheet.rowz</code> fell through to <code>tsc</code> and came back as a
+          TypeScript message about a shape you never wrote. And <code>for i, r in
+          sheet.rows</code> could not tell that <code>rows</code> was an array, so it
+          emitted <code>Object.entries(sheet.rows)</code> rather than
+          <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string
+          <code>"0"</code>. <code>i + 1</code> then concatenates instead of adding, and a
+          row that should be reported as <code>line 2</code> reports as
+          <code>line 11</code>.
+        </p>
+        <p>
+          The part worth knowing is which half <code>tsc</code> catches. Arithmetic on
+          that index it does catch, though it reports the error against generated
+          TypeScript for a variable Glyph bound on your behalf. What it cannot catch is
+          every place a string is accepted where a number was meant: string
+          interpolation, concatenation, a <code>record.get</code> key. Those compile
+          clean under both checkers and print the wrong number. That is the shape of bug
+          this project exists to remove, so a module boundary that reintroduces it is not
+          a boundary Glyph can leave alone.
+        </p>
+        <p>
+          An imported type now carries an identity across the boundary, keyed on the
+          module that declares it and the name it declares, so all three import spellings
+          resolve to the same type. The declaration itself is fetched on demand and
+          lowered on the declaring module's side, which is the half a consumer cannot do:
+          resolution runs over spans, and an imported declaration's spans belong to
+          another file. A record therefore keeps its field set, and a bad field is
+          <code>E0210</code> naming the record rather than a <code>tsc</code> error about
+          an anonymous shape.
+        </p>
+        <p>
+          The query engine in <code>examples/apps/csvql</code> is where this surfaced.
+          It carried three <code>let</code> hoists
+          whose only job was to restate an imported field's type for the emitter, under a
+          four-line comment explaining that without them the row and column numbers in an
+          error message come out wrong. All three are deleted and the app prints
+          byte-identical output for all twelve queries.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">table.glyph: the hoists and the comment explaining them are gone</span>
+<pre><span class="del">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span>
+<span class="del">// lowering from the iterand's type as the checker knows it, and a field</span>
+<span class="del">// access is not enough: without the `let`, `i` and `j` come out as strings</span>
+<span class="del">// and the row/column numbers in a `BadCell` are wrong.</span>
+<span class="del">let raw_rows: Array&lt;Array&lt;string&gt;&gt; = sheet.rows</span>
+<span class="del">for i, raw_row in raw_rows {</span>
+<span class="add">for i, raw_row in sheet.rows {</span>
+  let typed: Array&lt;Value&gt; = []
+<span class="del">  let cols: Array&lt;ColumnSpec&gt; = spec.columns</span>
+<span class="del">  for j, col in cols {</span>
+<span class="add">  for j, col in spec.columns {</span>
+    …
+  }
+}
+
+<span class="cm">// sheet: Sheet, declared in catalog.glyph and imported here.</span>
+<span class="cm">// Emitted TypeScript: sheet.rows.entries(), not Object.entries(sheet.rows).</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, on a typo'd field of an imported record</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
+<span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          One thing still stops at the boundary. Passing a <code>catalog.Sheet</code> where a
+          <code>table.Row</code> is expected is E0211 naming both types, but an
+          <code>interface</code>'s member list does not cross, so a record passed where an
+          imported interface is expected is compared against nothing. Giving it the
+          treatment a record's field set gets would quietly change what structural
+          satisfaction means, which is a language decision rather than a fix.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          That import list is where this came from. It was written by hand in every module of a
+          statechart engine, with a comment above it saying a union's constructors don't arrive
+          with its type. The comment was right about the syntax and wrong about the reason: the
+          list was there because the shorter spelling turned the check off, and nobody had
+          noticed, because turning it off is silent. Which form you pick is now a real choice
+          rather than a trap. The named one puts every variant you handle in the import list,
+          which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one
+          says at each arm which module the variant came from. Neither costs you the check.
+        </p>
+        <p>
+          The same "make it type-level, not convention" instinct covers PII. Put
+          <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a
+          <code>redact()</code> on its descriptor that masks those fields, so
+          <code>json.stringify(User.redact(u))</code> can't leak them. Name a field the type doesn't
+          have and it's a compile error (<code>E0219</code>), not a redaction that silently does
+          nothing.
+        </p>
+        <p>
+          A descriptor is only worth anything if it's the check the type declares, all the
+          way down. A <code>where</code> refinement runs its predicate wherever the type
+          appears, not just at a direct <code>Instant.parse</code>: as a record field, as an
+          <code>Array</code> element, as an <code>Option</code> payload, inside a union
+          variant, and through <code>json.parse&lt;T&gt;</code>. The same goes for a record
+          imported from another module. Until 0.1.41 both of those fell back to checking that
+          the key was present, which is not a check of anything.
+        </p>
+        <p>
+          The scheduling app below is where this surfaced. It reads calendars from a JSON file
+          and needs every timestamp to be a real ISO-8601 instant. Before, the refinement
+          stopped at the top level, so a hand-edited file with <code>"start": "no"</code>
+          parsed fine, the instant read as 0, and the app printed a confident schedule and
+          exited 0. The fix is four levels down from the boundary:
+          <code>Calendar</code> to <code>Array&lt;WireParticipant&gt;</code> to
+          <code>busy</code> to <code>start</code> to the predicate.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">schedule.glyph: the predicate follows the type into the field</span>
+<pre>fn is_instant(value: string) -&gt; bool {
+  return match time.parse_iso(value) {
+    Some(_) =&gt; true,
+    None =&gt; false,
+  }
+}
+
+type Instant = string where is_instant(value)
+
+type WireBlock = { start: Instant, end: Instant }
+type WireParticipant = { name: string, busy: Array&lt;WireBlock&gt; }
+type Calendar = { participants: Array&lt;WireParticipant&gt; }
+
+<span class="cm">// json.parse&lt;Calendar&gt;(text) on a file holding "start": "no"</span>
+<span class="cm">//   =&gt; Err. It returned Ok before 0.1.41.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Tests live next to the code and run as part of compiling it. An
+          <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside
+          a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.
+          A false one fails the build the same way a type error does, which is the point: an
+          agent rewriting a function body cannot pass the build by leaving the assertion behind.
+          <code>--no-test</code> opts out and prints how many tests it skipped, so the bypass is
+          visible in the log.
+        </p>
+        <p>
+          The JSON output agents read reports the same verdict. <code>glyph build --json</code>
+          carries an <code>examples</code> object next to the diagnostics, and a failing example
+          makes <code>ok</code> false and the exit code non-zero. Until 0.1.43 the examples ran
+          only under <code>--test</code>, and the JSON path returned before they ran at all, so
+          the one channel an agent can read printed <code>"ok": true</code> on a project whose
+          own assertion was false. If <code>tsx</code> isn't on <code>PATH</code> the build fails
+          instead of reporting a pass it never checked.
+        </p>
+        <p>
+          The bracket app below carries 23 of these. <code>seed_order</code> builds standard
+          bracket order by doubling, which is the kind of function that is easy to get subtly
+          wrong and easy to describe exactly. Change the doubling rule and the build stops,
+          without a test file, a runner, or a flag.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">bracket.glyph: break the seeding and the build stops</span>
+<pre>@example seed_order(2) == [1, 2]
+@example seed_order(4) == [1, 4, 2, 3]
+@example seed_order(8) == [1, 8, 4, 5, 2, 7, 3, 6]
+fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
+
+<span class="cm">// glyph build src --out dist</span>
+<span class="del">example failed: bracket example #16:</span>
+<span class="del">  (seed_order(8)) != ([1, 2, 3, 4, 5, 6, 7, 8])</span>
+<span class="del">1 of 23 example(s) failed.            # exit 1, no "tsc passed" line</span>
+
+<span class="cm">// glyph build src --out dist --json</span>
+<span class="del">{ "ok": false, "errors": 1, "tsc": "passed",</span>
+<span class="del">  "examples": { "total": 23, "ran": true, "skipped": false,</span>
+<span class="del">    "failures": ["bracket example #16: …"] } }</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Four more, found by building with it</p>
+        <p>
+          Each of these compiled clean and passed <code>tsc --strict</code>, and
+          each was found by writing an application rather than by reading the
+          compiler. They are the same failure in three places: the types said one
+          thing and the program did another.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">reading a key that may not be there: now E0224</span>
+<pre>fn name_of(row: Record&lt;string, string&gt;) -&gt; string {
+  return row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          A map's keys are arbitrary, so the compiler cannot know the key is
+          there. Typing the read as <code>string</code> stated something it had
+          not checked, and the value printed as the text "undefined". It is now a
+          compile error pointing at <code>record.get</code>, which returns
+          <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.
+          Writing a key is untouched, and so is array indexing: a bound is a
+          value a program can check, a map key is not.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">a test that passed while the code failed</span>
+<pre><span class="cm">@example wrap("a") == wrap("a")   // passed: deep equality</span>
+fn same() -&gt; bool {
+  return wrap("a") == wrap("a")   <span class="cm">// false. no diagnostic</span>
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>==</code> was documented as value equality and lowered to
+          <code>===</code>, which is <em>reference</em> equality the moment either
+          side is a record, a tagged union, or an array. The same expression
+          compared structurally in a test and by identity in the program beside
+          it, so a test could report success on code that did not work.
+          <code>==</code> is now value equality everywhere; primitives still
+          compile to <code>===</code>, so ordinary comparisons are unchanged.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">exhaustiveness that evaporated inside a loop</span>
+<pre>for t in tiers {
+  match t {
+    "free" =&gt; ...          <span class="cm">// "pro" unhandled: once merely a warning to add `else`</span>
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The loop binding carried no element type, so a <code>match</code> over a
+          string-literal union degraded to a match over <code>string</code> and
+          the compiler advised adding a catch-all. It now names the variant you
+          have not handled, which is advice to satisfy the check rather than to
+          switch it off.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">a variant left out of a match on an imported generic union</span>
+<pre>import tree { Tree, Node }
+
+fn label(t: Tree&lt;string&gt;) -&gt; string {
+  return match t {
+    Node({ key: k }) =&gt; k    <span class="cm">// Leaf unhandled: built clean, threw at run time</span>
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          A union your own module declares is checked whether or not it takes type
+          parameters. One imported from a sibling module was checked only when it took
+          none. <code>Tree&lt;string&gt;</code> reaches the cross-module coverage path as an
+          application of an imported union rather than as one, and the gate that starts
+          the check was looking for the second, so the <code>match</code> was never
+          counted at all: <code>tsc --strict</code> passed and a <code>Leaf</code> threw.
+          Delete <code>&lt;K&gt;</code> from both files and the same program was
+          <code>E0200</code>. It is <code>E0200</code> either way now, at both import
+          spellings and at an open parameter or a concrete instantiation alike.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">a <code>parse</code> that reported success without checking: now E0304</span>
+<pre>type Conn = { id: number, sock: Socket }
+
+Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the message said it was</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Every record type carries a runtime descriptor. For a field whose type
+          the compiler cannot see into, a socket or anything reached through
+          <code>extern_ts</code>, the generated check was "is it present" while
+          the reported message read <code>field `sock` must be Socket</code>. A
+          boolean that is always true is useless. One that is always true under a
+          message naming a type nothing checked is worse, because
+          <code>parse</code> is the thing a boundary is told to trust.
+        </p>
+        <p>
+          Holding a socket in a record is ordinary and still compiles.
+          Validating one is now refused where it is written and in every module
+          that imports the record, naming the field and its type, and the refusal
+          follows the shape: through a nested record,
+          an <code>Array</code>, an <code>Option</code>. The fix it asks for is
+          the split you would have written anyway, a wire type whose fields are
+          all checkable, then a domain record you build from it.
+          <code>unknown</code> is not caught by this, because it claims nothing
+          and presence really is the whole check.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">A signature change, invisible at the call site: closed in 0.1.116</p>
+        <p>
+          A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to
+          accept a value of a declared union or record with no complaint at all, even though the
+          identical call with a mismatched <code>bool</code> argument was already <code>E0211</code>.
+          Change a function to take a payload instead of a raw string and every call still passing
+          the old shape built clean.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">billing.glyph: a union crosses a `string` parameter unnoticed</span>
+<pre>type PaymentResult = Settled(string) | Declined(string)
+
+fn takes_string(s: string) -&gt; number { return s.length }
+
+fn charge(r: PaymentResult) -&gt; number {
+  return takes_string(r)   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, now</span>
+<pre><span class="del">[E0211] argument type mismatch: expected `string`, found `PaymentResult`</span>
+   ╰─ Pass a value of the expected type, or change the parameter's type.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The check reads the declaration, so it only fires where the answer is certain. A
+          primitive alias, a string-literal union (D30), an <code>extern_ts</code> or
+          <code>typeof</code> body, and an <code>interface</code> all still say nothing, because
+          none of those is provably not a <code>string</code> the way a tagged union or record is;
+          <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a
+          <code>let</code> annotation alike, since all three share one relation.
+        </p>
+        <p>
+          A <code>const</code> had the matching gap on the receiving side. A module-level
+          <code>const</code> carrying a type annotation lowered to <code>Ty::Unknown</code> no
+          matter what the annotation said, so a field typo on it was invisible exactly where the
+          identical annotated <code>let</code> inside a function already reported it.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">catalog.glyph: an annotated const, and the field it does not have</span>
+<pre>type Sheet = { rows: number, cols: number }
+const ORIGIN: Sheet = { rows: 0, cols: 0 }
+
+fn f() -&gt; number {
+  return ORIGIN.rowz   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, now</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on
+          purpose: inferring one from the initializer is a different question with a different
+          false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>,
+          the language server and the playground, since each starts catching a program the
+          previous release accepted; a full <code>glyph build</code> was already red through
+          <code>tsc</code> in both cases.
+        </p>
+        <p>
+          One record-literal check is still <code>tsc</code>'s and not Glyph's. A literal with a
+          field the declared record does not have passes Glyph's checker, and <code>tsc</code>
+          refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the
+          literal. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the
+          language server and the playground say nothing (G273).
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">point.glyph: an extra field, left to tsc</span>
+<pre data-check="expect-error TS2353">module point
+
+pub type Point = {
+  x: number,
+  y: number,
+}
+
+pub fn origin() -&gt; Point {
+  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+}</pre>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Exhaustive <code>match</code> over sealed unions (yours or a sibling module's, generic or not, and the standard library's, such as <code>fs.ErrorKind</code>) <em>and</em> over <code>number</code>/<code>string</code> (<code>E0218</code>), a typo'd variant arm caught as a compile error with a nearest-variant suggestion (<code>E0220</code>) instead of a silent catch-all, <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), <code>@redact</code> PII masking on the type descriptor, runtime type descriptors, reading a key out of a map rejected (E0224), <code>==</code> as value equality on every type, a <code>for</code> binding that keeps its element type, a variant in payload position dispatching on the payload's own tag rather than binding it, two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning, a declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected (<code>E0211</code>), a field typo on an annotated module-level <code>const</code> (<code>E0210</code>), and <code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included. Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant="nope" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames. Since 0.1.125 a record literal or a component element that leaves out a required field names it, in the message and in <code>missing_fields</code> on <code>--json</code>, and an element missing a required prop is E0211 even when it writes no attributes at all; a component whose one parameter is not a record is E0229. Since 0.1.127 every field of a record is compared by the same rule as the record, so a nested record, a declared type or a string-literal union inside one is refused where <code>tsc</code> refuses it, and so are an optional field where a required one is declared, a function whose return does not fit and a local interface's members. A record whose fields are all optional refuses a value that shares none of them, as TS2559 does. A function's parameters are still not compared.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Getting sharper</p>
+          <p>A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273). A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types. Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates. The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike, constructor-shaped or bare: through 0.1.115 a bare misspelled head over an imported union (<code>Loadign</code>, no arguments) was credited as covering a variant and said nothing, where the same typo on a local union already reported <code>E0220</code>; both spellings report it now. A misspelled bare arm also trips <code>E0103</code>, one stage earlier, so you get both lines for the same name. A type parameter used to switch the check off: through 0.1.90 a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit a variant, build clean, pass <code>tsc --strict</code>, and throw at run time, where the same match on <code>Tree</code> was <code>E0200</code>. That is closed for a union your own module declares and, as of 0.1.95, for one an import away. What is still shallower on the imported path is the depth rather than the gate: the check that runs for an imported union never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> rather than reporting the missing <code>Y</code>, and no type parameter is involved. That is the next thing to deepen. Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it. Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>. A variant in payload position is read off the payload union's variant list now, so the capitalization of the name stops mattering for a union your module declares. For one imported from another module there is no list to read and the shape of the name still answers, which means <code>Err(Blank)</code> dispatches and <code>Err(blank)</code> stops the build at <code>E0305</code>: a loud failure on a valid program, and it needs the same imported-union registry the shallow coverage check above needs. A constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic naming the type and the pattern.</p>
+        </div>
+      </div>

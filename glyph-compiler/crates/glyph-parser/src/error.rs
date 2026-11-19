@@ -14,9 +14,41 @@ use std::borrow::Cow;
 /// that can be improved in one place and not the other (G223).
 pub const RELATIVE_IMPORT_HELP: &str = "Name the module from the source root, not from this file: a stdlib module by its `std/` path (`import std/io`), a sibling file by its bare name (`import helper`), a file in a subdirectory by its path from the root (`import queries/report`). Relative paths (`./`, `../`) are not allowed (D15).";
 
-/// The help for E0013 (G351). It carries G217's guidance, because the most
-/// common way to reach it is the TypeScript-adjacent `Order { ... }`.
+/// The help for E0013 when the statement on the line begins with `{` (G351).
+/// It carries G217's guidance, because the most common way to reach it is the
+/// TypeScript-adjacent `Order { ... }`.
 const BRACE_AFTER_STATEMENT_HELP: &str = "The braces are not part of the value before them: read as written, they would be a separate statement after it. Glyph has no `TypeName { ... }` construction form. Write the literal alone and put the type on the annotation: `let o: Order = { id: \"a\" }`, or `return { id: \"a\" }` in a function declared `-> Order`. An object literal on its own line does nothing, so if the braces are not meant to be the value, remove them.";
+
+/// The help for E0013 after `as` (G370). `return h() as R` read as three
+/// statements, the TypeScript cast spelled in a language that has none.
+const AS_AFTER_STATEMENT_HELP: &str = "Glyph has no `as` cast, so `as` cannot continue the expression before it. To give a value a type, put the type on the annotation (`let r: R = h()`); to turn an `unknown` into a type, validate it with `T.parse(v)` or narrow it with `match` and `is`.";
+
+/// The help for E0013 before a literal (G370). `let s = \"a\" \"b\"` bound
+/// `\"a\"` and dropped `\"b\"`.
+const LITERAL_AFTER_STATEMENT_HELP: &str = "Glyph does not join adjacent literals, or any two values written side by side, into one value: the literal would be a separate statement, and a literal on its own does nothing. If it belongs to the expression before it, write the operator between them (`\"a\" + \"b\"`, or one template literal for text); otherwise remove it.";
+
+/// The help for E0013 before a statement keyword (G370): `let a = 1 let b
+/// = 2`.
+const KEYWORD_AFTER_STATEMENT_HELP: &str = "Start the statement on its own line. Glyph has no `;`: a statement ends at the end of its line (D1), so each statement in a block begins a new one.";
+
+/// The help for E0013 before anything else (G370): `let x = h() g`.
+const OTHER_AFTER_STATEMENT_HELP: &str = "Start the statement on its own line. If it was meant to be part of the expression before it, something is missing between them: Glyph does not combine two expressions written side by side, so write the operator, `.` or `,` that joins them.";
+
+/// What begins the statement E0013 refuses, which decides its help.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SameLineStart {
+    /// `{`, G217's guidance (G351).
+    Brace,
+    /// `as`, a cast Glyph does not have.
+    As,
+    /// A string, number or boolean literal.
+    Literal,
+    /// A keyword that begins a statement: `let`, `mut`, `return`, `for`,
+    /// `loop`, `break`, `continue`, `defer`, `const`.
+    Keyword,
+    /// Any other token that can begin a statement.
+    Other,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ParseError {
@@ -216,23 +248,26 @@ pub enum ParseError {
     #[error("lex error: {message}")]
     JsxBlockComment { message: String, span: Span },
 
-    /// A `{` on the line where the statement before it ended (G351, record
-    /// 104). Statement boundaries inside a block come from greedy parsing
-    /// (D1), so `return h() { k: 2 }` used to end at `h()` and read the
-    /// braces as a second statement that never ran: the program compiled,
-    /// with an unreachable-code warning, and the value the author wrote was
-    /// gone. `return Order { ... }` split the same way, and E0228 caught only
-    /// that spelling, because only there was the name a type. A brace that
-    /// opens a statement starts its own line.
+    /// A statement that begins on the line where the statement before it
+    /// ended (G351, record 104; G370, record 112). Statement boundaries
+    /// inside a block come from greedy parsing (D1), so `return h() { k: 2 }`
+    /// used to end at `h()` and read the braces as a second statement that
+    /// never ran, `let s = "a" "b"` bound `"a"` and dropped `"b"`, and `let a
+    /// = 1 let b = 2` put a declaration mid-line. Each compiled. A statement
+    /// starts its own line.
     ///
-    /// `before` is the statement the brace follows, as the author wrote it,
-    /// when it is one short line; otherwise the message names it without
-    /// reprinting it.
+    /// `before` is the statement it follows, as the author wrote it, when it
+    /// is one short line; otherwise the message names it without reprinting
+    /// it. `start` is what the refused statement begins with, for the help.
     #[error("{}", match before {
-        Some(text) => format!("`{{` cannot begin a new statement on the line where `{text}` ends"),
-        None => "`{` cannot begin a new statement on the line where the statement before it ends".to_string(),
+        Some(text) => format!("a statement cannot begin on the line where `{text}` ends"),
+        None => "a statement cannot begin on the line where the statement before it ends".to_string(),
     })]
-    BraceAfterStatement { before: Option<String>, span: Span },
+    StatementOnSameLine {
+        before: Option<String>,
+        start: SameLineStart,
+        span: Span,
+    },
 }
 
 /// Whether a name position introduces a name or refers to one declared
@@ -320,7 +355,7 @@ impl ParseError {
             ParseError::JsxText { span, .. }
             | ParseError::EmptyJsxExpression { span }
             | ParseError::JsxBlockComment { span, .. } => *span,
-            ParseError::BraceAfterStatement { span, .. } => *span,
+            ParseError::StatementOnSameLine { span, .. } => *span,
         }
     }
 
@@ -359,7 +394,7 @@ impl ParseError {
             ParseError::EmptyJsxExpression { .. } => "E0003",
             // The lex error it is anywhere else, with JSX-specific help.
             ParseError::JsxBlockComment { .. } => "E0001",
-            ParseError::BraceAfterStatement { .. } => "E0013",
+            ParseError::StatementOnSameLine { .. } => "E0013",
         }
     }
 
@@ -454,7 +489,13 @@ impl ParseError {
             ParseError::JsxBlockComment { .. } => Cow::Borrowed(
                 "Glyph has no block comments (D14). A comment among JSX children is a comment-only child: `{` on one line, `// note` on the next, `}` after it. It renders nothing.",
             ),
-            ParseError::BraceAfterStatement { .. } => Cow::Borrowed(BRACE_AFTER_STATEMENT_HELP),
+            ParseError::StatementOnSameLine { start, .. } => Cow::Borrowed(match start {
+                SameLineStart::Brace => BRACE_AFTER_STATEMENT_HELP,
+                SameLineStart::As => AS_AFTER_STATEMENT_HELP,
+                SameLineStart::Literal => LITERAL_AFTER_STATEMENT_HELP,
+                SameLineStart::Keyword => KEYWORD_AFTER_STATEMENT_HELP,
+                SameLineStart::Other => OTHER_AFTER_STATEMENT_HELP,
+            }),
         })
     }
 }

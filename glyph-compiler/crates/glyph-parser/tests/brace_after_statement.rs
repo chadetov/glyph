@@ -1,4 +1,5 @@
 //! A `{` on the line where a statement ended is E0013 (G351, record 104).
+//! Since 0.1.149 every token is (G370, `statement_after_statement.rs`).
 //!
 //! Inside a block a statement ends where its expression stops (D1), so
 //! `return h() { k: 2 }` used to be `return h()` and then an object literal
@@ -36,7 +37,7 @@ fn a_call_returned_with_braces_after_it_is_refused() {
     let e = refused("fn f() -> R {\n  return h() { k: 2 }\n}\n");
     assert_eq!(
         e.to_string(),
-        "`{` cannot begin a new statement on the line where `return h()` ends"
+        "a statement cannot begin on the line where `return h()` ends"
     );
     let help = e.help().expect("help");
     assert!(help.contains("no `TypeName { ... }` construction form"), "{help}");
@@ -48,7 +49,7 @@ fn a_type_name_returned_with_braces_after_it_is_refused() {
     let e = refused("fn f() -> Order {\n  return Order { id: \"a\" }\n}\n");
     assert_eq!(
         e.to_string(),
-        "`{` cannot begin a new statement on the line where `return Order` ends"
+        "a statement cannot begin on the line where `return Order` ends"
     );
 }
 
@@ -57,7 +58,7 @@ fn a_let_of_a_type_name_with_braces_after_it_is_refused() {
     let e = refused("fn f() -> Order {\n  let o = Order { id: \"a\" }\n  return o\n}\n");
     assert_eq!(
         e.to_string(),
-        "`{` cannot begin a new statement on the line where `let o = Order` ends"
+        "a statement cannot begin on the line where `let o = Order` ends"
     );
 }
 
@@ -90,7 +91,7 @@ fn a_statement_that_spans_lines_is_named_without_being_reprinted() {
     let e = refused("fn f() -> R {\n  return g(\n    1,\n  ) { k: 2 }\n}\n");
     assert_eq!(
         e.to_string(),
-        "`{` cannot begin a new statement on the line where the statement before it ends"
+        "a statement cannot begin on the line where the statement before it ends"
     );
 }
 

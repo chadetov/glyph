@@ -11,11 +11,13 @@ fn after(n: int) -> Backoff {
   let state = fresh()
   let i = 0
   loop {
- 0  match i >= n {
+ 0
+  match i >= n {
       true => { break },
       false => {},
     }
-  ?  mut state = failed(state)
+  ?
+  mut state = failed(state)
     mut i = i + 1
   }
   return state

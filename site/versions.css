@@ -8,7 +8,6 @@
   flex-wrap: wrap;
   gap: var(--s2);
   margin: var(--s5) 0 var(--s5);
-  max-width: 820px;
 }
 .month-nav a {
   font-size: var(--fs-sm);
@@ -43,7 +42,6 @@
   align-items: baseline;
   flex-wrap: wrap;
   gap: var(--s2) var(--s4);
-  max-width: 820px;
   padding-bottom: var(--s3);
   border-bottom: 1px solid var(--line);
 }
@@ -80,7 +78,6 @@
 
 /* ============ one release ============ */
 .releases {
-  max-width: 820px;
 }
 .releases > .release {
   border-top: none;
@@ -187,7 +184,6 @@ h2.rel-ver {
   justify-content: space-between;
   gap: var(--s4);
   flex-wrap: wrap;
-  max-width: 820px;
   margin: var(--s5) 0 var(--s6);
   font-size: var(--fs-sm);
 }

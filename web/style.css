@@ -2253,7 +2253,6 @@ section:first-of-type > .release {
   color: var(--on-band-2);
   font-size: var(--fs-md);
   margin: var(--s5) 0 0;
-  max-width: 48ch;
 }
 .home .pill {
   display: inline-flex;
@@ -2322,9 +2321,9 @@ section:first-of-type > .release {
   color: inherit;
   padding: 0;
   font-size: inherit;
-  overflow-wrap: normal;
-  white-space: nowrap;
-  overflow-x: auto;
+  /* wraps at a space on a phone rather than hiding the end of the command */
+  overflow-wrap: anywhere;
+  white-space: normal;
   min-width: 0;
 }
 .home .copy {
@@ -2969,7 +2968,6 @@ h4 code,
 }
 .ns-desc {
   color: #c9d1e3;
-  max-width: 60ch;
 }
 .ns-desc code,
 .ns-card-desc code {

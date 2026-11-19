@@ -52,7 +52,6 @@
 .c-legend p {
   flex-basis: 100%;
   margin: 0;
-  max-width: 80ch;
 }
 
 /* ============ filters ============ */
@@ -168,7 +167,7 @@
 }
 .c-why {
   color: var(--muted);
-  margin: var(--s1) 0 var(--s4) 38px;
+  margin: var(--s1) 0 var(--s4);
 }
 .c-pair {
   display: grid;
@@ -303,7 +302,6 @@ pre .h {
 .c-traps {
   margin: 0;
   padding-left: 18px;
-  max-width: 80ch;
 }
 .c-traps li {
   margin-bottom: var(--s2);
@@ -335,6 +333,7 @@ pre .h {
 .c-hero {
   margin: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s3);
   min-width: 0;
 }
@@ -426,14 +425,10 @@ a.c-card:hover {
   .c-gaps {
     grid-template-columns: minmax(0, 1fr);
   }
-  .c-why {
-    margin-left: 0;
-  }
 }
 @media (max-width: 640px) {
   .c-scores {
     flex-basis: 100%;
-    margin-left: 38px;
   }
   .catch:target {
     padding-left: var(--s3);

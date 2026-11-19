@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glyph: ภาษาแบบมี type ที่คอมไพล์เป็น TypeScript สร้างมาเพื่อเอเจนต์ AI</title>
+    <meta name="description" content="Glyph เป็นภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา หน้าตาแทบจะเหมือน TypeScript" />
+    <link rel="canonical" href="https://glyphlang.io/th/" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/i18n.css" />
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <meta name="keywords" content="glyph, glyph language, glyphlang, ภาษาโปรแกรม, typescript, transpiler, เอเจนต์ ai, llm" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:locale" content="th_TH" />
+    <meta property="og:url" content="https://glyphlang.io/th/" />
+    <meta property="og:title" content="Glyph: ภาษาแบบมี type ที่คอมไพล์เป็น TypeScript สร้างมาเพื่อเอเจนต์ AI" />
+    <meta
+      property="og:description"
+      content="ภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา หน้าตาแทบจะเหมือน TypeScript"
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Glyph: ภาษาแบบมี type ที่คอมไพล์เป็น TypeScript สร้างมาเพื่อเอเจนต์ AI" />
+    <meta
+      name="twitter:description"
+      content="ภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา"
+    />
+    <link rel="stylesheet" href="/catches.css" />
+    <link rel="stylesheet" href="/home.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Glyph",
+        "url": "https://glyphlang.io/th/",
+        "inLanguage": "th",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Cross-platform",
+        "description": "ภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา หน้าตาแทบจะเหมือน TypeScript",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">ข้ามไปที่เนื้อหา</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="เมนูหลัก">
+        <div class="nav-brand">
+          <a href="/th/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="บันทึกประจำรุ่น">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">ทำไมต้อง Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">เหมาะกับใคร</p>
+                    <ul>
+                      <li><a href="/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">สำหรับคนที่มาจาก TypeScript</span><span class="nav-desc">อะไรเปลี่ยน และอะไรเหมือนเดิม</span></span></a></li>
+                      <li><a href="/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">สำหรับทีม</span><span class="nav-desc">รับประกันอะไร และการนำมาใช้ต้องแลกกับอะไร</span></span></a></li>
+                      <li><a href="/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">สำหรับคนสร้างเอเจนต์</span><span class="nav-desc">เซิร์ฟเวอร์ MCP และคิวรีที่ตอบได้</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">การออกแบบ</p>
+                    <ul>
+                      <li><a href="/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">การออกแบบ</span><span class="nav-desc">หลักสี่ข้อ และสิ่งที่ตั้งใจตัดออกไป</span></span></a></li>
+                      <li><a href="/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph เทียบกับ Effect</span><span class="nav-desc">เปรียบเทียบภาษากับไลบรารี</span></span></a></li>
+                      <li><a href="/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph เทียบกับ TypeScript ที่ใส่เครื่องมือครบ</span><span class="nav-desc">สิ่งที่ tsc แบบ strict, zod และ eslint ยังปล่อยผ่าน</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/catches/">จับอะไรได้บ้าง</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">เรียนรู้<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">เริ่มต้นใช้งาน</p>
+                    <ul>
+                      <li><a href="/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">เริ่มได้ใน 10 นาที</span><span class="nav-desc">ติดตั้ง เขียนโปรแกรม แล้วรัน</span></span></a></li>
+                      <li><a href="/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">คำตอบ <span class="nav-count">28</span></span><span class="nav-desc">คำถามที่วิศวกรถามบ่อย พร้อมตัวอย่างประกอบ</span></span></a></li>
+                      <li><a href="/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">ร่วมพัฒนา</span><span class="nav-desc">คอมไพเลอร์สร้างขึ้นอย่างไร และช่วยได้อย่างไร</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">อ้างอิง</p>
+                    <ul>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">เอกสารอ้างอิงภาษา</span><span class="nav-desc">สเปกฉบับเต็มบน GitHub</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">llms.txt สำหรับเอเจนต์</span><span class="nav-desc">ทั้งภาษาในไฟล์เดียวที่เอเจนต์อ่านได้</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">หลักฐาน<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">ตรวจสอบอย่างไร</p>
+                    <ul>
+                      <li><a href="/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">ข้อกล่าวอ้างถูกตรวจสอบอย่างไร</span><span class="nav-desc">fixture และ CI gate ที่อยู่เบื้องหลังแต่ละข้อกล่าวอ้าง</span></span></a></li>
+                      <li><a href="/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">การทดสอบความแข็งแรง</span><span class="nav-desc">เอเจนต์ที่พยายามทำให้พัง และสิ่งที่พวกมันเจอ</span></span></a></li>
+                      <li><a href="/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Benchmark</span><span class="nav-desc">หลักสี่ข้อในรูปตัวเลข พร้อมข้อควรระวัง</span></span></a></li>
+                      <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">สิ่งที่ยังจับไม่ได้</span><span class="nav-desc">ช่องโหว่ที่รู้แล้ว แต่ละจุดมีโค้ดสำหรับทำซ้ำ</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 จาก 37</span><span class="nav-feature-text">กรณีที่ไม่มีอะไรในโปรเจกต์ TypeScript ที่ตั้งค่าเต็มที่จับได้</span><span class="nav-feature-cta">ดูว่าจับอะไรได้บ้าง <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">เวอร์ชัน</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="ภาษา: ไทย"><svg class="lang-globe" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg><span class="lang-cur">ไทย</span><span class="lang-short" aria-hidden="true">ไทย</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">ภาษา</p>
+            <ul>
+              <li><a href="/" hreflang="en" lang="en" data-lang="en"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/" hreflang="es" lang="es" data-lang="es"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/" hreflang="ja" lang="ja" data-lang="ja"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/" hreflang="tr" lang="tr" data-lang="tr"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/" hreflang="ko" lang="ko" data-lang="ko"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/" hreflang="de" lang="de" data-lang="de"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/" hreflang="ru" lang="ru" data-lang="ru"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/" hreflang="th" lang="th" data-lang="th" aria-current="true"><span class="lang-name">ไทย</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+            </ul>
+            <a class="lang-en" href="/" hreflang="en" data-lang="en">อ่านเป็นภาษาอังกฤษ</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="ธีมสี: อัตโนมัติ (ตามระบบ) สลับเป็นสว่าง">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">อัตโนมัติ</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="เปิดเมนู">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "ปิดเมนู" : "เปิดเมนู");
+          if (open) root.style.setProperty("--nav-h", header.getBoundingClientRect().bottom + "px");
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>ภาษา: ไทย</span><span class="sep" aria-hidden="true">&middot;</span><a href="/" hreflang="en" data-lang="en">อ่านเป็นภาษาอังกฤษ</a></p>
+      <button class="i18n-x" type="button" aria-label="ปิด"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>หน้านี้เป็นฉบับแปล ฉบับภาษาอังกฤษคือฉบับอ้างอิง <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28th%29%3A+%2Fth%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fth%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2F%0A%0AWhat+is+wrong%3A%0A">แจ้งปัญหาเกี่ยวกับคำแปล</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main" class="home">
+    <div class="wrap">
+      <header class="hero">
+        <div>
+          <a class="pill" href="/versions/" title="ดูว่ามีอะไรใหม่"><span class="dot"></span>v0.1.149 · พรีวิวช่วงแรก →</a>
+          <h1>โค้ดที่เอเจนต์ AI เขียน <span class="accent">ถูกตรวจก่อนขึ้น production</span></h1>
+          <p class="sub">
+            Glyph เป็นภาษาแบบมี type ที่อ่านแล้วเหมือน TypeScript และคอมไพล์ออกมาเป็น
+            TypeScript ที่อ่านรู้เรื่อง คุณยังใช้ node, npm และโค้ดที่มีอยู่แล้วได้ตามเดิม และคอมไพเลอร์จะไม่ยอมให้ผ่านโค้ดที่ <code>tsc --strict</code>
+            ปล่อยผ่านไป
+          </p>
+          <div class="install" title="ต้องใช้ Node.js 18 ขึ้นไป">
+            <span class="prompt">$</span>
+            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <button class="copy" onclick="copyInstall()">คัดลอก</button>
+          </div>
+          <div class="cta">
+            <a class="btn primary" href="/catches/">ดูว่าจับอะไรได้บ้าง →</a>
+            <a class="btn" href="/start/">เริ่มได้ใน 10 นาที →</a>
+          </div>
+        </div>
+          <figure class="c-hero" lang="en">
+            <figcaption><a href="/catches/#error-the-signature-hides">An error the signature hides</a>: A function that can fail, called by code that does not know it can.</figcaption>
+            <div class="c-hero-side ts">
+              <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
+              <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> loadConfig(): <span class="t">Config</span> {
+  <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"missing file"</span>);
+}
+
+<span class="k">const</span> cfg = loadConfig(); <span class="c">// no try</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Error: missing file</span></pre></div>
+            </div>
+            <div class="c-hero-side gl">
+              <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
+              <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> load_config() -&gt; <span class="t">Result</span>&lt;<span class="t">Config</span>, string&gt; {
+  <span class="k">return</span> <span class="t">Err</span>(<span class="s">"missing file"</span>)
+}
+
+<span class="k">let</span> cfg: <span class="t">Config</span> = load_config()</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `Config`, found `Result&lt;Config, string&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            </div>
+          </figure>
+
+      </header>
+    </div>
+
+    <section class="h-routes">
+      <div class="wrap">
+        <h2 class="section-head">ไปต่อทางไหนดี</h2>
+        <div class="h-tiles">
+          <a class="h-tile" href="/from-typescript/"><b>เขียน TypeScript อยู่แล้ว</b><span>อะไรเปลี่ยน อะไรเหมือนเดิม และแพ็กเกจ npm ใช้ต่อได้อย่างไร</span></a>
+          <a class="h-tile" href="/teams/"><b>กำลังตัดสินใจแทนทีม</b><span>รับประกันอะไร ไม่รับประกันอะไร และถ้าจะเลิกใช้ต้องแลกกับอะไร</span></a>
+          <a class="h-tile" href="/agents/"><b>สร้างเอเจนต์และเครื่องมือ</b><span>เซิร์ฟเวอร์ MCP คิวรีที่ตอบได้ และรูปแบบของ diagnostic</span></a>
+          <a class="h-tile" href="/evidence/"><b>ขอดูหลักฐาน</b><span>แต่ละข้อกล่าวอ้างถูกตรวจสอบอย่างไร และจะทำซ้ำเองได้อย่างไร</span></a>
+          <a class="h-tile" href="/design/"><b>ทำไมต้องมีภาษาใหม่</b><span>เหตุผลเบื้องหลังการออกแบบ และสิ่งที่ตั้งใจตัดออกไป</span></a>
+          <div class="h-tile h-tile-try"><b>ขอลองเลย</b><span><a href="/start/">เริ่มได้ใน 10 นาที</a> หรือเปิด <a href="/playground/">playground</a></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">กรณีที่ไม่มีอะไรใน TypeScript จับได้</h2>
+        <p class="friction-intro">
+          กรณีสามอันดับแรกที่ผ่าน <code>tsc --strict</code>
+          ได้ แม้จะเปิด flag เสริมทุกตัวและใช้ typescript-eslint แบบ strict
+          เรียงตามความถี่ที่เอเจนต์เขียนออกมาและความเสียหายเมื่อหลุดขึ้น production
+          ตัวอย่างแต่ละกรณีแสดงเป็นภาษาอังกฤษตามที่อยู่ใน repository
+        </p>
+        <div class="c-cards" lang="en">
+          <a class="c-card" href="/catches/#data-from-outside-the-program">
+            <span class="c-card-n">1</span>
+            <h3>Data from outside the program</h3>
+            <p>A request body, a file, an API response.</p>
+            <p class="c-card-v"><span class="ts">TypeScript: compiles, then runs on bad data</span><span class="gl">Glyph: checked when the data arrives</span></p>
+          </a>
+          <a class="c-card" href="/catches/#error-the-signature-hides">
+            <span class="c-card-n">2</span>
+            <h3>An error the signature hides</h3>
+            <p>A function that can fail, called by code that does not know it can.</p>
+            <p class="c-card-v"><span class="ts">TypeScript: compiles, then crashes at run time</span><span class="gl">Glyph: refused when you build</span></p>
+          </a>
+          <a class="c-card" href="/catches/#error-nobody-looked-at">
+            <span class="c-card-n">3</span>
+            <h3>An error nobody looked at</h3>
+            <p>Calling something that can fail and moving on.</p>
+            <p class="c-card-v"><span class="ts">TypeScript: compiles with no warning</span><span class="gl">Glyph: warned</span></p>
+          </a>
+        </div>
+
+        <p class="h-more"><a class="card-more" href="/catches/">ดูทั้ง 37 ข้อ &rarr;</a></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="h-measured">
+          <p class="h-big"><span>21</span> จาก 37</p>
+          <p>ตัวอย่าง TypeScript ทุกตัวในรายการผ่าน <code>tsc --strict</code> โดยไม่มี error และแต่ละตัวยังถูกตรวจกับโปรเจกต์ที่ตั้งค่าเข้มที่สุดอีกชั้น คือเปิด compiler flag ทุกตัวที่เข้มกว่า <code>--strict</code> และใช้ typescript-eslint <code>strictTypeChecked</code> ด้วย จาก 37 ข้อ มี 21 ข้อที่ไม่มีอะไรในการตั้งค่านั้นจับได้เลย compiler flag ที่ปิดอยู่โดยค่าเริ่มต้นจับได้ 5 ข้อ และกฎ lint จับได้ 11 ข้อ ทั้งสองอย่างโปรเจกต์ต้องเปิดเอง และเอเจนต์ก็ปิดกลับได้ ใน Glyph ไม่มีข้อไหนเป็นตัวเลือกในการตั้งค่า</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">การเปลี่ยนแปลงหนึ่งครั้ง ในแอปพลิเคชันจริง</h2>
+        <p class="friction-intro">
+          <code>examples/apps/csvql</code> เป็น query engine สำหรับไฟล์ CSV
+          ที่อยู่ใน repository นี้ โดยมี union <code>Value</code> เป็นแกนกลาง ก่อนจะเพิ่ม case ใหม่เข้าไป ให้ถามคอมไพเลอร์ก่อนว่าจะกระทบจุดไหนบ้าง
+        </p>
+        <div class="code">
+          <span class="cap">glyph_variants { name: "Value" }</span>
+<pre>10 match sites across 4 files
+ <span class="del">8 will fail compilation</span>
+ <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
+          <span class="cap">จากนั้นเพิ่ม case แล้วรัน glyph check</span>
+<pre>8 errors, E0200 non-exhaustive match. The same eight.
+The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+        </div>
+        <p class="friction-intro h-after">
+          ที่คาดการณ์ไว้ถูกครบทั้งแปดจุด อีกสองจุดคือ
+          <code>exec::total</code> และ <code>render::literal_text</code> ยังคอมไพล์ผ่าน และส่ง case ใหม่ไปตามที่ catch-all ของแต่ละจุดกำหนดไว้ เอเจนต์ที่แก้ error
+          ครบแปดจุดแล้วหยุดจะได้ build สีเขียวพร้อมบั๊กที่ยังอยู่อีกสองตัว และคิวรีนี้คือสิ่งที่ชี้ให้เห็นว่าอยู่ตรงไหน
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="h-notyet">
+          Glyph ยังจับไม่ได้ทุกอย่าง ช่องโหว่ที่รู้แล้ว 11 จุด มีโค้ดสำหรับทำซ้ำและหมายเลข gap กำกับไว้ และ logic error ก็ผ่าน Glyph
+          ได้เหมือนที่ผ่าน TypeScript
+          <a href="/catches/#not-yet">สิ่งที่ยังจับไม่ได้ &rarr;</a>
+        </p>
+      </div>
+    </section>
+
+    <script>
+      function copyInstall() {
+        var text = document.getElementById("install-cmd").textContent;
+        navigator.clipboard && navigator.clipboard.writeText(text);
+        var btn = document.querySelector(".copy");
+        var prev = btn.textContent;
+        btn.textContent = "คัดลอกแล้ว";
+        setTimeout(function () {
+          btn.textContent = prev;
+        }, 1400);
+      }
+    </script>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/th/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>ภาษาแบบมี type ที่คอมไพล์เป็น TypeScript สร้างมาให้เอเจนต์แก้โค้ดได้โดยไม่ทำให้พัง</p>
+          </div>
+          <div class="foot-col">
+            <h2>เริ่มต้น</h2>
+            <a href="/start/">โปรแกรมแรกของคุณ</a>
+            <a href="/from-typescript/">สำหรับคนที่มาจาก TypeScript</a>
+            <a href="/teams/">สำหรับทีม</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">ทัวร์ห้านาที</a>
+          </div>
+          <div class="foot-col">
+            <h2>เรียนรู้</h2>
+            <a href="/answers/">คำตอบ</a>
+            <a href="/answers/verifiability/">อ่านคำตอบตามลำดับ</a>
+            <a href="/answers/tooling/">เครื่องมือสำหรับ editor และเอเจนต์</a>
+            <a href="/agents/">สำหรับเอเจนต์</a>
+            <a href="/mcp/">เซิร์ฟเวอร์ MCP</a>
+            <a href="/design/">การออกแบบ</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">สเปกของภาษา</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">แถลงการณ์</a>
+          </div>
+          <div class="foot-col">
+            <h2>หลักฐาน</h2>
+            <a href="/catches/">สิ่งที่จับได้</a>
+            <a href="/evidence/">ข้อกล่าวอ้างถูกตรวจสอบอย่างไร</a>
+            <a href="/hardening/">การทดสอบความแข็งแรง</a>
+            <a href="/benchmarks/">Benchmark</a>
+            <a href="/versions/">เวอร์ชัน</a>
+          </div>
+          <div class="foot-col">
+            <h2>ซอร์สโค้ด</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/contribute/">ร่วมพัฒนา</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases บน GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/th/index.html">แก้ไขหน้านี้</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript ที่เอเจนต์ของคุณทำพังแบบเงียบๆ ไม่ได้</span>
+          <span>&copy; 2026 Glyph &middot; MIT หรือ Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "อัตโนมัติ", light: "สว่าง", dark: "มืด" };
+        var labels = { auto: "ธีมสี: อัตโนมัติ (ตามระบบ) สลับเป็นสว่าง", light: "ธีมสี: สว่าง สลับเป็นมืด", dark: "ธีมสี: มืด สลับเป็นอัตโนมัติ" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,151 @@
+---
+title: Glyph: yapay zekâ ajanları için tasarlanmış, TypeScript'e derlenen tipli bir dil
+description: Glyph, TypeScript'e derlenen statik tipli bir dil. Bir yapay zekâ ajanının yazdığı kod tahmin yürütmeden okunabilsin, kontrol edilebilsin ve değiştirilebilsin diye tasarlandı. Görünüşü TypeScript'e çok yakın.
+source_hash: 520cddaf09df5f1b
+head: |
+  <meta name="keywords" content="glyph, glyph language, glyphlang, programlama dili, typescript, transpiler, yapay zekâ ajanları, llm" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Glyph" />
+  <meta property="og:locale" content="tr_TR" />
+  <meta property="og:url" content="https://glyphlang.io/tr/" />
+  <meta property="og:title" content="Glyph: yapay zekâ ajanları için tasarlanmış, TypeScript'e derlenen tipli bir dil" />
+  <meta
+    property="og:description"
+    content="TypeScript'e derlenen statik tipli bir dil. Bir yapay zekâ ajanının yazdığı kod tahmin yürütmeden okunabilsin, kontrol edilebilsin ve değiştirilebilsin diye tasarlandı. Görünüşü TypeScript'e çok yakın."
+  />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Glyph: yapay zekâ ajanları için tasarlanmış, TypeScript'e derlenen tipli bir dil" />
+  <meta
+    name="twitter:description"
+    content="TypeScript'e derlenen statik tipli bir dil. Bir yapay zekâ ajanının yazdığı kod tahmin yürütmeden okunabilsin, kontrol edilebilsin ve değiştirilebilsin diye tasarlandı."
+  />
+  <link rel="stylesheet" href="/catches.css" />
+  <link rel="stylesheet" href="/home.css" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Glyph",
+      "url": "https://glyphlang.io/tr/",
+      "inLanguage": "tr",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform",
+      "description": "TypeScript'e derlenen statik tipli bir dil. Bir yapay zekâ ajanının yazdığı kod tahmin yürütmeden okunabilsin, kontrol edilebilsin ve değiştirilebilsin diye tasarlandı. Görünüşü TypeScript'e çok yakın.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+  </script>
+---
+    <div class="wrap">
+      <header class="hero">
+        <div>
+          <a class="pill" href="/versions/" title="Yenilikleri gör"><span class="dot"></span>v{{version}} · erken önizleme →</a>
+          <h1>Yapay zekâ ajanının yazdığı kod, <span class="accent">production'a çıkmadan kontrol edilir.</span></h1>
+          <p class="sub">
+            Glyph, TypeScript gibi okunan ve okunabilir TypeScript'e derlenen
+            tipli bir dil. node, npm ve mevcut kodunuz yerinde kalır; derleyici
+            ise <code>tsc --strict</code> tarafından gözden kaçırılan kodu
+            kabul etmez.
+          </p>
+          <div class="install" title="Node.js 18 veya üstü gerekir">
+            <span class="prompt">$</span>
+            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <button class="copy" onclick="copyInstall()">kopyala</button>
+          </div>
+          <div class="cta">
+            <a class="btn primary" href="/catches/">Neleri yakaladığını gör →</a>
+            <a class="btn" href="/start/">10 dakikada başla →</a>
+          </div>
+        </div>
+{{catches:hero}}
+      </header>
+    </div>
+
+    <section class="h-routes">
+      <div class="wrap">
+        <h2 class="section-head">Buradan nereye</h2>
+        <div class="h-tiles">
+          <a class="h-tile" href="/from-typescript/"><b>TypeScript yazıyorum</b><span>Neler değişiyor, neler aynı kalıyor ve npm paketleriniz nasıl yanınızda geliyor.</span></a>
+          <a class="h-tile" href="/teams/"><b>Bir ekip adına karar veriyorum</b><span>Neyi garanti ediyor, neyi etmiyor ve bırakmanın maliyeti ne.</span></a>
+          <a class="h-tile" href="/agents/"><b>Ajan ve araç geliştiriyorum</b><span>MCP sunucusu, yanıtladığı sorgular ve diagnostic formatı.</span></a>
+          <a class="h-tile" href="/evidence/"><b>Kanıtları görmek istiyorum</b><span>Her iddianın nasıl kontrol edildiği ve nasıl tekrar üretileceği.</span></a>
+          <a class="h-tile" href="/design/"><b>Neden yeni bir dil?</b><span>Tasarımın gerekçesi ve bilerek dışarıda bırakılanlar.</span></a>
+          <div class="h-tile h-tile-try"><b>Sadece denemek istiyorum</b><span><a href="/start/">10 dakikada başlayın</a> ya da <a href="/playground/">playground</a>'u açın.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">TypeScript'te hiçbir şeyin yakalamadığı vakalar</h2>
+        <p class="friction-intro">
+          Tüm ek flag'ler açıkken ve typescript-eslint strict moddayken
+          <code>tsc --strict</code>'ten geçen vakalar arasında en üst sıradaki
+          üçü. Sıralama, bir ajanın onları ne sıklıkla yazdığına ve production'a
+          çıktıklarında ne kadar zarar verdiklerine göre yapıldı. Örnekler,
+          repoda oldukları gibi İngilizce gösteriliyor.
+        </p>
+{{catches:top}}
+        <p class="h-more"><a class="card-more" href="/catches/">{{catches:count}} vakanın tümünü gör &rarr;</a></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="h-measured">
+          <p class="h-big">{{catches:count}} vakadan <span>{{catches:none}}</span> tanesi</p>
+          <p>Listedeki her TypeScript örneği <code>tsc --strict</code>'ten hatasız geçer. Her biri ayrıca en sıkı şekilde yapılandırılmış bir projeye karşı da kontrol edilir: <code>--strict</code>'ten daha katı tüm derleyici flag'leri, artı typescript-eslint <code>strictTypeChecked</code>. {{catches:count}} vakanın {{catches:none}} tanesini bu yapılandırmadaki hiçbir şey yakalamıyor. Varsayılan olarak kapalı olan bir derleyici flag'i {{catches:flag}} tanesini, bir lint kuralı da {{catches:lint}} tanesini yakalıyor. Bunların her birini projenin açması gerekir ve bir ajan onu yeniden kapatabilir. Glyph'te bunların hiçbiri bir yapılandırma seçeneği değil.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">Gerçek bir uygulamada tek bir değişiklik</h2>
+        <p class="friction-intro">
+          <code>examples/apps/csvql</code>, bu repoda bulunan ve merkezinde bir
+          <code>Value</code> union'ı olan bir CSV sorgu motoru. Ona yeni bir case
+          eklemeden önce derleyiciye bunun hangi yerlere ulaştığını sorun.
+        </p>
+        <div class="code">
+          <span class="cap">glyph_variants { name: "Value" }</span>
+<pre>10 match sites across 4 files
+ <span class="del">8 will fail compilation</span>
+ <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
+          <span class="cap">ardından case'i ekleyin ve glyph check çalıştırın</span>
+<pre>8 errors, E0200 non-exhaustive match. The same eight.
+The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+        </div>
+        <p class="friction-intro h-after">
+          Tahmin sekizinde de doğru çıktı. Diğer ikisi,
+          <code>exec::total</code> ve <code>render::literal_text</code>,
+          derlenmeye devam ediyor ve yeni case'i catch-all'ları nereye
+          gösteriyorsa oraya yolluyor. Sekiz hatayı düzeltip duran bir ajanın
+          elinde yeşil bir build ve canlı iki bug kalır; bunları gösteren de
+          sorgunun kendisidir.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="h-notyet">
+          Glyph henüz her şeyi yakalamıyor. Bilinen {{catches:gap-count}} açığın
+          bir reprodüksiyonu ve bir gap numarası var; mantık hataları da
+          TypeScript'te olduğu gibi Glyph'ten de geçiyor.
+          <a href="/catches/#not-yet">Henüz yakalamadıkları &rarr;</a>
+        </p>
+      </div>
+    </section>
+
+    <script>
+      function copyInstall() {
+        var text = document.getElementById("install-cmd").textContent;
+        navigator.clipboard && navigator.clipboard.writeText(text);
+        var btn = document.querySelector(".copy");
+        var prev = btn.textContent;
+        btn.textContent = "kopyalandı";
+        setTimeout(function () {
+          btn.textContent = prev;
+        }, 1400);
+      }
+    </script>

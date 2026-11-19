@@ -1,0 +1,152 @@
+---
+title: Glyph: типизированный язык, который компилируется в TypeScript и рассчитан на ИИ-агентов
+description: Glyph: статически типизированный язык, который компилируется в TypeScript. Он устроен так, чтобы код, написанный ИИ-агентом, можно было читать, проверять и менять без догадок. Выглядит почти как TypeScript.
+source_hash: 520cddaf09df5f1b
+head: |
+  <meta name="keywords" content="glyph, glyph language, glyphlang, язык программирования, typescript, транспайлер, ии-агенты, llm" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Glyph" />
+  <meta property="og:locale" content="ru_RU" />
+  <meta property="og:url" content="https://glyphlang.io/ru/" />
+  <meta property="og:title" content="Glyph: типизированный язык, который компилируется в TypeScript и рассчитан на ИИ-агентов" />
+  <meta
+    property="og:description"
+    content="Статически типизированный язык, который компилируется в TypeScript. Он устроен так, чтобы код, написанный ИИ-агентом, можно было читать, проверять и менять без догадок. Выглядит почти как TypeScript."
+  />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Glyph: типизированный язык, который компилируется в TypeScript и рассчитан на ИИ-агентов" />
+  <meta
+    name="twitter:description"
+    content="Статически типизированный язык, который компилируется в TypeScript. Он устроен так, чтобы код, написанный ИИ-агентом, можно было читать, проверять и менять без догадок."
+  />
+  <link rel="stylesheet" href="/catches.css" />
+  <link rel="stylesheet" href="/home.css" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Glyph",
+      "url": "https://glyphlang.io/ru/",
+      "inLanguage": "ru",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform",
+      "description": "Статически типизированный язык, который компилируется в TypeScript. Он устроен так, чтобы код, написанный ИИ-агентом, можно было читать, проверять и менять без догадок. Выглядит почти как TypeScript.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+  </script>
+---
+    <div class="wrap">
+      <header class="hero">
+        <div>
+          <a class="pill" href="/versions/" title="Что нового"><span class="dot"></span>v{{version}} · ранняя версия →</a>
+          <h1>Код, который пишет ИИ-агент, <span class="accent">проверен до того, как попадёт в продакшен.</span></h1>
+          <p class="sub">
+            Типизированный язык Glyph читается как TypeScript и компилируется
+            в читаемый TypeScript. У вас остаются node, npm и уже
+            написанный код, а компилятор отклоняет код, который
+            <code>tsc --strict</code> пропускает.
+          </p>
+          <div class="install" title="Нужен Node.js 18 или новее">
+            <span class="prompt">$</span>
+            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <button class="copy" onclick="copyInstall()">копировать</button>
+          </div>
+          <div class="cta">
+            <a class="btn primary" href="/catches/">Посмотреть, что он ловит →</a>
+            <a class="btn" href="/start/">Начать за 10 минут →</a>
+          </div>
+        </div>
+{{catches:hero}}
+      </header>
+    </div>
+
+    <section class="h-routes">
+      <div class="wrap">
+        <h2 class="section-head">Куда дальше</h2>
+        <div class="h-tiles">
+          <a class="h-tile" href="/from-typescript/"><b>Я пишу на TypeScript</b><span>Что меняется, что остаётся и как подключить пакеты из npm.</span></a>
+          <a class="h-tile" href="/teams/"><b>Я принимаю решение за команду</b><span>Что он гарантирует, чего не гарантирует и чего стоит от него отказаться.</span></a>
+          <a class="h-tile" href="/agents/"><b>Я делаю агентов и инструменты</b><span>MCP-сервер, запросы, на которые он отвечает, и формат диагностик.</span></a>
+          <a class="h-tile" href="/evidence/"><b>Покажите доказательства</b><span>Как проверяется каждое утверждение и как его воспроизвести.</span></a>
+          <a class="h-tile" href="/design/"><b>Зачем новый язык?</b><span>Аргументы в пользу дизайна и то, что намеренно оставили за бортом.</span></a>
+          <div class="h-tile h-tile-try"><b>Просто дайте попробовать</b><span><a href="/start/">Начните за 10 минут</a> или откройте <a href="/playground/">песочницу</a>.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">Случаи, которые в TypeScript не ловит ничто</h2>
+        <p class="friction-intro">
+          Три случая с самым высоким рейтингом среди тех, что проходят
+          <code>tsc --strict</code> со всеми дополнительными флагами и
+          typescript-eslint в режиме strict. Рейтинг учитывает, как часто агент
+          их пишет и насколько они опасны в продакшене. Примеры показаны
+          на английском, в том виде, в каком они лежат в репозитории.
+        </p>
+{{catches:top}}
+        <p class="h-more"><a class="card-more" href="/catches/">Смотреть все ({{catches:count}}) &rarr;</a></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="h-measured">
+          <p class="h-big"><span>{{catches:none}}</span> из {{catches:count}}</p>
+          <p>Все примеры на TypeScript из списка проходят <code>tsc --strict</code> без ошибок. Каждый из них дополнительно проверяется на проекте с максимально строгой настройкой: все флаги компилятора строже <code>--strict</code> плюс typescript-eslint <code>strictTypeChecked</code>. Из {{catches:count}} случаев такая настройка не ловит {{catches:none}}. Флаг компилятора, выключенный по умолчанию, ловит {{catches:flag}}, правило линтера ловит {{catches:lint}}. Каждый из них проект должен включить сам, и агент может снова его выключить. В Glyph ни одна из этих проверок не является настройкой.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">Одно изменение в реальном приложении</h2>
+        <p class="friction-intro">
+          В этом репозитории лежит <code>examples/apps/csvql</code>, движок
+          запросов к CSV. В его центре union-тип <code>Value</code>.
+          Прежде чем добавить в него новый вариант, спросите компилятор, какие
+          места это затронет.
+        </p>
+        <div class="code">
+          <span class="cap">glyph_variants { name: "Value" }</span>
+<pre>10 match sites across 4 files
+ <span class="del">8 will fail compilation</span>
+ <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
+          <span class="cap">затем добавьте вариант и запустите glyph check</span>
+<pre>8 errors, E0200 non-exhaustive match. The same eight.
+The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+        </div>
+        <p class="friction-intro h-after">
+          Прогноз совпал во всех восьми местах. Остальные два,
+          <code>exec::total</code> и <code>render::literal_text</code>,
+          продолжают компилироваться и отправляют новый вариант туда, куда
+          указывает их catch-all. Агент, который исправит восемь ошибок и
+          остановится, получит зелёную сборку и два живых бага, а указывает на них
+          запрос.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="h-notyet">
+          Glyph пока ловит не всё. Известных дыр, у каждой из которых есть
+          воспроизведение и номер gap: {{catches:gap-count}}. Логические ошибки
+          проходят в Glyph так же, как в TypeScript.
+          <a href="/catches/#not-yet">Что он пока не ловит &rarr;</a>
+        </p>
+      </div>
+    </section>
+
+    <script>
+      function copyInstall() {
+        var text = document.getElementById("install-cmd").textContent;
+        navigator.clipboard && navigator.clipboard.writeText(text);
+        var btn = document.querySelector(".copy");
+        var prev = btn.textContent;
+        btn.textContent = "скопировано";
+        setTimeout(function () {
+          btn.textContent = prev;
+        }, 1400);
+      }
+    </script>

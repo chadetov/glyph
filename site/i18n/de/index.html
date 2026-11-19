@@ -1,0 +1,152 @@
+---
+title: Glyph: eine typisierte Sprache, die zu TypeScript kompiliert, gebaut für KI-Agenten
+description: Glyph ist eine statisch typisierte Sprache, die zu TypeScript kompiliert. Sie ist so entworfen, dass sich Code, den ein KI-Agent schreibt, ohne Rätselraten lesen, prüfen und ändern lässt. Sie sieht fast aus wie TypeScript.
+source_hash: 520cddaf09df5f1b
+head: |
+  <meta name="keywords" content="glyph, glyph language, glyphlang, programmiersprache, typescript, transpiler, ki-agenten, llm" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Glyph" />
+  <meta property="og:locale" content="de_DE" />
+  <meta property="og:url" content="https://glyphlang.io/de/" />
+  <meta property="og:title" content="Glyph: eine typisierte Sprache, die zu TypeScript kompiliert, gebaut für KI-Agenten" />
+  <meta
+    property="og:description"
+    content="Eine statisch typisierte Sprache, die zu TypeScript kompiliert. Sie ist so entworfen, dass sich Code, den ein KI-Agent schreibt, ohne Rätselraten lesen, prüfen und ändern lässt. Sie sieht fast aus wie TypeScript."
+  />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Glyph: eine typisierte Sprache, die zu TypeScript kompiliert, gebaut für KI-Agenten" />
+  <meta
+    name="twitter:description"
+    content="Eine statisch typisierte Sprache, die zu TypeScript kompiliert. Sie ist so entworfen, dass sich Code, den ein KI-Agent schreibt, ohne Rätselraten lesen, prüfen und ändern lässt."
+  />
+  <link rel="stylesheet" href="/catches.css" />
+  <link rel="stylesheet" href="/home.css" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Glyph",
+      "url": "https://glyphlang.io/de/",
+      "inLanguage": "de",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform",
+      "description": "Eine statisch typisierte Sprache, die zu TypeScript kompiliert. Sie ist so entworfen, dass sich Code, den ein KI-Agent schreibt, ohne Rätselraten lesen, prüfen und ändern lässt. Sie sieht fast aus wie TypeScript.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+  </script>
+---
+    <div class="wrap">
+      <header class="hero">
+        <div>
+          <a class="pill" href="/versions/" title="Was ist neu"><span class="dot"></span>v{{version}} · Early Preview →</a>
+          <h1>Code, den ein KI-Agent schreibt, <span class="accent">geprüft, bevor er ausgeliefert wird.</span></h1>
+          <p class="sub">
+            Glyph ist eine typisierte Sprache, die sich wie TypeScript liest und
+            zu lesbarem TypeScript kompiliert. Du behältst node, npm und deinen
+            bestehenden Code, und der Compiler lehnt Code ab, den
+            <code>tsc --strict</code> durchlässt.
+          </p>
+          <div class="install" title="Benötigt Node.js 18 oder neuer">
+            <span class="prompt">$</span>
+            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <button class="copy" onclick="copyInstall()">kopieren</button>
+          </div>
+          <div class="cta">
+            <a class="btn primary" href="/catches/">Sehen, was es findet →</a>
+            <a class="btn" href="/start/">In 10 Minuten loslegen →</a>
+          </div>
+        </div>
+{{catches:hero}}
+      </header>
+    </div>
+
+    <section class="h-routes">
+      <div class="wrap">
+        <h2 class="section-head">Wie es weitergeht</h2>
+        <div class="h-tiles">
+          <a class="h-tile" href="/from-typescript/"><b>Ich schreibe TypeScript</b><span>Was sich ändert, was bleibt und wie deine npm-Pakete mitkommen.</span></a>
+          <a class="h-tile" href="/teams/"><b>Ich entscheide für ein Team</b><span>Was es garantiert, was nicht und was ein Ausstieg kostet.</span></a>
+          <a class="h-tile" href="/agents/"><b>Ich baue Agenten und Tools</b><span>Der MCP-Server, die Abfragen, die er beantwortet, und das Format der Diagnosen.</span></a>
+          <a class="h-tile" href="/evidence/"><b>Zeig mir die Belege</b><span>Wie jede Aussage geprüft wird und wie du sie nachvollziehst.</span></a>
+          <a class="h-tile" href="/design/"><b>Warum eine neue Sprache?</b><span>Die Begründung des Designs und was bewusst weggelassen wurde.</span></a>
+          <div class="h-tile h-tile-try"><b>Ich will es einfach ausprobieren</b><span><a href="/start/">In 10 Minuten loslegen</a> oder den <a href="/playground/">Playground</a> öffnen.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">Fälle, die in TypeScript nichts findet</h2>
+        <p class="friction-intro">
+          Die drei am höchsten eingestuften Fälle, die <code>tsc --strict</code>
+          mit allen zusätzlichen Flags und typescript-eslint im Strict-Modus
+          bestehen, sortiert danach, wie oft ein Agent sie schreibt und wie
+          schlimm sie sind, wenn sie in Produktion landen. Die Fälle werden auf
+          Englisch gezeigt, so wie sie im Repository stehen.
+        </p>
+{{catches:top}}
+        <p class="h-more"><a class="card-more" href="/catches/">Alle {{catches:count}} ansehen &rarr;</a></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="h-measured">
+          <p class="h-big"><span>{{catches:none}}</span> von {{catches:count}}</p>
+          <p>Jedes TypeScript-Beispiel in der Liste besteht <code>tsc --strict</code> ohne Fehler. Jedes wird außerdem gegen ein maximal konfiguriertes Projekt geprüft: alle Compiler-Flags, die strenger als <code>--strict</code> sind, dazu typescript-eslint <code>strictTypeChecked</code>. Von den {{catches:count}} Fällen erkennt dieses Setup {{catches:none}} überhaupt nicht. Ein standardmäßig deaktiviertes Compiler-Flag findet {{catches:flag}}, eine Lint-Regel {{catches:lint}}. Ein Projekt muss jedes davon einschalten, und ein Agent kann es wieder ausschalten. In Glyph ist keins davon eine Konfigurationsoption.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">Eine Änderung in einer echten Anwendung</h2>
+        <p class="friction-intro">
+          <code>examples/apps/csvql</code> ist eine Query-Engine für CSV-Dateien
+          in diesem Repository, mit einer <code>Value</code>-Union im Zentrum.
+          Bevor du einen Fall hinzufügst, frag den Compiler, welche Stellen er
+          erreicht.
+        </p>
+        <div class="code">
+          <span class="cap">glyph_variants { name: "Value" }</span>
+<pre>10 match sites across 4 files
+ <span class="del">8 will fail compilation</span>
+ <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
+          <span class="cap">dann den Fall hinzufügen und glyph check ausführen</span>
+<pre>8 errors, E0200 non-exhaustive match. The same eight.
+The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+        </div>
+        <p class="friction-intro h-after">
+          Die Vorhersage traf bei allen acht zu. Die anderen beiden,
+          <code>exec::total</code> und <code>render::literal_text</code>,
+          kompilieren weiter und schicken den neuen Fall dorthin, wohin ihr
+          Catch-all zeigt. Ein Agent, der die acht Fehler behebt und dann aufhört,
+          hat einen grünen Build und zwei lebende Bugs, und erst die Abfrage
+          benennt sie.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="h-notyet">
+          Glyph findet noch nicht alles. {{catches:gap-count}} bekannte Lücken
+          haben eine Reproduktion und eine Gap-Nummer, und Logikfehler kommen in
+          Glyph genauso durch wie in TypeScript.
+          <a href="/catches/#not-yet">Was es noch nicht findet &rarr;</a>
+        </p>
+      </div>
+    </section>
+
+    <script>
+      function copyInstall() {
+        var text = document.getElementById("install-cmd").textContent;
+        navigator.clipboard && navigator.clipboard.writeText(text);
+        var btn = document.querySelector(".copy");
+        var prev = btn.textContent;
+        btn.textContent = "kopiert";
+        setTimeout(function () {
+          btn.textContent = prev;
+        }, 1400);
+      }
+    </script>

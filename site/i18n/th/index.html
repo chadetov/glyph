@@ -1,0 +1,144 @@
+---
+title: Glyph: ภาษาแบบมี type ที่คอมไพล์เป็น TypeScript สร้างมาเพื่อเอเจนต์ AI
+description: Glyph เป็นภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา หน้าตาแทบจะเหมือน TypeScript
+source_hash: 520cddaf09df5f1b
+head: |
+  <meta name="keywords" content="glyph, glyph language, glyphlang, ภาษาโปรแกรม, typescript, transpiler, เอเจนต์ ai, llm" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Glyph" />
+  <meta property="og:locale" content="th_TH" />
+  <meta property="og:url" content="https://glyphlang.io/th/" />
+  <meta property="og:title" content="Glyph: ภาษาแบบมี type ที่คอมไพล์เป็น TypeScript สร้างมาเพื่อเอเจนต์ AI" />
+  <meta
+    property="og:description"
+    content="ภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา หน้าตาแทบจะเหมือน TypeScript"
+  />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Glyph: ภาษาแบบมี type ที่คอมไพล์เป็น TypeScript สร้างมาเพื่อเอเจนต์ AI" />
+  <meta
+    name="twitter:description"
+    content="ภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา"
+  />
+  <link rel="stylesheet" href="/catches.css" />
+  <link rel="stylesheet" href="/home.css" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Glyph",
+      "url": "https://glyphlang.io/th/",
+      "inLanguage": "th",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform",
+      "description": "ภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา หน้าตาแทบจะเหมือน TypeScript",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+  </script>
+---
+    <div class="wrap">
+      <header class="hero">
+        <div>
+          <a class="pill" href="/versions/" title="ดูว่ามีอะไรใหม่"><span class="dot"></span>v{{version}} · พรีวิวช่วงแรก →</a>
+          <h1>โค้ดที่เอเจนต์ AI เขียน <span class="accent">ถูกตรวจก่อนขึ้น production</span></h1>
+          <p class="sub">
+            Glyph เป็นภาษาแบบมี type ที่อ่านแล้วเหมือน TypeScript และคอมไพล์ออกมาเป็น
+            TypeScript ที่อ่านรู้เรื่อง คุณยังใช้ node, npm และโค้ดที่มีอยู่แล้วได้ตามเดิม และคอมไพเลอร์จะไม่ยอมให้ผ่านโค้ดที่ <code>tsc --strict</code>
+            ปล่อยผ่านไป
+          </p>
+          <div class="install" title="ต้องใช้ Node.js 18 ขึ้นไป">
+            <span class="prompt">$</span>
+            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <button class="copy" onclick="copyInstall()">คัดลอก</button>
+          </div>
+          <div class="cta">
+            <a class="btn primary" href="/catches/">ดูว่าจับอะไรได้บ้าง →</a>
+            <a class="btn" href="/start/">เริ่มได้ใน 10 นาที →</a>
+          </div>
+        </div>
+{{catches:hero}}
+      </header>
+    </div>
+
+    <section class="h-routes">
+      <div class="wrap">
+        <h2 class="section-head">ไปต่อทางไหนดี</h2>
+        <div class="h-tiles">
+          <a class="h-tile" href="/from-typescript/"><b>เขียน TypeScript อยู่แล้ว</b><span>อะไรเปลี่ยน อะไรเหมือนเดิม และแพ็กเกจ npm ใช้ต่อได้อย่างไร</span></a>
+          <a class="h-tile" href="/teams/"><b>กำลังตัดสินใจแทนทีม</b><span>รับประกันอะไร ไม่รับประกันอะไร และถ้าจะเลิกใช้ต้องแลกกับอะไร</span></a>
+          <a class="h-tile" href="/agents/"><b>สร้างเอเจนต์และเครื่องมือ</b><span>เซิร์ฟเวอร์ MCP คิวรีที่ตอบได้ และรูปแบบของ diagnostic</span></a>
+          <a class="h-tile" href="/evidence/"><b>ขอดูหลักฐาน</b><span>แต่ละข้อกล่าวอ้างถูกตรวจสอบอย่างไร และจะทำซ้ำเองได้อย่างไร</span></a>
+          <a class="h-tile" href="/design/"><b>ทำไมต้องมีภาษาใหม่</b><span>เหตุผลเบื้องหลังการออกแบบ และสิ่งที่ตั้งใจตัดออกไป</span></a>
+          <div class="h-tile h-tile-try"><b>ขอลองเลย</b><span><a href="/start/">เริ่มได้ใน 10 นาที</a> หรือเปิด <a href="/playground/">playground</a></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">กรณีที่ไม่มีอะไรใน TypeScript จับได้</h2>
+        <p class="friction-intro">
+          กรณีสามอันดับแรกที่ผ่าน <code>tsc --strict</code>
+          ได้ แม้จะเปิด flag เสริมทุกตัวและใช้ typescript-eslint แบบ strict
+          เรียงตามความถี่ที่เอเจนต์เขียนออกมาและความเสียหายเมื่อหลุดขึ้น production
+          ตัวอย่างแต่ละกรณีแสดงเป็นภาษาอังกฤษตามที่อยู่ใน repository
+        </p>
+{{catches:top}}
+        <p class="h-more"><a class="card-more" href="/catches/">ดูทั้ง {{catches:count}} ข้อ &rarr;</a></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="h-measured">
+          <p class="h-big"><span>{{catches:none}}</span> จาก {{catches:count}}</p>
+          <p>ตัวอย่าง TypeScript ทุกตัวในรายการผ่าน <code>tsc --strict</code> โดยไม่มี error และแต่ละตัวยังถูกตรวจกับโปรเจกต์ที่ตั้งค่าเข้มที่สุดอีกชั้น คือเปิด compiler flag ทุกตัวที่เข้มกว่า <code>--strict</code> และใช้ typescript-eslint <code>strictTypeChecked</code> ด้วย จาก {{catches:count}} ข้อ มี {{catches:none}} ข้อที่ไม่มีอะไรในการตั้งค่านั้นจับได้เลย compiler flag ที่ปิดอยู่โดยค่าเริ่มต้นจับได้ {{catches:flag}} ข้อ และกฎ lint จับได้ {{catches:lint}} ข้อ ทั้งสองอย่างโปรเจกต์ต้องเปิดเอง และเอเจนต์ก็ปิดกลับได้ ใน Glyph ไม่มีข้อไหนเป็นตัวเลือกในการตั้งค่า</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">การเปลี่ยนแปลงหนึ่งครั้ง ในแอปพลิเคชันจริง</h2>
+        <p class="friction-intro">
+          <code>examples/apps/csvql</code> เป็น query engine สำหรับไฟล์ CSV
+          ที่อยู่ใน repository นี้ โดยมี union <code>Value</code> เป็นแกนกลาง ก่อนจะเพิ่ม case ใหม่เข้าไป ให้ถามคอมไพเลอร์ก่อนว่าจะกระทบจุดไหนบ้าง
+        </p>
+        <div class="code">
+          <span class="cap">glyph_variants { name: "Value" }</span>
+<pre>10 match sites across 4 files
+ <span class="del">8 will fail compilation</span>
+ <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
+          <span class="cap">จากนั้นเพิ่ม case แล้วรัน glyph check</span>
+<pre>8 errors, E0200 non-exhaustive match. The same eight.
+The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+        </div>
+        <p class="friction-intro h-after">
+          ที่คาดการณ์ไว้ถูกครบทั้งแปดจุด อีกสองจุดคือ
+          <code>exec::total</code> และ <code>render::literal_text</code> ยังคอมไพล์ผ่าน และส่ง case ใหม่ไปตามที่ catch-all ของแต่ละจุดกำหนดไว้ เอเจนต์ที่แก้ error
+          ครบแปดจุดแล้วหยุดจะได้ build สีเขียวพร้อมบั๊กที่ยังอยู่อีกสองตัว และคิวรีนี้คือสิ่งที่ชี้ให้เห็นว่าอยู่ตรงไหน
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="h-notyet">
+          Glyph ยังจับไม่ได้ทุกอย่าง ช่องโหว่ที่รู้แล้ว {{catches:gap-count}} จุด มีโค้ดสำหรับทำซ้ำและหมายเลข gap กำกับไว้ และ logic error ก็ผ่าน Glyph
+          ได้เหมือนที่ผ่าน TypeScript
+          <a href="/catches/#not-yet">สิ่งที่ยังจับไม่ได้ &rarr;</a>
+        </p>
+      </div>
+    </section>
+
+    <script>
+      function copyInstall() {
+        var text = document.getElementById("install-cmd").textContent;
+        navigator.clipboard && navigator.clipboard.writeText(text);
+        var btn = document.querySelector(".copy");
+        var prev = btn.textContent;
+        btn.textContent = "คัดลอกแล้ว";
+        setTimeout(function () {
+          btn.textContent = prev;
+        }, 1400);
+      }
+    </script>

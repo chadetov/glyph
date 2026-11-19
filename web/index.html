@@ -23,6 +23,45 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/i18n.css" />
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/" />
+    <script>
+      (function () {
+        var pages = {"pt-br":"/pt-br/","es":"/es/","ja":"/ja/","tr":"/tr/","zh-cn":"/zh-cn/","ko":"/ko/","de":"/de/","ru":"/ru/","th":"/th/"};
+        try {
+          if (localStorage.getItem("glyph-lang") !== null) return;
+          if (/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)) return;
+          var prefs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+          for (var i = 0; i < prefs.length; i++) {
+            var l = String(prefs[i]).toLowerCase(), loc = null;
+            if (/^en\b/.test(l)) return;
+            if (/^pt\b/.test(l)) loc = "pt-br";
+            else if (/^zh\b/.test(l)) {
+              if (/hant|-tw|-hk|-mo/.test(l)) continue;
+              loc = "zh-cn";
+            } else {
+              var base = l.split("-")[0];
+              if (["es", "ja", "tr", "ko", "de", "ru", "th"].indexOf(base) >= 0) loc = base;
+            }
+            if (!loc) continue;
+            if (!pages[loc]) return;
+            localStorage.setItem("glyph-lang", loc);
+            sessionStorage.setItem("glyph-lang-auto", "1");
+            location.replace(pages[loc] + location.search + location.hash);
+            return;
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="keywords" content="glyph, glyph language, glyph lang, glyphlang, programming language, typescript, transpiler, ai agents, llm" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
@@ -139,15 +178,15 @@
             <p class="lang-head">Language</p>
             <ul>
               <li><a href="/" hreflang="en" lang="en" data-lang="en" aria-current="true"><span class="lang-name">English</span><span class="lang-tick" aria-hidden="true"></span></a></li>
-              <li><span class="lang-off"><span class="lang-name" lang="pt-BR">Português (Brasil)</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="es">Español</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="ja">日本語</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="tr">Türkçe</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="zh-Hans">简体中文</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="ko">한국어</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="de">Deutsch</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="ru">Русский</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="th">ไทย</span><span class="lang-note">not translated yet</span></span></li>
+              <li><a href="/pt-br/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/" hreflang="es" lang="es" data-lang="es"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/" hreflang="ja" lang="ja" data-lang="ja"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/" hreflang="tr" lang="tr" data-lang="tr"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/" hreflang="ko" lang="ko" data-lang="ko"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/" hreflang="de" lang="de" data-lang="de"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/" hreflang="ru" lang="ru" data-lang="ru"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/" hreflang="th" lang="th" data-lang="th"><span class="lang-name">ไทย</span></a></li>
             </ul>
           </div>
         </details>

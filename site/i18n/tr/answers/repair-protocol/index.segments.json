@@ -1,0 +1,218 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/repair-protocol/index.html",
+  "locale": "tr",
+  "source_hash": "4b15cc7a1cc4e288",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Does the compiler tell my agent how to fix it? · Glyph",
+      "tr": "Derleyici ajanıma nasıl düzelteceğini söylüyor mu? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Each diagnostic carries the types, the symbol at fault and the legal alternatives, and glyph fix writes the repairs the compiler can settle on its own.",
+      "tr": "Her diagnostic tipleri, hatalı sembolü ve geçerli alternatifleri taşır; glyph fix de derleyicinin kendi başına karara bağlayabildiği onarımları yazar."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Önceki"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can my agent ask the compiler what a symbol is before it writes code?",
+      "tr": "Ajanım kod yazmadan önce derleyiciye bir sembolün ne olduğunu sorabilir mi?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?"
+    },
+    {
+      "id": "h-4012a25e",
+      "kind": "html",
+      "en": "23 &middot; Fixing a red build",
+      "tr": "23 &middot; Kırmızı bir build'i düzeltmek"
+    },
+    {
+      "id": "h-e2d1e436",
+      "kind": "html",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "Build başarısız olduğunda derleyici ajanıma nasıl düzelteceğini söylüyor mu?"
+    },
+    {
+      "id": "h-a89b956d",
+      "kind": "html",
+      "en": "It tells you what is wrong as data, not as a sentence to parse: the two types, the symbol at fault as a <code>module::name</code>, and the finite list of things that could legally stand where the wrong thing stands. <code>glyph check --agent</code> adds what the repairing edit must not break. Where the answer is fully determined, <code>glyph fix</code> writes it.",
+      "tr": "Neyin yanlış olduğunu parse edilecek bir cümle olarak değil, veri olarak söyler: iki tip, <code>module::name</code> biçiminde hatalı sembol ve yanlış şeyin durduğu yerde geçerli olarak durabilecek şeylerin sonlu listesi. <code>glyph check --agent</code>, onarıcı düzenlemenin bozmaması gerekenleri ekler. Yanıtın tamamen belirli olduğu yerde <code>glyph fix</code> onu yazar."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "h-26bdb633",
+      "kind": "html",
+      "en": "An agent's loop around a compiler is read the error, guess the edit, rebuild. The guessing step is where the damage happens, and it happens because the error is a string. An agent that reads \"non-exhaustive match on <code>OrderStatus</code>\" knows a match is short some arms. It does not know what the missing variants carry, so it writes <code>Paid(\"tx_1\")</code> and finds out from the next diagnostic. Or it reads the word \"exhaustive\", adds an <code>else</code> arm, and the build goes green having thrown away the guarantee that the diagnostic existed to protect.",
+      "tr": "Bir ajanın derleyici etrafındaki döngüsü şudur: hatayı oku, düzenlemeyi tahmin et, yeniden build et. Hasar tahmin adımında olur ve hata bir string olduğu için olur. \"<code>OrderStatus</code> üzerinde kapsamı eksik match\" okuyan bir ajan, bir match'te bazı arm'ların eksik olduğunu bilir. Eksik variant'ların ne taşıdığını bilmez, bu yüzden <code>Paid(\"tx_1\")</code> yazar ve bunu bir sonraki diagnostic'ten öğrenir. Ya da \"exhaustive\" kelimesini okur, bir <code>else</code> arm'ı ekler ve build, diagnostic'in korumak için var olduğu garantiyi atmış olarak yeşile döner."
+    },
+    {
+      "id": "h-07118770",
+      "kind": "html",
+      "en": "The compiler knew all of it. It knew the union's variants and their payloads, it knew an <code>else</code> would forfeit the seal, and it dropped both one line before the reply.",
+      "tr": "Derleyici bunların hepsini biliyordu. Union'ın variant'larını ve payload'larını biliyordu, bir <code>else</code>'in mührü kaybettireceğini biliyordu ve ikisini de yanıttan bir satır önce atıyordu."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Görün"
+    },
+    {
+      "id": "h-1dc2ec59",
+      "kind": "html",
+      "en": "A two-module project. <code>orders</code> declares the union; <code>main</code> writes a <code>match</code> over it and handles one case. <code>glyph check --agent</code>, trimmed to the keys that matter here:",
+      "tr": "İki modüllü bir proje. <code>orders</code> union'ı tanımlar; <code>main</code> onun üzerinde bir <code>match</code> yazar ve bir durumu ele alır. <code>glyph check --agent</code>, burada önemli olan anahtarlara kısaltılmış hâliyle:"
+    },
+    {
+      "id": "h-22f8192a",
+      "kind": "html",
+      "en": "glyph check --agent --no-tsc src",
+      "tr": "glyph check --agent --no-tsc src"
+    },
+    {
+      "id": "h-e83558c5",
+      "kind": "html",
+      "en": "Three things are worth pulling out. <code>cause</code> is the symbol at fault, and it is a different thing from <code>entity</code>, which is the declaration the diagnostic sits in: here the edit happens in <code>main::describe</code> and the shape it has to match comes from <code>orders::OrderStatus</code>. Both are addresses the other tools take, so an answer chains without re-deriving anything.",
+      "tr": "Öne çıkarmaya değer üç şey var. <code>cause</code> hatalı semboldür ve diagnostic'in içinde bulunduğu tanım olan <code>entity</code>'den farklı bir şeydir: burada düzenleme <code>main::describe</code> içinde yapılır ve uyması gereken yapı <code>orders::OrderStatus</code>'tan gelir. İkisi de diğer araçların aldığı adreslerdir, yani bir yanıt hiçbir şeyi yeniden türetmeden zincirlenir."
+    },
+    {
+      "id": "h-24cad838",
+      "kind": "html",
+      "en": "<code>constraints</code> are not the repair. Each one is something the compiler already enforces, written out so the edit that satisfies the diagnostic does not break the guarantee behind it. The second constraint is why the key exists: an <code>else</code> arm is legal, it would turn the build green, and the constraint says what taking it costs.",
+      "tr": "<code>constraints</code> onarımın kendisi değildir. Her biri derleyicinin zaten zorladığı bir şeydir ve diagnostic'i karşılayan düzenleme arkasındaki garantiyi bozmasın diye açıkça yazılmıştır. İkinci kısıt, anahtarın var olma nedenidir: bir <code>else</code> arm'ı geçerlidir, build'i yeşile çevirir ve kısıt bunu seçmenin bedelini söyler."
+    },
+    {
+      "id": "h-c78e85ef",
+      "kind": "html",
+      "en": "<code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the agent's next edit needs no second call. A symbol the tool refuses appears in <code>symbols_absent</code> with the reason, which keeps \"we did not look\" apart from \"we looked and it is not there\".",
+      "tr": "<code>symbols</code>, diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtıdır; böylece ajanın bir sonraki düzenlemesi ikinci bir çağrıya ihtiyaç duymaz. Aracın reddettiği bir sembol gerekçesiyle birlikte <code>symbols_absent</code>'ta görünür; bu da \"bakmadık\" ile \"baktık ve orada değil\"i birbirinden ayırır."
+    },
+    {
+      "id": "h-e9482ec6",
+      "kind": "html",
+      "en": "Every key is always present. A fact the compiler does not hold arrives as an explicit <code>null</code>, never as a missing key, so absence has one spelling on every code and on both the CLI and the MCP surface.",
+      "tr": "Her anahtar her zaman mevcuttur. Derleyicinin sahip olmadığı bir bilgi, eksik bir anahtar olarak değil, açık bir <code>null</code> olarak gelir; böylece yokluğun her kodda ve hem CLI hem MCP yüzeyinde tek bir yazılışı vardır."
+    },
+    {
+      "id": "h-d838480e",
+      "kind": "html",
+      "en": "Where the answer is determined, the compiler writes it",
+      "tr": "Yanıtın belirli olduğu yerde derleyici onu yazar"
+    },
+    {
+      "id": "h-0e5250b5",
+      "kind": "html",
+      "en": "<code>glyph fix</code> applies only the repairs the compiler settles on its own: unused imports, an arm head that is not a variant when the checker computed exactly one suggestion, and a field the record does not declare when exactly one declared field is a character away. The <code>match</code> above is not one of them.",
+      "tr": "<code>glyph fix</code> yalnızca derleyicinin kendi başına karara bağladığı onarımları uygular: kullanılmayan import'lar, checker'ın tam olarak tek bir öneri hesapladığı durumda variant olmayan bir arm başı ve record'un tanımlamadığı, tam olarak bir tanımlı alanın bir karakter uzağında olduğu bir alan. Yukarıdaki <code>match</code> bunlardan biri değil."
+    },
+    {
+      "id": "h-dd062039",
+      "kind": "html",
+      "en": "glyph fix src, on the match above",
+      "tr": "yukarıdaki match üzerinde glyph fix src"
+    },
+    {
+      "id": "h-2f820b6c",
+      "kind": "html",
+      "en": "The compiler knows which cases are missing and the pattern each one takes. It does not know what the program should do when an order is <code>Paid</code>, and any body it wrote would be a guess that compiles. Up to 0.1.128 <code>glyph fix</code> wrote that guess: one arm per case whose body printed the case and called <code>process.exit(1)</code>. The program then passed <code>check</code>, <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code> reported the match as exhaustive, so the missing case had moved from a compile error to a crash at run time with nothing left to flag it.",
+      "tr": "Derleyici hangi durumların eksik olduğunu ve her birinin hangi pattern'i aldığını bilir. Bir sipariş <code>Paid</code> olduğunda programın ne yapması gerektiğini bilmez ve yazacağı her gövde derlenen bir tahmin olur. 0.1.128'e kadar <code>glyph fix</code> o tahmini yazıyordu: her durum için gövdesi durumu yazdırıp <code>process.exit(1)</code>'i çağıran bir arm. Program bundan sonra <code>check</code>, <code>tsc</code> ve <code>build</code>'den geçiyordu ve <code>glyph query variants</code> match'i kapsamı tam olarak bildiriyordu; yani eksik durum bir derleme hatasından çalışma zamanında bir çökmeye taşınmıştı ve onu işaretleyecek hiçbir şey kalmamıştı."
+    },
+    {
+      "id": "h-3f1cdc48",
+      "kind": "html",
+      "en": "So the rule declines, and names the cases. Everything needed to write the arms is already in the <code>--agent</code> answer above: <code>missing_variants</code>, and the <code>construct</code> spelling of each variant under <code>symbols</code>. The arms are yours or your agent's to write, the same as any other code whose behaviour the compiler cannot infer.",
+      "tr": "Bu yüzden kural reddeder ve durumları adıyla söyler. Arm'ları yazmak için gereken her şey zaten yukarıdaki <code>--agent</code> yanıtında var: <code>missing_variants</code> ve <code>symbols</code> altında her variant'ın <code>construct</code> yazılışı. Arm'ları yazmak, davranışını derleyicinin çıkaramadığı diğer her kod gibi size ya da ajanınıza kalır."
+    },
+    {
+      "id": "h-f50a9d84",
+      "kind": "html",
+      "en": "What <code>glyph fix</code> does write, it writes without guessing, and every rule that cannot settle an answer prints the decline and the reason on the same output as what it applied. Two fields a character away from a typo are two, not one, and it says so rather than picking.",
+      "tr": "<code>glyph fix</code> yazdığını tahmin etmeden yazar ve bir yanıtı karara bağlayamayan her kural, reddi ve gerekçesini uyguladıklarıyla aynı çıktıda yazdırır. Bir yazım hatasından bir karakter uzaktaki iki alan bir değil iki alandır ve seçim yapmak yerine bunu söyler."
+    },
+    {
+      "id": "h-e426e014",
+      "kind": "html",
+      "en": "The code's own explanation, as data",
+      "tr": "Kodun kendi açıklaması, veri olarak"
+    },
+    {
+      "id": "h-c5081b0e",
+      "kind": "html",
+      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form explanation, the one-line <code>help</code>, the docs URL, and a wrong program from the compiler's negative corpus paired with the diagnostic this compiler draws for it. The diagnostic is compiled when you ask, not stored, so it cannot drift from what the compiler actually says.",
+      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code>, uzun açıklamayı, tek satırlık <code>help</code>'i, doküman URL'sini ve derleyicinin negatif derleminden alınmış yanlış bir programı, bu derleyicinin onun için ürettiği diagnostic'le eşleştirilmiş olarak döndürür. Diagnostic saklanmaz, siz sorduğunuzda derlenir; bu yüzden derleyicinin gerçekte söylediğinden sapamaz."
+    },
+    {
+      "id": "h-da4c5d63",
+      "kind": "html",
+      "en": "glyph --explain E0200 --json",
+      "tr": "glyph --explain E0200 --json"
+    },
+    {
+      "id": "h-cb55179b",
+      "kind": "html",
+      "en": "A code the corpus does not cover comes back with <code>counter_example: null</code> and a sentence saying the corpus holds no case for it, rather than a made-up example. The corpus claims what it covers and nothing about the rest.",
+      "tr": "Derlemin kapsamadığı bir kod, uydurulmuş bir örnek yerine <code>counter_example: null</code> ve derlemde onun için bir durum olmadığını söyleyen bir cümleyle döner. Derlem kapsadığı şeyler hakkında iddiada bulunur, gerisi hakkında hiçbir şey söylemez."
+    },
+    {
+      "id": "h-dee8d5de",
+      "kind": "html",
+      "en": "<code>glyph --explain</code> hands over one case per code. The whole corpus is readable too: <code>glyph llms --negative E0200</code> prints every wrong program that draws the code, each compiled when you ask, and where a second corpus pairs a program <code>tsc --strict</code> accepts with the Glyph that refuses it, that comes back beside it. With no code it lists 102 cases over 46 of the 70 codes and names the 24 that have none, so coverage is stated rather than inferred from what came back. That and the rest of what the compiler publishes about itself is <a href=\"/answers/generated-docs/\">its own page</a>.",
+      "tr": "<code>glyph --explain</code> kod başına bir durum verir. Derlemin tamamı da okunabilir: <code>glyph llms --negative E0200</code> o kodu tetikleyen her yanlış programı, her birini siz sorduğunuzda derleyerek yazdırır; ikinci bir derlemin <code>tsc --strict</code>'in kabul ettiği bir programı onu reddeden Glyph ile eşleştirdiği yerde o da yanında gelir. Kod verilmezse 70 kodun 46'sı üzerinde 102 durum listeler ve hiç durumu olmayan 24 kodu adıyla söyler; böylece kapsam, dönenlerden çıkarılmak yerine açıkça belirtilir. Bu ve derleyicinin kendisi hakkında yayımladığı geri kalan her şey <a href=\"/answers/generated-docs/\">ayrı bir sayfada</a>."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Bugün yayında"
+    },
+    {
+      "id": "h-206d5f58",
+      "kind": "html",
+      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.",
+      "tr": "Her diagnostic <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (<code>alternatives_kind</code> ile listenin <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> ya da <code>exports</code> olup olmadığı belirtilir ve hatanın üretildiği yerde ayarlanır), <code>related</code>, <code>module</code>, <code>file</code> ve <code>explain</code> taşır; bunlar yeniden türetilmek yerine derleyicinin ürettiği hatadan doldurulur ve derleyici böyle bir bilgiye sahip değilse her biri açık bir <code>null</code> olur. <code>file</code>, çözümleme köküne göreli bir yoldur ve rapor o kökü <code>project_root</code>'ta belirtir, yani yol açılabilir. <code>glyph check --agent</code> her diagnostic için <code>constraints</code> ve <code>symbols</code> ekler. <code>glyph fix</code> üç kural uygular (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) ve her reddi gerekçesiyle belirtir; bildirdiği ama hiçbir zaman yazmadığı her <code>E0200</code> dahil. <code>glyph --explain &lt;CODE&gt; --json</code> açıklamayı derlenmiş bir karşı örnekle döndürür, <code>glyph llms --negative &lt;CODE&gt;</code> ise o kodu tetikleyen yanlış programların tüm derlemini döndürür."
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "Nerede duruyor"
+    },
+    {
+      "id": "h-a46b5ce4",
+      "kind": "html",
+      "en": "<code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all. <code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic. Everything it declines, it declines out loud.",
+      "tr": "<code>E0211</code>'de <code>cause</code> <code>null</code>'dır: bir çağrı argümanındaki hatalı sembol bir parametredir ve <code>module::fn.param</code> kimlik sözlüğünün yazabildiği bir şey değildir; yani bu null bir eksiklik değil, bilinçli bir tercihtir. Bir karşı örnekteki <code>corrected</code> her zaman <code>null</code>'dır, çünkü negatif derlem bir durumla onarılmış bir programı eşleştirmez ve 70 kodun 24'ünün hiç durumu yoktur. <code>glyph fix</code> üç kural yazar, başka hiçbir şey yazmaz ve kapsamı eksik bir <code>match</code> için arm yazmaz: bunlar, durumlar ve pattern'leri diagnostic'te olacak şekilde size ya da ajanınıza bırakılır. Reddettiği her şeyi açıkça reddeder."
+    }
+  ]
+}

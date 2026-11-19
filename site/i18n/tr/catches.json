@@ -1,0 +1,1212 @@
+{
+  "_about": "The texts of each case in catches/ as the generated pages show them. Translate each \"tr\" from its \"en\"; keep tags, <code> content and placeholders. A case whose English changes shows in English until its \"tr\" is redone. See site/i18n/README.md.",
+  "locale": "tr",
+  "cases": {
+    "absent-map-key": {
+      "page_title": {
+        "en": "A key that may not be there",
+        "tr": "Orada olmayabilecek bir anahtar"
+      },
+      "why": {
+        "en": "Reading a field from a row of strings, with the name misspelled.",
+        "tr": "String'lerden oluşan bir satırdan, adı yanlış yazılmış bir alanı okumak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints undefined",
+        "tr": "derlenir, sonra undefined yazdırır"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>Any key reads as a <code>string</code>,</b> even one that is not there, so the misspelled field prints <code>undefined</code>.",
+        "tr": "<b>Her anahtar <code>string</code> olarak okunur,</b> olmayan bir anahtar bile. Bu yüzden yanlış yazılan alan <code>undefined</code> yazdırır."
+      },
+      "glyph_result": {
+        "en": "<b>A map read says it might be empty,</b> so the code has to say what happens then.",
+        "tr": "<b>Bir map okuması boş dönebileceğini söyler,</b> bu yüzden kodun o durumda ne olacağını belirtmesi gerekir."
+      },
+      "page_note": {
+        "en": "TypeScript's <code>Record&lt;string, string&gt;</code> claims every possible key has a string. Glyph treats it as a map, where a lookup can find nothing, so it refuses the correctly spelled <code>row.name</code> too.",
+        "tr": "TypeScript'in <code>Record&lt;string, string&gt;</code> tipi, olası her anahtarın bir string'i olduğunu iddia eder. Glyph onu, bir aramanın hiçbir şey bulamayabileceği bir map olarak ele alır; bu yüzden doğru yazılmış <code>row.name</code>'i de reddeder."
+      }
+    },
+    "array-covariance": {
+      "page_title": {
+        "en": "Array covariance",
+        "tr": "Dizi kovaryansı"
+      },
+      "why": {
+        "en": "Passing a list of dogs where a list of animals is expected.",
+        "tr": "Hayvan listesi beklenen yere bir köpek listesi geçirmek."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "derlenir, sonra çalışırken çöker"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>A cat ends up in the list of dogs.</b>",
+        "tr": "<b>Köpek listesine bir kedi girer.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A list of dogs is not a writable list of animals.</b>",
+        "tr": "<b>Köpek listesi, yazılabilir bir hayvan listesi değildir.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript lets <code>Dog[]</code> stand in for <code>Animal[]</code> even when the function adds to it.",
+        "tr": "TypeScript, fonksiyon listeye eleman eklese bile <code>Dog[]</code>'un <code>Animal[]</code> yerine geçmesine izin verir."
+      }
+    },
+    "arrow-function-returns-nothing": {
+      "page_title": {
+        "en": "An arrow function that returns nothing",
+        "tr": "Hiçbir şey döndürmeyen bir arrow function"
+      },
+      "why": {
+        "en": "Mapping users to rows.",
+        "tr": "Kullanıcıları satırlara dönüştürmek."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "derlenir, sonra yanlış sonuç verir"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "yazılamaz"
+      },
+      "ts_result": {
+        "en": "<b>The braces are a function body,</b> and <code>label:</code> is a statement label.",
+        "tr": "<b>Süslü parantezler bir fonksiyon gövdesidir,</b> <code>label:</code> ise bir statement label'ıdır."
+      },
+      "glyph_result": {
+        "en": "<b>The ambiguous form is not valid Glyph.</b>",
+        "tr": "<b>Belirsiz yazım geçerli bir Glyph kodu değildir.</b>"
+      },
+      "page_note": {
+        "en": "To return an object from a TypeScript arrow function, the braces need parentheses: <code>u =&gt; ({ ... })</code>.",
+        "tr": "TypeScript'te bir arrow function'dan nesne döndürmek için süslü parantezlerin normal parantez içine alınması gerekir: <code>u =&gt; ({ ... })</code>."
+      }
+    },
+    "as-unknown-as": {
+      "page_title": {
+        "en": "<code>as unknown as T</code>",
+        "tr": "<code>as unknown as T</code>"
+      },
+      "why": {
+        "en": "Forcing a value into the type you want.",
+        "tr": "Bir değeri istediğiniz tipe zorlamak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "derlenir, sonra çalışırken çöker"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "yazılamaz"
+      },
+      "ts_result": {
+        "en": "<b>A double cast switches checking off.</b>",
+        "tr": "<b>Çift cast, kontrolü kapatır.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>There is no cast to write.</b> The help says what to do instead.",
+        "tr": "<b>Yazılacak bir cast yok.</b> Yardım metni bunun yerine ne yapılacağını söyler."
+      },
+      "page_note": {
+        "en": "<code>as unknown as T</code> is how agents silence a type error they can't fix.",
+        "tr": "<code>as unknown as T</code>, ajanların düzeltemedikleri bir tip hatasını susturma yoludur."
+      }
+    },
+    "change-hidden-in-a-helper": {
+      "page_title": {
+        "en": "A change hidden in a helper",
+        "tr": "Bir yardımcı fonksiyonda gizlenmiş bir değişiklik"
+      },
+      "why": {
+        "en": "A function that edits the object it was given.",
+        "tr": "Kendisine verilen nesneyi düzenleyen bir fonksiyon."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "uyarısız derlenir"
+      },
+      "glyph_verdict": {
+        "en": "refused until it is marked",
+        "tr": "işaretlenene kadar reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>The caller's user is renamed.</b> Nothing at the call site says so.",
+        "tr": "<b>Çağıranın kullanıcısının adı değişir.</b> Çağrının yapıldığı yerde bunu gösteren hiçbir şey yok."
+      },
+      "glyph_result": {
+        "en": "<b>Changing a field takes <code>mut</code>.</b>",
+        "tr": "<b>Bir alanı değiştirmek <code>mut</code> gerektirir.</b>"
+      },
+      "page_note": {
+        "en": "Glyph does not forbid the change. It makes it visible: searching for <code>mut</code> lists every field a function writes.",
+        "tr": "Glyph bu değişikliği yasaklamaz, görünür kılar: <code>mut</code> diye arama yapmak, bir fonksiyonun yazdığı her alanı listeler."
+      }
+    },
+    "code-after-return": {
+      "page_title": {
+        "en": "Code after <code>return</code>",
+        "tr": "<code>return</code>'den sonra gelen kod"
+      },
+      "why": {
+        "en": "Adding tax after the function already returned.",
+        "tr": "Fonksiyon zaten döndükten sonra vergi eklemek."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "uyarısız derlenir"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "uyarı verilir"
+      },
+      "ts_result": {
+        "en": "<b>The tax line never runs.</b>",
+        "tr": "<b>Vergi satırı hiç çalışmaz.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dead line.</b>",
+        "tr": "<b>Glyph ölü satırı gösterir.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only shows unreachable code as a faded hint in the editor by default.",
+        "tr": "TypeScript, erişilemeyen kodu varsayılan olarak editörde yalnızca soluk bir ipucu olarak gösterir."
+      }
+    },
+    "comparing-records-with-triple-equals": {
+      "page_title": {
+        "en": "Comparing two records with <code>===</code>",
+        "tr": "İki record'u <code>===</code> ile karşılaştırmak"
+      },
+      "why": {
+        "en": "Skipping a save when nothing changed.",
+        "tr": "Hiçbir şey değişmediyse kaydetmeyi atlamak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then compares identity, not data",
+        "tr": "derlenir, sonra veriyi değil kimliği karşılaştırır"
+      },
+      "glyph_verdict": {
+        "en": "compares the data",
+        "tr": "veriyi karşılaştırır"
+      },
+      "ts_result": {
+        "en": "<b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs.",
+        "tr": "<b>Veri aynı, ama <code>===</code> ikisinin aynı nesne olup olmadığını sorar.</b> Her kayıt işlemi çalışır."
+      },
+      "glyph_result": {
+        "en": "<b>Two records with the same fields are equal.</b>",
+        "tr": "<b>Alanları aynı olan iki record eşittir.</b>"
+      },
+      "page_note": {
+        "en": "This is JavaScript working as designed: <code>===</code> on objects compares identity, and comparing data needs a helper such as lodash's <code>isEqual</code>. The mistake is reaching for <code>===</code> when the data was meant. In Glyph <code>==</code> on records compares the data, so the obvious spelling is the right one.",
+        "tr": "Bu, JavaScript'in tasarlandığı gibi çalışmasıdır: nesnelerde <code>===</code> kimliği karşılaştırır, veriyi karşılaştırmak için lodash'in <code>isEqual</code>'ı gibi bir yardımcı gerekir. Hata, kastedilen veri iken <code>===</code>'e uzanmaktır. Glyph'te record'larda <code>==</code> veriyi karşılaştırır, yani akla ilk gelen yazım doğru olandır."
+      }
+    },
+    "computed-value-never-used": {
+      "page_title": {
+        "en": "A computed value that is never used",
+        "tr": "Hiç kullanılmayan hesaplanmış bir değer"
+      },
+      "why": {
+        "en": "Cleaning an input, then returning the original by mistake.",
+        "tr": "Bir girdiyi temizleyip, yanlışlıkla orijinalini döndürmek."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "uyarısız derlenir"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "uyarı verilir"
+      },
+      "ts_result": {
+        "en": "<b>The cleaning never happens.</b>",
+        "tr": "<b>Temizleme hiç gerçekleşmez.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the unused value.</b>",
+        "tr": "<b>Glyph kullanılmayan değeri gösterir.</b>"
+      },
+      "page_note": {
+        "en": "<code>noUnusedLocals</code> is not part of <code>--strict</code>, so TypeScript says nothing by default.",
+        "tr": "<code>noUnusedLocals</code>, <code>--strict</code>'in parçası değildir; bu yüzden TypeScript varsayılan olarak hiçbir şey söylemez."
+      }
+    },
+    "config-with-a-setting-missing": {
+      "page_title": {
+        "en": "A config with a setting missing",
+        "tr": "Bir ayarı eksik olan bir config"
+      },
+      "why": {
+        "en": "A limit for each plan, loaded from a file someone forgot to update.",
+        "tr": "Her plan için bir limit, birinin güncellemeyi unuttuğu bir dosyadan yükleniyor."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "derlenir, sonra hatalı veriyle çalışır"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "veri geldiğinde kontrol edilir"
+      },
+      "ts_result": {
+        "en": "<b>The type promises every plan has a limit.</b> The file does not.",
+        "tr": "<b>Tip, her planın bir limiti olduğunu vaat eder.</b> Dosya ise öyle değil."
+      },
+      "glyph_result": {
+        "en": "<b>Every plan must be there, and nothing else.</b>",
+        "tr": "<b>Her plan bulunmalı, başka hiçbir şey bulunmamalı.</b>"
+      },
+      "page_note": {
+        "en": "<code>Record&lt;Plan, number&gt;</code> promises a value for every plan, and <code>as</code> never looks. Glyph requires every key in the type and refuses extra ones.",
+        "tr": "<code>Record&lt;Plan, number&gt;</code> her plan için bir değer vaat eder ve <code>as</code> hiç bakmaz. Glyph tipteki her anahtarı zorunlu tutar ve fazladan olanları reddeder."
+      }
+    },
+    "connection-left-open": {
+      "page_title": {
+        "en": "A connection left open",
+        "tr": "Açık bırakılmış bir bağlantı"
+      },
+      "why": {
+        "en": "Returning early before cleanup.",
+        "tr": "Temizlikten önce erken dönmek."
+      },
+      "ts_verdict": {
+        "en": "compiles, then leaks a connection",
+        "tr": "derlenir, sonra bağlantı sızdırır"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>Every rejected request leaks a connection.</b>",
+        "tr": "<b>Reddedilen her istek bir bağlantı sızdırır.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Every path must close it.</b>",
+        "tr": "<b>Her yol onu kapatmak zorunda.</b>"
+      },
+      "page_note": {
+        "en": "This check applies to values declared <code>owned</code>. A resource without it is not tracked.",
+        "tr": "Bu kontrol <code>owned</code> olarak tanımlanmış değerlere uygulanır. Bu işareti taşımayan bir kaynak takip edilmez."
+      }
+    },
+    "data-from-outside-the-program": {
+      "page_title": {
+        "en": "Data from outside the program",
+        "tr": "Programın dışından gelen veri"
+      },
+      "why": {
+        "en": "A request body, a file, an API response.",
+        "tr": "Bir istek gövdesi, bir dosya, bir API yanıtı."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "derlenir, sonra hatalı veriyle çalışır"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "veri geldiğinde kontrol edilir"
+      },
+      "ts_result": {
+        "en": "<b>Nothing checks the data.</b> <code>undefined</code> travels on as a plan.",
+        "tr": "<b>Veriyi hiçbir şey kontrol etmez.</b> <code>undefined</code>, bir plan gibi yoluna devam eder."
+      },
+      "glyph_result": {
+        "en": "<b>A body that is not a real <code>User</code> is an <code>Err</code>.</b> The program never holds a fake one.",
+        "tr": "<b>Gerçek bir <code>User</code> olmayan bir gövde <code>Err</code> olur.</b> Program hiçbir zaman sahte bir tanesini tutmaz."
+      },
+      "page_note": {
+        "en": "<code>as User</code> does not check anything. It tells the compiler to trust you. Glyph has no <code>as</code>.",
+        "tr": "<code>as User</code> hiçbir şeyi kontrol etmez. Derleyiciye size güvenmesini söyler. Glyph'te <code>as</code> yoktur."
+      }
+    },
+    "duplicate-case": {
+      "page_title": {
+        "en": "A duplicate case",
+        "tr": "Tekrarlanan bir case"
+      },
+      "why": {
+        "en": "Deciding which orders can be refunded.",
+        "tr": "Hangi siparişlerin iade edilebileceğine karar vermek."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "uyarısız derlenir"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>The second rule is dead.</b> Nobody notices.",
+        "tr": "<b>İkinci kural ölüdür.</b> Kimse fark etmez."
+      },
+      "glyph_result": {
+        "en": "<b>An arm that can never run is an error.</b>",
+        "tr": "<b>Hiç çalışamayacak bir arm hatadır.</b>"
+      },
+      "page_note": {
+        "en": "tsc does not flag a <code>case</code> label that appears twice.",
+        "tr": "tsc, iki kez geçen bir <code>case</code> etiketini işaretlemez."
+      }
+    },
+    "error-nobody-looked-at": {
+      "page_title": {
+        "en": "An error nobody looked at",
+        "tr": "Kimsenin bakmadığı bir hata"
+      },
+      "why": {
+        "en": "Calling something that can fail and moving on.",
+        "tr": "Başarısız olabilecek bir şeyi çağırıp yola devam etmek."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "uyarısız derlenir"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "uyarı verilir"
+      },
+      "ts_result": {
+        "en": "<b>The failure is dropped</b> and the user is told it worked.",
+        "tr": "<b>Hata yok sayılır</b> ve kullanıcıya işlemin başarılı olduğu söylenir."
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dropped failure.</b>",
+        "tr": "<b>Glyph yok sayılan hatayı gösterir.</b>"
+      },
+      "page_note": {
+        "en": "A warning, not an error. To drop it on purpose, say so: <code>let _ = save(user)</code>.",
+        "tr": "Bu bir hata değil, uyarı. Bilerek yok saymak için bunu açıkça yazın: <code>let _ = save(user)</code>."
+      }
+    },
+    "error-the-signature-hides": {
+      "page_title": {
+        "en": "An error the signature hides",
+        "tr": "İmzanın gizlediği bir hata"
+      },
+      "why": {
+        "en": "A function that can fail, called by code that does not know it can.",
+        "tr": "Başarısız olabilecek bir fonksiyon ve onu bunu bilmeden çağıran kod."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "derlenir, sonra çalışırken çöker"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>The type says <code>Config</code>.</b> Nothing says it can throw.",
+        "tr": "<b>Tip <code>Config</code> diyor.</b> Exception fırlatabileceğini söyleyen hiçbir şey yok."
+      },
+      "glyph_result": {
+        "en": "<b>Failure is part of the return type,</b> so the caller has to handle it.",
+        "tr": "<b>Başarısızlık dönüş tipinin parçasıdır,</b> bu yüzden çağıran onu ele almak zorundadır."
+      },
+      "page_note": {
+        "en": "A TypeScript function's type lists what it returns, never what it throws. In Glyph, failure is part of the return type, so every caller can see it.",
+        "tr": "Bir TypeScript fonksiyonunun tipi neyi döndürdüğünü listeler, neyi fırlattığını asla listelemez. Glyph'te başarısızlık dönüş tipinin parçasıdır, böylece her çağıran onu görebilir."
+      }
+    },
+    "filter-that-keeps-everyone": {
+      "page_title": {
+        "en": "A filter that keeps everyone",
+        "tr": "Herkesi geçiren bir filtre"
+      },
+      "why": {
+        "en": "Checking each user against an async permission call.",
+        "tr": "Her kullanıcıyı async bir yetki çağrısıyla kontrol etmek."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "derlenir, sonra yanlış sonuç verir"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>Nothing is filtered out.</b>",
+        "tr": "<b>Hiçbir şey elenmez.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>An async function is not a yes/no answer.</b>",
+        "tr": "<b>Async bir fonksiyon evet/hayır cevabı değildir.</b>"
+      },
+      "page_note": {
+        "en": "An async function returns a Promise, and any Promise counts as true. A permission filter built this way lets everyone through.",
+        "tr": "Async bir fonksiyon bir Promise döndürür ve her Promise true sayılır. Bu şekilde yazılmış bir yetki filtresi herkesi geçirir."
+      }
+    },
+    "gap-g380-mutation-without-mut": {
+      "summary": {
+        "en": "<code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it.",
+        "tr": "Bir yardımcı fonksiyonun içindeki <code>xs.sort(...)</code>, çağıranın dizisini yeniden sıralar ve bunu hiçbir <code>mut</code> işaretlemez."
+      }
+    },
+    "gap-g381-member-read-on-unknown": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "Bir string üzerinde <code>input + 1</code>, <code>users.find(...).name</code> ve <code>unknown</code> üzerinde bir alan okuması yalnızca <code>tsc</code> adımında yakalanır, Glyph'in kendi checker'ında değil; bu yüzden editör ve ajan araçları bunları kaçırır."
+      }
+    },
+    "gap-g382-string-plus-number": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "Bir string üzerinde <code>input + 1</code>, <code>users.find(...).name</code> ve <code>unknown</code> üzerinde bir alan okuması yalnızca <code>tsc</code> adımında yakalanır, Glyph'in kendi checker'ında değil; bu yüzden editör ve ajan araçları bunları kaçırır."
+      }
+    },
+    "gap-g384-dropped-async-call": {
+      "summary": {
+        "en": "<code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns.",
+        "tr": "<code>forEach(async ...)</code> her promise'i yok sayar; iş, ona bağlı koddan sonra biter ve hiçbir şey uyarı vermez."
+      }
+    },
+    "gap-g385-record-in-template": {
+      "summary": {
+        "en": "<code>\"Welcome back, ${user}!\"</code> with a record prints <code>[object Object]</code>.",
+        "tr": "Bir record ile <code>\"Welcome back, ${user}!\"</code>, <code>[object Object]</code> yazdırır."
+      }
+    },
+    "gap-g386-or-on-a-number": {
+      "summary": {
+        "en": "<code>requested || 3</code> turns a real <code>0</code> into <code>3</code>.",
+        "tr": "<code>requested || 3</code>, gerçek bir <code>0</code>'ı <code>3</code>'e çevirir."
+      }
+    },
+    "gap-g387-sql-by-interpolation": {
+      "summary": {
+        "en": "A SQL query built with <code>${name}</code> is accepted by <code>std/sqlite</code>.",
+        "tr": "<code>${name}</code> ile kurulmuş bir SQL sorgusu <code>std/sqlite</code> tarafından kabul edilir."
+      }
+    },
+    "gap-g388-sort-as-text": {
+      "summary": {
+        "en": "<code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>.",
+        "tr": "Sayılar üzerinde <code>.sort()</code>, onları metin olarak sıralar: <code>100,25,9</code>."
+      }
+    },
+    "gap-g390-index-update-across-await": {
+      "summary": {
+        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
+        "tr": "<code>c[0]</code> üzerinde <code>await</code> boyunca kaybolan bir güncelleme; oysa bir alana yapılan aynı yazma reddedilir."
+      }
+    },
+    "gap-g391-null-in-optional-field": {
+      "summary": {
+        "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",
+        "tr": "İsteğe bağlı bir alandaki JSON <code>null</code> kontrolden geçer, bu yüzden bir default üzerine yapılan spread geride <code>null</code> bırakır."
+      }
+    },
+    "gap-g392-find-method-option": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "Bir string üzerinde <code>input + 1</code>, <code>users.find(...).name</code> ve <code>unknown</code> üzerinde bir alan okuması yalnızca <code>tsc</code> adımında yakalanır, Glyph'in kendi checker'ında değil; bu yüzden editör ve ajan araçları bunları kaçırır."
+      }
+    },
+    "invalid-date": {
+      "page_title": {
+        "en": "An invalid date",
+        "tr": "Geçersiz bir tarih"
+      },
+      "why": {
+        "en": "Parsing a date from a form.",
+        "tr": "Bir formdan tarih parse etmek."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives a wrong date or crashes",
+        "tr": "derlenir, sonra yanlış tarih verir ya da çöker"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "yazılamaz"
+      },
+      "ts_result": {
+        "en": "<b>Bad dates roll over</b> into real ones.",
+        "tr": "<b>Hatalı tarihler kayarak</b> gerçek tarihlere dönüşür."
+      },
+      "glyph_result": {
+        "en": "<b>Parsing can fail, and the type says so.</b>",
+        "tr": "<b>Parse başarısız olabilir ve tip bunu söyler.</b>"
+      },
+      "page_note": {
+        "en": "JavaScript's <code>Date</code> turns February 30 into March 2 without complaint. Glyph has no <code>Date</code>; <code>time.parse_iso</code> returns <code>None</code>.",
+        "tr": "JavaScript'in <code>Date</code>'i 30 Şubat'ı hiç itiraz etmeden 2 Mart'a çevirir. Glyph'te <code>Date</code> yoktur; <code>time.parse_iso</code> <code>None</code> döndürür."
+      }
+    },
+    "lost-update-across-await": {
+      "page_title": {
+        "en": "A lost update across <code>await</code>",
+        "tr": "<code>await</code> boyunca kaybolan bir güncelleme"
+      },
+      "why": {
+        "en": "Two requests charge the same account at once.",
+        "tr": "İki istek aynı anda aynı hesaptan ücret çeker."
+      },
+      "ts_verdict": {
+        "en": "compiles, then loses money at run time",
+        "tr": "derlenir, sonra çalışırken para kaybettirir"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>One charge vanishes.</b> No test reliably catches it.",
+        "tr": "<b>Ücretlerden biri kaybolur.</b> Bunu güvenilir şekilde yakalayan bir test yok."
+      },
+      "glyph_result": {
+        "en": "<b>Glyph spots the read-then-write around the wait.</b>",
+        "tr": "<b>Glyph, beklemenin etrafındaki oku-sonra-yaz kalıbını fark eder.</b>"
+      },
+      "page_note": {
+        "en": "While one call waits on <code>fee()</code>, another can update the balance. The first then writes back a stale value.",
+        "tr": "Bir çağrı <code>fee()</code>'yi beklerken başka biri bakiyeyi güncelleyebilir. İlki ardından eskimiş bir değeri geri yazar."
+      }
+    },
+    "median-with-a-fractional-index": {
+      "page_title": {
+        "en": "A median with a fractional index",
+        "tr": "Kesirli indeksli bir medyan"
+      },
+      "why": {
+        "en": "Taking the middle of a sorted list.",
+        "tr": "Sıralı bir listenin ortasını almak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "derlenir, sonra yanlış sonuç verir"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "çalışırken durdurulur"
+      },
+      "ts_result": {
+        "en": "<b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.",
+        "tr": "<b>1.5 indeksini okumak <code>undefined</code> verir,</b> çağıranın aritmetiği de bunu <code>NaN</code>'a çevirir."
+      },
+      "glyph_result": {
+        "en": "<b>A bad index stops the program</b> instead of spreading <code>NaN</code>.",
+        "tr": "<b>Hatalı bir indeks programı durdurur,</b> <code>NaN</code> yaymak yerine."
+      },
+      "page_note": {
+        "en": "Glyph checks every array index when the code runs. This one is not caught at build time.",
+        "tr": "Glyph her dizi indeksini kod çalışırken kontrol eder. Bu durum build sırasında yakalanmaz."
+      }
+    },
+    "method-forgets-its-object": {
+      "page_title": {
+        "en": "A method that forgets its object",
+        "tr": "Nesnesini unutan bir metot"
+      },
+      "why": {
+        "en": "Passing a method around as a value.",
+        "tr": "Bir metodu değer olarak başka yere geçirmek."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "derlenir, sonra çalışırken çöker"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>The method is pulled off its string</b> and loses track of it.",
+        "tr": "<b>Metot string'inden koparılır</b> ve onu kaybeder."
+      },
+      "glyph_result": {
+        "en": "<b>A method has to be called where it is read.</b> Pass a function instead.",
+        "tr": "<b>Bir metot okunduğu yerde çağrılmalıdır.</b> Onun yerine bir fonksiyon geçirin."
+      },
+      "page_note": {
+        "en": "A TypeScript method depends on the object it is called on (<code>this</code>). Taken out of <code>name.toUpperCase()</code> as a value, it no longer knows which string to use.",
+        "tr": "Bir TypeScript metodu, üzerinde çağrıldığı nesneye (<code>this</code>) bağlıdır. <code>name.toUpperCase()</code>'tan değer olarak çıkarıldığında, hangi string'i kullanacağını artık bilmez."
+      }
+    },
+    "negative-age": {
+      "page_title": {
+        "en": "A negative age",
+        "tr": "Negatif bir yaş"
+      },
+      "why": {
+        "en": "A rule about a value, not just its type.",
+        "tr": "Yalnızca tipi değil, değeri hakkında bir kural."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "derlenir, sonra hatalı veriyle çalışır"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "veri geldiğinde kontrol edilir"
+      },
+      "ts_result": {
+        "en": "<b>The rule lives in a comment,</b> where nothing enforces it.",
+        "tr": "<b>Kural bir yorum satırında yaşar,</b> onu hiçbir şeyin zorlamadığı bir yerde."
+      },
+      "glyph_result": {
+        "en": "<b>The rule is part of the type,</b> and checked with it.",
+        "tr": "<b>Kural tipin parçasıdır</b> ve tiple birlikte kontrol edilir."
+      },
+      "page_note": {
+        "en": "In TypeScript, a rule like \"never negative\" lives in a comment or a separate validator. In Glyph it is part of the type, so every check of the type enforces it.",
+        "tr": "TypeScript'te \"asla negatif olamaz\" gibi bir kural bir yorumda ya da ayrı bir validator'da yaşar. Glyph'te tipin parçasıdır, bu yüzden tipin her kontrolü onu da zorlar."
+      }
+    },
+    "non-exhaustive-match": {
+      "page_title": {
+        "en": "A case nobody handled",
+        "tr": "Kimsenin ele almadığı bir durum"
+      },
+      "why": {
+        "en": "An agent adds an <code>\"archived\"</code> status. The handler that announces each status was written before it existed.",
+        "tr": "Bir ajan <code>\"archived\"</code> diye bir durum ekler. Her durumu duyuran handler, bu durum yokken yazılmıştı."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "uyarısız derlenir"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>Archiving an item logs nothing.</b> Nothing says the <code>switch</code> is out of date.",
+        "tr": "<b>Bir öğeyi arşivlemek hiçbir log yazmaz.</b> <code>switch</code>'in güncelliğini yitirdiğini söyleyen hiçbir şey yok."
+      },
+      "glyph_result": {
+        "en": "<b>The build stops and names the case.</b>",
+        "tr": "<b>Build durur ve eksik case'in adını verir.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript checks that a <code>switch</code> covers every case only when the function returns a value from every branch, or with the <code>assertNever</code> idiom. A handler that returns nothing gets neither. In Glyph every <code>match</code> must cover every case, so adding a variant lists each place that has to change.",
+        "tr": "TypeScript, bir <code>switch</code>'in tüm durumları kapsadığını yalnızca fonksiyon her daldan bir değer döndürdüğünde ya da <code>assertNever</code> kalıbıyla kontrol eder. Hiçbir şey döndürmeyen bir handler bunların hiçbirinden yararlanamaz. Glyph'te her <code>match</code> her durumu kapsamak zorundadır; bu yüzden bir variant eklemek, değişmesi gereken her yeri listeler."
+      }
+    },
+    "number-accepted-as-enum": {
+      "page_title": {
+        "en": "A number accepted as an enum",
+        "tr": "Enum olarak kabul edilen bir sayı"
+      },
+      "why": {
+        "en": "A status code read from the database.",
+        "tr": "Veritabanından okunan bir durum kodu."
+      },
+      "ts_verdict": {
+        "en": "compiles, then picks the wrong state",
+        "tr": "derlenir, sonra yanlış durumu seçer"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>An unknown code becomes a real status.</b>",
+        "tr": "<b>Bilinmeyen bir kod gerçek bir duruma dönüşür.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A number is not a <code>Status</code>.</b>",
+        "tr": "<b>Bir sayı <code>Status</code> değildir.</b>"
+      },
+      "page_note": {
+        "en": "Any number is assignable to a numeric enum in TypeScript, even one with no matching member.",
+        "tr": "TypeScript'te herhangi bir sayı sayısal bir enum'a atanabilir, eşleşen bir üyesi olmasa bile."
+      }
+    },
+    "number-that-is-not-a-number": {
+      "page_title": {
+        "en": "A number that is not a number",
+        "tr": "Sayı olmayan bir sayı"
+      },
+      "why": {
+        "en": "User input, a query string, a CSV cell.",
+        "tr": "Kullanıcı girdisi, bir query string, bir CSV hücresi."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "derlenir, sonra hatalı veriyle çalışır"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b><code>NaN</code> spreads</b> through every sum it touches.",
+        "tr": "<b><code>NaN</code>, dokunduğu her toplama yayılır.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Parsing returns a <code>Result</code>:</b> a number, or a reason it failed.",
+        "tr": "<b>Parse işlemi bir <code>Result</code> döndürür:</b> bir sayı ya da neden başarısız olduğu."
+      },
+      "page_note": {
+        "en": "The error points at this line, before <code>total</code> is ever called. To compile, the code has to say what a bad input means: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>",
+        "tr": "Hata, <code>total</code> daha hiç çağrılmadan bu satırı gösterir. Derlenebilmesi için kodun hatalı bir girdinin ne anlama geldiğini söylemesi gerekir: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>"
+      }
+    },
+    "one-function-many-names": {
+      "page_title": {
+        "en": "One function, many names",
+        "tr": "Tek fonksiyon, birçok isim"
+      },
+      "why": {
+        "en": "Finding every caller before you change something.",
+        "tr": "Bir şeyi değiştirmeden önce onu çağıran her yeri bulmak."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "uyarısız derlenir"
+      },
+      "glyph_verdict": {
+        "en": "one name everywhere",
+        "tr": "her yerde tek isim"
+      },
+      "ts_result": {
+        "en": "<b><code>grep getUser</code> misses two of three callers.</b>",
+        "tr": "<b><code>grep getUser</code>, üç çağırandan ikisini kaçırır.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>No default exports, no renaming.</b> <code>grep get_user</code> finds every caller.",
+        "tr": "<b>Default export yok, yeniden adlandırma yok.</b> <code>grep get_user</code> her çağıranı bulur."
+      },
+      "page_note": {
+        "en": "This is what lets an agent change a function safely: it can find every place that uses it with a plain text search.",
+        "tr": "Bir ajanın bir fonksiyonu güvenle değiştirebilmesini sağlayan şey budur: onu kullanan her yeri düz bir metin aramasıyla bulabilir."
+      }
+    },
+    "one-step-past-the-end": {
+      "page_title": {
+        "en": "One step past the end",
+        "tr": "Sonun bir adım ötesi"
+      },
+      "why": {
+        "en": "Summing a list with a loop.",
+        "tr": "Bir döngüyle listeyi toplamak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "derlenir, sonra yanlış sonuç verir"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "çalışırken durdurulur"
+      },
+      "ts_result": {
+        "en": "<b><code>&lt;=</code> reads one past the end.</b>",
+        "tr": "<b><code>&lt;=</code>, sonun bir ötesini okur.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program.",
+        "tr": "<b>Glyph'te C tarzı <code>for</code> yoktur.</b> Sonun ötesini okumak programı durdurur."
+      },
+      "page_note": {
+        "en": "Out-of-range reads return <code>undefined</code> in TypeScript, and arithmetic turns that into <code>NaN</code>.",
+        "tr": "TypeScript'te aralık dışı okumalar <code>undefined</code> döndürür, aritmetik de bunu <code>NaN</code>'a çevirir."
+      }
+    },
+    "quantity-of-one-and-a-half": {
+      "page_title": {
+        "en": "A quantity of 1.5",
+        "tr": "1.5 adetlik bir miktar"
+      },
+      "why": {
+        "en": "An order line that can only be a whole number.",
+        "tr": "Yalnızca tam sayı olabilen bir sipariş satırı."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "derlenir, sonra hatalı veriyle çalışır"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "veri geldiğinde kontrol edilir"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript has one <code>number</code>.</b> Half an item ships.",
+        "tr": "<b>TypeScript'te tek bir <code>number</code> vardır.</b> Yarım ürün kargolanır."
+      },
+      "glyph_result": {
+        "en": "<b><code>int</code> is its own type,</b> and it is checked.",
+        "tr": "<b><code>int</code> ayrı bir tiptir</b> ve kontrol edilir."
+      },
+      "page_note": {
+        "en": "TypeScript has one <code>number</code> type for whole numbers and fractions alike. Glyph has <code>int</code>, and checks it when the data arrives.",
+        "tr": "TypeScript'te tam sayılar ve kesirli sayılar için tek bir <code>number</code> tipi vardır. Glyph'te <code>int</code> vardır ve veri geldiğinde kontrol edilir."
+      }
+    },
+    "split-into-a-pair": {
+      "page_title": {
+        "en": "Destructuring a <code>split</code>",
+        "tr": "Bir <code>split</code>'i destructure etmek"
+      },
+      "why": {
+        "en": "Splitting an address into a user and a host.",
+        "tr": "Bir adresi kullanıcı ve host olarak ikiye ayırmak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "derlenir, sonra yanlış metin yazdırır"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads \"nobody at undefined\".",
+        "tr": "<b>TypeScript ikinci parçanın var olduğunu varsayar.</b> <code>@</code> yoksa metin \"nobody at undefined\" olur."
+      },
+      "glyph_result": {
+        "en": "<b>The missing part has to be handled.</b>",
+        "tr": "<b>Eksik parçanın ele alınması gerekir.</b>"
+      },
+      "page_note": {
+        "en": "<code>split</code> can return one piece. TypeScript types <code>host</code> as <code>string</code> anyway.",
+        "tr": "<code>split</code> tek parça döndürebilir. TypeScript yine de <code>host</code>'u <code>string</code> olarak tipler."
+      }
+    },
+    "switch-fallthrough": {
+      "page_title": {
+        "en": "Switch fallthrough",
+        "tr": "Switch fallthrough"
+      },
+      "why": {
+        "en": "A discount per plan.",
+        "tr": "Plan başına bir indirim."
+      },
+      "ts_verdict": {
+        "en": "compiles, then charges the wrong price",
+        "tr": "derlenir, sonra yanlış fiyat çeker"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "yazılamaz"
+      },
+      "ts_result": {
+        "en": "<b>The missing <code>break</code> runs the next case.</b>",
+        "tr": "<b>Eksik <code>break</code>, sonraki case'i çalıştırır.</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>match</code> arms never fall through.</b>",
+        "tr": "<b><code>match</code> arm'ları asla bir sonrakine düşmez.</b>"
+      },
+      "page_note": {
+        "en": "<code>noFallthroughCasesInSwitch</code> is not part of <code>--strict</code>.",
+        "tr": "<code>noFallthroughCasesInSwitch</code>, <code>--strict</code>'in parçası değildir."
+      }
+    },
+    "template-prints-undefined": {
+      "page_title": {
+        "en": "A template that prints \"undefined\"",
+        "tr": "\"undefined\" yazdıran bir şablon"
+      },
+      "why": {
+        "en": "Showing an optional relation.",
+        "tr": "İsteğe bağlı bir ilişkiyi göstermek."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "derlenir, sonra yanlış metin yazdırır"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>The user sees the word \"undefined\".</b>",
+        "tr": "<b>Kullanıcı \"undefined\" kelimesini görür.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The missing case needs a default.</b>",
+        "tr": "<b>Eksik durum için bir varsayılan değer gerekir.</b>"
+      },
+      "page_note": {
+        "en": "<code>?.</code> stops the crash, but the <code>undefined</code> it produces still gets printed.",
+        "tr": "<code>?.</code> çökmeyi önler, ama ürettiği <code>undefined</code> yine de ekrana yazdırılır."
+      }
+    },
+    "trap-array-holes": {
+      "summary": {
+        "en": "<code>Array(3).map(...)</code> returns three holes, because <code>map</code> skips them. Glyph has no <code>Array(n)</code>; arrays are written as literals.",
+        "tr": "<code>Array(3).map(...)</code> üç boşluk döndürür, çünkü <code>map</code> onları atlar. Glyph'te <code>Array(n)</code> yoktur; diziler literal olarak yazılır."
+      }
+    },
+    "trap-foreach-method-this": {
+      "summary": {
+        "en": "<code>[1, 2, 3].forEach(counter.increment)</code> runs the method without its object. Glyph has no classes and no <code>this</code>.",
+        "tr": "<code>[1, 2, 3].forEach(counter.increment)</code> metodu nesnesi olmadan çalıştırır. Glyph'te class ve <code>this</code> yoktur."
+      }
+    },
+    "trap-map-parseint": {
+      "summary": {
+        "en": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> is <code>[10, NaN, NaN]</code>, because <code>map</code> passes the index as the number base. Glyph has <code>number.parse</code>, which returns a <code>Result</code>.",
+        "tr": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> <code>[10, NaN, NaN]</code> olur, çünkü <code>map</code> indeksi sayı tabanı olarak geçirir. Glyph'te bir <code>Result</code> döndüren <code>number.parse</code> vardır."
+      }
+    },
+    "trap-math-max-empty": {
+      "summary": {
+        "en": "<code>Math.max(...[])</code> is <code>-Infinity</code>. Glyph's <code>array.max</code> returns an <code>Option</code>, empty for an empty list.",
+        "tr": "<code>Math.max(...[])</code> <code>-Infinity</code>'dir. Glyph'in <code>array.max</code>'ı bir <code>Option</code> döndürür, boş liste için boştur."
+      }
+    },
+    "trap-regex-lastindex": {
+      "summary": {
+        "en": "A <code>/g</code> regex reused with <code>.test</code> fails every second match, because it remembers <code>lastIndex</code>. Glyph has no regex objects; <code>regex.matches(pattern, text)</code> has no state.",
+        "tr": "<code>.test</code> ile yeniden kullanılan bir <code>/g</code> regex'i her ikinci eşleşmede başarısız olur, çünkü <code>lastIndex</code>'i hatırlar. Glyph'te regex nesnesi yoktur; <code>regex.matches(pattern, text)</code> durum tutmaz."
+      }
+    },
+    "trusting-find-with-bang": {
+      "page_title": {
+        "en": "Trusting <code>find</code> with <code>!</code>",
+        "tr": "<code>find</code>'a <code>!</code> ile güvenmek"
+      },
+      "why": {
+        "en": "Looking a record up by id.",
+        "tr": "Bir kaydı id'sine göre bulmak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "derlenir, sonra çalışırken çöker"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b><code>!</code> tells the compiler \"trust me\".</b> At run time it does nothing.",
+        "tr": "<b><code>!</code> derleyiciye \"bana güven\" der.</b> Çalışma zamanında hiçbir şey yapmaz."
+      },
+      "glyph_result": {
+        "en": "<b><code>find</code> returns an <code>Option</code>,</b> so the empty case must be handled.",
+        "tr": "<b><code>find</code> bir <code>Option</code> döndürür,</b> bu yüzden boş durumun ele alınması gerekir."
+      },
+      "page_note": {
+        "en": "Without the <code>!</code>, <code>tsc --strict</code> refuses this line. The <code>!</code> is what switches that check off, and it does nothing at run time. Glyph has no <code>!</code>.",
+        "tr": "<code>!</code> olmadan <code>tsc --strict</code> bu satırı reddeder. O kontrolü kapatan şey <code>!</code>'dir ve çalışma zamanında hiçbir şey yapmaz. Glyph'te <code>!</code> yoktur."
+      }
+    },
+    "two-types-same-shape": {
+      "page_title": {
+        "en": "Two types with the same shape",
+        "tr": "Aynı yapıda iki tip"
+      },
+      "why": {
+        "en": "Verified and unverified email addresses.",
+        "tr": "Doğrulanmış ve doğrulanmamış e-posta adresleri."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "uyarısız derlenir"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>An unverified address gets the invoice.</b>",
+        "tr": "<b>Faturayı doğrulanmamış bir adres alır.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Two named types are different types.</b>",
+        "tr": "<b>İsimli iki tip farklı tiplerdir.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript compares object types by shape, so same-shaped types are interchangeable whatever they are called.",
+        "tr": "TypeScript nesne tiplerini yapılarına göre karşılaştırır; bu yüzden aynı yapıdaki tipler, adları ne olursa olsun birbirinin yerine geçebilir."
+      }
+    },
+    "type-guard-that-checks-less": {
+      "page_title": {
+        "en": "A type guard that checks less than it claims",
+        "tr": "İddia ettiğinden azını kontrol eden bir type guard"
+      },
+      "why": {
+        "en": "Validating a request body by hand.",
+        "tr": "Bir istek gövdesini elle doğrulamak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "derlenir, sonra çalışırken çöker"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "veri geldiğinde kontrol edilir"
+      },
+      "ts_result": {
+        "en": "<b>The guard says \"User\" after checking one field.</b>",
+        "tr": "<b>Guard tek bir alana bakıp \"User\" der.</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>User.is</code> checks every field.</b> Glyph has no hand-written guards.",
+        "tr": "<b><code>User.is</code> her alanı kontrol eder.</b> Glyph'te elle yazılmış guard yoktur."
+      },
+      "page_note": {
+        "en": "TypeScript trusts a <code>x is User</code> function completely, whatever its body actually checks.",
+        "tr": "TypeScript, bir <code>x is User</code> fonksiyonuna, gövdesi gerçekte neyi kontrol ederse etsin tamamen güvenir."
+      }
+    },
+    "typo-in-an-options-object": {
+      "page_title": {
+        "en": "A typo in an options object",
+        "tr": "Bir options nesnesinde yazım hatası"
+      },
+      "why": {
+        "en": "Building the options in a variable, then passing them.",
+        "tr": "Seçenekleri bir değişkende hazırlayıp sonra geçirmek."
+      },
+      "ts_verdict": {
+        "en": "compiles, then uses the wrong setting",
+        "tr": "derlenir, sonra yanlış ayarı kullanır"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>The misspelled option is silently dropped.</b>",
+        "tr": "<b>Yanlış yazılan seçenek sessizce düşer.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The wrong name is an error.</b>",
+        "tr": "<b>Yanlış isim bir hatadır.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only checks for unknown keys on a literal written directly in the call, not on one built in a variable first.",
+        "tr": "TypeScript bilinmeyen anahtarları yalnızca doğrudan çağrının içine yazılmış bir literal'de kontrol eder, önce bir değişkende oluşturulmuş olanda değil."
+      }
+    },
+    "typo-nobody-sees": {
+      "page_title": {
+        "en": "A typo nobody sees",
+        "tr": "Kimsenin görmediği bir yazım hatası"
+      },
+      "why": {
+        "en": "Reading a field from a response.",
+        "tr": "Bir yanıttan alan okumak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then fails at run time",
+        "tr": "derlenir, sonra çalışırken başarısız olur"
+      },
+      "glyph_verdict": {
+        "en": "refused by glyph check",
+        "tr": "glyph check tarafından reddedilir"
+      },
+      "ts_result": {
+        "en": "<b><code>res.json()</code> is <code>any</code>,</b> so nothing about it is checked.",
+        "tr": "<b><code>res.json()</code> <code>any</code>'dir,</b> bu yüzden onunla ilgili hiçbir şey kontrol edilmez."
+      },
+      "glyph_result": {
+        "en": "<b>There is no <code>any</code>.</b> Data nobody has checked is <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gives it a type.",
+        "tr": "<b><code>any</code> yoktur.</b> Kimsenin kontrol etmediği veri <code>unknown</code>'dır; <code>json.parse&lt;User&gt;</code> ona bir tip verir."
+      },
+      "page_note": {
+        "en": "<code>any</code> switches type checking off for everything it touches, and it spreads: <code>data.usr</code> is <code>any</code> too. Glyph has no <code>any</code>. The refusal here comes from the <code>tsc</code> step that <code>glyph check</code> and <code>glyph build</code> run; Glyph's own checker does not see it yet (G381).",
+        "tr": "<code>any</code>, dokunduğu her şey için tip kontrolünü kapatır ve yayılır: <code>data.usr</code> da <code>any</code> olur. Glyph'te <code>any</code> yoktur. Buradaki reddetme, <code>glyph check</code> ve <code>glyph build</code>'in çalıştırdığı <code>tsc</code> adımından gelir; Glyph'in kendi checker'ı bunu henüz görmez (G381)."
+      }
+    },
+    "unvalidated-boundary-read": {
+      "page_title": {
+        "en": "A parsed body given a type without a check",
+        "tr": "Kontrol edilmeden tip verilmiş, parse edilmiş bir gövde"
+      },
+      "why": {
+        "en": "Reading a request body into a typed variable.",
+        "tr": "Bir istek gövdesini tipli bir değişkene okumak."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "derlenir, sonra hatalı veriyle çalışır"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>The annotation is a promise nothing keeps.</b> <code>JSON.parse</code> returns <code>any</code>, so a body of any shape gets through.",
+        "tr": "<b>Tip anotasyonu, hiçbir şeyin tutmadığı bir sözdür.</b> <code>JSON.parse</code> <code>any</code> döndürür, bu yüzden her yapıdaki gövde geçer."
+      },
+      "glyph_result": {
+        "en": "<b><code>json.parse</code> returns a <code>Result</code> of <code>unknown</code>,</b> and that is not a <code>User</code>.",
+        "tr": "<b><code>json.parse</code>, <code>unknown</code> içeren bir <code>Result</code> döndürür</b> ve bu bir <code>User</code> değildir."
+      },
+      "page_note": {
+        "en": "Writing <code>const user: User</code> looks like a check and is not one. In Glyph, <code>json.parse&lt;User&gt;(body)</code> checks the body and returns a <code>Result</code> to match on.",
+        "tr": "<code>const user: User</code> yazmak bir kontrol gibi görünür ama değildir. Glyph'te <code>json.parse&lt;User&gt;(body)</code> gövdeyi kontrol eder ve üzerinde match yapılacak bir <code>Result</code> döndürür."
+      }
+    },
+    "unverifiable-parse": {
+      "page_title": {
+        "en": "A validator that cannot check what it claims",
+        "tr": "İddia ettiğini kontrol edemeyen bir validator"
+      },
+      "why": {
+        "en": "A record holding a socket, checked by a hand-written guard.",
+        "tr": "Bir socket tutan ve elle yazılmış bir guard ile kontrol edilen bir record."
+      },
+      "ts_verdict": {
+        "en": "compiles, then accepts a string as a socket",
+        "tr": "derlenir, sonra bir string'i socket olarak kabul eder"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "derlerken reddedilir"
+      },
+      "ts_result": {
+        "en": "<b>The guard says <code>Conn</code> after checking that <code>sock</code> exists.</b> A string passes as a socket.",
+        "tr": "<b>Guard, yalnızca <code>sock</code>'un var olduğunu kontrol edip <code>Conn</code> der.</b> Bir string, socket olarak geçer."
+      },
+      "glyph_result": {
+        "en": "<b>A socket has no runtime check,</b> so Glyph refuses <code>Conn.parse</code> instead of generating a check that cannot hold.",
+        "tr": "<b>Bir socket'in çalışma zamanı kontrolü yoktur,</b> bu yüzden Glyph tutamayacağı bir kontrol üretmek yerine <code>Conn.parse</code>'ı reddeder."
+      },
+      "page_note": {
+        "en": "Split the wire type from the domain type: parse the fields that can be checked, then build the record around the socket.",
+        "tr": "Wire tipini domain tipinden ayırın: kontrol edilebilen alanları parse edin, sonra record'u socket'in etrafında kurun."
+      }
+    },
+    "value-outside-the-list": {
+      "page_title": {
+        "en": "A value outside the list",
+        "tr": "Listenin dışında bir değer"
+      },
+      "why": {
+        "en": "An API starts sending a status your code has never seen.",
+        "tr": "Bir API, kodunuzun hiç görmediği bir durum göndermeye başlar."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "derlenir, sonra hatalı veriyle çalışır"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "veri geldiğinde kontrol edilir"
+      },
+      "ts_result": {
+        "en": "<b><code>\"deleted\"</code> is treated as one of the two.</b> Every check on <code>status</code> is now wrong.",
+        "tr": "<b><code>\"deleted\"</code>, iki değerden biri gibi ele alınır.</b> <code>status</code> üzerindeki her kontrol artık yanlıştır."
+      },
+      "glyph_result": {
+        "en": "<b>Only the listed values get through.</b>",
+        "tr": "<b>Yalnızca listelenen değerler geçer.</b>"
+      },
+      "page_note": {
+        "en": "In TypeScript a union like <code>\"active\" | \"banned\"</code> exists only while compiling. At run time nothing stops a third value. Glyph checks it when the data comes in.",
+        "tr": "TypeScript'te <code>\"active\" | \"banned\"</code> gibi bir union yalnızca derleme sırasında vardır. Çalışma zamanında üçüncü bir değeri hiçbir şey durdurmaz. Glyph bunu veri geldiğinde kontrol eder."
+      }
+    }
+  }
+}

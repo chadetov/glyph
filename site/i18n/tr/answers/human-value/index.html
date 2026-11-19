@@ -1,0 +1,49 @@
+---
+title: Yapay zekâ kullanmıyorsam Glyph'e değer mi? · Glyph
+description: Evet. Öne çıkan konu yapay zekâ ajanları, ama her garanti (kapsamı tam match, any yok, çalışma zamanında kontrol edilen tipler, grep'lenebilen kod, kararlı diff'ler) insanlara da yardımcı olur.
+source_hash: 353b3dea2a444a3f
+prev: /answers/vs-tooled-ts/ | &larr; Önceki | Neden sadece strict TypeScript + zod + eslint + ts-pattern değil?
+next: /answers/ai-authoring/ | Sonraki &rarr; | Bir yapay zekâ neredeyse hiç görmediği bir dili güvenilir şekilde yazabilir mi?
+---
+      <p class="q-eyebrow">06 &middot; İnsanlar için de</p>
+      <h1 class="q-title">Yapay zekâ kullanmıyorsam Glyph'e değer mi?</h1>
+
+      <p class="short-answer">
+        Evet. Yapay zekâ ajanları ön planda, çünkü ajanlar bu şeyleri sürekli bozuyor; ama altındaki her garanti, <strong>bir insanın doğrudan faydalandığı düz bir mühendislik kazanımıdır</strong>. Çalışma zamanında daha az sürpriz, daha küçük diff'ler, gerçekten grep'leyebileceğiniz kod. Hiçbiri bir LLM gerektirmez.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Bunlar yapay zekâ özellikleri değil, dil özellikleri</h2>
+        <p>
+          "Ajan" kelimesini çıkarın ve listeyi okuyun: <code>any</code> yok, kapsamı tam <code>match</code>, değer olarak hatalar, çalışma zamanında kontrol edilen tipler, isim başına tek tanım biçimi, diff açısından kararlı kanonik bir format. Rust, Elm ya da OCaml yazmış herkes bunları bir kod tabanının bakımını keyifli kılan şeyler olarak tanır. Yapay zekâ kod yazmaya başlamadan çok önce de iyi fikirlerdi. Glyph onları yalnızca dosya dosya benimseyebileceğiniz, TypeScript'e benzeyen bir dile getiriyor.
+        </p>
+
+        <h2 class="block-label">Tek başınıza ne kazanırsınız</h2>
+        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>Gece 3'te daha az alarm.</strong> Sınırdan gelen veri yapısı gereği doğrulanır (<code>User.parse</code>) ve eksik bir durum, production'da ortaya çıkan bir <code>undefined</code> değil, bir derleme hatasıdır.</li>
+          <li><strong>Daha hızlı inceleme.</strong> Tek satırlık bir değişiklik tek satırlık bir diff'tir; inceleyen kişi etrafındaki biçimlendirme gürültüsünü değil, değişikliği okur.</li>
+          <li><strong>Her şeyi bulabilirsiniz.</strong> <code>grep "fn parseUser"</code> tanıma ulaşır: onu dağıtacak overload, barrel ya da decorator yoktur.</li>
+          <li><strong>Daha kolay alışma süreci.</strong> Her şeyi yapmanın tek bir yolu olan küçük bir çekirdek, ekibe katılan bir sonraki kişinin öğrenmesi gereken yazısız bilginin daha az olması demektir.</li>
+        </ul>
+
+        <h2 class="block-label">Peki neden ajanlarla başlıyoruz?</h2>
+        <p>
+          Çünkü getirisi orada <em>daha büyük</em>. Bir insan sonunda linter'ı çalıştırmayı ve durumu ele almayı öğrenir; bir ajan ise <code>any</code>'ye uzanır, arm'ı unutur ve yeşil bir build ile merge eder; isteğe bağlı araçları açık tutacağına da güvenilemez. Katılığı <em>isteğe bağlı olmaktan</em> çıkarmanın değeri, kodu bir makine yazdığında katlanarak artar. Ama taban (yukarıdaki kazanımlar) bir ajan kullansanız da kullanmasanız da oradadır.
+        </p>
+
+        <p class="callout">
+          Onu, yalnızca bir ajan kullanıyorsanız savunulabilecek bir ajan aracı olarak değil, ajanlar için de çok iyi olan daha katı bir TypeScript olarak düşünün.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Takas</h3>
+          <p>Yeni bir şeye başlıyorsanız ya da ekibiniz zaten ML ailesinin disiplinine değer veriyorsa, kazanımlar hemen gelir. Olgun ve araçlarla iyi donatılmış bir TS stack'inde tek başınıza çalışıyorsanız karar daha zor: Glyph erken bir önizleme ve bu, tartılması gereken gerçek bir maliyet.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Her iki durumda da</h3>
+          <p>Kaçış yolu kalıcı: sahibi olduğunuz okunabilir TypeScript'e derlenir, yani onu tek bir modülde denemek ucuz ve geri alınabilir.</p>
+        </div>
+      </div>

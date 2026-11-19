@@ -1,0 +1,76 @@
+---
+title: Tasarım · dört temel ilke ve kararlar · Glyph
+description: Glyph'in tasarım gerekçesi: her kararın sınandığı dört temel ilke, spesifikasyondaki numaralı kararlar ve dilin bilerek dışarıda bıraktıkları.
+source_hash: 28891a173ca9e4a0
+next_steps: |
+  Buradan sonra nereye
+  Önerilen | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | Spesifikasyonu okuyun | Her numaralı karar, hizmet ettiği ilkeyle biter. | Spesifikasyonu aç
+  /catches/ | catches | Glyph'in reddettikleri | Her vaka, <code>tsc --strict</code> altında ve Glyph altında kontrol edildi.
+  /start/ | start | İlk programınızı yazın | Kurun, proje oluşturun, çalıştırın, bilerek bozun, hatayı okuyun. Yaklaşık on dakika.
+---
+      <p class="q-eyebrow">Tasarım</p>
+      <h1 class="q-title">Dört temel ilke ve her kural için bir karar kaydı</h1>
+
+      <p class="short-answer">
+        Glyph'teki her kural dört özelliğe karşı sınanır ve her kural, spesifikasyonda hizmet ettiği ilkeyle birlikte numaralı bir karardır. İlkeler bir projenin yapılandırmasının değil dilin özellikleridir; bu yüzden tanımadığı bir Glyph kod tabanını açan bir ajan, önce hangi ayarların seçildiğini öğrenmek zorunda kalmadan onlara güvenebilir.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">İlkeler</h2>
+        <p>
+          En önemliden başlayarak. İlk ikisi asıl meseledir, her gün hissettiğiniz problemler. Son ikisi işi keyifli kılan cilalardır. Çatıştıklarında ilk ikisi kazanır.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/pillars/verifiability/"><span class="n">İlke 01</span><span class="q">Doğrulanabilirlik</span><p>Yazabileceğiniz bir <code>any</code> ya da <code>as</code> yok; <code>match</code> her durumu kapsamak zorunda; record ve union tipleriniz katı çalışma zamanı validator'ları üretir, böylece sınırdan gelen bir değer varsayılmaz, kontrol edilir. <code>tsc</code>'nin üzerinde kapatılamayan katı bir katman. <code>tsc --strict</code>'in kabul ettiği birçok hata burada derlenmez; hâlâ derlenenler <a href="/catches/#not-yet">henüz yakalanmayanlar</a> altında listelenir.</p></a>
+        <a class="a-card" href="/pillars/greppability/"><span class="n">İlke 02</span><span class="q">Aranabilirlik</span><p>Tek isim, tek yer. Her sembolün tanımında tam olarak tek bir sözdizimsel biçimi vardır; overload, decorator, örtük <code>this</code> ya da namespace birleştirme yoktur. <code>grep "fn parseUser"</code> tanımı bulur.</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">İlke 03</span><span class="q">Kararlı diff</span><p>Tek satırlık bir değişiklik tek satırlık bir diff'tir. Tek bir kanonik düzen: bir liste sığdığı sürece tek satırdadır, sığmadığında her satırda bir eleman olur, asla yeniden paketlenmez; sondaki virgüller zorunludur, barrel dosyaları ve seçenekler yoktur. Böylece aynı kod her projede aynı şekilde yazdırılır. İnceleyenler gürültüyü değil değişikliği okur.</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">İlke 04</span><span class="q">Soyutlama</span><p>Ne demek istiyorsanız onu söyleyin: switch merdivenleri yerine pattern matching, fırlatılan exception'lar yerine <code>Result</code>, tuple'lar yerine isimli record'lar; TypeScript'in üst üste birikmiş katmanları yerine küçük ve birbirinden bağımsız bir çekirdekten.</p></a>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Spesifikasyon bir kararlar listesidir</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">docs/language/spec.md</a>, D1'den D49'a kadar 49 numaralı karar içerir ve her biri hizmet ettiği ilkeyle biter. Gramer spesifikasyonu izler: bir belirsizlik önce orada çözülür, sonra parser'a işlenir. <code>glyph llms --json</code> listeyi spesifikasyondan parse eder, böylece bir ajan sizin okuduğunuz kararların aynısını okur. Bunlardan biri, kısaltılmış hâliyle:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">D9, docs/language/spec.md'den (kısaltılmış)</span>
+<pre>D9. `else` is a catch-all arm; `_` is a position-level wildcard;
+a PascalCase arm head is a variant reference, not a binding.
+
+... a PascalCase head that names no variant of that union is a
+compile error (E0220, with a nearest-variant suggestion), never a
+silent catch-all that would mask a missing variant (E0200) and
+misroute values at runtime. ...
+
+*[verifiability, abstraction]*</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Bilerek dışarıda bıraktıkları</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a> duruşu ortaya koyar; kısaca, her kısıtlama yerini bir ilkeye karşı hak eder. Glyph'te <code>if</code>/<code>else</code> (tek koşul yapısı <code>match</code>'tir), class, overload ya da decorator, cast, <code>any</code>, relative import ve formatter seçeneği yoktur. Ayrıca yapılandırılabilir de değildir: tek formatter, tek modül çözümleme, tek katılık seviyesi. Can sıkan kısıtlamalara gevşetilmiş bir kural değil, dokümantasyon yazılır.
+        </p>
+
+        <h2 class="block-label">Karşılaştırmalar</h2>
+        <p>
+          Glyph mevcut birkaç şeye yakın ve aşağıdaki her karşılaştırma diğer seçeneğin neyi daha iyi yaptığını da söylüyor.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">Neden TypeScript, neden Go ya da yeni bir dil değil?</span><p>Hedefin neden TypeScript olduğu ve bunun neyi mümkün kıldığı: dosya dosya benimseme.</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">Neden strict TypeScript + zod + eslint + ts-pattern değil?</span><p>Aynı kontrollerin yapılandırma olarak ve dil olarak karşılaştırması ve araçlarla donatılmış TypeScript'in hâlâ önde olduğu yerler.</p></a>
+        <a class="a-card" href="/design/vs-effect/"><span class="q">Effect ile karşılaştırıldığında nasıl?</span><p>Tipli hataları ve geniş bir ekosistemi olan bir TypeScript kütüphanesi karşısında kaçış yollarını kaldıran bir dil.</p></a>
+        <a class="a-card" href="/design/vs-rescript-gleam-elm/"><span class="q">Neden ReScript, Gleam ya da Elm değil?</span><p>JavaScript'e derlenen üç eski tipli dil, her birinin önde olduğu yerler ve Glyph'in farklı yaptıkları.</p></a>
+        <a class="a-card" href="/answers/language/"><span class="q">Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?</span><p>Modül görünürlüğü, interface'ler, defer, standart kütüphane ve hâlâ sahip olduğu sınırlar.</p></a>
+      </div>
+
+      <div class="detail">
+        <p>
+          Hepsinin arkasındaki hipotez, ki henüz bir sonuç değil: aynı görev verilen bir ajan, Glyph'te TypeScript'e göre daha güvenilir şekilde doğru kod üretir ve inceleyen kişi bunu doğrulamak için daha az zaman harcar. Bu çalışma henüz yapılmadı, bu yüzden bu site ona bir sayı vermiyor. Şu ana kadar neyin ölçüldüğünü <a href="/benchmarks/">Benchmark'lar</a> sayfası söylüyor.
+        </p>
+      </div>

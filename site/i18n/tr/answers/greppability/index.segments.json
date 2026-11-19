@@ -1,0 +1,146 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/greppability/index.html",
+  "locale": "tr",
+  "source_hash": "cb5e3e02dc597369",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can an agent (or I) find where anything is defined? · Glyph",
+      "tr": "Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Every construct in Glyph has one shape to search for, so grep (or an agent's search) lands on the one definition, not fifty near-misses.",
+      "tr": "Glyph'teki her yapının aranacak tek bir biçimi vardır; bu yüzden grep (ya da bir ajanın araması) elli yakın eşleşmeye değil, tek tanıma ulaşır."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Önceki"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "Neden TypeScript, neden Go ya da yeni bir dil değil?"
+    },
+    {
+      "id": "h-3acdba59",
+      "kind": "html",
+      "en": "03 &middot; Navigation by search",
+      "tr": "03 &middot; Aramayla gezinme"
+    },
+    {
+      "id": "h-546a7b11",
+      "kind": "html",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi?"
+    },
+    {
+      "id": "h-0104db85",
+      "kind": "html",
+      "en": "Every construct has <strong>exactly one shape</strong> to search for. A plain <code>grep</code> (the way agents actually navigate) lands on the one definition, <strong>not fifty near-misses</strong>.",
+      "tr": "Her yapının aranacak <strong>tam olarak tek bir biçimi</strong> vardır. Düz bir <code>grep</code> (ajanların kodda gerçekte gezinme şekli) <strong>elli yakın eşleşmeye değil</strong>, tek tanıma ulaşır."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "h-5ddea4d2",
+      "kind": "html",
+      "en": "An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. If a concept can be written five different ways, search misses cases, and a confident agent that can't find the existing definition invents a second one. One shape per concept means search is complete, so the agent edits what's there instead of duplicating it.",
+      "tr": "Bir ajan reponuzun tamamını aklında tutmaz; <strong>arar</strong>. Bir kavram beş farklı şekilde yazılabiliyorsa arama bazı durumları kaçırır ve mevcut tanımı bulamayan kendinden emin bir ajan ikincisini uydurur. Kavram başına tek biçim, aramanın eksiksiz olması demektir; böylece ajan var olanı kopyalamak yerine onu düzenler."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Görün"
+    },
+    {
+      "id": "h-534265e6",
+      "kind": "html",
+      "en": "Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search:",
+      "tr": "Glyph değiştirmeyi iki biçimle sınırlar (<code>mut x = &hellip;</code> ve <code>mut x.method(&hellip;)</code>), bu yüzden durumun değiştiği <em>her</em> yer tek bir aramayla bulunur:"
+    },
+    {
+      "id": "h-f3493d94",
+      "kind": "html",
+      "en": "grep -rn \"mut \" src/ (every mutation in the codebase)",
+      "tr": "grep -rn \"mut \" src/ (kod tabanındaki her değiştirme)"
+    },
+    {
+      "id": "h-92a8e9f7",
+      "kind": "html",
+      "en": "Three mutations, all of them, in one search. In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer. The same one-shape rule makes whole categories auditable:",
+      "tr": "Üç değiştirme, hepsi, tek bir aramada. TypeScript'te bir değiştirme <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, bir setter ya da bir spread arkasına saklanabilir. Grep'lenecek tek bir token yoktur, bu yüzden &ldquo;bunu değiştiren bir şey var mı?&rdquo; sorusunun güvenilir bir yanıtı yoktur. Aynı tek biçim kuralı bütün kategorileri denetlenebilir kılar:"
+    },
+    {
+      "id": "h-62e795f5",
+      "kind": "html",
+      "en": "one search = one complete answer",
+      "tr": "tek arama = tek eksiksiz yanıt"
+    },
+    {
+      "id": "h-4ae95bd1",
+      "kind": "html",
+      "en": "There's no object-literal shorthand, no second way to declare a component, no overloaded syntax to disambiguate. Fewer ways to write a thing is a real constraint, and it's the point: it's what makes an agent's search, and yours, trustworthy.",
+      "tr": "Object literal kısaltması yok, bir component tanımlamanın ikinci bir yolu yok, ayrıştırılması gereken overload'lı bir sözdizimi yok. Bir şeyi yazmanın daha az yolu olması gerçek bir kısıtlamadır ve asıl amaç da budur: bir ajanın aramasını, sizinkini de, güvenilir kılan şey budur."
+    },
+    {
+      "id": "h-127e49f1",
+      "kind": "html",
+      "en": "The constructs Glyph leaves out so that a search can be trusted, and why a lint rule is not the same guarantee, are on the <a href=\"/pillars/greppability/\">greppability pillar page</a>.",
+      "tr": "Bir aramaya güvenilebilsin diye Glyph'in dışarıda bıraktığı yapılar ve bir lint kuralının neden aynı garanti olmadığı <a href=\"/pillars/greppability/\">aranabilirlik ilkesi sayfasında</a>."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Bugün yayında"
+    },
+    {
+      "id": "h-b95960cf",
+      "kind": "html",
+      "en": "One canonical form per construct, mutation restricted to two greppable shapes (<code>mut</code>), and single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).",
+      "tr": "Yapı başına tek kanonik biçim, iki grep'lenebilir biçimle (<code>mut</code>) sınırlandırılmış değiştirme ve tek anahtar kelimeyle denetimler (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)."
+    },
+    {
+      "id": "h-b19d96e0",
+      "kind": "html",
+      "en": "Layered on top",
+      "tr": "Üstüne eklenenler"
+    },
+    {
+      "id": "h-87fdbb44",
+      "kind": "html",
+      "en": "The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.",
+      "tr": "Dil sunucusu, tüm çalışma alanında tanıma gitme ve referansları bulma ekler: aynı garanti, artık editörünüzde etkileşimli."
+    }
+  ]
+}

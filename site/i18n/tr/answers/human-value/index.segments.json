@@ -1,0 +1,152 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/human-value/index.html",
+  "locale": "tr",
+  "source_hash": "353b3dea2a444a3f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Is Glyph worth it if I'm not using AI? · Glyph",
+      "tr": "Yapay zekâ kullanmıyorsam Glyph'e değer mi? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Yes. AI agents are the headline, but every guarantee (exhaustive match, no any, runtime-checked types, greppable code, stable diffs) helps people too.",
+      "tr": "Evet. Öne çıkan konu yapay zekâ ajanları, ama her garanti (kapsamı tam match, any yok, çalışma zamanında kontrol edilen tipler, grep'lenebilen kod, kararlı diff'ler) insanlara da yardımcı olur."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Önceki"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "Neden sadece strict TypeScript + zod + eslint + ts-pattern değil?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "Bir yapay zekâ neredeyse hiç görmediği bir dili güvenilir şekilde yazabilir mi?"
+    },
+    {
+      "id": "h-2ff535ef",
+      "kind": "html",
+      "en": "06 &middot; For humans too",
+      "tr": "06 &middot; İnsanlar için de"
+    },
+    {
+      "id": "h-e2f8d2d6",
+      "kind": "html",
+      "en": "Is Glyph worth it if I'm not using AI?",
+      "tr": "Yapay zekâ kullanmıyorsam Glyph'e değer mi?"
+    },
+    {
+      "id": "h-2474df6a",
+      "kind": "html",
+      "en": "Yes. The AI-agent framing is the headline because agents break these things constantly, but every guarantee underneath is a <strong>plain engineering win a human gets directly</strong>. Fewer runtime surprises, smaller diffs, code you can actually grep. None of it requires an LLM.",
+      "tr": "Evet. Yapay zekâ ajanları ön planda, çünkü ajanlar bu şeyleri sürekli bozuyor; ama altındaki her garanti, <strong>bir insanın doğrudan faydalandığı düz bir mühendislik kazanımıdır</strong>. Çalışma zamanında daha az sürpriz, daha küçük diff'ler, gerçekten grep'leyebileceğiniz kod. Hiçbiri bir LLM gerektirmez."
+    },
+    {
+      "id": "h-883d013e",
+      "kind": "html",
+      "en": "These are language features, not AI features",
+      "tr": "Bunlar yapay zekâ özellikleri değil, dil özellikleri"
+    },
+    {
+      "id": "h-377ab84f",
+      "kind": "html",
+      "en": "Strip the word \"agent\" out and read the list: no <code>any</code>, exhaustive <code>match</code>, errors as values, types that are checked at runtime, one declaration form per name, a canonical diff-stable format. Anyone who's written Rust, Elm, or OCaml recognizes these as the things that make a codebase pleasant to maintain. They were good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language you can adopt one file at a time.",
+      "tr": "\"Ajan\" kelimesini çıkarın ve listeyi okuyun: <code>any</code> yok, kapsamı tam <code>match</code>, değer olarak hatalar, çalışma zamanında kontrol edilen tipler, isim başına tek tanım biçimi, diff açısından kararlı kanonik bir format. Rust, Elm ya da OCaml yazmış herkes bunları bir kod tabanının bakımını keyifli kılan şeyler olarak tanır. Yapay zekâ kod yazmaya başlamadan çok önce de iyi fikirlerdi. Glyph onları yalnızca dosya dosya benimseyebileceğiniz, TypeScript'e benzeyen bir dile getiriyor."
+    },
+    {
+      "id": "h-bad10559",
+      "kind": "html",
+      "en": "What you get, solo",
+      "tr": "Tek başınıza ne kazanırsınız"
+    },
+    {
+      "id": "h-4f15d4ac",
+      "kind": "html",
+      "en": "<strong>Fewer 3am pages.</strong> Boundary data is validated by construction (<code>User.parse</code>), and a missing case is a compile error, not an <code>undefined</code> that surfaces in production.",
+      "tr": "<strong>Gece 3'te daha az alarm.</strong> Sınırdan gelen veri yapısı gereği doğrulanır (<code>User.parse</code>) ve eksik bir durum, production'da ortaya çıkan bir <code>undefined</code> değil, bir derleme hatasıdır."
+    },
+    {
+      "id": "h-3212661c",
+      "kind": "html",
+      "en": "<strong>Faster review.</strong> A one-line change is a one-line diff, so a reviewer reads the change, not the reformatting churn around it.",
+      "tr": "<strong>Daha hızlı inceleme.</strong> Tek satırlık bir değişiklik tek satırlık bir diff'tir; inceleyen kişi etrafındaki biçimlendirme gürültüsünü değil, değişikliği okur."
+    },
+    {
+      "id": "h-bde8ceea",
+      "kind": "html",
+      "en": "<strong>You can find anything.</strong> <code>grep \"fn parseUser\"</code> lands on the definition: no overloads, barrels, or decorators scattering it.",
+      "tr": "<strong>Her şeyi bulabilirsiniz.</strong> <code>grep \"fn parseUser\"</code> tanıma ulaşır: onu dağıtacak overload, barrel ya da decorator yoktur."
+    },
+    {
+      "id": "h-2d7f721c",
+      "kind": "html",
+      "en": "<strong>Easier onboarding.</strong> A small core with one way to do each thing means less tribal knowledge for the next person to learn.",
+      "tr": "<strong>Daha kolay alışma süreci.</strong> Her şeyi yapmanın tek bir yolu olan küçük bir çekirdek, ekibe katılan bir sonraki kişinin öğrenmesi gereken yazısız bilginin daha az olması demektir."
+    },
+    {
+      "id": "h-a45cacac",
+      "kind": "html",
+      "en": "So why lead with agents?",
+      "tr": "Peki neden ajanlarla başlıyoruz?"
+    },
+    {
+      "id": "h-0cf505e4",
+      "kind": "html",
+      "en": "Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green, and it can't be trusted to keep the opt-in tooling on. The value of making the strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor (the wins above) is there whether you use an agent or not.",
+      "tr": "Çünkü getirisi orada <em>daha büyük</em>. Bir insan sonunda linter'ı çalıştırmayı ve durumu ele almayı öğrenir; bir ajan ise <code>any</code>'ye uzanır, arm'ı unutur ve yeşil bir build ile merge eder; isteğe bağlı araçları açık tutacağına da güvenilemez. Katılığı <em>isteğe bağlı olmaktan</em> çıkarmanın değeri, kodu bir makine yazdığında katlanarak artar. Ama taban (yukarıdaki kazanımlar) bir ajan kullansanız da kullanmasanız da oradadır."
+    },
+    {
+      "id": "h-f388e69f",
+      "kind": "html",
+      "en": "Think of it as a stricter TypeScript that happens to be great for agents, not an agent tool you can only justify if you use one.",
+      "tr": "Onu, yalnızca bir ajan kullanıyorsanız savunulabilecek bir ajan aracı olarak değil, ajanlar için de çok iyi olan daha katı bir TypeScript olarak düşünün."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-1c38b338",
+      "kind": "html",
+      "en": "The tradeoff",
+      "tr": "Takas"
+    },
+    {
+      "id": "h-4370ff74",
+      "kind": "html",
+      "en": "If you're starting something new, or your team already values ML-family discipline, the wins land immediately. If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.",
+      "tr": "Yeni bir şeye başlıyorsanız ya da ekibiniz zaten ML ailesinin disiplinine değer veriyorsa, kazanımlar hemen gelir. Olgun ve araçlarla iyi donatılmış bir TS stack'inde tek başınıza çalışıyorsanız karar daha zor: Glyph erken bir önizleme ve bu, tartılması gereken gerçek bir maliyet."
+    },
+    {
+      "id": "h-e15e4388",
+      "kind": "html",
+      "en": "Either way",
+      "tr": "Her iki durumda da"
+    },
+    {
+      "id": "h-e75fa557",
+      "kind": "html",
+      "en": "The escape hatch is permanent: it compiles to readable TypeScript you own, so trying it on one module is cheap and reversible.",
+      "tr": "Kaçış yolu kalıcı: sahibi olduğunuz okunabilir TypeScript'e derlenir, yani onu tek bir modülde denemek ucuz ve geri alınabilir."
+    }
+  ]
+}

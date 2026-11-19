@@ -1,0 +1,72 @@
+---
+title: Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi? · Glyph
+description: Glyph'teki her yapının aranacak tek bir biçimi vardır; bu yüzden grep (ya da bir ajanın araması) elli yakın eşleşmeye değil, tek tanıma ulaşır.
+source_hash: cb5e3e02dc597369
+prev: /answers/diff-stability/ | &larr; Önceki | Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?
+next: /answers/why-typescript/ | Sonraki &rarr; | Neden TypeScript, neden Go ya da yeni bir dil değil?
+---
+      <p class="q-eyebrow">03 &middot; Aramayla gezinme</p>
+      <h1 class="q-title">Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi?</h1>
+
+      <p class="short-answer">
+        Her yapının aranacak <strong>tam olarak tek bir biçimi</strong> vardır. Düz bir <code>grep</code> (ajanların kodda gerçekte gezinme şekli) <strong>elli yakın eşleşmeye değil</strong>, tek tanıma ulaşır.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Bir ajan reponuzun tamamını aklında tutmaz; <strong>arar</strong>. Bir kavram beş farklı şekilde yazılabiliyorsa arama bazı durumları kaçırır ve mevcut tanımı bulamayan kendinden emin bir ajan ikincisini uydurur. Kavram başına tek biçim, aramanın eksiksiz olması demektir; böylece ajan var olanı kopyalamak yerine onu düzenler.
+        </p>
+
+        <h2 class="block-label">Görün</h2>
+        <p>Glyph değiştirmeyi iki biçimle sınırlar (<code>mut x = &hellip;</code> ve <code>mut x.method(&hellip;)</code>), bu yüzden durumun değiştiği <em>her</em> yer tek bir aramayla bulunur:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">grep -rn "mut " src/ (kod tabanındaki her değiştirme)</span>
+<pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
+<span class="dim">src/cart.glyph:22:</span>   mut total = total + price
+<span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Üç değiştirme, hepsi, tek bir aramada. TypeScript'te bir değiştirme <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, bir setter ya da bir spread arkasına saklanabilir. Grep'lenecek tek bir token yoktur, bu yüzden &ldquo;bunu değiştiren bir şey var mı?&rdquo; sorusunun güvenilir bir yanıtı yoktur. Aynı tek biçim kuralı bütün kategorileri denetlenebilir kılar:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">tek arama = tek eksiksiz yanıt</span>
+<pre><span class="cm"># every UI component</span>
+grep -rn <span class="add">"^component "</span> src/
+
+<span class="cm"># every function</span>
+grep -rn <span class="add">"^fn "</span> src/
+
+<span class="cm"># the entire resource-ownership surface</span>
+grep -rn <span class="add">"owned"</span> src/</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Object literal kısaltması yok, bir component tanımlamanın ikinci bir yolu yok, ayrıştırılması gereken overload'lı bir sözdizimi yok. Bir şeyi yazmanın daha az yolu olması gerçek bir kısıtlamadır ve asıl amaç da budur: bir ajanın aramasını, sizinkini de, güvenilir kılan şey budur.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Bir aramaya güvenilebilsin diye Glyph'in dışarıda bıraktığı yapılar ve bir lint kuralının neden aynı garanti olmadığı <a href="/pillars/greppability/">aranabilirlik ilkesi sayfasında</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>Yapı başına tek kanonik biçim, iki grep'lenebilir biçimle (<code>mut</code>) sınırlandırılmış değiştirme ve tek anahtar kelimeyle denetimler (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Üstüne eklenenler</h3>
+          <p>Dil sunucusu, tüm çalışma alanında tanıma gitme ve referansları bulma ekler: aynı garanti, artık editörünüzde etkileşimli.</p>
+        </div>
+      </div>

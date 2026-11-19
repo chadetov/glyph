@@ -1,0 +1,348 @@
+---
+title: Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı? · Glyph
+description: Modül görünürlüğü, generic sınırları için yapısal interface'ler, defer, yapılandırılmış eşzamanlılık, bir değer olarak match ve JavaScript'ten devraldığı semantik.
+source_hash: 5ef4512407bef58a
+prev: /answers/state/ | &larr; Önceki | Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım?
+next: /answers/finance/ | Sonraki &rarr; | Ona parayla ve kontrol etmediğim girdilerle güvenebilir miyim?
+---
+      <p class="q-eyebrow">15 &middot; Dilin eksiksizliği</p>
+      <h1 class="q-title">Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?</h1>
+
+      <p class="short-answer">
+        Gerçek bir kod tabanında ihtiyaç duyduğunuz şeyler var: <strong>modül görünürlüğü</strong>, generic'leri kısıtlayan <strong>interface'ler</strong>, temizlik için <strong>defer</strong> ve <strong>eşzamanlılık</strong> yardımcıları. JavaScript'e dayandığı yerlerde bunu gizlemek yerine açıkça söyler.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Tek bir dosya yazabildiğiniz ama bir projeyi yapılandıramadığınız bir dile kod tabanınızı emanet etmezsiniz. Önemli eksikler egzotik değil: bir yardımcı fonksiyonu gizleyebilir miyim, bir generic bir yetenek şart koşabilir mi, bir dosya handle'ını her çıkış yolunda serbest bırakabilir miyim, iki işi aynı anda çalıştırıp ikisini de bekleyebilir miyim. Glyph bu dördüne de yanıt verir ve bunu, bilerek bıraktığı yoğun annotation'lı yöne geri dönmeden yapar.
+        </p>
+
+        <h2 class="block-label">Görün</h2>
+        <p>
+          Tanımlar siz <code>pub</code> olarak işaretleyene kadar modüllerine özeldir; böylece public yüzey tek bir aramadır (<code>grep '^pub'</code>) ve bir yardımcı fonksiyon asla kazara dışarı sızmaz:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">görünürlük: varsayılan olarak private</span>
+<pre><span class="add">pub fn</span> charge(cents: int) -&gt; Result&lt;Receipt, string&gt; { validate(cents)? ... }
+
+<span class="dim">fn</span> validate(cents: int) -&gt; Result&lt;int, string&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Bir <code>interface</code>, TypeScript'teki gibi yapısaldır: bir generic'in şart koşabileceği üye imzalarından oluşan bir kümedir. <code>implements</code> yok, nominal tören yok. Bu üyelere sahip her değer uyar ve bunu <code>tsc</code> zorunlu kılar.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">interface'ler generic'leri kısıtlar</span>
+<pre><span class="add">interface</span> Named {
+  fn name() -&gt; string
+}
+
+pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
+  x.name()
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>defer</code>, blok çıkarken temizlik kodunu her yolda çalıştırır; erken bir return ya da fırlatılan bir hata da buna dahildir. Birden fazla defer son giren ilk çıkar sırasıyla çalışır ve <code>owned</code> handle'larla birlikte kullanılabilir. <code>std/task</code> ise eşzamanlı işleri sahipsiz promise'ler bırakmak yerine tek bir ömür altında birleştirir.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">defer + yapılandırılmış eşzamanlılık</span>
+<pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
+
+let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { fetch_b() }])</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Dürüst olmak gerekirse: Glyph TypeScript'e derlenir ve bir JavaScript motorunda çalışır; bu yüzden değerlendirme sırası, değer ile referans ayrımı, eşitlik (<code>==</code>, <code>===</code> demektir, overloading yok) ve tek thread'li, garbage collection'lı model icat edilmemiş, devralınmıştır. Spec artık bunları keşfetmeyi size bırakmak yerine garanti olarak yazıyor. Manuel bellek yönetimi ve GC'siz bir model yol haritasında yok; bunlar TypeScript'e derlenen bir dilin kapsamı dışında.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><code>if</code> yok, bu yüzden her şeyi <code>match</code> taşımak zorunda</h2>
+        <p>
+          Bir TypeScript geliştiricisinin kapsam kontrolü anlatıldıktan sonra sorduğu ilk şey, <code>match</code>'in gerçekten genel amaçlı bir koşul ifadesi mi yoksa bir union'ı parçalamanın şık bir yolu mu olduğudur. İlkidir ve bunu kanıtlayan yer atamadır. Bir <code>let</code> ya da <code>mut</code>'un değerinin tamamı olan bir <code>match</code>, bir statement'ın alabildiği her şeyi alır: bir arm bir blok olabilir, bir arm <code>await</code> edebilir, bir arm çevreleyen döngüden <code>break</code> ile çıkabilir ve bir arm atamakta olduğu binding'i okuyabilir; bir <code>if</code> olmadan durumu bir döngü boyunca bu şekilde biriktirirsiniz.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">link denetleyicisinden: fence takibi ve await edilen bir arm</span>
+<pre>for raw in lines {
+  let fence = is_fence(raw)
+  <span class="add">mut</span> in_fence = <span class="add">match</span> fence {      <span class="cm"># reads the binding it assigns</span>
+    true =&gt; !in_fence,
+    false =&gt; in_fence,
+  }
+}
+
+let cache = <span class="add">match</span> args.offline {
+  true =&gt; no_cache(),
+  false =&gt; <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          İkisi de binding'i her arm'da atayan düz bir <code>switch</code>'e derlenir; böylece <code>await</code> çevreleyen async fonksiyonun içinde durur ve biriktirici, TypeScript'in çıkarım yapabildiği normal bir değişkendir. Daha büyük bir ifadenin <em>içinde</em>, bir argüman ya da operand olarak kullanılan bir <code>match</code> hâlâ bir closure'a dönüşür; bu da arm'larının tek ifade olması gerektiği anlamına gelir. Onu kendi <code>let</code>'ine taşımak bu kısıtı kaldırır. İki örnek de tam olarak bu tür şeyleri bulmak için yazılmış bir Markdown link denetleyicisi olan <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a> dosyasından.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Bir pattern birden fazla seviye derindeki bir şekli adlandırabilir</h2>
+        <p>
+          Birden fazla alanı olan bir variant bir record taşır; bu yüzden bir şekli tanımak isteyen bir arm'ın record'un alanlarının içine uzanması gerekir. 0.1.90'a kadar alan pozisyonu bir isimden başka bir şey almıyordu: onu yeniden adlandırabilirdiniz, o kadar. Orada bir tag eşlemek derleme hatasıydı ve iç içe bir constructor parser'dan düşüyordu. Geçici çözüm her alanı bağlamak ve her seviye için iç içe bir <code>match</code> yazmaktı; bu da red-black tree dengeleme gibi bir şey için bambaşka bir program demekti: arm'lar durumlarla hizalanmayı bırakır ve her seviye üstündeki binding'leri yeniden taşır.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">bir red-black dengelemesinin bir rotasyon durumu, tek bir arm olarak</span>
+<pre>type Tree =
+  | Leaf
+  | Node({ color: Color, left: Tree, value: number, right: Tree })
+
+match t {
+  Node({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) =&gt;
+    Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b }), value: y, right: c }),
+  other =&gt; other,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Bir alan artık her pattern'i alıyor: bir variant tag'i, iç içe bir constructor, iç içe bir destructure, bir literal, bir array pattern'i. Birini yazmadan önce bilmeye değer bir sonucu var. Bir değeri test eden alan başarısız olabilir, dolayısıyla arm artık variant'ını kapsıyor sayılmaz ve tek <code>Node</code> arm'ı <code>Node({ color: Red, ... })</code> olan bir match, kalanını bir kardeş arm ya da bir <code>else</code> alana kadar kapsamı eksik olarak raporlanır. Checker kapsamı alanların çarpımı üzerinden değil, bir tag kümesi üzerinden kanıtlar; bu yüzden bir <code>Red</code> arm'ı ile bir <code>Black</code> arm'ının birlikte <code>Node</code>'u tükettiğini çıkaramaz. Catch-all istemek, bir match'in çalışma zamanında sonuna düşmesine izin veremeyecek tek yorumdur. Aynısı sayılacak hiç variant'ın olmadığı yerde de geçerli: her arm'ı bir alanı test eden düz bir record üzerindeki match'in arkasında bir <code>else</code> olmalıdır.
+        </p>
+        <p>
+          Bunun beklemeyebileceğiniz bir yere uzandığı nokta array pozisyonu. Bütün bir arm olarak <code>[Black]</code> eskiden herhangi bir tek elemanlı array'i eşliyor sayılıyordu; bu yüzden ona dayanan bir match kapsamı tam olarak onaylanıyor ve sonra <code>[Red]</code> için de o arm'ı alıyordu. PascalCase bir eleman burada da bir variant referansıdır, dolayısıyla böyle bir match artık uzunluğu 1 olan array'lerde <code>E0208</code> verir. Elemanı bağlayın ve onu ayrı olarak eşleyin. Altta yatan lowering hâlâ eskisi; kontrolün önce yayınlanan yarı olmasının nedeni bu.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Derleyici <code>match</code>'in ne ürettiğini de bilir</h2>
+        <p>
+          Bunların hiçbirinin gerçekten yük taşıyıp taşımadığına karar veren soru şu: bir dalın içinden bir değer bağladığınızda Glyph onun tipini biliyor mu, yoksa omuz silkip sonradan <code>tsc</code>'nin halletmesine mi bırakıyor? 0.1.45'e kadar omuz silkiyordu. Her <code>match</code> ifadesinin tipi unknown'du; yani dildeki tek dallanma yapısından çıkan bir değer o noktadan sonra tipsizdi. Bir <code>match</code> artık arm'ları uyuştuğunda onların tipini alıyor ve <code>T.parse</code>'ın <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> döndürdüğü biliniyor; gerçek kodun çoğunun üzerinde dallandığı şekil de bu.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">masraf paylaştırıcısından: annotation yok ve <code>i</code> bir number</span>
+<pre>let wire = <span class="add">match</span> WireLedger.parse(decoded) {
+  Ok(w) =&gt; w,
+  Err(issues) =&gt; {
+    return Err(BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }))
+  },
+}
+
+for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", "1", "2"</span>
+  ...
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Bunun iki yarısı da eskiden sessizce ters giden şeylerdi. Döngü <code>wire.expenses.entries()</code> üretir; yinelenen değerin tipi unknown olduğunda bunun yerine <code>Object.entries(...)</code> üretir ve <code>i</code> <em>string</em> olan <code>"0"</code> olur. Bu geçerli TypeScript'tir, yani build temizdi ve program <code>1:a</code> demek isterken <code>01:a</code> yazdırıyordu. <code>wire.expensez</code> ise artık üretilen TypeScript üzerinde bir <code>TS2339</code> yerine Glyph'ten, <code>.glyph</code> satırında gelen <code>[E0210] type WireLedger has no field expensez</code>. Birleştirme baştaki eşitliğe bakar: <code>return</code> ile biten bir arm oy kullanmaz ve tipleri uyuşmayan arm'lar sonucu eskisi gibi unknown bırakır. Yalnızca bir tip argümanında bir seviye daha derine bakar; böylece <code>None =&gt; []</code>, tüm <code>match</code>'i batırmak yerine bir <code>Array&lt;string&gt;</code> arm'ıyla uyuşur ve ondan sonraki döngü yine bir number bağlar. <code>record.get</code> üzerindeki aynı zincir de aynı nedenle çalışır: altı <code>std/record</code> fonksiyonunun hepsi değer tipini verdiğiniz record'dan alır. Örnek, bu değişikliğin sildiği annotation'ı taşıyan <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a> dosyasından.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">bağımlılık çözücüsünden: bir arama, boş bir yedek, indeksli bir dolaşma</span>
+<pre>let path = <span class="add">match</span> record.get(res.reached, name) {
+  Some(p) =&gt; p,
+  None =&gt; [],
+}
+
+for i, hop in path {               <span class="cm"># i is a number, so the indent nests</span>
+  let indent = string.repeat(STEP, i + 1)
+  mut out = array.push(out, "${indent}${hop}")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Bunun en pahalıya mal olduğu şekil bu. Bir <code>Record&lt;string, Array&lt;string&gt;&gt;</code> üzerinde <code>record.get</code> bir <code>Option&lt;Array&lt;string&gt;&gt;</code>'dir ve <code>[]</code> belirli bir şeyin array'i değildir; dolayısıyla iki arm <code>Array</code> üzerinde uyuşur ve eleman tipi, eleman tipi olan arm'dan gelir. 0.1.55'e kadar eşitlik için karşılaştırılıyorlardı, <code>[]</code> bir uyuşmazlık sayılıyordu ve aşağıdaki döngü, hiç diagnostic olmayan ve <code>tsc --strict</code>'ten geçen bir build'de <code>01:x</code> yazdırıyordu. Kod <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>; eskiden annotation'ın yük taşıdığını açıklayan üç satırlık bir yorumun altında <code>let path: Array&lt;string&gt;</code> ile başlıyordu.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><code>pad_start</code>'ı kendim mi yazmak zorundayım?</h2>
+        <p>
+          Gerçek bir programda ilk karşılaştığınız eksik bir tip sistemi özelliği değil. <code>string.slice</code>'a uzanıp orada hiçbir şey bulamamaktır. Art arda beş dogfooding turu aynı listeyi kaydetti ve 0.1.47'ye kadar bu repodaki altı uygulama kendi <code>repeat</code>'ini, beşi kendi <code>pad_start</code>'ını taşıyordu ve hepsinde bir fold'un yeri olan bir döngü vardı. Bu on bir isim artık hazır geliyor ve kopyalar, onları barındıran yedi uygulamanın hepsinden silindi.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">gelenler</span>
+<pre>string.<span class="add">repeat</span>(s, n)           string.<span class="add">slice</span>(s, start, end?)       array.<span class="add">fold</span>(xs, init, f)
+string.<span class="add">pad_start</span>(s, w, pad?)   string.<span class="add">index_of</span>(s, needle, from?)  array.<span class="add">index_of</span>(xs, x)
+string.<span class="add">pad_end</span>(s, w, pad?)     string.<span class="add">replace_all</span>(s, from, to)     array.<span class="add">flat_map</span>(xs, f)
+string.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span>(s)
+
+<span class="cm"># the 25-line block six apps each carried, and what replaced it:</span>
+let total = array.<span class="add">fold</span>(expenses, 0, fn(sum, e) { sum + e.cents })
+io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<span class="add">pad_start</span>(amount, 9)}")</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Bunlardan üçü TypeScript'teki adaşlarından bilerek ayrılıyor. <code>repeat</code>, negatif bir sayıda TS'nin hata fırlattığı yerde <code>""</code> döndürür; <code>repeat(pad, width - len(s))</code>'i zaten fazla uzun olan bir string'de güvenli kılan da budur. İki <code>index_of</code> fonksiyonu da <code>-1</code> yerine <code>Option&lt;number&gt;</code> döndürür, çünkü <code>-1</code> gerçek bir indeksin geçtiği her yerde tip kontrolünden geçen ve çağrıdan çok uzakta patlayan bir sayıdır. Değiştirme yalnızca <code>replace_all</code> olarak geliyor; böylece sessizce tek bir eşleşmeyi değiştiren <code>String.prototype.replace</code> ile karıştırılacak yalnızca-ilkini değiştiren bir biçim yok.
+        </p>
+        <p>
+          <code>fold</code>, yazma tasarrufu yerine bir temel ilkeye hizmet eden fonksiyon. <code>mut</code>, durumun değiştiği her yerin grep'lenebilir kaydıdır ve fold olmadan <code>grep mut</code>, bir reviewer'ın umursadığı hiçbir şeyi değiştirmeyen sayma döngüleriyle dolu döner. Elle yazılmış sürümleri silmek <code>examples/apps/</code>'i 192 mutation noktasından 161'e indirdi. Yeniden yazım review ile değil çıktıyla kontrol edildi: yedi uygulamanın hepsi öncesinde ve sonrasında sabit girdilerle çalıştırıldı; stdout, çıkış kodları ve HTTP yanıtlarından oluşan 26 dosyanın hepsi byte byte aynıydı.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Bir dizini dolaşıp neyin bozulduğunu söyleyebilir miyim?</h2>
+        <p>
+          <code>std/fs</code> altı fonksiyonla geldi ve hiçbiri bir dizini listelemiyordu. Bu repodaki link denetleyicisi stdlib'in ötesine geçip node'un <code>readdirSync</code>'ine uzanıyor ve hangi yolların dizin olduğunu onları okumayı deneyip geri dönen <code>errno</code>'yu inceleyerek buluyordu. İki yarısı da düzeltildi. <code>fs.read_dir</code> bir seviye aşağıdaki girdi adlarını döndürür, <code>fs.is_dir</code> tıpkı <code>fs.exists</code> gibi bir <code>bool</code> ile yanıt verir ve <code>fs.stat</code>, <code>is_dir</code>, <code>is_file</code>, byte cinsinden <code>size</code> ve epoch milisaniyesi cinsinden <code>modified</code> içeren bir <code>FileInfo</code> döndürür; bunu <code>time.format_iso</code> doğrudan biçimlendirir. Özyinelemeli bir <code>walk</code> ve glob yok; bir dolaşma, bu üçü artı <code>path.join</code> ile yaklaşık on satır tutar.
+        </p>
+        <p>
+          Hata tarafı daha çok değişti. <code>FsError.kind</code>, tüm sınıflandırması <code>NotFound</code> olan bir <code>{ tag: string }</code> idi; dolayısıyla &ldquo;bu yol bir dizin&rdquo; ile &ldquo;bu yol yok&rdquo;u ayırt etmek bir errno string'ini karşılaştırmak demekti. Artık bir programın gerçekten toparlanabildiği beş türün adı var ve adı olmayan bir errno <code>Other</code> kuyruğunda olduğu gibi gelir.
+        </p>
+        <p>
+          Checker bu sınıflandırmanın kapalı olduğunu bilir; bu yüzden <code>err.kind</code> üzerindeki bir <code>match</code>, kendi tanımladığınız bir union ile aynı çıtaya tabidir: altısını kapsarsanız <code>else</code>'e ihtiyacınız olmaz, birini atlarsanız build <code>fs.ErrorKind</code>'ı adlandıran <code>E0200</code> ile başarısız olur. <code>fs.FsError</code> ve <code>fs.FileInfo</code>'nun alanları da kontrol edilir; böylece <code>err.mesage</code>, üretilen TypeScript'e karşı bir <code>tsc</code> hatası değil, Glyph kaynağınıza karşı <code>E0210</code> olur.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">bir ağacı dolaş ve neyin ters gittiğini adlandır</span>
+<pre>let names = fs.<span class="add">read_dir</span>(dir)?
+for name in names {
+  let child = path.join([dir, name])
+  match fs.<span class="add">is_dir</span>(child) {
+    true  =&gt; visit(child),
+    false =&gt; {
+      let info = fs.<span class="add">stat</span>(child)?
+      report_size(child, info.size)
+    },
+  }
+}
+
+match err.<span class="add">kind</span> {                        <span class="cm"># no else arm: E0200 if you miss one</span>
+  fs.ErrorKind.<span class="add">NotFound</span>         =&gt; io.eprintln("no such path"),
+  fs.ErrorKind.<span class="add">NotADirectory</span>    =&gt; io.eprintln("that is a file"),
+  fs.ErrorKind.<span class="add">IsADirectory</span>     =&gt; io.eprintln("that is a directory"),
+  fs.ErrorKind.<span class="add">AlreadyExists</span>    =&gt; io.eprintln("already there"),
+  fs.ErrorKind.<span class="add">PermissionDenied</span> =&gt; io.eprintln("cannot read it"),
+  fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Onunla birlikte, ikisi de aynı uygulamadan gelen iki küçük ekleme daha geldi. <code>regex.captures_all</code> yalnızca eşleşen metni değil, her eşleşmenin capture group'larını verir; böylece düz bir <code>key=value</code> taraması elle yazılmış bir döngü olmaktan çıkar. <code>task.pool_settled</code> ise <code>all_settled</code>&rsquo;ın hata davranışına sahip bir <code>task.pool</code>'dur: sınırlı eşzamanlılık, görev başına bir sonuç ve çökmüş bir host size havuzun topladığı tüm sonuçları değil, yalnızca o host'un sonucunu kaybettirir.
+        </p>
+        <p>
+          Bu kontrol devrede. Yukarıdaki <code>match</code>'ten <code>PermissionDenied</code> arm'ını silin, <code>glyph check --no-tsc</code> <code>E0200</code> ile durur: <code>fs.ErrorKind</code> üzerinde kapsamı eksik match, eksik variant'lar <code>PermissionDenied</code>. Stdlib modeli ilk yazıldığında yalnızca dönüş tiplerini kapsıyordu ve bunun gibi bir match temiz derlenip çalışma zamanında hata fırlatıyordu; <code>fs.FsError</code>, <code>fs.FileInfo</code> ve <code>fs.ErrorKind</code>'ın alan ve variant şekilleri artık modellenmiş durumda.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Fonksiyonların doğru fonksiyonlar olduğunu nereden biliyorsunuz?</h2>
+        <p>
+          Çünkü sürümün tamamlanmış sayılması için onları isteyen uygulamanın etraflarından dolaşmayı bırakması gerekiyordu. Yayınlanan bir kütüphane fonksiyonu ile ondan uzun yaşayan bir geçici çözüm farklı iddialardır; bu yüzden bu dördünü ekleyen değişiklik link denetleyicisindeki kopyaları da sildi: <code>readdirSync</code> import'unu, iki <code>errno</code> string karşılaştırmasını, elle yazılmış tarayıcının 97 satırını ve ilk hatada duran havuzu. 122 satır çıktı.
+        </p>
+        <p>
+          Bu silmelerden ikisi programın yaptığı şeyi değiştirdi ve fark tartışılarak değil ölçülerek ortaya kondu. Eski ve yeni sürümleri okuyamadığınız bir dizin içeren bir ağaca yöneltin: yenisi <code>permission denied</code> yazdırır ve yolu okunamaz olarak sayar; yalnızca errno'nun <code>EISDIR</code> olup olmadığını sorabilen eskisi ise onu rapordan tamamen çıkarıyordu. Üç URL'den birinin hata fırlatmasını sağlayın: <code>pool_settled</code> üç satırın hepsini yazdırdı ve hatayı adlandırdı, <code>pool</code> ise hiçbir şey yazdırmadı ve işlenmemiş bir rejection ile çöktü, iki iyi sonucu da beraberinde götürerek.
+        </p>
+        <p>
+          Tarayıcının yeniden yazımı bir tasarım endişesini de çözdü. Katılmayan bir capture group, boş eşleşen bir grupla aynı şekilde <code>""</code> olarak okunduğundan, <code>captures_all</code> bir alternation'ın hangi dalının tetiklendiğini söyleyemiyor gibi görünüyordu. Söyleyebilir, yeter ki her dalın grubunu istediğiniz parçanın değil tüm yapının etrafına yazın: tetiklenen bir grup bu durumda <code>`</code>, <code>[</code>, <code>!</code> ya da <code>&lt;</code> ile başlar ve boş olamaz. Boş olabilecek parça, yani link hedefi, içeride iç içe durur ve hiçbir zaman sorduğunuz şey değildir. Bu, 180 satırlık bir karakter dolaşmasını iki pattern'e ve 12 satırlık bir dağıtıma dönüştürdü; çıktı hem reponun kendi dokümanlarında hem de onu bozmak için kurulmuş bir fixture'da byte byte aynıydı.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Para float'larla yürümez</h2>
+        <p>
+          Bir fintech değerlendirmesini anında bitirecek eksik, parayı IEEE-754 <code>number</code> ile hesaplamaktır; orada <code>0.1 + 0.2</code>, <code>0.3</code> değildir ve 2<sup>53</sup>'ün ötesindeki değerler sessizce hassasiyet kaybeder. <code>std/decimal</code>, BigInt üzerinde kesin, 10 tabanlı sabit noktalı sayıdır: sabit sayıda ondalık basamağı olan keyfi hassasiyetli bir tamsayı. Bu yüzden toplama, çıkarma ve çarpma kesindir, bölme ise açık bir ölçek ve yuvarlama alır. Bozuk bir tutar parse edildiğinde asla sessiz bir <code>NaN</code> değil, bir <code>Err</code> olur.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", half away from zero</span>
+decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Kesin, büyük <em>tam</em> sayılar, yani hesap id'leri ve sayaçlar için <code>bigint</code> tipi var: literal'ler <code>123n</code> biçimindedir, gerçek bir TypeScript <code>bigint</code>'ine derlenir ve <code>bigint</code> tipli bir record alanı sınırda <code>typeof === "bigint"</code> doğrulaması yapar; böylece JSON <code>number</code> olarak gönderilen bir id, 2<sup>53</sup>'ün ötesinde sessizce yuvarlanmak yerine reddedilir.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Async bir callback'in nihayet bir tipi var</h2>
+        <p>
+          Bir fonksiyon tipi <code>fn(A) -&gt; T</code> idi ve başka bir şey değildi; bu da <code>(a: A) =&gt; T</code> üretir. Async bir gövde buna uymaz; bu yüzden ertelenmiş bir görev döndüren bir fonksiyon ya da async handler'lardan oluşan bir record annotation'sız kalmak zorundaydı ve checker bakmayı bırakıyordu. <code>async fn(A) -&gt; T</code> o eksik tiptir. <code>(a0: A) =&gt; Promise&lt;T&gt;</code> üretir; dönüşü olmayan <code>async fn()</code> ise <code>() =&gt; Promise&lt;void&gt;</code> üretir.
+        </p>
+        <p>
+          Glyph ikisini <code>tsc</code>'ye bırakmadan kendisi ayırır: async bir fonksiyon beklenen yerde düz bir fonksiyon, bir return'de <code>E0204</code>, bir çağrı argümanında <code>E0211</code> olur ve mesaj iki tarafı da adlandırır. Yargılamadığı tek durum, TypeScript'in her fonksiyonun yerine geçmesine izin verdiği bir <code>void</code> dönüşüdür.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">ertelenmiş bir görev ve bir handler map'i</span>
+<pre>fn task_for(url: string) -&gt; <span class="add">async fn() -&gt; Fetched</span> {
+  return async fn() -&gt; Fetched { return { url: url, body: await fetch_one(url) } }
+}
+
+type Handler = <span class="add">async fn(string) -&gt; string</span>
+
+async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: string) -&gt; string {
+  return match record.get(routes, name) {
+    Some(h) =&gt; await h(arg),
+    None    =&gt; "no route",
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Sonuna kadar eşlenen özyinelemeli bir tip</h2>
+        <p>
+          Bir union kendi payload'ının içinde, tip parametreleriyle birlikte kendini adlandırabilir ve bir match arm'ı bir constructor pattern'ini başka bir constructor pattern&rsquo;inin alanının içine yerleştirebilir. Bunları bir araya getirin, bir red-black tree'nin dengeleme kuralları dört arm olur: her biri yeniden yazdığı şekli tam olarak adlandırır ve şekli kontrol eden şey, üstündeki bunu iddia eden bir yorum değil derleyicidir. <code>examples/apps/leaderboard/main.glyph</code> programın tamamıdır: her skoru ağaçta tutan ve sıralama, ilk N ve aralık sorgularını bir log'u yeniden sıralamak yerine ağacı dolaşarak yanıtlayan bir skor tablosu.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">dört rotasyon durumundan biri</span>
+<pre>type Tree&lt;K, V&gt; =
+  | Leaf
+  | Node({ color: Color, left: <span class="add">Tree&lt;K, V&gt;</span>, key: K, value: V, size: int, right: <span class="add">Tree&lt;K, V&gt;</span> })
+
+fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
+  return match t {
+    Node({ color: Black, left: <span class="add">Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b })</span>, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) =&gt; node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    <span class="cm">// the other three cases, then:</span>
+    other =&gt; other,
+  }
+}</pre>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>Bir kardeş modülün tipini adlandırmanın iki yolunda da (adlı import ve <code>lib.Secret</code> annotation'ı) zorunlu kılınan <code>pub</code> görünürlüğü, yapısal <code>interface</code> sınırları, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), yazılı bir tip olarak <code>async fn(A) -&gt; T</code>, kendi payload'ında kendini adlandıran ve bir constructor pattern'ini bir diğerinin alanına yerleştiren bir arm ile eşlenen bir union, arm'larında bloklar, <code>await</code> ve döngü kontrolü olan, bir <code>let</code> ya da <code>mut</code>'un değeri olarak <code>match</code>, arm'ları uyuştuğunda tiplerini programın geri kalanına taşıyan bir <code>match</code>, tipli bir <code>T.parse</code>, kesin para hesabı için <code>std/decimal</code>, kesin büyük tamsayılar için <code>bigint</code>, basamak ayırıcılar, JS'ten devralınan semantiği üstlenen bir spec bölümü ve <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> ile <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code> içeren bir standart kütüphane; ayrıca <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, checker'ın sizi tuttuğu bir <code>FsError.kind</code> sınıflandırması ve <code>regex.captures_all</code>. <code>std/string</code> ve <code>std/array</code>'in çoğu artık dönüş tiplerini programınıza taşıyor; böylece <code>string.split</code> bir <code>Array&lt;string&gt;</code> olur ve üzerindeki döngü sayısal bir indeks bağlar. <code>std/record</code> da modellendi; değer tipi verdiğiniz record'dan okunur: bir <code>Record&lt;string, Array&lt;string&gt;&gt;</code> üzerinde <code>record.get(t, k)</code> bir <code>Option&lt;Array&lt;string&gt;&gt;</code>'dir ve <code>record.keys(t)</code> bir <code>Array&lt;string&gt;</code>'dir; böylece <code>array.sort(record.keys(t), cmp)</code> eleman tipini korur.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Nerede duruyor</h3>
+          <p>Private bir import, eksik bir isimle aynı mesajı, &ldquo;not exported by M&rdquo; raporlar; &ldquo;private, <code>pub</code> olarak işaretle&rdquo; ile &ldquo;böyle bir isim yok&rdquo;u ayırt etmek sıradaki bir iyileştirme. Görünürlük tip annotation'larında kontrol edilir, bir namespace üzerinden okunan değerlerde değil: <code>helper</code> private iken <code>lib.helper()</code> hâlâ Glyph hatası değil bir <code>tsc</code> hatasıdır. Async bağlamı artık kontrol ediliyor (<code>E0222</code>), tek bir yer hariç: modül seviyesindeki bir <code>const</code> başlatıcısının çevreleyen bir çağrılabilir yapısı yoktur, bu yüzden orada üst seviye bir <code>await</code>'e izin verilir ve üretilen ESM onu çalıştırır. Arm birleştirmesi hâlâ arm'ların tipin başında uyuşmasını gerektirir: farklı tipler ürettiklerinde sonuç Glyph için unknown olur ve onunla ne yaptığınızı yalnızca <code>tsc</code> kontrol eder. Dokuz stdlib fonksiyonu da aynı durumda. Altısı isteğe bağlı bir son argüman alır (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) ve arity kontrolü bir sayıyı bir sayıyla karşılaştırır; bu yüzden onları modellemek son argümanı atlayan her çağrıda yanlış bir hata raporlar. <code>array.map</code>, <code>flat_map</code> ve <code>zip</code> ise eleman tiplerini checker'ın içine girmediği bir callback'ten alır. Bu dokuzundan doğrudan çıkan bir değer, onu bir indeksle dolaşmadan önce bir annotation gerektirir ve <code>None</code> arm'ı olmayan bir <code>string.index_of</code> üzerindeki <code>match</code> hâlâ temiz derlenip çalışma zamanında hata fırlatır. <code>array.index_of</code> modellendi ve <code>E0200</code> raporluyor. Checker'ın tipini çıkaramadığı bir değere karşı üyeler ve çağrı arity'si o sınırda hata olmak yerine hâlâ kontrol edilmiyor. Kütüphane tarafında <code>string</code>, <code>len</code> ve <code>split</code>'in her zaman yaptığı gibi UTF-16 kod birimlerini indeksler ve bu karara bağlandı: <code>chars</code> ya da <code>char_at</code> yok ve planlanmıyor, çünkü döndürülen bir surrogate yarısı tam yazdırıldığı ana kadar bir karakter gibi görünür. <code>encoding.hex_encode</code> ile kodlayın ve iki hex basamağı birden okuyun. <code>captures_all</code> grupları verir, offset vermez; bu yüzden bir eşleşmenin satırın neresinde başladığını bilmesi gereken bir tarayıcı hâlâ kendi döngüsünü yazar. <code>fs.read_dir</code> ise girdileri işletim sisteminin sırasıyla verir, yani çıktının tekrarlanabilir olması gerekiyorsa onları sıralayın. İç içe alan pattern'inin bir kenar durumu kaldı: bir namespace import'u üzerinden erişilen bir union'da, bir alanda duran, payload taşıyan bir constructor. <code>import tree { Node }</code> ardından <code>Node({ left: Node({ key: k }) })</code> derlenir; <code>import tree</code> ardından <code>tree.Node({ left: tree.Node({ key: k }) })</code> ise aynı union'da <code>E0300</code> olur. Diğer kenar durumu ortadan kalktı: kendi parametresi üzerinde generic olan bir union (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) eskiden parametresiz aynı union'ın kabul ettiği iç içe arm'ı reddediyordu; artık hem açık bir tip parametresinde hem de somut bir örneklemede kabul ediyor. Aynı arama, match'in eksik variant'lar için kontrol edilip edilmeyeceğine de karar veriyordu; bu yüzden bu sürüme kadar <code>Tree&lt;K&gt;</code> üzerindeki bir <code>match</code>, generic olmayan yazımın <code>E0200</code> olduğu yerde <code>Leaf</code>'i atlayabiliyor, temiz derleniyor, <code>tsc --strict</code>'ten geçiyor ve çalışma zamanında hata fırlatıyordu. Artık iki yazım da bunu raporluyor ve union'ı bir import uzağa taşımak yanıtı değiştirmiyor: import edilmiş bir <code>Tree&lt;string&gt;</code> üzerinde <code>Leaf</code>'i atlayan bir <code>match</code>, import edilmiş generic olmayan <code>Tree</code> ile aynı şekilde <code>Leaf</code>'i adlandıran <code>E0200</code> olur. Bu ayrı kontrol edilen farklı bir kod yoluydu ve bu sürüme kadar tersine gidiyor, temiz derlenip çalışma zamanında hata fırlatıyordu. Import edilmiş bir union'ın kapsamı hakkında ona güvenmeden önce bilmeye değer bir şey daha var: variant payload'ları da hiç kontrol edilmez; bu yüzden <code>X</code>, payload'ın kendi union'ının bir variant'ı iken <code>B(X)</code>, eksik <code>Y</code>'yi raporlamak yerine her <code>B</code>'yi eşler ve bunun generic'lerle hiçbir ilgisi yok. Bir alanı bağlamak ya da bir alanda payload'sız bir tag eşlemek her durumda çalışır.</p>
+        </div>
+      </div>

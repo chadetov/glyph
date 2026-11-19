@@ -1,0 +1,236 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "start/index.html",
+  "locale": "tr",
+  "source_hash": "0967efaee1e51c6b",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Start Here · your first Glyph program in 10 minutes · Glyph",
+      "tr": "Buradan başlayın · 10 dakikada ilk Glyph programınız · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally.",
+      "tr": "npx ile bir Glyph projesi oluşturun, çalıştırın, bilerek bozun, derleyici hatasını okuyun ve düzeltin. On dakika, global olarak hiçbir şey kurulmadan."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Home",
+      "tr": "&larr; Ana sayfa"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "TypeScript your agents can't quietly break",
+      "tr": "Ajanlarınızın siz fark etmeden bozamayacağı TypeScript"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "Bir ajanın kodumu sessizce bozmasını ne engelliyor?"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "From here",
+      "tr": "Buradan sonra"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Next &middot; no install",
+      "tr": "Sonraki &middot; kurulum gerekmez"
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "The playground",
+      "tr": "Playground"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "Try Glyph in your browser, no install.",
+      "tr": "Glyph'i tarayıcınızda deneyin, kurulum gerekmez."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open the playground",
+      "tr": "Playground'u aç"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md.title",
+      "kind": "ns.title",
+      "en": "The five-minute tour",
+      "tr": "Beş dakikalık tur"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md.desc",
+      "kind": "ns.desc",
+      "en": "The whole language, quickly.",
+      "tr": "Dilin tamamı, hızlıca."
+    },
+    {
+      "id": "ns./answers/.title",
+      "kind": "ns.title",
+      "en": "The answers",
+      "tr": "Yanıtlar"
+    },
+    {
+      "id": "ns./answers/.desc",
+      "kind": "ns.desc",
+      "en": "Worked answers about React, typed APIs, npm and tooled TypeScript.",
+      "tr": "React, tipli API'ler, npm ve araçlarla donatılmış TypeScript hakkında örnekli yanıtlar."
+    },
+    {
+      "id": "h-046417a2",
+      "kind": "html",
+      "en": "Start here &middot; ~10 minutes",
+      "tr": "Buradan başlayın &middot; ~10 dakika"
+    },
+    {
+      "id": "h-ce040163",
+      "kind": "html",
+      "en": "Your first Glyph program",
+      "tr": "İlk Glyph programınız"
+    },
+    {
+      "id": "h-af332234",
+      "kind": "html",
+      "en": "Scaffold a project, run it, then <strong>break it on purpose</strong> and read the error the compiler gives you. No prior Glyph knowledge assumed. If you've written a little TypeScript, you'll follow every line.",
+      "tr": "Bir proje oluşturun, çalıştırın, sonra <strong>bilerek bozun</strong> ve derleyicinin verdiği hatayı okuyun. Önceden Glyph bilgisi gerekmez. Biraz TypeScript yazdıysanız her satırı takip edebilirsiniz."
+    },
+    {
+      "id": "h-86a4f8cb",
+      "kind": "html",
+      "en": "1 &middot; Create a project",
+      "tr": "1 &middot; Bir proje oluşturun"
+    },
+    {
+      "id": "h-355a40de",
+      "kind": "html",
+      "en": "Glyph ships on npm as a prebuilt binary for macOS and Linux (x64 and ARM) and Windows (x64), and needs Node 18 or later. This path installs nothing globally: <code>npx</code> fetches the compiler to scaffold the project, and the project pins its own copy along with <code>tsx</code> and <code>typescript</code>, which Glyph uses to run and type-check.",
+      "tr": "Glyph, npm'de macOS ve Linux (x64 ve ARM) ile Windows (x64) için önceden derlenmiş bir binary olarak dağıtılır ve Node 18 ya da üstünü gerektirir. Bu yol global olarak hiçbir şey kurmaz: <code>npx</code>, projeyi oluşturmak için derleyiciyi indirir; proje de kendi kopyasını, Glyph'in çalıştırmak ve tip kontrolü için kullandığı <code>tsx</code> ve <code>typescript</code> ile birlikte sabitler."
+    },
+    {
+      "id": "h-4e686af7",
+      "kind": "html",
+      "en": "terminal",
+      "tr": "terminal"
+    },
+    {
+      "id": "h-ba09e82e",
+      "kind": "html",
+      "en": "If you'd rather have <code>glyph</code> on your PATH, install it globally with the two tools it runs through, and drop the <code>npx</code> from the commands on this page:",
+      "tr": "<code>glyph</code>'in PATH'inizde olmasını tercih ederseniz, onu üzerinden çalıştığı iki araçla birlikte global olarak kurun ve bu sayfadaki komutlardan <code>npx</code>'i çıkarın:"
+    },
+    {
+      "id": "h-5c1d388d",
+      "kind": "html",
+      "en": "terminal, the global alternative",
+      "tr": "terminal, global alternatif"
+    },
+    {
+      "id": "h-377cd0d0",
+      "kind": "html",
+      "en": "2 &middot; Look at what it made",
+      "tr": "2 &middot; Neler oluşturduğuna bakın"
+    },
+    {
+      "id": "h-3694bb2c",
+      "kind": "html",
+      "en": "<code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a <code>package.json</code>, a <code>.gitignore</code>, and two files coding agents read on their own: <code>AGENTS.md</code>, which points at <code>glyph llms</code> for the full language reference, and <code>.mcp.json</code>, which registers <code>glyph mcp</code> so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, <code>glyph agents</code> writes those two. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.",
+      "tr": "<code>glyph init</code>, çalıştırılabilir bir başlangıç projesi oluşturur: <code>src/main.glyph</code>; tipli bir npm paketinin orada hiçbir şeye ihtiyaç duymadığını ve dizinin tip içermeyen paketler için olduğunu açıklayan <code>src/.types/README.md</code>; bir <code>package.json</code>; bir <code>.gitignore</code>; ve kodlama ajanlarının kendiliğinden okuduğu iki dosya: dilin tam referansı için <code>glyph llms</code>'i gösteren <code>AGENTS.md</code> ve bir ajanın tipleri ve referansları aramak yerine derleyiciye sorabilmesi için <code>glyph mcp</code>'yi kaydeden <code>.mcp.json</code>. Zaten var olan bir projede bu ikisini <code>glyph agents</code> yazar. <code>package.json</code>, derleyiciyi, <code>typescript</code>'i ve <code>tsx</code>'i <code>devDependencies</code> içinde sabitler; böylece projeyi klonlayan herkes, global bir kurulum olmadan <code>npm install</code> ile build edebilir."
+    },
+    {
+      "id": "h-915bf352",
+      "kind": "html",
+      "en": "Open <code>src/main.glyph</code>. It's a hello-world:",
+      "tr": "<code>src/main.glyph</code>'i açın. Bir hello-world:"
+    },
+    {
+      "id": "h-71deb346",
+      "kind": "html",
+      "en": "Two things to notice: a program runs its <code>main(argv)</code>, and <code>main</code> returns a <code>number</code>, the process exit code. Returning sets that code without forcing the process to stop, so a program that starts a server keeps serving.",
+      "tr": "Dikkat edilecek iki şey: bir program kendi <code>main(argv)</code>'ini çalıştırır ve <code>main</code>, sürecin çıkış kodu olan bir <code>number</code> döndürür. Return, süreci durmaya zorlamadan bu kodu ayarlar; böylece bir sunucu başlatan program hizmet vermeye devam eder."
+    },
+    {
+      "id": "h-574233d5",
+      "kind": "html",
+      "en": "3 &middot; Run it",
+      "tr": "3 &middot; Çalıştırın"
+    },
+    {
+      "id": "h-168ebd5f",
+      "kind": "html",
+      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page.",
+      "tr": "<code>glyph run</code> onu tip kontrolünden geçirdi, TypeScript'e derledi ve çalıştırdı. Bu sayfanın geri kalanında tekrarlayacağınız döngü bu."
+    },
+    {
+      "id": "h-e7d3d489",
+      "kind": "html",
+      "en": "4 &middot; Add something real",
+      "tr": "4 &middot; Gerçek bir şey ekleyin"
+    },
+    {
+      "id": "h-f1d8aa48",
+      "kind": "html",
+      "en": "Now replace the body with a tiny bit of logic: a task status and a function that labels it. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
+      "tr": "Şimdi gövdeyi küçük bir mantıkla değiştirin: bir görev durumu ve onu etiketleyen bir fonksiyon. Bu, sürekli kullanacağınız iki şeyi tanıtır: bir <em>tagged union</em> (<code>type Status = ...</code>) ve Glyph'in tek koşul yapısı olan <code>match</code>."
+    },
+    {
+      "id": "h-227acdb7",
+      "kind": "html",
+      "en": "5 &middot; Break it on purpose",
+      "tr": "5 &middot; Bilerek bozun"
+    },
+    {
+      "id": "h-08f96fcf",
+      "kind": "html",
+      "en": "Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm from the <code>match</code> (the kind of thing an agent does when it adds a case somewhere and forgets to handle it), and run again.",
+      "tr": "Glyph'in ne <em>için</em> olduğunu gösteren kısım burası. <code>match</code>'ten <code>Done</code> arm'ını silin (bir ajanın bir yere yeni bir case ekleyip onu ele almayı unuttuğunda yaptığı türden bir şey) ve tekrar çalıştırın."
+    },
+    {
+      "id": "h-4f6a6f0d",
+      "kind": "html",
+      "en": "src/main.glyph (with the Done arm deleted)",
+      "tr": "src/main.glyph (Done arm'ı silinmiş hâli)"
+    },
+    {
+      "id": "h-31c09e63",
+      "kind": "html",
+      "en": "It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A <code>switch</code> that only logs or updates state, or one with a <code>default:</code>, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run <code>glyph --explain E0200</code> any time you want the long version.",
+      "tr": "Çalışmadı. TypeScript'te dönüş tipi açıkça yazılmış bu fonksiyonun aynısı da reddedilir (TS2366). Ama yalnızca log yazan ya da durumu güncelleyen bir <code>switch</code>, veya <code>default:</code> içeren bir tanesi temiz derlenir ve yeni case'i sessizce atlar. Burada kapsamı eksik her match, kararlı bir kodu (<code>E0200</code>), tam yeri ve tek satırlık bir düzeltmesi olan bir derleme hatasıdır. Uzun açıklamayı istediğiniz zaman <code>glyph --explain E0200</code> çalıştırın."
+    },
+    {
+      "id": "h-a205e0c5",
+      "kind": "html",
+      "en": "6 &middot; Fix it",
+      "tr": "6 &middot; Düzeltin"
+    },
+    {
+      "id": "h-1995de51",
+      "kind": "html",
+      "en": "Put the arm back (or add an <code>else</code>), and it runs again.",
+      "tr": "Arm'ı geri koyun (ya da bir <code>else</code> ekleyin), program yine çalışır."
+    },
+    {
+      "id": "h-25ed8d45",
+      "kind": "html",
+      "en": "That's the core loop: write, run, and when something's wrong the compiler tells you exactly what and how, before your code ships, not after.",
+      "tr": "Temel döngü bu: yazın, çalıştırın; bir şey yanlışsa derleyici, kodunuz yayına çıkmadan önce, sonra değil, tam olarak neyin yanlış olduğunu ve nasıl düzeltileceğini söyler."
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+---
+title: Neden araçlarla donatılmış TypeScript değil: tsc, zod, eslint? · Glyph
+description: Araçlarla donatılmış TypeScript sizi epey ileri götürür, ama her garanti isteğe bağlıdır ve bir ajan onları dolanabilir. Glyph'te katılık bir yapılandırma dosyası değil, dilin kendisidir.
+source_hash: d0694478c32b0491
+prev: /answers/why-typescript/ | &larr; Önceki | Neden TypeScript, neden Go ya da yeni bir dil değil?
+next: /answers/human-value/ | Sonraki &rarr; | Yapay zekâ kullanmıyorsam Glyph'e değer mi?
+---
+      <p class="q-eyebrow">05 &middot; Karşılaştırma</p>
+      <h1 class="q-title">Neden sadece strict TypeScript + zod + eslint + ts-pattern değil?</h1>
+
+      <p class="short-answer">
+        Çünkü bu garantilerin her biri <strong>isteğe bağlıdır</strong> ve bir ajan her birini tek satırla dolanabilir. Glyph'in katılığı ajanın düzenleyebileceği bir yapılandırma dosyası değildir. Dilin kendisidir. Zorlama noktası "bu dosyayı lint'lemeyi hatırladık mı"dan "derleniyor mu"ya taşınır.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Araçlarla donatılmış TypeScript'in zaten karşıladıkları</h2>
+        <p>
+          İyi yapılandırılmış bir TypeScript kurulumu sizi epey ileri götürür ve ekibiniz bunların hepsini CI'da çalıştırıyorsa Glyph'in hedeflediği açıkların çoğunu zaten kapatmışsınız demektir. Ciddiye alınmaya değer alternatif budur, işte karşılıkları:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">araçlarla donatılmış TypeScript'in size zaten verdikleri</span>
+<pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
+exhaustive match    <span class="cm">→ ts-pattern .exhaustive() (compile-time, today)</span>
+errors as values    <span class="cm">→ neverthrow / Effect</span>
+runtime validation  <span class="cm">→ zod at every boundary</span>
+must-handle errors  <span class="cm">→ an eslint rule</span>
+deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Bunların hepsini kurup zorunlu tuttuysanız yolun büyük kısmını katetmişsiniz. TypeScript'te bu fikirler var. Bir dilin onları isteğe bağlı olmaktan çıkararak kattığı şey üç noktaya iner.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> Zorunlu olan, isteğe bağlı olanı geçer</h2>
+        <p>
+          eslint yapılandırmanız yalnızca ajanın onun <em>içinden</em> geçirdiği kodu korur; ajan <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code> yazabilir ya da sadece <code>.exhaustive()</code>'i unutabilir ve kod yine derlenir ve merge edilir. Bu kaçış yollarının her biri ajanın düzenleyebileceği bir yapılandırmadır. Glyph'te uzanılacak böyle bir kaçış yolu yok: <code>as</code> yok, ignore pragma'sı yok, derleyicinin görebileceği bir kontrol olmadan <code>unknown</code>'dan tipli bir değer çıkarmanın yolu yok.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: kaçış yolları var</span>
+          <span class="cap">handler.ts</span>
+<pre>const user = body as unknown as User;
+<span class="cm">// @ts-ignore</span>
+doThing(user.mispelled);
+<span class="cm">// eslint-disable-next-line</span>
+return anything as any;</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: kapatılacak bir şey yok</span>
+          <span class="cap">handler.glyph</span>
+<pre>return match User.parse(body) {
+  Ok(user) =&gt; use(user),
+  Err(_) =&gt; fallback(),
+}
+<span class="cm">// no `as`, no ignore pragma,</span>
+<span class="cm">// no lint to switch off.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          Ajanın <strong>yapılandırmayla kapatamayacağı</strong> katılık, kapatabileceği katılıktan farklı bir zorlama noktasında durur. Glyph bu fark üzerine kurulu.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> Tip validator'dır: ikinci bir yapıt yok</h2>
+        <p>
+          zod, doğruluk kaynağınızı tersine çevirir: <em>şemayı</em> yazarsınız, tipi ondan türetirsiniz ve sonra tipi, şemayı ve varsa serializer'ı elle senkron tutarsınız. Bunları hizalı tutmak, bir ajanın tam da sapma yarattığı yerdir: tipte bir alanı yeniden adlandırır ama şemada adlandırmaz ve ikisi de derlenmeye devam eder. Glyph'te tip validator'ın <em>ta kendisidir</em>: <code>type User = {...}</code> tanımlamak yanında <code>User.parse</code>'ı üretir. Tek yapıt, senkron tutulacak hiçbir şey yok, unutulacak hiçbir şey yok.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> Grep'lenebilir değişiklik</h2>
+        <p>
+          TypeScript'te bir durum değişikliği <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, bir setter ya da bir spread'in arkasına saklanabilir. Aranacak tek bir token yok ve hiçbir lint kuralı bunu tam olarak çözmez. Glyph'te paylaşılan durum bir store'da yaşar ve her değişiklik birebir bir <code>.set(</code>/<code>.update(</code>'tir; <code>grep 'mut '</code> her yerel değişikliği bulur. Standart TypeScript'te bunun bir karşılığı yok.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Başarısızlık biçimlerinin farkı</h2>
+        <p>
+          Aynı görev: bir ajan bir union'a bir variant ekliyor ve üç yerden birinde onu ele almayı unutuyor:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">araçlarla donatılmış TS</span>
+<pre><span class="cm">// ts-pattern .exhaustive() catches it,</span>
+<span class="cm">// IF every site used ts-pattern and</span>
+<span class="cm">// nobody wrote a default: case or a</span>
+<span class="cm">// switch that only logs. Those</span>
+<span class="cm">// compile green and skip the new case.</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Feed`: missing variant `Archived`</span>
+<span class="cm">// every unhandled match, everywhere,</span>
+<span class="cm">// fails the build. No opt-in, no</span>
+<span class="cm">// escape, no forgotten default.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Araçlarla donatılmış TypeScript'in hâlâ önde olduğu yerler</h2>
+        <p>
+          Bugün Glyph'in önünde olduğu dört yer:
+        </p>
+        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>Daha zengin doğrulama.</strong> Glyph descriptor'ları varsayılan olarak katıdır (tanımlanmamış anahtarları reddederler) ve bir <code>where</code> kısıtlaması bir primitive'e bir koşul koyar (<code>type Email = string where value.includes("@")</code>); descriptor bunu tipin ulaştığı her sınırda çalıştırır. zod iki açıdan hâlâ önde: Glyph'te kendiniz yazdığınız <code>.email()</code> ve <code>.url()</code> gibi hazır kontrollerle gelir ve bütün object'leri kısıtlayabilir; bir record üzerindeki <code>where</code> (iki alan arasında <code>lo &lt;= hi</code>) ise bugün <code>E0300</code>'dür.</li>
+          <li><strong>Daha derin eşleştirme.</strong> ts-pattern'in guard'ları ve derin yapısal pattern'leri, Glyph'in <code>match</code>'inin ifade edebildiklerinin ötesine geçer.</li>
+          <li><strong>"Kanıtlanabilir yokluk" <code>.ts</code> sınırında biter.</strong> Glyph'in garantileri Glyph'in yazdığı kod için geçerlidir; bir npm bağımlılığından fırlatılan bir exception hâlâ <code>Result</code>'ı atlar ve import edilmiş bir <code>.d.ts</code> tipi çalışma zamanı descriptor'ı taşımaz.</li>
+          <li><strong>Ekosistem ve işe alım.</strong> TypeScript araçları, topluluğu ve işe alım havuzu çok daha büyük ve arkalarında yıllarca production kullanımı var. Glyph bir erken önizleme.</li>
+        </ul>
+        <p>
+          Araçlarla donatılmış TypeScript'i tamamen kurduysanız ve ajanlarınız onun içinde kalıyorsa, bunların çoğuna sahipsiniz. Glyph'in argümanı, yükü taşıyan ifadenin "onun içinde kalmak" olduğu ve bir ajanın bozduğu ifadenin de bu olduğu. Zorunluluk, tek yapıtlı doğrulama ve grep'lenebilir değişiklik, daha fazla isteğe bağlı araç ekleyerek elde edemeyeceğiniz kısımlardır.
+        </p>
+        <p>
+          TypeScript'i bırakıp JavaScript'e derlenen daha eski bir tipli dile geçmeye açıksanız, <a href="/design/vs-rescript-gleam-elm/">Neden ReScript, Gleam ya da Elm değil?</a> Glyph'i bunlarla karşılaştırıyor.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p><code>any</code>/<code>as</code> yok, kapsamı tam <code>match</code> (<code>E0200</code>/<code>E0218</code>), göz ardı edilen <code>Result</code> uyarısı (<code>E0217</code>), tipten üretilen validator'lar ve grep'lenebilir değişiklik: hepsi zorunlu, hiçbiri kapatabileceğiniz bir eslint kuralı değil.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Ölçülüyor</h3>
+          <p>Ajanların Glyph'te, <em>iyi yapılandırılmış</em> strict TS'e göre daha az kaçan hata ürettiği iddiası, naif TS'e değil araçlarla donatılmış TS'e karşı hazırladığımız benchmark'tır. <a href="/benchmarks/">Benchmark'lara</a> bakın.</p>
+        </div>
+      </div>

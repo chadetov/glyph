@@ -1,0 +1,229 @@
+---
+title: TypeScript'ten geliyorsanız · Glyph'te neler değişiyor · Glyph
+description: Glyph neredeyse TypeScript gibi okunur ve ona derlenir. Değişenler: birkaç sözdizimi farkı, any, as ya da ! yok, grep'lenebilen tek bir kaçış yolu ve npm'in nasıl çalıştığı.
+source_hash: bc168f89faa5ea6e
+next_steps: |
+  Buradan sonra nereye
+  Önerilen | /catches/ | catches | TypeScript'in neleri geçirdiğini görün | Her vaka <code>tsc --strict</code> altında ve Glyph altında, hatasıyla birlikte çalıştırıldı. | Yakaladıklarını görün
+  /start/ | start | İlk programınızı yazın | Kurun, proje oluşturun, çalıştırın, bilerek bozun, hatayı okuyun. Yaklaşık on dakika.
+  /playground/ | playground | Tarayıcıda deneyin | Derleyici sayfanın içinde çalışır, kurulacak bir şey yok.
+---
+      <p class="q-eyebrow">TypeScript'ten geliyorsanız</p>
+      <h1 class="q-title">Zaten TypeScript yazıyorsanız neler değişir</h1>
+
+      <p class="short-answer">
+        Beklediğinizden az. Glyph, <code>tsc --strict</code>'ten geçen TypeScript'e derlenir, npm'i ve deploy sürecinizi korur ve neredeyse aynı okunur. Farklar bir avuç değişiklikten ibaret ve her biri yanılmanın bir yolunu derleyicinin yaptığı bir kontrolle takas eder.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">TypeScript biliyorsanız bunun çoğunu biliyorsunuz</h2>
+        <p>
+          Yeni bir dil öğrenmiyorsunuz, yalnızca şu dördünü. Bu sitedeki her örnekte bunlar var.
+        </p>
+      </div>
+
+      <dl class="gloss-list">
+        <div>
+          <dt><code>match</code></dt>
+          <dd>Kapsamı tam bir <code>switch</code>: bir union üzerinde, derleyici her durumu ele almanızı zorunlu kılar. Aynı zamanda tek koşul yapısıdır: <code>if</code>/<code>else</code> ve ternary yoktur, <a href="#there-is-no-if">aşağıda açıklanıyor</a>.</dd>
+        </div>
+        <div>
+          <dt><code>Result&lt;T, E&gt;</code></dt>
+          <dd>Fırlatılan exception'lar yerine dönüş değeri olarak hatalar. Birini <code>match</code> ile ele alırsınız ya da <code>?</code> operatörüyle yukarı iletirsiniz.</dd>
+        </div>
+        <div>
+          <dt><code>fn f() -&gt; T</code></dt>
+          <dd>Bir fonksiyon; <code>-&gt;</code> onun dönüş tipidir. <code>type X = {...}</code> bir record, <code>type X = A | B</code> ise bir tagged union'dır.</dd>
+        </div>
+        <div>
+          <dt><code>mut x = e</code></dt>
+          <dd>Yeniden atama açıktır ve grep'lenebilir. Düz bir <code>let</code> bağlaması siz fark etmeden asla değişmez; birini değiştirmek için <code>mut</code> yazarsınız.</dd>
+        </div>
+      </dl>
+
+      <div class="detail">
+        <p>
+          Bu sitede "ajanlar", Claude, Copilot ve Cursor gibi yapay zekâ kodlama asistanları anlamına gelir. Glyph en çok onlara yardım eder, ama kodu bir insan da yazsa bir model de yazsa kontroller aynıdır. Zaten zod ve eslint ile strict TypeScript kullanıyorsanız, <a href="/answers/vs-tooled-ts/">bir dilin bunun üzerine neler eklediği burada</a>.
+        </p>
+
+        <h2 class="block-label">if yok</h2>
+        <p>
+          Bir boolean üzerindeki dallanma, <code>true</code> ve <code>false</code> üzerinde bir <code>match</code>'tir. Yalnızca bir tarafta işlem yapıyorsanız, diğer arm boş bir bloktur.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript</span>
+<pre>function label(admin: boolean): string {
+  return admin ? "admin" : "member";
+}
+
+if (verbose) {
+  console.log("starting");
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph</span>
+<pre>fn label(admin: bool) -&gt; string {
+  return match admin {
+    true =&gt; "admin",
+    false =&gt; "member",
+  }
+}
+
+match verbose {
+  true =&gt; io.println("starting"),
+  false =&gt; {},
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Nedeni spesifikasyondaki D3 kararı: bir değer üzerinde dallanmak için tek bir yapı, böylece okunacak, yazılacak ve aranacak tek bir biçim olur. Bir daldan çıkan değer her zaman bir <code>match</code>'ten çıkar ve onun sonuç tipini <code>tsc</code>'ye bırakmak yerine Glyph'in kendi checker'ı hesaplar. Bir union için her durumu kapsamak zorunda olan yapı da aynısıdır (<code>E0200</code>). Bir boolean için bunun getirisi azdır, çünkü <code>false =&gt; {}</code>, bir <code>else</code>'i yazmamaktan fazlasını söylemez.
+        </p>
+        <p>
+          Bunun bir bedeli var. Tek satırlık bir ternary dört satırlık bir <code>match</code> olur, bir koşula bağlı erken dönüş boş arm'lı bir <code>match</code> olur ve bir TypeScript okuyucusuna ilk tuhaf gelen şey budur. Spesifikasyon bu uzunluğu kabul edilmiş bir bedel olarak kaydeder. Yine de <code>if</code> yazmak <code>E0006</code> hatasıdır ve yardım metni <code>match</code> biçimini gösterir; ternary ise aynı yardımla <code>E0013</code>'tür.
+        </p>
+
+        <h2 class="block-label">Zaten ödediğiniz bedel</h2>
+        <p>
+          Bir TypeScript kod tabanında yapay zekâ ajanlarıyla geliştiriyorsanız, günlük maliyetler bunlar. Her birinin Glyph'te somut bir karşılığı var, listeden bağlantısı verildi.
+        </p>
+      </div>
+
+      <ul class="tax-list">
+        <li>Ajanlar var olmayan API'ler uydurur, çünkü TypeScript tiplerini siler ve çalışma zamanı artık derleme zamanıyla örtüşmez. Glyph tipleri bir çalışma zamanı kontrolü taşır (<code>T.parse</code>, <code>T.is</code>), bkz. <a href="/answers/typed-apis/">tipli API'ler</a>.</li>
+        <li>Ajanlar belirsizliği <code>any</code> ve <code>as unknown as T</code> ile örtbas eder ve derleyici buna izin verir. Glyph'te ikisi de yoktur, aşağıdaki tabloya bakın.</li>
+        <li>Tek satırlık bir değişiklik istersiniz ve tüm dosya yeniden yazılmış olarak gelir, çünkü formatter her düzenlemede zincirleme değişiklik yapar. <code>glyph fmt</code>'nin seçeneği olmayan tek bir düzeni vardır, bkz. <a href="/answers/diff-stability/">temiz diff'ler</a>.</li>
+        <li>Her tipin yanında elle yazılmış bir validator tutarsınız (zod ve bir serializer) ve bir ajan bir alanın adını birinde değiştirir ama diğerlerinde değiştirmez; hepsi yine de derlenir. Glyph'te tip, validator'ın kendisidir.</li>
+        <li>Bir sembol için <code>grep</code> yaparsınız ve alakasız on eşleşme bulursunuz: overload'lar, decorator'lar, birleştirilmiş namespace'ler. Glyph'te bunların hiçbiri yoktur, bkz. <a href="/answers/greppability/">bir şeyi bulmak</a>.</li>
+      </ul>
+
+      <div class="detail">
+        <h2 class="block-label">TypeScript'in size verdiği kapatma düğmeleri ve Glyph'teki karşılıkları</h2>
+        <p>
+          Aşağıdaki her TypeScript yapısı, tip denetleyicisine kontrolü bırakmasını söyler. Hiçbiri Glyph sözdizimi değildir. Ortadaki sütun, <code>glyph check --no-tsc</code>'nin 0.1.149'da her biri için yazdırdığı çıktıdır.
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>TypeScript</th><th>Glyph'te</th><th>Bunun yerine ne yazarsınız</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="TypeScript"><code>x!</code></td><td data-label="In Glyph">Sözdizimi değil: <code>E0013</code></td><td data-label="What you write instead"><code>match</code> ile ele alınan ya da <code>?</code> ile yukarı iletilen bir <code>Option&lt;T&gt;</code></td></tr>
+            <tr><td data-label="TypeScript"><code>x as T</code>, <code>as unknown as T</code></td><td data-label="In Glyph">Cast diye bir şey yok: <code>E0013</code>, yardım metni doğrulama yapmanızı söyler</td><td data-label="What you write instead">Bir <code>Result</code> döndüren <code>T.parse(x)</code></td></tr>
+            <tr><td data-label="TypeScript"><code>any</code></td><td data-label="In Glyph">Bir tip değil: <code>E0103</code>, çözümlenemeyen isim</td><td data-label="What you write instead"><code>T.parse</code>, <code>T.is</code> ya da bir <code>match</code> arm'ı <code>is T</code> ile daraltılan <code>unknown</code></td></tr>
+            <tr><td data-label="TypeScript"><code>(v): v is T</code></td><td data-label="In Glyph">Kullanıcının yazdığı type guard yok: <code>E0002</code></td><td data-label="What you write instead">Tanımlanan yapıyı kontrol eden, üretilmiş <code>T.is(v)</code>; böylece bir guard iddia ettiğinden azını kontrol edemez</td></tr>
+            <tr><td data-label="TypeScript"><code>// @ts-ignore</code>, <code>// eslint-disable</code></td><td data-label="In Glyph">Sıradan bir yorum; altındaki hata yine verilir</td><td data-label="What you write instead">Hiçbir şey. Hiçbir yorum ya da flag bir Glyph diagnostic'ini kapatmaz</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph check</code>'in tüm bir aşamayı atlayan flag'leri var (<code>--no-tsc</code>, <code>tsc --strict</code> çalıştırmasını, <code>--no-test</code> ise <code>@example</code> testlerini atlar), ama tek bir kontrolü susturan hiçbir flag yok. Bir TypeScript projesinin kabul edip Glyph'in reddettiği her şeyin tam listesi, her vaka iki derleyicide de çalıştırılmış olarak, <a href="/catches/">yakaladıkları sayfasında</a>.
+        </p>
+
+        <h2 class="block-label">Tek bir kaçış yolu var ve onu grep'leyebilirsiniz</h2>
+        <p>
+          Glyph'in yazamadığı bir TypeScript'e ihtiyacınız olduğunda, <code>extern_ts("...")</code> tek bir satır içi tip ya da ifade alır ve <code>tsc</code> onu yine kontrol eder. Bütün bir modül için <code>.ts</code> dosyasını <code>src/extern/</code> altına koyun ve <code>import extern/name</code> yazın; bunun dışında relative import'lar geçersizdir, yani tek giriş yolu budur. İki biçim de <code>extern</code> kelimesini içerir, bu yüzden <code>grep -rn extern src/</code>, denetleyicinin işi TypeScript'e devrettiği her yeri listeler.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">src/clock.glyph</span>
+<pre>module clock
+
+pub fn now_ms() -&gt; number {
+  return extern_ts("Date.now()")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Üretilen TypeScript neye benziyor</h2>
+        <p>
+          Düz TypeScript, modül başına bir dosya, okuyup commit edebileceğiniz şekilde. Bir union, discriminated union artı çalışma zamanı kontrolünü taşıyan bir değere dönüşür; bir <code>match</code> ise tag üzerinde bir <code>switch</code> olur. Bu, soldaki modül için <code>glyph build</code>'in çıktısıdır, import satırları kırpılmış hâlde.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">plan.glyph</span>
+<pre>module plan
+
+pub type Plan = Free | Pro | Team
+
+pub fn seats(p: Plan) -&gt; number {
+  return match p {
+    Free =&gt; 1,
+    Pro =&gt; 5,
+    Team =&gt; 50,
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">plan.ts (üretilmiş, kırpılmış)</span>
+<pre>export type Plan =
+  | { tag: "Free" }
+  | { tag: "Pro" }
+  | { tag: "Team" };
+
+export const Free: Plan = { tag: "Free" };
+export const Pro: Plan = { tag: "Pro" };
+export const Team: Plan = { tag: "Team" };
+export const Plan = {
+  is(value: unknown): value is Plan { ... },
+  parse(value: unknown) { ... },
+  schema: ...,
+};
+
+export function seats(p: Plan): number {
+  const __m0 = p;
+  switch (__m0.tag) {
+    case "Free": { return 1; }
+    case "Pro": { return 5; }
+    case "Team": { return 50; }
+    default: throw new Error("non-exhaustive match");
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Team</code> arm'ını silin; build, herhangi bir TypeScript yazılmadan durur:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc (kırpılmış)</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Plan`: missing variants `Team`</span>
+   ╭─[ plan:6:10 ]
+   │
+ 6 │ ╭─▶   return match p {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── non-exhaustive match on `Plan`: missing variants `Team`
+   │     Help: Add an arm for each missing variant.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph'i kullanmayı bırakırsanız elinizde kalan, üretilmiş <code>.ts</code> dosyalarıdır. Build'in yanına yazdığı küçük, paketlenmiş bir destek dizini dışında hiçbir çalışma zamanı bağımlılığı yoktur.
+        </p>
+
+        <h2 class="block-label">npm ve zaten sahip olduğunuz TypeScript</h2>
+        <p>
+          Bir <code>.glyph</code> modülü bir npm paketini adıyla import eder (<code>import kafkajs { Kafka }</code>), tipleri paketin kendi tanımlarından gelir; mevcut <code>.ts</code> dosyalarınız da üretilmiş Glyph modüllerini herhangi bir yerel dosya gibi import eder. Yani TypeScript olarak kalan bir uygulamanın içinde tek bir modülle başlayabilirsiniz. Ayrıntılar üç yanıtta.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/imports/"><span class="q">Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?</span><p>Paketleri import etmek, bir <code>.ts</code> shim'i tutmak ve Glyph'i <code>.ts</code>'ye geri import etmek.</p></a>
+        <a class="a-card" href="/answers/embedding/"><span class="q">Glyph'i mevcut uygulamamın içinde benimseyebilir miyim?</span><p>Domain çekirdeği Glyph'te, geri kalanı TypeScript'te, standart bir Vite iskeletinde.</p></a>
+        <a class="a-card" href="/answers/react/"><span class="q">React ile çalışıyor mu?</span><p>Component'ler, JSX, hook'lar, Context ve kontrolü hâlâ <code>tsc</code>'nin yaptığı yerler.</p></a>
+      </div>

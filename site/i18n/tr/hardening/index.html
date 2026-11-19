@@ -1,0 +1,173 @@
+---
+title: Sağlamlaştırma · Glyph nasıl zorlanarak test ediliyor ve bu neler buldu
+description: Yapay zekâ ajanları şüpheci mühendis rolüne giriyor, Glyph'te uygulamalar geliştiriyor ve garantilerini bozmaya çalışıyor. Döngü ve bulduğu bug'lar.
+source_hash: 39150fb233f95dbe
+---
+      <header class="page-hero">
+        <p class="eyebrow">Glyph nasıl sağlamlaştırılıyor</p>
+        <h1>Ajanlar onu bozmaya çalışıyor, <span class="accent">biz de buldukları her şeyi kayda geçiriyoruz</span>.</h1>
+        <p class="lede">
+          Ajanlarınızın onu siz fark etmeden bozamayacağını söyleyen bir dilin buna karşı test edilmesi gerekir. Şüpheci mühendis rolüne giren yapay zekâ ajanları çalıştırıyoruz (bıkmış bir React geliştiricisi, her şeye itiraz eden bir backend geliştiricisi, güvenlik odaklı bir saldırgan); uygulamalar geliştirip garantileri bozmaya çalışıyorlar, biz de bulduklarını düzeltiyoruz ya da açık bir gap olarak kaydediyoruz. Döngü ve bulduğu şeyler burada.
+        </p>
+      </header>
+
+      <!-- ============ THE REFUSED CASES ============ -->
+      <section>
+        <h2 class="group-head"><code>tsc --strict</code>'ten geçen ve Glyph'te derlenmeyen vakalar</h2>
+        <p class="group-sub">
+          Her biri iki dosyadan oluşur: <code>tsc --strict</code> altında temiz tip kontrolünden geçen bir <code>.ts</code> ve aynı programın derlenmeyen Glyph hâli. Bir build kontrolü, <code>scripts/check_catches.py</code>, her birini yeniden çalıştırır ve iki yarıdan biri beklenen davranışı bırakırsa başarısız olur; böylece sessizce kaybolan bir garanti build'i de beraberinde götürür. Tablo, <a href="/catches/">yakaladıkları sayfasındaki</a> {{catches:count}} TypeScript hatasından bu şekilde reddedilen {{catches:refused}} tanesini listeler; Glyph'in veri geldiğinde kontrol ettiği, uyardığı ya da çalışırken durdurduğu geri kalanlar o sayfada. {{catches:breakdown}}
+        </p>
+{{catches:refused-table}}
+        <p class="group-sub" style="margin-top:24px">
+          TypeScript tarafından da yakalandığı ortaya çıkan ya da iki yarısı aynı program olmayan vakalar yumuşatılmadı, silindi; <code>catches/README.md</code> her birini ve nedenini listeler.
+        </p>
+        <p class="group-sub">
+          Map okuması, anahtar doğru yazılmış olsa bile reddedilir, çünkü bir <code>Record&lt;string, string&gt;</code> hangi anahtarların var olduğu hakkında hiçbir şey söylemez. TypeScript bunu <code>--strict</code>'in açmadığı <code>noUncheckedIndexedAccess</code> ile yakalar. Eksik union durumu da proje benimserse TypeScript'te typescript-eslint'in <code>switch-exhaustiveness-check</code> kuralıyla ya da bir <code>assertNever</code> default'uyla yakalanabilir. Glyph'te bu kontrollerin hiçbiri isteğe bağlı değildir.
+        </p>
+        <p class="group-sub">
+          Parse edilmiş gövde vakasında Glyph'in <code>json.parse</code>'ı bir <code>User</code> değil bir <code>Result</code> döndürür; bu yüzden gövde kontrol edilene kadar atama bir tip uyuşmazlığıdır. TypeScript'in <code>JSON.parse</code>'ı <code>any</code> döndürür ve <code>user</code> üzerindeki anotasyon onu aklar.
+        </p>
+      </section>
+
+      <!-- ============ THE LOOP ============ -->
+      <section>
+        <h2 class="group-head">Saldırgan döngü</h2>
+        <p class="group-sub">Her bulgu derleyiciye karşı yeniden üretilir, kökünden düzeltilir ve sayılmadan önce bağımsız olarak yeniden doğrulanır.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>Keşfet</h3>
+            <p>Persona ajanları programlar geliştirir (formlar, backend'ler, durum tutan arayüzler) ve dilin onlarla mücadele ettiği her yeri kaydeder.</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>Yeniden üret</h3>
+            <p>Her bulgu başarısız olan en küçük programa indirgenir ve derleyiciye karşı yeniden çalıştırılır. Yeniden üretilemeyen her şey elenir.</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>Düzelt</h3>
+            <p>Rust derleyicisinde kök nedene yönelik düzeltme, öncesinde başarısız olan ve sonrasında geçen bir regresyon testiyle birlikte. Tüm test paketi yeşil kalmalı, yoksa değişiklik geri alınır.</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h3>Doğrula</h3>
+            <p>Bağımsız bir geçiş, her reprodüksiyonu yeni build edilmiş derleyiciye karşı yeniden çalıştırır ve &ldquo;ajan düzeldiğini sanmıştı&rdquo; türünden açıkları, herhangi bir şey yayına çıkmadan yakalar.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SILENT CORRECTNESS ============ -->
+      <section>
+        <h2 class="group-head">En önemlileri: sessiz doğruluk açıkları</h2>
+        <p class="group-sub">
+          Bunların her biri temiz derleniyordu ve <em>tip kontrolünden geçen yanlış kod</em> yayına çıkarabiliyordu: Glyph'in önlemek için var olduğu bug sınıfının ta kendisi. Hepsi artık derleme sırasında yakalanıyor.
+        </p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev critical">Kritik, düzeltildi</span>
+            <h3>Bir <code>Result</code> match'inde parametresiz hata variant'ları</h3>
+            <p><code>Result&lt;T, Empty | BadQty(...)&gt;</code> üzerindeki bir <code>match</code>, iki kopya <code>case&nbsp;"Err"</code> dalına dönüştürülüyordu; ilki her hatayı yutuyor ve sessizce yanlış arm'a yönlendiriyordu.</p>
+            <p class="now">Şimdi: doğru bir iç switch ile tek, gruplanmış bir case; her variant doğru yere gider.</p>
+          </div>
+          <div class="fix">
+            <span class="sev critical">Kritik, düzeltildi</span>
+            <h3>Sessiz bir catch-all'a dönüşen yanlış yazılmış constructor</h3>
+            <p>Bir match arm'ında yanlış yazılmış bir variant (<code>Loaded</code> yerine <code>Loded</code>), sessizce reddedilemez bir catch-all olarak bağlanıyordu; hiçbir diagnostic olmadan kapsam eksikliğini gizliyor ve çalışma zamanında yanlış yönlendirme yapıyordu.</p>
+            <p class="now">Şimdi: bilinmeyen bir constructor, tıpkı gerçek bir isim gibi, yazım hatasının olduğu yerde reddedilir.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Yüksek, düzeltildi</span>
+            <h3>Kısmi <code>bool</code> match'i kapsam kontrolünden kaçıyordu</h3>
+            <p><code>match n &gt; 0 { true =&gt; ... }</code> (<code>false</code> arm'ı eksik) derleniyor ve <code>tsc</code>'den geçiyor, sonra çalışma zamanında exception fırlatıyordu.</p>
+            <p class="now">Şimdi: derleme zamanında bir kapsam eksikliği hatası.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Yüksek, düzeltildi</span>
+            <h3>Çok parametreli component'ler prop'ları yanlış bağlıyordu</h3>
+            <p><code>component C(a, b)</code> pozisyonel parametreler üretiyordu, ama React component'leri önce props ile çağırır; bu yüzden <code>a</code> sessizce tüm props nesnesine bağlanıyordu. <code>tsc</code>'den geçiyordu.</p>
+            <p class="now">Şimdi: tek props record'u biçimini gösteren açık bir derleme hatası.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Yüksek, düzeltildi</span>
+            <h3>JSX <code>&lt;match&gt;</code> kapsam kontrolünü atlıyordu</h3>
+            <p>Eksik bir <code>&lt;case&gt;</code> içeren bir JSX <code>&lt;match&gt;</code>, kontrol edilen değer düzeyindeki <code>match</code>'in aksine, yeşil derleniyor ve çalışma zamanında exception fırlatıyordu.</p>
+            <p class="now">Şimdi: aynı kapsam kontrolü uygulanıyor; eksik bir case derleme hatasıdır.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">Yüksek, düzeltildi</span>
+            <h3>Record payload'u yanlış alana bağlanıyordu</h3>
+            <p>Record payload'lu bir variant'ı bir isme bağlamak (<code>BadQty(b)</code>), düzleştirilmiş payload'dan var olmayan bir <code>.value</code> okuyordu.</p>
+            <p class="now">Şimdi: payload doğru bağlanıyor, yani <code>b.sku</code> çalışıyor.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RULES ENFORCED ============ -->
+      <section>
+        <h2 class="group-head">Checker'ın artık zorladığı kurallar</h2>
+        <p class="group-sub">Derleyicinin eskiden <code>tsc</code>'ye bıraktığı tutarlılık kontrolleri, artık Glyph'in kendisi tarafından yakalanıyor.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev high">Düzeltildi</span>
+            <h3>Çağrı argüman sayısı</h3>
+            <p>Çok az ya da çok fazla argüman kabul ediliyordu (ve <code>NaN</code> ile sonuçlanıyordu). Artık <code>E0213</code> yanlış argüman sayısını reddediyor.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Düzeltildi</span>
+            <h3>Stdlib sınırı boyunca <code>?</code> hata tipi</h3>
+            <p>Hata bir stdlib sarmalayıcısından geldiğinde tam hata tipi kuralı atlanıyordu. Artık orada da zorlanıyor.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Düzeltildi</span>
+            <h3>Bir <code>owned</code> handle'a takma ad vermek</h3>
+            <p>Bir kaynak handle'ı üzerinde <code>let g = f</code>, iki kez kapatılabilecek ikinci bir bağlama oluşturuyordu. Artık reddediliyor (<code>E0215</code>).</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Düzeltildi</span>
+            <h3>Erişilemeyen arm'lar ve daha derin doğrulama</h3>
+            <p>Bir catch-all'dan sonra gelen bir arm artık işaretleniyor; <code>json.parse&lt;T&gt;</code>, <code>Record</code> alanlarının yalnızca varlığını kontrol etmek yerine artık yapılarını da doğruluyor.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FIRST CONTACT ============ -->
+      <section>
+        <h2 class="group-head">İlk temastaki sürtünmeler giderildi</h2>
+        <p class="group-sub">Kötü bir ilk izlenim bırakan ve hiçbir işe yaramayan küçük şeyler.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev">Düzeltildi</span>
+            <h3>Erişilebilirlik ve data attribute'ları</h3>
+            <p><code>aria-label</code> ve <code>data-*</code> çıkarma işlemi olarak parse ediliyordu. Artık çalışıyorlar ve düzgün React prop'ları olarak üretiliyorlar.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Düzeltildi</span>
+            <h3>npm paket isimleri</h3>
+            <p>Tireli ve scope'lu belirteçler (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>) reddediliyordu. Artık doğrudan import ediliyorlar.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Düzeltildi</span>
+            <h3>Tarayıcı bundle'ının ilk çalıştırması</h3>
+            <p>Çalışma zamanı bootstrap'i bir tarayıcı build'inde yüklenmiyordu ve ilk çalıştırmada çöküyordu. Artık üretilen her modül onu içe alıyor.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Düzeltildi</span>
+            <h3>Yanlış yönlendiren hata mesajları</h3>
+            <p><code>if</code> yazmak artık <code>match</code>'i gösteriyor; bir aralık pattern'i bunu doğrudan söylüyor; JSX boşlukları ve metin içindeki tek başına <code>$</code> işleniyor.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STILL OPEN ============ -->
+      <section>
+        <h2 class="group-head">Hâlâ açık olanlar: kayıtta</h2>
+        <p class="group-sub">Sağlamlaştırma, yapılmamış olanı adıyla belirtmek demektir. Bunlar biliniyor ve takip ediliyor, gizlenmiyor.</p>
+        <div class="callout">
+          <p style="margin:0 0 10px;"><strong>Bilerek ertelenen ya da bir tasarım kararı bekleyenler:</strong></p>
+          <p style="margin:0;">
+            Glyph'in kendi checker'ında örtük <code>any</code> içeren closure'ları reddetmek, geçerli şekilde tiplenmiş callback'lerde yanlış pozitiflerden kaçınmak için bağlamsal çıkarım gerektiriyor. Ergonomik FFI, yani karmaşık tipli bir TS kütüphanesini kütüphane başına bir adaptör olmadan kullanmak, hâlâ açık olan en büyük birlikte çalışabilirlik sorusu; <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">açık sorular</a> içinde takip ediliyor. Başka bir modülden ya da standart kütüphaneden gelen bir map hâlâ kontrolsüz okunuyor; bu yüzden E0224 henüz bir <code>sqlite.Row</code>'a ulaşmıyor ve iki bağlamalı <code>for i, x in xs</code> hâlâ eleman tiplerini kaybediyor.
+            </p>
+        </div>
+        <a href="/answers/" class="backlink">&larr; Bu düzeltmelerin çıktığı mühendis sorularını görün</a>
+      </section>

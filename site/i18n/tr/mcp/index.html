@@ -1,0 +1,208 @@
+---
+title: Ajanınızı MCP üzerinden Glyph'e bağlayın · Glyph
+description: glyph mcp, on bir araçlı bir MCP sunucusu çalıştırır: bir sembolün ne olduğu, bir değişikliğin neyi bozacağı, diagnostic'ler, referanslar ve daha fazlası. Her biri aynı zamanda bir glyph query fiilidir.
+source_hash: 9b8dc9db4173cc83
+---
+      <p class="q-eyebrow">Ajanlar için &middot; Model Context Protocol</p>
+      <h1 class="q-title">Ajanınızı Glyph derleyicisine bağlayın</h1>
+
+      <p class="short-answer">
+        <code>glyph mcp</code>, projeniz üzerinde on bir araçlı bir <strong>Model Context Protocol sunucusu</strong> çalıştırır: bir sembolün ne olduğu, onu değiştirirseniz neyin bozulacağı, bir tipteki bir değerin başka bir tipin tanımlandığı yere girip giremeyeceği, bir tanımın neye bağlı olduğu, bir modülün neleri export ettiği, proje içinde kontrol edilen diagnostic'ler, imlecin bulunduğu yerdeki tip, bir ismin nerede tanımlandığı, ona yapılan her referans, bir union üzerindeki her <code>match</code> yeri ve sembol araması. Her biri aynı zamanda bir <code>glyph query</code> fiilidir; böylece MCP istemcisi olmayan bir ajan aynı soruları sorar ve aynı baytları alır.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Bir ajan bunu neden ister</h2>
+        <p>
+          Bir kod tabanını düzenleyen ajan genellikle körlemesine çalışır. Dosyaları okur, tipleri tahmin eder ve bir şeyi bozup bozmadığını ancak build'den sonra öğrenir. Glyph bu soruları bir editör için zaten yanıtlıyor. <code>glyph mcp</code>, build çıktısını kazımadan ya da kimin neyi çağırdığını bulmak için her dosyayı okumadan, bir ajana aynı yanıtları doğrudan derleyiciden verir. Araçlardan ikisi bir editörün hiç sormadığı soruları yanıtlar: <code>glyph_symbol</code>, bir union'ın variant'larını her birini oluşturan sözdizimiyle birlikte döndürür (bir ajanın <code>match</code>'i yazmadan önce ihtiyaç duyduğu tam olarak budur), <code>glyph_impact</code> ise bir düzenlemenin neyi bozacağını düzenleme daha yapılmadan yanıtlar.
+        </p>
+
+        <h2 class="block-label">Kurulum</h2>
+        <p>
+          Herhangi bir MCP istemcisi onu başlatabilir. İstemciyi <code>mcp</code> alt komutuyla <code>glyph</code> binary'sine yönlendirin ve proje kök dizininizi argüman olarak geçin ya da sunucuyu proje dizininden çalıştırın. MCP'yi stdio üzerinden konuşur, yani port da daemon da yoktur.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">mcp istemci yapılandırması (genel)</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp", "/path/to/your/project"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          İlk bağlantıda istemci <code>initialize</code> ve <code>tools/list</code>'i çağırır; sunucu aşağıdaki on bir aracı bildirir. Gönderdiğiniz konumlar LSP kuralını izler: 0 tabanlı bir <code>line</code> ve UTF-16 kod birimleri cinsinden 0 tabanlı bir <code>character</code>. Diagnostic aralıkları, <code>glyph check --json</code>'un yazdırdığı şekilde, 1 tabanlı <code>line</code> ve <code>col</code> artı bayt cinsinden <code>offset</code> ile döner.
+        </p>
+        <p>
+          Her aracın açıklaması, çağrı anında ihtiyaç duyduğunuz sözleşmeyi taşır; tam kılavuz ise <code>glyph llms --json</code> içinde <code>tools</code> altında, araç adına göre anahtarlanmış ve her aracın <code>glyph query</code> fiili yanında olacak şekilde durur. Bu yanıt eskiden tüm kılavuzları taşırdı: on bir araç, 45.509 baytlık bir yanıtta 31.446 bayt açıklama. Şimdi 20.386 baytlık bir yanıtta 8.627 bayt ve hiçbir şey silinmedi. Her oturum bağlanırken <code>tools/list</code>'in bedelini öder, kılavuzun bedelini ise yalnızca istediğinde. <a href="/answers/generated-docs/">O belge</a> derleyicinin kendi tablolarından üretilir ve bu sunucunun sunmadığı bir aracı adıyla anarsa bir test build'i başarısız kılar.
+        </p>
+
+        <h2 class="block-label">On bir araç</h2>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph mcp'nin sunduğu araçlar</span>
+<pre><span class="cm">// everything the compiler holds about one symbol: kind, identity,</span>
+<span class="cm">// visibility, a record's fields, a union's variants with payloads and</span>
+<span class="cm">// construction syntax, parameters and return, interface members,</span>
+<span class="cm">// whether a `match` over it must be exhaustive, its `@example`.</span>
+<span class="cm">// The identity reaches the stdlib: std/result::Result answers with</span>
+<span class="cm">// Ok(T) and Err(E), and `path` is null beside the reason why</span>
+glyph_symbol(entity)                       <span class="cm">// or (path, line, character)</span>
+
+<span class="cm">// what breaks if you make one named change to one declaration:</span>
+<span class="cm">// add_variant, remove_variant, rename, change_arity,</span>
+<span class="cm">// change_signature_type, remove. One verdict per site</span>
+glyph_impact(entity, change)
+
+<span class="cm">// can a value of `from` go where a `to` is declared? Asked of the</span>
+<span class="cm">// checker's own comparison. Each side is a `module::name` or a</span>
+<span class="cm">// Glyph type spelling read in the scope of `path`</span>
+glyph_assignable(path, from, to)
+
+<span class="cm">// every diagnostic for one file, checked inside its project, in the</span>
+<span class="cm">// shape `glyph check --json` prints, plus what was not checked</span>
+glyph_diagnostics(path)
+
+<span class="cm">// the type at a position: an expression, a declaration name, a</span>
+<span class="cm">// parameter, an annotation, a variant, or a binding</span>
+glyph_hover(path, line, character)
+
+<span class="cm">// where the name is defined, following imports across modules,</span>
+<span class="cm">// with the `module::name` so the answer chains into glyph_impact</span>
+glyph_definition(path, line, character)
+
+<span class="cm">// every edge into a symbol across the project, split by relation</span>
+<span class="cm">// (CALLS, REFERENCES, GENERATED_FROM), each with its provenance</span>
+glyph_references(path, name)               <span class="cm">// or by position</span>
+
+<span class="cm">// every `match` site over one tagged union and which variants each</span>
+<span class="cm">// site's arms name, with the union's own variants</span>
+glyph_variants(path, name)
+
+<span class="cm">// search top-level declarations and union variants by name, each</span>
+<span class="cm">// entry with its identity, `pub`, kind and one-line signature</span>
+glyph_symbols(query)
+
+<span class="cm">// what one declaration depends on: every declaration its own source</span>
+<span class="cm">// names, split by relation (CALLS, REFERENCES, FIELD_ACCESS), each</span>
+<span class="cm">// edge with both ends and its provenance. The mirror of references</span>
+glyph_dependencies(entity)
+
+<span class="cm">// what one module makes visible to an importer: every `pub`</span>
+<span class="cm">// declaration and every variant a `pub` union hoists, each with</span>
+<span class="cm">// its identity, kind and signature</span>
+glyph_exports(module)</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Görün</h2>
+        <p>
+          Alan adında yazım hatası olan bir dosya için <code>glyph_diagnostics</code>'e yapılan bir <code>tools/call</code>, derleyicinin kendi diagnostic'ini döndürür. Bu, <code>glyph check --json</code>'un serileştirdiği Rust tipinin aynısıdır ve kontrolün neyi kapsamadığını da söyleyen bir zarfın içinde gelir.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">istek</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": { "path": "src/user.glyph" }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">sonuç (aracın JSON içeriği)</span>
+<pre>{
+  "path": "src/user.glyph",
+  "module": "user",
+  "project_root": "src",
+  "member": true,
+  "diagnostics": [
+    {
+      "code": "E0210",
+      "severity": "error",
+      "stage": "typecheck",
+      "message": "type `U` has no field `naem`; did you mean `name`?",
+      "help": "Check the field name for a typo,
+        or add the field to the type.",
+      "entity": "user::greet",
+      "file": "user",
+      "range": {
+        "start": { "line": 9, "col": 10, "offset": 99 },
+        "end":   { "line": 9, "col": 16, "offset": 105 }
+      },
+      "union": null,
+      "missing_variants": null
+    }
+  ],
+  "unindexed": [],
+  "not_run": [ ... ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Dosya kendi projesi içinde kontrol edilir; bu yüzden import edilmiş bir record'daki yanlış bir alan ve import edilmiş bir union üzerinde arm'ları eksik bir <code>match</code>, burada <code>glyph check</code>'in bildirdiği şekilde bildirilir. Aracın kapsayamadığı şeyler size varsaymanız için bırakılmaz, yanıtta yer alır: <code>member</code>, proje taramasının dosyaya ulaşıp ulaşmadığını söyler; <code>unindexed</code>, parse edilemeyen proje dosyalarını adıyla belirtir; <code>not_run</code> ise <code>glyph check</code>'in yapıp bu aracın yapmadığı üç kontrolü adıyla belirtir: <code>tsc</code>; build'in <code>node_modules</code> görünümünü gerektiren, hiçbir modülü işaret etmeyen bir import için <code>E0104</code>; ve üretilen proje çalıştırılarak karar verilen, başarısız bir <code>@example</code> için <code>E0400</code>. Bir test iki yüzeyi de altı proje üzerinde çalıştırır ve JSON'u anahtar anahtar karşılaştırır, böylece ikisi birbirinden sapamaz.
+        </p>
+        <p>
+          <code>glyph_references</code> tüm çalışma alanını kapsar: bir sembol hakkında sorduğunuzda onun tanımını, her kullanımını ve onu import eden her modülün <code>import</code> bağlamasını, tüm dosyalar boyunca alırsınız. Editörün yeniden adlandırma işleminin kullandığı dosyalar arası kimliğin aynısını kullanır; bu yüzden yanıt yalnızca sorduğunuz dosyayı değil, tüm projeyi kapsar.
+        </p>
+
+        <h2 class="block-label">MCP istemciniz yok mu? Aynı sorular komut satırında</h2>
+        <p>
+          Her aracın, aracın kendi argümanlarını flag olarak alan ve aracın JSON'unu stdout'a yazdıran bir <code>glyph query</code> fiili vardır. Yanıtlanan bir soru 0 ile çıkar; reddedilen bir soru nedenini stderr'e yazar ve 2 ile çıkar. Fiiller, bir MCP istemcisinin ulaştığı giriş noktasının aynısından geçer ve bir entegrasyon testi iki yüzeye de aynı soruyu sorup yanıtları metin olarak karşılaştırır; yani yeniden biçimlendiren ya da özetleyen bir fiil bu testi geçemez.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">istemci olmadan aynı on bir soru</span>
+<pre>glyph query symbol       --path src/main.glyph --entity orders::OrderStatus
+glyph query impact       --entity orders::OrderStatus --change add_variant --variant Refunded
+glyph query assignable   --path src/main.glyph --from 'Nullable&lt;int&gt;' --to int
+glyph query diagnostics  --path src/main.glyph
+glyph query hover        --path src/main.glyph --line 9 --character 6
+glyph query definition   --path src/main.glyph --line 9 --character 6
+glyph query references   --path src/orders.glyph --name create
+glyph query variants     --path src/orders.glyph --name OrderStatus
+glyph query symbols      --query order
+glyph query dependencies --path src/main.glyph --entity main::build
+glyph query exports      --path src/main.glyph --module orders
+
+<span class="cm">// the same two, asked about a module the compiler carries</span>
+glyph query symbol       --path src/main.glyph --entity std/result::Result
+glyph query exports      --path src/main.glyph --module std/result</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Build zaten kırmızıysa</h2>
+        <p>
+          Araçlar bir düzenlemeden önce sorulan soruları yanıtlar. Düzenlemeden sonra okunacak şey <code>glyph check --agent</code>'tır; <code>check --json</code>'un diagnostic'lerini her birine iki anahtar daha ekleyerek yazdırır: onarıcı bir düzenlemenin koruması gereken değişmezler olan <code>constraints</code> ve diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtı olan <code>symbols</code>; böylece sonraki düzenleme ikinci bir çağrıya ihtiyaç duymaz. Arm'ları eksik bir <code>match</code>'te bu, union'ın variant'larının payload'larıyla birlikte, onları isteyen hatayla aynı anda gelmesi demektir; yanında da bir <code>else</code> arm'ının diagnostic'in korumak için var olduğu garantiden vazgeçmek anlamına geldiğini söyleyen cümle bulunur. Onarımın tamamen belirli olduğu yerlerde <code>glyph fix</code> onu yazar ve neyi yapmayı reddettiğini söyler. Gerçek çıktılarla <a href="/answers/repair-protocol/">tüm döngünün adım adım anlatımı</a> var.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>stdio üzerinden on bir araçlı bir <code>glyph mcp [root]</code> sunucusu: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (tüm çalışma alanı), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> ve <code>glyph_exports</code>. Her birinin aynı JSON'u yazdıran bir <code>glyph query</code> fiili var. Yanıtlar derleyicinin kendi sorgularından gelir ve bir aracın elinde olmayan her bilgi, nedenini söyleyen bir <code>&lt;key&gt;_absent</code> cümlesinin yanında null olarak döner. Hover, başka bir modülde tanımlanmış bir isimde de yanıt verir; böylece çağrı yerindeki import edilmiş bir fonksiyonun da, import edilmiş bir record'dan okunan bir alanın da tipi olur. Varlık kimliği stdlib'e kadar uzanır: prelude'daki <code>Result</code>, <code>std/result::Result</code>'tır; bu, resolver'ın onu kaydettiği ve emitter'ın import'u yazdığı modüldür. Bu yüzden onun üzerinde <code>glyph_symbol</code>, <code>Ok(T)</code> ve <code>Err(E)</code> ile yanıt verir, <code>std/result</code> üzerinde <code>glyph_exports</code> da yüzeyi listeler. Arkasında Glyph kaynak kodu olmadığı için <code>path</code> ve <code>range</code> eksik değil, bu nedenle birlikte null döner.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Yolda olanlar</h3>
+          <p>Araçlar yalnızca okur: MCP üzerinden yeniden adlandırma yapamaz ya da bir düzenleme uygulayamazsınız. Yazma tarafı bunun yerine komut satırında, <code>glyph fix</code> olarak yaşar. Sunucu önbelleğe alınmış bir indeks tutmak yerine her çağrıda projeyi yeniden tarar ve parse edilemeyen dosyaları atlar. <code>tools/list</code> yanıtı 45.509 bayttan 20.386 bayta indi; bu yine de her oturumun bağlanırken ödediği bir bağlam maliyeti.</p>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Araçların yanı sıra bir ajan, dili ve diagnostic yüzeyini çevrimdışı okuyabilir: <a href="/llms.txt">llms.txt</a> düz metin hâli, <code>glyph llms --json</code> derleyicinin kendi tablolarından çıkan aynı bilginin veri hâli, <code>glyph build --json</code> ise tüm bir ağaç boyunca kodlu diagnostic'ler için toplu yol.
+        </p>
+      </div>

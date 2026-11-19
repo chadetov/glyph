@@ -1,0 +1,82 @@
+---
+title: Benchmark'lar · iddia edilen değil, ölçülen · Glyph
+description: Glyph'in dört temel ilkesi rakamlarla: derleme sırasında yakalanan hatalar, sembol başına tek grep, tek satırlık diff'ler ve TypeScript'ten yaklaşık %9 daha az token, çekinceleriyle birlikte.
+source_hash: c2635229de656794
+---
+      <header class="page-hero">
+        <p class="eyebrow">Benchmark'lar</p>
+        <h1>İki tür <span class="accent">kanıt</span>.</h1>
+        <p class="lede">
+          Ölçmeye değer iki soru var ve bunları ayrı tutuyoruz. <strong>Yapısal:</strong> Glyph, TypeScript'in kabul ettiği neleri yapısı gereği reddediyor? Bu bugün kanıtlanabilir, aşağıda gösteriliyor. <strong>Güvenilirlik:</strong> ajanlar Glyph'te, <em>iyi yapılandırılmış</em> strict TypeScript kurulumuna göre gerçekten daha az hatayı yayına mı çıkarıyor? Benimsemeye karar verdiren rakam bu ve henüz elimizde değil. Üzerinde çalıştığımız bir çalışma bu ve bir vekil ölçüyü o yanıtmış gibi sunmayacağız. (Asıl karşılaştırma Glyph ile sıradan TS arasında değil; Glyph ile <a href="/answers/vs-tooled-ts/">strict TS + zod + eslint + ts-pattern</a> arasında.)
+        </p>
+      </header>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">Yapısal: yapısı gereği kanıtlanabilir</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 24px;">
+          Bir istatistik değil, eşleştirilmiş gösterimler. Her biri Glyph'in reddettiği ve <code>tsc --strict</code>'in kabul ettiği bir vaka; <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> dizininden yeniden üretilebilir.
+        </p>
+        <div class="stat-row">
+          <div class="card stat">
+            <span class="label">Doğrulanabilirlik: size pahalıya patlayan bug'lar</span>
+            <div class="big"><span class="accent">İkisi de</span> derleme sırasında yakalanıyor</div>
+            <p>
+              Ajanların sürekli yaptığı iki hata (eksik bir <code>match</code> variant'ı ve <code>as unknown as</code> üzerinden bir cast) Glyph tarafından reddedilir ve <code>tsc --strict</code> tarafından kabul edilir. İkisi de <code>catches/</code> içinde kontrol edilen vakalardır (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>) ve build kontrolü tarafından yeniden çalıştırılır. Derlenen yanlış kod pahalı olan başarısızlıktır. Glyph buna izin vermez.
+            </p>
+          </div>
+          <div class="card stat">
+            <span class="label">Aranabilirlik: tek isim, tek yer</span>
+            <div class="big">Her seferinde <span class="accent">1</span> eşleşme</div>
+            <p>
+              Her sembolün tam olarak tek bir tanım biçimi vardır: onu dağıtacak overload, decorator ya da birleştirilmiş namespace yoktur.
+            </p>
+            <div class="grepout">
+              <span class="prompt">$ grep -n "fn welcome" main.glyph</span><br />
+              <span class="ln-no">15:</span> fn welcome(user: User) -&gt; Result&lt;string, string&gt; {
+            </div>
+          </div>
+          <div class="card stat">
+            <span class="label">Kararlı diff: varsayılan olarak incelenebilir</span>
+            <div class="big"><span class="accent">1 satır &rarr; 1 satır</span></div>
+            <p>
+              Tek satırlık bir Glyph düzenlemesi, transpiler üzerinden tek satırlık bir TypeScript diff'i üretir ve <code>glyph fmt</code> fazladan gürültü eklemez. Diff, etrafındaki gürültü değil, değişikliğin kendisidir.
+            </p>
+          </div>
+        </div>
+
+        <div class="chart">
+          <span class="label">Ve güvenlik uzunluğa mal olmuyor</span>
+          <h3>Aynı üç fonksiyon için token sayıları</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill glyph" style="width: 70%">436</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Python</span><div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div></div>
+          <div class="bar-row"><span class="bar-lang">TypeScript</span><div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Go</span><div class="bar-track"><div class="bar-fill other" style="width: 91%">564</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Rust</span><div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div></div>
+          <p class="bench-note">
+            Güvenlik genellikle uzunluğa mal olur: statik tipleri ve açık hata yönetimi olan diğer satırlar Go ve Rust, en uzunlar. Glyph'te ikisi de var ve bu yüzden daha uzun değil: <code>glyph check</code>'ten <code>tsc</code> ile geçen programların gerçek <code>cl100k_base</code> sayımlarında TypeScript'in 478'ine karşı 436 token, yani yaklaşık %9 daha az; Python ile aynı seviyede, Go'dan yaklaşık %23 ve Rust'tan %30 daha az. Fark, gerçek kontrol akışı olan fonksiyonda (<code>parse_user</code>, 174'e karşı 132); tek satırlık <code>slugify</code>'da Glyph daha uzun (47'ye karşı 67), çünkü regex literal'i yok. Üç fonksiyon, küçük bir örneklem. Daha önceki 341 rakamı, derleyicinin kabul etmediği fixture'lar üzerinde ölçülmüştü ve geri çekildi. <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">Yöntemi ve çekinceleri görün &rarr;</a>
+          </p>
+        </div>
+
+      </section>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">Güvenilirlik: üzerinde çalıştığımız çalışma</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 22px;">
+          Yukarıdaki yapısal sonuçlar, Glyph'in yardımcı olacağını <em>beklemek için nedenler</em>; yardımcı olduğunun kanıtı değil. Kanıt, karşılaştırmalı bir çalışma: aynı ajan, aynı gerçekçi görevler, bir kez Glyph'te ve bir kez tüm araçlarla donatılmış strict TypeScript kurulumunda (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod) yazılır ve <strong>gözden kaçan semantik hatalar</strong> ile ilk denemede yeşil build oranı üzerinden puanlanır. Beş farklı inceleyicinin bizi ikna edecek rakam dediği bu; bu yüzden onu hazırlıyoruz ve o var olana kadar bu çubuklar bir iddia değil, yer tutucu.
+        </p>
+        <div class="chart">
+          <span class="label">Görev başına gözden kaçan hata &middot; düşük olan daha iyi &middot; <span style="color:var(--amber)">henüz ölçülmedi</span></span>
+          <h3>Glyph ve tüm araçlarla donatılmış strict TypeScript</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill pending" style="width: 30%">beklemede</div></div></div>
+          <div class="bar-row"><span class="bar-lang">araçlı TS</span><div class="bar-track"><div class="bar-fill pending" style="width: 55%">beklemede</div></div></div>
+          <p class="bench-note">
+            Düzenek (bir görev derlemi, bir çalıştırma/tekrar oynatma düzeneği ve sabitlenmiş, dürüstçe kurulabilecek en güçlü TS referansı) <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> dizininde; ilk gerçek pilot çalışma (<em>n</em>'i, modeli ve maliyeti etiketinde belirtilmiş olarak) çalıştırıldığı anda burada yayımlanacak. Ne gösterirse göstersin.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+          <a class="btn" href="/answers/vs-tooled-ts/">Karşılaştırma neden araçlı TS'e karşı &rarr;</a>
+        </div>
+      </section>
+
+      <a href="/" class="backlink">&larr; Ana sayfaya dön</a>

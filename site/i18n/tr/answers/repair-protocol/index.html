@@ -1,0 +1,168 @@
+---
+title: Derleyici ajanıma nasıl düzelteceğini söylüyor mu? · Glyph
+description: Her diagnostic tipleri, hatalı sembolü ve geçerli alternatifleri taşır; glyph fix de derleyicinin kendi başına karara bağlayabildiği onarımları yazar.
+source_hash: 4b15cc7a1cc4e288
+prev: /answers/ask-the-compiler/ | &larr; Önceki | Ajanım kod yazmadan önce derleyiciye bir sembolün ne olduğunu sorabilir mi?
+next: /answers/generated-docs/ | Sonraki &rarr; | Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?
+---
+      <p class="q-eyebrow">23 &middot; Kırmızı bir build'i düzeltmek</p>
+      <h1 class="q-title">Build başarısız olduğunda derleyici ajanıma nasıl düzelteceğini söylüyor mu?</h1>
+
+      <p class="short-answer">
+        Neyin yanlış olduğunu parse edilecek bir cümle olarak değil, veri olarak söyler: iki tip, <code>module::name</code> biçiminde hatalı sembol ve yanlış şeyin durduğu yerde geçerli olarak durabilecek şeylerin sonlu listesi. <code>glyph check --agent</code>, onarıcı düzenlemenin bozmaması gerekenleri ekler. Yanıtın tamamen belirli olduğu yerde <code>glyph fix</code> onu yazar.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Bir ajanın derleyici etrafındaki döngüsü şudur: hatayı oku, düzenlemeyi tahmin et, yeniden build et. Hasar tahmin adımında olur ve hata bir string olduğu için olur. "<code>OrderStatus</code> üzerinde kapsamı eksik match" okuyan bir ajan, bir match'te bazı arm'ların eksik olduğunu bilir. Eksik variant'ların ne taşıdığını bilmez, bu yüzden <code>Paid("tx_1")</code> yazar ve bunu bir sonraki diagnostic'ten öğrenir. Ya da "exhaustive" kelimesini okur, bir <code>else</code> arm'ı ekler ve build, diagnostic'in korumak için var olduğu garantiyi atmış olarak yeşile döner.
+        </p>
+        <p>
+          Derleyici bunların hepsini biliyordu. Union'ın variant'larını ve payload'larını biliyordu, bir <code>else</code>'in mührü kaybettireceğini biliyordu ve ikisini de yanıttan bir satır önce atıyordu.
+        </p>
+
+        <h2 class="block-label">Görün</h2>
+        <p>
+          İki modüllü bir proje. <code>orders</code> union'ı tanımlar; <code>main</code> onun üzerinde bir <code>match</code> yazar ve bir durumu ele alır. <code>glyph check --agent</code>, burada önemli olan anahtarlara kısaltılmış hâliyle:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --agent --no-tsc src</span>
+<pre>{
+  "code": "E0200",
+  "severity": "error",
+  "stage": "typecheck",
+  "message": "non-exhaustive match on `OrderStatus`: missing variants
+              `Paid`, `Cancelled`",
+  "help": "Add an arm for each missing variant.",
+  "file":   "main.glyph",
+  "module": "main",
+  "entity": "main::describe",
+  "cause":  "orders::OrderStatus",
+  "related": ["Pending", "Paid", "Cancelled"],
+  "missing_variants": ["Paid", "Cancelled"],
+  "expected": null, "actual": null, "alternatives": null,
+
+  "constraints": [
+    "preserve exhaustiveness: this match must name every case of
+     `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
+    "do not add an `else` arm: `OrderStatus` is declared in this project,
+     and a catch-all forfeits the guarantee that adding a variant to it
+     later forces this match to be updated (D9)."
+  ],
+
+  "symbols": [
+    { "entity": "orders::OrderStatus", "kind": "union", "pub": true,
+      "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+      "exhaustive_match": true,
+      "variants": [
+        { "name": "Pending", "payload": null, "construct": "Pending" },
+        { "name": "Paid",    "payload": "{ transaction_id: string }",
+          "construct": "Paid({ transaction_id: string })" },
+        { "name": "Cancelled", "payload": null, "construct": "Cancelled" }
+      ] }
+  ],
+  "symbols_absent": [],
+
+  "explain": { "command": "glyph --explain E0200",
+               "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200" }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Öne çıkarmaya değer üç şey var. <code>cause</code> hatalı semboldür ve diagnostic'in içinde bulunduğu tanım olan <code>entity</code>'den farklı bir şeydir: burada düzenleme <code>main::describe</code> içinde yapılır ve uyması gereken yapı <code>orders::OrderStatus</code>'tan gelir. İkisi de diğer araçların aldığı adreslerdir, yani bir yanıt hiçbir şeyi yeniden türetmeden zincirlenir.
+        </p>
+        <p>
+          <code>constraints</code> onarımın kendisi değildir. Her biri derleyicinin zaten zorladığı bir şeydir ve diagnostic'i karşılayan düzenleme arkasındaki garantiyi bozmasın diye açıkça yazılmıştır. İkinci kısıt, anahtarın var olma nedenidir: bir <code>else</code> arm'ı geçerlidir, build'i yeşile çevirir ve kısıt bunu seçmenin bedelini söyler.
+        </p>
+        <p>
+          <code>symbols</code>, diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtıdır; böylece ajanın bir sonraki düzenlemesi ikinci bir çağrıya ihtiyaç duymaz. Aracın reddettiği bir sembol gerekçesiyle birlikte <code>symbols_absent</code>'ta görünür; bu da "bakmadık" ile "baktık ve orada değil"i birbirinden ayırır.
+        </p>
+        <p>
+          Her anahtar her zaman mevcuttur. Derleyicinin sahip olmadığı bir bilgi, eksik bir anahtar olarak değil, açık bir <code>null</code> olarak gelir; böylece yokluğun her kodda ve hem CLI hem MCP yüzeyinde tek bir yazılışı vardır.
+        </p>
+
+        <h2 class="block-label">Yanıtın belirli olduğu yerde derleyici onu yazar</h2>
+        <p>
+          <code>glyph fix</code> yalnızca derleyicinin kendi başına karara bağladığı onarımları uygular: kullanılmayan import'lar, checker'ın tam olarak tek bir öneri hesapladığı durumda variant olmayan bir arm başı ve record'un tanımlamadığı, tam olarak bir tanımlı alanın bir karakter uzağında olduğu bir alan. Yukarıdaki <code>match</code> bunlardan biri değil.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">yukarıdaki match üzerinde glyph fix src</span>
+<pre>glyph fix: removed 0 unused import(s) across 0 file(s).
+glyph fix: declined E0200 in src/main.glyph: the compiler does not
+           determine what a missing arm should do, so `glyph fix`
+           writes none: add an arm for each of `Paid`, `Cancelled`.
+           `glyph check --agent` gives the pattern each case takes.
+
+<span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Derleyici hangi durumların eksik olduğunu ve her birinin hangi pattern'i aldığını bilir. Bir sipariş <code>Paid</code> olduğunda programın ne yapması gerektiğini bilmez ve yazacağı her gövde derlenen bir tahmin olur. 0.1.128'e kadar <code>glyph fix</code> o tahmini yazıyordu: her durum için gövdesi durumu yazdırıp <code>process.exit(1)</code>'i çağıran bir arm. Program bundan sonra <code>check</code>, <code>tsc</code> ve <code>build</code>'den geçiyordu ve <code>glyph query variants</code> match'i kapsamı tam olarak bildiriyordu; yani eksik durum bir derleme hatasından çalışma zamanında bir çökmeye taşınmıştı ve onu işaretleyecek hiçbir şey kalmamıştı.
+        </p>
+        <p>
+          Bu yüzden kural reddeder ve durumları adıyla söyler. Arm'ları yazmak için gereken her şey zaten yukarıdaki <code>--agent</code> yanıtında var: <code>missing_variants</code> ve <code>symbols</code> altında her variant'ın <code>construct</code> yazılışı. Arm'ları yazmak, davranışını derleyicinin çıkaramadığı diğer her kod gibi size ya da ajanınıza kalır.
+        </p>
+        <p>
+          <code>glyph fix</code> yazdığını tahmin etmeden yazar ve bir yanıtı karara bağlayamayan her kural, reddi ve gerekçesini uyguladıklarıyla aynı çıktıda yazdırır. Bir yazım hatasından bir karakter uzaktaki iki alan bir değil iki alandır ve seçim yapmak yerine bunu söyler.
+        </p>
+
+        <h2 class="block-label">Kodun kendi açıklaması, veri olarak</h2>
+        <p>
+          <code>glyph --explain &lt;CODE&gt; --json</code>, uzun açıklamayı, tek satırlık <code>help</code>'i, doküman URL'sini ve derleyicinin negatif derleminden alınmış yanlış bir programı, bu derleyicinin onun için ürettiği diagnostic'le eşleştirilmiş olarak döndürür. Diagnostic saklanmaz, siz sorduğunuzda derlenir; bu yüzden derleyicinin gerçekte söylediğinden sapamaz.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --explain E0200 --json</span>
+<pre>{
+  "code": "E0200",
+  "title": "non-exhaustive match",
+  "explanation": "A `match` over a tagged union must handle every variant.
+    Unions are sealed (D9): adding a variant later forces every match to be
+    updated, so a missing variant cannot silently fall through at runtime ...",
+  "help": "Add an arm for each missing variant.",
+  "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "expected_error": "E0200",
+    "files": [ { "path": "alias_of_local_union_not_exhaustive.glyph",
+                 "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+                    "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+                    "cause": "alias_of_local_union_not_exhaustive::Shape",
+                    "related": ["Circle", "Square", "Tri"],
+                    "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a case:
+      an entry is a wrong program and the code it draws. A fix invented here would
+      compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Derlemin kapsamadığı bir kod, uydurulmuş bir örnek yerine <code>counter_example: null</code> ve derlemde onun için bir durum olmadığını söyleyen bir cümleyle döner. Derlem kapsadığı şeyler hakkında iddiada bulunur, gerisi hakkında hiçbir şey söylemez.
+        </p>
+        <p>
+          <code>glyph --explain</code> kod başına bir durum verir. Derlemin tamamı da okunabilir: <code>glyph llms --negative E0200</code> o kodu tetikleyen her yanlış programı, her birini siz sorduğunuzda derleyerek yazdırır; ikinci bir derlemin <code>tsc --strict</code>'in kabul ettiği bir programı onu reddeden Glyph ile eşleştirdiği yerde o da yanında gelir. Kod verilmezse 70 kodun 46'sı üzerinde 102 durum listeler ve hiç durumu olmayan 24 kodu adıyla söyler; böylece kapsam, dönenlerden çıkarılmak yerine açıkça belirtilir. Bu ve derleyicinin kendisi hakkında yayımladığı geri kalan her şey <a href="/answers/generated-docs/">ayrı bir sayfada</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>Her diagnostic <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (<code>alternatives_kind</code> ile listenin <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> ya da <code>exports</code> olup olmadığı belirtilir ve hatanın üretildiği yerde ayarlanır), <code>related</code>, <code>module</code>, <code>file</code> ve <code>explain</code> taşır; bunlar yeniden türetilmek yerine derleyicinin ürettiği hatadan doldurulur ve derleyici böyle bir bilgiye sahip değilse her biri açık bir <code>null</code> olur. <code>file</code>, çözümleme köküne göreli bir yoldur ve rapor o kökü <code>project_root</code>'ta belirtir, yani yol açılabilir. <code>glyph check --agent</code> her diagnostic için <code>constraints</code> ve <code>symbols</code> ekler. <code>glyph fix</code> üç kural uygular (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) ve her reddi gerekçesiyle belirtir; bildirdiği ama hiçbir zaman yazmadığı her <code>E0200</code> dahil. <code>glyph --explain &lt;CODE&gt; --json</code> açıklamayı derlenmiş bir karşı örnekle döndürür, <code>glyph llms --negative &lt;CODE&gt;</code> ise o kodu tetikleyen yanlış programların tüm derlemini döndürür.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Nerede duruyor</h3>
+          <p><code>E0211</code>'de <code>cause</code> <code>null</code>'dır: bir çağrı argümanındaki hatalı sembol bir parametredir ve <code>module::fn.param</code> kimlik sözlüğünün yazabildiği bir şey değildir; yani bu null bir eksiklik değil, bilinçli bir tercihtir. Bir karşı örnekteki <code>corrected</code> her zaman <code>null</code>'dır, çünkü negatif derlem bir durumla onarılmış bir programı eşleştirmez ve 70 kodun 24'ünün hiç durumu yoktur. <code>glyph fix</code> üç kural yazar, başka hiçbir şey yazmaz ve kapsamı eksik bir <code>match</code> için arm yazmaz: bunlar, durumlar ve pattern'leri diagnostic'te olacak şekilde size ya da ajanınıza bırakılır. Reddettiği her şeyi açıkça reddeder.</p>
+        </div>
+      </div>

@@ -170,7 +170,7 @@
       "id": "h-8bfb0506",
       "kind": "html",
       "en": "The three highest-ranked cases that pass <code>tsc --strict</code> with every extra flag on and typescript-eslint strict, ranked by how often an agent writes them and how bad they are when they ship.",
-      "tr": "Tüm ek flag'ler açıkken ve typescript-eslint strict moddayken <code>tsc --strict</code>'ten geçen vakalar arasında en üst sıradaki üçü. Sıralama, bir ajanın onları ne sıklıkla yazdığına ve production'a çıktıklarında ne kadar zarar verdiklerine göre yapıldı. Örnekler, repoda oldukları gibi İngilizce gösteriliyor."
+      "tr": "Tüm ek flag'ler açıkken ve typescript-eslint strict moddayken <code>tsc --strict</code>'ten geçen vakalar arasında en üst sıradaki üçü. Sıralama, bir ajanın onları ne sıklıkla yazdığına ve production'a çıktıklarında ne kadar zarar verdiklerine göre yapıldı."
     },
     {
       "id": "h-bb229a74",

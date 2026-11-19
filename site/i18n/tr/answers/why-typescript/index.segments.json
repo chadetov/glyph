@@ -1,0 +1,122 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/why-typescript/index.html",
+  "locale": "tr",
+  "source_hash": "9f7bf2e8baaad5d9",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why TypeScript, and not Go or a new language? · Glyph",
+      "tr": "Neden TypeScript, neden Go ya da yeni bir dil değil? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "TypeScript is where agents already write the most code and where npm, React, and Node live. Glyph is adoptable one file at a time only because its target is TS.",
+      "tr": "TypeScript, ajanların zaten en çok kod yazdığı ve npm, React ile Node'un bulunduğu yer. Glyph'in dosya dosya benimsenebilmesinin tek nedeni hedefinin TS olması."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Önceki"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "Neden sadece strict TypeScript + zod + eslint + ts-pattern değil?"
+    },
+    {
+      "id": "h-69c9c9dc",
+      "kind": "html",
+      "en": "04 &middot; Positioning",
+      "tr": "04 &middot; Konumlandırma"
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "Neden TypeScript, neden Go ya da yeni bir dil değil?"
+    },
+    {
+      "id": "h-4242272e",
+      "kind": "html",
+      "en": "Because TypeScript is where agents already write the most code and where your ecosystem (npm, React, Node) lives. Glyph is adoptable one file at a time <strong>only because its target is TS</strong>.",
+      "tr": "Çünkü TypeScript, ajanların zaten en çok kod yazdığı ve ekosisteminizin (npm, React, Node) bulunduğu yer. Glyph'in dosya dosya benimsenebilmesinin <strong>tek nedeni hedefinin TS olması</strong>."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "h-0a5dbd26",
+      "kind": "html",
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
+      "tr": "Yeni bir dilin kaderi, sıfırdan yayına çıkmaya nasıl gittiğinize bağlıdır. TypeScript'e derlemek, kod tabanınızdan, bundler'ınızdan, test çalıştırıcınızdan ya da deploy sürecinizden hiç ayrılmamanız demektir. Glyph, zaten sahip olduğunuz <code>.ts</code> dosyalarının yanına yerleşir ve import'lar iki yönde de sorunsuz çalışır:"
+    },
+    {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "aynı proje: .glyph ve .ts yan yana"
+    },
+    {
+      "id": "h-4eb97fa1",
+      "kind": "html",
+      "en": "You cannot drop Go into a TypeScript codebase file by file: it's a different runtime, a different module system, a different ecosystem. That single fact is why the target is TS.",
+      "tr": "Go'yu bir TypeScript kod tabanına dosya dosya ekleyemezsiniz: farklı bir çalışma zamanı, farklı bir modül sistemi, farklı bir ekosistem. Hedefin TS olmasının nedeni bu tek gerçektir."
+    },
+    {
+      "id": "h-b0743097",
+      "kind": "html",
+      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "<strong>Go hakkında haklı bir nokta:</strong> küçük ve kararlı anahtar kelime yüzeyi, bir ajana yanılmak için daha az yol bırakır. Katılıyoruz: Glyph'in her şeyi yapmanın tek bir yolu olan, bilerek küçük tutulmuş bir çekirdeği korumasının nedeni de tam olarak bu. Go, doğrudan bir karşılaştırma için yoğunluk <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark'ımızda</a> yer alıyor."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Bugün yayında"
+    },
+    {
+      "id": "h-93871ba6",
+      "kind": "html",
+      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
+      "tr": "Temiz TypeScript çıktısı, mevcut <code>.ts</code> dosyalarınızla iki yönlü import'lar ve Node'un ya da bir tarayıcı bundle'ının çalıştığı her yerde çalışan küçük bir çekirdek."
+    },
+    {
+      "id": "h-0abde815",
+      "kind": "html",
+      "en": "Being measured",
+      "tr": "Ölçülüyor"
+    },
+    {
+      "id": "h-5cb4379c",
+      "kind": "html",
+      "en": "The cross-language benchmark (Glyph, TS, Go, Python, Rust) grows as the corpus does, so the &ldquo;small surface&rdquo; claim stays a number, not an assertion.",
+      "tr": "Diller arası benchmark (Glyph, TS, Go, Python, Rust) derlem büyüdükçe büyüyor; böylece &ldquo;küçük yüzey&rdquo; iddiası bir iddia olarak kalmıyor, bir rakam oluyor."
+    }
+  ]
+}

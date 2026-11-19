@@ -1,0 +1,54 @@
+---
+title: Glyph'i mevcut uygulamamın içinde benimseyebilir miyim? · Glyph
+description: Yeniden yazmak yok: uygulamayı TypeScript'te tutun, domain çekirdeğini Glyph'te yazın ve derlenmiş modülleri herhangi bir yerel dosya gibi import edin. Standart Vite ile çalışır.
+source_hash: 4dc0a3c1d0f26ab3
+prev: /answers/imports/ | &larr; Önceki | Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?
+next: /answers/typed-apis/ | Sonraki &rarr; | Her API için elle validator yazmam gerekiyor mu?
+---
+      <p class="q-eyebrow">10 &middot; Uygulamanızın içinde</p>
+      <h1 class="q-title">Glyph'i mevcut uygulamamın içinde benimseyebilir miyim, yoksa ya hep ya hiç mi?</h1>
+
+      <p class="short-answer">
+        Yeniden yazmak yok. Uygulamayı TypeScript'te tutun ve yanlış yapmayı göze alamayacağınız kısmı (modeller, yetkiler, durum geçişleri, para hesapları) Glyph'te yazın. <code>glyph build</code>, uygulamanızın <strong>herhangi bir yerel dosya gibi</strong> import ettiği modüller üretir; bundler yapılandırması ya da path alias'ı gerekmez.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Çoğu ekip bir uygulamayı yeniden yazamaz ve bir uygulamanın çoğu kısmının Glyph'e ihtiyacı yoktur. İhtiyacı olan kısım domain çekirdeğidir: bir yapay zekâ ajanının önümüzdeki ay düzenleyeceği ve kimsenin sessizce yanlış olmasını istemediği kurallar. Bu çekirdeği Glyph'te tutmak, kapsamı tam <code>match</code>'i, cast'in olmamasını ve doğrulanmış sınırları tam da işe yaradıkları yerde verir; React component'leri, stiller ve altyapı ise düz TypeScript olarak kalır.
+        </p>
+
+        <h2 class="block-label">Görün</h2>
+        <p>Glyph kaynaklarından oluşan, uygulamanın içine derlenen ve arayüz tarafından import edilen tek bir dizin:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Hibrit bir düzen: domain çekirdeği Glyph'te, geri kalan her şey TypeScript'te</span>
+<pre>src/
+  glyph/          # models.glyph, permissions.glyph, analytics.glyph
+  generated/      # glyph build --out src/generated src/glyph
+  components/     # hand-written React/TSX
+
+<span class="add">// BoardContext.tsx: the app imports compiled Glyph like a local module</span>
+import { TaskCard, can_move } from "../generated/models";
+
+const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Üretilen kodun ihtiyaç duyduğu her şey onunla birlikte gelir. Paketlenmiş standart kütüphane dahil import'lar relative'dir; bu yüzden projenizin <code>tsconfig.json</code>'una ve bundler'ına hiçbir şey eklemeniz gerekmez: standart bir Vite iskeleti çıktıyı olduğu gibi derler ve paketler, aynı dosyalar host projenin <code>tsc --strict</code>'inden de geçer. Uygulamanın import ettiklerini <code>pub</code> ile işaretleyin; bu işareti taşımayan bir tanım kendi modülüne özeldir. Bu bir varsayım değil: dışarıdan bir mühendis <a href="https://github.com/yildizadem/glyph-kanban">bu şekilde bir React Kanban panosu geliştirdi</a>; RBAC matrisi, analitik formülleri ve durum geçişleri, elle yazılmış bir React arayüzünün altında dört Glyph modülünde.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>Üretilen çıktı bir host projeye değiştirilmeden yerleşir: baştan sona relative belirteçler, kodun kendisinin taşıdığı prelude tipleri; standart bir Vite iskeletine, host <code>tsc --strict</code>'e, esbuild'e ve <code>tsx</code>'e karşı doğrulandı. <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">Deploy rehberi</a> hibrit düzeni anlatıyor.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Yolda olanlar</h3>
+          <p>Henüz watch modu yok: <code>.glyph</code> kaynaklarını düzenledikten sonra <code>glyph build</code>'i yeniden çalıştırın (<code>dev</code> script'inize bağlayın). <code>std/fs</code> ya da <code>std/net</code> kullanan modüller, Node'a dokunan her TypeScript gibi, host projede <code>@types/node</code> gerektirir.</p>
+        </div>
+      </div>

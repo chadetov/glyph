@@ -1,0 +1,217 @@
+---
+title: TypeScript, JavaScript ve npm kodumu kullanabilir miyim? · Glyph
+description: Glyph sıradan TypeScript'e derlenir ve npm üzerinde çalışır: bir .glyph modülü herhangi bir paketi import eder ve mevcut .ts dosyalarınızdan import edilebilir. Onu dosya dosya benimseyin.
+source_hash: 5a2ca99ba7fdb55b
+prev: /answers/upgrades/ | &larr; Önceki | Yeni bir Glyph sürümü build'imi bozar mı?
+next: /answers/embedding/ | Sonraki &rarr; | Glyph'i mevcut uygulamamın içinde benimseyebilir miyim, yoksa ya hep ya hiç mi?
+---
+      <p class="q-eyebrow">09 &middot; Benimseme</p>
+      <h1 class="q-title">Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?</h1>
+
+      <p class="short-answer">
+        Evet. Glyph <strong>sıradan TypeScript'e</strong> derlenir ve npm üzerinde çalışır: bir <code>.glyph</code> modülü herhangi bir paketten import eder ve kendisi de mevcut <code>.ts</code> dosyalarınızdan import edilebilir. Onu <strong>dosya dosya</strong> benimsersiniz.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Kimse bir dili denemek için kod tabanını yeniden yazmaz. Glyph'in çıktısı TypeScript'in <em>ta kendisi</em> olduğu için bir <code>.glyph</code> dosyası mevcut bir TS/React/Node projesinin bir köşesine yerleşir, aynı paketleri import eder ve etrafındaki <code>.ts</code> dosyalarına geri export eder. Yeni bir runtime çıkarmak yerine TypeScript'i hedeflemenin tek nedeni bu kademeli yol.
+        </p>
+
+        <h2 class="block-label">Görün</h2>
+        <p>Paketleri adlarıyla import edersiniz (tireli ve npm scope'lu olanlar dahil) ve Glyph beklediğiniz import'u üretir:</p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">form.glyph</span>
+<pre>import react { useState }
+import react-hook-form { useForm }
+import @hookform/resolvers/zod {
+  zodResolver,
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">form.ts: üretilen</span>
+<pre>import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver }
+  from "@hookform/resolvers/zod";</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Paket kuruluysa ve kendi tiplerini getiriyorsa (ya da bir <code>@types/...</code> paketi varsa) yapmanız gereken bu kadar. Stub yok, adaptör dosyası yok. <code>glyph build</code> projenizin <code>node_modules</code> dizinini bulur ve tip denetleyicisini ona yöneltir; böylece paketin gerçek tipleri kodunuzu kontrol eder ve yanlış bir çağrı gerçek bir hatadır. Alt yol import'ları (<code>pkg/sub</code>) da paketin <code>exports</code> map'i üzerinden çözülür, böylece bir alt yolun kendi tipleri kontrol edilir. İşte hiçbir şey elle yazılmadan, satır içinde kullanılan zod:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre>import zod { z }
+
+let user_schema = z.object({
+  name: z.string(),
+  age: z.number(),
+})
+let user = user_schema.parse(input)
+print(user.name)</pre>
+        </div>
+        <div class="code">
+          <span class="cap">zod'un tanımlamadığı bir çağrı</span>
+<pre data-check="needs-npm expect-error TS2339">module main
+
+import zod { z }
+
+pub fn main() -&gt; number {
+  // ZodString has no such method:
+  let n = z.string().nonexistent_method()
+  return 0
+}
+
+// [TS2339] Property 'nonexistent_method'
+//   does not exist on type 'ZodString'.
+//   mapped back onto main.glyph:7</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph run</code> aynı programı kurulu zod'a karşı çalıştırır, yani bu yalnızca bir tip kontrolü değil: paketi tip denetleyicisi için çözen tek yapılandırma girdisi onu runtime için de çözer. <em>Hiç</em> tip getirmeyen ve <code>@types/...</code> paketi de olmayan bir paket hâlâ sizin yazacağınız bir tanıma ihtiyaç duyar; <code>.types/</code> klasörü bunun içindir (TypeScript'in zaten kullandığı <code>.d.ts</code> mekanizmasının aynısı). Bir kütüphanenin şeklini yalnızca tip import'u olarak değil, birinci sınıf, <em>doğrulanan</em> bir Glyph tipi olarak istediğinizde <code>glyph gen dts</code> bir <code>.d.ts</code> dosyasını descriptor taşıyan gerçek tiplere dönüştürür: bkz. <a href="/answers/typed-apis/">her API için elle validator yazmam gerekiyor mu?</a>
+        </p>
+        <p>
+          Değerden türetilen tipler birinci sınıftır. <code>type User = z.infer&lt;typeof user_schema&gt;</code> doğrudan çalışır: <code>typeof user_schema</code> gerçek bir değer referansı üzerinde bir tip sorgusudur (bir yazım hatası çözülemeyen isim hatası olur) ve <code>z.infer&lt;...&gt;</code> sıradan bir üye-generic tiptir. Olduğu gibi üretilir ve <code>tsc</code> onu indirger, böylece <code>u.name</code> bir <code>string</code> olur; doğrulama, zod'un zaten çalıştığı şekilde şemanın kendi <code>parse</code>'ından gelir. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) de birinci sınıftır. Glyph'in hâlâ yazamadığı nadir TypeScript kalıpları için <code>extern_ts("...")</code> kapsamı sınırlı, grep'lenebilir kaçış kapısıdır: <code>tsc</code> onu kontrol eder, ama net olalım, bu çalışma zamanında doğrulanan değil, güvene dayalı bir sınırdır (Glyph için opaktır, değer daraltılmak üzere <code>unknown</code> olarak geri gelir). Dolayısıyla bir kütüphane sizi asla elle yazılmış bir adaptör dosyasına zorlamaz.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Tamamen elle yazılmış TypeScript gerektiğinde</h2>
+        <p>
+          Bazen kaçış kapısı bir tip ya da ifade değil, gerçek runtime kodudur: bir node-stream döngüsü, bir <code>new Promise</code>, bir worker thread. <code>.ts</code> dosyasını <code>&lt;src&gt;/extern/</code> altına koyun ve ona <code>import extern/&lt;name&gt;</code> ile ulaşın.
+        </p>
+<pre>// src/extern/raw_server.ts   (hand-written TypeScript)
+export function serve_raw(port: number, handler: (raw: string) =&gt; string): void { ... }
+
+// src/main.glyph
+import extern/raw_server { serve_raw }   // typed from the .ts; a wrong arg is a real tsc error</pre>
+        <p>
+          Build, <code>&lt;src&gt;/extern/**</code>'ı çıktıya kopyalar ve göreli bir specifier üretir; böylece <code>tsc</code> extern'i Glyph kodunuzla birlikte tip kontrolünden geçirir ve bir yeniden build onu asla silmez. Göreli import'lar Glyph kaynağında yasak kalmaya devam eder (bir grep'lenebilirlik kuralı), bu yüzden <code>extern/*</code> ayrılmış tek yoldur ve <code>grep -rn 'import extern/'</code> dilden çıktığınız her yeri bulur. Bu, kolay yönün tersidir: derlenmiş Glyph'inizi import eden bir <code>.ts</code> dosyası hiçbir şeye ihtiyaç duymaz. Yaygın bir extern (bir http sunucusu, <code>fs</code>), hiçbir şey kurulmadan paketle gelen node shim'ine karşı tip kontrolünden geçer.
+        </p>
+
+        <h2 class="block-label">Hiçbir şey kurmadan bir alt süreci izlemek</h2>
+        <p>
+          Paketle gelen node tanımları <code>child_process</code>'in yalnızca bloklayan yarısını değil async yarısını da taşır; böylece uzun bir komutun çıktısını o çalışırken raporlayan bir araç extern değil Glyph olur:
+        </p>
+<pre>module main
+
+import child_process { spawn }
+import std/io
+
+pub async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let child = spawn(&quot;git&quot;, [&quot;status&quot;, &quot;--short&quot;])
+
+  // Ask for text and node decodes for you, holding back a character whose
+  // bytes straddle two chunks. Decoding a raw chunk yourself does not.
+  child.stdout.setEncoding(&quot;utf8&quot;)
+  child.stdout.on(&quot;data&quot;, fn(chunk) {
+    io.print(&quot;${chunk}&quot;)
+  })
+  child.on(&quot;close&quot;, fn(code) {
+    io.println(&quot;git exited ${code}&quot;)
+  })
+  return 0
+}</pre>
+        <p>
+          <code>io.println</code> değil <code>io.print</code>: bir chunk satır değil, akışın bir dilimidir ve bir satır ikisine bölünmüş olarak gelebilir. Overload'lar <code>@types/node</code>'u izler; böylece pipe'lar düz bir <code>spawn(command, args)</code>'tan non-null, <code>stdio</code> verdiğiniz anda nullable olarak gelir. <code>stdio: "inherit"</code>'ten sonra <code>child.stdout</code>'u okumak burada <code>TS18047</code>, gerçek tiplerle de <code>TS18047</code>'dir; aynı değer hakkında iki farklı hikâye yoktur:
+        </p>
+<pre data-check="expect-error TS18047">module main
+
+import child_process { spawn }
+
+pub fn main() -&gt; void {
+  let child = spawn(&quot;git&quot;, [&quot;status&quot;], { stdio: &quot;inherit&quot; })
+  // [TS18047] 'child.stdout' is possibly 'null'.
+  child.stdout.setEncoding(&quot;utf8&quot;)
+}</pre>
+
+        <h2 class="block-label">Shim'i düzenleyin, bir sonraki çalıştırma düzenlediğiniz shim olur</h2>
+        <p>
+          Bir shim üzerinde yineleyerek çalıştığınız bir dosyadır, bu yüzden kaynak sayılması gerekir. <code>glyph run</code> bir build'i kaynaklarınızın parmak izi altında önbelleğe alır ve bu parmak izi <code>extern/</code> altındaki her <code>.ts</code> ve <code>.tsx</code> dosyasını hem yoluyla hem içeriğiyle kapsar. Birini düzenleyin, yeniden adlandırın, ekleyin ya da silin; bir sonraki çalıştırma yeniden build alır ve <code>tsc</code>'yi yeniden çalıştırır. Sembolik bağlantılı bir shim takip edilir, böylece kaynak ağacının dışında tutulan bir <code>.ts</code> gerçekte içerdiğine göre hash'lenir.
+        </p>
+        <p>
+          Bu, iki dosyanın da kendi kopyasını tanımlaması yerine bir tipin sahibinin shim olmasını mümkün kılar. Şekli shim'den export edin, Glyph modülünde import edin; derleyici her çalıştırmada ikisini birbirine bağlı tutar:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">src/extern/web.ts</span>
+<pre>export type WebResponse = {
+  status: number;
+  content_type: string;
+  location: string;   // "" when not a redirect
+  body: string;
+};</pre>
+        </div>
+        <div class="code">
+          <span class="cap">shim bir alanı yeniden adlandırdı, build bunu söylüyor</span>
+<pre>import extern/web { serve_web, WebResponse }
+
+<span class="cm">// location -&gt; redirect_to in web.ts, nothing
+// touched here, and glyph run stops:</span>
+<span class="del">[TS2353]</span> Object literal may only specify
+known properties, and 'location' does not
+exist in type 'WebResponse'.
+   ╰─ server:53:3</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          0.1.44'e kadar parmak izi <code>extern/</code>'i tamamen atlıyordu; dolayısıyla o yeniden adlandırma, shim'in önceki kopyasını çalıştıran temiz, tip kontrolünden geçmiş bir build üretiyordu. <code>extern/</code> altındaki <code>.ts</code> ya da <code>.tsx</code> olmayan dosyalar hâlâ önbelleği etkilemez ve bu bilinçli: shim'inizin yanındaki bir <code>README.md</code> onunla birlikte çıktıya kopyalanır, ama hiçbir şey onu tip kontrolünden geçirmez ya da çalıştırmaz, yani yeniden build alınacak bir şey yoktur.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Sınıf tabanlı istemciler: veritabanı ve mesajlaşma istemcileri</h2>
+        <p>
+          Çoğu veritabanı ve mesajlaşma istemcisi sınıf tabanlıdır: <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code> yazarsınız. Glyph'te tam olarak bunun için <code>new</code> var. Olduğu gibi bir TypeScript <code>new</code>'i üretir ve <code>tsc</code> onu paketin gerçek constructor'ına karşı kontrol eder; böylece yanlış bir argüman gerçek bir hatadır ve tanımsız bir çağrılan adıyla yakalanır. Yalnızca interop için kalır: Glyph'in kendine ait bir <code>class</code>'ı yoktur ve <code>new</code> yalnızca bir paketten, bir <code>.types</code> tanımından ya da <code>extern_ts</code>'ten gelen bir tipi oluşturur.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">sınıf tabanlı bir istemci (kafkajs)</span>
+<pre>import kafkajs { Kafka }
+
+let kafka = new Kafka({
+  clientId: "app",
+  brokers: ["localhost:9092"],
+})
+let producer = kafka.producer()
+await producer.connect()</pre>
+        </div>
+        <div class="code">
+          <span class="cap">bir factory istemcinin <code>new</code>'e ihtiyacı yok</span>
+<pre>import redis { createClient }
+
+// createClient() is a function, so you
+// just call it. No new, no wrapper.
+let client = createClient()
+await client.connect()
+await client.set("k", "v")</pre>
+        </div>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>Herhangi bir npm paketini import edin (tireli ve scope'lu isimler dahil). Kendi tiplerini getiren (ya da <code>@types/...</code> paketi olan) kurulu bir paket stub olmadan tip kontrolünden geçer ve çalışır. Sınıf tabanlı istemciler <code>new</code> ile oluşturulur ve <code>tsc</code> tarafından gerçek constructor'a karşı kontrol edilir; factory istemciler doğrudan import edilip çağrılır. Node yerleşikleri (<code>fs</code>, <code>path</code>, <code>http</code>, akış yapan <code>spawn</code> dahil <code>child_process</code> ve diğerleri) kutudan çıktığı gibi tip kontrolünden geçer; <code>@types/node</code>'u kurduğunuzda otomatik olarak yüklenir ve CI, derleyicinin kendi runtime'ını o paketin <code>latest</code> sürümüne karşı build eder; böylece stdlib'in bağlı olduğu bir tanım node'un gerçek tanımından ayrışamaz. Yalnızca sizin kodunuzun ulaştığı bir tanım henüz bu kontrolün kapsamında değil ve birkaçı hâlâ node'dakinden geniş. Diğer her şey için <code>.types/</code> ambient tanımları, bir <code>.d.ts</code> dosyasını doğrulanan Glyph tiplerine dönüştürmek için <code>glyph gen dts</code> ve mevcut TypeScript'inizin geri import ettiği temiz <code>.ts</code> çıktısı. Tamamen elle yazılmış TypeScript gerektiğinde <code>import extern/&lt;name&gt;</code>, <code>&lt;src&gt;/extern/</code> altındaki bir <code>.ts</code> dosyasına ulaşır; bu dosya kodunuzla birlikte kopyalanır ve tip kontrolünden geçer, <code>glyph run</code> önbelleği tarafından da izlenir, böylece onu düzenlemek yeniden build tetikler.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Yolda olanlar</h3>
+          <p>Üretim artık gerçek SDK'ların getirdiği şekilleri ele alıyor (namespace'ler, dosyalar arası ve takma adlı/namespace yeniden export'ları, alt yol <code>exports</code>'u ve birinci sınıf generic'ler) ve değerden türetilen tipler (<code>z.infer&lt;typeof s&gt;</code>) birinci sınıf. Kalan ana eksik şu: üretilmemiş bir paketin çıktıları <code>.d.ts</code>'ine karşı tip kontrolünden geçer, ama siz onları üretmedikçe çalışma zamanında doğrulanmaz. <code>extern/</code> tarafında kaynak kökü iki komut arasında farklıdır: <code>glyph run app.glyph</code> kökü dosyanın kendi dizinine koyar, <code>glyph build src/</code> ise adını verdiğiniz dizine. Dolayısıyla bir alt dizindeki program shim'ini iki farklı yerde arar ve biz tek bir kök seçene kadar, bu şekilde düzenlenmiş bir projede shim'in iki yerden de erişilebilir olması gerekir. Erişilemediğinde açıkça hata verir.</p>
+        </div>
+      </div>

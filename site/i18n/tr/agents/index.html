@@ -1,0 +1,127 @@
+---
+title: Ajanlar ve araç geliştiriciler için · Glyph
+description: Bir ajan Glyph ile nasıl çalışır: on bir araçlı bir MCP sunucusu, komut satırında aynı sorgular ve kırmızı bir build'i onarmak için glyph check --agent.
+source_hash: 74db8e3bf226ba57
+next_steps: |
+  Her parça ayrıntılı olarak
+  Buradan başlayın | /mcp/ | agents | MCP sunucusu | Kurulum, argümanlarıyla birlikte on bir araç, <code>glyph query</code> fiilleri ve sunucunun henüz yapmadıkları. | Sunucuyu kurun
+  /answers/ask-the-compiler/ | lookup | Ajanım derleyiciye bir sembolün ne olduğunu sorabilir mi? | <code>glyph_symbol</code>: bir union'ın durumları ve her birini oluşturan sözdizimi.
+  /answers/impact/ | impact | Derleyici bir değişikliğin neyi bozacağını önceden söyleyebilir mi? | Altı değişiklik türü, her yer için tek bir hüküm ve yukarıdaki csvql çalıştırmasının tamamı.
+  /answers/repair-protocol/ | repair | Başarısız bir build ajanıma nasıl düzelteceğini söylüyor mu? | <code>check --agent</code>, <code>glyph fix</code> ve gerçek çıktılarla adım adım bir anlatım.
+  /answers/generated-docs/ | docs | Ajanın dokümantasyonu üretiliyor mu? | <code>glyph llms</code>'in ne ürettiği, her sayının nereden geldiği ve hâlâ neyin eksik olduğu.
+  /answers/ai-authoring/ | spark | Bir yapay zekâ neredeyse hiç görmediği bir dili yazabilir mi? | TypeScript'ten neyin aynen geçtiği ve gerisini derleyicinin nasıl karşıladığı.
+---
+      <p class="q-eyebrow">Ajanlar ve araç geliştiriciler için</p>
+      <h1 class="q-title">Derleyicinin ajanlara yönelik arayüzü</h1>
+
+      <p class="short-answer">
+        Bir ajan Glyph derleyicisine bir sembolün ne olduğunu, bir düzenlemenin neyi bozacağını ve bir build'in neden başarısız olduğunu sorabilir ve JSON olarak yanıt alır. <code>glyph mcp</code>, stdio üzerinden on bir araç sunar; her biri aynı zamanda bir <code>glyph query</code> fiilidir. <code>glyph llms</code> ise dil referansını çevrimdışı yazdırır.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Kurulum</h2>
+        <p>
+          <code>glyph init</code> bu <code>.mcp.json</code> dosyasını yeni bir projeye yazar; <code>glyph agents</code> ise onu (<code>glyph llms</code>'i gösteren bir <code>AGENTS.md</code> ile birlikte) mevcut bir projeye yazar. Dosyayı okuyan herhangi bir MCP istemcisi sunucuyu başlatır; port da daemon da yoktur.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">.mcp.json, glyph init'in yazdığı hâliyle</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Tek bir çağrı ve gerçek yanıtı</h2>
+        <p>
+          Bir dosya, record'unun tanımlamadığı bir alanı okuyor (<code>u.naem</code>). Ajan <code>glyph_diagnostics</code>'i çağırır ve derleyicinin kendi diagnostic'ini, record'un tanımladığı alanlar ve bu alanların ait olduğu record ile birlikte alır. Bu, aracın 0.1.149'daki çıktısıdır; yalnızca işaretli yerlerde kırpıldı.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">istek</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": {
+      "path": "src/user.glyph"
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">sonuç</span>
+<pre>{
+  "diagnostics": [ {
+    "code": "E0210",
+    "severity": "error",
+    "stage": "typecheck",
+    "message": "type `U` has no field
+      `naem`; did you mean `name`?",
+    "alternatives": ["name", "email"],
+    "alternatives_kind": "fields",
+    "cause": "user::U",
+    "entity": "user::greet",
+    "file": "user.glyph",
+    "range": {
+      "start": { "line": 9, "col": 10 },
+      "end": { "line": 9, "col": 16 } },
+    ...
+  } ],
+  "member": true,
+  "module": "user",
+  "not_run": [
+    { "what": "tsc", ... },
+    { "what": "E0104, ...", ... },
+    { "what": "E0400, ...", ... } ],
+  "path": "src/user.glyph",
+  "project_root": "src",
+  "unindexed": []
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>not_run</code>, bu kontrolün neyi kapsamadığını söyler; böylece boş bir <code>diagnostics</code> listesi tam bir build ile karıştırılamaz. MCP istemcisi olmadan <code>glyph query diagnostics --path src/user.glyph</code> aynı JSON'u yazdırır. Tüm fiilleriyle birlikte tam araç listesi <a href="/mcp/">MCP sayfasında</a>.
+        </p>
+
+        <h2 class="block-label">Düzenlemeden önce: neyi bozacak?</h2>
+        <p>
+          <code>examples/apps/csvql</code>, dört durumlu bir union'a (<code>Value</code>) sahip, on bir dosyalık bir CSV sorgu motorudur. Beşinci bir durum eklemenin ne yapacağı sorulduğunda <code>glyph_impact</code>, 4 dosyada 10 <code>match</code> yeri listeler: 8 <code>WILL_FAIL</code> ve 2 <code>ABSORBS</code>; ikincisi, bir catch-all arm'ın yeni durumu yutacağı ve derlenmeye devam edeceği yerlerdir. Durumu gerçekten eklemek, tam olarak o 8 yerde 8 <code>E0200</code> hatası verir. Yutan 2 yer sessiz kalır; yanıtın onları adıyla belirtmesinin nedeni budur.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">aynı soru komut satırında</span>
+<pre>glyph query impact --path value.glyph --entity value::Value \
+  --change add_variant --variant Blob</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Kırmızı bir build'den sonra: düzeltme neyi korumalı?</h2>
+        <p>
+          <code>glyph check --agent</code>, <code>check --json</code>'un diagnostic'lerini her birine iki anahtar daha ekleyerek yazdırır. <code>constraints</code>, onarıcı bir düzenlemenin bozmaması gerekenleri listeler; yukarıdaki yazım hatası için "the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others" der. <code>symbols</code>, diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtını taşır, böylece sonraki düzenleme ikinci bir çağrıya ihtiyaç duymaz. Düzeltmenin tamamen belirli olduğu yerlerde <code>glyph fix</code> onu yazar.
+        </p>
+
+        <h2 class="block-label">Dili çevrimdışı okumak</h2>
+        <p>
+          <code>glyph llms</code> dil referansını yazdırır; bu sitedeki <code>/llms.txt</code> de aynı belgedir. <code>glyph llms --json</code>, derleyicinin kendi tablolarından okunan aynı bilgiyi veri olarak verir: 77 diagnostic kodu, 24 prelude ismi, 340 export içeren 40 stdlib modülü, 49 dil kararı ve on bir araç. <code>glyph llms --negative</code>, 0.1.149'da 117 hatalı program (sonraki sürümden itibaren 139) ve her birinin tetiklediği kodu döndürür; programlar siz istediğinizde derlenir. <code>scripts/check_llms_sync.py</code>, referanstaki diagnostic ve ayrılmış kelime tabloları derleyicinin kendi tablolarından saptığında başarısız olur.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">çevrimdışı giriş noktaları</span>
+<pre>glyph llms                  <span class="cm"># the reference, as prose</span>
+glyph llms --json           <span class="cm"># the same, as data from the compiler's tables</span>
+glyph llms --negative E0200 <span class="cm"># wrong programs that draw E0200</span>
+glyph --explain E0200       <span class="cm"># the long explanation of one code</span></pre>
+      </div>

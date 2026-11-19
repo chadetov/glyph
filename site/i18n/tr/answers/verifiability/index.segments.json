@@ -1,0 +1,1226 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/verifiability/index.html",
+  "locale": "tr",
+  "source_hash": "debac5501878fd3d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What stops an agent from silently breaking my code? · Glyph",
+      "tr": "Bir ajanın kodumu sessizce bozmasını ne engelliyor? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.",
+      "tr": "TypeScript'te derlenip sonra bozulan değişiklikler, örneğin eksik bir durum, ele alınmamış bir hata ya da adı değiştirilmiş bir alan, Glyph'te ajanın düzeltmek zorunda olduğu derleme hatalarıdır."
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?"
+    },
+    {
+      "id": "h-817ec091",
+      "kind": "html",
+      "en": "01 &middot; The core promise",
+      "tr": "01 &middot; Temel vaat"
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "Bir ajanın kodumu sessizce bozmasını ne engelliyor?"
+    },
+    {
+      "id": "h-8860267a",
+      "kind": "html",
+      "en": "A whole class of change that <strong>quietly compiles</strong> in TypeScript (a missing case, an unhandled error, a renamed field) becomes a <strong>compile error the agent has to fix before it can ship</strong>.",
+      "tr": "TypeScript'te <strong>sessizce derlenen</strong> bütün bir değişiklik sınıfı (eksik bir durum, ele alınmamış bir hata, adı değiştirilmiş bir alan), <strong>ajanın yayına almadan önce düzeltmek zorunda olduğu bir derleme hatasına</strong> dönüşür."
+    },
+    {
+      "id": "h-0dca38d0",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.ts</span> one new state, no other edit",
+      "tr": "<span class=\"ak-lang\">status.ts</span> yeni bir durum, başka hiçbir düzenleme yok"
+    },
+    {
+      "id": "h-a7fd8366",
+      "kind": "html",
+      "en": "tsc --strict: passes, prints undefined",
+      "tr": "tsc --strict: geçer, undefined yazdırır"
+    },
+    {
+      "id": "h-df578f1c",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.glyph</span> one new variant, and the compiler finds every gap",
+      "tr": "<span class=\"ak-lang\">status.glyph</span> yeni bir variant ve derleyici her açığı buluyor"
+    },
+    {
+      "id": "h-f12dfbd8",
+      "kind": "html",
+      "en": "refused: E0200",
+      "tr": "reddedildi: E0200"
+    },
+    {
+      "id": "h-dddaf308",
+      "kind": "html",
+      "en": "glyph check --no-tsc, 0.1.149 (excerpt)",
+      "tr": "glyph check --no-tsc, 0.1.149 (alıntı)"
+    },
+    {
+      "id": "h-b4036960",
+      "kind": "html",
+      "en": "<span>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update. The equivalent TypeScript <code>switch</code> compiles clean and returns <code>undefined</code> at runtime.</span>",
+      "tr": "<span>Bir union'a bir durum ekleyin; eski kümeyi ele alan her yer derlenmez hâle gelir ve güncellenmesi gereken noktayı tam olarak gösterir. Eşdeğer TypeScript <code>switch</code>'i temiz derlenir ve çalışma zamanında <code>undefined</code> döndürür.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Neden önemli</a>"
+    },
+    {
+      "id": "h-493ba471",
+      "kind": "html",
+      "en": "<a href=\"#errors\">Errors</a>",
+      "tr": "<a href=\"#errors\">Hatalar</a>"
+    },
+    {
+      "id": "h-299aad85",
+      "kind": "html",
+      "en": "<a href=\"#typos\">Typos in arms</a>",
+      "tr": "<a href=\"#typos\">Arm'lardaki yazım hataları</a>"
+    },
+    {
+      "id": "h-f1f1c9bc",
+      "kind": "html",
+      "en": "<a href=\"#imports\">Across modules</a>",
+      "tr": "<a href=\"#imports\">Modüller arasında</a>"
+    },
+    {
+      "id": "h-ef1ba415",
+      "kind": "html",
+      "en": "<a href=\"#refinements\">Refinements</a>",
+      "tr": "<a href=\"#refinements\">Refinement'lar</a>"
+    },
+    {
+      "id": "h-736c66f8",
+      "kind": "html",
+      "en": "<a href=\"#examples\">Tests in the build</a>",
+      "tr": "<a href=\"#examples\">Build içindeki testler</a>"
+    },
+    {
+      "id": "h-1af522cc",
+      "kind": "html",
+      "en": "<a href=\"#four-more-found-by-building-with-it\">Found by building</a>",
+      "tr": "<a href=\"#four-more-found-by-building-with-it\">Kullanırken bulunanlar</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Şu anki durum</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-32dffb36",
+      "kind": "html",
+      "en": "Agents don't usually break code loudly. They break it <strong>confidently</strong>: they add a state, drop a branch, or rename a field, everything still type-checks, and the bug surfaces in production.",
+      "tr": "Ajanlar kodu genellikle gürültülü bir şekilde bozmaz. <strong>Kendinden emin</strong> bir şekilde bozarlar: bir durum eklerler, bir dalı düşürürler ya da bir alanın adını değiştirirler; her şey hâlâ tip kontrolünden geçer ve hata production'da ortaya çıkar."
+    },
+    {
+      "id": "h-593cf2d6",
+      "kind": "html",
+      "en": "The expensive failures are the ones that <em>compiled and were wrong</em>. Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into &ldquo;the compiler proved you did.&rdquo;",
+      "tr": "Pahalı başarısızlıklar, <em>derlenmiş ve yanlış olanlardır</em>. Glyph bu açığı &ldquo;muhtemelen bunu ele aldın&rdquo; durumunu &ldquo;derleyici ele aldığını kanıtladı&rdquo; durumuna çevirerek kapatır."
+    },
+    {
+      "id": "h-7c47ac02",
+      "kind": "html",
+      "en": "<b>Sealed unions</b>Tagged unions are <strong>sealed</strong>, so <code>match</code> must cover every case.",
+      "tr": "<b>Mühürlü union'lar</b>Tagged union'lar <strong>mühürlüdür</strong>, bu yüzden <code>match</code> her durumu kapsamak zorundadır."
+    },
+    {
+      "id": "h-a732dd83",
+      "kind": "html",
+      "en": "<b>Errors as values</b>Errors are <strong>values</strong> you have to unwrap, not exceptions that vanish.",
+      "tr": "<b>Değer olarak hatalar</b>Hatalar, kaybolup giden exception'lar değil, açmak zorunda olduğunuz <strong>değerlerdir</strong>."
+    },
+    {
+      "id": "h-7cc9aefc",
+      "kind": "html",
+      "en": "<b>Checked boundaries</b>And every type carries a runtime descriptor, so data crossing a boundary is checked against its shape.",
+      "tr": "<b>Kontrol edilen sınırlar</b>Ve her tip bir çalışma zamanı descriptor'ı taşır; böylece bir sınırı geçen veri kendi biçimine karşı kontrol edilir."
+    },
+    {
+      "id": "h-9e145fb3",
+      "kind": "html",
+      "en": "A dropped error is a warning",
+      "tr": "Düşürülen bir hata bir uyarıdır"
+    },
+    {
+      "id": "h-a0f7e838",
+      "kind": "html",
+      "en": "Same for errors: a function that returns <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or propagated with <code>?</code> (and the compiler checks the error type lines up). And if you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure.",
+      "tr": "Hatalar için de aynısı geçerli: <code>Result&lt;T, E&gt;</code> döndüren bir fonksiyon <code>match</code> ile ele alınmak ya da <code>?</code> ile yukarı iletilmek için vardır (ve derleyici hata tipinin uyuştuğunu kontrol eder). Bir <code>Result</code>'ı yere <em>düşürürseniz</em> (deyim olarak çağırıp döndürdüğünü yok sayarsanız), Glyph sizi uyarır (<code>E0217</code>), çünkü atılan bir hata yutulmuş bir başarısızlıktır."
+    },
+    {
+      "id": "h-3c7c9444",
+      "kind": "html",
+      "en": "You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "Onu kazara değil, ancak bilerek <code>let _ = ...</code> ile susturursunuz."
+    },
+    {
+      "id": "h-4faa036c",
+      "kind": "html",
+      "en": "The standard library's unions are sealed too",
+      "tr": "Standart kütüphanenin union'ları da mühürlü"
+    },
+    {
+      "id": "h-ac5ad03f",
+      "kind": "html",
+      "en": "The bar is the same for a union the standard library owns. <code>fs.ErrorKind</code> is a closed set of six kinds, and the checker knows its shape, so <code>match e.kind</code> on a filesystem error needs no <code>else</code> arm and fails with <code>E0200</code> when you leave a kind out.",
+      "tr": "Standart kütüphaneye ait bir union için de çıta aynı. <code>fs.ErrorKind</code> altı türden oluşan kapalı bir kümedir ve checker onun biçimini bilir; dolayısıyla bir dosya sistemi hatası üzerindeki <code>match e.kind</code>'ın <code>else</code> arm'ına ihtiyacı yoktur ve bir türü dışarıda bıraktığınızda <code>E0200</code> ile başarısız olur."
+    },
+    {
+      "id": "h-d6bf3201",
+      "kind": "html",
+      "en": "E0200 missing kind",
+      "tr": "E0200 eksik tür"
+    },
+    {
+      "id": "h-82c9da4e",
+      "kind": "html",
+      "en": "E0210 unknown field",
+      "tr": "E0210 bilinmeyen alan"
+    },
+    {
+      "id": "h-b365b66a",
+      "kind": "html",
+      "en": "E0218 needs else",
+      "tr": "E0218 else gerekli"
+    },
+    {
+      "id": "h-68b00f6d",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">field typos, return types, number and string matches</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">alan yazım hataları, dönüş tipleri, number ve string match'leri</span>"
+    },
+    {
+      "id": "h-0469c431",
+      "kind": "html",
+      "en": "<code>e.mesage</code> is <code>E0210</code> rather than something <code>tsc</code> catches downstream. Return types travel too: <code>string.split(text, \",\")</code> is an <code>Array&lt;string&gt;</code>, so <code>for i, part in string.split(text, \",\")</code> binds <code>i</code> as a number instead of the string key you'd get from an untyped iterand.",
+      "tr": "<code>e.mesage</code>, <code>tsc</code>'nin daha sonra yakaladığı bir şey değil, <code>E0210</code>'dur. Dönüş tipleri de taşınır: <code>string.split(text, \",\")</code> bir <code>Array&lt;string&gt;</code>'dir; dolayısıyla <code>for i, part in string.split(text, \",\")</code>, <code>i</code>'yi tipsiz bir yineleme kaynağından alacağınız string key yerine bir sayı olarak bağlar."
+    },
+    {
+      "id": "h-50f9d186",
+      "kind": "html",
+      "en": "Exhaustiveness isn't just for unions. A <code>match</code> on a <code>number</code> or <code>string</code> with only literal arms can't cover an unbounded domain, so Glyph requires an <code>else</code> (<code>E0218</code>) rather than letting the uncovered value fall through to a runtime throw.",
+      "tr": "Kapsam kontrolü yalnızca union'lar için değil. Yalnızca literal arm'ları olan bir <code>number</code> ya da <code>string</code> üzerindeki <code>match</code> sınırsız bir değer kümesini kapsayamaz; bu yüzden Glyph, kapsanmayan değerin çalışma zamanında bir throw'a düşmesine izin vermek yerine bir <code>else</code> ister (<code>E0218</code>)."
+    },
+    {
+      "id": "h-bf2adc90",
+      "kind": "html",
+      "en": "The rule is the same everywhere: a <code>match</code> that doesn't account for a case doesn't compile.",
+      "tr": "Kural her yerde aynı: bir durumu hesaba katmayan bir <code>match</code> derlenmez."
+    },
+    {
+      "id": "h-94ceef2f",
+      "kind": "html",
+      "en": "A misspelled arm is a gap, not a catch-all",
+      "tr": "Yanlış yazılmış bir arm bir açıktır, catch-all değil"
+    },
+    {
+      "id": "h-325a109d",
+      "kind": "html",
+      "en": "A typo can't quietly paper over a gap either. A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding.",
+      "tr": "Bir yazım hatası da bir açığı sessizce örtemez. Büyük harfle başlayan bir arm başı yeni bir binding değil, <strong>bir variant'a referanstır</strong>."
+    },
+    {
+      "id": "h-81a2cb84",
+      "kind": "html",
+      "en": "status.glyph: a misspelled arm is a gap, not a catch-all",
+      "tr": "status.glyph: yanlış yazılmış bir arm bir açıktır, catch-all değil"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-1111b2dc",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what older Glyph did with the typo</span>",
+      "tr": "Geçmiş <span class=\"hint\">eski Glyph'in yazım hatasıyla ne yaptığı</span>"
+    },
+    {
+      "id": "h-35c640dd",
+      "kind": "html",
+      "en": "A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding, so if you misspell <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a catch-all that bound every value and made the match look total. Now the head has to name a real variant of the union you're matching. When it doesn't, the build stops with <code>E0220</code> and points at the nearest real name, and the variant you actually skipped still shows up as <code>E0200</code> right next to it.",
+      "tr": "Büyük harfle başlayan bir arm başı yeni bir binding değil, <strong>bir variant'a referanstır</strong>; eski Glyph, <code>Loading</code>'i <code>Loadign</code> olarak yanlış yazarsanız bu hatalı yazımı her değeri bağlayan bir catch-all olarak okuyor ve match'i eksiksiz gösteriyordu. Artık baş, eşleştirdiğiniz union'ın gerçek bir variant'ını adlandırmak zorunda. Adlandırmadığında build <code>E0220</code> ile durur ve en yakın gerçek ismi gösterir; gerçekten atladığınız variant da hemen yanında <code>E0200</code> olarak görünmeye devam eder."
+    },
+    {
+      "id": "h-e45746f9",
+      "kind": "html",
+      "en": "Variants inside a payload",
+      "tr": "Payload içindeki variant'lar"
+    },
+    {
+      "id": "h-4e9c7c14",
+      "kind": "html",
+      "en": "That reading holds one level down, where the variant is the payload of another one. The arm now dispatches on the payload's own tag, whatever the outer variant is.",
+      "tr": "Bu okuma bir seviye aşağıda, variant'ın başka bir variant'ın payload'ı olduğu yerde de geçerli. Arm artık dıştaki variant ne olursa olsun payload'ın kendi tag'ine göre dallanıyor."
+    },
+    {
+      "id": "h-5f78059f",
+      "kind": "html",
+      "en": "repl.glyph: the inner arm tests the payload, it doesn't bind it",
+      "tr": "repl.glyph: içteki arm payload'ı test eder, onu bağlamaz"
+    },
+    {
+      "id": "h-e29806a9",
+      "kind": "html",
+      "en": "E0305 duplicate case label",
+      "tr": "E0305 yinelenen case etiketi"
+    },
+    {
+      "id": "h-a9f4ca6a",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the dead arm before 0.1.93, and the E0305 guard</span>",
+      "tr": "Geçmiş <span class=\"hint\">0.1.93 öncesindeki ölü arm ve E0305 koruması</span>"
+    },
+    {
+      "id": "h-6b579450",
+      "kind": "html",
+      "en": "<code>Err(Blank)</code> beside <code>Err(e)</code> reads as \"ignore a blank line, print every other parse error\", and until 0.1.93 it compiled to two <code>case \"Err\":</code> labels on the outer tag whose first bound the whole payload under the name <code>Blank</code>. Every error took the first arm, the second was dead code, and nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> accepts a duplicate case label. The arm now dispatches on the payload's own tag, whatever the outer variant is, and the compiler reads the name the way the typechecker does: the payload union's own variant list decides, and only when that list is out of reach does the name's shape decide. For a union declared in the same file the capitalization no longer matters. For one imported from another module the variant list is out of reach today, so a capitalized variant dispatches and a lowercase one stops the build.",
+      "tr": "<code>Err(e)</code>'nin yanındaki <code>Err(Blank)</code>, \"boş bir satırı yok say, diğer her parse hatasını yazdır\" diye okunur ve 0.1.93'e kadar dıştaki tag üzerinde iki <code>case \"Err\":</code> etiketine derleniyordu; bunlardan ilki payload'ın tamamını <code>Blank</code> adıyla bağlıyordu. Her hata ilk arm'a gidiyor, ikincisi ölü kod oluyordu ve bunu söyleyen hiçbir şey yoktu: Glyph hiçbir diagnostic bildirmiyordu ve <code>tsc --strict</code> yinelenen bir case etiketini kabul ediyor. Arm artık dıştaki variant ne olursa olsun payload'ın kendi tag'ine göre dallanıyor ve derleyici ismi typechecker'ın okuduğu gibi okuyor: karar payload union'ının kendi variant listesine aittir; yalnızca o listeye ulaşılamadığında ismin biçimi karar verir. Aynı dosyada tanımlanmış bir union için büyük/küçük harf artık önemli değil. Başka bir modülden import edilen bir union için variant listesine bugün ulaşılamıyor; bu yüzden büyük harfle başlayan bir variant dallanır, küçük harfle başlayan ise build'i durdurur."
+    },
+    {
+      "id": "h-2bcf741d",
+      "kind": "html",
+      "en": "It stops because the switch is guarded now. Two arms that would write the same <code>case</code> label are <code>E0305</code>, not a switch whose second label can never run. That is what makes the class loud instead of silent: a lowering that reaches for the same tag twice fails the build rather than picking the wrong arm at run time.",
+      "tr": "Durdurur, çünkü switch artık korunuyor. Aynı <code>case</code> etiketini yazacak iki arm, ikinci etiketi asla çalışamayacak bir switch değil, <code>E0305</code>'tir. Bu sınıfı sessiz değil gürültülü yapan da bu: aynı tag'e iki kez uzanan bir dönüştürme, çalışma zamanında yanlış arm'ı seçmek yerine build'i başarısız kılar."
+    },
+    {
+      "id": "h-5ae4d2b0",
+      "kind": "html",
+      "en": "Import spelling never turns the check off",
+      "tr": "Import yazımı kontrolü asla kapatmaz"
+    },
+    {
+      "id": "h-cf742b0d",
+      "kind": "html",
+      "en": "How the union got into scope doesn't change any of this. Glyph lets you write a variant arm two ways, and both are checked the same: <code>import model { Cond, Yes, No }</code> with bare arms, or <code>import model</code> (or <code>import model as m</code>) with <code>model.Yes(_)</code>.",
+      "tr": "Union'ın kapsama nasıl girdiği bunların hiçbirini değiştirmez. Glyph bir variant arm'ını iki şekilde yazmanıza izin verir ve ikisi de aynı şekilde kontrol edilir: çıplak arm'larla <code>import model { Cond, Yes, No }</code> ya da <code>model.Yes(_)</code> ile <code>import model</code> (veya <code>import model as m</code>)."
+    },
+    {
+      "id": "h-a5be5f60",
+      "kind": "html",
+      "en": "interp.glyph: the import list came out, the match is still checked",
+      "tr": "interp.glyph: import listesi kaldırıldı, match hâlâ kontrol ediliyor"
+    },
+    {
+      "id": "h-1efde9fe",
+      "kind": "html",
+      "en": "glyph build, after deleting the last arm",
+      "tr": "glyph build, son arm silindikten sonra"
+    },
+    {
+      "id": "h-f2895549",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">standard library unions, string enums, and why the list existed</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">standart kütüphane union'ları, string enum'lar ve listenin neden var olduğu</span>"
+    },
+    {
+      "id": "h-d10dc4ff",
+      "kind": "html",
+      "en": "That holds for the standard library's unions too, so <code>match o { option.Some(s) =&gt; … }</code> on an <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling is. Until 0.1.56 the qualified spelling skipped the check entirely and the build reported no diagnostics on a match that threw at run time.",
+      "tr": "Bu standart kütüphanenin union'ları için de geçerli; dolayısıyla bir <code>option.Option&lt;string&gt;</code> üzerinde <code>match o { option.Some(s) =&gt; … }</code>, çıplak <code>Some</code>/<code>None</code> yazımında olduğu gibi eksik <code>None</code> için <code>E0200</code>'dür. 0.1.56'ya kadar nitelikli yazım kontrolü tamamen atlıyordu ve build, çalışma zamanında throw eden bir match üzerinde hiçbir diagnostic bildirmiyordu."
+    },
+    {
+      "id": "h-947faa47",
+      "kind": "html",
+      "en": "A string enum crosses the boundary too. <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> declared in <code>catalog.glyph</code> and imported into another module keeps its four values, so a match covering all four compiles with no <code>else</code>, and dropping one is <code>E0200</code> naming the value you dropped. Until 0.1.57 it was <code>E0218</code>, with help text telling you to add an <code>else</code> arm. That help was wrong about the code in front of it, and taking it turned a compile error into a runtime fallthrough. All three import spellings work: <code>import catalog { ColType }</code>, <code>import catalog</code> with <code>catalog.ColType</code>, and <code>import catalog as c</code> with <code>c.ColType</code>.",
+      "tr": "Bir string enum da sınırı geçer. <code>catalog.glyph</code> içinde tanımlanıp başka bir modüle import edilen <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> dört değerini korur; dolayısıyla dördünü de kapsayan bir match <code>else</code> olmadan derlenir, birini düşürmek ise düşürdüğünüz değeri adlandıran <code>E0200</code>'dür. 0.1.57'ye kadar bu, bir <code>else</code> arm'ı eklemenizi söyleyen yardım metniyle birlikte <code>E0218</code>'di. O yardım, önündeki kod hakkında yanlıştı ve ona uymak bir derleme hatasını çalışma zamanında bir fallthrough'a çeviriyordu. Üç import yazımı da çalışıyor: <code>import catalog { ColType }</code>, <code>catalog.ColType</code> ile <code>import catalog</code> ve <code>c.ColType</code> ile <code>import catalog as c</code>."
+    },
+    {
+      "id": "h-1a86b4ae",
+      "kind": "html",
+      "en": "That import list is where this came from. It was written by hand in every module of a statechart engine, with a comment above it saying a union's constructors don't arrive with its type. The comment was right about the syntax and wrong about the reason: the list was there because the shorter spelling turned the check off, and nobody had noticed, because turning it off is silent. Which form you pick is now a real choice rather than a trap. The named one puts every variant you handle in the import list, which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one says at each arm which module the variant came from. Neither costs you the check.",
+      "tr": "Bu import listesi işin çıktığı yer. Bir statechart motorunun her modülünde elle yazılmıştı ve üstünde, bir union'ın constructor'larının tipiyle birlikte gelmediğini söyleyen bir yorum vardı. Yorum sözdizimi konusunda haklı, neden konusunda haksızdı: liste oradaydı çünkü daha kısa yazım kontrolü kapatıyordu ve kimse fark etmemişti, çünkü kapanması sessizdi. Hangi biçimi seçtiğiniz artık bir tuzak değil, gerçek bir tercih. İsimli biçim, ele aldığınız her variant'ı import listesine koyar; <code>Equals</code> için bir <code>grep</code>'in bulduğu da budur. Nitelikli biçim ise her arm'da variant'ın hangi modülden geldiğini söyler. İkisi de size kontrolü kaybettirmez."
+    },
+    {
+      "id": "h-5d24c15d",
+      "kind": "html",
+      "en": "Imported records keep their fields",
+      "tr": "Import edilen record'lar alanlarını korur"
+    },
+    {
+      "id": "h-22710d78",
+      "kind": "html",
+      "en": "Records cross now too, and until 0.1.58 they did not. A record therefore keeps its field set, and a bad field is <code>E0210</code> naming the record rather than a <code>tsc</code> error about an anonymous shape.",
+      "tr": "Artık record'lar da sınırı geçiyor; 0.1.58'e kadar geçmiyordu. Bu nedenle bir record alan kümesini korur ve hatalı bir alan, anonim bir biçim hakkında bir <code>tsc</code> hatası değil, record'ı adlandıran bir <code>E0210</code>'dur."
+    },
+    {
+      "id": "h-7282177b",
+      "kind": "html",
+      "en": "glyph build, on a typo'd field of an imported record",
+      "tr": "glyph build, import edilen bir record'ın yanlış yazılmış alanı üzerinde"
+    },
+    {
+      "id": "h-e3755b2b",
+      "kind": "html",
+      "en": "table.glyph: the hoists and the comment explaining them are gone",
+      "tr": "table.glyph: hoist'ler ve onları açıklayan yorum gitti"
+    },
+    {
+      "id": "h-7255646a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the line 11 bug, what tsc misses, how identity crosses</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">11. satır hatası, tsc'nin kaçırdıkları, kimliğin sınırı nasıl geçtiği</span>"
+    },
+    {
+      "id": "h-14cf6d10",
+      "kind": "html",
+      "en": "A type declared in one file and used in another arrived with nothing known about it, which cost two separate checks. A misspelled field on it drew no Glyph error at all, so <code>sheet.rowz</code> fell through to <code>tsc</code> and came back as a TypeScript message about a shape you never wrote. And <code>for i, r in sheet.rows</code> could not tell that <code>rows</code> was an array, so it emitted <code>Object.entries(sheet.rows)</code> rather than <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string <code>\"0\"</code>. <code>i + 1</code> then concatenates instead of adding, and a row that should be reported as <code>line 2</code> reports as <code>line 11</code>.",
+      "tr": "Bir dosyada tanımlanıp başka bir dosyada kullanılan bir tip, hakkında hiçbir şey bilinmeden geliyordu ve bu iki ayrı kontrole mal oluyordu. Üzerindeki yanlış yazılmış bir alan hiçbir Glyph hatası almıyordu; böylece <code>sheet.rowz</code> <code>tsc</code>'ye düşüyor ve hiç yazmadığınız bir biçim hakkında bir TypeScript mesajı olarak geri geliyordu. Ayrıca <code>for i, r in sheet.rows</code>, <code>rows</code>'un bir dizi olduğunu anlayamıyordu; bu yüzden <code>sheet.rows.entries()</code> yerine <code>Object.entries(sheet.rows)</code> üretiyordu. Bu da <code>i</code>'yi <code>\"0\"</code> string'ine bağlar. Ardından <code>i + 1</code> toplamak yerine birleştirir ve <code>line 2</code> olarak bildirilmesi gereken bir satır <code>line 11</code> olarak bildirilir."
+    },
+    {
+      "id": "h-9abff4c5",
+      "kind": "html",
+      "en": "The part worth knowing is which half <code>tsc</code> catches. Arithmetic on that index it does catch, though it reports the error against generated TypeScript for a variable Glyph bound on your behalf. What it cannot catch is every place a string is accepted where a number was meant: string interpolation, concatenation, a <code>record.get</code> key. Those compile clean under both checkers and print the wrong number. That is the shape of bug this project exists to remove, so a module boundary that reintroduces it is not a boundary Glyph can leave alone.",
+      "tr": "Bilinmeye değer kısım, <code>tsc</code>'nin hangi yarıyı yakaladığı. O index üzerindeki aritmetiği yakalıyor, ama hatayı Glyph'in sizin adınıza bağladığı bir değişken için üretilen TypeScript'e göre bildiriyor. Yakalayamadığı ise bir sayı kastedilen yerde bir string'in kabul edildiği her yer: string interpolasyonu, birleştirme, bir <code>record.get</code> key'i. Bunlar iki checker altında da temiz derlenir ve yanlış sayıyı yazdırır. Bu proje tam olarak bu tür hataları ortadan kaldırmak için var; dolayısıyla onları yeniden getiren bir modül sınırı, Glyph'in kendi hâline bırakabileceği bir sınır değil."
+    },
+    {
+      "id": "h-458dd926",
+      "kind": "html",
+      "en": "An imported type now carries an identity across the boundary, keyed on the module that declares it and the name it declares, so all three import spellings resolve to the same type. The declaration itself is fetched on demand and lowered on the declaring module's side, which is the half a consumer cannot do: resolution runs over spans, and an imported declaration's spans belong to another file.",
+      "tr": "Import edilen bir tip artık sınırın ötesine bir kimlik taşıyor; bu kimlik onu tanımlayan modüle ve tanımladığı isme göre anahtarlanıyor, böylece üç import yazımı da aynı tipe çözülüyor. Tanımın kendisi ihtiyaç duyulduğunda getiriliyor ve tanımlayan modülün tarafında dönüştürülüyor; bu, bir tüketicinin yapamayacağı yarı: çözümleme span'ler üzerinde çalışır ve import edilmiş bir tanımın span'leri başka bir dosyaya aittir."
+    },
+    {
+      "id": "h-056c35df",
+      "kind": "html",
+      "en": "The query engine in <code>examples/apps/csvql</code> is where this surfaced. It carried three <code>let</code> hoists whose only job was to restate an imported field's type for the emitter, under a four-line comment explaining that without them the row and column numbers in an error message come out wrong. All three are deleted and the app prints byte-identical output for all twelve queries.",
+      "tr": "Bunun ortaya çıktığı yer <code>examples/apps/csvql</code> içindeki sorgu motoru. Tek işi import edilmiş bir alanın tipini emitter için yeniden belirtmek olan üç <code>let</code> hoist'i taşıyordu; üstünde de onlar olmadan bir hata mesajındaki satır ve sütun numaralarının yanlış çıktığını açıklayan dört satırlık bir yorum vardı. Üçü de silindi ve uygulama on iki sorgunun tamamı için bayt bayt aynı çıktıyı yazdırıyor."
+    },
+    {
+      "id": "h-16e56e8c",
+      "kind": "html",
+      "en": "One thing still stops at the boundary. Passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is E0211 naming both types, but an <code>interface</code>'s member list does not cross, so a record passed where an imported interface is expected is compared against nothing. Giving it the treatment a record's field set gets would quietly change what structural satisfaction means, which is a language decision rather than a fix.",
+      "tr": "Bir şey hâlâ sınırda duruyor. Bir <code>table.Row</code> beklenen yere bir <code>catalog.Sheet</code> geçmek, iki tipi de adlandıran E0211'dir; ama bir <code>interface</code>'in üye listesi sınırı geçmiyor, dolayısıyla import edilmiş bir interface beklenen yere geçirilen bir record hiçbir şeyle karşılaştırılmıyor. Ona bir record'ın alan kümesinin gördüğü muameleyi vermek, yapısal uyumun anlamını sessizce değiştirirdi; bu bir düzeltme değil bir dil kararı."
+    },
+    {
+      "id": "h-6834f6ea",
+      "kind": "html",
+      "en": "PII masking lives on the type",
+      "tr": "PII maskeleme tipin üzerinde yaşar"
+    },
+    {
+      "id": "h-e74ab1dc",
+      "kind": "html",
+      "en": "The same \"make it type-level, not convention\" instinct covers PII. Put <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a <code>redact()</code> on its descriptor that masks those fields, so <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "Aynı \"konvansiyon değil, tip düzeyinde yap\" içgüdüsü PII'yi de kapsıyor. Bir tipin üzerine <code>@redact fields: [ssn, dob]</code> koyun; derleyici descriptor'ı üzerinde bu alanları maskeleyen bir <code>redact()</code> üretir, böylece <code>json.stringify(User.redact(u))</code> onları sızdıramaz."
+    },
+    {
+      "id": "h-13194d57",
+      "kind": "html",
+      "en": "E0219 unknown field in @redact",
+      "tr": "E0219 @redact içinde bilinmeyen alan"
+    },
+    {
+      "id": "h-a3dc9bf7",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently does nothing.",
+      "tr": "Tipin sahip olmadığı bir alanı adlandırırsanız bu, sessizce hiçbir şey yapmayan bir maskeleme değil, bir derleme hatasıdır (<code>E0219</code>)."
+    },
+    {
+      "id": "h-f83eef70",
+      "kind": "html",
+      "en": "Refinements are checked all the way down",
+      "tr": "Refinement'lar en alta kadar kontrol edilir"
+    },
+    {
+      "id": "h-4f2c9d8a",
+      "kind": "html",
+      "en": "A descriptor is only worth anything if it's the check the type declares, all the way down. A <code>where</code> refinement runs its predicate wherever the type appears, not just at a direct <code>Instant.parse</code>: as a record field, as an <code>Array</code> element, as an <code>Option</code> payload, inside a union variant, and through <code>json.parse&lt;T&gt;</code>.",
+      "tr": "Bir descriptor ancak tipin bildirdiği kontrolü en alta kadar yapıyorsa bir işe yarar. Bir <code>where</code> refinement'ı, koşulunu yalnızca doğrudan bir <code>Instant.parse</code>'ta değil, tipin göründüğü her yerde çalıştırır: bir record alanı olarak, bir <code>Array</code> elemanı olarak, bir <code>Option</code> payload'ı olarak, bir union variant'ının içinde ve <code>json.parse&lt;T&gt;</code> üzerinden."
+    },
+    {
+      "id": "a-9d24b993",
+      "kind": "attr:aria-label",
+      "en": "Where the predicate runs",
+      "tr": "Koşulun çalıştığı yer"
+    },
+    {
+      "id": "h-cc2d34d0",
+      "kind": "html",
+      "en": "<span>Calendar</span>",
+      "tr": "<span>Calendar</span>"
+    },
+    {
+      "id": "h-ff1a5c12",
+      "kind": "html",
+      "en": "<span>busy</span>",
+      "tr": "<span>busy</span>"
+    },
+    {
+      "id": "h-6f5019a2",
+      "kind": "html",
+      "en": "<span>start</span>",
+      "tr": "<span>start</span>"
+    },
+    {
+      "id": "h-b466db9f",
+      "kind": "html",
+      "en": "<span>The fix is four levels down from the boundary: <code>Calendar</code> to <code>Array&lt;WireParticipant&gt;</code> to <code>busy</code> to <code>start</code> to the predicate.</span>",
+      "tr": "<span>Düzeltme sınırdan dört seviye aşağıda: <code>Calendar</code>'dan <code>Array&lt;WireParticipant&gt;</code>'a, oradan <code>busy</code>'ye, <code>start</code>'a ve koşula.</span>"
+    },
+    {
+      "id": "h-b717ddb6",
+      "kind": "html",
+      "en": "schedule.glyph: the predicate follows the type into the field",
+      "tr": "schedule.glyph: koşul tipi alanın içine kadar takip eder"
+    },
+    {
+      "id": "h-db3eb4df",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the confident wrong schedule before 0.1.41</span>",
+      "tr": "Geçmiş <span class=\"hint\">0.1.41 öncesindeki kendinden emin yanlış takvim</span>"
+    },
+    {
+      "id": "h-26ea0f9a",
+      "kind": "html",
+      "en": "The same goes for a record imported from another module. Until 0.1.41 both of those fell back to checking that the key was present, which is not a check of anything.",
+      "tr": "Başka bir modülden import edilen bir record için de aynısı geçerli. 0.1.41'e kadar ikisi de key'in var olup olmadığını kontrol etmeye geri düşüyordu; bu da hiçbir şeyin kontrolü değil."
+    },
+    {
+      "id": "h-32933c95",
+      "kind": "html",
+      "en": "The scheduling app below is where this surfaced. It reads calendars from a JSON file and needs every timestamp to be a real ISO-8601 instant. Before, the refinement stopped at the top level, so a hand-edited file with <code>\"start\": \"no\"</code> parsed fine, the instant read as 0, and the app printed a confident schedule and exited 0.",
+      "tr": "Bunun ortaya çıktığı yer aşağıdaki takvim planlama uygulaması. Takvimleri bir JSON dosyasından okuyor ve her zaman damgasının gerçek bir ISO-8601 anı olmasına ihtiyaç duyuyor. Önceden refinement üst düzeyde duruyordu; bu yüzden <code>\"start\": \"no\"</code> içeren elle düzenlenmiş bir dosya sorunsuz parse ediliyor, an 0 olarak okunuyor ve uygulama kendinden emin bir takvim yazdırıp 0 ile çıkıyordu."
+    },
+    {
+      "id": "h-e0b0c6e0",
+      "kind": "html",
+      "en": "Tests run as part of the build",
+      "tr": "Testler build'in parçası olarak çalışır"
+    },
+    {
+      "id": "h-8f68e695",
+      "kind": "html",
+      "en": "Tests live next to the code and run as part of compiling it. An <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.",
+      "tr": "Testler kodun yanında yaşar ve onu derlemenin bir parçası olarak çalışır. Bir fonksiyonun üstündeki bir <code>@example</code> ya da bir <code>@doc</code> içindeki bir <code>```glyph @run```</code> bloğu, hatırlamanız gereken bir flag olmadan <code>glyph build</code> tarafından çalıştırılır."
+    },
+    {
+      "id": "h-a935d52f",
+      "kind": "html",
+      "en": "bracket.glyph: break the seeding and the build stops",
+      "tr": "bracket.glyph: seeding'i bozun, build durur"
+    },
+    {
+      "id": "h-9fb096f6",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why it can't be skipped quietly, and the JSON channel</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">neden sessizce atlanamadığı ve JSON kanalı</span>"
+    },
+    {
+      "id": "h-8d480a9c",
+      "kind": "html",
+      "en": "A false one fails the build the same way a type error does, which is the point: an agent rewriting a function body cannot pass the build by leaving the assertion behind. <code>--no-test</code> opts out and prints how many tests it skipped, so the bypass is visible in the log.",
+      "tr": "Yanlış çıkan bir örnek, build'i bir tip hatasıyla aynı şekilde başarısız kılar ve amaç da bu: bir fonksiyon gövdesini yeniden yazan bir ajan, assertion'ı geride bırakarak build'den geçemez. <code>--no-test</code> bunu devre dışı bırakır ve kaç testi atladığını yazdırır; böylece bu atlama log'da görünür."
+    },
+    {
+      "id": "h-0c14dec1",
+      "kind": "html",
+      "en": "The JSON output agents read reports the same verdict. <code>glyph build --json</code> carries an <code>examples</code> object next to the diagnostics, and a failing example makes <code>ok</code> false and the exit code non-zero. Until 0.1.43 the examples ran only under <code>--test</code>, and the JSON path returned before they ran at all, so the one channel an agent can read printed <code>\"ok\": true</code> on a project whose own assertion was false. If <code>tsx</code> isn't on <code>PATH</code> the build fails instead of reporting a pass it never checked.",
+      "tr": "Ajanların okuduğu JSON çıktısı da aynı hükmü bildirir. <code>glyph build --json</code>, diagnostic'lerin yanında bir <code>examples</code> nesnesi taşır ve başarısız bir örnek <code>ok</code>'u false, çıkış kodunu sıfırdan farklı yapar. 0.1.43'e kadar örnekler yalnızca <code>--test</code> altında çalışıyordu ve JSON yolu onlar hiç çalışmadan dönüyordu; bu yüzden bir ajanın okuyabildiği tek kanal, kendi assertion'ı yanlış olan bir projede <code>\"ok\": true</code> yazdırıyordu. <code>tsx</code>, <code>PATH</code>'te yoksa build, hiç kontrol etmediği bir başarıyı bildirmek yerine başarısız olur."
+    },
+    {
+      "id": "h-39aaaa02",
+      "kind": "html",
+      "en": "The bracket app below carries 23 of these. <code>seed_order</code> builds standard bracket order by doubling, which is the kind of function that is easy to get subtly wrong and easy to describe exactly. Change the doubling rule and the build stops, without a test file, a runner, or a flag.",
+      "tr": "Aşağıdaki bracket uygulamasında bunlardan 23 tane var. <code>seed_order</code>, standart bracket sırasını ikiye katlayarak kuruyor; incelikli biçimde yanlış yapması kolay, tam olarak tarif etmesi de kolay türden bir fonksiyon. İkiye katlama kuralını değiştirin, build durur; test dosyası, runner ya da flag olmadan."
+    },
+    {
+      "id": "h-03f15931",
+      "kind": "html",
+      "en": "Found by building with it",
+      "tr": "Kullanırken bulunanlar"
+    },
+    {
+      "id": "h-698c73d4",
+      "kind": "html",
+      "en": "Four more, found by building with it",
+      "tr": "Kullanırken bulunan dört tane daha"
+    },
+    {
+      "id": "h-113db4ca",
+      "kind": "html",
+      "en": "Each of these compiled clean and passed <code>tsc --strict</code>, and each was found by writing an application rather than by reading the compiler. They are the same failure in three places: the types said one thing and the program did another.",
+      "tr": "Bunların her biri temiz derlendi ve <code>tsc --strict</code>'ten geçti; her biri derleyiciyi okuyarak değil, bir uygulama yazarak bulundu. Üç yerde aynı başarısızlık: tipler bir şey söylüyordu, program başka bir şey yapıyordu."
+    },
+    {
+      "id": "h-a616a906",
+      "kind": "html",
+      "en": "Reading a key that may not be there",
+      "tr": "Orada olmayabilecek bir key'i okumak"
+    },
+    {
+      "id": "h-52489cbb",
+      "kind": "html",
+      "en": "reading a key that may not be there: now E0224",
+      "tr": "orada olmayabilecek bir key'i okumak: artık E0224"
+    },
+    {
+      "id": "h-f531f861",
+      "kind": "html",
+      "en": "It is now a compile error pointing at <code>record.get</code>, which returns <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.",
+      "tr": "Bu artık <code>record.get</code>'i gösteren bir derleme hatası; bu fonksiyon <code>Option&lt;V&gt;</code> döndürür, böylece key'in olmadığı durumun gidecek bir yeri olur."
+    },
+    {
+      "id": "h-e54e941e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why a map read is different from array indexing</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">bir map okumasının dizi index'lemesinden neden farklı olduğu</span>"
+    },
+    {
+      "id": "h-c9bcefe0",
+      "kind": "html",
+      "en": "A map's keys are arbitrary, so the compiler cannot know the key is there. Typing the read as <code>string</code> stated something it had not checked, and the value printed as the text \"undefined\". Writing a key is untouched, and so is array indexing: a bound is a value a program can check, a map key is not.",
+      "tr": "Bir map'in key'leri keyfidir, dolayısıyla derleyici key'in orada olduğunu bilemez. Okumayı <code>string</code> olarak tiplendirmek, kontrol etmediği bir şeyi iddia etmekti ve değer \"undefined\" metni olarak yazdırılıyordu. Bir key yazmak etkilenmiyor, dizi index'lemesi de: bir sınır, programın kontrol edebileceği bir değerdir, bir map key'i değildir."
+    },
+    {
+      "id": "h-7affa1da",
+      "kind": "html",
+      "en": "<code>==</code> is value equality everywhere",
+      "tr": "<code>==</code> her yerde değer eşitliğidir"
+    },
+    {
+      "id": "h-4243938e",
+      "kind": "html",
+      "en": "a test that passed while the code failed",
+      "tr": "kod başarısız olurken geçen bir test"
+    },
+    {
+      "id": "h-310e559c",
+      "kind": "html",
+      "en": "<code>==</code> is now value equality everywhere; primitives still compile to <code>===</code>, so ordinary comparisons are unchanged.",
+      "tr": "<code>==</code> artık her yerde değer eşitliği; ilkel tipler hâlâ <code>===</code>'e derleniyor, dolayısıyla sıradan karşılaştırmalar değişmedi."
+    },
+    {
+      "id": "h-ce8c5b9d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how a test could pass on broken code</span>",
+      "tr": "Geçmiş <span class=\"hint\">bir testin bozuk kodda nasıl geçebildiği</span>"
+    },
+    {
+      "id": "h-493aa455",
+      "kind": "html",
+      "en": "<code>==</code> was documented as value equality and lowered to <code>===</code>, which is <em>reference</em> equality the moment either side is a record, a tagged union, or an array. The same expression compared structurally in a test and by identity in the program beside it, so a test could report success on code that did not work.",
+      "tr": "<code>==</code> değer eşitliği olarak belgelenmişti ve <code>===</code>'e dönüştürülüyordu; bu da taraflardan biri bir record, bir tagged union ya da bir dizi olduğu anda <em>referans</em> eşitliğidir. Aynı ifade bir testte yapısal olarak, hemen yanındaki programda ise kimliğe göre karşılaştırıyordu; dolayısıyla bir test, çalışmayan kod için başarı bildirebiliyordu."
+    },
+    {
+      "id": "h-5f4e8e26",
+      "kind": "html",
+      "en": "A loop binding keeps its element type",
+      "tr": "Bir döngü binding'i eleman tipini korur"
+    },
+    {
+      "id": "h-8a885009",
+      "kind": "html",
+      "en": "exhaustiveness that evaporated inside a loop",
+      "tr": "bir döngünün içinde buharlaşan kapsam kontrolü"
+    },
+    {
+      "id": "h-6c2e2fbd",
+      "kind": "html",
+      "en": "It now names the variant you have not handled, which is advice to satisfy the check rather than to switch it off.",
+      "tr": "Artık ele almadığınız variant'ı adlandırıyor; bu, kontrolü kapatmak değil karşılamak için verilen bir tavsiye."
+    },
+    {
+      "id": "h-811ca57d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the catch-all advice it used to give</span>",
+      "tr": "Geçmiş <span class=\"hint\">eskiden verdiği catch-all tavsiyesi</span>"
+    },
+    {
+      "id": "h-1933d79f",
+      "kind": "html",
+      "en": "The loop binding carried no element type, so a <code>match</code> over a string-literal union degraded to a match over <code>string</code> and the compiler advised adding a catch-all.",
+      "tr": "Döngü binding'i hiçbir eleman tipi taşımıyordu; bu yüzden bir string-literal union üzerindeki <code>match</code>, <code>string</code> üzerinde bir match'e düşüyor ve derleyici bir catch-all eklemeyi tavsiye ediyordu."
+    },
+    {
+      "id": "h-c324ad5a",
+      "kind": "html",
+      "en": "Imported generic unions are checked",
+      "tr": "Import edilen generic union'lar kontrol edilir"
+    },
+    {
+      "id": "h-c5058636",
+      "kind": "html",
+      "en": "a variant left out of a match on an imported generic union",
+      "tr": "import edilen generic bir union üzerindeki match'te dışarıda bırakılmış bir variant"
+    },
+    {
+      "id": "h-e2d737fb",
+      "kind": "html",
+      "en": "It is <code>E0200</code> either way now, at both import spellings and at an open parameter or a concrete instantiation alike.",
+      "tr": "Artık her iki durumda da, iki import yazımında da ve açık bir parametrede de somut bir örneklemede de <code>E0200</code>."
+    },
+    {
+      "id": "h-16f631f3",
+      "kind": "html",
+      "en": "History <span class=\"hint\">why the check never started</span>",
+      "tr": "Geçmiş <span class=\"hint\">kontrolün neden hiç başlamadığı</span>"
+    },
+    {
+      "id": "h-b1b9589f",
+      "kind": "html",
+      "en": "A union your own module declares is checked whether or not it takes type parameters. One imported from a sibling module was checked only when it took none. <code>Tree&lt;string&gt;</code> reaches the cross-module coverage path as an application of an imported union rather than as one, and the gate that starts the check was looking for the second, so the <code>match</code> was never counted at all: <code>tsc --strict</code> passed and a <code>Leaf</code> threw. Delete <code>&lt;K&gt;</code> from both files and the same program was <code>E0200</code>.",
+      "tr": "Kendi modülünüzün tanımladığı bir union, tip parametresi alsa da almasa da kontrol edilir. Kardeş bir modülden import edilen bir union ise yalnızca hiç tip parametresi almadığında kontrol ediliyordu. <code>Tree&lt;string&gt;</code>, modüller arası kapsam yoluna import edilmiş bir union olarak değil, import edilmiş bir union'ın uygulaması olarak ulaşıyor ve kontrolü başlatan kapı ikincisini arıyordu; bu yüzden <code>match</code> hiç sayılmıyordu: <code>tsc --strict</code> geçiyor ve bir <code>Leaf</code> throw ediyordu. İki dosyadan da <code>&lt;K&gt;</code>'yı silin, aynı program <code>E0200</code> veriyordu."
+    },
+    {
+      "id": "h-215b69fb",
+      "kind": "html",
+      "en": "A <code>parse</code> can't claim a check it didn't do",
+      "tr": "Bir <code>parse</code>, yapmadığı bir kontrolü iddia edemez"
+    },
+    {
+      "id": "h-ed18ae93",
+      "kind": "html",
+      "en": "a <code>parse</code> that reported success without checking: now E0304",
+      "tr": "kontrol etmeden başarı bildiren bir <code>parse</code>: artık E0304"
+    },
+    {
+      "id": "h-39872533",
+      "kind": "html",
+      "en": "Holding a socket in a record is ordinary and still compiles. Validating one is now refused where it is written and in every module that imports the record, naming the field and its type, and the refusal follows the shape: through a nested record, an <code>Array</code>, an <code>Option</code>.",
+      "tr": "Bir record içinde socket tutmak olağan bir şey ve hâlâ derleniyor. Birini doğrulamak ise artık yazıldığı yerde ve record'ı import eden her modülde, alanı ve tipini adlandırarak reddediliyor ve bu ret biçimi takip ediyor: iç içe bir record, bir <code>Array</code>, bir <code>Option</code> üzerinden."
+    },
+    {
+      "id": "h-a05fe05e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why presence is not a check, and the fix it asks for</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">varlığın neden bir kontrol olmadığı ve istediği düzeltme</span>"
+    },
+    {
+      "id": "h-9c3b562f",
+      "kind": "html",
+      "en": "Every record type carries a runtime descriptor. For a field whose type the compiler cannot see into, a socket or anything reached through <code>extern_ts</code>, the generated check was \"is it present\" while the reported message read <code>field `sock` must be Socket</code>. A boolean that is always true is useless. One that is always true under a message naming a type nothing checked is worse, because <code>parse</code> is the thing a boundary is told to trust.",
+      "tr": "Her record tipi bir çalışma zamanı descriptor'ı taşır. Derleyicinin tipinin içini göremediği bir alan için, bir socket ya da <code>extern_ts</code> üzerinden ulaşılan herhangi bir şey için, üretilen kontrol \"var mı\" idi, bildirilen mesaj ise <code>field `sock` must be Socket</code> diyordu. Her zaman true olan bir boolean işe yaramaz. Hiçbir şeyin kontrol etmediği bir tipi adlandıran bir mesajın altında her zaman true olan bir boolean ise daha kötüdür, çünkü bir sınıra güvenmesi söylenen şey <code>parse</code>'tır."
+    },
+    {
+      "id": "h-f64526be",
+      "kind": "html",
+      "en": "The fix it asks for is the split you would have written anyway, a wire type whose fields are all checkable, then a domain record you build from it. <code>unknown</code> is not caught by this, because it claims nothing and presence really is the whole check.",
+      "tr": "İstediği düzeltme, zaten yazacağınız ayrımdır: tüm alanları kontrol edilebilir bir wire tipi, ardından ondan kurduğunuz bir domain record'ı. <code>unknown</code> bununla yakalanmaz, çünkü hiçbir şey iddia etmez ve varlık gerçekten kontrolün tamamıdır."
+    },
+    {
+      "id": "h-ffa8c81e",
+      "kind": "html",
+      "en": "A signature change, invisible at the call site: closed in 0.1.116",
+      "tr": "Çağrı noktasında görünmeyen bir imza değişikliği: 0.1.116'da kapatıldı"
+    },
+    {
+      "id": "h-6db7877f",
+      "kind": "html",
+      "en": "Change a function to take a payload instead of a raw string and every call still passing the old shape built clean.",
+      "tr": "Bir fonksiyonu ham bir string yerine bir payload alacak şekilde değiştirin; hâlâ eski biçimi geçen her çağrı temiz build oluyordu."
+    },
+    {
+      "id": "h-9ee21e49",
+      "kind": "html",
+      "en": "billing.glyph: a union crosses a `string` parameter unnoticed",
+      "tr": "billing.glyph: bir union, bir `string` parametresinden fark edilmeden geçiyor"
+    },
+    {
+      "id": "h-a20d51b6",
+      "kind": "html",
+      "en": "glyph build, now",
+      "tr": "glyph build, şimdi"
+    },
+    {
+      "id": "h-dac7e473",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the check fires, and where it stays quiet</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">kontrolün nerede tetiklendiği ve nerede sessiz kaldığı</span>"
+    },
+    {
+      "id": "h-17c058ca",
+      "kind": "html",
+      "en": "A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to accept a value of a declared union or record with no complaint at all, even though the identical call with a mismatched <code>bool</code> argument was already <code>E0211</code>.",
+      "tr": "<code>string</code>, <code>number</code> ya da <code>bool</code> tipli bir parametre, bildirilmiş bir union'ın ya da record'ın değerini hiç şikâyet etmeden kabul ediyordu; oysa uyuşmayan bir <code>bool</code> argümanıyla yapılan aynı çağrı zaten <code>E0211</code>'di."
+    },
+    {
+      "id": "h-da7fe218",
+      "kind": "html",
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "Kontrol tanımı okur, bu yüzden yalnızca cevabın kesin olduğu yerde tetiklenir. İlkel bir alias, bir string-literal union (D30), bir <code>extern_ts</code> ya da <code>typeof</code> gövdesi ve bir <code>interface</code> hâlâ hiçbir şey söylemez, çünkü bunların hiçbiri bir tagged union ya da record gibi kanıtlanabilir biçimde <code>string</code> olmayan bir şey değildir; <code>void</code> de hariç tutulur. Bir argümana, bir <code>return</code>'e ve bir <code>let</code> annotation'ına aynı şekilde ulaşır, çünkü üçü de tek bir ilişkiyi paylaşır."
+    },
+    {
+      "id": "h-77fa2d03",
+      "kind": "html",
+      "en": "An annotated <code>const</code> is typed",
+      "tr": "Annotation'lı bir <code>const</code> tiplidir"
+    },
+    {
+      "id": "h-18946092",
+      "kind": "html",
+      "en": "A <code>const</code> had the matching gap on the receiving side.",
+      "tr": "Bir <code>const</code>'ta, alan tarafında buna karşılık gelen bir açık vardı."
+    },
+    {
+      "id": "h-275d90ea",
+      "kind": "html",
+      "en": "catalog.glyph: an annotated const, and the field it does not have",
+      "tr": "catalog.glyph: annotation'lı bir const ve onun sahip olmadığı alan"
+    },
+    {
+      "id": "h-ace01ce9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">unannotated consts, and why both fixes are breaking</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">annotation'sız const'lar ve iki düzeltmenin neden breaking olduğu</span>"
+    },
+    {
+      "id": "h-7e1d4db5",
+      "kind": "html",
+      "en": "A module-level <code>const</code> carrying a type annotation lowered to <code>Ty::Unknown</code> no matter what the annotation said, so a field typo on it was invisible exactly where the identical annotated <code>let</code> inside a function already reported it.",
+      "tr": "Tip annotation'ı taşıyan modül düzeyindeki bir <code>const</code>, annotation ne derse desin <code>Ty::Unknown</code>'a dönüştürülüyordu; bu yüzden üzerindeki bir alan yazım hatası, bir fonksiyon içindeki aynı annotation'lı <code>let</code>'in zaten bildirdiği yerde görünmüyordu."
+    },
+    {
+      "id": "h-4319dca8",
+      "kind": "html",
+      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "Annotation'sız bir <code>const</code> hiçbir şey iddia etmez ve bilerek <code>Unknown</code> kalır: tipini başlatıcıdan çıkarmak, farklı bir yanlış pozitif yüzeyi olan farklı bir soru. İki düzeltme de <code>glyph check --no-tsc</code>, dil sunucusu ve playground altında breaking, çünkü her biri önceki sürümün kabul ettiği bir programı yakalamaya başlıyor; tam bir <code>glyph build</code> iki durumda da <code>tsc</code> üzerinden zaten kırmızıydı."
+    },
+    {
+      "id": "h-cbab1648",
+      "kind": "html",
+      "en": "An extra field is still <code>tsc</code>'s to catch",
+      "tr": "Fazladan bir alanı yakalamak hâlâ <code>tsc</code>'nin işi"
+    },
+    {
+      "id": "h-ac6a4587",
+      "kind": "html",
+      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
+      "tr": "Bir record-literal kontrolü hâlâ Glyph'in değil <code>tsc</code>'nin. <code>glyph build</code> bunda durur; <code>glyph check --no-tsc</code>, dil sunucusu ve playground hiçbir şey söylemez (G273)."
+    },
+    {
+      "id": "h-b4f5f44a",
+      "kind": "html",
+      "en": "point.glyph: an extra field, left to tsc",
+      "tr": "point.glyph: fazladan bir alan, tsc'ye bırakılmış"
+    },
+    {
+      "id": "h-500a7735",
+      "kind": "html",
+      "en": "TS2353 from tsc",
+      "tr": "tsc'den TS2353"
+    },
+    {
+      "id": "h-420c0512",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how tsc reports it</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">tsc'nin bunu nasıl bildirdiği</span>"
+    },
+    {
+      "id": "h-ef7526a6",
+      "kind": "html",
+      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
+      "tr": "Bildirilen record'da olmayan bir alana sahip bir literal, Glyph'in checker'ından geçer; <code>tsc</code> ise onu üretilen TypeScript üzerinde <code>TS2353</code> olarak reddeder ve hata literal'in üzerine geri eşlenir."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-d58144f7",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">18</span>",
+      "tr": "Bugün sunulanlar <span class=\"count\">18</span>"
+    },
+    {
+      "id": "h-f9b8704d",
+      "kind": "html",
+      "en": "Matching",
+      "tr": "Eşleştirme"
+    },
+    {
+      "id": "h-1822a7e3",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over sealed unions: yours or a sibling module's, generic or not, and the standard library's, such as <code>fs.ErrorKind</code>",
+      "tr": "Mühürlü union'lar üzerinde kapsamı tam <code>match</code>: sizin ya da kardeş bir modülün, generic olsun olmasın, ve standart kütüphanenin, örneğin <code>fs.ErrorKind</code>"
+    },
+    {
+      "id": "h-1dc7d0ec",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over <code>number</code>/<code>string</code>",
+      "tr": "<code>number</code>/<code>string</code> üzerinde kapsamı tam <code>match</code>"
+    },
+    {
+      "id": "h-d12411b5",
+      "kind": "html",
+      "en": "A typo'd variant arm caught as a compile error with a nearest-variant suggestion instead of a silent catch-all",
+      "tr": "Yanlış yazılmış bir variant arm'ı, sessiz bir catch-all yerine en yakın variant önerisiyle derleme hatası olarak yakalanır"
+    },
+    {
+      "id": "h-b2819e07",
+      "kind": "html",
+      "en": "A variant in payload position dispatching on the payload's own tag rather than binding it",
+      "tr": "Payload konumundaki bir variant, payload'ı bağlamak yerine onun kendi tag'ine göre dallanır"
+    },
+    {
+      "id": "h-12d7966b",
+      "kind": "html",
+      "en": "Two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning",
+      "tr": "Aynı tag'e cevap verecek iki arm, birinin sessizce kazanması yerine <code>E0305</code> olarak reddedilir"
+    },
+    {
+      "id": "h-42315da3",
+      "kind": "html",
+      "en": "A <code>for</code> binding that keeps its element type",
+      "tr": "Eleman tipini koruyan bir <code>for</code> binding'i"
+    },
+    {
+      "id": "h-d7829106",
+      "kind": "html",
+      "en": "Errors and tests",
+      "tr": "Hatalar ve testler"
+    },
+    {
+      "id": "h-71ede7c9",
+      "kind": "html",
+      "en": "<code>Result</code> + the <code>?</code> operator with error-type checking",
+      "tr": "Hata tipi kontrolüyle <code>Result</code> + <code>?</code> operatörü"
+    },
+    {
+      "id": "h-77e204a0",
+      "kind": "html",
+      "en": "A warning when a <code>Result</code> is discarded",
+      "tr": "Bir <code>Result</code> atıldığında bir uyarı"
+    },
+    {
+      "id": "h-c7fdeb1c",
+      "kind": "html",
+      "en": "<code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included",
+      "tr": "Her build'de çalışan <code>@example</code> / <code>@doc @run</code> testleri, <code>--json</code> dahil"
+    },
+    {
+      "id": "h-5f5f223f",
+      "kind": "html",
+      "en": "Types, records and literals",
+      "tr": "Tipler, record'lar ve literal'ler"
+    },
+    {
+      "id": "h-538cd6bb",
+      "kind": "html",
+      "en": "A declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected",
+      "tr": "<code>string</code>/<code>number</code>/<code>bool</code> beklenen yere geçirilen bildirilmiş bir union ya da record"
+    },
+    {
+      "id": "h-1d1dcc32",
+      "kind": "html",
+      "en": "A field typo on an annotated module-level <code>const</code>",
+      "tr": "Annotation'lı modül düzeyindeki bir <code>const</code> üzerinde alan yazım hatası"
+    },
+    {
+      "id": "h-10b714c5",
+      "kind": "html",
+      "en": "<code>==</code> as value equality on every type",
+      "tr": "Her tipte değer eşitliği olarak <code>==</code>"
+    },
+    {
+      "id": "h-65a54713",
+      "kind": "html",
+      "en": "Reading a key out of a map rejected",
+      "tr": "Bir map'ten key okumak reddedilir"
+    },
+    {
+      "id": "h-0fdc9dd8",
+      "kind": "html",
+      "en": "Object literals and JSX attributes checked against the declared type",
+      "tr": "Bildirilen tipe karşı kontrol edilen nesne literal'leri ve JSX attribute'ları"
+    },
+    {
+      "id": "h-194b7ac0",
+      "kind": "html",
+      "en": "since 0.1.124",
+      "tr": "0.1.124'ten beri"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Ayrıntılar"
+    },
+    {
+      "id": "h-16b87510",
+      "kind": "html",
+      "en": "Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant=\"nope\" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames.",
+      "tr": "0.1.124'ten beri bir nesne literal'i, alanlarının yazdığı record tipine sahip; böylece <code>let g: string = { x: 1 }</code>, bildirilen record'ın gerektirdiği bir alanı eksik olan bir literal ve uymadığı yere geçirilen bir literal, bir <code>let</code>'te, bir <code>const</code>'ta, bir <code>return</code>'de ve bir çağrı argümanında bildirilen tipi adlandıran E0204 ya da E0211'dir; bir JSX attribute'u ise component'in props record'ına karşı kontrol edilir, dolayısıyla <code>&lt;Button variant=\"nope\" /&gt;</code> kabul ettiği değerlerle birlikte E0211 alır ve record'ın bildirmediği bir attribute, <code>glyph fix</code>'in yeniden adlandırdığı E0210'u alır."
+    },
+    {
+      "id": "h-cafb3664",
+      "kind": "html",
+      "en": "A missing required field or prop is named",
+      "tr": "Eksik bir zorunlu alan ya da prop adlandırılır"
+    },
+    {
+      "id": "h-90bb1a2a",
+      "kind": "html",
+      "en": "since 0.1.125",
+      "tr": "0.1.125'ten beri"
+    },
+    {
+      "id": "h-2bed57b7",
+      "kind": "html",
+      "en": "Since 0.1.125 a record literal or a component element that leaves out a required field names it, in the message and in <code>missing_fields</code> on <code>--json</code>, and an element missing a required prop is E0211 even when it writes no attributes at all; a component whose one parameter is not a record is E0229.",
+      "tr": "0.1.125'ten beri zorunlu bir alanı dışarıda bırakan bir record literal'i ya da component elemanı, onu mesajda ve <code>--json</code> üzerindeki <code>missing_fields</code> içinde adlandırır; zorunlu bir prop'u eksik olan bir eleman, hiç attribute yazmasa bile E0211'dir; tek parametresi record olmayan bir component ise E0229'dur."
+    },
+    {
+      "id": "h-d16cf25f",
+      "kind": "html",
+      "en": "Every field of a record compared by the same rule as the record",
+      "tr": "Bir record'ın her alanı record ile aynı kurala göre karşılaştırılır"
+    },
+    {
+      "id": "h-5e7cd30b",
+      "kind": "html",
+      "en": "since 0.1.127",
+      "tr": "0.1.127'den beri"
+    },
+    {
+      "id": "h-7f53d708",
+      "kind": "html",
+      "en": "Since 0.1.127 every field of a record is compared by the same rule as the record, so a nested record, a declared type or a string-literal union inside one is refused where <code>tsc</code> refuses it, and so are an optional field where a required one is declared, a function whose return does not fit and a local interface's members. A record whose fields are all optional refuses a value that shares none of them, as TS2559 does. A function's parameters are still not compared.",
+      "tr": "0.1.127'den beri bir record'ın her alanı record ile aynı kurala göre karşılaştırılıyor; böylece içindeki iç içe bir record, bildirilmiş bir tip ya da string-literal union, <code>tsc</code>'nin reddettiği yerde reddediliyor; zorunlu bir alanın bildirildiği yerde isteğe bağlı bir alan, dönüşü uymayan bir fonksiyon ve yerel bir interface'in üyeleri de öyle. Tüm alanları isteğe bağlı olan bir record, TS2559'un yaptığı gibi, bu alanlardan hiçbirini paylaşmayan bir değeri reddeder. Bir fonksiyonun parametreleri hâlâ karşılaştırılmıyor."
+    },
+    {
+      "id": "h-ea0eaaf6",
+      "kind": "html",
+      "en": "Data boundaries",
+      "tr": "Veri sınırları"
+    },
+    {
+      "id": "h-256d43ee",
+      "kind": "html",
+      "en": "Runtime type descriptors",
+      "tr": "Çalışma zamanı tip descriptor'ları"
+    },
+    {
+      "id": "h-32584cfc",
+      "kind": "html",
+      "en": "<code>@redact</code> PII masking on the type descriptor",
+      "tr": "Tip descriptor'ı üzerinde <code>@redact</code> ile PII maskeleme"
+    },
+    {
+      "id": "h-f094b384",
+      "kind": "html",
+      "en": "Getting sharper <span class=\"count\">13</span>",
+      "tr": "Keskinleşmekte olanlar <span class=\"count\">13</span>"
+    },
+    {
+      "id": "h-832f8a5e",
+      "kind": "html",
+      "en": "Coverage of an imported union doesn't look inside a variant's payload yet",
+      "tr": "Import edilen bir union'ın kapsam kontrolü henüz bir variant'ın payload'ının içine bakmıyor"
+    },
+    {
+      "id": "h-951e9ba7",
+      "kind": "html",
+      "en": "next to deepen",
+      "tr": "sıradaki derinleştirme"
+    },
+    {
+      "id": "h-1398e498",
+      "kind": "html",
+      "en": "A type parameter used to switch the check off: through 0.1.90 a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit a variant, build clean, pass <code>tsc --strict</code>, and throw at run time, where the same match on <code>Tree</code> was <code>E0200</code>. That is closed for a union your own module declares and, as of 0.1.95, for one an import away. What is still shallower on the imported path is the depth rather than the gate: the check that runs for an imported union never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> rather than reporting the missing <code>Y</code>, and no type parameter is involved. That is the next thing to deepen.",
+      "tr": "Bir tip parametresi eskiden kontrolü kapatıyordu: 0.1.90'a kadar <code>Tree&lt;K&gt;</code> üzerindeki bir <code>match</code> bir variant'ı atlayabiliyor, temiz build oluyor, <code>tsc --strict</code>'ten geçiyor ve çalışma zamanında throw ediyordu; oysa <code>Tree</code> üzerindeki aynı match <code>E0200</code>'dü. Bu, kendi modülünüzün tanımladığı bir union için ve 0.1.95 itibarıyla bir import uzaklıktaki bir union için kapatıldı. Import yolunda hâlâ daha sığ olan şey kapı değil derinlik: import edilen bir union için çalışan kontrol hiçbir zaman bir variant'ın payload'ının içine bakmıyor; dolayısıyla payload'ı kendisi bir union olan import edilmiş bir union üzerindeki <code>B(X)</code>, eksik <code>Y</code>'yi bildirmek yerine her <code>B</code> ile eşleşiyor ve işin içinde hiçbir tip parametresi yok. Derinleştirilecek sıradaki şey bu."
+    },
+    {
+      "id": "h-8efe9560",
+      "kind": "html",
+      "en": "A lowercase payload variant of an imported union stops the build",
+      "tr": "Import edilen bir union'ın küçük harfli bir payload variant'ı build'i durdurur"
+    },
+    {
+      "id": "h-5584b05d",
+      "kind": "html",
+      "en": "A variant in payload position is read off the payload union's variant list now, so the capitalization of the name stops mattering for a union your module declares. For one imported from another module there is no list to read and the shape of the name still answers, which means <code>Err(Blank)</code> dispatches and <code>Err(blank)</code> stops the build at <code>E0305</code>: a loud failure on a valid program, and it needs the same imported-union registry the shallow coverage check above needs.",
+      "tr": "Payload konumundaki bir variant artık payload union'ının variant listesinden okunuyor; böylece modülünüzün tanımladığı bir union için ismin büyük/küçük harfi önemini yitiriyor. Başka bir modülden import edilen bir union için okunacak bir liste yok ve cevabı hâlâ ismin biçimi veriyor; bu da <code>Err(Blank)</code>'in dallandığı, <code>Err(blank)</code>'in ise build'i <code>E0305</code>'te durdurduğu anlamına geliyor: geçerli bir programda gürültülü bir başarısızlık. Bunun için de yukarıdaki sığ kapsam kontrolünün ihtiyaç duyduğu aynı import edilmiş union kaydı gerekiyor."
+    },
+    {
+      "id": "h-bc939020",
+      "kind": "html",
+      "en": "A constructor pattern over a record payload (<code>Ok(Point)</code>) fails in <code>tsc</code>, not Glyph",
+      "tr": "Bir record payload'ı üzerindeki constructor pattern'i (<code>Ok(Point)</code>) Glyph'te değil <code>tsc</code>'de başarısız olur"
+    },
+    {
+      "id": "h-0de1643c",
+      "kind": "html",
+      "en": "A constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic naming the type and the pattern.",
+      "tr": "Union değil record olan bir payload üzerindeki constructor pattern'i (<code>Ok(Point)</code>), tipi ve pattern'i adlandıran bir Glyph diagnostic'i olması gerekirken, hiç yazmadığınız bir <code>.tag</code>'i adlandırarak <code>tsc</code> üzerinden başarısız oluyor."
+    },
+    {
+      "id": "h-f3636a71",
+      "kind": "html",
+      "en": "A misspelled bare arm reports two lines for the same name",
+      "tr": "Yanlış yazılmış çıplak bir arm aynı isim için iki satır bildirir"
+    },
+    {
+      "id": "h-578afec8",
+      "kind": "html",
+      "en": "The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike, constructor-shaped or bare: through 0.1.115 a bare misspelled head over an imported union (<code>Loadign</code>, no arguments) was credited as covering a variant and said nothing, where the same typo on a local union already reported <code>E0220</code>; both spellings report it now. A misspelled bare arm also trips <code>E0103</code>, one stage earlier, so you get both lines for the same name.",
+      "tr": "Yazım hatası kontrolü (<code>E0220</code>) artık modülde tanımlanmış bir union'ı ve namespace import'u üzerinden ulaşılan bir union'ı (<code>model.Nooo(_)</code>), constructor biçiminde ya da çıplak, aynı şekilde kapsıyor: 0.1.115'e kadar import edilmiş bir union üzerinde çıplak, yanlış yazılmış bir baş (<code>Loadign</code>, argümansız) bir variant'ı kapsıyor sayılıyor ve hiçbir şey söylemiyordu; oysa yerel bir union üzerindeki aynı yazım hatası zaten <code>E0220</code> bildiriyordu. Artık iki yazım da bunu bildiriyor. Yanlış yazılmış çıplak bir arm, bir aşama önce <code>E0103</code>'ü de tetikliyor; böylece aynı isim için iki satır alıyorsunuz."
+    },
+    {
+      "id": "h-5ab756fd",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted",
+      "tr": "Spread içeren bir literal'in tipi yok ve fazladan bir alan hâlâ kabul ediliyor"
+    },
+    {
+      "id": "h-3a8ce517",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
+      "tr": "Spread içeren bir literal'in tipi yok ve fazladan bir alan hâlâ kabul ediliyor; oysa <code>tsc</code> taze bir literal üzerinde bunu TS2353 olarak reddediyor (G273)."
+    },
+    {
+      "id": "h-cf31f508",
+      "kind": "html",
+      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
+      "tr": "Import edilen bir <code>interface</code>'in üyeleri ve import edilen bir <code>const</code>'un tipi henüz sınırı geçmiyor"
+    },
+    {
+      "id": "h-182d14d1",
+      "kind": "html",
+      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
+      "tr": "Tipler artık bir modül sınırını bozulmadan geçiyor: union'lar, tagged olsun string-literal olsun, kapsam kontrollerini koruyor ve bir record alan kümesini koruyor; böylece import edilen bir record üzerindeki yanlış yazılmış bir alan, o record'ın kendi tipini adlandıran <code>E0210</code>'dur ve dizi alanlarından biri üzerindeki <code>for i, x</code>, annotation olmadan bir sayı bağlar. Henüz geçmeyen, bir <code>interface</code>'in üye listesi; dolayısıyla import edilmiş bir interface beklenen yere geçirilen bir record hiçbir şeyle karşılaştırılmıyor. Import edilen bir <code>const</code> da bir seviye ötede aynı durumda: hâlâ <code>Ty::Unknown</code>, bu yüzden isimli ya da namespace import'u üzerinden bir alan yazım hatası, kaynak modül ona annotation vermiş olsun olmasın sessiz kalıyor."
+    },
+    {
+      "id": "h-b6b84555",
+      "kind": "html",
+      "en": "Deeper flow-narrowing is on the roadmap",
+      "tr": "Daha derin akış daraltması yol haritasında"
+    },
+    {
+      "id": "h-fd47e980",
+      "kind": "html",
+      "en": "Maps from another module or the standard library are read unchecked",
+      "tr": "Başka bir modülden ya da standart kütüphaneden gelen map'ler kontrolsüz okunuyor"
+    },
+    {
+      "id": "h-0edf415f",
+      "kind": "html",
+      "en": "A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types.",
+      "tr": "Başka bir modülden ya da standart kütüphaneden gelen bir map hâlâ kontrolsüz okunuyor; bu yüzden E0224 henüz bir <code>sqlite.Row</code>'u kapsamıyor ve iki binding'li <code>for i, x in xs</code> hâlâ tiplerini kaybediyor."
+    },
+    {
+      "id": "h-15d1a62f",
+      "kind": "html",
+      "en": "A type from a plain <code>.d.ts</code> has no descriptor; materialize it with <code>glyph gen dts</code>",
+      "tr": "Düz bir <code>.d.ts</code>'ten gelen bir tipin descriptor'ı yok; onu <code>glyph gen dts</code> ile materialize edin"
+    },
+    {
+      "id": "h-5b74c17a",
+      "kind": "html",
+      "en": "A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates.",
+      "tr": "Başka bir Glyph modülünden import edilen bir tip artık kendi descriptor'ı üzerinden doğrulanıyor, alan konumundaki bir <code>where</code> refinement'ı da öyle; düz bir <code>.d.ts</code>'ten import edilen bir tipin üzerinden doğrulanacağı bir descriptor yok ve böyle bir tip tutan bir record üzerinde <code>parse</code>, kontrol etmediği bir başarıyı bildirmek yerine artık reddediliyor (<code>E0304</code>); doğrulama yapan bir tip elde etmek için onu <code>glyph gen dts</code> ile materialize edin."
+    },
+    {
+      "id": "h-b99fb20b",
+      "kind": "html",
+      "en": "Tooling and the standard library",
+      "tr": "Araçlar ve standart kütüphane"
+    },
+    {
+      "id": "h-3aeea93f",
+      "kind": "html",
+      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
+      "tr": "Dokuz <code>std/string</code> ve <code>std/array</code> fonksiyonu hâlâ tipsiz değerler döndürüyor"
+    },
+    {
+      "id": "h-b4a6a924",
+      "kind": "html",
+      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
+      "tr": "Checker'ın modellediği stdlib dönüş tipleri, <code>std/string</code> ve <code>std/array</code>'in sabit sayıda argüman alan yarısını kapsıyor; isteğe bağlı bir son argümanı olan altı fonksiyon (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) ve <code>array.map</code>/<code>flat_map</code>/<code>zip</code> hâlâ tipsiz; dolayısıyla bunlardan birinden doğrudan çıkan bir değer, onu bir index ile yinelemeden önce bir annotation'a ihtiyaç duyuyor."
+    },
+    {
+      "id": "h-201d023a",
+      "kind": "html",
+      "en": "Member access on primitives and arrays has no diagnostic where <code>tsc</code> doesn't run",
+      "tr": "İlkel tipler ve diziler üzerindeki üye erişiminin, <code>tsc</code>'nin çalışmadığı yerde diagnostic'i yok"
+    },
+    {
+      "id": "h-4ea82084",
+      "kind": "html",
+      "en": "Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground.",
+      "tr": "<code>string</code>, <code>number</code>, <code>bool</code> ve <code>Array&lt;T&gt;</code> üzerindeki üye erişimi ve çağrılar bir açık yüzünden değil, tasarım gereği <code>tsc</code>'ye bırakılıyor; Glyph orada ham JS üyelerine izin veriyor, bu yüzden <code>s.length</code> ve <code>xs.length</code> derleniyor ve <code>tsc --strict</code>'ten geçiyor. Eksik kalan, hiçbir zaman <code>tsc</code> çalıştırmayan dört yüzey için bir diagnostic: <code>glyph check --no-tsc</code>, dil sunucusu, MCP sunucusu ve playground."
+    },
+    {
+      "id": "h-92f64275",
+      "kind": "html",
+      "en": "An offline build with examples needs <code>tsx</code> or <code>--no-test</code>",
+      "tr": "Örnekleri olan çevrimdışı bir build, <code>tsx</code> ya da <code>--no-test</code> gerektirir"
+    },
+    {
+      "id": "h-be29560d",
+      "kind": "html",
+      "en": "The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>.",
+      "tr": "Örnek çalıştırıcı <code>tsx</code>'i çağırıyor; bu yüzden örnekleri olan ve <code>PATH</code>'te <code>tsx</code> bulunmayan bir proje, sessizce atlamak yerine build'i başarısız kılıyor. Bu bilinçli, ama çevrimdışı bir build'in <code>tsx</code> kurulu olmasını ya da <code>--no-test</code>'i gerektirdiği anlamına geliyor."
+    },
+    {
+      "id": "h-b5f0eada",
+      "kind": "html",
+      "en": "An <code>await</code> in a plain <code>fn</code> is caught against your own source",
+      "tr": "Düz bir <code>fn</code> içindeki bir <code>await</code> kendi kaynak kodunuza göre yakalanır"
+    },
+    {
+      "id": "h-d7c47327",
+      "kind": "html",
+      "en": "Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href=\"/answers/early-errors/\">caught earlier</a>.",
+      "tr": "Async bağlamı, Glyph'in <code>tsc</code>'ye bıraktığı tek kuraldı; düz bir <code>fn</code> içindeki bir <code>await</code> artık kendi kaynak kodunuza göre <code>E0222</code>, hâlâ izin verilen tek durum üst düzey <code>const</code> başlatıcısı. Bu ve bir aşama öne alınan diğer iki kural <a href=\"/answers/early-errors/\">daha erken yakalananlar</a> sayfasında."
+    },
+    {
+      "id": "h-9517f6f5",
+      "kind": "html",
+      "en": "Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the <a href=\"/pillars/verifiability/\">verifiability pillar page</a>.",
+      "tr": "Bunun neden Glyph'in dört temel ilkesinin ilki olduğu ve garantisinin nerede bittiği, <a href=\"/pillars/verifiability/\">doğrulanabilirlik ilkesi sayfasında</a> anlatılıyor."
+    }
+  ]
+}

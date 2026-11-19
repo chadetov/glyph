@@ -1,0 +1,51 @@
+---
+title: Bir yapay zekâ neredeyse hiç görmediği bir dili yazabilir mi? · Glyph
+description: Glyph TypeScript gibi okunur ama onun bir alt kümesi değildir. Bir modelin TypeScript hakkında bildiklerinin çoğu aynen geçerlidir; geçerli olmadığı yerleri derleyici adıyla söyler.
+source_hash: dc044819d67c5db7
+prev: /answers/human-value/ | &larr; Önceki | Yapay zekâ kullanmıyorsam Glyph'e değer mi?
+next: /answers/upgrades/ | Sonraki &rarr; | Yeni bir Glyph sürümü build'imi bozar mı?
+---
+      <p class="q-eyebrow">07 &middot; Öncül</p>
+      <h1 class="q-title">Bir yapay zekâ neredeyse hiç görmediği bir dili güvenilir şekilde yazabilir mi?</h1>
+
+      <p class="short-answer">
+        Çoğunlukla evet. Glyph TypeScript gibi okunur: aynı temel ve generic tipler (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), ifadelerin çoğu aynı ve npm paketleri adıyla import edilir. TypeScript'in bir alt kümesi değildir: <code>match</code>, <code>Result</code> ve <code>fn name(x: T) -&gt; R</code> TypeScript'te olmayan sözdizimleridir; <code>if</code>, ternary ve cast'ler ise Glyph'te yoktur. Bir modelin zaten bildiklerinin çoğu aynen geçerlidir ve geçerli olmadığı yerleri derleyici adıyla söyler.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neden önemli</h2>
+        <p>
+          Bu, makul bir şüphecinin sorusu: bir LLM sonraki token'ı mevcut dillerdeki devasa kod yığınından tahmin eder, bu yüzden neredeyse hiç eğitim verisi olmayan bir dili yazmak zor olmalı. Yanıt yapısal: Glyph yabancı değil. TypeScript'e benziyor, yani model onun çoğunu zaten biliyor; farklar az, sayılabilir ve her biri sessizce geçmek yerine derleme sırasında <em>hemen</em> başarısız oluyor.
+        </p>
+
+        <h2 class="block-label">Görün</h2>
+        <p>Yanlış tahmin eden bir ajan o tahmini yayına çıkarmaz. Kesin, düzeltilebilir bir hata alır ve aynı döngüde düzeltir:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">düzeltme döngüsü, tek adımda</span>
+<pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
+if user.admin { grant() }
+
+<span class="del">[E0006] Glyph has no `if`</span>
+   ╰─ `match` is the only conditional:
+      match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Hata Glyph yapısını adıyla belirtir ve biçimini gösterir; düzeltme tek bir düzenleme uzağındadır: kaynak kodu karıştırmak da tahmin yürütmek de gerekmez. Eksik eğitim verisini telafi eden bu sıkı döngüdür. Tek bir belge, <a href="/llms.txt">llms.txt</a>, bir ajana program yapısını, standart kütüphaneyi ve düzeltmesiyle birlikte her diagnostic'i verir; <code>glyph llms</code> aynı referansı çevrimdışı yazdırır.
+        </p>
+      </div>
+
+      <h2 class="block-label">Şu anki durum</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>TypeScript'e benzeyen bir sözdizimi, düzeltmeyi adıyla söyleyen kararlı kodlu hatalar ve her ajan için tek referans belge olarak <code>llms.txt</code> / <code>glyph llms</code>.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Kanıtlanıyor</h3>
+          <p>&ldquo;dayandı&rdquo; ifadesini ölçülmüş bir rakama dönüştürmek için bir başarı oranı benchmark'ı (aynı görevde TypeScript'e karşı düzeltmeye kadar geçen deneme sayısı).</p>
+        </div>
+      </div>

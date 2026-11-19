@@ -1,0 +1,154 @@
+---
+title: Buradan başlayın · 10 dakikada ilk Glyph programınız · Glyph
+description: npx ile bir Glyph projesi oluşturun, çalıştırın, bilerek bozun, derleyici hatasını okuyun ve düzeltin. On dakika, global olarak hiçbir şey kurulmadan.
+source_hash: 0967efaee1e51c6b
+prev: / | &larr; Ana sayfa | Ajanlarınızın siz fark etmeden bozamayacağı TypeScript
+next: /answers/verifiability/ | Sonraki &rarr; | Bir ajanın kodumu sessizce bozmasını ne engelliyor?
+next_steps: |
+  Buradan sonra
+  Sonraki &middot; kurulum gerekmez | /playground/ | playground | Playground | Glyph'i tarayıcınızda deneyin, kurulum gerekmez. | Playground'u aç
+  https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md | spec | Beş dakikalık tur | Dilin tamamı, hızlıca.
+  /answers/ | answers | Yanıtlar | React, tipli API'ler, npm ve araçlarla donatılmış TypeScript hakkında örnekli yanıtlar.
+---
+      <p class="q-eyebrow">Buradan başlayın &middot; ~10 dakika</p>
+      <h1 class="q-title">İlk Glyph programınız</h1>
+
+      <p class="short-answer">
+        Bir proje oluşturun, çalıştırın, sonra <strong>bilerek bozun</strong> ve derleyicinin verdiği hatayı okuyun. Önceden Glyph bilgisi gerekmez. Biraz TypeScript yazdıysanız her satırı takip edebilirsiniz.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; Bir proje oluşturun</h2>
+        <p>
+          Glyph, npm'de macOS ve Linux (x64 ve ARM) ile Windows (x64) için önceden derlenmiş bir binary olarak dağıtılır ve Node 18 ya da üstünü gerektirir. Bu yol global olarak hiçbir şey kurmaz: <code>npx</code>, projeyi oluşturmak için derleyiciyi indirir; proje de kendi kopyasını, Glyph'in çalıştırmak ve tip kontrolü için kullandığı <code>tsx</code> ve <code>typescript</code> ile birlikte sabitler.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx -y @glyphlang/glyph init hello
+cd hello
+npm install</pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph</code>'in PATH'inizde olmasını tercih ederseniz, onu üzerinden çalıştığı iki araçla birlikte global olarak kurun ve bu sayfadaki komutlardan <code>npx</code>'i çıkarın:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal, global alternatif</span>
+<pre>npm install -g @glyphlang/glyph tsx typescript
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span>
+glyph init hello
+cd hello</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">2 &middot; Neler oluşturduğuna bakın</h2>
+        <p><code>glyph init</code>, çalıştırılabilir bir başlangıç projesi oluşturur: <code>src/main.glyph</code>; tipli bir npm paketinin orada hiçbir şeye ihtiyaç duymadığını ve dizinin tip içermeyen paketler için olduğunu açıklayan <code>src/.types/README.md</code>; bir <code>package.json</code>; bir <code>.gitignore</code>; ve kodlama ajanlarının kendiliğinden okuduğu iki dosya: dilin tam referansı için <code>glyph llms</code>'i gösteren <code>AGENTS.md</code> ve bir ajanın tipleri ve referansları aramak yerine derleyiciye sorabilmesi için <code>glyph mcp</code>'yi kaydeden <code>.mcp.json</code>. Zaten var olan bir projede bu ikisini <code>glyph agents</code> yazar. <code>package.json</code>, derleyiciyi, <code>typescript</code>'i ve <code>tsx</code>'i <code>devDependencies</code> içinde sabitler; böylece projeyi klonlayan herkes, global bir kurulum olmadan <code>npm install</code> ile build edebilir.</p>
+        <p><code>src/main.glyph</code>'i açın. Bir hello-world:</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+import std/io
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  io.println("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Dikkat edilecek iki şey: bir program kendi <code>main(argv)</code>'ini çalıştırır ve <code>main</code>, sürecin çıkış kodu olan bir <code>number</code> döndürür. Return, süreci durmaya zorlamadan bu kodu ayarlar; böylece bir sunucu başlatan program hizmet vermeye devam eder.
+        </p>
+
+        <h2 class="block-label">3 &middot; Çalıştırın</h2>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx glyph run
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph run</code> onu tip kontrolünden geçirdi, TypeScript'e derledi ve çalıştırdı. Bu sayfanın geri kalanında tekrarlayacağınız döngü bu.
+        </p>
+
+        <h2 class="block-label">4 &middot; Gerçek bir şey ekleyin</h2>
+        <p>
+          Şimdi gövdeyi küçük bir mantıkla değiştirin: bir görev durumu ve onu etiketleyen bir fonksiyon. Bu, sürekli kullanacağınız iki şeyi tanıtır: bir <em>tagged union</em> (<code>type Status = ...</code>) ve Glyph'in tek koşul yapısı olan <code>match</code>.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">5 &middot; Bilerek bozun</h2>
+        <p>
+          Glyph'in ne <em>için</em> olduğunu gösteren kısım burası. <code>match</code>'ten <code>Done</code> arm'ını silin (bir ajanın bir yere yeni bir case ekleyip onu ele almayı unuttuğunda yaptığı türden bir şey) ve tekrar çalıştırın.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph (Done arm'ı silinmiş hâli)</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Çalışmadı. TypeScript'te dönüş tipi açıkça yazılmış bu fonksiyonun aynısı da reddedilir (TS2366). Ama yalnızca log yazan ya da durumu güncelleyen bir <code>switch</code>, veya <code>default:</code> içeren bir tanesi temiz derlenir ve yeni case'i sessizce atlar. Burada kapsamı eksik her match, kararlı bir kodu (<code>E0200</code>), tam yeri ve tek satırlık bir düzeltmesi olan bir derleme hatasıdır. Uzun açıklamayı istediğiniz zaman <code>glyph --explain E0200</code> çalıştırın.
+        </p>
+
+        <h2 class="block-label">6 &middot; Düzeltin</h2>
+        <p>Arm'ı geri koyun (ya da bir <code>else</code> ekleyin), program yine çalışır.</p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Temel döngü bu: yazın, çalıştırın; bir şey yanlışsa derleyici, kodunuz yayına çıkmadan önce, sonra değil, tam olarak neyin yanlış olduğunu ve nasıl düzeltileceğini söyler.
+        </p>
+      </div>

@@ -1,0 +1,206 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "benchmarks/index.html",
+  "locale": "tr",
+  "source_hash": "c2635229de656794",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Benchmarks · measured, not asserted · Glyph",
+      "tr": "Benchmark'lar · iddia edilen değil, ölçülen · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's four pillars as numbers: errors caught at compile time, one grep per symbol, one-line diffs, and about 9% fewer tokens than TypeScript, with caveats.",
+      "tr": "Glyph'in dört temel ilkesi rakamlarla: derleme sırasında yakalanan hatalar, sembol başına tek grep, tek satırlık diff'ler ve TypeScript'ten yaklaşık %9 daha az token, çekinceleriyle birlikte."
+    },
+    {
+      "id": "h-9f2e7732",
+      "kind": "html",
+      "en": "Benchmarks",
+      "tr": "Benchmark'lar"
+    },
+    {
+      "id": "h-9c3743c9",
+      "kind": "html",
+      "en": "Two kinds of <span class=\"accent\">evidence</span>.",
+      "tr": "İki tür <span class=\"accent\">kanıt</span>."
+    },
+    {
+      "id": "h-b3331cb8",
+      "kind": "html",
+      "en": "There are two questions worth measuring, and we keep them separate. <strong>Structural:</strong> what does Glyph reject by construction that TypeScript accepts? That's provable today, shown below. <strong>Reliability:</strong> do agents actually ship fewer defects in Glyph than in a <em>well-configured</em> strict-TypeScript setup? That's the number that decides adoption, and we don't have it yet. It's a study we're building, and we won't dress up a proxy as if it were that answer. (The real comparison isn't Glyph vs naive TS; it's Glyph vs <a href=\"/answers/vs-tooled-ts/\">strict TS + zod + eslint + ts-pattern</a>.)",
+      "tr": "Ölçmeye değer iki soru var ve bunları ayrı tutuyoruz. <strong>Yapısal:</strong> Glyph, TypeScript'in kabul ettiği neleri yapısı gereği reddediyor? Bu bugün kanıtlanabilir, aşağıda gösteriliyor. <strong>Güvenilirlik:</strong> ajanlar Glyph'te, <em>iyi yapılandırılmış</em> strict TypeScript kurulumuna göre gerçekten daha az hatayı yayına mı çıkarıyor? Benimsemeye karar verdiren rakam bu ve henüz elimizde değil. Üzerinde çalıştığımız bir çalışma bu ve bir vekil ölçüyü o yanıtmış gibi sunmayacağız. (Asıl karşılaştırma Glyph ile sıradan TS arasında değil; Glyph ile <a href=\"/answers/vs-tooled-ts/\">strict TS + zod + eslint + ts-pattern</a> arasında.)"
+    },
+    {
+      "id": "h-cae40d7f",
+      "kind": "html",
+      "en": "Structural: provable by construction",
+      "tr": "Yapısal: yapısı gereği kanıtlanabilir"
+    },
+    {
+      "id": "h-2f56c6d4",
+      "kind": "html",
+      "en": "Not a statistic: paired demonstrations. Each is a case Glyph rejects and <code>tsc --strict</code> accepts, reproducible from the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory.",
+      "tr": "Bir istatistik değil, eşleştirilmiş gösterimler. Her biri Glyph'in reddettiği ve <code>tsc --strict</code>'in kabul ettiği bir vaka; <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> dizininden yeniden üretilebilir."
+    },
+    {
+      "id": "h-7d361f00",
+      "kind": "html",
+      "en": "Verifiability: the bugs that cost you",
+      "tr": "Doğrulanabilirlik: size pahalıya patlayan bug'lar"
+    },
+    {
+      "id": "h-b9c29918",
+      "kind": "html",
+      "en": "<span class=\"accent\">Both</span> caught at compile time",
+      "tr": "<span class=\"accent\">İkisi de</span> derleme sırasında yakalanıyor"
+    },
+    {
+      "id": "h-d9a4c68e",
+      "kind": "html",
+      "en": "Two mistakes agents make constantly (a missing <code>match</code> variant and a cast through <code>as unknown as</code>) are rejected by Glyph and accepted by <code>tsc --strict</code>. Both are checked cases in <code>catches/</code> (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>), re-run by the build gate. Wrong code that compiles is the expensive failure. Glyph won't let it.",
+      "tr": "Ajanların sürekli yaptığı iki hata (eksik bir <code>match</code> variant'ı ve <code>as unknown as</code> üzerinden bir cast) Glyph tarafından reddedilir ve <code>tsc --strict</code> tarafından kabul edilir. İkisi de <code>catches/</code> içinde kontrol edilen vakalardır (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>) ve build kontrolü tarafından yeniden çalıştırılır. Derlenen yanlış kod pahalı olan başarısızlıktır. Glyph buna izin vermez."
+    },
+    {
+      "id": "h-18ef286e",
+      "kind": "html",
+      "en": "Greppability: one name, one place",
+      "tr": "Aranabilirlik: tek isim, tek yer"
+    },
+    {
+      "id": "h-7d95f946",
+      "kind": "html",
+      "en": "<span class=\"accent\">1</span> match, every time",
+      "tr": "Her seferinde <span class=\"accent\">1</span> eşleşme"
+    },
+    {
+      "id": "h-c195e0eb",
+      "kind": "html",
+      "en": "Every symbol has exactly one declaration form: no overloads, decorators, or merged namespaces to scatter it.",
+      "tr": "Her sembolün tam olarak tek bir tanım biçimi vardır: onu dağıtacak overload, decorator ya da birleştirilmiş namespace yoktur."
+    },
+    {
+      "id": "h-395c7a50",
+      "kind": "html",
+      "en": "Diff stability: reviewable by default",
+      "tr": "Kararlı diff: varsayılan olarak incelenebilir"
+    },
+    {
+      "id": "h-eb7a3918",
+      "kind": "html",
+      "en": "1 line &rarr; 1 line",
+      "tr": "1 satır &rarr; 1 satır"
+    },
+    {
+      "id": "h-78c7e9a8",
+      "kind": "html",
+      "en": "A one-line Glyph edit produces a one-line TypeScript diff through the transpiler, and <code>glyph fmt</code> adds no churn. The diff is the change, not the noise around it.",
+      "tr": "Tek satırlık bir Glyph düzenlemesi, transpiler üzerinden tek satırlık bir TypeScript diff'i üretir ve <code>glyph fmt</code> fazladan gürültü eklemez. Diff, etrafındaki gürültü değil, değişikliğin kendisidir."
+    },
+    {
+      "id": "h-6b841d3c",
+      "kind": "html",
+      "en": "And the safety does not cost length",
+      "tr": "Ve güvenlik uzunluğa mal olmuyor"
+    },
+    {
+      "id": "h-c31998ef",
+      "kind": "html",
+      "en": "Tokens for the same three functions",
+      "tr": "Aynı üç fonksiyon için token sayıları"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-18885f27",
+      "kind": "html",
+      "en": "Python",
+      "tr": "Python"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-6cc8519b",
+      "kind": "html",
+      "en": "Go",
+      "tr": "Go"
+    },
+    {
+      "id": "h-d9aa89fd",
+      "kind": "html",
+      "en": "Rust",
+      "tr": "Rust"
+    },
+    {
+      "id": "h-df8eac6d",
+      "kind": "html",
+      "en": "Safety usually costs length: Go and Rust, the other rows with static types and explicit error handling, are the longest. Glyph has both and is not longer for it: 436 tokens to TypeScript's 478, about 9% fewer, level with Python, about 23% fewer than Go and 30% fewer than Rust, on real <code>cl100k_base</code> counts of programs that pass <code>glyph check</code> with <code>tsc</code>. The lead is in the function with real control flow (<code>parse_user</code>, 132 to 174); on the one-line <code>slugify</code> Glyph is longer (67 to 47) because it has no regex literal. Three functions, a small sample. An earlier figure of 341 was measured on fixtures the compiler did not accept and is withdrawn. <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">See the methodology and caveats &rarr;</a>",
+      "tr": "Güvenlik genellikle uzunluğa mal olur: statik tipleri ve açık hata yönetimi olan diğer satırlar Go ve Rust, en uzunlar. Glyph'te ikisi de var ve bu yüzden daha uzun değil: <code>glyph check</code>'ten <code>tsc</code> ile geçen programların gerçek <code>cl100k_base</code> sayımlarında TypeScript'in 478'ine karşı 436 token, yani yaklaşık %9 daha az; Python ile aynı seviyede, Go'dan yaklaşık %23 ve Rust'tan %30 daha az. Fark, gerçek kontrol akışı olan fonksiyonda (<code>parse_user</code>, 174'e karşı 132); tek satırlık <code>slugify</code>'da Glyph daha uzun (47'ye karşı 67), çünkü regex literal'i yok. Üç fonksiyon, küçük bir örneklem. Daha önceki 341 rakamı, derleyicinin kabul etmediği fixture'lar üzerinde ölçülmüştü ve geri çekildi. <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">Yöntemi ve çekinceleri görün &rarr;</a>"
+    },
+    {
+      "id": "h-8ac5b0ca",
+      "kind": "html",
+      "en": "Reliability: the study we're building",
+      "tr": "Güvenilirlik: üzerinde çalıştığımız çalışma"
+    },
+    {
+      "id": "h-a81f267c",
+      "kind": "html",
+      "en": "The structural results above are <em>reasons to expect</em> Glyph helps; they are not proof that it does. The proof is a differential study: the same agent, the same realistic tasks, written once in Glyph and once in a fully-tooled strict-TypeScript setup (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod), scored on <strong>escaped semantic defects</strong> and one-shot green-build rate. That's the number five different reviewers told us would move them, so we're building it, and until it exists these bars are a placeholder, not a claim.",
+      "tr": "Yukarıdaki yapısal sonuçlar, Glyph'in yardımcı olacağını <em>beklemek için nedenler</em>; yardımcı olduğunun kanıtı değil. Kanıt, karşılaştırmalı bir çalışma: aynı ajan, aynı gerçekçi görevler, bir kez Glyph'te ve bir kez tüm araçlarla donatılmış strict TypeScript kurulumunda (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod) yazılır ve <strong>gözden kaçan semantik hatalar</strong> ile ilk denemede yeşil build oranı üzerinden puanlanır. Beş farklı inceleyicinin bizi ikna edecek rakam dediği bu; bu yüzden onu hazırlıyoruz ve o var olana kadar bu çubuklar bir iddia değil, yer tutucu."
+    },
+    {
+      "id": "h-dcf46d14",
+      "kind": "html",
+      "en": "Escaped defects per task &middot; lower is better &middot; <span style=\"color:var(--amber)\">not measured yet</span>",
+      "tr": "Görev başına gözden kaçan hata &middot; düşük olan daha iyi &middot; <span style=\"color:var(--amber)\">henüz ölçülmedi</span>"
+    },
+    {
+      "id": "h-bce540e4",
+      "kind": "html",
+      "en": "Glyph vs fully-tooled strict TypeScript",
+      "tr": "Glyph ve tüm araçlarla donatılmış strict TypeScript"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "beklemede"
+    },
+    {
+      "id": "h-e82e7273",
+      "kind": "html",
+      "en": "tooled TS",
+      "tr": "araçlı TS"
+    },
+    {
+      "id": "h-57cc1ce7",
+      "kind": "html",
+      "en": "The apparatus (a task corpus, a run/replay harness, and the pinned strongest-honest TS baseline) is in the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory; the first real pilot (with its <em>n</em>, the model, and the cost stated on the label) publishes here the moment it runs. Whatever it shows.",
+      "tr": "Düzenek (bir görev derlemi, bir çalıştırma/tekrar oynatma düzeneği ve sabitlenmiş, dürüstçe kurulabilecek en güçlü TS referansı) <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> dizininde; ilk gerçek pilot çalışma (<em>n</em>'i, modeli ve maliyeti etiketinde belirtilmiş olarak) çalıştırıldığı anda burada yayımlanacak. Ne gösterirse göstersin."
+    },
+    {
+      "id": "h-88029d8d",
+      "kind": "html",
+      "en": "Why the comparison is against tooled TS &rarr;",
+      "tr": "Karşılaştırma neden araçlı TS'e karşı &rarr;"
+    },
+    {
+      "id": "h-c0b5c819",
+      "kind": "html",
+      "en": "&larr; Back to home",
+      "tr": "&larr; Ana sayfaya dön"
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+---
+title: Ekipler için · Glyph neyi garanti ediyor, maliyeti ne · Glyph
+description: Glyph'i değerlendiren bir lider için: derleyicinin neyi garanti ettiği ve nerede durduğu, bir TypeScript uygulamasında benimsenmesi, çıkış yolu, sürüm sabitleme ve 1.0 öncesi durum.
+source_hash: d4a38356fad5c816
+next_steps: |
+  Buradan sonra nereye
+  Önerilen | /catches/ | catches | TypeScript'in neleri geçirdiğini görün | Strict bir TypeScript projesinin kabul ettiği vakalar, sıralanmış, her biri <code>tsc --strict</code> altında ve Glyph altında çalıştırılmış. | Yakaladıklarını görün
+  /start/ | start | İlk programınızı yazın | Kurun, proje oluşturun, çalıştırın, bilerek bozun, hatayı okuyun. Yaklaşık on dakika.
+  /playground/ | playground | Tarayıcıda deneyin | Derleyici sayfanın içinde çalışır, kurulacak bir şey yok.
+---
+      <p class="q-eyebrow">Ekipler için</p>
+      <h1 class="q-title">Neyi garanti ediyor, benimsemenin maliyeti ne ve nasıl çıkarsınız</h1>
+
+      <p class="short-answer">
+        Glyph, strict bir TypeScript projesinin kabul ettiği, kontrol edilmiş belirli bir vaka listesini reddeder ve kullanmayı bırakırsanız elinizde tutabileceğiniz TypeScript'e derlenir. Erken bir önizleme: 1.0 öncesi, ağırlıklı olarak tek bir kişi tarafından geliştiriliyor ve haftada birkaç sürüm çıkıyor.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Neyi garanti ediyor</h2>
+        <p>
+          Glyph'in neyi yakaladığına dair her iddia, repodaki <code>catches/</code> dizininde bir vakadır: aynı program TypeScript'te ve Glyph'te, ikisi de bir CI kontrolüyle çalıştırılır. {{catches:breakdown}} Reddetmediği hatalardan {{catches:warned-all}} tanesi uyarı verir, {{catches:boundary-all}} tanesi çalışma zamanındaki bir sınır kontrolünde durdurulan hatalı veridir ve {{catches:runtime-all}} tanesi çalışırken durur. Ajanların yazdığı kodu inceleyen birinin en çok dayandıkları:
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Kod</th><th>Reddedilen</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Code"><code>E0200</code></td><td data-label="What is refused">Bir union'ın bir durumunu dışarıda bırakan bir <code>match</code>; böylece bir durum eklemek, değişmesi gereken her yeri listeler</td></tr>
+            <tr><td data-label="Code"><code>E0013</code></td><td data-label="What is refused">Bir cast (<code>as</code>, <code>as unknown as</code>); cast yoktur, <code>any</code> da yoktur</td></tr>
+            <tr><td data-label="Code"><code>E0204</code></td><td data-label="What is refused">Kontrol edilmeden tipli bir isme atanan, parse edilmiş JSON</td></tr>
+            <tr><td data-label="Code"><code>E0224</code></td><td data-label="What is refused">Anahtar her zaman oradaymış gibi tiplenmiş bir map'ten okuma</td></tr>
+            <tr><td data-label="Code"><code>E0217</code></td><td data-label="What is refused">Yok sayılan bir <code>Result</code> (bir uyarı; <code>let _ =</code> bunun bilerek yapıldığını söyler)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="/catches/">Yakaladıkları sayfası</a>, her vakayı TypeScript'i, Glyph'i ve hatasıyla listeler ve hangilerini tamamen yapılandırılmış bir typescript-eslint kurulumunun da yakalayacağını söyler.
+        </p>
+
+        <h2 class="block-label">Nerede duruyor</h2>
+        <p>
+          Garantiler Glyph'te yazılmış kodu kapsar. Bir npm bağımlılığının içinde fırlatılan exception yine <code>Result</code>'ı atlar ve bir paketin <code>.d.ts</code>'inden import edilen tipin çalışma zamanı kontrolü yoktur. Glyph'in içinde, {{catches:gap-cases}} açık gap numaralarıyla birlikte <a href="/catches/#not-yet">henüz yakalamadıkları</a> bölümünde listelenir; tam kayıt <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>'dedir. Strict TypeScript artı zod, eslint ve ts-pattern ile bir karşılaştırma için, o kurulumun hâlâ önde olduğu yerler dahil, bkz. <a href="/answers/vs-tooled-ts/">neden araçlarla donatılmış TypeScript değil</a>.
+        </p>
+
+        <h2 class="block-label">Mevcut bir uygulamanın içinde benimsemek</h2>
+        <p>
+          Yeniden yazmak gerekmiyor. Yanlış yapmayı göze alamayacağınız kısmı (modeller, yetkiler, durum geçişleri, para) Glyph'te yazarsınız; uygulamanın geri kalanı TypeScript olarak kalır ve üretilmiş modülleri herhangi bir yerel dosya gibi import eder. Adım adım anlatım standart bir Vite iskeleti kullanıyor: <a href="/answers/embedding/">Glyph'i mevcut uygulamamın içinde benimseyebilir miyim?</a>
+        </p>
+
+        <h2 class="block-label">Çıkış yolu</h2>
+        <p>
+          <code>glyph build</code>, <code>tsc --strict</code>'ten geçen, modül başına bir dosya olacak şekilde düz TypeScript yazar. Glyph'i kullanmayı bırakırsanız o çıktıyı commit eder ve <code>tsc</code> ile devam edersiniz. Lisans MIT veya Apache-2.0, yani bir fork her zaman mümkün. <a href="/from-typescript/">TypeScript'ten geliyorsanız</a> sayfası bir modülü, üretilmiş dosyasının yanında gösterir.
+        </p>
+
+        <h2 class="block-label">Sabitleme ve yükseltmeler</h2>
+        <p>
+          <code>glyph init</code>, derleyiciyi <code>package.json</code> içinde <code>^</code> olmadan tam bir sürüme sabitler; böylece hiçbir sürüm build'inize kazara ulaşmaz. Gerisini üç komut halleder:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">bilinçli yükseltme</span>
+<pre>glyph doctor     <span class="cm"># your version against the latest release; never fails CI for that</span>
+glyph upgrade    <span class="cm"># moves the project's pin, runs npm install, links the notes</span>
+glyph --update   <span class="cm"># moves the installed compiler itself</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Ayrıntılar: <a href="/answers/upgrades/">Yeni bir Glyph sürümü build'imi bozar mı?</a>
+        </p>
+
+        <h2 class="block-label">Sürüm temposu ve Breaking işareti</h2>
+        <p>
+          <a href="/versions/">Sürümler sayfasında</a> 0.1.0'dan {{releases:latest}}'e kadar her sürüm için bir girdi var, toplam {{releases:count}} tane; bunların 22'si Kasım 2026'da, ayın 19'una kadar çıktı. Bir sürüm, önceki sürümün kabul ettiği bir programı reddediyorsa Breaking olarak işaretlenir; doğruluk düzeltmelerinin çoğu bu şekilde gelir. {{releases:breaking}} girdi bu işareti taşıyor. İşaret, diff okunarak değil, etkilenen en küçük program iki sürümde de çalıştırılarak konur; 0.1.99'dan önceki sürümler bu şekilde test edilmedi, yani işaretsiz eski bir sürüm güvenli değil, test edilmemiş demektir.
+        </p>
+        <p>
+          Bir Breaking sürümün pratikte neye mal olduğu: son notların her biri, eski ve yeni sürümler repodaki örnek uygulamalar üzerinde çalıştırıldığında ne olduğunu söylüyor. Bunlar en yeni Breaking sürümler, notlarından alıntılandı:
+        </p>
+{{releases:breaking-cost}}
+        <p>
+          Örnek uygulamalar projenin kendi kodudur ve sürümden sürüme derlenir hâlde tutulur; bu yüzden yeni reddedilen bir yapının onlarda çıkma ihtimali sizin kodunuza göre daha düşüktür. Her not reddettiği yapıları adıyla belirtir, yükseltmeden önce okuyun.
+        </p>
+
+        <h2 class="block-label">Durum</h2>
+        <p>
+          Glyph 1.0 öncesinde. 1.0'dan önce sözdizimi, standart kütüphane ve üretilen TypeScript'in yapısı değişebilir ve bir sürüm daha önce derlenen kodu reddedebilir. <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a> neyin değişebileceğini ve neyin sabit tutulduğunu söyler. <a href="https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md">MAINTAINERS.md</a>, projenin bugün ağırlıklı olarak tek bir kişi tarafından geliştirildiğini açıkça belirtir.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">İtirazlar ve yanıtları</h2>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/human-value/"><span class="q">Yapay zekâyı pek kullanmıyoruz. Yine de değer mi?</span><p>Kodu kim yazarsa yazsın kontroller aynıdır: çalışma zamanında daha az sürpriz, daha küçük diff'ler, grep'lenebilen kod.</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">Zaten strict TypeScript ve lint kullanıyoruz.</span><p>O kontrollerin her biri isteğe bağlıdır ve tek satırla kapatılabilir. Glyph'inkiler kapatılamaz.</p></a>
+        <a class="a-card" href="/answers/ai-authoring/"><span class="q">Ajanlarımız neredeyse hiç görmedikleri bir dili yazabilir mi?</span><p>Bir modelin TypeScript hakkında bildiklerinin çoğu aynen geçerlidir, gerisini derleyici söyler.</p></a>
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">Neden TypeScript'e derleniyor?</span><p>npm, React ve Node orada; benimsemenin dosya dosya yapılabilmesinin nedeni de bu.</p></a>
+        <a class="a-card" href="/answers/debugging/"><span class="q">Bir şey bozulduğunda nöbetçi ne görüyor?</span><p>Okunabilir TypeScript, <code>.glyph</code> dosyasına geri götüren source map'ler ve kararlı hata kodları.</p></a>
+        <a class="a-card" href="/evidence/"><span class="q">Bunların doğru olduğunu nereden biliyoruz?</span><p>Bu sitedeki her iddianın nasıl kontrol edildiği ve birini kendiniz nasıl yeniden üretebileceğiniz.</p></a>
+      </div>

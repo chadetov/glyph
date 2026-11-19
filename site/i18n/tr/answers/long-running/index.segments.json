@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/long-running/index.html",
+  "locale": "tr",
+  "source_hash": "babc2c3ac5bb52bc",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I write a server, or does the process just exit? · Glyph",
+      "tr": "Bir sunucu yazabilir miyim, yoksa süreç hemen çıkıyor mu? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A Glyph program can be a long-running server. main sets up and returns; the process stays alive while sockets and timers are pending, exactly as Node does.",
+      "tr": "Bir Glyph programı uzun süre çalışan bir sunucu olabilir. main kurulumu yapar ve döner; süreç, bekleyen socket'ler ve timer'lar olduğu sürece ayakta kalır, tıpkı Node'da olduğu gibi."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Önceki"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I write a program someone types into?",
+      "tr": "Birinin içine yazı yazdığı bir program yazabilir miyim?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "Binary veriyle çalışabilir miyim, yoksa her şey string mi?"
+    },
+    {
+      "id": "h-d7b98512",
+      "kind": "html",
+      "en": "19 &middot; Servers &amp; daemons",
+      "tr": "19 &middot; Sunucular ve daemon'lar"
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "Bir sunucu yazabilir miyim, yoksa süreç hemen çıkıyor mu?"
+    },
+    {
+      "id": "h-357d442e",
+      "kind": "html",
+      "en": "You can write a server. <code>main</code> sets things up and returns, and the process <strong>stays alive while sockets and timers are still pending</strong>, the same rule Node uses. Until 0.1.63 it did not: the runner tore the process down the moment <code>main</code> returned, so a server bound its port and died in the same tick.",
+      "tr": "Bir sunucu yazabilirsiniz. <code>main</code> kurulumu yapar ve döner; süreç <strong>bekleyen socket'ler ve timer'lar olduğu sürece ayakta kalır</strong>, Node'un kullandığı kuralın aynısı. 0.1.63'e kadar böyle değildi: çalıştırıcı <code>main</code> döndüğü anda süreci sonlandırıyordu, bu yüzden bir sunucu port'unu bağlıyor ve aynı tick içinde ölüyordu."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "h-802abf2b",
+      "kind": "html",
+      "en": "This is the difference between a language that can run a script and one that can run a service. A server, a file watcher, a bot holding a gateway connection, a job runner: none of them finish inside <code>main</code>. They set up handlers and hand the process over to events.",
+      "tr": "Bir script çalıştırabilen bir dil ile bir servis çalıştırabilen bir dil arasındaki fark budur. Bir sunucu, bir dosya izleyici, bir gateway bağlantısı tutan bir bot, bir iş çalıştırıcı: hiçbiri <code>main</code> içinde bitmez. Handler'ları kurar ve süreci event'lere bırakırlar."
+    },
+    {
+      "id": "h-ddc1b8fa",
+      "kind": "html",
+      "en": "The old behaviour failed in the worst possible way, which is quietly. <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line inside the <code>listen</code> callback, and exited 0. Nothing in the source looked wrong and it type-checked. An agent that hits that has no error to report and no reason to think anything failed.",
+      "tr": "Eski davranış mümkün olan en kötü şekilde, sessizce başarısız oluyordu. <code>glyph run app.glyph --serve 4100</code> hiçbir şey yazdırmıyordu, <code>listen</code> callback'i içindeki satırı bile, ve 0 ile çıkıyordu. Kaynakta hiçbir şey yanlış görünmüyordu ve tip kontrolünden geçiyordu. Buna takılan bir ajanın bildirecek bir hatası ve bir şeyin başarısız olduğunu düşünmesi için bir nedeni yoktur."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Görün"
+    },
+    {
+      "id": "h-fbc29a6a",
+      "kind": "html",
+      "en": "A TCP server in full. <code>main</code> returns immediately; the callbacks run for as long as the process lives:",
+      "tr": "Eksiksiz bir TCP sunucusu. <code>main</code> hemen döner; callback'ler süreç yaşadığı sürece çalışır:"
+    },
+    {
+      "id": "h-72b727b4",
+      "kind": "html",
+      "en": "A server, start to finish",
+      "tr": "Baştan sona bir sunucu"
+    },
+    {
+      "id": "h-4c1b7d58",
+      "kind": "html",
+      "en": "<code>net</code> is a Node builtin, so it is an ordinary import, but it is not one of the six the compiler ships ambient types for (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Either install <code>@types/node</code> and the build prefers it, or drop a declaration in <code>.types/net.d.ts</code> next to your source, which is what the chat app does so it needs no dependencies at all.",
+      "tr": "<code>net</code> bir Node builtin'i, yani sıradan bir import; ama derleyicinin ortam tiplerini birlikte getirdiği altı modülden biri değil (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Ya <code>@types/node</code>'u kurarsınız ve build onu tercih eder, ya da kaynağınızın yanına <code>.types/net.d.ts</code> içine bir tanım koyarsınız; chat uygulaması hiç bağımlılığa ihtiyaç duymamak için bunu yapar."
+    },
+    {
+      "id": "h-4c982701",
+      "kind": "html",
+      "en": "Two things worth knowing. The <code>return 0</code> runs before the first client ever connects: it is the code the process will eventually leave with, not a statement about when it leaves. And anything that fails <em>after</em> <code>main</code> has returned has to set its own exit code, because <code>main</code>'s return value is already spent. That is what the <code>error</code> handler is for. Without it, a server that cannot bind its port drains its event loop and exits 0, reporting success.",
+      "tr": "Bilinmesi gereken iki şey var. <code>return 0</code>, ilk istemci bağlanmadan önce çalışır: sürecin sonunda çıkacağı koddur, ne zaman çıkacağına dair bir ifade değildir. Ayrıca <code>main</code> döndükten <em>sonra</em> başarısız olan her şey kendi çıkış kodunu ayarlamak zorundadır, çünkü <code>main</code>'in dönüş değeri zaten kullanılmıştır. <code>error</code> handler'ı bunun içindir. O olmadan, port'unu bağlayamayan bir sunucu event loop'unu boşaltır ve başarı bildirerek 0 ile çıkar."
+    },
+    {
+      "id": "h-b957e585",
+      "kind": "html",
+      "en": "A real one",
+      "tr": "Gerçek bir örnek"
+    },
+    {
+      "id": "h-e196848d",
+      "kind": "html",
+      "en": "<code>examples/apps/chat</code> is a chat server holding several TCP clients at once. The parts that do not touch the network stay separate and testable: line reassembly, routing, and the room engine are pure functions checked by <code>@example</code>, and one file talks to sockets.",
+      "tr": "<code>examples/apps/chat</code>, aynı anda birden fazla TCP istemcisini tutan bir chat sunucusudur. Ağa dokunmayan kısımlar ayrı ve test edilebilir kalır: satır birleştirme, yönlendirme ve oda motoru <code>@example</code> ile kontrol edilen saf fonksiyonlardır ve yalnızca bir dosya socket'lerle konuşur."
+    },
+    {
+      "id": "h-bfe5fdf1",
+      "kind": "html",
+      "en": "Three clients connected at once",
+      "tr": "Aynı anda bağlı üç istemci"
+    },
+    {
+      "id": "h-6ad09c69",
+      "kind": "html",
+      "en": "TCP does not deliver messages, it delivers bytes, so the tail of a chunk is usually half a line. That reassembly is a pure function with the awkward cases written down as examples rather than provoked over a socket:",
+      "tr": "TCP mesaj iletmez, bayt iletir; bu yüzden bir parçanın sonu genellikle yarım bir satırdır. Bu birleştirme, zor durumları bir socket üzerinden tetiklemek yerine örnek olarak yazılmış saf bir fonksiyondur:"
+    },
+    {
+      "id": "h-02e0830c",
+      "kind": "html",
+      "en": "The other direction: a long-running client",
+      "tr": "Diğer yön: uzun süre çalışan bir istemci"
+    },
+    {
+      "id": "h-468113df",
+      "kind": "html",
+      "en": "A bot is the same shape pointed outward. <code>examples/apps/discord</code> is a Discord gateway client: it connects over a WebSocket, identifies, heartbeats on the interval the server dictates, tracks a sequence number so a dropped connection resumes rather than starting over, notices when the connection is open but dead, and backs off between reconnects.",
+      "tr": "Bir bot da dışarıya dönük aynı yapıdadır. <code>examples/apps/discord</code> bir Discord gateway istemcisidir: bir WebSocket üzerinden bağlanır, kendini tanıtır, sunucunun belirlediği aralıkta heartbeat gönderir, kopan bir bağlantının baştan başlamak yerine kaldığı yerden devam etmesi için bir sıra numarası tutar, bağlantının açık ama ölü olduğunu fark eder ve yeniden bağlanmalar arasında bekleme süresini artırır."
+    },
+    {
+      "id": "h-39d6dc9e",
+      "kind": "html",
+      "en": "The part worth copying is where the logic lives. Deciding what to do about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token is a pure function from a session and one event to a new session and a list of actions. One module carries those actions out on a real socket. That is why the reconnect logic, which is the hard part to get right, is checked by <code>@example</code> rather than by unplugging a network cable:",
+      "tr": "Kopyalamaya değer kısım, mantığın nerede durduğu. Bir <code>RECONNECT</code>, kaçırılmış bir heartbeat ya da reddedilmiş bir token hakkında ne yapılacağına karar vermek, bir oturum ve bir event'ten yeni bir oturuma ve bir action listesine giden saf bir fonksiyondur. Bu action'ları gerçek bir socket üzerinde tek bir modül yürütür. Doğru yapılması zor olan kısım olan yeniden bağlanma mantığının bir ağ kablosunu çekerek değil de <code>@example</code> ile kontrol edilmesinin nedeni budur:"
+    },
+    {
+      "id": "h-eb9066f0",
+      "kind": "html",
+      "en": "Those three examples are each a bug that was in the code first. Writing a mock gateway and pointing the bot at it caught one of them. The other two were caught by a second mock written from Discord's documentation instead of from the client, which sends the things a cooperative mock never does: an unprompted heartbeat request, and a close code that means \"your token is wrong, stop asking\". A mock written by the author of the client only tests the parts of the protocol the author read.",
+      "tr": "Bu üç örneğin her biri önce kodda bulunan bir hataydı. Sahte bir gateway yazıp botu ona yönlendirmek bunlardan birini yakaladı. Diğer ikisi, istemciden değil Discord'un dokümantasyonundan yazılmış ikinci bir sahte gateway tarafından yakalandı; o, iş birliği yapan bir sahte gateway'in asla göndermediği şeyleri gönderir: istenmeden gelen bir heartbeat isteği ve \"token'ın yanlış, sormayı bırak\" anlamına gelen bir kapanış kodu. İstemcinin yazarı tarafından yazılmış bir sahte sunucu, protokolün yalnızca yazarın okuduğu kısımlarını test eder."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Bugün yayında"
+    },
+    {
+      "id": "h-3954ea38",
+      "kind": "html",
+      "en": "Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit. <code>std/timers</code> schedules work (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) and <code>std/websocket</code> opens a connection, so neither needs a hand-written declaration.",
+      "tr": "<code>main</code>'den dönmek süreci durdurmadan çıkış kodunu ayarlar, böylece sunucular, izleyiciler ve event loop'lar çalışır. Yalnızca hesaplama yapan bir program hâlâ <code>main</code> döndüğü anda aynı kodla çıkar, yani kısa programlarla ilgili hiçbir şey değişmedi. <code>net</code> gibi Node builtin'leri sıradan import'lardır ve kurulum sırasında hata fırlatan bir program yine sonlanır; artık diagnostic'i, çıkış tarafından kesilme ihtimali olmadan yönlendirilmiş bir stderr'e ulaştıktan sonra. <code>std/timers</code> iş zamanlar (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) ve <code>std/websocket</code> bir bağlantı açar; ikisi de elle yazılmış bir tanıma ihtiyaç duymaz."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "Daha da keskinleşiyor"
+    },
+    {
+      "id": "h-5f8ed8fa",
+      "kind": "html",
+      "en": "A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.",
+      "tr": "<code>main</code> döndükten sonra bağlanamayan bir listener, program aksini söylemedikçe 0 ile çıkar: <code>process.set_exit_code(1)</code> hâlâ süren işi sonlandırmadan hatayı kaydeder, <code>process.exit(1)</code> ise hemen durdurur. Derleyici bunu unuttuğunuz konusunda henüz uyaramıyor. Ayrıca bir fonksiyonun hiç dönmediğini yazmanın hâlâ bir yolu yok, bu yüzden bir sunucunun <code>main</code>'i hiçbir zaman ulaşılmayan bir <code>return 0</code> taşır."
+    }
+  ]
+}

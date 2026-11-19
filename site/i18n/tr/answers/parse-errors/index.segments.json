@@ -1,0 +1,176 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/parse-errors/index.html",
+  "locale": "tr",
+  "source_hash": "7f1a8b2bd45c7f9e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "When a parse fails, do I find out why? · Glyph",
+      "tr": "Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A failing parse names the field, says which rule the value broke, quotes the where predicate it violated, and tags the issue with a code you can branch on.",
+      "tr": "Başarısız bir parse alanı adıyla belirtir, değerin hangi kuralı ihlal ettiğini söyler, ihlal ettiği where koşulunu aynen aktarır ve sorunu üzerinde dallanabileceğiniz bir kodla etiketler."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Önceki"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Sonraki &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "Gece 3'te production'da bozulduğunda nöbetçi ne görüyor?"
+    },
+    {
+      "id": "h-24923701",
+      "kind": "html",
+      "en": "27 &middot; Parse failures",
+      "tr": "27 &middot; Parse hataları"
+    },
+    {
+      "id": "h-f32168df",
+      "kind": "html",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum?"
+    },
+    {
+      "id": "h-dc11cff3",
+      "kind": "html",
+      "en": "Yes. Every issue names the field, says <strong>which rule the value broke</strong>, and carries a <code>code</code> you can branch on. A field constrained by a <code>where</code> predicate reports the predicate itself, so the rejection greps back to the line that imposed it.",
+      "tr": "Evet. Her sorun alanı adıyla belirtir, <strong>değerin hangi kuralı ihlal ettiğini</strong> söyler ve üzerinde dallanabileceğiniz bir <code>code</code> taşır. Bir <code>where</code> koşuluyla kısıtlanmış bir alan koşulun kendisini bildirir; böylece reddetme, grep ile onu koyan satıra kadar izlenebilir."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "h-2b8c51b7",
+      "kind": "html",
+      "en": "A validator that says \"this payload is bad\" has done half the job. The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
+      "tr": "\"Bu payload hatalı\" diyen bir validator işin yarısını yapmıştır. Handler'ın yine de karar vermesi gerekir: bu bir alanı unutan bir istemci mi, yoksa dört karakterlik bir şifre gönderen bir istemci mi? Biri 400, diğeri 422'dir; validator bunu söylemezse, validator'ın zaten sahip olduğu bir bilgiyi geri kazanmak için aynı gövdeyi iki farklı tiple iki kez parse etmek zorunda kalırsınız."
+    },
+    {
+      "id": "h-333aed3e",
+      "kind": "html",
+      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
+      "tr": "Glyph'te bir kimlik doğrulama API'si geliştirirken tam olarak bu oldu. Hiç <code>password</code> anahtarı olmayan bir kayıt isteği <code>weak_password</code> olarak döndü, çünkü eksik olmak ve çok kısa olmak aynı string'i üretiyordu."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Görün"
+    },
+    {
+      "id": "h-bddd14ad",
+      "kind": "html",
+      "en": "One type, one constraint:",
+      "tr": "Tek tip, tek kısıt:"
+    },
+    {
+      "id": "h-66999642",
+      "kind": "html",
+      "en": "Four bad payloads, four different answers. Each is one <code>Issue</code>, shown as <code>code | path | message</code>:",
+      "tr": "Dört hatalı payload, dört farklı yanıt. Her biri, <code>code | path | message</code> olarak gösterilen tek bir <code>Issue</code>:"
+    },
+    {
+      "id": "h-cb372fc2",
+      "kind": "html",
+      "en": "The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim. Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
+      "tr": "Asıl nokta ikincisi. <code>value.length &gt;= 8</code> tipte bir kez yazılır ve reddetme onu kelimesi kelimesine aktarır. O string'i bir HTTP 422 gövdesinden kopyalayıp <code>grep</code>'e yapıştırın, onu üreten tanıma ulaşırsınız. Kimsenin hata mesajı katmanında kuralın bir kopyasını tutması gerekmez; ikisinin birbirinden sapmasının yolu zaten budur."
+    },
+    {
+      "id": "h-c1b3d39f",
+      "kind": "html",
+      "en": "The fourth one used to be worse than a bad message. An array is an object to <code>typeof</code>, so a record with no required fields accepted one outright, and a posted <code>[1, 2, 3]</code> came back as one confusing issue per declared field, none of them mentioning that you had sent a list.",
+      "tr": "Dördüncüsü eskiden kötü bir mesajdan da beterdi. <code>typeof</code> için bir dizi bir nesnedir; bu yüzden zorunlu alanı olmayan bir record onu doğrudan kabul ediyordu ve gönderilen bir <code>[1, 2, 3]</code>, tanımlanan her alan için kafa karıştırıcı birer sorun olarak dönüyordu; hiçbiri bir liste gönderdiğinizden bahsetmiyordu."
+    },
+    {
+      "id": "h-f15fe14d",
+      "kind": "html",
+      "en": "Nested types answer for themselves",
+      "tr": "İç içe tipler kendi adlarına yanıt verir"
+    },
+    {
+      "id": "h-1c1f349a",
+      "kind": "html",
+      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message. You get the location and the reason from the same issue, without re-running anything.",
+      "tr": "Tipinin kendi tanımlayıcısı olan bir alan, o tipin <code>parse</code>'ı ile doğrulanır ve sorunları, path'in başına alan adı eklenmiş olarak geri döner. Böylece iki seviye içeride bulunan bir <code>Password</code>, <code>[\"body\", \"password\"]</code> bildirir ve yine kendi mesajını taşır. Konumu ve nedeni hiçbir şeyi yeniden çalıştırmadan aynı sorundan alırsınız."
+    },
+    {
+      "id": "h-f4063e91",
+      "kind": "html",
+      "en": "The code, not the string",
+      "tr": "String değil, kod"
+    },
+    {
+      "id": "h-0696faed",
+      "kind": "html",
+      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, or <code>\"unexpected\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
+      "tr": "<code>Issue</code> isteğe bağlı bir <code>code</code> taşır: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code> ya da <code>\"unexpected\"</code>. Onun üzerinde dallanın. Mesaj metnine göre eşleştirmek, Glyph'in ortadan kaldırmak için var olduğu kırılganlıktır; mesaj, yanıt gövdesini okuyan insan içindir."
+    },
+    {
+      "id": "h-d38a3f61",
+      "kind": "html",
+      "en": "A 400/422 split that does not read the message",
+      "tr": "Mesajı okumayan bir 400/422 ayrımı"
+    },
+    {
+      "id": "h-4e6a1d50",
+      "kind": "html",
+      "en": "<code>code</code> is optional, so an <code>Issue</code> you build by hand, and every consumer written before it existed, still compiles unchanged.",
+      "tr": "<code>code</code> isteğe bağlıdır; bu yüzden elle oluşturduğunuz bir <code>Issue</code> ve o var olmadan önce yazılmış her tüketici değişmeden derlenmeye devam eder."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Şu anki durum"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Bugün yayında"
+    },
+    {
+      "id": "h-7654d152",
+      "kind": "html",
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, and <code>\"unexpected\"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.",
+      "tr": "Record'lar ve <code>where</code> tipleri yalnızca başarısız alanı değil, ihlal edilen kuralı da bildirir: eksik bir zorunlu alan için <code>\"missing\"</code>, yanlış yapı için (nesne olmayan bir değer ya da bir dizi dahil) <code>\"type\"</code>, temel tipinden geçip koşulda başarısız olan bir değer için <code>\"refinement\"</code> ve tipin tanımlamadığı bir anahtar için <code>\"unexpected\"</code>. Bir daraltma koşulunu aktarır. Tipinin bir tanımlayıcısı olan bir alan işi ona devreder, böylece iç içe sorunlar tam path ile gelir. İsteğe bağlı alanlar (<code>f?: T</code>) hiçbir zaman eksik olarak bildirilmez."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "Daha da keskinleşiyor"
+    },
+    {
+      "id": "h-7339349c",
+      "kind": "html",
+      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
+      "tr": "İki sınır var. Kendi tanımlayıcısı olmayan bir şeyle tiplenmiş bir alan (kısıtsız bir tip parametresi ya da elle yazılmış bir <code>.d.ts</code>'ten import edilen bir tip) hâlâ düz kontrolden geçer ve bir <code>\"type\"</code> sorunu alır; derleyici bunlar için tanımlayıcı sentezlemez, onlara bir tanımlayıcı veren şey tanım üzerinde <code>glyph gen dts</code> çalıştırmaktır. Kendi <code>Issue</code> tipini tanımlayan bir modül, eskiden üretilen dosyanın içinde prelude'dakini gölgeliyor ve o modüldeki her tanımlayıcıyı bozuyordu; 0.1.60'tan beri bu tanım, tipi adlandıran satırda <code>E0110</code> hatasıdır; böylece üretilmiş kod hakkında bir <code>tsc</code> hatası okumak yerine sorunun nerede olduğunu öğrenirsiniz."
+    }
+  ]
+}

@@ -50,7 +50,6 @@ a.h-tile:hover {
 .h-measured p {
   margin: 0;
   color: var(--ink-2);
-  max-width: 70ch;
 }
 .h-measured .h-big {
   font-size: var(--fs-xl);

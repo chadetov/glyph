@@ -594,6 +594,9 @@ def build() -> dict[str, str]:
     files["sitemap.xml"] = sitemap(entries)
     for css in sorted(SITE.glob("*.css")):
         files[css.name] = css.read_text()
+    # Language flags for the header's language menu, with their licence.
+    for flag in sorted((SITE / "flags").glob("*")):
+        files[f"flags/{flag.name}"] = flag.read_text()
     return files
 
 

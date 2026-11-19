@@ -315,3 +315,41 @@ body {
 :lang(ko) {
   word-break: keep-all;
 }
+
+/* Flags beside each language in the menu, and on the menu button. */
+.lang-flag {
+  flex: none;
+  width: 20px;
+  height: 15px;
+  border-radius: 3px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.18);
+}
+.lang-btn .lang-flag {
+  width: 18px;
+  height: 13.5px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+.lang-drop li a,
+.lang-drop li .lang-off {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lang-off .lang-flag {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+.lang-drop li a,
+.lang-drop li .lang-off {
+  justify-content: flex-start;
+  text-align: left;
+}
+.lang-drop .lang-name {
+  flex: 1 1 auto;
+  text-align: left;
+}
+.lang-drop .lang-tick,
+.lang-drop .lang-note {
+  margin-left: auto;
+}

@@ -147,20 +147,20 @@
           </div>
         </div>
         <details class="lang-menu">
-          <summary class="lang-btn" aria-label="Sprache: Deutsch"><svg class="lang-globe" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg><span class="lang-cur">Deutsch</span><span class="lang-short" aria-hidden="true">DE</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <summary class="lang-btn" aria-label="Sprache: Deutsch"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">Deutsch</span><span class="lang-short" aria-hidden="true">DE</span><span class="nav-chev" aria-hidden="true"></span></summary>
           <div class="lang-drop">
             <p class="lang-head">Sprache</p>
             <ul>
-              <li><a href="/" hreflang="en" lang="en" data-lang="en"><span class="lang-name">English</span></a></li>
-              <li><a href="/pt-br/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><span class="lang-name">Português (Brasil)</span></a></li>
-              <li><a href="/es/" hreflang="es" lang="es" data-lang="es"><span class="lang-name">Español</span></a></li>
-              <li><a href="/ja/" hreflang="ja" lang="ja" data-lang="ja"><span class="lang-name">日本語</span></a></li>
-              <li><a href="/tr/" hreflang="tr" lang="tr" data-lang="tr"><span class="lang-name">Türkçe</span></a></li>
-              <li><a href="/zh-cn/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><span class="lang-name">简体中文</span></a></li>
-              <li><a href="/ko/" hreflang="ko" lang="ko" data-lang="ko"><span class="lang-name">한국어</span></a></li>
-              <li><a href="/de/" hreflang="de" lang="de" data-lang="de" aria-current="true"><span class="lang-name">Deutsch</span><span class="lang-tick" aria-hidden="true"></span></a></li>
-              <li><a href="/ru/" hreflang="ru" lang="ru" data-lang="ru"><span class="lang-name">Русский</span></a></li>
-              <li><a href="/th/" hreflang="th" lang="th" data-lang="th"><span class="lang-name">ไทย</span></a></li>
+              <li><a href="/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/" hreflang="de" lang="de" data-lang="de" aria-current="true"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/ru/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
             </ul>
             <a class="lang-en" href="/" hreflang="en" data-lang="en">Auf Englisch lesen</a>
           </div>
@@ -642,6 +642,22 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         fit();
         window.addEventListener("resize", fit);
         if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
       })();
       // A language picked from the menu or a "Read in English" link is the
       // reader's choice from then on; the first-visit redirect never overrides it.

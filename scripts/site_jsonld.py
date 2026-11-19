@@ -74,8 +74,10 @@ def site_nodes(version: str, languages: list[str]) -> list[dict]:
     ]
 
 
-def breadcrumbs(url: str, titles: dict[str, str]) -> dict:
-    """Home, then each ancestor of `url` that is a page, then the page."""
+def breadcrumbs(url: str, titles: dict[str, str], page: str, localize=lambda href: href) -> dict:
+    """Home, then each ancestor of `url` that is a page, then the page. On a
+    translated page, `titles` holds the translated titles and `localize`
+    maps an English URL to this language's when it has one."""
     items, path = [("Glyph", "/")], "/"
     for part in url.strip("/").split("/"):
         path += part + "/"
@@ -83,13 +85,15 @@ def breadcrumbs(url: str, titles: dict[str, str]) -> dict:
             # The part of a title before " · " is its short name: "Answers
             # · straight replies to ..." is "Answers" in a trail.
             items.append((titles[path].split(" · ")[0], path))
-    return {"@type": "BreadcrumbList", "@id": f"{ORIGIN}{url}#breadcrumb",
-            "itemListElement": [{"@type": "ListItem", "position": i, "name": plain(name), "item": f"{ORIGIN}{href}"}
+    return {"@type": "BreadcrumbList", "@id": f"{page}#breadcrumb",
+            "itemListElement": [{"@type": "ListItem", "position": i, "name": plain(name),
+                                 "item": f"{ORIGIN}{localize(href)}"}
                                 for i, (name, href) in enumerate(items, start=1)]}
 
 
 def graph(*, url: str, here: str, lang: str, title: str, description: str, date: str, version: str,
-          titles: dict[str, str], languages: list[str], answers: list[str]) -> str:
+          titles: dict[str, str], languages: list[str], answers: list[str],
+          localize=lambda href: href) -> str:
     """The <script type="application/ld+json"> block for one page. `url` is
     the English URL, `here` this rendering's, `titles` the short title of every
     English page by URL, `answers` the answer URLs in sub-nav order."""
@@ -101,7 +105,7 @@ def graph(*, url: str, here: str, lang: str, title: str, description: str, date:
                       "description": plain(description), "inLanguage": lang, "isPartOf": {"@id": WEBSITE},
                       "about": {"@id": SOFTWARE}, "dateModified": date})
     else:
-        nodes.append(breadcrumbs(url, titles))
+        nodes.append(breadcrumbs(url, titles, page, localize))
     if is_article(url):
         nodes.append({"@type": "TechArticle", "@id": f"{page}#article", "headline": plain(title)[:110],
                       "description": plain(description), "url": page, "inLanguage": lang,
@@ -116,7 +120,7 @@ def graph(*, url: str, here: str, lang: str, title: str, description: str, date:
                       "breadcrumb": {"@id": f"{page}#breadcrumb"},
                       "mainEntity": {"@type": "ItemList", "numberOfItems": len(answers),
                                      "itemListElement": [{"@type": "ListItem", "position": i,
-                                                          "url": f"{ORIGIN}{a}", "name": plain(titles[a])}
+                                                          "url": f"{ORIGIN}{localize(a)}", "name": plain(titles[a])}
                                                          for i, a in enumerate(answers, start=1)]}})
     data = json.dumps({"@context": "https://schema.org", "@graph": nodes}, ensure_ascii=False,
                       separators=(",", ":"))

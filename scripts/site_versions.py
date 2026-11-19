@@ -72,6 +72,8 @@ import pathlib
 import re
 from dataclasses import dataclass
 
+import site_i18n
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 RELEASES = ROOT / "site" / "releases"
 ORIGIN = "https://glyphlang.io"
@@ -513,17 +515,25 @@ def apps_sentence(r: Release) -> str | None:
     return None
 
 
-def breaking_cost(releases: list[Release]) -> str:
+def breaking_cost(releases: list[Release], loc: str = "en") -> str:
+    """The newest Breaking releases with what each note says about the
+    example apps. The quotes stay English on a translated page (the notes
+    are dated records) and are marked so; the sentence for a note that
+    says nothing is translated."""
     rows = []
     for r in [r for r in releases if r.breaking][:BREAKING_COST_SHOWN]:
         said = apps_sentence(r)
-        text = f"&ldquo;{said}&rdquo;" if said else "The note does not say."
+        if said:
+            text = f"&ldquo;{said}&rdquo;" if loc == "en" else f'<span lang="en">&ldquo;{said}&rdquo;</span>'
+        else:
+            text = site_i18n.strings(loc)("versions.no_quote")
         rows.append(f'          <li><a href="{r.permalink}">{r.version}</a>: {text}</li>\n')
     return '        <ul class="cost-list">\n' + "".join(rows) + "        </ul>\n"
 
 
-def expand_quotes(body: str, where: str) -> str:
-    """Replace every `{{releases:...}}` placeholder in a page body."""
+def expand_quotes(body: str, where: str, loc: str = "en") -> str:
+    """Replace every `{{releases:...}}` placeholder in a page body, in the
+    language of `loc`."""
     if "{{releases:" not in body:
         return body
     releases = load()
@@ -531,7 +541,7 @@ def expand_quotes(body: str, where: str) -> str:
         "count": lambda: str(len(releases)),
         "breaking": lambda: str(sum(r.breaking for r in releases)),
         "latest": lambda: releases[0].version,
-        "breaking-cost": lambda: breaking_cost(releases),
+        "breaking-cost": lambda: breaking_cost(releases, loc),
     }
 
     def sub(m: re.Match) -> str:

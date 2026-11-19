@@ -40,6 +40,16 @@ Placeholders, in that page's body:
   {{versions:pager}}     links to the next newer and older month
   {{versions:script}}    the toggle, copy-link and old-anchor script
 
+Any other page may quote the notes with `{{releases:...}}`, which
+build_site.py expands through expand_quotes():
+
+  {{releases:count}}          how many releases have notes
+  {{releases:breaking}}       how many are marked Breaking
+  {{releases:latest}}         the newest version
+  {{releases:breaking-cost}}  the newest Breaking releases, each with the
+                              sentence its own note gives about the example
+                              apps, quoted as written
+
 Every release has the anchor id="<version>", for example #0.1.149, and its
 permanent link is /versions/YYYY-MM/#0.1.149. The id is the version exactly as
 people write it; ids may contain dots and start with a digit in HTML, and
@@ -485,6 +495,51 @@ def feed() -> str:
         ]
     lines.append("</feed>")
     return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------- quotes
+
+BREAKING_COST_SHOWN = 6
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=(?:<[^>]+>)*[A-Z])")
+
+
+def apps_sentence(r: Release) -> str | None:
+    """The sentence in a release's notes that says what happened to the
+    example apps, as written, or None when the notes say nothing about them."""
+    for m in re.finditer(r"<p>(.*?)</p>", r.body, re.S):
+        for sentence in _SENTENCE_END.split(m.group(1)):
+            if "example apps" in re.sub(r"<[^>]+>", "", sentence):
+                return " ".join(sentence.split())
+    return None
+
+
+def breaking_cost(releases: list[Release]) -> str:
+    rows = []
+    for r in [r for r in releases if r.breaking][:BREAKING_COST_SHOWN]:
+        said = apps_sentence(r)
+        text = f"&ldquo;{said}&rdquo;" if said else "The note does not say."
+        rows.append(f'          <li><a href="{r.permalink}">{r.version}</a>: {text}</li>\n')
+    return '        <ul class="cost-list">\n' + "".join(rows) + "        </ul>\n"
+
+
+def expand_quotes(body: str, where: str) -> str:
+    """Replace every `{{releases:...}}` placeholder in a page body."""
+    if "{{releases:" not in body:
+        return body
+    releases = load()
+    blocks = {
+        "count": lambda: str(len(releases)),
+        "breaking": lambda: str(sum(r.breaking for r in releases)),
+        "latest": lambda: releases[0].version,
+        "breaking-cost": lambda: breaking_cost(releases),
+    }
+
+    def sub(m: re.Match) -> str:
+        name = m.group(1)
+        if name not in blocks:
+            raise VersionsError(f"{where}: unknown placeholder {{{{releases:{name}}}}}")
+        return blocks[name]()
+    return re.sub(r"\{\{releases:([a-z-]+)\}\}", sub, body)
 
 
 def newest_source() -> pathlib.Path:

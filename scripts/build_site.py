@@ -46,7 +46,9 @@ renders the same version as a badge beside the logo on every page, so a
 version bump changes every page: scripts/bump_version.py re-renders web/ after
 it moves Cargo.toml, which keeps web/ matching what this script renders.
 Every `<h2 class="block-label">` section heading gets an id and a "#" link
-to itself. {{catches:...}} is markup generated from the committed cases in catches/ by
+to itself. {{releases:...}} quotes the release notes in site/releases/ through
+scripts/site_versions.py (counts, and the newest Breaking releases with what
+each note says about the example apps). {{catches:...}} is markup generated from the committed cases in catches/ by
 scripts/site_catches.py, so the /catches/ page and every page that quotes it
 show what scripts/check_catches.py verified, without running a compiler here.
 A side-by-side pair of code panes (`<div class="two-up">`, or a case's
@@ -688,6 +690,10 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
     try:
         body = site_catches.expand(body, where)
     except site_catches.CatchesError as e:
+        raise SiteError(str(e)) from None
+    try:
+        body = site_versions.expand_quotes(body, where)
+    except site_versions.VersionsError as e:
         raise SiteError(str(e)) from None
     body = stack_wide_pairs(body)
     body = mark_wrapping_blocks(body)

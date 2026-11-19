@@ -1,0 +1,254 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/diff-stability/index.html",
+  "locale": "ko",
+  "source_hash": "b0148f7848d7e246",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Will agent edits stay clean, or reformat my file? · Glyph",
+      "tr": "에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일을 다시 포맷하나요? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph has one canonical layout and requires trailing commas, so a one-line change is a one-line diff. Agents can't bury a real change under reformatting noise.",
+      "tr": "Glyph에는 정해진 레이아웃이 하나뿐이고 후행 쉼표가 필수이므로, 한 줄을 바꾸면 diff도 한 줄입니다. 에이전트가 실제 변경을 재포맷 잡음 속에 묻을 수 없습니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 이전"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "에이전트가(또는 내가) 무엇이 어디에 정의되어 있는지 찾을 수 있나요?"
+    },
+    {
+      "id": "h-0702d1ef",
+      "kind": "html",
+      "en": "02 &middot; Reviewable change",
+      "tr": "02 &middot; 리뷰할 수 있는 변경"
+    },
+    {
+      "id": "h-b91718bd",
+      "kind": "html",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일 전체를 다시 포맷하나요?"
+    },
+    {
+      "id": "h-7c55dd10",
+      "kind": "html",
+      "en": "A one-line change is a <strong>one-line diff</strong>, every time. Glyph has a single canonical layout, so an agent <strong>can't bury a real change under a wall of reformatting</strong>.",
+      "tr": "한 줄을 바꾸면 언제나 <strong>diff도 한 줄</strong>입니다. Glyph에는 정해진 레이아웃이 하나뿐이므로, 에이전트가 <strong>실제 변경을 재포맷의 벽 아래에 묻을 수 없습니다</strong>."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "h-303f30da",
+      "kind": "html",
+      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through. Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
+      "tr": "에이전트가 풀 리퀘스트를 열면 diff가 <em>곧</em> 리뷰입니다. 진짜 한 줄 수정이 200줄짜리 재포맷으로 도착하면 무엇이 실제로 바뀌었는지 아무도 볼 수 없고, 버그가 빠져나가는 곳이 바로 그 잡음입니다. diff 안정성이란 diff가 변경을, 그리고 <strong>변경만을</strong> 보여 준다는 뜻입니다."
+    },
+    {
+      "id": "h-0959c450",
+      "kind": "html",
+      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
+      "tr": "규칙 두 가지가 대부분의 일을 합니다. 각각을 리뷰하게 될 diff로 보여 드립니다."
+    },
+    {
+      "id": "h-b49f3730",
+      "kind": "html",
+      "en": "Example 1: trailing commas, one item per line",
+      "tr": "예 1: 후행 쉼표, 한 줄에 항목 하나"
+    },
+    {
+      "id": "h-58d68c63",
+      "kind": "html",
+      "en": "Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change:",
+      "tr": "라우트를 추가합니다. TypeScript의 흔한 스타일에서는 쉼표를 붙이려고 이전 마지막 줄까지 바뀌어야 합니다. 항목 하나를 바꾸는데 두 줄이 움직입니다."
+    },
+    {
+      "id": "h-708ed18b",
+      "kind": "html",
+      "en": "TypeScript: add \"/billing\"",
+      "tr": "TypeScript: \"/billing\" 추가"
+    },
+    {
+      "id": "h-ccf2e1fa",
+      "kind": "html",
+      "en": "3 lines moved for 1 change",
+      "tr": "변경 하나에 3줄이 움직임"
+    },
+    {
+      "id": "h-d502efb0",
+      "kind": "html",
+      "en": "Glyph: add \"/billing\"",
+      "tr": "Glyph: \"/billing\" 추가"
+    },
+    {
+      "id": "h-c600471e",
+      "kind": "html",
+      "en": "1 line added, exactly the change",
+      "tr": "1줄 추가, 정확히 그 변경"
+    },
+    {
+      "id": "h-d8c012cf",
+      "kind": "html",
+      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors. The same holds for record fields, parameters, match arms, and imports. The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
+      "tr": "후행 쉼표는 <strong>필수</strong>이고, 한 줄에 들어가지 않는 목록은 다시 묶이지 않고 요소마다 한 줄로 쓰므로, 항목을 삽입하거나, 제거하거나, 재정렬해도 이웃은 흔들리지 않습니다. 레코드 필드, 매개변수, match arm, import도 마찬가지입니다. 기준값에는 비용이 있습니다. 이름을 바꿔서 호출이 100열을 넘으면 인자 목록 전체가 한 줄에 하나씩 펼쳐집니다."
+    },
+    {
+      "id": "h-e48b5266",
+      "kind": "html",
+      "en": "Example 2: one canonical layout",
+      "tr": "예 2: 정해진 레이아웃 하나"
+    },
+    {
+      "id": "h-57d9d6f8",
+      "kind": "html",
+      "en": "There is exactly one correct formatting, produced by <code>glyph fmt</code>. Whitespace, wrapping, and alignment aren't choices an agent can &ldquo;tidy,&rdquo; so a semantic edit can't drag reflow along with it. Change one field's type, and that's the whole diff:",
+      "tr": "올바른 포맷은 <code>glyph fmt</code>가 만드는 단 하나입니다. 공백, 줄바꿈, 정렬은 에이전트가 &ldquo;정리&rdquo;할 수 있는 선택지가 아니므로, 의미 있는 편집이 재배치를 끌고 올 수 없습니다. 필드 하나의 타입을 바꾸면 그것이 diff의 전부입니다."
+    },
+    {
+      "id": "h-bb52f920",
+      "kind": "html",
+      "en": "user.glyph: change one field, review one line",
+      "tr": "user.glyph: 필드 하나를 바꾸고, 한 줄을 리뷰"
+    },
+    {
+      "id": "h-60cabdbf",
+      "kind": "html",
+      "en": "Because the layout is fixed, two different agents editing the same file produce <strong>byte-identical</strong> formatting, no reflow churn, no &ldquo;my formatter vs. yours&rdquo; noise, and a clean <code>git blame</code> that points at the commit that actually changed a line, not the one that reformatted it.",
+      "tr": "레이아웃이 고정되어 있으므로 같은 파일을 편집하는 서로 다른 두 에이전트가 <strong>바이트 단위로 같은</strong> 포맷을 만듭니다. 재배치 변동도, &ldquo;내 포매터와 네 포매터&rdquo; 잡음도 없고, <code>git blame</code>은 재포맷한 커밋이 아니라 줄을 실제로 바꾼 커밋을 가리킵니다."
+    },
+    {
+      "id": "h-fec9196e",
+      "kind": "html",
+      "en": "One canonical layout, so does the formatter move my comments?",
+      "tr": "레이아웃이 하나라면, 포매터가 주석을 옮기나요?"
+    },
+    {
+      "id": "h-84c044a6",
+      "kind": "html",
+      "en": "It used to, and that was a bug worth naming. Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
+      "tr": "예전에는 옮겼고, 짚고 넘어갈 만한 버그였습니다. Glyph에는 블록 주석도 문서 주석 문법도 없으므로, 레코드 필드, 유니언 variant, <code>match</code> arm을 설명하는 방법은 <code>//</code> 줄뿐입니다. 포매터는 대기 중인 주석을 선언과 문장 경계에서만 내보냈으므로, 구문 <em>안에</em> 쓴 주석이 다음 선언까지 내려가서 그것이 도착한 곳의 문서처럼 읽혔습니다. Glyph로 지뢰찾기를 만들면서 드러났습니다. 아래 두 선언은 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">실제 앱</a>에서 가져왔고(주석은 맞게 줄임), 예전 포매터와 새 포매터로 실행한 결과입니다."
+    },
+    {
+      "id": "h-28875641",
+      "kind": "html",
+      "en": "0.1.37: one fmt pass",
+      "tr": "0.1.37: fmt 한 번 실행"
+    },
+    {
+      "id": "h-7e0eca13",
+      "kind": "html",
+      "en": "three variant comments now document a record",
+      "tr": "variant 주석 세 개가 이제 레코드를 설명함"
+    },
+    {
+      "id": "h-79621000",
+      "kind": "html",
+      "en": "0.1.38: the same file",
+      "tr": "0.1.38: 같은 파일"
+    },
+    {
+      "id": "h-b8062146",
+      "kind": "html",
+      "en": "every comment on what it describes",
+      "tr": "모든 주석이 설명하는 대상 위에 있음"
+    },
+    {
+      "id": "h-9347eb4d",
+      "kind": "html",
+      "en": "The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>. And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
+      "tr": "지금의 규칙은 이렇습니다. 주석은 레코드 본문, 유니언 variant 목록, 배열이나 객체 리터럴, 인자나 매개변수 목록, <code>match</code> 안에서 원래 위에 쓰였던 항목 위에 다시 출력됩니다. 그리고 내부에 주석이 있는 구문은 크기와 상관없이 항상 요소마다 한 줄인 형태를 쓰므로, 주석이 위에 놓일 항목이 생깁니다. 그래서 <code>type Shape = { w: int, h: int }</code>는 여전히 한 줄로 접히고, <code>h</code>에 주석을 다는 순간 레코드는 펼쳐진 채로 남습니다."
+    },
+    {
+      "id": "h-21ca8ea0",
+      "kind": "html",
+      "en": "Why this counts as a correctness bug and not a cosmetic one: nothing failed. The build exited 0, <code>tsc</code> passed, and the mangled output was itself a fixed point, so <code>glyph fmt --check</code> in CI went green on a file whose comments now said something false. That is the same class of failure Glyph exists to remove, just in the formatter rather than the type system.",
+      "tr": "이것이 겉모양 문제가 아니라 정확성 버그인 이유: 아무것도 실패하지 않았습니다. 빌드는 0으로 종료했고, <code>tsc</code>는 통과했고, 망가진 출력 자체가 고정점이었으므로, CI의 <code>glyph fmt --check</code>는 주석이 이제 거짓을 말하는 파일에 대해 통과했습니다. Glyph가 없애려고 존재하는 것과 같은 종류의 실패이며, 다만 타입 시스템이 아니라 포매터에 있었을 뿐입니다."
+    },
+    {
+      "id": "h-1d7f4cb7",
+      "kind": "html",
+      "en": "Can <code>glyph fmt</code> break a program that builds?",
+      "tr": "<code>glyph fmt</code>가 빌드되는 프로그램을 깨뜨릴 수 있나요?"
+    },
+    {
+      "id": "h-6c81998d",
+      "kind": "html",
+      "en": "It could, and one case is still open. The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
+      "tr": "그럴 수 있었고, 한 경우는 아직 열려 있습니다. 고친 것부터 보겠습니다. &ldquo;빈 레코드&rdquo;를 뜻하는 arm은 <code>true =&gt; ({})</code>로 씁니다. arm 본문 위치는 문법에서 맨 앞의 <code>{</code>가 모호한 유일한 곳이고, 파서는 중괄호 바로 뒤에 <code>key:</code>나 <code>...</code>를 요구해서 이를 해결합니다. 빈 객체에는 둘 다 없으므로, 포매터가 괄호를 빼고 <code>true =&gt; {}</code>로 다시 출력하면 arm이 빈 <em>블록</em>으로 돌아와 파일이 빌드되지 않았습니다. arm이 값을 만들지 않는다는 <code>E0223</code>이었습니다. 동작하는 코드에 포매터를 실행했더니 더 이상 컴파일되지 않는 코드가 나온 것입니다."
+    },
+    {
+      "id": "h-e1bb9580",
+      "kind": "html",
+      "en": "The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>). An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
+      "tr": "이제 출력기는 맨 왼쪽 토큰이 블록으로 다시 파싱될 <code>{</code>인 arm 본문, 즉 빈 객체와 그 위에 만든 모든 것에 괄호를 씌웁니다(<code>({}).size</code>는 <code>({}.size)</code>로 돌아옵니다). <code>false =&gt; { a: \"x\" }</code>처럼 이미 모호하지 않은 arm 본문은 그대로 두므로, 다른 곳에서 읽어야 할 새 구두점은 없습니다. <code>fmt</code>는 결과에 대해 고정점이고 생성된 TypeScript는 바뀌지 않습니다. 프로그램이 살아남아야 하는 포매터는 없는 기능보다 나쁩니다. 이미 동작하던 코드를 망가뜨리기 때문입니다."
+    },
+    {
+      "id": "h-8647fc74",
+      "kind": "html",
+      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted. The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
+      "tr": "0.1.138에서 두 가지를 더 고쳤습니다. 블록 안에서 <code>(</code>로 시작하는 줄은 윗줄에 이어지는데, 0.1.137까지 포매터는 <code>load()?</code> 다음의 <code>.run()</code>을 <code>(load()?).run()</code>으로 출력했으므로, <code>let a = 1</code> 뒤에서 포맷된 파일은 <code>let a = 1(…).run()</code>을 뜻했습니다. 이제는 <code>load()?</code>를 두고 다음 줄에 <code>.run()</code>을 들여 쓰며, <code>e?(x)</code>, <code>e?[0]</code>, <code>e? ?</code>를 괄호 없이 씁니다. 다른 하나는 유니언의 <code>where</code> 정제를 포매터가 빠뜨린 것으로, <code>check</code>가 거부하던 프로그램을 받아들이는 프로그램으로 바꿨습니다. 이제 퍼저가 포맷된 파일을 파싱해서 원본의 트리와 비교하므로, 파일의 의미를 바꾸는 레이아웃은 누군가 알아채기를 기다리지 않고 첫 실행에서 실패합니다."
+    },
+    {
+      "id": "h-a2de6c0a",
+      "kind": "html",
+      "en": "The formatting rules behind this, and the trade they make, are on the <a href=\"/pillars/diff-stability/\">diff stability pillar page</a>.",
+      "tr": "이 뒤에 있는 포맷 규칙과 그 규칙이 하는 거래는 <a href=\"/pillars/diff-stability/\">diff 안정성 기둥 페이지</a>에 있습니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-d4cd9ceb",
+      "kind": "html",
+      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. <code>glyph fmt</code> never moves a comment to somewhere it does not belong. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
+      "tr": "필수 후행 쉼표, 한 줄에 항목 하나인 목록, 그리고 왕복해도 같고 멱등인 <code>glyph fmt</code>의 정해진 레이아웃 하나, 에디터에서의 저장 시 포맷. <code>glyph fmt</code>는 주석을 맞지 않는 곳으로 절대 옮기지 않습니다. 주석은 레코드, 리터럴, 인자 목록, <code>match</code> 안, 연산자의 피연산자 사이, 메서드 체인의 단계 사이를 포함해 원래 위에 쓰였던 항목 위에 유지되며, 이때 메서드 체인은 점을 앞에 두고 한 줄에 한 단계씩 씁니다."
+    },
+    {
+      "id": "h-6c3b3842",
+      "kind": "html",
+      "en": "The edge, and what's next",
+      "tr": "한계와 다음 단계"
+    },
+    {
+      "id": "h-c064e43b",
+      "kind": "html",
+      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500. A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
+      "tr": "주석은 항상 자기 줄에 출력되므로, 코드 줄 끝에 쓴 주석(<code>w: int, // width in cells</code>)은 다음 항목의 윗줄로 옮겨집니다. 더 이상 선언 경계를 넘지는 않지만 위치는 바뀝니다. 줄 끝에 유지하려면 출력기가 주석이 어느 줄을 공유하는지 추적해야 합니다. 인덱스 안, 체인 중간에서 호출 인자 뒤, <code>!</code>나 <code>await</code> 피연산자 앞처럼 레이아웃에 놓을 곳이 없는 주석은 더 이상 옮기지 않습니다. <code>glyph fmt</code>는 파일을 거부하고 그대로 두며 줄 번호와 주석을 둘 곳을 알려 주고, <code>glyph check</code>도 같은 내용을 경고 E0500으로 보고합니다. JSX 속성 사이나 객체 패턴의 필드 사이의 주석도 거부되는데, 이는 한 줄에 하나인 레이아웃이라면 놓을 수 있는 곳이며 해당 레이아웃은 할 일 목록에 있습니다. 출력기에는 아직 긴 메서드 체인이나 <code>+</code> 체인을 나누는 규칙이 없으므로, 너무 긴 체인은 가장 안쪽 인자 목록에서 나뉘는데, 이는 잘못된 위치입니다. TypeScript에서 같은 편집과 비교하는 diff 크기 벤치마크도 만들고 있으므로, 이 기둥은 확인할 수 있는 숫자가 될 것입니다."
+    }
+  ]
+}

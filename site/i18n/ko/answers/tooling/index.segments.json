@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/tooling/index.html",
+  "locale": "ko",
+  "source_hash": "d0791fdb41f61a1e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What's the editor, debugging, and error experience? · Glyph",
+      "tr": "에디터, 디버깅, 오류 경험은 어떤가요? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A language server for any editor, a VS Code extension, error messages with stable codes and glyph --explain. You debug the readable TypeScript it emits.",
+      "tr": "어떤 에디터에서나 쓸 수 있는 언어 서버, VS Code 확장, 고정된 코드를 가진 오류 메시지와 glyph --explain. 디버깅은 생성된 읽을 수 있는 TypeScript로 합니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 이전"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "에이전트가 읽는 문서는 생성된 것인가요, 사람이 써서 낡은 것인가요?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요?"
+    },
+    {
+      "id": "h-ccc1ce81",
+      "kind": "html",
+      "en": "25 &middot; Day-to-day",
+      "tr": "25 &middot; 일상 작업"
+    },
+    {
+      "id": "h-173622d8",
+      "kind": "html",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "에디터, 디버깅, 오류 경험은 어떤가요?"
+    },
+    {
+      "id": "h-cfd8c6fd",
+      "kind": "html",
+      "en": "<code>glyph lsp</code> speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. A VS Code extension is in the repository; it is not on the Marketplace yet, so you build it from source. Every error carries a stable code, the fix, and the reason.",
+      "tr": "<code>glyph lsp</code>는 stdio로 Language Server Protocol을 주고받으므로, LSP 클라이언트가 있는 에디터라면 진단, hover 타입, 정의로 이동, 자동 완성, 저장 시 포맷을 쓸 수 있습니다. VS Code 확장은 저장소에 있지만 아직 Marketplace에는 없으므로 소스에서 빌드해야 합니다. 모든 오류에는 고정된 코드, 수정 방법, 이유가 있습니다."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "h-ff6f4a0b",
+      "kind": "html",
+      "en": "Editing a language your editor doesn't understand feels like a step backward, and early on that was a fair complaint. It isn't anymore: your editor gives you the modern niceties, and the errors are written to teach, not just to reject.",
+      "tr": "에디터가 이해하지 못하는 언어를 편집하는 것은 뒷걸음질처럼 느껴지고, 초기에는 타당한 불만이었습니다. 이제는 아닙니다. 에디터에서 요즘 기대하는 편의 기능을 쓸 수 있고, 오류는 거부만 하는 것이 아니라 가르치도록 작성되어 있습니다."
+    },
+    {
+      "id": "h-0fcb8516",
+      "kind": "html",
+      "en": "Is it a real LSP, or just a VS Code plugin?",
+      "tr": "진짜 LSP인가요, 아니면 VS Code 플러그인일 뿐인가요?"
+    },
+    {
+      "id": "h-45403764",
+      "kind": "html",
+      "en": "A real one. The compiler ships a language server you launch as <code>glyph lsp</code>, which speaks the Language Server Protocol over stdio (the standard JSON-RPC transport every LSP client understands). The bundled VS Code extension is a thin client around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor, Neovim, Helix, Zed, Emacs (eglot), at <code>glyph lsp</code> and it behaves the same. It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
+      "tr": "진짜입니다. 컴파일러에는 <code>glyph lsp</code>로 실행하는 언어 서버가 포함되어 있고, stdio로 Language Server Protocol(모든 LSP 클라이언트가 이해하는 표준 JSON-RPC 전송)을 주고받습니다. 함께 제공되는 VS Code 확장은 그 위의 얇은 클라이언트일 뿐이며, VS Code에 특화된 것은 없습니다. Neovim, Helix, Zed, Emacs(eglot) 등 LSP를 지원하는 <strong>어떤</strong> 에디터든 <code>glyph lsp</code>를 가리키게 하면 똑같이 동작합니다. 이미 설치한 바이너리(<code>npx @glyphlang/glyph lsp</code>)와 같으므로 따로 받을 서버가 없습니다."
+    },
+    {
+      "id": "h-83dcf965",
+      "kind": "html",
+      "en": "The server implements what an editor needs: live diagnostics with the stable codes below, hover types, go-to-definition (across modules through a named import; through a namespace, <code>ui.Button</code> still answers nothing), completion, document and workspace symbols for outline and symbol search, workspace-wide find-references, rename, and formatting in the canonical <code>glyph fmt</code> layout for format-on-save. Rename is complete: renaming a module-level declaration edits its definition, every reference, and each importing module's <code>import</code> binding across the workspace, and it checks the new name (a real identifier, not a keyword) before touching anything. Two limits worth knowing: the cross-file index is rebuilt on each request rather than cached (fine for a normal project, worth speeding up later), and a file that doesn't currently parse is skipped, so a rename won't reach references inside a file that's itself broken.",
+      "tr": "서버는 에디터에 필요한 것을 구현합니다. 아래의 고정된 코드를 가진 실시간 진단, hover 타입, 정의로 이동(이름 import를 통해 모듈 간에도 동작하지만, 네임스페이스를 통한 <code>ui.Button</code>은 아직 답하지 않습니다), 자동 완성, 개요와 심볼 검색을 위한 문서 및 워크스페이스 심볼, 워크스페이스 전체의 참조 찾기, 이름 바꾸기, 그리고 저장 시 포맷을 위한 정해진 <code>glyph fmt</code> 레이아웃 포맷입니다. 이름 바꾸기는 완전합니다. 모듈 수준 선언의 이름을 바꾸면 워크스페이스 전체에서 정의, 모든 참조, 그것을 import하는 각 모듈의 <code>import</code> 바인딩을 수정하며, 무엇이든 건드리기 전에 새 이름이 키워드가 아닌 올바른 식별자인지 확인합니다. 알아 둘 한계가 두 가지 있습니다. 파일 간 인덱스는 캐시하지 않고 요청마다 다시 만들며(일반적인 프로젝트에는 문제없고, 나중에 빠르게 할 만합니다), 현재 파싱되지 않는 파일은 건너뛰므로 이름 바꾸기가 그 자체로 망가진 파일 안의 참조에는 닿지 않습니다."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "직접 보기"
+    },
+    {
+      "id": "h-f168aa2b",
+      "kind": "html",
+      "en": "Every diagnostic carries a stable code, a one-line fix, and often the design reason. <code>glyph --explain</code> prints the long form for any of them:",
+      "tr": "모든 진단에는 고정된 코드, 한 줄짜리 수정 방법, 그리고 흔히 설계상의 이유가 담겨 있습니다. <code>glyph --explain</code>은 어느 것이든 자세한 설명을 출력합니다."
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-f4269bfb",
+      "kind": "html",
+      "en": "We tightened the messages exactly where agents and newcomers stumble most: writing <code>if</code> now points you at <code>match</code> instead of a generic &ldquo;unexpected token,&rdquo; and a wrong argument count, a non-exhaustive <code>match</code>, or a mistyped variant each get their own coded, fixable error.",
+      "tr": "에이전트와 처음 쓰는 사람이 가장 많이 걸려 넘어지는 곳에서 메시지를 다듬었습니다. <code>if</code>를 쓰면 일반적인 &ldquo;unexpected token&rdquo; 대신 <code>match</code>를 안내하고, 잘못된 인자 개수, 비망라적 <code>match</code>, 잘못 쓴 variant는 각각 코드가 붙은 고칠 수 있는 오류를 냅니다."
+    },
+    {
+      "id": "h-6fe35c75",
+      "kind": "html",
+      "en": "Type errors that only the TypeScript back-end can catch used to point at the generated <code>.ts</code>. Now they're <strong>mapped back onto your <code>.glyph</code></strong> (same ariadne caret, same stable code), so a <code>tsc</code> error reads like a native Glyph one.",
+      "tr": "TypeScript 백엔드만 잡을 수 있는 타입 오류는 예전에는 생성된 <code>.ts</code>를 가리켰습니다. 이제는 <strong><code>.glyph</code>로 다시 매핑되므로</strong>(같은 ariadne 캐럿, 같은 고정된 코드), <code>tsc</code> 오류도 Glyph 자체 오류처럼 읽힙니다."
+    },
+    {
+      "id": "h-6896e18a",
+      "kind": "html",
+      "en": "<strong>Debugging:</strong> you debug the emitted TypeScript with the tools you already use, like Node's inspector, browser devtools, or your IDE's JS/TS debugger. Every build ships a standard <strong>v3 source map</strong> beside each <code>.ts</code> (with the Glyph source embedded), so a debugger or a bundler that chains maps steps back into your <code>.glyph</code> line numbers. One thing it doesn't cover yet: <code>glyph run</code>'s own crash stack still prints <code>.ts</code> lines, because <code>tsx</code> doesn't chain the map through its transform. Remapping that stack is next.",
+      "tr": "<strong>디버깅:</strong> 생성된 TypeScript를 Node 인스펙터, 브라우저 개발자 도구, IDE의 JS/TS 디버거처럼 이미 쓰는 도구로 디버깅합니다. 모든 빌드는 각 <code>.ts</code> 옆에 표준 <strong>v3 소스 맵</strong>(Glyph 소스 포함)을 두므로, 맵을 따라가는 디버거나 번들러는 <code>.glyph</code> 줄 번호로 돌아갑니다. 아직 다루지 않는 것이 하나 있습니다. <code>glyph run</code> 자체의 충돌 스택은 여전히 <code>.ts</code> 줄을 출력합니다. <code>tsx</code>가 변환 과정에서 맵을 이어 주지 않기 때문입니다. 이 스택을 다시 매핑하는 것이 다음 작업입니다."
+    },
+    {
+      "id": "h-27214eb4",
+      "kind": "html",
+      "en": "<strong>Asking &ldquo;does this compile?&rdquo; without running it:</strong> <code>glyph check path.glyph</code> type-checks one file, or a whole directory, and exits. It writes nothing into your tree, which <code>glyph run</code> could not promise and <code>glyph build</code> would not do at all (it refused anything that wasn't a directory). It runs the same pipeline a build runs, including <code>tsc --strict</code> over the emitted TypeScript, into a temp directory it deletes on the way out. <code>--no-tsc</code> stops after the Glyph stages when you want the fast answer; <code>--json</code> gives an agent the same diagnostic shape <code>glyph build --json</code> does. A file is checked in the context of its own directory, so a broken sibling still fails the check. Your <code>@example</code> and <code>@doc @run</code> tests run here too, the same gate <code>glyph build</code> uses, so a check cannot report a clean tree that a build would fail; <code>--no-test</code> skips them when you want an answer that executes nothing.",
+      "tr": "<strong>실행하지 않고 &ldquo;컴파일되나?&rdquo; 묻기:</strong> <code>glyph check path.glyph</code>는 파일 하나나 디렉터리 전체를 타입 검사하고 종료합니다. 트리에 아무것도 쓰지 않으며, 이는 <code>glyph run</code>이 약속할 수 없었고 <code>glyph build</code>는 아예 하지 않던 것입니다(디렉터리가 아닌 것은 거부했습니다). 생성된 TypeScript에 대한 <code>tsc --strict</code>를 포함해 빌드와 같은 파이프라인을 실행하며, 출력은 끝날 때 지우는 임시 디렉터리에 둡니다. 빠른 답이 필요하면 <code>--no-tsc</code>로 Glyph 단계 후에 멈추고, <code>--json</code>은 에이전트에게 <code>glyph build --json</code>과 같은 진단 형식을 줍니다. 파일은 자기 디렉터리 맥락에서 검사되므로, 망가진 형제 파일이 있으면 검사가 실패합니다. <code>@example</code>과 <code>@doc @run</code> 테스트도 <code>glyph build</code>와 같은 관문으로 여기서 실행되므로, 빌드라면 실패할 트리를 check가 깨끗하다고 보고할 수 없습니다. 아무것도 실행하지 않는 답을 원하면 <code>--no-test</code>로 건너뜁니다."
+    },
+    {
+      "id": "h-1608da85",
+      "kind": "html",
+      "en": "<strong>The transcript doesn't lie to you either.</strong> A failing build used to open with &ldquo;no diagnostics&rdquo; and then print <code>tsc</code> errors underneath it, because the Glyph-stage summary was written before the TypeScript stage ran. The summary now prints after every stage that can turn the build red, so a red build never shows a green line. In the same pass, <code>glyph run app.glyph --min -12.50</code> started working: a leading hyphen used to make clap reject the argument before your <code>main</code> ever saw it. Flags glyph owns still bind to glyph, so put <code>--</code> in front of a program flag that collides with one of them.",
+      "tr": "<strong>출력도 거짓말하지 않습니다.</strong> 실패한 빌드가 예전에는 &ldquo;no diagnostics&rdquo;로 시작하고 그 아래에 <code>tsc</code> 오류를 출력했습니다. Glyph 단계 요약이 TypeScript 단계가 실행되기 전에 쓰였기 때문입니다. 이제 요약은 빌드를 실패시킬 수 있는 모든 단계가 끝난 뒤에 출력되므로, 실패한 빌드가 통과 줄을 보여 주는 일은 없습니다. 같은 작업에서 <code>glyph run app.glyph --min -12.50</code>도 동작하게 되었습니다. 예전에는 앞의 하이픈 때문에 <code>main</code>이 보기도 전에 clap이 인자를 거부했습니다. glyph가 가진 플래그는 여전히 glyph에 바인딩되므로, 그중 하나와 겹치는 프로그램 플래그 앞에는 <code>--</code>를 붙이세요."
+    },
+    {
+      "id": "h-c48aa55b",
+      "kind": "html",
+      "en": "<strong>And for the agent in the loop:</strong> <code>glyph build --json</code> emits every diagnostic as structured JSON: a stable code, severity, message, file, and 1-based line/column range, plus the help and note, including <code>tsc</code> errors mapped onto your Glyph source. An agent reads and acts on them directly instead of scraping terminal text.",
+      "tr": "<strong>그리고 루프 안의 에이전트를 위해:</strong> <code>glyph build --json</code>은 모든 진단을 구조화된 JSON으로 출력합니다. 고정된 코드, 심각도, 메시지, 파일, 1부터 시작하는 줄/열 범위, 그리고 도움말과 참고 사항이 있으며, Glyph 소스로 매핑된 <code>tsc</code> 오류도 포함됩니다. 에이전트는 터미널 텍스트를 긁어 오지 않고 이를 바로 읽고 처리합니다."
+    },
+    {
+      "id": "h-4f44d56b",
+      "kind": "html",
+      "en": "For interactive agents there's more than batch diagnostics: <a href=\"/mcp/\"><code>glyph mcp</code></a> runs a <strong>Model Context Protocol server</strong> over stdio (the same binary, the same analysis the editor uses), exposing the language server's queries as MCP tools. An agent can ask for a file's <strong>diagnostics</strong>, the <strong>type</strong> at a position, where a name is <strong>defined</strong> (following imports), every <strong>reference</strong> to a symbol across the whole project, or a <strong>symbol search</strong>, without running a full build or reading every file. It's a thin adapter over the same pure analysis layer, not a second implementation, so it can't drift from what the compiler and editor see.",
+      "tr": "대화형 에이전트에게는 일괄 진단 이상의 것이 있습니다. <a href=\"/mcp/\"><code>glyph mcp</code></a>는 stdio로 <strong>Model Context Protocol 서버</strong>를 실행하고(같은 바이너리, 에디터가 쓰는 것과 같은 분석), 언어 서버의 쿼리를 MCP 도구로 제공합니다. 에이전트는 전체 빌드를 실행하거나 모든 파일을 읽지 않고도 파일의 <strong>진단</strong>, 위치의 <strong>타입</strong>, 이름이 <strong>정의된</strong> 곳(import를 따라감), 프로젝트 전체에서 심볼에 대한 모든 <strong>참조</strong>, 또는 <strong>심볼 검색</strong>을 요청할 수 있습니다. 두 번째 구현이 아니라 같은 순수 분석 계층 위의 얇은 어댑터이므로, 컴파일러와 에디터가 보는 것과 어긋날 수 없습니다."
+    },
+    {
+      "id": "h-b7132d5c",
+      "kind": "html",
+      "en": "<strong>Not everything is a hard error.</strong> Glyph has a warning tier that flags dead weight without failing the build: an <em>unused import</em> (<code>E0106</code>), an <em>unused</em> <code>let</code> (<code>E0107</code>, exempting names led by <code>_</code>), and <em>unreachable code</em> after a <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>). These keep a module honest: a dead import is exactly the kind of greppability noise that makes a reader hunt for a dependency the code doesn't really have. Warnings surface in the same rendered and <code>--json</code> output, marked by severity, and still emit TypeScript.",
+      "tr": "<strong>모든 것이 강한 오류는 아닙니다.</strong> Glyph에는 빌드를 실패시키지 않고 불필요한 것을 표시하는 경고 단계가 있습니다. <em>사용하지 않는 import</em>(<code>E0106</code>), <em>사용하지 않는</em> <code>let</code>(<code>E0107</code>, <code>_</code>로 시작하는 이름은 제외), 그리고 <code>return</code>/<code>break</code>/<code>continue</code> 뒤의 <em>도달할 수 없는 코드</em>(<code>E0108</code>)입니다. 이 경고들은 모듈을 정직하게 유지합니다. 죽은 import는 코드에 실제로는 없는 의존성을 찾아 헤매게 만드는, 바로 그런 검색 잡음입니다. 경고는 같은 렌더링 출력과 <code>--json</code> 출력에 심각도와 함께 나타나며, TypeScript는 그대로 생성됩니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-090dcbbc",
+      "kind": "html",
+      "en": "A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save, answering across a module boundary since 0.1.124: the server holds one database per project with your open buffers layered over the files on disk, so hovering an imported function or a field of an imported record gives the answer <code>glyph query hover</code> gives, an unsaved edit in one file is seen from another, and a keystroke costs one to nine percent more than it did single-file; a <code>glyph mcp</code> Model Context Protocol server with eleven tools, the editor's queries plus <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>, each with a <code>glyph query</code> verb printing the same JSON for an agent with no MCP client; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics. <code>glyph check [path]</code> type-checks a single file or a tree without running it or writing output. <code>glyph fmt --check</code> gates formatting in CI: it writes nothing and exits non-zero when a file is not already in the one canonical layout.",
+      "tr": "구문 강조, 진단, hover, 정의로 이동, 자동 완성, 심볼, 워크스페이스 전체의 참조 찾기와 이름 바꾸기, 저장 시 포맷을 갖춘 언어 서버(stdio로 동작하는 <code>glyph lsp</code>, 어떤 에디터든 가능, VS Code 확장 포함). 0.1.124부터 모듈 경계를 넘어 답합니다. 서버는 프로젝트마다 디스크의 파일 위에 열린 버퍼를 겹친 데이터베이스 하나를 유지하므로, import한 함수나 import한 레코드의 필드에 hover하면 <code>glyph query hover</code>와 같은 답을 주고, 한 파일의 저장하지 않은 편집이 다른 파일에서 보이며, 키 입력 하나의 비용은 단일 파일일 때보다 1~9퍼센트 더 듭니다. 도구 열한 개(에디터의 쿼리에 <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code>, <code>glyph_exports</code>를 더한 것)를 갖춘 <code>glyph mcp</code> Model Context Protocol 서버가 있고, 각 도구에는 MCP 클라이언트가 없는 에이전트를 위해 같은 JSON을 출력하는 <code>glyph query</code> 동사가 있습니다. 고정된 오류 코드, <code>glyph --explain</code>, <code>.glyph</code> 소스로 매핑되는 <code>tsc</code> 백엔드 오류, 경고 단계(사용하지 않는 import/바인딩, 도달할 수 없는 코드), <code>--json</code> 구조화 진단도 있습니다. <code>glyph check [path]</code>는 실행하거나 출력을 쓰지 않고 파일 하나나 트리를 타입 검사합니다. <code>glyph fmt --check</code>는 CI에서 포맷을 검사합니다. 아무것도 쓰지 않고, 파일이 정해진 레이아웃이 아니면 0이 아닌 값으로 종료합니다."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "앞으로 할 것"
+    },
+    {
+      "id": "h-ad09c9c6",
+      "kind": "html",
+      "en": "Caching the cross-file index instead of rebuilding it per request (a speed win on large trees), and remapping <code>glyph run</code>'s own crash stack, since <code>tsx</code> does not chain the emitted map through its transform, so that stack still names the emitted <code>.ts</code> rather than your <code>.glyph</code>.",
+      "tr": "요청마다 다시 만드는 대신 파일 간 인덱스를 캐시하는 것(큰 트리에서 속도 향상), 그리고 <code>glyph run</code> 자체의 충돌 스택을 다시 매핑하는 것입니다. <code>tsx</code>가 변환 과정에서 생성된 맵을 이어 주지 않으므로, 그 스택은 여전히 <code>.glyph</code>가 아니라 생성된 <code>.ts</code>를 가리킵니다."
+    }
+  ]
+}

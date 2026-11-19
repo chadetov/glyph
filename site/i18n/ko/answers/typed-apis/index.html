@@ -1,0 +1,545 @@
+---
+title: API마다 검증기를 직접 작성해야 하나요? · Glyph
+description: 아니요. Glyph에서는 타입이 곧 런타임 검증기이므로, 요청과 응답 본문을 검증기를 작성하지 않고 검사하며, 타입은 OpenAPI 명세나 .d.ts에서 가져올 수도 있습니다.
+source_hash: e5583b6a5d857445
+prev: /answers/embedding/ | &larr; 이전 | 기존 앱 안에서 Glyph를 도입할 수 있나요, 아니면 전부 아니면 전무인가요?
+next: /answers/codegen/ | 다음 &rarr; | API 명세에서 타입이 있는 클라이언트와 서버를 생성할 수 있나요?
+---
+      <p class="q-eyebrow">11 &middot; 데이터 경계</p>
+      <h1 class="q-title">API마다 검증기를 직접 작성해야 하나요?</h1>
+
+      <p class="short-answer">
+        아니요. Glyph에서는 <strong>타입이 곧 검증기</strong>입니다. <code>type</code>을 선언하면 컴파일러가 그 옆에 런타임 디스크립터를 생성하므로, 신뢰할 수 없는 요청이나 응답 본문을 호출 한 번으로 검증하며, 따로 작성하고 맞춰 둘 <code>zod</code> 스키마가 없습니다.
+      </p>
+
+      <figure class="ak-hero" id="the-boundary">
+        <div class="ak-flow">
+          <div class="ak-node in"><span class="k">신뢰할 수 없는 본문</span><span class="v">req.body</span><span class="n">unknown, 예: {"title": 123}</span></div>
+          <div class="ak-arrow" aria-hidden="true"><svg viewBox="0 0 40 16" preserveAspectRatio="none"><path d="M3 8h32M30 3.5l5 4.5-5 4.5"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-node gate"><span class="k">디스크립터</span><span class="v">NewTask.parse</span><span class="n"><code>type NewTask</code>에서 생성됨</span></div>
+          <div class="ak-arrow fork" aria-hidden="true"><svg viewBox="0 0 44 100" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M0 50H16M16 24V76M16 24H42M16 76H42"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-outs">
+            <div class="ak-node ok"><span class="k">Ok</span><span class="v">NewTask</span><span class="n">모든 필드가 검사된, 타입이 있는 값</span></div>
+            <div class="ak-node err"><span class="k">Err</span><span class="v">Array&lt;Issue&gt;</span><span class="n">잘못된 본문은 여기서 멈춤</span></div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>선언 하나, 검사 하나. 디스크립터는 타입에서 생성되므로 둘이 서로 다를 수 없고, <code>NewTask</code>를 얻는 유일한 방법은 이를 거치는 것입니다.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#see-it">직접 보기</a></li>
+          <li><a href="#the-parse-result-is-an-ordinary-result">평범한 Result</a></li>
+          <li><a href="#composing-your-own-the-output-type-is-derived-not-trusted">조합자</a></li>
+          <li><a href="#if-i-parse-a-date-do-i-get-a-real-date">날짜</a></li>
+          <li><a href="#you-don-t-even-have-to-write-the-types">생성되는 타입</a></li>
+          <li><a href="#the-database-is-a-boundary-too">데이터베이스</a></li>
+          <li><a href="#a-signed-webhook-is-a-boundary-too">웹훅</a></li>
+          <li><a href="#where-it-stands">현재 상태</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">왜 중요한가<a class="ak-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        대부분의 TypeScript 스택에서 모든 페이로드는 <em>두 번</em> 기술됩니다. 한 번은 컴파일러를 위한 <code>type</code>으로, 또 한 번은 값이 런타임에 실제로 그 모양이 되도록 직접 작성한 검증기로.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>둘은 어긋나고, 잘못된 데이터가 들어오는 곳이 바로 그 어긋남입니다. Glyph는 둘을 선언 하나로 합칩니다. 타입이 검증기를 <em>만들어</em> 내므로 서로 다를 수 없습니다.</p></div>
+
+      <h2 class="ak-h" id="see-it">직접 보기<a class="ak-anchor" href="#see-it" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        DTO를 한 번 선언합니다. 그 디스크립터가 <code>.parse</code>(신뢰할 수 없는 값을 그 타입으로 검증)와 <code>.is</code>(타입 가드)를 주고, 그 밖에 작성할 것은 없습니다.
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">api.glyph</span>
+<pre>type NewTask = {
+  title: string,
+  done: bool,
+}
+
+fn create(req: Request)
+  -&gt; Result&lt;Response, string&gt; {
+  return match NewTask.parse(req.body) {
+    Ok(task) =&gt; Ok(json(201, task)),
+    Err(issues) =&gt; Ok(json(400, {
+      error: "invalid task",
+    })),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">작성하지 <em>않은</em> 것</span>
+<pre>// No zod schema:
+const NewTask = z.object({
+  title: z.string(),
+  done: z.boolean(),
+});
+// No drift between the type and
+// the validator, because there is
+// only one declaration.
+
+// A bad body, {"title": 123},
+// takes the Err arm. Only a
+// well-formed body reaches Ok.</pre>
+        </div>
+      </div>
+
+      <h3 class="ak-h3" id="typed-value"><code>match</code> 뒤에도 타입이 있는 값을 유지하기<a class="ak-anchor" href="#typed-value" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        arm 안에서 작업하는 대신 값을 밖으로 꺼낼 수도 있습니다.
+      </p>
+      <div class="code">
+        <span class="cap">api.glyph: 값이 타입을 가진 채 match를 나옴</span>
+<pre>let task = match NewTask.parse(req.body) {
+  Ok(t) =&gt; t,
+  Err(issues) =&gt; { return bad_request(issues) },
+}
+task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; did you mean `title`?</span></pre>
+      </div>
+      <div class="ak-chips"><span class="chip since">0.1.45부터</span><span class="chip">제네릭 타입: 아직</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">타입이 전달되는 방식과 제네릭의 예외</span></summary><div class="body">
+        <p>
+          <code>T.parse</code>의 타입은 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>이고 arm이 일치하는 <code>match</code>는 그 타입을 가지므로, <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code>는 함수의 나머지에서 <code>NewTask</code>를 주며, 필드 이름은 생성된 TypeScript에 대한 <code>tsc</code>가 아니라 Glyph가 검사합니다. 0.1.45에 들어왔고, 그 전에는 값이 <code>match</code>를 나오면 타입을 잃었습니다. 아직 그렇지 않은 것은 제네릭 타입의 <code>parse</code>입니다. 그 디스크립터는 타입 매개변수마다 런타임 검사기를 받기 때문입니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-parse-result-is-an-ordinary-result">파싱 결과는 평범한 <code>Result</code>입니다<a class="ak-anchor" href="#the-parse-result-is-an-ordinary-result" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph에서 <code>T.parse</code>는 언어의 실패할 수 있는 모든 함수가 반환하는 것과 같은 <code>Result</code>를 반환하므로, 그대로 돌려주거나, <code>map_err</code>로 검증 문제를 자신의 오류 타입으로 바꾸거나, <code>?</code>로 전달할 수 있습니다.
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">boundary.glyph</span>
+<pre>// Hand it straight back.
+fn read_task(body: unknown)
+  -&gt; Result&lt;NewTask, Array&lt;Issue&gt;&gt; {
+  return NewTask.parse(body)
+}
+
+// Or restate the failure in your own terms.
+fn read_checked(body: unknown)
+  -&gt; Result&lt;NewTask, string&gt; {
+  return NewTask.parse(body).map_err(
+    fn(issues: Array&lt;Issue&gt;) -&gt; string {
+      return "invalid task: ${issue_text(issues)}"
+    },
+  )
+}
+
+// Or propagate it and get on with the work.
+fn create(body: unknown) -&gt; Result&lt;Response, string&gt; {
+  let task = read_checked(body)?
+  return Ok(json(201, save(task)))
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">이것이 대신한 것</span>
+<pre>// Until 0.1.52 the generated descriptor
+// returned a bare { tag, value } object,
+// so both of the first two shapes were
+// tsc errors (TS2322 and TS2339) even
+// though Glyph's own checker reported
+// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround
+// was an identity re-wrap:
+
+match NewTask.parse(body) {
+  Ok(t)  =&gt; Ok(t),          // does nothing
+  Err(e) =&gt; Err(reword(e)),
+}
+
+// Four lines to say map_err. bracket.glyph
+// carried this twice until the fix landed.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">여기서 Result를 쓰는 런타임 비용</span></summary><div class="body">
+        <p>
+          자기만의 모양으로 값을 돌려주는 검증기는 절반만 쓸모 있습니다. 나머지 오류 처리가 그 값을 다룰 수 없기 때문입니다. 파싱 결과에는 특별한 것이 하나도 없습니다.
+        </p>
+        <p>
+          예전에 그렇지 않았던 이유는 이렇습니다. 디스크립터는 <code>type</code> 옆에 생성되는데, 순수 객체를 생성하면 타입을 선언한 모듈이 런타임에 <code>std/result</code>에 의존하지 않아도 되었습니다. 이제는 그 거래를 반대로 합니다. <code>pub type</code>이 있는 모듈은 <code>Result</code>를 쓰든 안 쓰든 <code>std/result</code> import를 가지고, <code>parse</code> 호출은 어떤 <code>Ok(...)</code>든 할당하는 조합자 클로저를 할당합니다. 그 대가로 검증된 경계와 나머지 오류 처리가 같은 API가 됩니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="composing-your-own-the-output-type-is-derived-not-trusted">직접 조합하기: 출력 타입은 믿는 것이 아니라 끌어냅니다<a class="ak-anchor" href="#composing-your-own-the-output-type-is-derived-not-trusted" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph의 <code>infer_output&lt;Shape&gt;</code>는 모양에서 출력 타입을 <strong>끌어내고</strong>, <code>tsc</code>가 여러분의 타입 표기를 그에 대해 검사합니다. 주장하는 타입의 필드를 빠뜨린 모양은 컴파일되지 않습니다.
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">schema.glyph</span>
+<pre>fn object_schema&lt;Shape: Record&lt;string, Schema&lt;unknown&gt;&gt;&gt;(
+  shape: Shape,
+) -&gt; Schema&lt;infer_output&lt;Shape&gt;&gt; { ... }
+
+type User = { name: string, age: number }
+
+// The shape must produce a User, or this
+// line does not compile:
+const user_schema: Schema&lt;User&gt; =
+  object_schema({
+    name: string_schema(),
+    age: number_schema(),
+  })</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph가 없애는 어긋남</span>
+<pre>// TS/zod: shape and output type are two
+// separate things you keep in sync by hand.
+const s = z.object({ name: z.string() });
+type User = { name: string; age: number };
+// `s` is inferred { name }, but nothing
+// checks it against User. The `age` you
+// forgot is caught at runtime, if ever.
+
+// Glyph: drop `age` from the shape and
+// `Schema&lt;User&gt;` fails to compile. The
+// shape is the single source of truth.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">TypeScript의 함정, 그리고 0.1.92부터 return을 따라가는 캐스트</span></summary><div class="body">
+        <p>
+          <code>zod</code> 스타일의 조합자가 필요할 때가 있습니다. 작은 검증기를 조합해 검증기를 만드는 것입니다. TypeScript의 함정은 조합자의 <em>출력 타입</em>과 넘긴 <em>모양</em>이 서로 어긋난다는 것입니다. 모양을 쓰고, 두 번째 타입 매개변수에 같은 것을 반복하며, 둘이 일치하는지 검사하는 것은 없습니다.
+        </p>
+        <p>
+          끌어낸 타입은 조합자가 어떻게 반환하든 성립합니다. <code>infer_output</code>은 함수 경계에서 캐스트 하나가 필요합니다. 본문이 만드는 값이 모양에서 끌어낸 타입을 가진다는 것을 타입 시스템이 증명할 수 없기 때문이며, 컴파일러가 그 캐스트를 대신 씁니다. 0.1.91까지는 평범한 <code>return &lt;value&gt;</code>에 붙었습니다. <code>return</code>과 값 사이에 <code>match</code>를 두거나 본문을 <code>r?</code>로 끝내면 같은 함수가 컴파일되지 않았습니다. 컴파일러가 이미 받아들인 Glyph에 대해, 생성된 TypeScript 기준의 <code>TS2322</code>였습니다. 0.1.92부터 캐스트는 표기가 아니라 return을 따라가므로, <code>return match strict { ... }</code>는 같은 본문을 단일 <code>return</code>으로 쓴 것과 똑같이 타입 검사를 통과합니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-rest-of-the-boundary">신뢰할 수 없는 경계의 나머지<a class="ak-anchor" href="#the-rest-of-the-boundary" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        디스크립터는 <code>json.parse&lt;T&gt;</code>를 안전하게 만드는 것과 같은 것입니다. JSON 문자열을 주면 한 단계에서 파싱<em>하고</em> 검증합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>입력</th><th>호출</th><th>반환</th></tr></thead>
+          <tbody>
+            <tr><td>JSON 문자열</td><td><code>json.parse&lt;T&gt;(text)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>디코딩된 본문</td><td><code>T.parse(value)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>헤더</td><td><code>header(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+            <tr><td>쿼리 매개변수</td><td><code>query_param(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">요청 본문, 헤더, 쿼리 매개변수</span></summary><div class="body">
+        <p>
+          요청 본문은 이미 <code>unknown</code>으로 디코딩되어 도착하므로, 거기서는 대신 <code>T.parse(value)</code>를 씁니다. 같은 보장이고 캐스트는 없습니다.
+        </p>
+        <p>
+          신뢰할 수 없는 경계의 나머지도 같은 방식으로 타입이 지정됩니다. <code>header(req, name)</code>와 <code>query_param(req, name)</code>은 <code>Option&lt;string&gt;</code>을 반환하므로, 헤더나 쿼리 매개변수가 없으면 <code>None</code>이고 <code>match</code>가 이를 처리하도록 <em>강제</em>합니다. <code>None</code> arm을 빠뜨리면 컴파일되지 않습니다. 없는 입력을 있는 것처럼 읽을 수 없습니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="does-a-map-keyed-by-an-enum-check-its-keys">enum을 키로 하는 맵은 키를 검사하나요?<a class="ak-anchor" href="#does-a-map-keyed-by-an-enum-check-its-keys" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        네, 0.1.148부터입니다. <code>type Tier = "free" | "pro"</code>일 때 <code>Record&lt;Tier, int&gt;</code>는 키가 정확히 <code>free</code>와 <code>pro</code>인 객체만 파싱합니다. 엉뚱한 키와 빠진 키는 둘 다 <code>Err</code>이며, 같은 객체를 리터럴로 썼을 때 <code>tsc</code>가 하는 말도 그렇습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>키 타입</th><th><code>parse</code>가 각 키에 대해 검사하는 것</th></tr></thead>
+          <tbody>
+            <tr><td>문자열 리터럴 유니언</td><td>나열된 키 정확히, 빠진 것도 남는 것도 없이</td></tr>
+            <tr><td><code>where</code>로 정제한 타입</td><td>조건식</td></tr>
+            <tr><td><code>int</code></td><td>정수의 평범한 표기. <code>"01"</code>과 <code>"1.5"</code>는 실패</td></tr>
+            <tr><td><code>string</code></td><td>새로운 것 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">정제된 키와 int 키, 그리고 여전히 tsc에 맡겨진 것</span></summary><div class="body">
+        <p>
+          <code>where</code>로 정제한 키 타입은 모든 키에 조건식을 실행하고, <code>int</code> 키는 정수의 평범한 표기여야 하므로 <code>"01"</code>과 <code>"1.5"</code>는 거부됩니다. <code>Record&lt;string, V&gt;</code>는 이전과 똑같이 검사됩니다. Glyph 자체 검사기는 코드에 작성한 값의 키를 여전히 <code>tsc</code>에 맡기며, 자신의 타입 매개변수를 키로 하는 제네릭 레코드는 그 매개변수가 <code>string</code>이 아니면 거부됩니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="if-i-parse-a-date-do-i-get-a-real-date">날짜를 파싱하면 진짜 날짜를 얻나요?<a class="ak-anchor" href="#if-i-parse-a-date-do-i-get-a-real-date" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        네, 그리고 흥미로운 부분은 날짜가 아닌 입력에 대해 무엇을 돌려받느냐입니다. <code>time.parse_iso</code>는 <code>Option&lt;number&gt;</code>를 반환하며, ISO-8601이 아닌 모든 것에 대해 <code>None</code>입니다.
+      </p>
+      <div class="two-up fit">
+        <div class="code">
+          <span class="cap">받아들임</span>
+<pre>"2026-01-03"              // UTC midnight
+"2026-07-25T18:33:08.000Z"
+"2026-03-15T09:30:00-05:00"
+"2028-02-29"              // a real leap day</pre>
+        </div>
+        <div class="code">
+          <span class="cap">모두 None</span>
+<pre>"January 5 2026"   // not ISO
+"2026-1-3"         // not padded
+"2026-13-01"       // no month 13
+"2026-02-31"       // no such day
+"2026-02-29"       // not a leap year
+"2026-01-03T10:00" // no offset</pre>
+        </div>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>마지막 것이 사람들을 놀라게 하는데, 그것이 핵심입니다. <code>Z</code>도 <code>+HH:MM</code> 오프셋도 없는 날짜시간은 ECMAScript 문법상 로컬 시간이므로, 이를 받아들이면 같은 문자열이 프로그램을 실행한 컴퓨터에 따라 다른 날짜를 가리키게 됩니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">Date.parse는 대신 무엇을 하는가, 그리고 왜 UTC인가</span></summary><div class="body">
+        <p>
+          이는 JavaScript의 <code>Date.parse</code>보다 강한 주장입니다. 그 함수는 자유 형식 텍스트(<code>"January 5 2026"</code>)를 받고, <code>"2026-1-3"</code>처럼 자릿수를 채우지 않은 날짜는 프로세스가 마침 실행되는 시간대로 읽으며, 불가능한 날짜는 앞으로 넘겨서 성공으로 보고합니다. <code>"2026-02-31"</code>은 3월 3일이 되고, 무슨 일이 있었는지 아무 표시 없이 숫자를 돌려받습니다.
+        </p>
+        <p>
+          Glyph의 달력 접근자(<code>time.year</code>, <code>time.month</code>, <code>time.day</code>)는 UTC이며 그렇다고 밝힙니다. 호스트의 시간대를 조용히 가져오는 검증기는 이들이 거짓말하게 만들 것입니다. 그래서 문자열을 거부하고, 그것이 무엇을 뜻했는지는 여러분이 정합니다.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="the-guard-moved">방어 코드가 기본 요소 안으로 옮겨졌습니다<a class="ak-anchor" href="#the-guard-moved" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        애플리케이션이 표준 라이브러리 기본 요소 주위에 정확성 방어 코드를 쓴다면, 그 방어 코드는 기본 요소 안에 있어야 합니다. 앱에서 지운 것은 다음과 같습니다.
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">이전: 앱이 stdlib를 방어함</span>
+<pre>const ISO_DATE = "^\\d{4}-\\d{2}-\\d{2}$"
+
+fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match regex.matches(ISO_DATE, value) {
+    false =&gt; Err(BadDate({ line: line, value: value })),
+    true =&gt; match time.parse_iso(value) {
+      Some(ms) =&gt; match string.starts_with(
+        time.format_iso(ms), value
+      ) {
+        true =&gt; Ok(ms),
+        false =&gt; Err(BadDate({ line: line, value: value })),
+      },
+      None =&gt; Err(BadDate({ line: line, value: value })),
+    },
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">이후: 기본 요소가 선을 지킴</span>
+<pre>fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match time.parse_iso(value) {
+    Some(ms) =&gt; Ok(ms),
+    None =&gt; Err(BadDate({ line: line, value: value })),
+  }
+}</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        <code>import std/regex</code>도 함께 사라졌습니다. 같은 원장, 같은 거부된 행, 바이트 단위로 같은 보고서입니다.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">이것이 나온 경비 보고서 앱</span></summary><div class="body">
+        <p>
+          이는 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph">Glyph로 경비 보고서 CLI</a>를 작성하면서 나왔습니다. 원장의 모든 행에는 날짜가 있고, 행을 엉뚱한 달에 넣는 것이 중요한 버그이므로, 앱은 예전 <code>parse_iso</code>를 믿지 않았습니다. 먼저 정규식으로 모양을 검사하고, 그다음 타임스탬프를 텍스트로 되돌려 넘어간 날짜를 잡아냈습니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="you-don-t-even-have-to-write-the-types">타입조차 작성할 필요가 없습니다<a class="ak-anchor" href="#you-don-t-even-have-to-write-the-types" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        모양이 이미 OpenAPI 명세나 TypeScript 선언 파일에 있다면 거기서 Glyph 타입을 생성하세요. 추론된 유령이 아니라, 각각 디스크립터를 가진 실제로 커밋되고 grep할 수 있는 <code>type</code> 선언입니다.
+      </p>
+      <div class="two-up fit">
+        <div class="code term">
+          <span class="cap">OpenAPI / JSON Schema 명세에서</span>
+<pre>glyph gen openapi petstore.yaml \
+  --out src/</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">설치된 패키지에서, 이름으로</span>
+<pre>glyph gen dts api-types \
+  --out src/types</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        전송 타입이 직접 작성한 것 없이 검증되는 경계가 됩니다.
+      </p>
+      <div class="code">
+        <span class="cap">webhook.glyph</span>
+<pre>import types/api_types { Customer }
+
+match Customer.parse(webhook_body) {
+  Ok(c) =&gt; handle(c),
+  Err(issues) =&gt; reject(issues),
+}</pre>
+      </div>
+      <p class="ak-lede">생성은 <strong>전송 형식에 충실</strong>합니다. 명세가 값에 대해 말하는 것이 <code>parse</code>가 검사하는 것입니다.</p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>명세나 <code>.d.ts</code>에서</th><th>생성된 Glyph</th></tr></thead>
+          <tbody>
+            <tr><td>문자열 enum</td><td>문자열 리터럴 유니언. <code>parse</code>가 멤버십을 검사</td></tr>
+            <tr><td><code>integer</code> 필드</td><td><code>int</code>. 전송된 <code>3.5</code>는 실패</td></tr>
+            <tr><td>객체 스키마</td><td><code>@open</code>이 붙은 레코드. <code>additionalProperties: false</code>면 엄격</td></tr>
+            <tr><td><code>interface Page&lt;T&gt;</code></td><td><code>type Page&lt;T&gt;</code>, 각 항목을 <code>T</code>로 검사</td></tr>
+            <tr><td>판별자 없는 유니언</td><td>출력되는 안내와 함께 좁혀짐</td></tr>
+            <tr><td>닿을 수 있는 두 파일에 있는 이름</td><td>바인딩하지 않고 안내와 함께 표시</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">현재 실체화되는 것, 다시 생성하기, 제네릭 타입</span></summary><div class="body">
+        <p>
+          <code>glyph gen dts</code>에 <code>.d.ts</code> 파일을 주거나, 위처럼 설치된 npm 패키지 이름을 주면 됩니다. <code>node_modules</code>에서 패키지 자체의 선언 진입점을 찾아, import해서 쓰는 커밋된 타입을 씁니다.
+        </p>
+        <p>
+          현재 실체화되는 것: <code>gen dts</code>는 패키지가 export하는 <code>interface</code>와 <code>type</code> 선언을 읽으며, <code>declare namespace</code> 트리 안의 것(단순 상호 참조는 스코프를 통해 해석됩니다)과 <code>index</code> barrel이 재export하는 형제 파일의 것(진입 <code>.d.ts</code>와 상대 경로로 import된 모든 <code>.d.ts</code>를 순회합니다)도 포함합니다. 제네릭은 일급으로 유지됩니다. <code>interface Page&lt;T&gt;</code>는 <code>type Page&lt;T&gt;</code>로 실체화되고, 각 항목이 있는지만이 아니라 타입 인자로서 검증하는 디스크립터를 받습니다. 별칭과 <code>export * as</code> 재export는 파일별 바인딩 맵으로 해석됩니다. 안전하게 만들 수 없는 경우 하나, 즉 닿을 수 있는 두 파일에서 충돌하는 타입 이름은 잘못된 모양을 조용히 바인딩하는 대신 <em>안내와 함께 표시</em>합니다. 실체화기가 닿지 못하는 것은 경계에서 쓰는 모양을 직접 작성하거나 <code>extern_ts</code> 탈출구를 쓰세요.
+        </p>
+        <p>
+          다시 생성하는 것은 멱등이므로 명세 변경은 깔끔하고 리뷰할 수 있는 diff입니다. 생성은 <strong>전송 형식에 충실</strong>합니다. 문자열 enum은 문자열 리터럴 유니언(<code>"free" | "pro"</code>)으로 실체화되므로 <code>parse</code>는 값이 문자열인지만이 아니라 멤버십을 검사하고, 그에 대한 <code>match</code>는 <code>else</code> 없이 망라적입니다. <code>integer</code> 필드는 <code>int</code>가 되므로, 평범한 숫자라면 통과했을 전송된 <code>3.5</code>가 <code>parse</code>에서 실패합니다. 정확한 Glyph 형태가 없는 구문(판별자 없는 유니언)은 실제 데이터를 거부할 검증기를 생성하는 대신 좁히고 <em>안내를 출력</em>합니다. 생성된 레코드에는 <code>@open</code>도 붙으므로, <code>parse</code>는 선언한 모든 필드를 검증하면서도 API가 나중에 추가하는 필드를 허용합니다. <code>additionalProperties: false</code>를 설정한 스키마는 엄격하게 유지됩니다. Glyph에서 레코드는 기본적으로 엄격하고, 이는 직접 작성한 레코드가 쓰는 것과 같은 grep할 수 있는 선언 위치의 표시이므로, 레코드의 의미는 바뀌지 않습니다.
+        </p>
+        <p>
+          제네릭 타입도 검증됩니다. <code>Paginated&lt;T&gt;</code>는 <code>parse</code>가 타입 인자를 받는 디스크립터를 가집니다. <code>Paginated.parse&lt;User&gt;(body)</code>는 모든 <code>items</code> 항목이 있는지만이 아니라 <em><code>User</code>로서</em> 검사하고, <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code>도 같은 방식으로 좁힙니다. 이는 모듈 경계를 넘어서도 성립합니다. 한 파일에서 <code>Paginated&lt;T&gt;</code>를 정의하고 다른 파일로 <code>import</code>해도, 거기서 <code>Paginated.parse&lt;User&gt;(body)</code>와 <code>is Paginated&lt;User&gt;</code> 모두 각 요소를 <code>User</code>로 검사합니다. 컴파일러는 호출 위치의 타입 인자로 요소별 검사를 만들므로, 제네릭 타입이 어느 파일에 있는지는 무엇이 검증되는지와 상관없습니다.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+          한계: 디스크립터는 대부분의 페이로드를 이루는 모양을 다룹니다. 객체, 원시 타입, 배열, 참조, 선택 및 nullable 필드, 그리고 이제 주어진 인스턴스화에서의 제네릭 타입입니다. Glyph가 생성하지 않은 타입(import만 하는 외부 패키지나 <code>.d.ts</code>)은 타입 검사는 되지만 실체화하기 전까지 디스크립터가 없으며, 실체화는 이제 설치된 패키지에 대한 명령 하나입니다(<code>glyph gen dts &lt;package&gt;</code>, 패키지가 export하는 최상위 인터페이스와 타입 별칭 대상). 이 경계는 의도한 것입니다. Glyph가 생성하지 않은 타입은 런타임 검증을 약속할 수 없으므로, 패키지마다 직접 선택하고, 결과는 빌드할 때마다 만들어지는 것이 아니라 커밋되고 grep할 수 있습니다.</p></div>
+
+      <h2 class="ak-h" id="the-database-is-a-boundary-too">데이터베이스도 경계입니다<a class="ak-anchor" href="#the-database-is-a-boundary-too" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        데이터베이스에서 읽은 행은 요청 본문과 똑같이 신뢰할 수 없습니다. 요청 본문에 쓰는 것과 같은 <code>.parse</code>로 행을 검증합니다.
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>type Task    = { id: int, title: string, done: bool }
+type TaskRow = { id: int, title: string, done: int }
+
+fn row_to_task(r: TaskRow) -&gt; Task {
+  return { id: r.id, title: r.title,
+           done: r.done != 0 }
+}
+
+// A row is validated, then mapped. No cast.
+match TaskRow.parse(row) {
+  Ok(r)  =&gt; Ok(row_to_task(r)),
+  Err(_) =&gt; Err("row failed validation"),
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">없애는 버그</span>
+<pre>// TS, better-sqlite3 / node:sqlite:
+const row = stmt.get(id) as Task;
+// `row.done` is really 0 or 1, a number.
+// Nothing complains. Then:
+if (row.done === true) { ... }   // never runs
+
+// The row was `unknown`; the cast invented
+// a type. Glyph makes you validate the row
+// into TaskRow, and the int-to-bool step is
+// a line of code, not a silent lie.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">std/sqlite, 그리고 0 또는 1인 불리언</span></summary><div class="body">
+        <p>
+          데이터베이스에서 읽은 행은 요청 본문과 똑같이 신뢰할 수 없습니다. 데이터베이스 스키마와 코드가 생각하는 행이 다를 수 있고, 캐스트(<code>row as Task</code>)가 이를 덮습니다. Node 내장 SQLite 위의 DB 모듈인 <code>std/sqlite</code>는 이 점을 적극 활용합니다. 쿼리는 <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>를 반환하므로, 검증하지 않고는 행을 <code>Task</code>로 다룰 방법이 없습니다.
+        </p>
+        <p>
+          이는 사람들이 끊임없이 배포하는 버그를 잡습니다. SQLite에는 불리언 타입이 없으므로 <code>done</code> 열은 정수 <code>0</code>이나 <code>1</code>로 돌아옵니다. 행을 <code>bool</code> 필드가 있는 레코드로 캐스트하면 <code>task.done === true</code>는 조용히 절대 참이 되지 않습니다. Glyph에서는 저장 모양과 도메인 모양이 별개의 타입이고, 둘 사이의 매핑은 실제로 보이는 한 줄입니다.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="3.8" rx="5" ry="1.9"/><path d="M3 3.8v8.4c0 1 2.2 1.9 5 1.9s5-.9 5-1.9V3.8M3 8c0 1 2.2 1.9 5 1.9s5-.9 5-1.9"/></svg><p>
+          전체가 동작하는 예제입니다. <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph"><code>examples/apps/tasks/main.glyph</code></a>는 저장에 <code>std/sqlite</code>, 라우트에 <code>std/http</code>를 쓰는 영속 작업 API로, 데이터는 재시작해도 남고 전송 쪽과 데이터베이스 쪽 모두에서 검증합니다. 직접 작성한 검증기는 어디에도 없습니다.</p></div>
+
+      <h2 class="ak-h" id="a-signed-webhook-is-a-boundary-too">서명된 웹훅도 경계입니다<a class="ak-anchor" href="#a-signed-webhook-is-a-boundary-too" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        웹훅 서명을 검증하려면 다시 직렬화한 사본이 아니라 보낸 쪽이 서명한 정확한 바이트가 필요합니다(파싱한 본문을 다시 문자열로 만들면 공백과 키 순서가 바뀌어 HMAC이 절대 맞지 않습니다). <code>http.raw(req)</code>가 그 바이트를 주므로 검사는 Glyph 안에 머뭅니다.
+      </p>
+<pre>fn handle(req: Request) -&gt; Result&lt;Response, string&gt; {
+  let expected = crypto.hmac_sha256(secret, raw(req))
+  return match header(req, "x-hook-signature") {
+    Some(sig) =&gt; match sig == expected {
+      true  =&gt; accept(req),          // then validate req.body with T.parse
+      false =&gt; Ok(text(401, "bad signature")),
+    },
+    None =&gt; Ok(text(401, "missing signature")),
+  }
+}</pre>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">서명에는 원본 바이트, 모양에는 파싱된 본문</span></summary><div class="body">
+        <p>
+          <code>req.body</code>는 여전히 모양 검사를 위한 파싱된 값이고, <code>raw</code>는 서명을 계산하는 변조되지 않은 페이로드입니다. 서명을 검증하고 본문을 검증하는 수신기에 직접 작성한 TypeScript는 필요 없습니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-type-can-validate-its-invariants-not-just-its-shape">타입은 모양만이 아니라 불변식도 검증할 수 있습니다<a class="ak-anchor" href="#a-type-can-validate-its-invariants-not-just-its-shape" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        모양 검사는 필드가 숫자라는 것을 알려 줍니다. 금액이 음수가 아니라거나 평점이 1에서 5 사이라는 것은 알려 주지 않습니다. <code>where</code> 정제는 그 불변식을 타입에 넣고, 디스크립터가 경계에서 이를 강제합니다.
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">refinements.glyph</span>
+<pre>type Amount   = int where value &gt;= 0
+type Rating   = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+type NonEmpty = string where value.length &gt; 0
+
+// Amount.parse(-1)  -&gt; Err   (not just "is a number")
+// Rating.parse(6)   -&gt; Err
+// Amount.parse(3.5) -&gt; Err   (int check too)
+
+type Line = { amount: Amount, }
+// Line.parse({ amount: -1 }) -&gt; Err too:
+// the predicate follows the type into
+// the field, and across modules.</pre>
+        </div>
+        <div class="code">
+          <span class="cap">작성하지 않는 것</span>
+<pre>// The check that usually lives three
+// functions away from the boundary,
+// if someone remembers it:
+if (amount &lt; 0) throw new Error(...);
+
+// In Glyph it's the type. A value that
+// fails the predicate never becomes an
+// Amount in the first place.</pre>
+        </div>
+      </div>
+
+      <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">10</span></h3>
+
+          <p class="ak-st-group">디스크립터</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">선언된 모든 레코드와 태그 유니언은 제네릭 레코드를 포함해 런타임 디스크립터(<code>.parse</code>, <code>.is</code>, <code>.schema</code>)를 가집니다</span><span class="chip">제네릭 태그 유니언은 제외</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>.parse</code>는 언어의 나머지가 쓰는 것과 같은 <code>Result</code>를 반환하므로, <code>map_err</code>, <code>?</code>, 그리고 그것을 반환하는 어떤 함수와도 조합됩니다</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>where</code> 정제(<code>int where value &gt;= 0</code>)는 경계에서 모양만이 아니라 불변식을 검증합니다</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>json.parse&lt;T&gt;</code>가 JSON을 검증합니다</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>infer_output&lt;Shape&gt;</code>는 조합자의 출력 타입을 모양에서 끌어내므로 둘이 어긋날 수 없습니다</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">생성</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code> / <code>glyph gen dts</code>는 명세, <code>.d.ts</code>, 또는 이름으로 지정한 설치된 패키지에서 디스크립터를 가진 커밋되는 타입을 생성합니다</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">경계</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/sqlite</code>는 행을 <code>unknown</code>으로 돌려주므로 데이터베이스도 다른 경계처럼 검증됩니다</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">서명된 웹훅 수신기가 완전히 Glyph 안에 머뭅니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>http.raw(req)</code>가 파싱하지 않은 요청 본문을 제공하므로, 웹훅 서명을 정확한 바이트에 대해 검증하고 서명된 웹훅 수신기가 완전히 Glyph 안에 머뭅니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">신뢰할 수 없는 입력은 <code>sanitize</code> 없이 SQL이나 셸 싱크에 닿을 수 없습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>std/taint</code>의 <code>Tainted</code>/<code>Trusted</code> 타입은 명시적인 <code>sanitize</code> 없이 신뢰할 수 없는 입력이 SQL이나 셸 싱크에 닿지 못하게 하므로, <code>tsc</code>가 컴파일 시점에 인젝션 경로를 거부합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>time.parse_iso</code>는 ISO-8601만 받습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>더 작은 경계 기본 요소도 같은 선을 지킵니다. <code>time.parse_iso</code>는 ISO-8601을 받고, 자유 형식 텍스트, 불가능한 날짜, 그리고 오프셋이 없어서 그렇지 않으면 호스트의 로컬 시간대로 읽힐 날짜시간에 대해서는 <code>None</code>을 반환합니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 앞으로 할 것 <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">판별 유니언은 명세와 <code>.d.ts</code>에서 생성됩니다. 다음은 enum과 매핑된 타입 지원</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>판별 유니언은 이제 OpenAPI <code>discriminator</code>와 TypeScript <code>.d.ts</code> 유니언 모두에서 생성됩니다(<code>parse_&lt;Name&gt;</code> 디스패처가 태그를 읽고 올바른 variant로 검증합니다). 다음은 더 풍부한 enum과 매핑된 타입 지원입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">명세에서 타입이 있는 클라이언트와 서버 코드를 만드는 것은 이미 제공됩니다</span> <a class="chip" href="/answers/codegen/">클라이언트와 서버 보기</a></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">타임스탬프와 기간이 둘 다 <code>number</code>입니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>날짜에서는 엄격함이 기능의 전부이고, 파싱에서 멈춥니다. <code>parse_iso</code>는 epoch 밀리초를 돌려주므로 타임스탬프와 기간이 둘 다 <code>number</code>이고, 하나를 다른 것에 더하는 것을 막는 것은 없습니다. 별도의 날짜 타입은 나중에 내릴 결정이며, 작은 결정이 아닙니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>

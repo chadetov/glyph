@@ -1,0 +1,121 @@
+---
+title: Glyph와 Effect · 라이브러리와 언어의 비교 · Glyph
+description: Effect는 타입이 있는 오류와 큰 생태계를 가진 TypeScript 라이브러리이고, Glyph는 TypeScript로 컴파일되는 언어입니다. 각각이 더 잘하는 것을 코드와 함께 봅니다.
+source_hash: f62ac4a8fc9859e6
+next_steps: |
+  다음으로 볼 곳
+  추천 | /catches/ | catches | Glyph가 거부하는 것 | 각 사례를 <code>tsc --strict</code>와 Glyph에서 검사한 결과. | 사례 보기
+  /design/ | design | 설계로 돌아가기 | 네 가지 기둥, 명세, 그리고 다른 비교들.
+---
+      <p class="q-eyebrow">설계 &middot; 비교</p>
+      <h1 class="q-title">Glyph와 Effect</h1>
+
+      <p class="short-answer">
+        둘 다 사람과 에이전트가 믿고 쓸 수 있는 TypeScript를 목표로 합니다. Effect는 라이브러리입니다. TypeScript를 계속 쓰면서 타입이 있는 오류, 추적되는 의존성, 큰 도구 상자를 얻습니다. Glyph는 TypeScript로 컴파일되는 언어이므로, 라이브러리의 보장을 무너뜨리는 캐스트를 포함해 TypeScript가 허용하는 것을 거부할 수 있습니다. Effect가 훨씬 성숙합니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Effect가 스스로를 소개하는 방식</h2>
+        <p>
+          Effect 홈페이지는 "Reliable TypeScript for the AI era"를 첫 문구로 내세우고, "declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code"라고 말합니다(<a href="https://effect.website">effect.website</a>). 문서에서는 스스로를 "an ecosystem of tools that help you build better applications and libraries"라고 부르며, 계산이 무엇을 반환하고, 어떻게 실패할 수 있고, 무엇이 필요한지를 기록하는 <code>Effect&lt;Success, Error, Requirements&gt;</code> 타입을 중심으로 만들어졌습니다(<a href="https://effect.website/docs/getting-started/why-effect/">Why Effect</a>). <code>strict</code>를 켠 TypeScript 5.4 이상이 필요합니다(<a href="https://effect.website/docs/getting-started/installation/">Installation</a>). 이 인용문은 2026-11-19에 확인했습니다.
+        </p>
+
+        <h2 class="block-label">라이브러리와 언어라는 차이에서 오는 결과</h2>
+        <p>
+          Effect의 타입은 <code>tsc</code>가 검사하므로, <code>tsc</code>가 허용하는 것은 그 옆에서도 여전히 허용됩니다. 다음 코드는 effect 4.1.4와 TypeScript 6에서 <code>tsc --strict</code>로 컴파일됩니다. 캐스트가 오류 채널에서 <code>NotFound</code>를 없애고, 프로그램은 실패할 수 없다고 타입이 지정된 effect에서 실패를 보고합니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">eff.ts: tsc --strict는 0으로 종료하고, 실행하면 "Failure undefined"를 출력</span>
+<pre>import { Effect } from "effect"
+
+class NotFound {
+  readonly _tag = "NotFound"
+}
+
+const find = (id: string): Effect.Effect&lt;number, NotFound&gt; =&gt;
+  id === "1" ? Effect.succeed(1) : Effect.fail(new NotFound())
+
+<span class="cm">// The error channel says NotFound can happen. A cast erases it.</span>
+const quiet = find("2") as unknown as Effect.Effect&lt;number, never&gt;
+
+<span class="cm">// And a parsed body still takes any type you name.</span>
+type User = { email: string }
+const user = JSON.parse("{}") as User
+
+console.log(Effect.runSyncExit(quiet)._tag, user.email)</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph로 쓴 같은 함수는 <code>Result</code>를 반환하고, 작성할 캐스트가 없습니다. 두 번째 모듈은 TypeScript가 생성되기 전에 거부됩니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">find.glyph: 빌드되고 tsc --strict를 통과</span>
+<pre>module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">캐스트 추가: 거부됨</span>
+<pre data-check="expect-error E0013">module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}
+
+pub fn quiet() -&gt; number {
+  let n = find("2") as number
+  return n
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>E0013</code>의 도움말은 이렇습니다: "Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>." Effect 코드베이스에서도 lint 규칙으로 이에 가깝게 만들 수 있으며, 누군가 끌 수 있는 규칙이 왜 다른 종류의 보장인지는 <a href="/answers/vs-tooled-ts/">이 비교</a>에서 다룹니다.
+        </p>
+
+        <h2 class="block-label">Effect가 더 잘하는 것</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>영역</th><th>Effect</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">성숙도</td><td data-label="Effect">프로덕션에서 사용 중이며, 홈페이지에 사용 기업으로 Cloudflare가 올라 있습니다</td><td data-label="Glyph">초기 프리뷰, 1.0 이전, 주로 한 사람이 관리</td></tr>
+            <tr><td data-label="Area">생태계</td><td data-label="Effect">HTTP API, 워크플로, 클러스터링, 스키마, 스케줄링, 트레이싱, 의존성 주입을 모두 한 프로젝트에서 제공</td><td data-label="Glyph">모듈 40개로 된 표준 라이브러리. 그 밖의 것은 npm에서 가져옴</td></tr>
+            <tr><td data-label="Area">타입 안의 의존성</td><td data-label="Effect"><code>Requirements</code> 매개변수가 계산에 필요한 것을 추적</td><td data-label="Glyph">해당 기능 없음. 함수 시그니처는 결과와 오류만 기록</td></tr>
+            <tr><td data-label="Area">도입</td><td data-label="Effect">npm 패키지. 새 컴파일러 없이 기존 코드를 감싸고 점진적으로 리팩터링</td><td data-label="Glyph">빌드에 두 번째 컴파일러를 추가하고, 모듈 하나씩 도입</td></tr>
+            <tr><td data-label="Area">동시성</td><td data-label="Effect">구조적 동시성, 재시도, 스케줄링 내장</td><td data-label="Glyph"><code>par</code>와 <code>std/task</code> 헬퍼. 훨씬 작음</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">라이브러리는 할 수 없고 Glyph는 하는 것</h2>
+        <p>
+          무엇을 작성할 수 있는지는 언어가 정합니다. Glyph에는 <code>any</code>, 캐스트, non-null 단언, 오류를 덮는 주석이 없고, 유니언에 대한 모든 <code>match</code>는 모든 case를 다뤄야 합니다. 레코드와 유니언은 선언에서 생성된 런타임 검사를 가지므로 <code>json.parse&lt;User&gt;(body)</code>가 검증을 합니다. Effect의 Schema도 하나의 기술에서 타입을 만들어 내므로(<a href="https://effect.website/docs/schema/introduction/">소개 문서</a>의 <code>Schema.Schema.Type&lt;typeof Person&gt;</code>), 거기서도 타입과 검증기가 어긋나지 않습니다. 다른 점은 TypeScript에서는 코드베이스가 그것을 쓰도록 강제하는 것이 없다는 것입니다. 컴파일러는 또한 변경이 무엇을 깨뜨릴지 같은, 프로그램에 대한 에이전트의 질문에 <a href="/agents/">MCP나 명령줄로</a> 답합니다.
+        </p>
+        <p>
+          이 페이지에서는 Glyph 모듈 안에서 Effect를 쓰는 것을 테스트하지 않았으므로, 둘을 함께 쓰는 것에 대해서는 아무 주장도 하지 않습니다.
+        </p>
+      </div>

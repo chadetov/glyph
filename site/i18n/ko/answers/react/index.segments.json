@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/react/index.html",
+  "locale": "ko",
+  "source_hash": "7cfdf0dbb16b7eaf",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Does it work with React, hooks and Context? · Glyph",
+      "tr": "React의 hook, Context와 함께 쓸 수 있나요? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "React is built in: a component compiles to a function component, JSX lowers to createElement, and a reducer's actions are matched exhaustively.",
+      "tr": "React가 내장되어 있습니다. component는 함수 컴포넌트로 컴파일되고, JSX는 createElement로 변환되며, reducer의 액션은 망라적으로 매칭됩니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 이전"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "API 명세에서 타입이 있는 클라이언트와 서버를 생성할 수 있나요?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "How do I share mutable state between functions?",
+      "tr": "함수 사이에서 변경 가능한 상태를 어떻게 공유하나요?"
+    },
+    {
+      "id": "h-cbc71a81",
+      "kind": "html",
+      "en": "13 &middot; Frontend",
+      "tr": "13 &middot; 프런트엔드"
+    },
+    {
+      "id": "h-03457be7",
+      "kind": "html",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "React의 컴포넌트, hook, Context와 함께 쓸 수 있나요?"
+    },
+    {
+      "id": "h-cf0fbc83",
+      "kind": "html",
+      "en": "Yes. A <code>component</code> compiles to a React function component, JSX lowers to <code>createElement</code>, React's own hooks are imported by name and their pairs destructured, and reducer state gets exhaustiveness plain TypeScript does not have. The page itself (its title, the mount point, saved state) is reached through <code>std/dom</code> and <code>std/storage</code>. The gap worth knowing first: Glyph's own checker does not type what a hook returns, so <code>tsc</code> checks those values.",
+      "tr": "네. <code>component</code>는 React 함수 컴포넌트로 컴파일되고, JSX는 <code>createElement</code>로 변환되며, React 자체의 hook은 이름으로 import하고 그 쌍은 구조 분해하며, reducer 상태는 평범한 TypeScript에 없는 망라성 검사를 받습니다. 페이지 자체(제목, 마운트 지점, 저장된 상태)는 <code>std/dom</code>과 <code>std/storage</code>로 다룹니다. 먼저 알아 둘 빈틈은 Glyph 자체 검사기가 hook이 반환하는 값에 타입을 매기지 않는다는 점이며, 그 값들은 <code>tsc</code>가 검사합니다."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "h-7d3b54fa",
+      "kind": "html",
+      "en": "A lot of the code agents write is React. Glyph treats it as a first-class target, not a bolt-on: <code>component</code> is its own keyword (so <code>grep \"^component \"</code> audits your whole UI). React's hooks are imported from <code>react</code> and called with their real names and types, checked by <code>tsc</code> against React's own declarations.",
+      "tr": "에이전트가 작성하는 코드의 상당 부분이 React입니다. Glyph는 React를 덧붙인 것이 아니라 일급 대상으로 다룹니다. <code>component</code>는 별도의 키워드이므로 <code>grep \"^component \"</code>로 UI 전체를 감사할 수 있습니다. React의 hook은 <code>react</code>에서 import하고 실제 이름과 타입으로 호출하며, <code>tsc</code>가 React 자체의 선언에 대해 검사합니다."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "직접 보기"
+    },
+    {
+      "id": "h-2f961bce",
+      "kind": "html",
+      "en": "React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it:",
+      "tr": "태그 유니언에 대한 reducer를 쓰는 React의 실제 <code>useReducer</code>입니다. 모든 액션을 처리해야 하고, 컴파일러가 이를 검사합니다."
+    },
+    {
+      "id": "h-a1d8437d",
+      "kind": "html",
+      "en": "counter.glyph, against react@18 and its types",
+      "tr": "counter.glyph, react@18과 그 타입 기준"
+    },
+    {
+      "id": "h-158cdb40",
+      "kind": "html",
+      "en": "Add a <code>Double</code> action and the reducer stops compiling with <code>E0200</code> naming it, which a plain TypeScript <code>switch</code> would let ship. The pair is destructured with <code>let [count, dispatch]</code>, and the emitted TypeScript adds <code>satisfies readonly [unknown, unknown]</code>, so <code>tsc</code> proves the hook returned a pair and still infers each element's type. Glyph's own checker does not type values that come from React, so a wrong argument to <code>dispatch</code> or a state setter is reported by <code>tsc</code> in the build, not by the editor or <code>--no-tsc</code>. React <strong>Context</strong> works today through <code>createContext</code> / <code>useContext</code>, and member-expression element names (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.",
+      "tr": "<code>Double</code> 액션을 추가하면 reducer는 그것을 짚는 <code>E0200</code>으로 컴파일을 멈춥니다. 평범한 TypeScript <code>switch</code>라면 그대로 배포되었을 것입니다. 쌍은 <code>let [count, dispatch]</code>로 구조 분해하고, 생성된 TypeScript는 <code>satisfies readonly [unknown, unknown]</code>을 덧붙이므로, <code>tsc</code>가 hook이 쌍을 반환했다는 것을 증명하면서 각 요소의 타입도 추론합니다. Glyph 자체 검사기는 React에서 온 값에 타입을 매기지 않으므로, <code>dispatch</code>나 상태 setter에 넘긴 잘못된 인자는 에디터나 <code>--no-tsc</code>가 아니라 빌드의 <code>tsc</code>가 보고합니다. React <strong>Context</strong>는 지금 <code>createContext</code> / <code>useContext</code>로 동작하고, 멤버 표현식 요소 이름(<code>&lt;ThemeContext.Provider&gt;</code>)도 우회 없이 바로 동작합니다."
+    },
+    {
+      "id": "h-642c2c83",
+      "kind": "html",
+      "en": "JSX prop spreading works too: <code>&lt;input {...register(\"email\")} /&gt;</code> lowers to an object spread in the props, so the react-hook-form idiom needs no adapter. Zod's value-derived types are first-class: <code>type FormData = z.infer&lt;typeof schema&gt;</code> works directly, no escape hatch. The one thing that differs: a component takes a single props record, not multiple positional params. See <a href=\"/answers/imports/\">using your libraries</a> and the <a href=\"/hardening/\">hardening page</a> for exactly where that boundary is.",
+      "tr": "JSX prop spread도 동작합니다. <code>&lt;input {...register(\"email\")} /&gt;</code>는 props 안의 객체 spread로 변환되므로 react-hook-form 관용구에 어댑터가 필요 없습니다. Zod의 값 기반 타입도 일급입니다. <code>type FormData = z.infer&lt;typeof schema&gt;</code>가 탈출구 없이 바로 동작합니다. 다른 점은 하나입니다. 컴포넌트는 위치 매개변수 여러 개가 아니라 props 레코드 하나를 받습니다. 그 경계가 정확히 어디인지는 <a href=\"/answers/imports/\">라이브러리 사용하기</a>와 <a href=\"/hardening/\">하드닝 페이지</a>를 보세요."
+    },
+    {
+      "id": "h-4eb7b3bf",
+      "kind": "html",
+      "en": "Are props checked before tsc?",
+      "tr": "props는 tsc 전에 검사되나요?"
+    },
+    {
+      "id": "h-e92662c3",
+      "kind": "html",
+      "en": "Yes. Glyph compares each element with its component's props record itself, so a wrong value, a misspelled prop and a missing required one are Glyph errors that name the prop. You see them in the editor and over MCP, not only in a full build. It works the same whether the component was imported by name or through its module:",
+      "tr": "네. Glyph가 각 요소를 컴포넌트의 props 레코드와 직접 비교하므로, 잘못된 값, 철자가 틀린 prop, 빠진 필수 prop은 그 prop을 짚는 Glyph 오류입니다. 전체 빌드뿐 아니라 에디터와 MCP에서도 보입니다. 컴포넌트를 이름으로 import했든 모듈을 통해 썼든 똑같이 동작합니다."
+    },
+    {
+      "id": "h-54e2228f",
+      "kind": "html",
+      "en": "main.glyph, with <code>Card</code> declared in <code>ui.glyph</code>",
+      "tr": "main.glyph, <code>ui.glyph</code>에 선언된 <code>Card</code>와 함께"
+    },
+    {
+      "id": "h-195deeff",
+      "kind": "html",
+      "en": "<code>--json</code> carries the missing names as a <code>missing_fields</code> list, so an agent can add the props without parsing the message. A component also has to take its props as one record: <code>component Greeting(name: string)</code> is E0229 at the parameter, because React only ever passes the props object and that element could never type-check. If you call it as a function rather than render it, declare it with <code>fn</code>.",
+      "tr": "<code>--json</code>은 빠진 이름을 <code>missing_fields</code> 목록으로 담으므로, 에이전트는 메시지를 파싱하지 않고 props를 추가할 수 있습니다. 컴포넌트는 props를 레코드 하나로 받아야 합니다. <code>component Greeting(name: string)</code>은 매개변수 위치에서 E0229입니다. React는 언제나 props 객체만 넘기므로 그런 요소는 타입 검사를 통과할 수 없기 때문입니다. 렌더링하지 않고 함수로 호출한다면 <code>fn</code>으로 선언하세요."
+    },
+    {
+      "id": "h-75e005c0",
+      "kind": "html",
+      "en": "Is a &lt;match&gt; in JSX checked like a match?",
+      "tr": "JSX 안의 &lt;match&gt;도 match처럼 검사되나요?"
+    },
+    {
+      "id": "h-8df891da",
+      "kind": "html",
+      "en": "It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code> arm takes, and the compiler runs it through the code it uses for the arm. The names a case binds have the payload's types, a field the payload record doesn't have is E0210, and a missing variant is E0200. A case that tests a value only covers part of its variant, so it needs a sibling case or an <code>&lt;case else&gt;</code> to take the rest:",
+      "tr": "같은 것입니다. 각 <code>&lt;case&gt;</code>는 <code>match</code> arm과 같은 패턴을 받고, 컴파일러는 arm에 쓰는 코드로 이를 처리합니다. case가 바인딩하는 이름은 payload의 타입을 가지고, payload 레코드에 없는 필드는 E0210이며, 빠진 variant는 E0200입니다. 값을 검사하는 case는 variant의 일부만 다루므로, 나머지를 받을 형제 case나 <code>&lt;case else&gt;</code>가 필요합니다."
+    },
+    {
+      "id": "h-843c4890",
+      "kind": "html",
+      "en": "How does a page start it?",
+      "tr": "페이지는 이것을 어떻게 시작하나요?"
+    },
+    {
+      "id": "h-52a6173d",
+      "kind": "html",
+      "en": "Glyph has no top-level statements, so the page calls an exported <code>main</code> itself. The app is two modules: one holding the components, and one that mounts them on <code>#root</code> through <code>std/dom</code> and react-dom's <code>createRoot</code>. Event attributes are snake case (<code>on_change</code> emits React's <code>onChange</code>), a handler is a lambda, and an input's text is <code>e.currentTarget.value</code>.",
+      "tr": "Glyph에는 최상위 문장이 없으므로, 페이지가 export된 <code>main</code>을 직접 호출합니다. 앱은 모듈 두 개입니다. 하나는 컴포넌트를 담고, 다른 하나는 <code>std/dom</code>과 react-dom의 <code>createRoot</code>로 이를 <code>#root</code>에 마운트합니다. 이벤트 속성은 snake case이고(<code>on_change</code>는 React의 <code>onChange</code>로 생성됩니다), 핸들러는 람다이며, input의 텍스트는 <code>e.currentTarget.value</code>입니다."
+    },
+    {
+      "id": "h-290d764b",
+      "kind": "html",
+      "en": "index.html, next to the two modules",
+      "tr": "index.html, 두 모듈 옆에"
+    },
+    {
+      "id": "h-23c5e497",
+      "kind": "html",
+      "en": "<code>npx glyph build . --out dist/gen</code> checks the modules, runs <code>tsc --strict</code> against React's declarations and writes TypeScript to <code>dist/gen</code>. <code>npx vite build --outDir dist/web</code> then reads <code>index.html</code>, follows the import and bundles it with React. This <code>main</code> takes nothing and returns nothing, because the script calls it with no arguments; the <code>main(argv) -&gt; number</code> that <code>glyph init</code> writes is the one <code>glyph run</code> calls under node. The full walkthrough, with the <code>package.json</code> and the install line, is <a href=\"https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page\">running Glyph in a browser page</a> in the reference <code>glyph llms</code> prints. CI builds <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> the same way and renders it in headless Chromium.",
+      "tr": "<code>npx glyph build . --out dist/gen</code>은 모듈을 검사하고, React의 선언에 대해 <code>tsc --strict</code>를 실행하고, TypeScript를 <code>dist/gen</code>에 씁니다. 그다음 <code>npx vite build --outDir dist/web</code>이 <code>index.html</code>을 읽고 import를 따라가 React와 함께 번들합니다. 스크립트가 인자 없이 호출하므로 이 <code>main</code>은 아무것도 받지 않고 아무것도 반환하지 않습니다. <code>glyph init</code>이 쓰는 <code>main(argv) -&gt; number</code>는 node에서 <code>glyph run</code>이 호출하는 것입니다. <code>package.json</code>과 설치 명령을 포함한 전체 안내는 <code>glyph llms</code>가 출력하는 레퍼런스의 <a href=\"https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page\">브라우저 페이지에서 Glyph 실행하기</a>에 있습니다. CI는 <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a>를 같은 방식으로 빌드하고 headless Chromium에서 렌더링합니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-0bd5fa48",
+      "kind": "html",
+      "en": "Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> with exhaustive tagged-union actions, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns, Context via <code>createContext</code>/<code>useContext</code>, and the page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>. JSX text is read as TSX reads it, so <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> is plain text; <code>}</code>, <code>&gt;</code>, <code>//</code> and an HTML entity such as <code>&amp;amp;</code> are refused in text (E0012), with the spelling to use instead. A member read on an array is checked, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> is E0210. <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> is a whole app on React 18 that bundles with Vite and renders in a browser.",
+      "tr": "컴포넌트, JSX, fragment(<code>&lt;&gt;...&lt;/&gt;</code>), 멤버 표현식 요소 이름(<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread(<code>{...register()}</code>), 모든 import 표기에서 <code>tsc</code> 전에 컴포넌트에 대해 검사되는 props, 이름으로 import하는 React 자체 hook(<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>)과 tsc의 타입 검사 및 쌍 구조 분해(<code>let [count, set_count] = useState(0)</code>), 망라적인 태그 유니언 액션을 쓰는 <code>useReducer</code>, arm의 패턴으로 <code>match</code>처럼 검사되고 변환되는 <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>, <code>createContext</code>/<code>useContext</code>를 통한 Context, 그리고 <code>std/dom</code>(제목, 마운트 지점, 주소), <code>std/storage</code>, <code>std/console</code>로 다루는 페이지. JSX 텍스트는 TSX와 같은 방식으로 읽으므로 <code>&lt;p&gt;Don't stop&lt;/p&gt;</code>는 평범한 텍스트입니다. 텍스트 안의 <code>}</code>, <code>&gt;</code>, <code>//</code>, 그리고 <code>&amp;amp;</code> 같은 HTML 엔티티는 대신 쓸 표기와 함께 거부됩니다(E0012). 배열에 대한 멤버 읽기는 검사되므로 <code>Array&lt;string&gt;</code>에 대한 <code>{items.foo}</code>는 E0210입니다. <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a>는 Vite로 번들하고 브라우저에서 렌더링되는 React 18 기반 앱 전체입니다."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "앞으로 할 것"
+    },
+    {
+      "id": "h-bf75ccec",
+      "kind": "html",
+      "en": "Glyph's checker does not type a hook's result, so <code>set_count(\"x\")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor. <code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners. An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">the deployment guide</a>.",
+      "tr": "Glyph 검사기는 hook의 결과에 타입을 매기지 않으므로, 숫자 상태에 대한 <code>set_count(\"x\")</code>는 에디터의 Glyph 오류가 아니라 빌드의 <code>tsc</code> 오류입니다. <code>std/dom</code>은 페이지를 읽고 제목을 설정하는 데서 멈춥니다. React가 자신이 렌더링하는 DOM을 소유하므로 요소 setter나 이벤트 리스너는 없습니다. effect는 <code>fn() -&gt; void { ... }</code>로 써야 합니다. 람다는 마지막 표현식을 반환하고, React는 이를 정리 함수로 호출할 것이기 때문입니다. 인라인으로 쓴 props 타입은 이 메시지들에서 여전히 <code>record</code>로 표시되고, 이름 붙은 타입은 이름이 표시됩니다. UI는 TypeScript로 두고 기존 Vite 앱에 Glyph 출력을 넣는 방법은 <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">배포 가이드</a>에 있습니다."
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/long-running/index.html",
+  "locale": "ko",
+  "source_hash": "babc2c3ac5bb52bc",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I write a server, or does the process just exit? · Glyph",
+      "tr": "서버를 작성할 수 있나요, 아니면 프로세스가 그냥 종료되나요? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A Glyph program can be a long-running server. main sets up and returns; the process stays alive while sockets and timers are pending, exactly as Node does.",
+      "tr": "Glyph 프로그램은 오래 실행되는 서버가 될 수 있습니다. main은 준비를 마치고 반환하며, 소켓과 타이머가 대기 중인 동안 프로세스는 살아 있습니다. Node와 똑같습니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 이전"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I write a program someone types into?",
+      "tr": "사용자가 입력하는 프로그램을 작성할 수 있나요?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "바이너리 데이터를 다룰 수 있나요, 아니면 모든 것이 문자열인가요?"
+    },
+    {
+      "id": "h-d7b98512",
+      "kind": "html",
+      "en": "19 &middot; Servers &amp; daemons",
+      "tr": "19 &middot; 서버와 데몬"
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "서버를 작성할 수 있나요, 아니면 프로세스가 그냥 종료되나요?"
+    },
+    {
+      "id": "h-357d442e",
+      "kind": "html",
+      "en": "You can write a server. <code>main</code> sets things up and returns, and the process <strong>stays alive while sockets and timers are still pending</strong>, the same rule Node uses. Until 0.1.63 it did not: the runner tore the process down the moment <code>main</code> returned, so a server bound its port and died in the same tick.",
+      "tr": "서버를 작성할 수 있습니다. <code>main</code>은 준비를 마치고 반환하며, <strong>소켓과 타이머가 아직 대기 중인 동안 프로세스는 살아 있습니다</strong>. Node와 같은 규칙입니다. 0.1.63까지는 그렇지 않았습니다. 러너가 <code>main</code>이 반환하는 순간 프로세스를 종료했으므로, 서버는 포트를 바인딩하고 같은 틱에 죽었습니다."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "h-802abf2b",
+      "kind": "html",
+      "en": "This is the difference between a language that can run a script and one that can run a service. A server, a file watcher, a bot holding a gateway connection, a job runner: none of them finish inside <code>main</code>. They set up handlers and hand the process over to events.",
+      "tr": "스크립트를 실행할 수 있는 언어와 서비스를 실행할 수 있는 언어의 차이가 여기 있습니다. 서버, 파일 감시기, 게이트웨이 연결을 유지하는 봇, 작업 실행기는 모두 <code>main</code> 안에서 끝나지 않습니다. 핸들러를 설정하고 프로세스를 이벤트에 넘깁니다."
+    },
+    {
+      "id": "h-ddc1b8fa",
+      "kind": "html",
+      "en": "The old behaviour failed in the worst possible way, which is quietly. <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line inside the <code>listen</code> callback, and exited 0. Nothing in the source looked wrong and it type-checked. An agent that hits that has no error to report and no reason to think anything failed.",
+      "tr": "예전 동작은 가능한 최악의 방식, 즉 조용히 실패했습니다. <code>glyph run app.glyph --serve 4100</code>은 <code>listen</code> 콜백 안의 줄조차 출력하지 않고 0으로 종료했습니다. 소스에는 잘못된 것이 보이지 않았고 타입 검사도 통과했습니다. 이 상황을 만난 에이전트는 보고할 오류도, 무언가 실패했다고 생각할 이유도 없습니다."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "직접 보기"
+    },
+    {
+      "id": "h-fbc29a6a",
+      "kind": "html",
+      "en": "A TCP server in full. <code>main</code> returns immediately; the callbacks run for as long as the process lives:",
+      "tr": "TCP 서버 전체입니다. <code>main</code>은 즉시 반환하고, 콜백은 프로세스가 살아 있는 동안 실행됩니다."
+    },
+    {
+      "id": "h-72b727b4",
+      "kind": "html",
+      "en": "A server, start to finish",
+      "tr": "서버, 처음부터 끝까지"
+    },
+    {
+      "id": "h-4c1b7d58",
+      "kind": "html",
+      "en": "<code>net</code> is a Node builtin, so it is an ordinary import, but it is not one of the six the compiler ships ambient types for (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Either install <code>@types/node</code> and the build prefers it, or drop a declaration in <code>.types/net.d.ts</code> next to your source, which is what the chat app does so it needs no dependencies at all.",
+      "tr": "<code>net</code>은 Node 내장 모듈이므로 평범한 import이지만, 컴파일러가 기본 타입을 제공하는 여섯 개(<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>)에는 속하지 않습니다. <code>@types/node</code>를 설치하면 빌드가 이를 우선 사용하고, 아니면 소스 옆의 <code>.types/net.d.ts</code>에 선언을 두면 됩니다. 채팅 앱은 후자를 써서 의존성이 전혀 없습니다."
+    },
+    {
+      "id": "h-4c982701",
+      "kind": "html",
+      "en": "Two things worth knowing. The <code>return 0</code> runs before the first client ever connects: it is the code the process will eventually leave with, not a statement about when it leaves. And anything that fails <em>after</em> <code>main</code> has returned has to set its own exit code, because <code>main</code>'s return value is already spent. That is what the <code>error</code> handler is for. Without it, a server that cannot bind its port drains its event loop and exits 0, reporting success.",
+      "tr": "알아 둘 것이 두 가지 있습니다. <code>return 0</code>은 첫 클라이언트가 연결되기도 전에 실행됩니다. 이는 프로세스가 결국 종료할 때의 코드이지, 언제 종료하는지에 대한 문장이 아닙니다. 그리고 <code>main</code>이 반환한 <em>뒤에</em> 실패하는 것은 직접 종료 코드를 설정해야 합니다. <code>main</code>의 반환값은 이미 쓰였기 때문입니다. <code>error</code> 핸들러가 그 용도입니다. 핸들러가 없으면 포트를 바인딩하지 못한 서버는 이벤트 루프를 비우고 0으로 종료하며 성공을 보고합니다."
+    },
+    {
+      "id": "h-b957e585",
+      "kind": "html",
+      "en": "A real one",
+      "tr": "실제 사례"
+    },
+    {
+      "id": "h-e196848d",
+      "kind": "html",
+      "en": "<code>examples/apps/chat</code> is a chat server holding several TCP clients at once. The parts that do not touch the network stay separate and testable: line reassembly, routing, and the room engine are pure functions checked by <code>@example</code>, and one file talks to sockets.",
+      "tr": "<code>examples/apps/chat</code>은 여러 TCP 클라이언트를 동시에 유지하는 채팅 서버입니다. 네트워크를 건드리지 않는 부분은 분리되어 있고 테스트할 수 있습니다. 줄 재조립, 라우팅, 방 엔진은 <code>@example</code>로 검사되는 순수 함수이고, 소켓과 통신하는 파일은 하나입니다."
+    },
+    {
+      "id": "h-bfe5fdf1",
+      "kind": "html",
+      "en": "Three clients connected at once",
+      "tr": "동시에 연결된 클라이언트 세 개"
+    },
+    {
+      "id": "h-6ad09c69",
+      "kind": "html",
+      "en": "TCP does not deliver messages, it delivers bytes, so the tail of a chunk is usually half a line. That reassembly is a pure function with the awkward cases written down as examples rather than provoked over a socket:",
+      "tr": "TCP는 메시지가 아니라 바이트를 전달하므로, 청크의 끝은 보통 반쪽짜리 줄입니다. 이 재조립은 순수 함수이며, 까다로운 경우는 소켓으로 일으키는 대신 예제로 적어 두었습니다."
+    },
+    {
+      "id": "h-02e0830c",
+      "kind": "html",
+      "en": "The other direction: a long-running client",
+      "tr": "반대 방향: 오래 실행되는 클라이언트"
+    },
+    {
+      "id": "h-468113df",
+      "kind": "html",
+      "en": "A bot is the same shape pointed outward. <code>examples/apps/discord</code> is a Discord gateway client: it connects over a WebSocket, identifies, heartbeats on the interval the server dictates, tracks a sequence number so a dropped connection resumes rather than starting over, notices when the connection is open but dead, and backs off between reconnects.",
+      "tr": "봇은 같은 모양을 바깥으로 향하게 한 것입니다. <code>examples/apps/discord</code>는 Discord 게이트웨이 클라이언트입니다. WebSocket으로 연결하고, 식별하고, 서버가 지정한 간격으로 heartbeat를 보내고, 연결이 끊겼을 때 처음부터 다시 시작하지 않고 재개할 수 있도록 시퀀스 번호를 추적하고, 연결이 열려 있지만 죽은 상태를 알아채며, 재연결 사이에 대기 시간을 늘립니다."
+    },
+    {
+      "id": "h-39d6dc9e",
+      "kind": "html",
+      "en": "The part worth copying is where the logic lives. Deciding what to do about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token is a pure function from a session and one event to a new session and a list of actions. One module carries those actions out on a real socket. That is why the reconnect logic, which is the hard part to get right, is checked by <code>@example</code> rather than by unplugging a network cable:",
+      "tr": "따라 할 만한 부분은 로직이 있는 위치입니다. <code>RECONNECT</code>, 놓친 heartbeat, 거부된 토큰에 대해 무엇을 할지 결정하는 것은 세션과 이벤트 하나를 새 세션과 액션 목록으로 바꾸는 순수 함수입니다. 모듈 하나가 그 액션을 실제 소켓에서 수행합니다. 그래서 올바르게 만들기 가장 어려운 재연결 로직을 네트워크 케이블을 뽑는 대신 <code>@example</code>로 검사합니다."
+    },
+    {
+      "id": "h-eb9066f0",
+      "kind": "html",
+      "en": "Those three examples are each a bug that was in the code first. Writing a mock gateway and pointing the bot at it caught one of them. The other two were caught by a second mock written from Discord's documentation instead of from the client, which sends the things a cooperative mock never does: an unprompted heartbeat request, and a close code that means \"your token is wrong, stop asking\". A mock written by the author of the client only tests the parts of the protocol the author read.",
+      "tr": "이 세 예제는 모두 먼저 코드에 있었던 버그입니다. 모의 게이트웨이를 만들어 봇을 연결해 보니 그중 하나가 잡혔습니다. 나머지 둘은 클라이언트가 아니라 Discord 문서를 보고 작성한 두 번째 모의 게이트웨이가 잡았습니다. 이 모의 게이트웨이는 협조적인 모의 객체가 절대 보내지 않는 것들을 보냅니다. 요청하지 않은 heartbeat 요청, 그리고 \"토큰이 틀렸으니 그만 요청하라\"는 뜻의 종료 코드입니다. 클라이언트 작성자가 만든 모의 객체는 작성자가 읽은 프로토콜 부분만 테스트합니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-3954ea38",
+      "kind": "html",
+      "en": "Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit. <code>std/timers</code> schedules work (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) and <code>std/websocket</code> opens a connection, so neither needs a hand-written declaration.",
+      "tr": "<code>main</code>에서 반환하면 프로세스를 멈추지 않고 종료 코드를 설정하므로, 서버, 감시기, 이벤트 루프가 실행됩니다. 계산만 하는 프로그램은 여전히 <code>main</code>이 반환하는 순간 같은 코드로 종료하므로, 짧은 프로그램에 대해서는 바뀐 것이 없습니다. <code>net</code> 같은 Node 내장 모듈은 평범한 import이고, 준비 중에 예외를 던지는 프로그램은 여전히 종료되는데, 이제는 진단이 종료 때문에 잘릴 수도 있는 대신 파이프로 연결된 stderr에 도달한 뒤에 종료합니다. <code>std/timers</code>는 작업을 예약하고(<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) <code>std/websocket</code>은 연결을 열므로, 둘 다 직접 작성한 선언이 필요 없습니다."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "개선 중"
+    },
+    {
+      "id": "h-5f8ed8fa",
+      "kind": "html",
+      "en": "A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.",
+      "tr": "<code>main</code>이 반환한 뒤 바인딩에 실패한 리스너는 프로그램이 따로 말하지 않으면 0으로 종료합니다. <code>process.set_exit_code(1)</code>은 진행 중인 작업을 중단하지 않고 실패를 기록하고, <code>process.exit(1)</code>은 즉시 멈춥니다. 이를 잊었다고 컴파일러가 경고해 주지는 아직 못합니다. 그리고 함수가 반환하지 않는다는 것을 적을 방법이 아직 없으므로, 서버의 <code>main</code>에는 도달하지 않는 <code>return 0</code>이 남아 있습니다."
+    }
+  ]
+}

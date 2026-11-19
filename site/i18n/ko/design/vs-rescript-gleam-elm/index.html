@@ -1,0 +1,146 @@
+---
+title: 왜 ReScript, Gleam, Elm이 아닌가요? · Glyph
+description: JavaScript로 컴파일되며 Glyph보다 오래되고 검증된 세 가지 타입 언어. 각각이 앞서는 부분과, Glyph가 다르게 하는 네 가지.
+source_hash: c1473253c170e78d
+next_steps: |
+  다음으로 볼 곳
+  추천 | /catches/ | catches | Glyph가 거부하는 것 | 각 사례를 <code>tsc --strict</code>와 Glyph에서 검사한 결과. | 사례 보기
+  /design/vs-effect/ | compare | Glyph와 Effect | TypeScript 라이브러리와 언어의 비교.
+  /design/ | design | 설계로 돌아가기 | 네 가지 기둥, 명세, 그리고 다른 비교들.
+---
+      <p class="q-eyebrow">설계 &middot; 비교</p>
+      <h1 class="q-title">왜 ReScript, Gleam, Elm이 아닌가요?</h1>
+
+      <p class="short-answer">
+        셋 다 JavaScript로 컴파일되는 타입 언어이고, 셋 다 Glyph보다 오래되었고, 더 널리 쓰이며, 더 안정되어 있습니다. 새 코드베이스에 쓸 언어를 고르는 중이고 TypeScript에 가까이 있을 필요가 없다면 이 언어들을 먼저 살펴볼 만합니다. Glyph의 차이는 더 좁습니다. JavaScript가 아니라 TypeScript 소스를 생성하고, npm 패키지를 그 패키지 자체의 <code>.d.ts</code>로 타입을 붙여 import하며, 타입에서 런타임 검증기를 생성하고, 컴파일러가 에이전트를 위해 영향 범위 쿼리에 답합니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">각 언어가 스스로를 소개하는 방식</h2>
+        <p>
+          ReScript 홈페이지는 "JavaScript Made Simple for Humans and AI"와 "Types &gt; Vibes"를 첫 문구로 내세우고, "compiles to clean, efficient JavaScript"이며 "No <code>any</code>, no magic types, no surprise <code>undefined</code>."라고 말합니다. "automatically generate TypeScript types" 기능도 제공합니다(<a href="https://rescript-lang.org/">rescript-lang.org</a>).
+        </p>
+        <p>
+          Gleam 홈페이지는 스스로를 "a friendly language for building type-safe systems that scale"이라 부르며 "No null values, no exceptions, clear error messages"를 내세웁니다. Erlang VM에서 실행되며 "can additionally compile to JavaScript", 그리고 "also generates TypeScript definitions"라고 합니다(<a href="https://gleam.run/">gleam.run</a>).
+        </p>
+        <p>
+          Elm 홈페이지는 "reliable web applications"를 위한 "A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions"라고 소개하며, Elm이 "detects all API changes automatically"하여 "guarantee that every single Elm package follows semantic versioning"한다고 말합니다(<a href="https://elm-lang.org/">elm-lang.org</a>).
+        </p>
+        <p>이 인용문은 2026-11-19에 확인했습니다.</p>
+
+        <h2 class="block-label">이 언어들이 앞서는 부분</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>영역</th><th>ReScript, Gleam, Elm</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">성숙도</td><td data-label="ReScript, Gleam, Elm">수년간의 프로덕션 사용. ReScript 홈페이지에는 기업 로고가 가득하고, Elm은 30만 줄 이상의 코드를 운영하면서 프로덕션에서 이해하기 어려운 런타임 예외가 없었던 NoRedInk를 사례로 듭니다</td><td data-label="Glyph">초기 프리뷰, 1.0 이전, 주로 한 사람이 관리하며, 많은 릴리스가 Breaking</td></tr>
+            <tr><td data-label="Area">보장</td><td data-label="ReScript, Gleam, Elm">Elm은 런타임 예외가 없다고 주장하고, Gleam은 null 값과 예외가 없다고, ReScript는 <code>any</code>와 예상치 못한 <code>undefined</code>가 없다고 주장</td><td data-label="Glyph"><code>any</code>와 캐스트는 없지만, 알려진 구멍 {{catches:gap-cases}}건이 <a href="/catches/#not-yet">나열되어</a> 있고, npm 패키지 안에서 던진 예외는 여전히 <code>Result</code>를 우회</td></tr>
+            <tr><td data-label="Area">오류 메시지</td><td data-label="ReScript, Gleam, Elm">Elm 홈페이지는 "friendly error messages"를 첫 문구로 내세우고 Gleam은 "clear error messages"를 약속하며, 둘 다 수년간의 사용자가 뒷받침</td><td data-label="Glyph">모든 오류에 고정된 코드와 도움말 한 줄이 있지만, 사용된 경험은 훨씬 적음</td></tr>
+            <tr><td data-label="Area">도구와 생태계</td><td data-label="ReScript, Gleam, Elm">Gleam은 "compiler, build tool, formatter, editor integrations, and package manager all built in"을 제공하고, Elm은 패키지에 시맨틱 버저닝을 강제</td><td data-label="Glyph">패키지는 npm. VS Code 확장은 소스에서 빌드</td></tr>
+            <tr><td data-label="Area">대상</td><td data-label="ReScript, Gleam, Elm">Gleam은 Erlang VM에서도 실행</td><td data-label="Glyph">Node와 브라우저용 TypeScript만</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Glyph가 다르게 하는 것</h2>
+        <p>
+          아래 내용은 모두 이 페이지를 위해 Glyph 0.1.149에서 실행했습니다.
+        </p>
+
+        <h3>TypeScript 소스를 생성합니다</h3>
+        <p>
+          <code>glyph build</code>는 모듈마다 <code>.ts</code> 파일 하나를 쓰고, <code>tsc --strict</code>가 이를 검사하며, Glyph를 그만 쓰더라도 그 파일은 남습니다. ReScript와 Gleam은 JavaScript를 생성하고 그 옆에 타입 정의를 만듭니다. <a href="/from-typescript/#what-the-emitted-typescript-looks-like">생성된 TypeScript</a>는 TypeScript 페이지에서 볼 수 있습니다.
+        </p>
+
+        <h3>npm 패키지를 그 패키지 자체의 선언으로 타입을 붙여 import합니다</h3>
+        <p>
+          모듈은 패키지를 이름으로 import하고, 패키지의 <code>.d.ts</code>가 모든 사용처에 타입을 붙입니다. 먼저 작성해야 할 바인딩이 없습니다. ReScript에서는 "<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values"이며(<a href="https://rescript-lang.org/docs/manual/external">external</a>), 타입은 ReScript 쪽에서 선언합니다. Gleam의 external에는 타입 표기가 필요하고, 컴파일러는 "cannot verify that the function implemented in the other language returns the specified types"라고 합니다(<a href="https://gleam.run/documentation/externals/">externals</a>). Elm은 flag, port, 커스텀 엘리먼트를 통해 JavaScript와 통신합니다(<a href="https://guide.elm-lang.org/interop/">interop</a>). <code>pg</code>와 <code>@types/pg</code>를 설치하면 다음 코드는 거부됩니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-npm expect-error TS2322">module main
+
+import pg { Pool }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let _pool = new Pool({ max: "two", })
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ glyph check (trimmed)</span>
+<pre><span class="del">[TS2322] Error: tsc: Type 'string' is not assignable to type 'number'.</span>
+   ╭─[ main:6:24 ]
+   │
+ 6 │   let _pool = new Pool({ max: "two", })
+   │                        ───────┬───────
+   │                               ╰───────── Type 'string' is not assignable to type 'number'.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          코드가 <code>TS2322</code>인 것은 라이브러리의 값을 검사하는 것이 <code>tsc</code>이고, 그 결과를 Glyph 줄에 다시 매핑하기 때문입니다. Glyph 자체 검사기는 이를 보지 못하므로 <code>glyph check --no-tsc</code>, 에디터, MCP 도구는 이 오류를 놓칩니다(G257). <code>.d.ts</code>에서 가져온 타입에는 런타임 검사도 없습니다.
+        </p>
+
+        <h3>타입에서 검증기를 생성합니다</h3>
+        <p>
+          모든 레코드와 유니언은 선언에서 생성된 런타임 검사를 가지므로, 데이터가 맞지 않으면 <code>json.parse&lt;User&gt;</code>가 <code>Err</code>를 반환합니다. Elm에서는 모양마다 디코더를 작성하며, 가이드에도 "the decoders people write end up working as a validation phase"라고 적혀 있습니다(<a href="https://guide.elm-lang.org/effects/json.html">JSON</a>).
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph: JSON에 email이 없으므로 "refused"를 출력</span>
+<pre>module main
+
+import std/io
+import std/json
+
+type User = {
+  id: number,
+  email: string,
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  return match json.parse&lt;User&gt;("{\"id\": 1}") {
+    Ok(u) =&gt; {
+      io.println(u.email)
+      return 0
+    },
+    Err(_) =&gt; {
+      io.println("refused")
+      return 1
+    },
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h3>컴파일러가 변경이 무엇을 깨뜨릴지 답합니다</h3>
+        <p>
+          편집하기 전에 에이전트는 변경이 어느 곳에 영향을 미치는지 MCP(<code>glyph_impact</code>)나 <code>glyph query impact</code>로 물어볼 수 있습니다. 망라적인 <code>match</code> 하나와 <code>else</code>로 끝나는 것 하나가 있는 유니언 <code>Plan = Free | Pro | Team</code>에 대해 새 variant를 물으면, 위치마다 답이 나옵니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">$ glyph query impact --entity main::Plan --change add_variant --variant Enterprise (three fields of each site)</span>
+<pre>{"entity": "main::seats", "verdict": "ABSORBS", "diagnostic": null}
+{"entity": "main::label", "verdict": "WILL_FAIL", "diagnostic": "E0200"}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          두 번째 위치는 변경 후 컴파일에 실패하며, 이는 변경을 하고 나면 이 컴파일러들 모두가 알려 줄 것입니다. 첫 번째 위치는 계속 컴파일되면서 새 case를 <code>else</code>로 보내고, 그것을 짚어 주는 것이 이 쿼리입니다. 다른 도구는 <a href="/agents/">에이전트 개발자를 위한 안내</a>에 나와 있습니다.
+        </p>
+
+        <h2 class="block-label">이 페이지가 주장하지 않는 것</h2>
+        <p>
+          오류 메시지, 컴파일 속도, 런타임 성능은 비교하지 않았고, 세 언어 중 어느 것도 Glyph에서 호출하거나 반대로 호출해 보지 않았습니다. 인용문은 각 프로젝트를 그 프로젝트 자신의 말로 설명한 것입니다. 각자 그 말에 얼마나 부합하는지는 여러분이 확인할 몫이며, <a href="/evidence/">근거 페이지</a>에 있는 Glyph 자신의 주장도 마찬가지입니다.
+        </p>
+      </div>

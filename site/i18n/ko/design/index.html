@@ -1,0 +1,76 @@
+---
+title: 설계 · 네 가지 기둥과 결정들 · Glyph
+description: Glyph의 설계 논리: 모든 결정을 검증하는 네 가지 기둥, 명세에 번호로 기록된 결정들, 그리고 언어가 일부러 넣지 않은 것.
+source_hash: 28891a173ca9e4a0
+next_steps: |
+  다음으로 볼 곳
+  추천 | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | 명세 읽기 | 번호가 붙은 모든 결정과, 각 결정이 지키는 기둥. | 명세 열기
+  /catches/ | catches | Glyph가 거부하는 것 | 각 사례를 <code>tsc --strict</code>와 Glyph에서 검사한 결과.
+  /start/ | start | 첫 프로그램 작성하기 | 설치하고, 프로젝트를 만들고, 실행하고, 일부러 깨뜨려 오류를 읽습니다. 약 10분.
+---
+      <p class="q-eyebrow">설계</p>
+      <h1 class="q-title">네 가지 기둥, 그리고 모든 규칙에 대한 결정 기록</h1>
+
+      <p class="short-answer">
+        Glyph의 모든 규칙은 네 가지 속성에 비추어 검증하며, 각 규칙은 명세에 번호가 붙은 결정으로, 그것이 지키는 기둥과 함께 기록되어 있습니다. 기둥은 프로젝트 설정이 아니라 언어의 속성이므로, 낯선 Glyph 코드베이스를 연 에이전트는 어떤 설정을 골랐는지 먼저 알아보지 않고도 이에 기댈 수 있습니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">기둥</h2>
+        <p>
+          중요한 순서대로입니다. 처음 두 가지는 핵심으로, 매일 겪는 문제를 다룹니다. 나머지 두 가지는 쓰기 좋게 만드는 마무리입니다. 서로 충돌하면 핵심이 이깁니다.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/pillars/verifiability/"><span class="n">기둥 01</span><span class="q">검증 가능성</span><p>작성할 수 있는 <code>any</code>도 <code>as</code>도 없습니다. <code>match</code>는 모든 case를 다뤄야 합니다. 레코드 타입과 유니언 타입은 엄격한 런타임 검증기를 생성하므로, 경계에서 들어오는 값은 가정하지 않고 검사합니다. 끌 수 없는, <code>tsc</code> 위의 엄격한 계층입니다. <code>tsc --strict</code>가 받아들이는 실수 중 많은 것이 여기서는 컴파일되지 않습니다. 여전히 컴파일되는 것은 <a href="/catches/#not-yet">아직 잡아내지 못하는 것</a>에 나와 있습니다.</p></a>
+        <a class="a-card" href="/pillars/greppability/"><span class="n">기둥 02</span><span class="q">검색 용이성</span><p>이름 하나에 위치 하나. 모든 심볼은 선언 위치에서 정확히 한 가지 문법 형태를 가지며, 오버로드, 데코레이터, 암묵적인 <code>this</code>, 네임스페이스 병합이 없습니다. <code>grep "fn parseUser"</code>로 정의를 찾을 수 있습니다.</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">기둥 03</span><span class="q">diff 안정성</span><p>한 줄을 바꾸면 diff도 한 줄입니다. 정해진 레이아웃은 하나입니다. 목록은 들어가면 한 줄에, 들어가지 않으면 요소마다 한 줄에 쓰고, 다시 묶지 않으며, 후행 쉼표를 쓰고, barrel 파일도 옵션도 없습니다. 그래서 같은 코드는 어느 프로젝트에서나 같은 모양으로 출력됩니다. 리뷰어는 불필요한 변동이 아니라 변경 자체를 읽습니다.</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">기둥 04</span><span class="q">추상화</span><p>의도를 그대로 표현합니다. switch 사다리 대신 패턴 매칭, 던지는 예외 대신 <code>Result</code>, 튜플 대신 이름 붙은 레코드를 씁니다. TypeScript처럼 덧붙여 쌓인 계층이 아니라, 작고 직교하는 핵심에서 출발합니다.</p></a>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">명세는 결정의 목록입니다</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">docs/language/spec.md</a>에는 D1부터 D49까지 번호가 붙은 결정 49개가 있고, 각 결정은 그것이 지키는 기둥으로 끝납니다. 문법은 명세를 따릅니다. 모호한 점은 먼저 명세에서 해결한 다음 파서에 반영합니다. <code>glyph llms --json</code>은 명세에서 이 목록을 파싱하므로, 에이전트는 여러분과 같은 결정을 읽습니다. 그중 하나를 줄여서 보면 다음과 같습니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">docs/language/spec.md의 D9 (일부 생략)</span>
+<pre>D9. `else` is a catch-all arm; `_` is a position-level wildcard;
+a PascalCase arm head is a variant reference, not a binding.
+
+... a PascalCase head that names no variant of that union is a
+compile error (E0220, with a nearest-variant suggestion), never a
+silent catch-all that would mask a missing variant (E0200) and
+misroute values at runtime. ...
+
+*[verifiability, abstraction]*</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">일부러 넣지 않은 것</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">매니페스토</a>에 입장이 적혀 있으며, 짧게 말하면 각 제약은 기둥에 비추어 자리를 얻어야 합니다. Glyph에는 <code>if</code>/<code>else</code>(<code>match</code>가 유일한 조건문입니다), 클래스, 오버로드, 데코레이터, 캐스트, <code>any</code>, 상대 경로 import, 포매터 옵션이 없습니다. 설정할 수도 없습니다. 포매터 하나, 모듈 해석 방식 하나, 엄격도 하나입니다. 불편한 제약에는 규칙을 느슨하게 하는 대신 문서를 더합니다.
+        </p>
+
+        <h2 class="block-label">비교</h2>
+        <p>
+          Glyph는 기존의 여러 도구와 가깝고, 아래의 각 비교에는 상대 쪽이 더 잘하는 점도 적혀 있습니다.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">왜 Go나 새 언어가 아니라 TypeScript인가요?</span><p>TypeScript를 대상으로 삼은 이유와, 그 덕분에 가능해진 것: 파일 하나씩 도입하기.</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">strict TypeScript + zod + eslint + ts-pattern이면 안 되나요?</span><p>설정으로서의 검사와 언어로서의 같은 검사, 그리고 도구를 갖춘 TypeScript가 여전히 앞서는 부분.</p></a>
+        <a class="a-card" href="/design/vs-effect/"><span class="q">Effect와 비교하면 어떤가요?</span><p>타입이 있는 오류와 큰 생태계를 가진 TypeScript 라이브러리와, 탈출구를 없앤 언어의 비교.</p></a>
+        <a class="a-card" href="/design/vs-rescript-gleam-elm/"><span class="q">왜 ReScript, Gleam, Elm이 아닌가요?</span><p>JavaScript로 컴파일되는 더 오래된 세 가지 타입 언어, 각각이 앞서는 부분, 그리고 Glyph가 다르게 하는 것.</p></a>
+        <a class="a-card" href="/answers/language/"><span class="q">이것은 진짜 언어인가요, 구멍 많은 장난감인가요?</span><p>모듈 가시성, 인터페이스, defer, 표준 라이브러리, 그리고 아직 남은 한계.</p></a>
+      </div>
+
+      <div class="detail">
+        <p>
+          이 모든 것의 바탕에 있는 가설이며, 아직 결과는 아닙니다. 같은 작업을 받은 에이전트가 TypeScript보다 Glyph에서 더 안정적으로 올바른 코드를 만들고, 리뷰어가 이를 확인하는 데 드는 시간도 줄어든다는 것입니다. 이 연구는 아직 진행하지 않았으므로 이 사이트는 여기에 숫자를 붙이지 않습니다. 지금까지 무엇을 측정했는지는 <a href="/benchmarks/">벤치마크</a>에 있습니다.
+        </p>
+      </div>

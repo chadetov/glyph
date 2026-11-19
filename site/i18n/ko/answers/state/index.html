@@ -1,0 +1,83 @@
+---
+title: 함수 사이에서 변경 가능한 상태를 어떻게 공유하나요? · Glyph
+description: Glyph에는 변경 가능한 전역 변수가 없습니다. 공유 상태는 std/store에 둡니다. get, set, update만이 쓰기 수단인 모듈 수준 const이며, 검색 한 번으로 찾을 수 있습니다.
+source_hash: 59f9695c32448ee8
+prev: /answers/react/ | &larr; 이전 | React의 컴포넌트, hook, Context와 함께 쓸 수 있나요?
+next: /answers/language/ | 다음 &rarr; | 이것은 진짜 언어인가요, 구멍 많은 장난감인가요?
+---
+      <p class="q-eyebrow">14 &middot; 공유 상태</p>
+      <h1 class="q-title">함수 사이에서 변경 가능한 상태를 어떻게 공유하나요?</h1>
+
+      <p class="short-answer">
+        <strong>store</strong>를 씁니다. Glyph에는 변경 가능한 전역 변수가 없습니다. 모듈 바인딩은 <code>const</code>입니다. 공유 상태는 <code>std/store</code>에 둡니다. <code>get()</code>으로 읽고 <code>set()</code>/<code>update()</code>로 바꾸는 값을 담은 모듈 수준 <code>const</code>입니다. 바인딩은 절대 바뀌지 않고, 그 안의 값만 메서드 호출을 통해 바뀌므로, 모든 쓰기는 grep할 수 있는 <code>.set(</code>이나 <code>.update(</code> 그대로입니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">직접 보기</h2>
+        <p>
+          store는 모듈 스코프에서 한 번 선언합니다. 모듈의 모든 함수가 이를 공유합니다. <code>main</code>을 거쳐 넘기는 <code>let</code>도, 값을 캡처하는 클로저도 필요 없습니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>import std/store { create }
+import std/array
+
+type Task = {
+  id: number,
+  title: string,
+}
+
+const tasks = create&lt;Array&lt;Task&gt;&gt;([])
+const next_id = create(0)
+
+fn add(title: string) -&gt; Task {
+  next_id.update(fn(n: number) -&gt; number {
+    return n + 1
+  })
+  let task = { id: next_id.get(), title: title }
+  tasks.update(fn(cur: Array&lt;Task&gt;) -&gt; Array&lt;Task&gt; {
+    return array.push(cur, task)
+  })
+  return task
+}
+
+fn all() -&gt; Array&lt;Task&gt; {
+  return tasks.get()
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">grep 한 번으로 보는 쓰기 창구 전체</span>
+<pre>$ grep -rn 'tasks\.\(set\|update\)' src/
+src/tasks.glyph:16:  tasks.update(fn(cur...
+
+# every place the task list can change,
+# enumerated. nothing hides in an
+# ordinary `x = ...` assignment
+# somewhere else in the file.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">왜 변경 가능한 전역 변수가 아니라 store인가</h2>
+        <p>
+          의도한 설계 선택입니다. Glyph는 <code>mut</code>를 로컬 대입으로 제한하고 모듈 바인딩을 <code>const</code>로 두는데, 쓰기 가능한 전역 변수가 흩어져 있으면 상태를 추론하기도, <em>찾기도</em> 어려워지기 때문입니다. store는 두 규칙 중 어느 것도 느슨하게 할 필요가 없습니다. <code>const s</code> 바인딩은 불변이고, 그 안의 값은 <code>set</code>/<code>update</code>를 통해서만 바뀝니다. 그래서 공유 상태는 <strong>새 문법이 아니라 라이브러리</strong>로 제공되고(선형 타입도, 약해진 변경 규칙도 없습니다), 변경은 프로그램 전체에 퍼지지 않고 감사된 한 곳에만 있습니다.
+        </p>
+        <p>
+          TypeScript와 같은 날카로운 부분이 하나 있습니다. 빈 컬렉션은 요소 타입을 추론할 수 없으므로 명시적인 타입 인자로 시작하세요: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. 스칼라 store(<code>create(0)</code>)는 잘 추론됩니다.
+        </p>
+      </div>
+
+      <h2 class="block-label">현재 상태</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">지금 제공되는 것</h3>
+          <p><code>create</code>, <code>get</code>, <code>set</code>, <code>update</code>를 갖춘 <code>std/store</code>: 공유되는 변경 가능 상태를 위한, grep할 수 있는 단 하나의 자리.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">앞으로 할 것</h3>
+          <p>같은 기본 요소 위의 편의 기능(파생 및 계산 store, 구독)을 언어를 바꾸지 않고 그 위에 더합니다.</p>
+        </div>
+      </div>

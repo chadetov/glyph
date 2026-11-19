@@ -1,0 +1,548 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/early-errors/index.html",
+  "locale": "ko",
+  "source_hash": "117852a982fffaf4",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why does Glyph catch what tsc catches, but earlier? · Glyph",
+      "tr": "Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph reports await outside an async fn, a match arm that produces no value and a missing mut against your source, with the rule and the fix, before tsc.",
+      "tr": "Glyph는 async fn 밖의 await, 값을 만들지 않는 match arm, 빠진 mut를 tsc보다 먼저, 규칙과 수정 방법과 함께 여러분의 소스 기준으로 보고합니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 이전"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "에디터, 디버깅, 오류 경험은 어떤가요?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "파싱이 실패하면 이유를 알 수 있나요?"
+    },
+    {
+      "id": "h-94bd0310",
+      "kind": "html",
+      "en": "26 &middot; Caught earlier",
+      "tr": "26 &middot; 더 일찍 잡기"
+    },
+    {
+      "id": "h-d7091fd1",
+      "kind": "html",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요?"
+    },
+    {
+      "id": "h-a4e100cc",
+      "kind": "html",
+      "en": "Because an error against generated TypeScript is an error about code you didn't write. Glyph reports these against your source, with the rule you broke and the edit that fixes it.",
+      "tr": "생성된 TypeScript에 대한 오류는 작성하지도 않은 코드에 대한 오류이기 때문입니다. Glyph는 이런 오류를 어긴 규칙과 고치는 편집과 함께 여러분의 소스 기준으로 보고합니다."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "h-94c346e3",
+      "kind": "html",
+      "en": "Glyph compiles to TypeScript and then type-checks the output with <code>tsc --strict</code>, so a mistake Glyph doesn't model isn't lost. It comes back one stage later, phrased in terms of the emitted file: a <code>TS1308</code> pointing at an <code>await</code> in a function you never spelled, or a <code>TS2366</code> about a <code>switch</code> you didn't write. The line is mapped back to your <code>.glyph</code>, but the explanation isn't.",
+      "tr": "Glyph는 TypeScript로 컴파일한 뒤 출력을 <code>tsc --strict</code>로 타입 검사하므로, Glyph가 모델링하지 않는 실수도 사라지지 않습니다. 한 단계 뒤에 생성된 파일의 언어로 돌아옵니다. 작성한 적 없는 함수 안의 <code>await</code>를 가리키는 <code>TS1308</code>, 또는 쓴 적 없는 <code>switch</code>에 대한 <code>TS2366</code> 같은 식입니다. 줄은 <code>.glyph</code>로 다시 매핑되지만, 설명은 그렇지 않습니다."
+    },
+    {
+      "id": "h-2c890731",
+      "kind": "html",
+      "en": "That gap is where the compiler stops teaching. So each rule Glyph can decide for itself moves up: <code>await</code> outside an <code>async fn</code> (<code>E0222</code>), a <code>match</code> arm that produces no value while the <code>match</code> is used as a value (<code>E0223</code>), and an assignment written without <code>mut</code> (<code>E0008</code>). Each names the rule, cites the decision behind it, and shows the before and after.",
+      "tr": "컴파일러가 가르치기를 멈추는 곳이 바로 그 틈입니다. 그래서 Glyph가 스스로 판정할 수 있는 규칙은 하나씩 앞으로 옮겨집니다. <code>async fn</code> 밖의 <code>await</code>(<code>E0222</code>), <code>match</code>를 값으로 쓰는데 값을 만들지 않는 <code>match</code> arm(<code>E0223</code>), 그리고 <code>mut</code> 없이 쓴 대입(<code>E0008</code>)입니다. 각각 규칙을 짚고, 그 뒤의 결정을 인용하며, 수정 전후를 보여 줍니다."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "직접 보기"
+    },
+    {
+      "id": "h-d61df8a3",
+      "kind": "html",
+      "en": "The arm case is the one that used to escape entirely. <code>{}</code> in arm position is an empty <em>block</em>, not an empty record, so the arm ran and produced nothing:",
+      "tr": "arm의 경우는 예전에 완전히 빠져나가던 것입니다. arm 위치의 <code>{}</code>는 빈 레코드가 아니라 빈 <em>블록</em>이므로, arm이 실행되고 아무것도 만들지 않았습니다."
+    },
+    {
+      "id": "h-88f1df33",
+      "kind": "html",
+      "en": "status.glyph: an arm that yields nothing, in a position that needs a value",
+      "tr": "status.glyph: 값이 필요한 위치에서 아무것도 내지 않는 arm"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-e6d4c412",
+      "kind": "html",
+      "en": "Before this, the emitted <code>switch</code> fell out of its own cases and <code>text</code> held <code>undefined</code> while its type said <code>string</code>. <code>tsc</code> catches some shapes of that and misses others. Glyph now decides it wherever the position is decidable: a <code>let</code>, a <code>mut</code>, a <code>return</code>, or the tail of a function that declares a return type. A statement <code>match</code> keeps <code>X =&gt; {}</code> as the deliberate no-op it is.",
+      "tr": "이전에는 생성된 <code>switch</code>가 자신의 case를 빠져나갔고, <code>text</code>는 타입이 <code>string</code>이라고 하면서 <code>undefined</code>를 담고 있었습니다. <code>tsc</code>는 그런 모양의 일부는 잡고 일부는 놓칩니다. Glyph는 이제 위치를 판정할 수 있는 모든 곳에서 이를 판정합니다. <code>let</code>, <code>mut</code>, <code>return</code>, 그리고 반환 타입을 선언한 함수의 끝입니다. 문장으로 쓴 <code>match</code>에서는 <code>X =&gt; {}</code>를 의도한 무동작으로 그대로 둡니다."
+    },
+    {
+      "id": "h-c79dd30b",
+      "kind": "html",
+      "en": "<code>await</code> is the same move. Glyph has no user-visible <code>Promise</code>: an <code>async fn -&gt; T</code> is awaited to a <code>T</code>, so <code>await</code> anywhere else has nothing to suspend. That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses.",
+      "tr": "<code>await</code>도 같은 방식입니다. Glyph에는 사용자에게 보이는 <code>Promise</code>가 없습니다. <code>async fn -&gt; T</code>는 await하면 <code>T</code>가 되므로, 그 밖의 곳에서 <code>await</code>는 중단할 것이 없습니다. 예전에는 생성된 파일에 대한 <code>tsc</code>의 <code>TS1308</code>이었습니다. 이제는 <code>E0222</code>이며, 가장 안쪽의 둘러싼 호출 가능한 것이 판정하므로, <code>async fn</code> 안의 동기 람다는 별도의 문맥입니다. TypeScript와 같은 규칙입니다."
+    },
+    {
+      "id": "h-f0ba95e3",
+      "kind": "html",
+      "en": "glyph build, on `fn total() -&gt; number { return await fetch_count() }`",
+      "tr": "glyph build, `fn total() -&gt; number { return await fetch_count() }`에 대해"
+    },
+    {
+      "id": "h-d464ff82",
+      "kind": "html",
+      "en": "The third one is about a rule people break on day one. Glyph marks every mutation, so reassigning a binding is <code>mut x = e</code> and introducing one is <code>let x = e</code>. A bare <code>x = e</code> used to report \"unexpected token: Equals\", which names a character rather than the rule. It is <code>E0008</code> now, and <code>glyph --explain E0008</code> spells out why the mark exists: every place a value changes starts with <code>mut</code>, so <code>grep \"mut total\"</code> finds all of them.",
+      "tr": "세 번째는 사람들이 첫날 어기는 규칙에 관한 것입니다. Glyph는 모든 변경을 표시하므로, 바인딩을 다시 대입하는 것은 <code>mut x = e</code>이고 새로 만드는 것은 <code>let x = e</code>입니다. 그냥 <code>x = e</code>라고 쓰면 예전에는 규칙이 아니라 문자를 짚는 \"unexpected token: Equals\"를 보고했습니다. 이제는 <code>E0008</code>이며, <code>glyph --explain E0008</code>이 표시가 있는 이유를 설명합니다. 값이 바뀌는 모든 곳은 <code>mut</code>로 시작하므로 <code>grep \"mut total\"</code>로 모두 찾을 수 있습니다."
+    },
+    {
+      "id": "h-ebed40e0",
+      "kind": "html",
+      "en": "The <code>?</code> operator gets the same treatment from the other direction. <code>?</code> expands to a binding plus an early <code>return</code> placed before the statement it sits in, so it needs a statement to expand into. It works in a <code>let</code>, a <code>return</code>, an argument, and now in a <code>match</code> arm body. Where it can't work, the message says which position it is and how to bind out of it (<code>E0302</code> and <code>E0303</code>) instead of claiming the operator isn't implemented.",
+      "tr": "<code>?</code> 연산자도 반대 방향에서 같은 처리를 받습니다. <code>?</code>는 바인딩과, 그것이 있는 문장 앞에 놓이는 조기 <code>return</code>으로 펼쳐지므로, 펼쳐질 문장이 필요합니다. <code>let</code>, <code>return</code>, 인자, 그리고 이제 <code>match</code> arm 본문에서 동작합니다. 동작할 수 없는 곳에서는 연산자가 구현되지 않았다고 말하는 대신, 어떤 위치인지와 그 밖으로 바인딩하는 방법을 메시지가 알려 줍니다(<code>E0302</code>, <code>E0303</code>)."
+    },
+    {
+      "id": "h-fd562d12",
+      "kind": "html",
+      "en": "The worse case: when tsc is happy too",
+      "tr": "더 나쁜 경우: tsc도 만족할 때"
+    },
+    {
+      "id": "h-885c1851",
+      "kind": "html",
+      "en": "A <code>tsc</code> error in the wrong place is annoying. A clean build on a program that means something else is the real problem, and Glyph had one. Every top-level name you declare goes into the emitted module verbatim, including a tagged union's variant constructors, so a variant named <code>Error</code> emits <code>export function Error(...)</code> at module top level. The <code>new Error(...)</code> the compiler writes below it then calls your variant.",
+      "tr": "엉뚱한 곳의 <code>tsc</code> 오류는 성가십니다. 다른 의미가 된 프로그램의 깔끔한 빌드가 진짜 문제이며, Glyph에는 그런 것이 하나 있었습니다. 선언한 모든 최상위 이름은 태그 유니언의 variant 생성자를 포함해 생성된 모듈에 그대로 들어가므로, <code>Error</code>라는 variant는 모듈 최상위에 <code>export function Error(...)</code>를 생성합니다. 그러면 컴파일러가 그 아래에 쓰는 <code>new Error(...)</code>가 여러분의 variant를 호출합니다."
+    },
+    {
+      "id": "h-75ff57e8",
+      "kind": "html",
+      "en": "<code>type Key = string | number</code> is the same defect with a friendlier face. In Glyph <code>A | B</code> declares a tagged union whose members are variant <em>constructors</em>, so that line declares variants called <code>string</code> and <code>number</code>. It compiled, passed <code>tsc --strict</code>, and emitted an <code>export const number</code> that shadowed the prelude <code>number</code> namespace. Nothing failed until a later <code>number.to_string</code> call did.",
+      "tr": "<code>type Key = string | number</code>는 같은 결함이 더 친근한 얼굴을 한 것입니다. Glyph에서 <code>A | B</code>는 멤버가 variant <em>생성자</em>인 태그 유니언을 선언하므로, 이 줄은 <code>string</code>과 <code>number</code>라는 variant를 선언합니다. 이는 컴파일되고 <code>tsc --strict</code>를 통과했으며, prelude의 <code>number</code> 네임스페이스를 가리는 <code>export const number</code>를 생성했습니다. 나중에 <code>number.to_string</code> 호출이 실패할 때까지는 아무것도 실패하지 않았습니다."
+    },
+    {
+      "id": "h-a21321a8",
+      "kind": "html",
+      "en": "glyph build, on a union with an `Error` variant",
+      "tr": "glyph build, `Error` variant가 있는 유니언에 대해"
+    },
+    {
+      "id": "h-31b46547",
+      "kind": "html",
+      "en": "The span is the declaration, which is where the rename goes. The guarded list is derived from the emitter rather than from a general list of JavaScript globals, and a test greps the emitter and fails when a new global reference appears without a matching entry. That test is the point: <code>Number</code> was harmless until <code>int</code> shipped and started emitting <code>Number.isInteger</code>, which is how this reached a release in the first place. <code>Date</code>, <code>Math</code>, and <code>JSON</code> stay free, because nothing Glyph emits mentions them.",
+      "tr": "범위는 선언이며, 이름을 바꿀 곳이 바로 거기입니다. 보호 목록은 JavaScript 전역 이름의 일반 목록이 아니라 emitter에서 끌어낸 것이고, 테스트가 emitter를 grep해서 대응하는 항목 없이 새 전역 참조가 나타나면 실패합니다. 핵심은 그 테스트입니다. <code>Number</code>는 <code>int</code>가 배포되어 <code>Number.isInteger</code>를 생성하기 시작하기 전까지 무해했고, 이 문제가 애초에 릴리스까지 간 경로가 그것입니다. <code>Date</code>, <code>Math</code>, <code>JSON</code>은 Glyph가 생성하는 어떤 것도 언급하지 않으므로 여전히 쓸 수 있습니다."
+    },
+    {
+      "id": "h-cb06c784",
+      "kind": "html",
+      "en": "The primitive-union case gets its own code, <code>E0111</code>, because rejecting it without explaining it teaches nothing. It says what the line actually parsed as, points at named variants, and names <code>extern_ts(\"string | number\")</code> for the boundary where you want the raw TypeScript union. Every name Glyph will not let you use is tabulated in <code>docs/reference/reserved-words.md</code>: the 32 keywords, the 33 TypeScript reserved words behind <code>E0109</code>, and the shadow list, each with the reason the name is taken.",
+      "tr": "원시 타입 유니언의 경우는 별도의 코드 <code>E0111</code>을 받습니다. 설명 없이 거부하면 아무것도 가르치지 못하기 때문입니다. 그 줄이 실제로 어떻게 파싱되었는지 말하고, 이름 붙은 variant를 안내하며, 원시 TypeScript 유니언이 필요한 경계에는 <code>extern_ts(\"string | number\")</code>를 알려 줍니다. Glyph가 쓰지 못하게 하는 모든 이름은 <code>docs/reference/reserved-words.md</code>에 표로 정리되어 있습니다. 키워드 32개, <code>E0109</code>의 바탕이 되는 TypeScript 예약어 33개, 그리고 가림 목록이며, 각각 그 이름이 쓰이는 이유가 함께 있습니다."
+    },
+    {
+      "id": "h-f9bb4040",
+      "kind": "html",
+      "en": "Worth being clear about what this does not do. You still cannot name a type or a variant <code>Error</code>, and the spreadsheet that turned this up ships a variant called <code>Cellerr</code> because of it. The program it wanted to be is still not writable; what changed is that the compiler now says so at the declaration instead of letting the build go green and mean something else. Making the name usable means mangling Glyph names on the way into TypeScript, which changes what a stack trace, a <code>grep</code> over <code>dist/</code>, and a hand-written <code>extern/</code> shim see, so it is not a patch we can make quietly.",
+      "tr": "이것이 하지 않는 일도 분명히 해 두겠습니다. 여전히 타입이나 variant 이름을 <code>Error</code>로 지을 수 없으며, 이 문제를 찾아낸 스프레드시트 앱은 그 때문에 <code>Cellerr</code>라는 variant를 씁니다. 원래 쓰고 싶었던 프로그램은 여전히 쓸 수 없습니다. 바뀐 것은 빌드가 통과하면서 다른 의미가 되게 두는 대신, 컴파일러가 이제 선언에서 그렇다고 말한다는 점입니다. 그 이름을 쓸 수 있게 하려면 TypeScript로 갈 때 Glyph 이름을 변형해야 하는데, 그러면 스택 트레이스, <code>dist/</code>에 대한 <code>grep</code>, 직접 작성한 <code>extern/</code> shim이 보는 것이 바뀌므로, 조용히 할 수 있는 패치가 아닙니다."
+    },
+    {
+      "id": "h-8afaf9f5",
+      "kind": "html",
+      "en": "A wrong message is worse than no message",
+      "tr": "틀린 메시지는 메시지가 없는 것보다 나쁩니다"
+    },
+    {
+      "id": "h-9130ed23",
+      "kind": "html",
+      "en": "The shadow list started with names the emitter writes as <em>values</em>. It was missing the ones it writes as <em>types</em>, and that produced the sharpest version of this whole problem. Every descriptor's <code>parse</code> returns <code>Result&lt;T, Issue[]&gt;</code>, so the emitted module writes <code>Issue</code> whether or not you did. Declare <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> in your own module and yours wins, the emitted <code>Issue</code> objects carry a <code>code</code> field yours has never heard of, and the build fails with a <code>tsc</code> error about generated code, at a span pointing somewhere else.",
+      "tr": "가림 목록은 emitter가 <em>값</em>으로 쓰는 이름에서 시작했습니다. <em>타입</em>으로 쓰는 이름이 빠져 있었고, 그것이 이 문제 전체의 가장 날카로운 형태를 만들었습니다. 모든 디스크립터의 <code>parse</code>는 <code>Result&lt;T, Issue[]&gt;</code>를 반환하므로, 생성된 모듈은 여러분이 쓰든 안 쓰든 <code>Issue</code>를 씁니다. 자기 모듈에서 <code>type Issue = { path: Array&lt;string&gt;, message: string }</code>을 선언하면 여러분의 것이 이기고, 생성된 <code>Issue</code> 객체에는 여러분의 타입이 모르는 <code>code</code> 필드가 있으며, 빌드는 다른 곳을 가리키는 범위에서 생성된 코드에 대한 <code>tsc</code> 오류로 실패합니다."
+    },
+    {
+      "id": "h-a6744752",
+      "kind": "html",
+      "en": "glyph build, before: fifteen of these, none of them near the cause",
+      "tr": "glyph build, 이전: 이런 것이 열다섯 개, 어느 것도 원인 근처가 아님"
+    },
+    {
+      "id": "h-a20d51b6",
+      "kind": "html",
+      "en": "glyph build, now",
+      "tr": "glyph build, 현재"
+    },
+    {
+      "id": "h-5a49991d",
+      "kind": "html",
+      "en": "<code>Record</code> joined the list at the same time, filed with the JavaScript globals rather than the prelude names because it is a TypeScript built-in and claiming otherwise would make the message wrong about where the name comes from. The drift test that greps the emitter now covers ambient types too, and it had to learn to see <code>Issue[]</code> in a type position, which is the reason this reached a release. <code>Schema</code>, <code>Component</code> and <code>Option</code> stay legal on the same rule that keeps <code>Date</code> free: the emitter writes them only because you wrote them in an annotation, so declaring one shadows nothing.",
+      "tr": "<code>Record</code>도 같은 때 목록에 들어갔는데, TypeScript 내장 타입이고 다르게 주장하면 이름이 어디서 왔는지에 대해 메시지가 틀리게 되므로 prelude 이름이 아니라 JavaScript 전역 이름과 함께 분류했습니다. emitter를 grep하는 어긋남 테스트는 이제 앰비언트 타입도 다루며, 타입 위치의 <code>Issue[]</code>를 알아보는 법을 배워야 했는데, 이것이 릴리스까지 간 이유였습니다. <code>Schema</code>, <code>Component</code>, <code>Option</code>은 <code>Date</code>를 자유롭게 두는 것과 같은 규칙으로 계속 허용됩니다. emitter는 여러분이 타입 표기에 썼을 때만 이를 쓰므로, 하나를 선언해도 아무것도 가리지 않습니다."
+    },
+    {
+      "id": "h-fbf610e9",
+      "kind": "html",
+      "en": "The other one in this class was an import. A local import path resolves from the build root, the directory you hand to <code>glyph build</code>, not from the directory of the file doing the importing. Build an enclosing tree and <code>import catalog</code> finds nothing, and until now nothing said so. The type degraded to unknown, a <code>match</code> over it lost the variants it was matching, and what you got was <code>E0218</code>, non-exhaustive match, on a <code>match</code> that covered every case. Doing what that message asked would have added a dead <code>else</code> arm to correct code.",
+      "tr": "이 종류의 다른 하나는 import였습니다. 로컬 import 경로는 import하는 파일의 디렉터리가 아니라 빌드 루트, 즉 <code>glyph build</code>에 넘긴 디렉터리에서 해석됩니다. 둘러싼 트리를 빌드하면 <code>import catalog</code>는 아무것도 찾지 못하고, 지금까지는 아무것도 그렇다고 말하지 않았습니다. 타입은 unknown으로 격하되었고, 그에 대한 <code>match</code>는 매칭하던 variant를 잃었으며, 결과적으로 모든 case를 다룬 <code>match</code>에 대해 비망라적 match라는 <code>E0218</code>을 받았습니다. 그 메시지가 요구한 대로 하면 올바른 코드에 죽은 <code>else</code> arm을 추가하게 됐을 것입니다."
+    },
+    {
+      "id": "h-dee2dcd5",
+      "kind": "html",
+      "en": "glyph build examples/apps, on `import catalog` inside csvql/",
+      "tr": "glyph build examples/apps, csvql/ 안의 `import catalog`에 대해"
+    },
+    {
+      "id": "h-a61f2874",
+      "kind": "html",
+      "en": "The risk in a check like this is that it fires on things that are fine, and an import checker that cries wolf on every npm package is worse than the silence it replaced. So the build first collects the module names it can resolve without a <code>.glyph</code> file: every <code>declare module \"X\"</code> under <code>&lt;root&gt;/.types/</code> and in the bundled Node shim, plus every package in the project's <code>node_modules</code>. A name on that list is never reported, even when a local file happens to share its basename. When a project has no <code>node_modules</code> at all, the compiler cannot tell an uninstalled dependency from a typo, so it reports only what it can prove: an import that some <code>.glyph</code> file under the root answers to.",
+      "tr": "이런 검사의 위험은 문제없는 것에 대해 발생하는 것이고, npm 패키지마다 헛경보를 울리는 import 검사기는 그것이 대신한 침묵보다 나쁩니다. 그래서 빌드는 먼저 <code>.glyph</code> 파일 없이 해석할 수 있는 모듈 이름을 모읍니다. <code>&lt;root&gt;/.types/</code>와 함께 제공되는 Node shim의 모든 <code>declare module \"X\"</code>, 그리고 프로젝트 <code>node_modules</code>의 모든 패키지입니다. 그 목록에 있는 이름은 로컬 파일이 우연히 같은 기본 이름을 갖더라도 절대 보고하지 않습니다. 프로젝트에 <code>node_modules</code>가 아예 없으면 컴파일러는 설치하지 않은 의존성과 오타를 구분할 수 없으므로, 증명할 수 있는 것, 즉 루트 아래의 어떤 <code>.glyph</code> 파일이 답하는 import만 보고합니다."
+    },
+    {
+      "id": "h-ea8659da",
+      "kind": "html",
+      "en": "Resolution itself did not change. The same programs build and the same programs fail. What changed is that the failure now names the import instead of accusing a <code>match</code> two files away, which is the whole of it: a compiler that reports the wrong cause costs you the hour spent chasing it, and then the benefit of the doubt on every message after.",
+      "tr": "해석 방식 자체는 바뀌지 않았습니다. 같은 프로그램이 빌드되고 같은 프로그램이 실패합니다. 바뀐 것은 실패가 이제 파일 두 개 떨어진 <code>match</code>를 탓하는 대신 import를 짚는다는 것이며, 그것이 전부입니다. 엉뚱한 원인을 보고하는 컴파일러는 그것을 쫓는 데 쓴 한 시간을 잃게 하고, 그 뒤의 모든 메시지에 대한 신뢰까지 잃게 합니다."
+    },
+    {
+      "id": "h-807dc28e",
+      "kind": "html",
+      "en": "Naming the rule, not the token",
+      "tr": "토큰이 아니라 규칙을 짚기"
+    },
+    {
+      "id": "h-f713d300",
+      "kind": "html",
+      "en": "The quieter version of the same problem is an error that is correct and still tells you nothing. An agent writing a red-black tree reached for the positional constructor every ML-family language has, and the parser stopped on its first comma with &ldquo;expected <code>)</code>&rdquo; and the advice &ldquo;add the expected token&rdquo;. Adding a <code>)</code> there produces a different program, not a working one. A Glyph variant carries one payload, and a payload with several fields is a record. Neither of those sentences was anywhere in the output.",
+      "tr": "같은 문제의 조용한 형태는 맞지만 아무것도 알려 주지 않는 오류입니다. 레드-블랙 트리를 작성하던 에이전트가 모든 ML 계열 언어에 있는 위치 기반 생성자를 썼는데, 파서는 첫 쉼표에서 &ldquo;expected <code>)</code>&rdquo;와 &ldquo;add the expected token&rdquo;이라는 조언과 함께 멈췄습니다. 거기에 <code>)</code>를 넣으면 동작하는 프로그램이 아니라 다른 프로그램이 됩니다. Glyph variant는 payload 하나를 담고, 필드가 여러 개인 payload는 레코드입니다. 출력 어디에도 그 두 문장은 없었습니다."
+    },
+    {
+      "id": "h-2a5b1304",
+      "kind": "html",
+      "en": "glyph check, before and now",
+      "tr": "glyph check, 이전과 현재"
+    },
+    {
+      "id": "h-3db49ffc",
+      "kind": "html",
+      "en": "To say that, the parser had to read the whole list before refusing it, which is also what lets it count. The span underlines all six fields rather than the separator it happened to die on, and the suggested record is built from the variant name and the six types in the file, so the fix names your program rather than an example of someone else&rsquo;s. Field names are the one thing the compiler cannot supply, so it leaves them as holes.",
+      "tr": "그렇게 말하려면 파서가 거부하기 전에 목록 전체를 읽어야 했고, 그 덕분에 개수도 셀 수 있습니다. 범위는 우연히 멈춘 구분자가 아니라 필드 여섯 개 전체에 밑줄을 긋고, 제안하는 레코드는 파일에 있는 variant 이름과 타입 여섯 개로 만들어지므로, 수정 방법이 다른 사람의 예제가 아니라 여러분의 프로그램을 짚습니다. 필드 이름은 컴파일러가 제공할 수 없는 유일한 것이므로 빈칸으로 남깁니다."
+    },
+    {
+      "id": "h-a7125287",
+      "kind": "html",
+      "en": "The rule behind the message is a choice, not a gap. <code>Node(Black, l, x, b, h, r)</code> is the argument swap that type-checks, and position four tells a reader nothing. The record spelling names every field, a match arm names only the fields it uses, and both of those are things <code>grep</code> can find.",
+      "tr": "메시지 뒤의 규칙은 빈틈이 아니라 선택입니다. <code>Node(Black, l, x, b, h, r)</code>은 인자를 바꿔 써도 타입 검사를 통과하는 형태이고, 네 번째 위치는 읽는 사람에게 아무것도 알려 주지 않습니다. 레코드 표기는 모든 필드에 이름을 붙이고, match arm은 쓰는 필드만 짚으며, 둘 다 <code>grep</code>으로 찾을 수 있습니다."
+    },
+    {
+      "id": "h-958f58ae",
+      "kind": "html",
+      "en": "Two more the checker took over in 0.1.121",
+      "tr": "0.1.121에서 검사기가 넘겨받은 두 가지"
+    },
+    {
+      "id": "h-e177bf8c",
+      "kind": "html",
+      "en": "<code>Order { id: \"a\", total: 1 }</code> is what someone coming from TypeScript writes to build a record, and Glyph has no such form: a value is written on its own and the type goes on the annotation. What the compiler used to say about that line was <code>E0108</code>, unreachable code, on a build that exited 0, because the name resolved to the type and the braces parsed as a block after the <code>return</code>. A type's name written as a value is <code>E0228</code>, and the message is read off the declaration, so a record lists its fields, a tagged union lists its variants with their payload shapes, and a string-literal union lists its literals. <code>Order.parse(raw)</code> and <code>Order.is(v)</code> stay legal, since the receiver of a type's own descriptor is the one expression position a type name belongs in.",
+      "tr": "<code>Order { id: \"a\", total: 1 }</code>은 TypeScript에서 온 사람이 레코드를 만들 때 쓰는 형태인데, Glyph에는 이런 형태가 없습니다. 값은 단독으로 쓰고 타입은 타입 표기에 둡니다. 예전에 컴파일러는 그 줄에 대해 0으로 종료한 빌드에서 도달할 수 없는 코드라는 <code>E0108</code>을 보고했습니다. 이름이 타입으로 해석되고 중괄호가 <code>return</code> 뒤의 블록으로 파싱되었기 때문입니다. 값 자리에 쓴 타입 이름은 <code>E0228</code>이고, 메시지는 선언에서 읽어 오므로 레코드는 필드를, 태그 유니언은 variant와 payload 모양을, 문자열 리터럴 유니언은 리터럴을 나열합니다. <code>Order.parse(raw)</code>와 <code>Order.is(v)</code>는 계속 허용됩니다. 타입 자신의 디스크립터의 수신자는 타입 이름이 들어갈 수 있는 유일한 표현식 위치이기 때문입니다."
+    },
+    {
+      "id": "h-f06c8bfb",
+      "kind": "html",
+      "en": "That fixed the case where the name was a type and left the parse alone, so <code>return h() { k: 2 }</code> still returned <code>h()</code> and dropped the braces with a warning. Since 0.1.146 a <code>{</code> on the line where a statement ended is <code>E0013</code> at parse, whatever the name before it is, and its help gives the same rewrite. Since 0.1.149 the rule covers every statement, not only one opening with a brace: <code>let s = \"a\" \"b\"</code> used to bind <code>\"a\"</code> and drop <code>\"b\"</code>, and <code>return x as User</code> was three statements, since Glyph has no cast. Each statement in a block starts its own line.",
+      "tr": "그 수정은 이름이 타입인 경우를 고쳤고 파싱은 그대로 두었으므로, <code>return h() { k: 2 }</code>는 여전히 <code>h()</code>를 반환하고 경고와 함께 중괄호를 버렸습니다. 0.1.146부터는 문장이 끝난 줄의 <code>{</code>는 앞의 이름이 무엇이든 파싱 단계에서 <code>E0013</code>이고, 그 도움말이 같은 다시 쓰기를 알려 줍니다. 0.1.149부터 이 규칙은 중괄호로 시작하는 문장만이 아니라 모든 문장에 적용됩니다. <code>let s = \"a\" \"b\"</code>는 예전에 <code>\"a\"</code>를 바인딩하고 <code>\"b\"</code>를 버렸고, Glyph에는 캐스트가 없으므로 <code>return x as User</code>는 문장 세 개였습니다. 블록 안의 각 문장은 자기 줄에서 시작합니다."
+    },
+    {
+      "id": "h-8ed13b42",
+      "kind": "html",
+      "en": "glyph check, on a record built the TypeScript way",
+      "tr": "glyph check, TypeScript 방식으로 만든 레코드에 대해"
+    },
+    {
+      "id": "h-c496e232",
+      "kind": "html",
+      "en": "The other one is a prelude container assigned to a primitive. <code>let x: string = o</code> where <code>o: Option&lt;int&gt;</code> drew nothing from the Glyph checker, and neither did passing a <code>Nullable&lt;int&gt;</code> to a parameter declared <code>int</code>. Five containers are covered in both directions now: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> and <code>Nullable</code> are never a <code>string</code>, a <code>number</code> or a <code>bool</code>, whatever their arguments, and <code>Nullable&lt;T&gt;</code> against a scalar is decided one level in against <code>T</code>, so <code>let v: Nullable&lt;int&gt; = 3</code> stays correct and <code>let v: Nullable&lt;int&gt; = \"three\"</code> is <code>E0204</code>. The <code>Nullable</code> case belongs on this page more than the others, because it is one <code>tsc</code> cannot make: the emitted <code>const v: number | null = 3</code> narrows back to <code>number</code> before the call is checked, so a boundary type that exists to make <code>null</code> visible was passing silently where an <code>int</code> was declared, and the Glyph checker was the only place it could have been caught.",
+      "tr": "다른 하나는 원시 타입에 대입한 prelude 컨테이너입니다. <code>o: Option&lt;int&gt;</code>일 때 <code>let x: string = o</code>는 Glyph 검사기에서 아무것도 나오지 않았고, <code>int</code>로 선언된 매개변수에 <code>Nullable&lt;int&gt;</code>를 넘기는 것도 마찬가지였습니다. 이제 컨테이너 다섯 개가 양방향으로 다뤄집니다. <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code>, <code>Nullable</code>은 인자가 무엇이든 <code>string</code>, <code>number</code>, <code>bool</code>이 결코 아니며, 스칼라에 대한 <code>Nullable&lt;T&gt;</code>는 한 단계 안의 <code>T</code>에 대해 판정하므로, <code>let v: Nullable&lt;int&gt; = 3</code>은 올바르고 <code>let v: Nullable&lt;int&gt; = \"three\"</code>는 <code>E0204</code>입니다. <code>Nullable</code>의 경우가 다른 것들보다 이 페이지에 더 어울리는데, <code>tsc</code>가 할 수 없는 판정이기 때문입니다. 생성된 <code>const v: number | null = 3</code>은 호출을 검사하기 전에 다시 <code>number</code>로 좁혀지므로, <code>null</code>을 드러내려고 존재하는 경계 타입이 <code>int</code>가 선언된 곳을 조용히 통과했고, 이를 잡을 수 있는 곳은 Glyph 검사기뿐이었습니다."
+    },
+    {
+      "id": "h-4d3a0a1d",
+      "kind": "html",
+      "en": "The same containers against a declared record or union came next. Since 0.1.130 <code>let user: User = json.parse(body)</code> is <code>E0204</code>, expected <code>User</code>, found <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>. Before, only <code>tsc</code> said so, which meant <code>glyph check --no-tsc</code>, the editor and the playground showed a clean file on the one line a boundary exists to get right.",
+      "tr": "다음은 선언된 레코드나 유니언에 대한 같은 컨테이너였습니다. 0.1.130부터 <code>let user: User = json.parse(body)</code>는 expected <code>User</code>, found <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>인 <code>E0204</code>입니다. 예전에는 <code>tsc</code>만 이를 말했으므로, <code>glyph check --no-tsc</code>, 에디터, 플레이그라운드는 경계가 올바르게 처리해야 할 바로 그 한 줄에서 깨끗한 파일을 보여 줬습니다."
+    },
+    {
+      "id": "h-98c8eb1d",
+      "kind": "html",
+      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields. <code>tsc</code> would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
+      "tr": "배열이나 문자열의 철자가 틀린 멤버도 예전에는 <code>tsc</code>를 기다리던 경우입니다. <code>xs.lenght</code>는 이제 \"did you mean <code>length</code>\"와 함께 <code>E0210</code>이며, 레코드의 필드 읽기를 필드에 대해 검사하듯 TypeScript 라이브러리가 배열과 문자열에 선언한 멤버에 대해 검사합니다. <code>tsc</code>도 둘 다 거부했을 것이므로 그것을 실행한 빌드는 이미 실패했습니다. 바뀐 것은 검사기와 그 위에 만든 모든 것이 먼저 이를 본다는 점입니다."
+    },
+    {
+      "id": "h-3d087635",
+      "kind": "html",
+      "en": "And three more, since 0.1.133",
+      "tr": "그리고 0.1.133부터 세 가지 더"
+    },
+    {
+      "id": "h-06826d1c",
+      "kind": "html",
+      "en": "<code>let up = s.toUpperCase</code> type-checks in TypeScript and throws when <code>up()</code> runs, because the read drops the string it belongs to. Glyph refuses it as <code>E0234</code>, and refuses <code>.bind(s)</code> on it too: wrap the call in a lambda instead. The checker now knows what each array and string method returns, from a table generated out of TypeScript's own declarations.",
+      "tr": "<code>let up = s.toUpperCase</code>는 TypeScript에서 타입 검사를 통과하고 <code>up()</code>을 실행하면 예외를 던집니다. 읽는 순간 그것이 속한 문자열을 잃기 때문입니다. Glyph는 이를 <code>E0234</code>로 거부하고, 여기에 <code>.bind(s)</code>를 쓰는 것도 거부합니다. 대신 호출을 람다로 감싸세요. 검사기는 이제 TypeScript 자체의 선언에서 생성한 테이블로 각 배열 및 문자열 메서드가 무엇을 반환하는지 압니다."
+    },
+    {
+      "id": "h-10186d4d",
+      "kind": "html",
+      "en": "<code>r?.label</code> on a <code>Result</code> reads like \"propagate the error, then read the field\". It is optional chaining, and a <code>Result</code> is never null, so it reads the field off the <code>Result</code> object and propagates nothing. An agent wrote exactly that while building a CSV query tool. It is <code>E0236</code> now, on an <code>Option</code> as well, and the help says to bind with <code>?</code> first.",
+      "tr": "<code>Result</code>에 대한 <code>r?.label</code>은 \"오류를 전달한 다음 필드를 읽는다\"처럼 읽힙니다. 하지만 이는 optional chaining이고 <code>Result</code>는 절대 null이 아니므로, <code>Result</code> 객체에서 필드를 읽고 아무것도 전달하지 않습니다. CSV 쿼리 도구를 만들던 에이전트가 정확히 이렇게 썼습니다. 이제 <code>Option</code>에서도 <code>E0236</code>이며, 도움말은 먼저 <code>?</code>로 바인딩하라고 안내합니다."
+    },
+    {
+      "id": "h-fb62cc51",
+      "kind": "html",
+      "en": "<code>json.parse(body)</code> with no type argument is the unchecked read, a <code>Result&lt;unknown, ...&gt;</code>. Written where a <code>Result&lt;User, ...&gt;</code> was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and the program crashed on its first field read. The emitter now writes the <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>. Glyph's own checker does not yet catch an <code>unknown</code> landing inside a declared type, so <code>--no-tsc</code> and the editor still miss <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code> is declared. (A bare <code>let user: User = json.parse(body)</code> is <code>E0204</code> from Glyph's own checker, because the outer type is already wrong.) Refusing <code>unknown</code> at every depth is G325, planned for 0.1.158.",
+      "tr": "타입 인자 없는 <code>json.parse(body)</code>는 검사하지 않은 읽기이며 <code>Result&lt;unknown, ...&gt;</code>입니다. <code>Result&lt;User, ...&gt;</code>가 선언된 곳에 쓰면, 예전에는 <code>tsc</code>가 선언에서 <code>User</code>를 추론했고 프로그램은 첫 필드를 읽을 때 충돌했습니다. 이제 emitter가 <code>unknown</code>을 명시적으로 쓰므로 <code>glyph check</code>가 <code>tsc</code>를 통해 이를 거부합니다. Glyph 자체 검사기는 선언된 타입 안에 <code>unknown</code>이 들어가는 것을 아직 잡지 못하므로, <code>--no-tsc</code>와 에디터는 <code>Result&lt;User, ...&gt;</code>가 선언된 곳에 쓴 <code>Result&lt;unknown, ...&gt;</code>를 여전히 놓칩니다. (그냥 <code>let user: User = json.parse(body)</code>는 바깥 타입이 이미 틀렸으므로 Glyph 자체 검사기의 <code>E0204</code>입니다.) 모든 깊이에서 <code>unknown</code>을 거부하는 것은 G325이며, 0.1.158에 계획되어 있습니다."
+    },
+    {
+      "id": "h-41090fb8",
+      "kind": "html",
+      "en": "And two more in 0.1.122",
+      "tr": "그리고 0.1.122에서 두 가지 더"
+    },
+    {
+      "id": "h-199da0a9",
+      "kind": "html",
+      "en": "<code>type Mode = \"read\" | \"write\"</code> declares a finite set of strings, and the Glyph checker compared a value against it by nothing at all. A number, a <code>bool</code>, a record and a string outside the set all passed <code>glyph check --no-tsc</code> with nothing but unused-variable warnings, while <code>tsc</code> refused every one of them on the emitted TypeScript. So a full <code>glyph build</code> was never wrong about this, but the four surfaces that have no <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP tools and the playground.",
+      "tr": "<code>type Mode = \"read\" | \"write\"</code>는 유한한 문자열 집합을 선언하는데, Glyph 검사기는 값을 이와 아무것으로도 비교하지 않았습니다. 숫자, <code>bool</code>, 레코드, 집합 밖의 문자열이 모두 사용하지 않는 변수 경고만 남기고 <code>glyph check --no-tsc</code>를 통과했고, <code>tsc</code>는 생성된 TypeScript에서 그 모두를 거부했습니다. 그래서 전체 <code>glyph build</code>는 이에 대해 틀린 적이 없지만, 루프에 <code>tsc</code>가 없는 네 곳, 즉 <code>--no-tsc</code>, 언어 서버, MCP 도구, 플레이그라운드는 틀렸습니다."
+    },
+    {
+      "id": "h-8ccbda80",
+      "kind": "html",
+      "en": "glyph check --no-tsc, on a type that lists its legal strings",
+      "tr": "glyph check --no-tsc, 허용되는 문자열을 나열하는 타입에 대해"
+    },
+    {
+      "id": "h-d0bde6bb",
+      "kind": "html",
+      "en": "That is the four <code>tsc</code> reported, at the same four statements, without running <code>tsc</code>. The rule reads the union as what it is at run time, a <code>string</code>, and asks the checker the corresponding <code>string</code> question in each direction, so it inherits the rules that already refuse a record or a container against a <code>string</code> rather than restating them one shape at a time. Two literal sets are compared by set, so a narrower union goes where a wider one is declared; an alias chain is followed on both sides; an imported union is decided like a local one; and <code>Nullable&lt;Mode&gt;</code> is descended with the union intact.",
+      "tr": "<code>tsc</code>를 실행하지 않고, <code>tsc</code>가 보고한 네 개를 같은 네 문장에서 보고합니다. 이 규칙은 유니언을 런타임의 실제 모습인 <code>string</code>으로 읽고, 양방향에서 검사기에게 대응하는 <code>string</code> 질문을 하므로, 레코드나 컨테이너를 <code>string</code>에 대해 이미 거부하는 규칙을 모양마다 다시 쓰지 않고 그대로 물려받습니다. 두 리터럴 집합은 집합으로 비교하므로 더 좁은 유니언은 더 넓은 것이 선언된 곳에 들어갑니다. 별칭 연쇄는 양쪽에서 따라가고, import한 유니언은 로컬 유니언처럼 판정하며, <code>Nullable&lt;Mode&gt;</code>는 유니언을 유지한 채 안으로 들어갑니다."
+    },
+    {
+      "id": "h-fb0d1284",
+      "kind": "html",
+      "en": "A union nested in a record field or a generic argument was left to <code>tsc</code> in 0.1.122 and is decided in 0.1.123. See below.",
+      "tr": "레코드 필드나 제네릭 인자 안에 중첩된 유니언은 0.1.122에서는 <code>tsc</code>에 맡겼고, 0.1.123에서 판정합니다. 아래를 보세요."
+    },
+    {
+      "id": "h-06af8498",
+      "kind": "html",
+      "en": "The second one is not a <code>tsc</code> story at all. The parser is recursive descent with no depth guard, so an expression nested two thousand levels deep ran the process out of stack and aborted with exit 134. That is bad on <code>glyph check</code> and worse on <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root: one pathological file took the server down for the whole workspace. It is <code>E0011</code> now, raised at the token that would have opened level 65.",
+      "tr": "두 번째는 <code>tsc</code>와는 전혀 관계없는 이야기입니다. 파서는 깊이 제한 없는 재귀 하강 파서이므로, 2천 단계 깊이로 중첩된 표현식은 프로세스의 스택을 다 써서 종료 코드 134로 중단되었습니다. <code>glyph check</code>에서도 나쁘지만, 루트 아래의 모든 파일을 읽는 <code>glyph lsp</code>와 <code>glyph mcp</code>에서는 더 나쁩니다. 병적인 파일 하나가 워크스페이스 전체의 서버를 멈추게 했습니다. 이제는 65번째 단계를 열려는 토큰에서 <code>E0011</code>을 냅니다."
+    },
+    {
+      "id": "h-4667bbfa",
+      "kind": "html",
+      "en": "0.1.123: the literal a value is, not the <code>string</code> it emits to",
+      "tr": "0.1.123: 생성되는 <code>string</code>이 아니라 값이 실제로 가진 리터럴"
+    },
+    {
+      "id": "h-c893efbc",
+      "kind": "html",
+      "en": "<code>type Mode = \"read\" | \"write\"</code> put the set on the declaration and nothing on the value, so <code>\"read\"</code> was a <code>string</code> and <code>[\"read\", \"write\"]</code> an <code>Array&lt;string&gt;</code>. That made two programs indistinguishable: <code>return [\"read\", \"write\"]</code> where an <code>Array&lt;Mode&gt;</code> is declared, which <code>tsc</code> compiles, and <code>return xs</code> for an <code>xs: Array&lt;string&gt;</code>, which it refuses. 0.1.122 declined the pairing rather than get it wrong, and that bought the right program by giving up the wrong one: <code>{ mode: \"nope\" }</code> against a <code>{ mode: Mode }</code> drew nothing.",
+      "tr": "<code>type Mode = \"read\" | \"write\"</code>는 선언에 집합을 두고 값에는 아무것도 두지 않았으므로, <code>\"read\"</code>는 <code>string</code>이고 <code>[\"read\", \"write\"]</code>는 <code>Array&lt;string&gt;</code>이었습니다. 그래서 두 프로그램을 구별할 수 없었습니다. <code>Array&lt;Mode&gt;</code>가 선언된 곳의 <code>return [\"read\", \"write\"]</code>는 <code>tsc</code>가 컴파일하고, <code>xs: Array&lt;string&gt;</code>에 대한 <code>return xs</code>는 거부합니다. 0.1.122는 틀리게 판정하는 대신 그 짝의 판정을 거절했는데, 이는 틀린 프로그램을 포기하는 대가로 올바른 프로그램을 얻은 것이었습니다. <code>{ mode: Mode }</code>에 대한 <code>{ mode: \"nope\" }</code>는 아무것도 내지 않았습니다."
+    },
+    {
+      "id": "h-c0066fa2",
+      "kind": "html",
+      "en": "A written string literal now has the one-literal type it spells, an array literal's element type is the join of its elements', and a written array or object literal is checked element by element and field by field against the declared type, so the diagnostic names the literal and underlines it.",
+      "tr": "이제 작성한 문자열 리터럴은 그것이 나타내는 리터럴 하나짜리 타입을 가지고, 배열 리터럴의 요소 타입은 요소들의 타입을 합친 것이며, 작성한 배열이나 객체 리터럴은 선언된 타입에 대해 요소 하나하나, 필드 하나하나 검사되므로, 진단이 리터럴을 짚고 밑줄을 긋습니다."
+    },
+    {
+      "id": "h-ddcce2d9",
+      "kind": "html",
+      "en": "glyph check --no-tsc, on a literal one container in",
+      "tr": "glyph check --no-tsc, 컨테이너 하나 안의 리터럴에 대해"
+    },
+    {
+      "id": "h-1582f0d1",
+      "kind": "html",
+      "en": "The literal widens back to <code>string</code> where TypeScript widens it: at a <code>let</code> with no annotation, whose emitted TypeScript <code>let</code> widens the same way, and at the element binding of a <code>for</code> over a written array. So <code>let l = \"read\"</code> followed by <code>takes_mode(l)</code> is refused here and <code>TS2345</code> there. A <code>const</code> emits a TypeScript <code>const</code> and keeps its literal, so <code>takes_mode(CM)</code> compiles under both. A literal type that arrived through a name is not widened, which is TypeScript's own freshness rule. Every row of that was settled by running <code>tsc --strict</code> on the equivalent TypeScript rather than reasoned about.",
+      "tr": "리터럴은 TypeScript가 넓히는 곳에서 다시 <code>string</code>으로 넓어집니다. 타입 표기가 없는 <code>let</code>(생성된 TypeScript <code>let</code>도 같은 방식으로 넓어집니다)과, 작성한 배열에 대한 <code>for</code>의 요소 바인딩입니다. 그래서 <code>let l = \"read\"</code> 다음의 <code>takes_mode(l)</code>은 여기서 거부되고 거기서는 <code>TS2345</code>입니다. <code>const</code>는 TypeScript <code>const</code>로 생성되어 리터럴을 유지하므로 <code>takes_mode(CM)</code>은 둘 다에서 컴파일됩니다. 이름을 통해 도착한 리터럴 타입은 넓어지지 않으며, 이는 TypeScript 자체의 freshness 규칙입니다. 이 모든 경우는 추론이 아니라 같은 TypeScript에 <code>tsc --strict</code>를 실행해서 확정했습니다."
+    },
+    {
+      "id": "h-bf8e8b89",
+      "kind": "html",
+      "en": "One pairing is still declined: the key argument of a <code>Record</code> against another <code>Record</code>'s. TypeScript writes <code>Record&lt;string, V&gt;</code> as an index signature covering every key a <code>Record&lt;Mode, V&gt;</code> declares and accepts it in both directions, so refusing it would refuse a program that compiles. Two more shapes the checker still says nothing about: a literal inside <code>Some(...)</code>, because a prelude constructor has no type here yet, and a record literal bound to an unannotated <code>let</code>, because no record type is synthesized for an object literal.",
+      "tr": "판정을 거절하는 짝이 하나 남아 있습니다. <code>Record</code>의 키 인자와 다른 <code>Record</code>의 키 인자입니다. TypeScript는 <code>Record&lt;string, V&gt;</code>를 <code>Record&lt;Mode, V&gt;</code>가 선언하는 모든 키를 덮는 인덱스 시그니처로 쓰고 양방향 모두 받아들이므로, 이를 거부하면 컴파일되는 프로그램을 거부하게 됩니다. 검사기가 아직 아무 말도 하지 않는 모양이 두 가지 더 있습니다. <code>Some(...)</code> 안의 리터럴(prelude 생성자에 아직 타입이 없기 때문)과, 타입 표기 없는 <code>let</code>에 바인딩한 레코드 리터럴(객체 리터럴에 대해 레코드 타입을 합성하지 않기 때문)입니다."
+    },
+    {
+      "id": "h-02d8ec8f",
+      "kind": "html",
+      "en": "A module under <code>std/</code> was dead code with no diagnostic",
+      "tr": "<code>std/</code> 아래의 모듈이 진단 없이 죽은 코드였습니다"
+    },
+    {
+      "id": "h-4742bc61",
+      "kind": "html",
+      "en": "<code>std/</code> and <code>extern/</code> name modules the compiler carries, and the resolver reserved them for imports. Nothing stopped a project file from <em>declaring</em> one. <code>module std/io</code> in your own <code>src/io.glyph</code> compiled clean, and then <code>import std/io { shout }</code> resolved to the stub and reported that <code>shout</code> is not exported: your file was never read. A file that draws no diagnostic and runs no code is the worst shape a compiler can leave you in, because nothing about it looks wrong.",
+      "tr": "<code>std/</code>와 <code>extern/</code>은 컴파일러가 가진 모듈을 가리키며, resolver는 이를 import용으로 예약해 두었습니다. 그런데 프로젝트 파일이 그런 모듈을 <em>선언하는</em> 것은 막지 않았습니다. 자기 <code>src/io.glyph</code>의 <code>module std/io</code>는 깔끔하게 컴파일되었고, 그다음 <code>import std/io { shout }</code>는 스텁으로 해석되어 <code>shout</code>가 export되지 않았다고 보고했습니다. 여러분의 파일은 읽히지도 않았습니다. 진단도 없고 코드도 실행되지 않는 파일은 컴파일러가 남길 수 있는 최악의 상태입니다. 겉보기에 잘못된 것이 하나도 없기 때문입니다."
+    },
+    {
+      "id": "h-6169c8f2",
+      "kind": "html",
+      "en": "glyph check --no-tsc, on src/io.glyph declaring `module std/io`",
+      "tr": "glyph check --no-tsc, `module std/io`를 선언한 src/io.glyph에 대해"
+    },
+    {
+      "id": "h-fffab50d",
+      "kind": "html",
+      "en": "The prefix is matched as a whole first segment, so <code>standard</code>, <code>externals/io</code>, <code>app/std</code> and <code>app/extern/helper</code> are untouched, and importing under either prefix still works the way it always did.",
+      "tr": "접두사는 첫 번째 세그먼트 전체로 매칭하므로 <code>standard</code>, <code>externals/io</code>, <code>app/std</code>, <code>app/extern/helper</code>는 영향을 받지 않고, 두 접두사 아래의 것을 import하는 것은 언제나처럼 동작합니다."
+    },
+    {
+      "id": "h-15f6ae51",
+      "kind": "html",
+      "en": "glyph check, on `const x = ` followed by 2,000 nested brackets",
+      "tr": "glyph check, `const x = ` 뒤에 중첩된 괄호 2,000개에 대해"
+    },
+    {
+      "id": "h-bdfdd02f",
+      "kind": "html",
+      "en": "The limit is 64 and it was measured rather than picked. One level of the costliest construct, a nested array literal, costs 7,792 bytes of stack in the release build and 8,810 in the debug one, found by binary-searching the smallest thread stack a given depth will parse in. The thinnest stack the parser runs on is a spawned thread's 2 MiB, which is what the language server's workers get, and 64 levels spend under a third of it in the costlier build. The deepest nesting across the 343 <code>.glyph</code> files in this repository is 16. The limit covers expressions, types, patterns, blocks and JSX children alike, and a thousand sibling arrays still parse, because depth is per-construct nesting and not a budget spent over the file.",
+      "tr": "한도는 64이며, 고른 것이 아니라 측정한 값입니다. 가장 비싼 구문인 중첩 배열 리터럴 한 단계는 릴리스 빌드에서 스택 7,792바이트, 디버그 빌드에서 8,810바이트를 쓰며, 주어진 깊이를 파싱할 수 있는 가장 작은 스레드 스택을 이진 탐색해서 찾았습니다. 파서가 실행되는 가장 얇은 스택은 생성된 스레드의 2 MiB이고, 언어 서버의 워커가 받는 것이 이것이며, 64단계는 더 비싼 빌드에서도 그 3분의 1 미만을 씁니다. 이 저장소의 <code>.glyph</code> 파일 343개 중 가장 깊은 중첩은 16입니다. 한도는 표현식, 타입, 패턴, 블록, JSX 자식에 똑같이 적용되며, 깊이는 파일 전체에 쓰는 예산이 아니라 구문별 중첩이므로 형제 배열 천 개는 여전히 파싱됩니다."
+    },
+    {
+      "id": "h-e9d87086",
+      "kind": "html",
+      "en": "When neither compiler is wrong",
+      "tr": "어느 컴파일러도 틀리지 않았을 때"
+    },
+    {
+      "id": "h-12780416",
+      "kind": "html",
+      "en": "There is a third shape, and it is the one that reads worst. Glyph reports nothing, <code>tsc</code> reports something true, and the program you wrote was fine. What failed is the translation between them.",
+      "tr": "세 번째 모양이 있고, 가장 나쁘게 읽히는 것이 이것입니다. Glyph는 아무것도 보고하지 않고, <code>tsc</code>는 맞는 것을 보고하며, 작성한 프로그램은 문제가 없었습니다. 실패한 것은 둘 사이의 번역입니다."
+    },
+    {
+      "id": "h-a7c4f666",
+      "kind": "html",
+      "en": "A binding in Glyph has one type for the whole of its life. TypeScript narrows a binding to whatever it last saw assigned, and its <code>boolean</code> is the union <code>true | false</code>, so <code>let done = false</code> reached <code>tsc</code> typed <code>false</code> and the <code>true</code> arm of the emitted <code>switch</code> had nothing to match.",
+      "tr": "Glyph에서 바인딩은 평생 하나의 타입을 가집니다. TypeScript는 바인딩을 마지막으로 대입된 것으로 좁히고, 그 <code>boolean</code>은 <code>true | false</code> 유니언이므로, <code>let done = false</code>는 <code>false</code> 타입으로 <code>tsc</code>에 도달했고 생성된 <code>switch</code>의 <code>true</code> arm은 매칭할 것이 없었습니다."
+    },
+    {
+      "id": "h-af7bd67d",
+      "kind": "html",
+      "en": "poll.glyph, and what tsc said about it before 0.1.89",
+      "tr": "poll.glyph, 그리고 0.1.89 이전에 tsc가 이에 대해 한 말"
+    },
+    {
+      "id": "h-bd3065af",
+      "kind": "html",
+      "en": "A type declared as a set of string literals failed the same way, and so did <code>==</code>, which came back as <code>TS2367</code> instead: two messages, two codes, one cause. The app that hit it was polling a flag a timer callback sets, which is how you turn an event-based API into a value while Glyph has no <code>Promise</code> you can construct by hand. The callback turned out to be beside the point: four lines with no callback do it.",
+      "tr": "문자열 리터럴 집합으로 선언한 타입도 같은 방식으로 실패했고, <code>==</code>도 마찬가지였는데 대신 <code>TS2367</code>로 돌아왔습니다. 메시지 두 개, 코드 두 개, 원인 하나입니다. 이 문제에 부딪힌 앱은 타이머 콜백이 설정하는 플래그를 폴링하고 있었는데, Glyph에 직접 생성할 수 있는 <code>Promise</code>가 없는 동안 이벤트 기반 API를 값으로 바꾸는 방법이 그것입니다. 콜백은 핵심이 아니었습니다. 콜백 없는 네 줄로도 재현됩니다."
+    },
+    {
+      "id": "h-a0a47a8e",
+      "kind": "html",
+      "en": "The fix is not a new diagnostic, because there is nothing to diagnose. The emitter now restates the type the checker already decided, at the two places that discriminate over a value: the <code>match</code> scrutinee and either side of a <code>==</code> or <code>!=</code>. Each side is decided by its own type and ignores what sits next to it, so a comparison between two bindings is covered the same way a comparison against a literal is.",
+      "tr": "진단할 것이 없으므로 새 진단으로 고치지 않습니다. emitter가 이제 값으로 분기하는 두 곳, 즉 <code>match</code> 검사 대상과 <code>==</code>나 <code>!=</code>의 양쪽에서 검사기가 이미 결정한 타입을 다시 적습니다. 각 쪽은 자기 타입으로 결정되고 옆에 있는 것은 무시하므로, 두 바인딩 사이의 비교도 리터럴과의 비교와 똑같이 다뤄집니다."
+    },
+    {
+      "id": "h-0bd7cc54",
+      "kind": "html",
+      "en": "The checks you want still fire. <code>m == \"nope\"</code> where <code>m</code> is a <code>Mode</code> is still rejected, and now the message names <code>Mode</code> instead of the single member <code>m</code> happened to be holding. Doing this at the assignment instead would have been less code and would have thrown that away: a cast to <code>Mode</code> is accepted where the annotated assignment is not, and the membership check is the part Glyph leaves to <code>tsc</code> on purpose.",
+      "tr": "원하는 검사는 여전히 발생합니다. <code>m</code>이 <code>Mode</code>일 때 <code>m == \"nope\"</code>는 여전히 거부되며, 이제 메시지는 <code>m</code>이 우연히 담고 있던 멤버 하나가 아니라 <code>Mode</code>를 짚습니다. 이를 대입에서 했다면 코드는 적었겠지만 이것을 버렸을 것입니다. 타입 표기가 있는 대입은 받아들여지지 않는 곳에서도 <code>Mode</code>로의 캐스트는 받아들여지고, 멤버십 검사는 Glyph가 의도적으로 <code>tsc</code>에 맡기는 부분입니다."
+    },
+    {
+      "id": "h-c761fe10",
+      "kind": "html",
+      "en": "What it costs is small and worth naming. A cast can narrow as well as confirm, so a value Glyph types as <code>bool</code> whose TypeScript type came out <code>unknown</code> now passes where the <code>switch</code> used to complain. The two types still have to be comparable, so a model that has drifted far enough to matter, <code>string</code> against <code>bool</code>, reports <code>TS2352</code> rather than nothing.",
+      "tr": "비용은 작고, 밝혀 둘 만합니다. 캐스트는 확인하는 것만이 아니라 좁힐 수도 있으므로, Glyph가 <code>bool</code>로 타입을 매긴 값의 TypeScript 타입이 <code>unknown</code>으로 나왔다면, 예전에 <code>switch</code>가 불평하던 곳을 이제 통과합니다. 두 타입은 여전히 비교 가능해야 하므로, 의미 있을 만큼 멀리 어긋난 모델, 즉 <code>string</code> 대 <code>bool</code>은 아무것도 아닌 대신 <code>TS2352</code>를 보고합니다."
+    },
+    {
+      "id": "h-e551f1c7",
+      "kind": "html",
+      "en": "The same typo, two answers",
+      "tr": "같은 오타, 두 가지 답"
+    },
+    {
+      "id": "h-809fcce8",
+      "kind": "html",
+      "en": "A misspelled standard-library function used to get a different answer depending on how you had written the import, which is the kind of inconsistency that teaches you not to trust either answer.",
+      "tr": "철자가 틀린 표준 라이브러리 함수는 예전에 import를 어떻게 썼느냐에 따라 다른 답을 받았는데, 이는 어느 답도 믿지 말라고 가르치는 종류의 불일치입니다."
+    },
+    {
+      "id": "h-09184d08",
+      "kind": "html",
+      "en": "the named import, always an E0105",
+      "tr": "이름 import, 언제나 E0105"
+    },
+    {
+      "id": "h-22b48a10",
+      "kind": "html",
+      "en": "the namespace read, before 0.1.72",
+      "tr": "네임스페이스 읽기, 0.1.72 이전"
+    },
+    {
+      "id": "h-18ff7042",
+      "kind": "html",
+      "en": "The first spelling was checked against the module's export list during resolution. The second was not checked at all, so it fell through to <code>tsc</code>, which saw a property access on an object and answered in those terms. Both spellings go through the export list now, and both say <code>E0105</code>, naming the member and the module it is missing from.",
+      "tr": "첫 번째 표기는 해석 단계에서 모듈의 export 목록에 대해 검사되었습니다. 두 번째는 아예 검사되지 않았으므로 <code>tsc</code>까지 넘어갔고, 그것은 객체에 대한 속성 접근으로 보고 그 관점에서 답했습니다. 이제 두 표기 모두 export 목록을 거치며, 둘 다 멤버와 그것이 빠진 모듈을 짚는 <code>E0105</code>를 보고합니다."
+    },
+    {
+      "id": "h-c8c0f51d",
+      "kind": "html",
+      "en": "Switching it on immediately found something nobody was looking for: a test fixture had been calling <code>fs.write</code>, where the function is <code>write_text</code>. It had passed for months because that fixture runs with type-checking off, and nothing else in the compiler looked at namespace members. The export list is now the authority for both spellings, so a separate check keeps it in step with what the runtime actually exports. That check was written, then deliberately broken to confirm it failed, which is how we found its first version had been silently checking nothing.",
+      "tr": "이를 켜자마자 아무도 찾고 있지 않던 것이 나왔습니다. 테스트 fixture 하나가 함수 이름이 <code>write_text</code>인데 <code>fs.write</code>를 호출하고 있었습니다. 그 fixture는 타입 검사를 끄고 실행되고 컴파일러의 다른 어떤 부분도 네임스페이스 멤버를 보지 않았기 때문에 몇 달 동안 통과했습니다. 이제 export 목록이 두 표기 모두의 기준이므로, 별도의 검사가 이를 런타임이 실제로 export하는 것과 맞춰 둡니다. 그 검사는 작성한 뒤 실패하는지 확인하려고 일부러 망가뜨려 봤는데, 그렇게 해서 첫 번째 버전이 아무것도 검사하지 않고 있었다는 것을 알게 되었습니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-fd12ee55",
+      "kind": "html",
+      "en": "<code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, <code>E0013</code> for a statement that begins on the line where another ended, which used to drop the value after it, <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive or a declared record or union, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away, <code>E0210</code> for a member an array or a string does not have, the same two codes for a value that is not in a string-literal union's declared set, <code>E0011</code> for a construct nested past 64 levels, <code>E0101</code> for a relative import path, which used to stop in the parser as a generic \"expected module path segment\", and <code>E0113</code> for a project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.",
+      "tr": "<code>async fn</code> 밖의 <code>await</code>에 대한 <code>E0222</code>, 값을 만들지 않는 값 위치 <code>match</code> arm에 대한 <code>E0223</code>, <code>mut</code>가 빠진 대입에 대한 <code>E0008</code>, 레코드 형태만 존재하는데 위치 기반 payload 필드를 여러 개 준 variant에 대한 <code>E0010</code>, 전달할 수 없는 위치의 <code>?</code>에 대한 <code>E0302</code>/<code>E0303</code>, 생성된 모듈이 이미 의존하는 이름을 가리게 될 선언에 대한 <code>E0110</code>/<code>E0111</code>, 빌드 루트 아래의 어떤 모듈도 가리키지 않는 로컬 import에 대한 <code>E0104</code>, 이름 import로 닿았든 네임스페이스로 닿았든 모듈이 export하지 않는 이름에 대한 <code>E0105</code>, 값 자리에 쓴 타입 이름에 대한 <code>E0228</code>, 다른 문장이 끝난 줄에서 시작하는 문장(예전에는 그 뒤의 값을 버렸습니다)에 대한 <code>E0013</code>, <code>tsc</code>가 좁혀서 없애는 <code>Nullable&lt;T&gt;</code>의 경우를 포함해 원시 타입이나 선언된 레코드 또는 유니언에 대입하거나 넘긴 prelude 컨테이너에 대한 <code>E0204</code>/<code>E0211</code>, 배열이나 문자열에 없는 멤버에 대한 <code>E0210</code>, 문자열 리터럴 유니언의 선언된 집합에 없는 값에 대한 같은 두 코드, 64단계를 넘어 중첩된 구문에 대한 <code>E0011</code>, 예전에는 파서에서 일반적인 \"expected module path segment\"로 멈추던 상대 경로 import에 대한 <code>E0101</code>, 그리고 예전에는 깔끔하게 컴파일되고 닿을 수 없었던 <code>std/</code>나 <code>extern/</code> 아래에 선언한 프로젝트 모듈에 대한 <code>E0113</code>. 가림 목록은 emitter가 스스로 쓰는 타입도 다루므로, <code>Issue</code>와 <code>Record</code>는 선언에서 잡힙니다. 모든 코드에는 한 줄짜리 수정 방법, 규칙을 설명하는 참고 사항, 그리고 자세한 <code>glyph --explain</code> 설명이 있습니다. <code>docs/error-codes.md</code>에 목록이 있고, 테스트가 둘을 맞춰 둡니다."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "개선 중"
+    },
+    {
+      "id": "h-b38f0d7d",
+      "kind": "html",
+      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it. Separately, the read-site pin that keeps a <code>bool</code> or string-literal-union binding matchable follows a type alias only inside the module being emitted, so <code>pub type Ready = bool</code> in one module and <code>let r: catalog.Ready = false</code> in another still reaches <code>tsc</code> as <code>TS2678</code>. String-literal unions are covered across modules in all three import spellings, and since 0.1.123 the diagnostic names the declaration (expected <code>Mode</code>) under every spelling instead of printing its literal set under one of them.",
+      "tr": "<code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받아 pending 값의 배열을 돌려주며, 이는 <code>[object Promise]</code>로 출력됩니다. 조건 함수를 받는 배열 함수 다섯 개는 콜백 위치에서 <code>E0211</code>로 이를 막습니다. 나머지 세 개를 같은 방식으로 모델링하면 Glyph가 작업을 동시에 실행하는 방법인 <code>par.all(array.map(items, async fn ...))</code>도 거부하게 됩니다. pending 값의 배열을 언어에서 표현할 방법이 없기 때문입니다. 이는 빠진 항목이 아니라 타입 시스템 차원의 결정이므로 열려 있습니다. 모듈 수준 <code>const</code> 초기값에는 둘러싼 호출 가능한 것이 없으므로 최상위 <code>await</code>가 허용되고 생성된 ESM이 이를 실행합니다. Glyph가 암묵적인 비동기 모듈 초기화를 원하는지는 아직 열린 명세 질문입니다. <code>E0223</code>은 함수가 반환 타입을 선언할 때만 끝의 <code>match</code>를 판정할 수 있으므로, 타입 표기 없는 람다 안의 arm은 여전히 <code>tsc</code>까지 갑니다. 가림 쪽에서는 두 가지가 절반만 되어 있습니다. <code>E0110</code>은 이름을 유지하게 해 주지 않고 바꾸라고 하므로, <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code>, <code>Promise</code>는 여전히 타입이나 variant 이름으로 쓸 수 없습니다. 그리고 <code>E0111</code>은 <code>type Key = string | number</code>가 엉뚱한 의미가 되는 것을 막지만 그것을 표현할 방법은 주지 않습니다. 원시 타입 두 개의 유니언은 Glyph에서 <code>extern_ts</code> 말고는 표현할 방법이 없고, 그 내용은 Glyph 자체 검사기가 불투명하게 다룹니다. 태그 없는 유니언은 망라성, 런타임 디스크립터, <code>is</code>에 영향을 주므로 타입 시스템 차원의 결정이며, 일정이 잡혀 있지 않습니다. <code>E0104</code>는 <code>glyph build</code>와 <code>glyph check</code>에는 닿지만 에디터에는 닿지 않습니다. LSP는 빌드 루트 없이 문서의 텍스트를 분석하고, 워크스페이스 폴더도 빌드 루트가 아니므로, 추측하면 이 검사가 피하려고 설계된 오탐이 생길 것입니다. 그리고 예약어 매개변수는 같은 파일의 관계없는 오류 뒤에 여전히 숨습니다. 수집 단계의 실패가 그것을 찾았을 해석 단계를 건너뛰게 하기 때문입니다. 이와 별도로, <code>bool</code>이나 문자열 리터럴 유니언 바인딩을 매칭 가능하게 유지하는 읽기 위치 고정은 생성 중인 모듈 안에서만 타입 별칭을 따라가므로, 한 모듈의 <code>pub type Ready = bool</code>과 다른 모듈의 <code>let r: catalog.Ready = false</code>는 여전히 <code>TS2678</code>로 <code>tsc</code>에 도달합니다. 문자열 리터럴 유니언은 세 가지 import 표기 모두에서 모듈 간에 다뤄지며, 0.1.123부터 진단은 표기 중 하나에서만 리터럴 집합을 출력하는 대신 모든 표기에서 선언(expected <code>Mode</code>)을 짚습니다."
+    }
+  ]
+}

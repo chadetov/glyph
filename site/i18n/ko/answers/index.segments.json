@@ -1,0 +1,452 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/index.html",
+  "locale": "ko",
+  "source_hash": "f574b9ebcd22635e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Answers · what engineers ask about Glyph · Glyph",
+      "tr": "답변 · 엔지니어들이 Glyph에 대해 묻는 것 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Specific answers to what engineers ask about Glyph: what stops silent breakage, React and npm, why not tooled TypeScript, and debugging in production.",
+      "tr": "엔지니어들이 Glyph에 대해 묻는 질문에 대한 구체적인 답: 조용한 파손을 무엇이 막는지, React와 npm, 왜 도구를 갖춘 TypeScript가 아닌지, 프로덕션에서의 디버깅."
+    },
+    {
+      "id": "h-4ad0a0a6",
+      "kind": "html",
+      "en": "Answers",
+      "tr": "답변"
+    },
+    {
+      "id": "h-b8cc598e",
+      "kind": "html",
+      "en": "What engineers <span class=\"accent\">ask about Glyph</span>.",
+      "tr": "엔지니어들이 <span class=\"accent\">Glyph에 대해 묻는 것</span>."
+    },
+    {
+      "id": "h-18cc597f",
+      "kind": "html",
+      "en": "Each answer shows a worked example and ends with what does not work yet. Start wherever your doubt is. New to Glyph? The <a href=\"/start/\">10-minute Start Here</a> is the fastest first run.",
+      "tr": "각 답변은 예제를 보여 주고, 아직 동작하지 않는 것으로 끝납니다. 의문이 드는 곳에서 시작하세요. Glyph가 처음이라면 <a href=\"/start/\">10분 만에 시작하기</a>가 가장 빠른 첫걸음입니다."
+    },
+    {
+      "id": "h-041d266f",
+      "kind": "html",
+      "en": "The problem it solves",
+      "tr": "해결하는 문제"
+    },
+    {
+      "id": "h-7289e459",
+      "kind": "html",
+      "en": "What an agent's edit can break without anyone noticing, and what Glyph does about each.",
+      "tr": "에이전트의 편집이 아무도 모르게 깨뜨릴 수 있는 것과, 각각에 대해 Glyph가 하는 일."
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?"
+    },
+    {
+      "id": "h-bdd8080c",
+      "kind": "html",
+      "en": "No <code>any</code>, no casts, exhaustive <code>match</code>, runtime-checked types, and colocated tests that run on every build.",
+      "tr": "<code>any</code>도 캐스트도 없고, 망라적인 <code>match</code>, 런타임에 검사되는 타입, 빌드할 때마다 실행되는 코드 옆의 테스트가 있습니다."
+    },
+    {
+      "id": "h-b91718bd",
+      "kind": "html",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일 전체를 다시 포맷하나요?"
+    },
+    {
+      "id": "h-e84f06e7",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout, nothing repacked.",
+      "tr": "한 줄을 바꾸면 diff도 한 줄입니다. 정해진 레이아웃은 하나이고, 다시 묶이는 것은 없습니다."
+    },
+    {
+      "id": "h-546a7b11",
+      "kind": "html",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "에이전트가(또는 내가) 무엇이 어디에 정의되어 있는지 찾을 수 있나요?"
+    },
+    {
+      "id": "h-9cc9e5b6",
+      "kind": "html",
+      "en": "One name, one declaration form. <code>grep</code> always lands on it.",
+      "tr": "이름 하나에 선언 형태 하나. <code>grep</code>은 언제나 정의에 닿습니다."
+    },
+    {
+      "id": "h-c6330c11",
+      "kind": "html",
+      "en": "Deciding whether to adopt it",
+      "tr": "도입할지 결정하기"
+    },
+    {
+      "id": "h-22146028",
+      "kind": "html",
+      "en": "Why a language rather than more tooling, and what taking it on costs.",
+      "tr": "도구를 더하는 대신 언어를 택한 이유와, 도입하는 데 드는 비용."
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "왜 Go나 새 언어가 아니라 TypeScript인가요?"
+    },
+    {
+      "id": "h-851a58c8",
+      "kind": "html",
+      "en": "Because that's where your ecosystem is, and it's why adoption is per-file.",
+      "tr": "여러분의 생태계가 거기 있기 때문이고, 그래서 파일 단위로 도입할 수 있습니다."
+    },
+    {
+      "id": "h-32fb06b2",
+      "kind": "html",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "그냥 strict TypeScript + zod + eslint + ts-pattern을 쓰면 안 되나요?"
+    },
+    {
+      "id": "h-23c639b0",
+      "kind": "html",
+      "en": "Non-optionality: the language the agent can't config-disable.",
+      "tr": "선택 사항이 아니라는 점: 에이전트가 설정으로 끌 수 없는 언어입니다."
+    },
+    {
+      "id": "h-e2f8d2d6",
+      "kind": "html",
+      "en": "Is Glyph worth it if I'm not using AI?",
+      "tr": "AI를 쓰지 않아도 Glyph가 쓸 만한가요?"
+    },
+    {
+      "id": "h-9d32c00a",
+      "kind": "html",
+      "en": "Yes: the guarantees are plain engineering wins a human gets directly.",
+      "tr": "네. 보장은 사람이 직접 누리는 평범한 엔지니어링상의 이점입니다."
+    },
+    {
+      "id": "h-e92baf62",
+      "kind": "html",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "AI가 거의 본 적 없는 언어를 안정적으로 쓸 수 있나요?"
+    },
+    {
+      "id": "h-d8728111",
+      "kind": "html",
+      "en": "Most of what a model knows about TypeScript carries over, and the compiler names the places it doesn't.",
+      "tr": "모델이 TypeScript에 대해 아는 것은 대부분 그대로 통하고, 통하지 않는 곳은 컴파일러가 알려 줍니다."
+    },
+    {
+      "id": "h-7af5847c",
+      "kind": "html",
+      "en": "Will a new Glyph release break my build?",
+      "tr": "새 Glyph 릴리스가 내 빌드를 깨뜨리나요?"
+    },
+    {
+      "id": "h-722022d5",
+      "kind": "html",
+      "en": "Projects pin the compiler exactly, so no release arrives by accident. <code>glyph doctor</code> says one exists; <code>glyph upgrade</code> takes it.",
+      "tr": "프로젝트는 컴파일러 버전을 정확히 고정하므로 어떤 릴리스도 실수로 들어오지 않습니다. 새 릴리스가 있으면 <code>glyph doctor</code>가 알려 주고, <code>glyph upgrade</code>로 받습니다."
+    },
+    {
+      "id": "h-3c3ebd0a",
+      "kind": "html",
+      "en": "Using it with your stack",
+      "tr": "기존 스택과 함께 쓰기"
+    },
+    {
+      "id": "h-ec9e0bd8",
+      "kind": "html",
+      "en": "npm packages, an existing app, API boundaries, React.",
+      "tr": "npm 패키지, 기존 앱, API 경계, React."
+    },
+    {
+      "id": "h-e9a25225",
+      "kind": "html",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "기존 TypeScript, JavaScript, npm 라이브러리를 쓸 수 있나요?"
+    },
+    {
+      "id": "h-3731bc81",
+      "kind": "html",
+      "en": "Yes: import any npm package, keep a hand-written <code>.ts</code> shim where you need one, and import Glyph back into <code>.ts</code>.",
+      "tr": "네. 어떤 npm 패키지든 import하고, 필요한 곳에는 직접 작성한 <code>.ts</code> shim을 두고, Glyph를 다시 <code>.ts</code>로 import할 수 있습니다."
+    },
+    {
+      "id": "h-68c07ce1",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "기존 앱 안에서 Glyph를 도입할 수 있나요, 아니면 전부 아니면 전무인가요?"
+    },
+    {
+      "id": "h-40d4518d",
+      "kind": "html",
+      "en": "No rewrite: the domain core in Glyph, the rest in TypeScript. The emitted TypeScript is imported by a stock Vite app like any other module.",
+      "tr": "다시 작성할 필요가 없습니다. 도메인 핵심은 Glyph로, 나머지는 TypeScript로 둡니다. 생성된 TypeScript는 기본 Vite 앱이 여느 모듈처럼 import합니다."
+    },
+    {
+      "id": "h-01f55cfa",
+      "kind": "html",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "API마다 검증기를 직접 작성해야 하나요?"
+    },
+    {
+      "id": "h-aa1959d8",
+      "kind": "html",
+      "en": "No. Declaring a type generates its validator.",
+      "tr": "아니요. 타입을 선언하면 검증기가 생성됩니다."
+    },
+    {
+      "id": "h-aacedd15",
+      "kind": "html",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "API 명세에서 타입이 있는 클라이언트와 서버를 생성할 수 있나요?"
+    },
+    {
+      "id": "h-56e357b7",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: committed, greppable code.",
+      "tr": "<code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: 커밋하고 grep할 수 있는 코드."
+    },
+    {
+      "id": "h-03457be7",
+      "kind": "html",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "React의 컴포넌트, hook, Context와 함께 쓸 수 있나요?"
+    },
+    {
+      "id": "h-83e1d236",
+      "kind": "html",
+      "en": "First-class JSX, hooks, and exhaustive reducer actions.",
+      "tr": "일급 JSX, hook, 망라적인 reducer 액션."
+    },
+    {
+      "id": "h-d14ef0f9",
+      "kind": "html",
+      "en": "How do I share mutable state between functions?",
+      "tr": "함수 사이에서 변경 가능한 상태를 어떻게 공유하나요?"
+    },
+    {
+      "id": "h-9a4c4436",
+      "kind": "html",
+      "en": "A store: a <code>const</code> whose <code>.set</code>/<code>.update</code> are the write-surface.",
+      "tr": "store입니다. <code>.set</code>/<code>.update</code>가 쓰기 창구인 <code>const</code>입니다."
+    },
+    {
+      "id": "h-450a537d",
+      "kind": "html",
+      "en": "What you can build with it",
+      "tr": "만들 수 있는 것"
+    },
+    {
+      "id": "h-a57d1773",
+      "kind": "html",
+      "en": "The language and standard library, by the kind of program.",
+      "tr": "프로그램 종류별로 본 언어와 표준 라이브러리."
+    },
+    {
+      "id": "h-49ee7f98",
+      "kind": "html",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "이것은 진짜 언어인가요, 구멍 많은 장난감인가요?"
+    },
+    {
+      "id": "h-6f5d2044",
+      "kind": "html",
+      "en": "Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.",
+      "tr": "모듈 가시성, 인터페이스 제약, defer, 어떤 값으로든 쓸 수 있고 타입을 유지하는 <code>match</code>, 그리고 <code>slice</code>, <code>pad_start</code>, <code>fold</code>를 갖춘 표준 라이브러리."
+    },
+    {
+      "id": "h-a3ec390e",
+      "kind": "html",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "돈을 다루거나, 내가 통제하지 못하는 입력을 맡겨도 되나요?"
+    },
+    {
+      "id": "h-bc5ff3de",
+      "kind": "html",
+      "en": "Exact decimals and ids, invariants as types, injection as a compile error.",
+      "tr": "정확한 십진수와 id, 타입으로 표현한 불변식, 컴파일 오류가 되는 인젝션."
+    },
+    {
+      "id": "h-97be9762",
+      "kind": "html",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "웹 페이지를 서빙할 수 있나요, 아니면 JSON API만 되나요?"
+    },
+    {
+      "id": "h-a3e56df8",
+      "kind": "html",
+      "en": "HTML, redirects, response headers, and form posts, without a hand-written server.",
+      "tr": "직접 작성한 서버 없이 HTML, 리다이렉트, 응답 헤더, 폼 전송."
+    },
+    {
+      "id": "h-e3bd5d73",
+      "kind": "html",
+      "en": "Can I write a program someone types into?",
+      "tr": "사용자가 입력하는 프로그램을 작성할 수 있나요?"
+    },
+    {
+      "id": "h-b04febf4",
+      "kind": "html",
+      "en": "<code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.",
+      "tr": "<code>io.read_line</code>은 stdin이 닫힐 때까지 기다리지 않고 줄이 도착하는 대로 응답하므로, REPL이나 게임 루프가 동작합니다."
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "서버를 작성할 수 있나요, 아니면 프로세스가 그냥 종료되나요?"
+    },
+    {
+      "id": "h-d69c3e64",
+      "kind": "html",
+      "en": "<code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.",
+      "tr": "<code>main</code>은 준비를 마치고 반환하며, 소켓과 타이머가 대기 중인 동안 프로세스는 살아 있습니다. Node와 같은 규칙입니다."
+    },
+    {
+      "id": "h-0a58139d",
+      "kind": "html",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "바이너리 데이터를 다룰 수 있나요, 아니면 모든 것이 문자열인가요?"
+    },
+    {
+      "id": "h-56281a97",
+      "kind": "html",
+      "en": "<code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.",
+      "tr": "<code>std/bytes</code>는 옥텟의 나열이며, 잘못된 입력을 건너뛰지 않고 거부하는 코덱과 실제 키를 받는 HMAC이 있습니다."
+    },
+    {
+      "id": "h-966247fe",
+      "kind": "html",
+      "en": "Working with an agent",
+      "tr": "에이전트와 함께 작업하기"
+    },
+    {
+      "id": "h-7495dd12",
+      "kind": "html",
+      "en": "Questions an agent asks the compiler before and after an edit.",
+      "tr": "편집 전후에 에이전트가 컴파일러에게 묻는 질문."
+    },
+    {
+      "id": "h-f56d1cc7",
+      "kind": "html",
+      "en": "Can the compiler tell me what a change will break before I make it?",
+      "tr": "변경하기 전에 그 변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?"
+    },
+    {
+      "id": "h-6e99d2f9",
+      "kind": "html",
+      "en": "<code>glyph_impact</code>: one verdict per site, from a closed list, with the reason, before you touch the file.",
+      "tr": "<code>glyph_impact</code>: 파일을 건드리기 전에, 정해진 목록에서 고른 판정을 위치마다 이유와 함께 하나씩."
+    },
+    {
+      "id": "h-d339a2b7",
+      "kind": "html",
+      "en": "Can my agent ask the compiler what a symbol is before it writes code?",
+      "tr": "에이전트가 코드를 쓰기 전에 컴파일러에게 심볼이 무엇인지 물어볼 수 있나요?"
+    },
+    {
+      "id": "h-e85a7e3e",
+      "kind": "html",
+      "en": "<code>glyph_symbol</code>: a union's variants with the syntax that constructs each, in one call. Eleven tools, each with a <code>glyph query</code> verb.",
+      "tr": "<code>glyph_symbol</code>: 유니언의 variant와 각각을 생성하는 문법을 한 번의 호출로. 도구 열한 개, 각각 <code>glyph query</code> 동사가 있습니다."
+    },
+    {
+      "id": "h-e2d1e436",
+      "kind": "html",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "빌드가 실패하면 컴파일러가 에이전트에게 고치는 방법을 알려 주나요?"
+    },
+    {
+      "id": "h-9f5626a6",
+      "kind": "html",
+      "en": "The diagnostic carries the symbol at fault, the legal alternatives, and what a repairing edit must not break. <code>glyph fix</code> writes the ones the compiler settles on its own.",
+      "tr": "진단에는 문제가 된 심볼, 가능한 대안, 수정하는 편집이 깨뜨리면 안 되는 것이 담깁니다. 컴파일러가 스스로 결정할 수 있는 수정은 <code>glyph fix</code>가 직접 씁니다."
+    },
+    {
+      "id": "h-bbccff1f",
+      "kind": "html",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "에이전트가 읽는 문서는 생성된 것인가요, 사람이 써서 낡은 것인가요?"
+    },
+    {
+      "id": "h-f3a7c0f2",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits the diagnostics, the prelude, the stdlib signatures and the tool manual out of the compiler's own tables, and a gate fails when a hand-written copy disagrees.",
+      "tr": "<code>glyph llms --json</code>은 진단, prelude, stdlib 시그니처, 도구 설명서를 컴파일러 자체 테이블에서 출력하고, 사람이 쓴 사본이 이와 다르면 게이트가 실패합니다."
+    },
+    {
+      "id": "h-8479d742",
+      "kind": "html",
+      "en": "Errors, editors and production",
+      "tr": "오류, 에디터, 프로덕션"
+    },
+    {
+      "id": "h-2c63defe",
+      "kind": "html",
+      "en": "What you see when something is wrong, from the editor to on-call.",
+      "tr": "무언가 잘못되었을 때 에디터에서 온콜까지 보게 되는 것."
+    },
+    {
+      "id": "h-173622d8",
+      "kind": "html",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "에디터, 디버깅, 오류 경험은 어떤가요?"
+    },
+    {
+      "id": "h-dae86273",
+      "kind": "html",
+      "en": "A language server for any LSP editor, and errors with a stable code that name the fix.",
+      "tr": "모든 LSP 에디터를 위한 언어 서버와, 수정 방법을 알려 주는 고정된 코드를 가진 오류."
+    },
+    {
+      "id": "h-d7091fd1",
+      "kind": "html",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요?"
+    },
+    {
+      "id": "h-81b11c93",
+      "kind": "html",
+      "en": "<code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.",
+      "tr": "<code>await</code> 문맥, 값이 없는 <code>match</code> arm, 빠진 <code>mut</code>을 생성된 TypeScript가 아니라 여러분의 소스 기준으로 보고합니다."
+    },
+    {
+      "id": "h-f32168df",
+      "kind": "html",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "파싱이 실패하면 이유를 알 수 있나요?"
+    },
+    {
+      "id": "h-b7a930d1",
+      "kind": "html",
+      "en": "Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.",
+      "tr": "어떤 필드인지, 어떤 규칙을 어겼는지, 위반한 <code>where</code> 조건, 그리고 분기에 쓸 <code>code</code>."
+    },
+    {
+      "id": "h-2a9e070d",
+      "kind": "html",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "새벽 3시에 프로덕션에서 장애가 나면 온콜 담당자는 무엇을 보나요?"
+    },
+    {
+      "id": "h-ba5d5c26",
+      "kind": "html",
+      "en": "Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.",
+      "tr": "직접 소유한 읽을 수 있는 TS, <code>.glyph</code>로 연결되는 소스 맵, 그리고 <code>build</code>가 보고하는 것을 똑같이 보고하는 <code>run</code>."
+    },
+    {
+      "id": "h-366d0e89",
+      "kind": "html",
+      "en": "Read them in order &rarr;",
+      "tr": "순서대로 읽기 &rarr;"
+    }
+  ]
+}

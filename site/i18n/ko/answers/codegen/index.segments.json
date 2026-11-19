@@ -1,0 +1,164 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/codegen/index.html",
+  "locale": "ko",
+  "source_hash": "6bd6413e23269b0f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I generate a typed client from my API spec? · Glyph",
+      "tr": "API 명세에서 타입이 있는 클라이언트를 생성할 수 있나요? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.",
+      "tr": "네. glyph gen openapi는 명세를 타입이 있는 HTTP 클라이언트나 라우터를 갖춘 서버 스텁으로 바꾸고, gen zod는 zod 스키마에서 같은 일을 합니다. 출력은 평범한 Glyph입니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 이전"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "API마다 검증기를 직접 작성해야 하나요?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "React의 컴포넌트, hook, Context와 함께 쓸 수 있나요?"
+    },
+    {
+      "id": "h-2d504cee",
+      "kind": "html",
+      "en": "12 &middot; From your spec",
+      "tr": "12 &middot; 명세에서 시작하기"
+    },
+    {
+      "id": "h-aacedd15",
+      "kind": "html",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "API 명세에서 타입이 있는 클라이언트와 서버를 생성할 수 있나요?"
+    },
+    {
+      "id": "h-b2505a68",
+      "kind": "html",
+      "en": "Yes. Point <code>glyph gen openapi</code> at an OpenAPI spec: <code>--client</code> emits a typed HTTP client, one function per operation; <code>--handlers</code> emits server stubs and a working <code>route</code> dispatcher. If your source of truth is a <code>zod</code> schema, <code>glyph gen zod</code> does the same. Everything comes out as <strong>committed, greppable Glyph</strong> you own and edit, never a hidden codegen step.",
+      "tr": "네. <code>glyph gen openapi</code>에 OpenAPI 명세를 주면 됩니다. <code>--client</code>는 작업마다 함수 하나씩, 타입이 있는 HTTP 클라이언트를 생성하고, <code>--handlers</code>는 서버 스텁과 동작하는 <code>route</code> 디스패처를 생성합니다. 기준이 <code>zod</code> 스키마라면 <code>glyph gen zod</code>가 같은 일을 합니다. 모든 결과는 숨겨진 코드 생성 단계가 아니라, 직접 소유하고 편집하는 <strong>커밋되고 grep할 수 있는 Glyph</strong>로 나옵니다."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "h-6e5bdb9e",
+      "kind": "html",
+      "en": "Hand-written API clients and their DTOs drift from the spec, and the drift is a class of bug nobody enjoys. Because Glyph generates <em>real</em> code (typed functions, real <code>type</code> declarations with runtime descriptors), the spec stays the source of truth, and regeneration is an idempotent, reviewable diff, not a black box.",
+      "tr": "직접 작성한 API 클라이언트와 DTO는 명세와 어긋나며, 그 어긋남은 아무도 반기지 않는 종류의 버그입니다. Glyph는 <em>실제</em> 코드(타입이 있는 함수, 런타임 디스크립터를 가진 실제 <code>type</code> 선언)를 생성하므로 명세가 기준으로 남고, 다시 생성하는 것은 블랙박스가 아니라 멱등이고 리뷰할 수 있는 diff입니다."
+    },
+    {
+      "id": "h-a484bd7e",
+      "kind": "html",
+      "en": "See it: the client",
+      "tr": "직접 보기: 클라이언트"
+    },
+    {
+      "id": "h-009373ae",
+      "kind": "html",
+      "en": "Each operation becomes an <code>async fn</code> with typed path parameters and a typed request body, returning the HTTP <code>Response</code>:",
+      "tr": "각 작업은 타입이 있는 경로 매개변수와 요청 본문을 받고 HTTP <code>Response</code>를 반환하는 <code>async fn</code>이 됩니다."
+    },
+    {
+      "id": "h-e40c10b9",
+      "kind": "html",
+      "en": "The <code>--handlers</code> router matches the path with array patterns, so <code>/tasks/{id}</code> becomes <code>[\"tasks\", id]</code> and binds the parameter for you. Each stub starts as a <code>501</code> with a comment showing the body-parse; you fill them in and wire it up with <code>await serve(PORT, route)</code>.",
+      "tr": "<code>--handlers</code> 라우터는 배열 패턴으로 경로를 매칭하므로, <code>/tasks/{id}</code>는 <code>[\"tasks\", id]</code>가 되고 매개변수를 대신 바인딩해 줍니다. 각 스텁은 본문 파싱 방법을 보여 주는 주석과 함께 <code>501</code>로 시작합니다. 내용을 채우고 <code>await serve(PORT, route)</code>로 연결하면 됩니다."
+    },
+    {
+      "id": "h-06875f94",
+      "kind": "html",
+      "en": "From a zod schema instead",
+      "tr": "zod 스키마에서 생성하기"
+    },
+    {
+      "id": "h-6535dfa8",
+      "kind": "html",
+      "en": "If your team already defines shapes with <code>zod</code>, generate from those directly. The schema becomes a first-class Glyph type with its own descriptor:",
+      "tr": "팀이 이미 <code>zod</code>로 모양을 정의하고 있다면 그것에서 바로 생성하세요. 스키마는 자체 디스크립터를 가진 일급 Glyph 타입이 됩니다."
+    },
+    {
+      "id": "h-e545951d",
+      "kind": "html",
+      "en": "A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>) comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code> that reads the discriminator property and validates into the right variant. Because Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges the wire object to the union for you.",
+      "tr": "다형적인 <strong>판별 유니언</strong>(OpenAPI <code>discriminator</code>)은 실제 Glyph 태그 유니언과, 판별 속성을 읽어 올바른 variant로 검증하는 생성된 <code>parse_&lt;Name&gt;</code>으로 나옵니다. Glyph는 임의의 속성이 아니라 생성자 이름으로 태그를 붙이므로, 생성된 디스패처가 전송 객체와 유니언 사이를 대신 이어 줍니다."
+    },
+    {
+      "id": "h-b5ade80b",
+      "kind": "html",
+      "en": "Where it falls short: generation is wire-faithful, so it maps the common 80%: objects, primitives, arrays, references, optional and nullable fields, and discriminated unions. It narrows what it can't represent exactly (a string enum, an <em>un</em>discriminated union) with a printed note rather than a validator that would reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen zod</code> need Node plus <code>typescript</code>/<code>zod</code>. <code>gen dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your project first, and they tell you exactly what to install if it's missing.",
+      "tr": "부족한 점: 생성은 전송 형식에 충실하므로 흔한 80%를 매핑합니다. 객체, 원시 타입, 배열, 참조, 선택 및 nullable 필드, 판별 유니언입니다. 정확히 표현할 수 없는 것(문자열 enum, 판별자가 <em>없는</em> 유니언)은 실제 데이터를 거부할 검증기를 만드는 대신 출력되는 안내와 함께 좁혀서 표현합니다. 더 풍부한 enum이 다음 차례입니다. 그리고 도구에는 실제 의존성이 있습니다. <code>gen dts</code>/<code>gen zod</code>에는 Node와 <code>typescript</code>/<code>zod</code>가 필요합니다. <code>gen dts</code>는 프로젝트에서 먼저 찾은 어떤 TypeScript(5, 6, 7.x 네이티브 포트)와도 동작하며, 빠져 있으면 무엇을 설치해야 하는지 정확히 알려 줍니다."
+    },
+    {
+      "id": "h-9d3f5fa1",
+      "kind": "html",
+      "en": "Keeping it in sync",
+      "tr": "동기화 유지하기"
+    },
+    {
+      "id": "h-c8254899",
+      "kind": "html",
+      "en": "Every generated file records the exact command that made it in its header. When a spec changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans for those headers and re-runs each one, rewriting the output. It's idempotent, so a regen with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check that fails if the committed code has drifted from the spec.",
+      "tr": "생성된 모든 파일은 그것을 만든 정확한 명령을 헤더에 기록합니다. 명세가 바뀌면 어떤 명령을 다시 실행해야 하는지 찾을 필요가 없습니다. <code>glyph regen</code>이 헤더를 찾아 각 명령을 다시 실행하고 출력을 다시 씁니다. 멱등이므로 명세가 바뀌지 않았으면 아무것도 건드리지 않고, 커밋된 코드가 명세와 어긋나면 실패하는 pre-commit hook이나 CI 검사에 깔끔하게 넣을 수 있습니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-46515e67",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, <code>glyph gen zod</code>, and <code>glyph regen</code> to refresh it all from source: every command emitting committed, descriptor-bearing, idempotently-regenerated Glyph.",
+      "tr": "<code>glyph gen openapi</code>(타입, <code>--client</code>, 실제 라우터를 갖춘 <code>--handlers</code>), <code>glyph gen dts</code>, <code>glyph gen zod</code>, 그리고 소스에서 전부 새로 고치는 <code>glyph regen</code>: 모든 명령이 커밋되고, 디스크립터를 가지며, 멱등하게 다시 생성되는 Glyph를 출력합니다."
+    },
+    {
+      "id": "h-d9d35e28",
+      "kind": "html",
+      "en": "Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it. That choice is recorded in the generated header, so <code>glyph regen</code> replays it.",
+      "tr": "하나의 Glyph 이름으로 작성될 두 타입이 있으면 생성기는 컴파일할 수 없는 파일을 만드는 대신 멈춥니다. 충돌하는 모든 원본을 짚고, 아무것도 쓰지 않으며, <code>--rename Source=GlyphName</code>으로 해결합니다. 이 선택은 생성된 헤더에 기록되므로 <code>glyph regen</code>이 이를 재현합니다."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "앞으로 할 것"
+    },
+    {
+      "id": "h-a232f27a",
+      "kind": "html",
+      "en": "Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved. Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.",
+      "tr": "더 풍부한 enum 매핑과 더 넓은 OpenAPI 지원이며, 각각 전송 형식에 충실하고 좁힐 때는 안내한다는 같은 규칙을 따릅니다. 패키지 자체의 <code>.d.ts</code>에서 생성하면 그 <code>interface</code>와 <code>type</code> 선언을 읽으므로, API가 클래스로 되어 있거나 필드가 <code>Omit</code> 같은 계산된 타입을 쓰는 라이브러리는 생성기가 안내에서 짚고 <code>glyph build</code>가 해석되지 않았다고 보고하는 참조를 남깁니다. 그런 클래스를 import해서 <code>new</code>로 생성하는 것은 생성이 필요 없고 <code>tsc</code>가 검사하므로, 그 경로는 영향을 받지 않습니다."
+    }
+  ]
+}

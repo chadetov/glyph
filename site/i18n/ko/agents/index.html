@@ -1,0 +1,127 @@
+---
+title: 에이전트와 도구 개발자를 위한 안내 · Glyph
+description: 에이전트가 Glyph와 함께 일하는 방법: 도구 열한 개를 갖춘 MCP 서버, 명령줄에서 쓰는 같은 쿼리, 실패한 빌드를 고치기 위한 glyph check --agent.
+source_hash: 74db8e3bf226ba57
+next_steps: |
+  각 부분 자세히 보기
+  여기서 시작하기 | /mcp/ | agents | MCP 서버 | 설정, 인자를 포함한 도구 열한 개, <code>glyph query</code> 동사, 그리고 서버가 아직 하지 못하는 것. | 서버 설정하기
+  /answers/ask-the-compiler/ | lookup | 에이전트가 컴파일러에게 심볼이 무엇인지 물어볼 수 있나요? | <code>glyph_symbol</code>: 유니언의 case와 각 case를 생성하는 문법.
+  /answers/impact/ | impact | 변경이 무엇을 깨뜨리는지 컴파일러가 먼저 알려 줄 수 있나요? | 여섯 가지 변경 종류, 위치마다 하나의 판정, 그리고 위에서 본 csvql 실행 전체.
+  /answers/repair-protocol/ | repair | 실패한 빌드가 에이전트에게 고치는 방법을 알려 주나요? | <code>check --agent</code>, <code>glyph fix</code>, 그리고 실제 출력으로 따라가는 안내.
+  /answers/generated-docs/ | docs | 에이전트용 문서는 자동으로 생성되나요? | <code>glyph llms</code>가 출력하는 것, 각 숫자의 출처, 그리고 아직 빠진 것.
+  /answers/ai-authoring/ | spark | AI가 거의 본 적 없는 언어를 쓸 수 있나요? | TypeScript에서 그대로 통하는 것과, 나머지를 컴파일러가 채우는 방법.
+---
+      <p class="q-eyebrow">에이전트와 도구 개발자를 위한 안내</p>
+      <h1 class="q-title">에이전트를 위한 컴파일러 인터페이스</h1>
+
+      <p class="short-answer">
+        에이전트는 Glyph 컴파일러에게 심볼이 무엇인지, 편집이 무엇을 깨뜨릴지, 빌드가 왜 실패했는지 묻고 JSON으로 답을 받을 수 있습니다. <code>glyph mcp</code>는 stdio로 도구 열한 개를 제공하며, 각 도구는 <code>glyph query</code> 동사로도 쓸 수 있습니다. <code>glyph llms</code>는 오프라인에서 언어 레퍼런스를 출력합니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">설정하기</h2>
+        <p>
+          <code>glyph init</code>은 새 프로젝트에 이 <code>.mcp.json</code>을 쓰고, <code>glyph agents</code>는 기존 프로젝트에 이 파일을 (<code>glyph llms</code>를 가리키는 <code>AGENTS.md</code>와 함께) 씁니다. 이 파일을 읽는 MCP 클라이언트라면 어느 것이든 서버를 실행합니다. 포트도 데몬도 없습니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph init이 쓰는 .mcp.json</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">호출 하나와 실제 응답</h2>
+        <p>
+          어떤 파일이 레코드에 선언되지 않은 필드(<code>u.naem</code>)를 읽습니다. 에이전트가 <code>glyph_diagnostics</code>를 호출하면, 레코드가 실제로 선언한 필드와 그 필드를 가진 레코드를 담은 컴파일러 자체의 진단을 받습니다. 0.1.149에서 이 도구가 출력한 내용이며, 표시한 곳만 줄였습니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">요청</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": {
+      "path": "src/user.glyph"
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">결과</span>
+<pre>{
+  "diagnostics": [ {
+    "code": "E0210",
+    "severity": "error",
+    "stage": "typecheck",
+    "message": "type `U` has no field
+      `naem`; did you mean `name`?",
+    "alternatives": ["name", "email"],
+    "alternatives_kind": "fields",
+    "cause": "user::U",
+    "entity": "user::greet",
+    "file": "user.glyph",
+    "range": {
+      "start": { "line": 9, "col": 10 },
+      "end": { "line": 9, "col": 16 } },
+    ...
+  } ],
+  "member": true,
+  "module": "user",
+  "not_run": [
+    { "what": "tsc", ... },
+    { "what": "E0104, ...", ... },
+    { "what": "E0400, ...", ... } ],
+  "path": "src/user.glyph",
+  "project_root": "src",
+  "unindexed": []
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>not_run</code>은 이 검사가 다루지 않은 것을 알려 주므로, 비어 있는 <code>diagnostics</code> 목록을 전체 빌드 결과로 오해할 일이 없습니다. MCP 클라이언트가 없으면 <code>glyph query diagnostics --path src/user.glyph</code>가 같은 JSON을 출력합니다. 모든 동사를 포함한 전체 도구 목록은 <a href="/mcp/">MCP 페이지</a>에 있습니다.
+        </p>
+
+        <h2 class="block-label">편집하기 전에: 무엇이 깨질까?</h2>
+        <p>
+          <code>examples/apps/csvql</code>은 case 네 개짜리 유니언 <code>Value</code>를 가진, 파일 열한 개로 된 CSV 쿼리 엔진입니다. 다섯 번째 case를 추가하면 어떻게 되는지 물으면 <code>glyph_impact</code>는 파일 4개에 걸친 <code>match</code> 위치 10곳을 나열합니다. <code>WILL_FAIL</code> 8곳과, catch-all arm이 새 case를 삼키고 계속 컴파일되는 <code>ABSORBS</code> 2곳입니다. 실제로 case를 추가하면 정확히 그 8곳에서 <code>E0200</code> 오류 8개가 납니다. 흡수하는 2곳은 아무 말도 하지 않으므로, 답에서 그 위치를 짚어 줍니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">명령줄에서 같은 질문하기</span>
+<pre>glyph query impact --path value.glyph --entity value::Value \
+  --change add_variant --variant Blob</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">빌드가 실패한 뒤에: 수정이 지켜야 할 것은?</h2>
+        <p>
+          <code>glyph check --agent</code>는 <code>check --json</code>의 진단에 키 두 개를 더해 출력합니다. <code>constraints</code>는 수정하는 편집이 깨뜨리면 안 되는 것을 나열합니다. 위의 오타라면 "the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others"라고 나옵니다. <code>symbols</code>는 진단이 언급한 모든 심볼에 대한 <code>glyph_symbol</code> 응답을 담고 있으므로, 다음 편집에 두 번째 호출이 필요 없습니다. 수정 방법이 완전히 정해지는 경우에는 <code>glyph fix</code>가 직접 수정합니다.
+        </p>
+
+        <h2 class="block-label">오프라인에서 언어 읽기</h2>
+        <p>
+          <code>glyph llms</code>는 언어 레퍼런스를 출력하며, 이 사이트의 <code>/llms.txt</code>도 같은 문서입니다. <code>glyph llms --json</code>은 같은 지식을 컴파일러 자체 테이블에서 읽은 데이터로 제공합니다. 진단 코드 77개, prelude 이름 24개, export 340개를 가진 stdlib 모듈 40개, 언어 결정 49개, 그리고 도구 열한 개입니다. <code>glyph llms --negative</code>는 0.1.149에서 잘못된 프로그램 117개(다음 릴리스부터는 139개)를 각 프로그램이 일으키는 코드와 함께 반환하며, 요청할 때 컴파일합니다. 레퍼런스의 진단 테이블과 예약어 테이블이 컴파일러 자체 테이블과 어긋나면 <code>scripts/check_llms_sync.py</code>가 실패합니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">오프라인 진입점</span>
+<pre>glyph llms                  <span class="cm"># the reference, as prose</span>
+glyph llms --json           <span class="cm"># the same, as data from the compiler's tables</span>
+glyph llms --negative E0200 <span class="cm"># wrong programs that draw E0200</span>
+glyph --explain E0200       <span class="cm"># the long explanation of one code</span></pre>
+      </div>

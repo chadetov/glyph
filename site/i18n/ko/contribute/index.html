@@ -1,0 +1,94 @@
+---
+title: 기여하기 · 컴파일러의 구조와 기여하는 방법 · Glyph
+description: Glyph 컴파일러의 구조(lex, parse, resolve, typecheck, emit으로 이어지는 Rust 워크스페이스), 빌드와 테스트 방법, 그리고 이슈와 풀 리퀘스트를 다루는 방식.
+source_hash: 98fd22506cb2f943
+next_steps: |
+  다음으로 볼 곳
+  여기서 시작하기 | https://github.com/chadetov/glyph | github | 저장소 | 소스, 이슈, 토론, 릴리스. | GitHub에서 열기
+  /design/ | design | 설계 | 모든 변경을 판단하는 기준인 네 가지 기둥과 결정 기록.
+---
+      <p class="q-eyebrow">기여하기</p>
+      <h1 class="q-title">컴파일러의 구조와 기여하는 방법</h1>
+
+      <p class="short-answer">
+        컴파일러는 공개 저장소 하나에 있는 크레이트 열두 개짜리 Rust 워크스페이스이며, 라이선스는 MIT 또는 Apache-2.0입니다. 지금 가장 도움이 되는 것은 작은 재현 코드가 있는 버그 리포트입니다. 모든 규칙은 번호가 붙은 설계 결정으로 거슬러 올라가므로, 언어를 바꾸는 변경은 이슈에서 시작합니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">파이프라인</h2>
+        <p>
+          <code>glyph build</code>는 렉싱, 파싱, 이름 해석, 타입 검사를 거쳐 TypeScript를 생성한 다음, 생성한 코드에 <code>tsc --strict</code>를 실행합니다. 중간 단계는 <a href="https://github.com/salsa-rs/salsa">salsa</a> 위에서 증분 쿼리로 실행되므로, 다시 검사할 때 편집으로 무효화되지 않은 결과를 재사용합니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">.glyph 파일 하나가 크레이트를 거치는 과정</span>
+<pre>glyph-lexer → glyph-parser → glyph-resolver → glyph-typechecker → glyph-emit → tsc --strict
+                (glyph-ast)        └──────── glyph-db (salsa) ────────┘</pre>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>크레이트</th><th>하는 일</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Crate"><code>glyph-lexer</code></td><td data-label="What it does">토큰, 키워드, 의미 있는 줄바꿈, 템플릿 리터럴</td></tr>
+            <tr><td data-label="Crate"><code>glyph-ast</code></td><td data-label="What it does">모든 노드에 소스 범위가 있는 구문 트리 타입</td></tr>
+            <tr><td data-label="Crate"><code>glyph-parser</code></td><td data-label="What it does">JSX를 포함해 명세의 모든 결정을 다루는 Pratt 파서</td></tr>
+            <tr><td data-label="Crate"><code>glyph-resolver</code></td><td data-label="What it does">이름 해석, 모듈 그래프, 모듈 간 import 검사, prelude</td></tr>
+            <tr><td data-label="Crate"><code>glyph-db</code></td><td data-label="What it does">salsa 쿼리 파이프라인과 파일 간 무효화</td></tr>
+            <tr><td data-label="Crate"><code>glyph-typechecker</code></td><td data-label="What it does">망라성, <code>?</code>, 제네릭, <code>owned</code>, 런타임 디스크립터, stdlib 모델</td></tr>
+            <tr><td data-label="Crate"><code>glyph-emit</code></td><td data-label="What it does">TypeScript 출력기, 디스크립터 생성, 표현식 수준의 소스 맵</td></tr>
+            <tr><td data-label="Crate"><code>glyph-formatter</code></td><td data-label="What it does"><code>glyph fmt</code>: 레이아웃 하나, 주석 보존, 멱등</td></tr>
+            <tr><td data-label="Crate"><code>glyph-lsp</code></td><td data-label="What it does">하나의 분석 계층을 공유하는 언어 서버와 MCP 서버</td></tr>
+            <tr><td data-label="Crate"><code>glyph-cli</code></td><td data-label="What it does"><code>glyph</code> 바이너리와 모든 하위 명령</td></tr>
+            <tr><td data-label="Crate"><code>glyph-wasm</code></td><td data-label="What it does">플레이그라운드를 실행하는 WebAssembly 컴파일러</td></tr>
+            <tr><td data-label="Crate"><code>glyph-runtime</code></td><td data-label="What it does">스텁입니다. 테스트는 대신 emitter와 <code>tsx</code>를 통해 실행</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          전체 크레이트 설명과 현재 테스트 수는 <a href="https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md">glyph-compiler/README.md</a>에 있습니다.
+        </p>
+
+        <h2 class="block-label">빌드와 테스트</h2>
+        <p>
+          Rust 1.95가 <code>rust-toolchain.toml</code>에 고정되어 있습니다. 일부 테스트는 <code>tsc</code>와 <code>tsx</code>를 셸로 호출하므로 이것들도 설치하세요. CI는 경고를 오류로 취급하는 clippy를 실행하는데, <code>cargo build</code>도 <code>cargo test</code>도 clippy를 실행하지 않으므로 push하기 전에 스크립트를 실행하세요.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">클론한 저장소에서</span>
+<pre>npm install -g tsx typescript
+cd glyph-compiler
+cargo build --release -p glyph-cli      <span class="cm"># target/release/glyph</span>
+cargo test --workspace
+cd .. &amp;&amp; python3 scripts/check_clippy.py  <span class="cm"># the exact clippy command CI runs</span>
+
+<span class="cm"># after an intentional syntax-tree change</span>
+INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          새 진단에는 그 코드로 실패해야 하는 <code>tests/negative/</code> 아래의 프로그램이 함께 있어야 합니다. Glyph가 TypeScript가 놓치는 것을 잡는다는 주장은 <code>catches/</code>에 넣으며, 거기서 <a href="/evidence/">게이트가 양쪽을 모두 실행합니다</a>.
+        </p>
+
+        <h2 class="block-label">계획된 것과 고장 난 것</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">docs/roadmap/releases.md</a>는 릴리스 로드맵입니다. 배포된 각 릴리스가 한 일과 다음 릴리스들의 목적이 적혀 있습니다. <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>는 gap 목록으로, 실제 앱을 만들면서 발견한 모든 한계가 번호(<code>G</code>와 숫자)와 상태 표시와 함께 기록되어 있습니다. 재현 코드가 있는 열린 gap은 시작하기 좋은 곳입니다.
+        </p>
+
+        <h2 class="block-label">이슈와 풀 리퀘스트</h2>
+        <p>
+          툴체인 수정, 진단, 문서, 예제는 바로 풀 리퀘스트로 보내도 됩니다. 문법이나 의미를 바꾸는 변경은 이슈에서 시작하고, 큰 변경은 <code>docs/rfcs/</code>의 RFC 절차를 거칩니다. 규칙을 "편의를 위해" 느슨하게 하는 PR은 거절될 가능성이 높습니다. 제약 자체가 핵심이기 때문입니다. 풀 리퀘스트 하나에는 gap 하나만 담고, 보통 커밋은 한 개에서 세 개로 하며, 각 커밋에 서명하세요(<code>git commit -s</code>). <code>main</code>은 보호되어 있고 병합은 rebase만 허용됩니다. 전체 규칙은 <a href="https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md">CONTRIBUTING.md</a>에 있고, <a href="https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">good first issue</a> 레이블이 붙은 이슈는 첫 기여에 맞게 범위를 잡아 두었습니다.
+        </p>
+
+        <h2 class="block-label">라이선스</h2>
+        <p>
+          MIT 또는 Apache-2.0 중 선택할 수 있습니다(<a href="https://github.com/chadetov/glyph/blob/main/LICENSE-MIT">LICENSE-MIT</a>, <a href="https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE">LICENSE-APACHE</a>). 기여도 같은 이중 라이선스로 받으며, sign-off 줄로 이를 확인합니다.
+        </p>
+      </div>

@@ -1,0 +1,158 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/impact/index.html",
+  "locale": "ko",
+  "source_hash": "42e24af1156f67f1",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can the compiler tell me what a change will break? · Glyph",
+      "tr": "변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph_impact takes the declaration you are about to change and the edit, and answers with a verdict and a reason for every site, before you touch the file.",
+      "tr": "glyph_impact는 바꾸려는 선언과 편집 내용을 받아, 파일을 건드리기 전에 모든 위치에 대해 판정과 이유를 답합니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 이전"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "바이너리 데이터를 다룰 수 있나요, 아니면 모든 것이 문자열인가요?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can my agent ask the compiler what a symbol is before it writes code?",
+      "tr": "에이전트가 코드를 쓰기 전에 컴파일러에게 심볼이 무엇인지 물어볼 수 있나요?"
+    },
+    {
+      "id": "h-b3ef3239",
+      "kind": "html",
+      "en": "21 &middot; Before you edit",
+      "tr": "21 &middot; 편집하기 전에"
+    },
+    {
+      "id": "h-f56d1cc7",
+      "kind": "html",
+      "en": "Can the compiler tell me what a change will break before I make it?",
+      "tr": "변경하기 전에 그 변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?"
+    },
+    {
+      "id": "h-808fe0e8",
+      "kind": "html",
+      "en": "For six kinds of edit, yes. <code>glyph_impact</code> takes the declaration you're about to change and the change itself (rename it, drop a variant, change a parameter's type, change its arity, remove it), and answers with <strong>one verdict per site</strong> from a closed list, each with the reason that verdict and no other.",
+      "tr": "여섯 가지 편집에 대해서는 그렇습니다. <code>glyph_impact</code>는 바꾸려는 선언과 변경 자체(이름 바꾸기, variant 제거, 매개변수 타입 변경, 인자 개수 변경, 삭제)를 받아, 정해진 목록에서 고른 <strong>위치마다 하나의 판정</strong>을, 다른 판정이 아니라 그 판정인 이유와 함께 답합니다."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "h-113a4126",
+      "kind": "html",
+      "en": "Renaming a function, widening a union, or changing what a parameter accepts, you either grep for the old name and hope you found every call, or you make the edit and read what the compiler says afterward. Neither approach tells you which sites will keep compiling while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when you add a variant, it just starts routing the new case somewhere nobody chose. That site never shows up in a build. <code>glyph_impact</code> answers before the edit, over the same analysis the compiler runs.",
+      "tr": "함수 이름을 바꾸거나, 유니언을 넓히거나, 매개변수가 받는 것을 바꿀 때는 이전 이름을 grep하고 모든 호출을 찾았기를 바라거나, 편집한 뒤 컴파일러가 하는 말을 읽습니다. 어느 방법도 어떤 위치가 계속 컴파일되면서 조용히 틀리게 될지는 알려 주지 않습니다. catch-all arm이 있는 <code>match</code>는 variant를 추가해도 실패하지 않고, 새 case를 아무도 고르지 않은 곳으로 보내기 시작할 뿐입니다. 그런 위치는 빌드에 절대 나타나지 않습니다. <code>glyph_impact</code>는 컴파일러가 실행하는 것과 같은 분석으로 편집 전에 답합니다."
+    },
+    {
+      "id": "h-5a7866e7",
+      "kind": "html",
+      "en": "What comes back",
+      "tr": "돌아오는 것"
+    },
+    {
+      "id": "h-da22973a",
+      "kind": "html",
+      "en": "The request names an entity by its <code>module::name</code> identity and a change from a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an <code>impact</code> list: one entry per site, each with the declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a <code>because</code>, and the diagnostic code the compiler raises when there is exactly one. The verdicts are closed and each means one thing: <code>WILL_FAIL</code> (the compiler can prove the site stops compiling), <code>ABSORBS</code> (it can prove the change is taken here silently), <code>SAFE</code> (it can prove the site stays correct), <code>UNDETERMINED</code> (it looked at this site and can't establish the consequence), and <code>NOT_INDEXED</code> (the question isn't askable for a site of this shape at all).",
+      "tr": "요청은 엔티티를 <code>module::name</code> 식별자로, 변경을 정해진 목록에서 지정합니다: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. 판정은 편집에 대한 사실이므로 변경은 필수입니다. 편집을 지정하지 않으면 모든 위치가 결과가 아니라 그저 참조로 돌아올 것입니다. 답에는 엔티티, 변경, 그리고 <code>impact</code> 목록이 있습니다. 위치마다 항목 하나이며, 각 항목에는 그 위치가 속한 선언, <code>relation</code>, <code>verdict</code>, <code>because</code>, 그리고 컴파일러가 내는 진단 코드가 정확히 하나일 때 그 코드가 들어 있습니다. 판정은 정해진 목록이고 각각 한 가지를 뜻합니다. <code>WILL_FAIL</code>(컴파일러가 그 위치가 컴파일되지 않게 된다는 것을 증명할 수 있음), <code>ABSORBS</code>(변경이 여기서 조용히 흡수된다는 것을 증명할 수 있음), <code>SAFE</code>(그 위치가 올바르게 유지된다는 것을 증명할 수 있음), <code>UNDETERMINED</code>(그 위치를 살펴봤지만 결과를 확정할 수 없음), <code>NOT_INDEXED</code>(이런 모양의 위치에 대해서는 애초에 물을 수 없는 질문임)입니다."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "직접 보기"
+    },
+    {
+      "id": "h-86ba488a",
+      "kind": "html",
+      "en": "A module declares <code>label(s: string) -&gt; number</code>. Three callers reach it: one passes a string literal, one passes a value whose type is an alias for <code>string</code> imported from another module, and one reads <code>label</code> as a value and never calls it. Asking what <code>change_signature_type</code> does to each gets three different verdicts, because they're three different claims:",
+      "tr": "어떤 모듈이 <code>label(s: string) -&gt; number</code>를 선언합니다. 호출자 세 곳이 여기에 닿습니다. 하나는 문자열 리터럴을 넘기고, 하나는 다른 모듈에서 import한 <code>string</code> 별칭 타입의 값을 넘기고, 하나는 <code>label</code>을 값으로 읽기만 하고 호출하지 않습니다. 각각에 <code>change_signature_type</code>이 어떤 영향을 주는지 물으면 세 가지 다른 판정이 나옵니다. 세 가지 다른 주장이기 때문입니다."
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "요청"
+    },
+    {
+      "id": "h-9d83aa09",
+      "kind": "html",
+      "en": "result, trimmed to the three sites",
+      "tr": "결과, 세 위치만 남기고 줄임"
+    },
+    {
+      "id": "h-cdf2b702",
+      "kind": "html",
+      "en": "Same edit, three sites, three verdicts, and the <code>because</code> on each is the actual sentence the compiler produces, not a category label. This mirrors the compiler's own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the compiler stays silent at the other two.",
+      "tr": "같은 편집, 세 위치, 세 판정이며, 각각의 <code>because</code>는 분류 레이블이 아니라 컴파일러가 실제로 만드는 문장입니다. 이는 이 변경에 대한 컴파일러 자체 테스트(<code>glyph-cli/tests/agent_loop.rs</code>의 <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>)를 그대로 반영합니다. 테스트는 이후에 실제로 편집하고, <code>WILL_FAIL</code>이라고 한 곳에 정확히 E0211이 나는지, 나머지 두 곳에서는 컴파일러가 조용한지 확인합니다."
+    },
+    {
+      "id": "h-ed0c982f",
+      "kind": "html",
+      "en": "On a real application",
+      "tr": "실제 애플리케이션에서"
+    },
+    {
+      "id": "h-0a557626",
+      "kind": "html",
+      "en": "<code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository, has one tagged union, <code>Value</code>, with four variants today. Asking <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant. Adding the variant for real, the compiler reports exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing at the 2 <code>ABSORBS</code> sites, before or after. A text search for catch-all arms across the same app, the thing you'd do without the tool, finds those same 2 real sites buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail, because it has no notion of which type a <code>match</code> scrutinizes.",
+      "tr": "이 저장소에 있는 파일 열한 개짜리 CSV 쿼리 엔진 <code>examples/apps/csvql</code>에는 현재 variant 네 개를 가진 태그 유니언 <code>Value</code>가 하나 있습니다. 다섯 번째(<code>Blob</code>)를 추가하면 어떻게 되는지 <code>glyph_impact</code>에 물으면 파일 4개에 걸쳐 match 위치 10곳을 찾습니다. 8곳은 컴파일에 실패하고, 2곳에는 새 variant를 조용히 흡수할 catch-all arm이 있습니다. 실제로 variant를 추가하면 컴파일러는 정확히 그 8곳에서 <code>E0200</code> 실패 8개를 보고하고, <code>ABSORBS</code> 2곳에 대해서는 전후 모두 아무 말도 하지 않습니다. 도구 없이 하게 될 방법인, 같은 앱에서 catch-all arm을 텍스트로 검색하면 같은 실제 위치 2곳이 결과 20개 속에 묻혀 나오고(정밀도 0.10), 실패하는 8곳에 대해서는 아무것도 알려 주지 않습니다. <code>match</code>가 어떤 타입을 검사하는지 전혀 모르기 때문입니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-b902e12f",
+      "kind": "html",
+      "en": "Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code. <code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments. A JSX element is decided as the call it lowers to: <code>&lt;Card title=\"x\" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get. Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.",
+      "tr": "정해진 변경 종류 여섯 가지(<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>)와 정해진 판정 다섯 가지, 그리고 영향받는 위치마다 이유와 진단 코드를 담은 항목 하나. <code>change_signature_type</code>은 호출 인자마다 검사기 자체의 비교 규칙으로 판정하며, 위치의 판정은 인자 중 가장 약한 것입니다. JSX 요소는 변환된 호출로 판정합니다. <code>&lt;Card title=\"x\" /&gt;</code>는 <code>Card</code>에 넘기는 props 레코드 하나이고, 각 속성은 검사 대상 필드와 함께 같은 타입의 호출 인자가 받을 판정으로 나열됩니다. 커버리지(검색이 읽을 수 있었던 것과 없었던 것)는 답 전체에 대해 한 번이 아니라 검색마다 밝히고, 모든 노드에는 Glyph 소스, <code>extern_ts</code> 탈출구, 불투명한 <code>.d.ts</code> 중 어디서 왔는지가 표시됩니다."
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "한계"
+    },
+    {
+      "id": "h-42652a98",
+      "kind": "html",
+      "en": "Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. <code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there). <code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.",
+      "tr": "깊이는 한 단계에서 정확하고 그 너머는 비어 있습니다. Glyph는 선언의 타입을 본문에서 추론하지 않으므로 피호출자의 타입이 호출자의 시그니처에 닿을 수 없고, X에 대한 변경은 X를 언급하는 표현식만 무효화할 수 있습니다. 깊이 2를 요청하면 대신 정확한 질문을 짚는 <code>next_query</code>와 함께 답이 돌아옵니다. 두 번째 단계에 필요한 것은 누군가 첫 번째 위치에 하는 수정인데, 그 수정은 아직 존재하지 않기 때문입니다. <code>UNDETERMINED</code>와 <code>NOT_INDEXED</code>는 다른 주장입니다. 검사기가 타입을 갖고 있지 않은 인자나, 어떤 규칙도 읽지 않는 필드와 짝지어진 레코드는 <code>UNDETERMINED</code>(살펴봤지만 결정할 수 없음)이고, 호출하지 않고 값으로 읽은 함수는 <code>NOT_INDEXED</code>(거기서는 애초에 물을 수 없는 질문)입니다. 주의해서 볼 것은 <code>ABSORBS</code>입니다. 그 위치는 계속 컴파일되면서도 틀렸다고 증명되며, 통과한 빌드는 이를 결코 보여 주지 않습니다."
+    }
+  ]
+}

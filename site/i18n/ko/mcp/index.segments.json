@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "mcp/index.html",
+  "locale": "ko",
+  "source_hash": "9b8dc9db4173cc83",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Wire your agent into Glyph over MCP · Glyph",
+      "tr": "MCP로 에이전트를 Glyph에 연결하기 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph mcp runs an MCP server with eleven tools: what a symbol is, what a change breaks, diagnostics, references and more. Each is also a glyph query verb.",
+      "tr": "glyph mcp는 도구 열한 개를 갖춘 MCP 서버를 실행합니다. 심볼이 무엇인지, 변경이 무엇을 깨뜨리는지, 진단, 참조 등을 답합니다. 각 도구는 glyph query 동사로도 쓸 수 있습니다."
+    },
+    {
+      "id": "h-3e836396",
+      "kind": "html",
+      "en": "For agents &middot; Model Context Protocol",
+      "tr": "에이전트를 위한 안내 &middot; Model Context Protocol"
+    },
+    {
+      "id": "h-09d8dc95",
+      "kind": "html",
+      "en": "Wire your agent into Glyph's compiler",
+      "tr": "에이전트를 Glyph 컴파일러에 연결하기"
+    },
+    {
+      "id": "h-06f85893",
+      "kind": "html",
+      "en": "<code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> with eleven tools over your project: what a symbol is, what breaks if you change it, whether a value of one type can go where another is declared, what a declaration depends on, what a module exports, diagnostics checked inside the project, the type at a cursor, where a name is defined, every reference to it, every <code>match</code> site over a union, and symbol search. Each one is also a <code>glyph query</code> verb, so an agent with no MCP client asks the same questions and gets the same bytes.",
+      "tr": "<code>glyph mcp</code>는 프로젝트를 대상으로 도구 열한 개를 제공하는 <strong>Model Context Protocol 서버</strong>를 실행합니다. 심볼이 무엇인지, 바꾸면 무엇이 깨지는지, 한 타입의 값을 다른 타입이 선언된 곳에 넣을 수 있는지, 선언이 무엇에 의존하는지, 모듈이 무엇을 export하는지, 프로젝트 안에서 검사한 진단, 커서 위치의 타입, 이름이 정의된 곳, 그 이름에 대한 모든 참조, 유니언에 대한 모든 <code>match</code> 위치, 그리고 심볼 검색입니다. 각 도구는 <code>glyph query</code> 동사로도 쓸 수 있으므로, MCP 클라이언트가 없는 에이전트도 같은 질문을 하고 바이트 단위로 같은 답을 받습니다."
+    },
+    {
+      "id": "h-77095b90",
+      "kind": "html",
+      "en": "Why an agent wants this",
+      "tr": "에이전트에게 이것이 필요한 이유"
+    },
+    {
+      "id": "h-5041d57e",
+      "kind": "html",
+      "en": "An agent editing a codebase usually works blind. It reads files, guesses at types, and finds out whether it broke something only after a build. Glyph already answers those questions for an editor. <code>glyph mcp</code> gives an agent the same answers straight from the compiler, without scraping build output or reading every file to find who calls what. Two of the tools answer questions an editor never asks: <code>glyph_symbol</code> returns a union's variants with the syntax that constructs each, which is what an agent needs before it writes the <code>match</code>, and <code>glyph_impact</code> answers what an edit breaks before the edit exists.",
+      "tr": "코드베이스를 편집하는 에이전트는 보통 눈을 가린 채 일합니다. 파일을 읽고, 타입을 추측하고, 무언가를 깨뜨렸는지는 빌드한 뒤에야 알게 됩니다. Glyph는 에디터를 위해 이미 이 질문들에 답하고 있습니다. <code>glyph mcp</code>는 빌드 출력을 긁어 오거나 누가 무엇을 호출하는지 찾으려고 모든 파일을 읽지 않아도, 같은 답을 컴파일러에서 바로 에이전트에게 줍니다. 도구 중 두 개는 에디터가 결코 묻지 않는 질문에 답합니다. <code>glyph_symbol</code>은 유니언의 variant와 각각을 생성하는 문법을 반환하는데, 에이전트가 <code>match</code>를 작성하기 전에 필요한 것이 바로 이것입니다. <code>glyph_impact</code>는 편집이 존재하기도 전에 그 편집이 무엇을 깨뜨리는지 답합니다."
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "설정하기"
+    },
+    {
+      "id": "h-7418b107",
+      "kind": "html",
+      "en": "Any MCP client can launch it. Point the client at the <code>glyph</code> binary with the <code>mcp</code> subcommand, and pass your project root as an argument or run it from the project directory. It speaks MCP over stdio, so there's no port and no daemon.",
+      "tr": "어떤 MCP 클라이언트로도 실행할 수 있습니다. 클라이언트가 <code>mcp</code> 하위 명령과 함께 <code>glyph</code> 바이너리를 가리키게 하고, 프로젝트 루트를 인자로 넘기거나 프로젝트 디렉터리에서 실행하세요. stdio로 MCP를 주고받으므로 포트도 데몬도 없습니다."
+    },
+    {
+      "id": "h-1c9558ae",
+      "kind": "html",
+      "en": "mcp client config (generic)",
+      "tr": "MCP 클라이언트 설정 (일반)"
+    },
+    {
+      "id": "h-14f598ae",
+      "kind": "html",
+      "en": "On first connect the client calls <code>initialize</code> and <code>tools/list</code>; the server reports the eleven tools below. Positions you send follow the LSP convention: a 0-based <code>line</code> and a 0-based <code>character</code> in UTF-16 code units. Diagnostic ranges come back the way <code>glyph check --json</code> prints them, with a 1-based <code>line</code> and <code>col</code> plus the byte <code>offset</code>.",
+      "tr": "처음 연결할 때 클라이언트는 <code>initialize</code>와 <code>tools/list</code>를 호출하고, 서버는 아래의 도구 열한 개를 알려 줍니다. 보내는 위치는 LSP 규칙을 따릅니다. 0부터 시작하는 <code>line</code>과, UTF-16 코드 단위로 센 0부터 시작하는 <code>character</code>입니다. 진단 범위는 <code>glyph check --json</code>이 출력하는 형식 그대로, 1부터 시작하는 <code>line</code>과 <code>col</code>, 그리고 바이트 <code>offset</code>으로 돌아옵니다."
+    },
+    {
+      "id": "h-d2740b17",
+      "kind": "html",
+      "en": "Each tool's description carries the contract you need at the moment of the call, and the full manual lives in <code>glyph llms --json</code> under <code>tools</code>, keyed by tool name, with each tool's <code>glyph query</code> verb beside it. That reply used to carry every manual: eleven tools, 31,446 bytes of description in a 45,509-byte reply. It is 8,627 in a 20,386-byte reply now, and nothing was deleted. Every session pays for <code>tools/list</code> on connect and pays for the manual only when it asks. <a href=\"/answers/generated-docs/\">That document</a> is generated from the compiler's own tables, and a test fails the build if it names a tool this server does not serve.",
+      "tr": "각 도구의 설명에는 호출하는 순간에 필요한 계약이 담겨 있고, 전체 설명서는 <code>glyph llms --json</code>의 <code>tools</code> 아래에 도구 이름을 키로, 각 도구의 <code>glyph query</code> 동사와 함께 들어 있습니다. 예전에는 그 응답에 모든 설명서가 들어 있었습니다. 도구 열한 개, 45,509바이트 응답 중 31,446바이트가 설명이었습니다. 지금은 20,386바이트 응답 중 8,627바이트이고, 삭제한 것은 없습니다. 모든 세션은 연결할 때 <code>tools/list</code> 비용을 치르고, 설명서 비용은 요청할 때만 치릅니다. <a href=\"/answers/generated-docs/\">그 문서</a>는 컴파일러 자체 테이블에서 생성되며, 이 서버가 제공하지 않는 도구를 언급하면 테스트가 빌드를 실패시킵니다."
+    },
+    {
+      "id": "h-1323cb30",
+      "kind": "html",
+      "en": "The eleven tools",
+      "tr": "도구 열한 개"
+    },
+    {
+      "id": "h-65beb4ac",
+      "kind": "html",
+      "en": "tools exposed by glyph mcp",
+      "tr": "glyph mcp가 제공하는 도구"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "직접 보기"
+    },
+    {
+      "id": "h-a75b63e1",
+      "kind": "html",
+      "en": "A <code>tools/call</code> for <code>glyph_diagnostics</code> on a file with a field typo returns the compiler's own diagnostic, the same Rust type <code>glyph check --json</code> serializes, inside an envelope that also says what the check did not cover.",
+      "tr": "필드 이름에 오타가 있는 파일에 대해 <code>glyph_diagnostics</code>를 <code>tools/call</code>로 호출하면, <code>glyph check --json</code>이 직렬화하는 것과 같은 Rust 타입인 컴파일러 자체 진단이, 검사가 다루지 않은 것까지 알려 주는 봉투에 담겨 돌아옵니다."
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "요청"
+    },
+    {
+      "id": "h-3841873d",
+      "kind": "html",
+      "en": "result (the tool's JSON content)",
+      "tr": "결과 (도구의 JSON 내용)"
+    },
+    {
+      "id": "h-a4f1eb83",
+      "kind": "html",
+      "en": "The file is checked inside its project, so a wrong field on an imported record and a <code>match</code> missing arms over an imported union are reported here the way <code>glyph check</code> reports them. What the tool could not cover is on the answer rather than left for you to assume: <code>member</code> says whether the project walk reaches the file, <code>unindexed</code> names project files that don't parse, and <code>not_run</code> names the three checks <code>glyph check</code> makes and this one doesn't: <code>tsc</code>, <code>E0104</code> for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which is decided by running the emitted project. A test runs both surfaces on six projects and compares the JSON key for key, so the two can't drift.",
+      "tr": "파일은 프로젝트 안에서 검사되므로, import한 레코드의 잘못된 필드나 import한 유니언에 대해 arm이 빠진 <code>match</code>도 <code>glyph check</code>와 똑같이 여기서 보고됩니다. 도구가 다루지 못한 것은 여러분이 추측하게 두지 않고 응답에 담깁니다. <code>member</code>는 프로젝트 탐색이 그 파일에 닿는지 알려 주고, <code>unindexed</code>는 파싱되지 않는 프로젝트 파일을 알려 주며, <code>not_run</code>은 <code>glyph check</code>는 하지만 이 도구는 하지 않는 검사 세 가지를 알려 줍니다. <code>tsc</code>, 빌드가 보는 <code>node_modules</code>가 필요한, 존재하지 않는 모듈을 import할 때의 <code>E0104</code>, 그리고 생성된 프로젝트를 실행해야 판정할 수 있는, 실패하는 <code>@example</code>에 대한 <code>E0400</code>입니다. 테스트가 프로젝트 여섯 개에서 두 경로를 모두 실행하고 JSON을 키 단위로 비교하므로 둘이 어긋날 수 없습니다."
+    },
+    {
+      "id": "h-26714f00",
+      "kind": "html",
+      "en": "<code>glyph_references</code> is workspace-wide: ask about a symbol and you get its declaration, every use, and each importing module's <code>import</code> binding, across every file. It uses the same cross-file identity the editor's rename does, so the answer covers the whole project, not just the file you asked from.",
+      "tr": "<code>glyph_references</code>는 워크스페이스 전체를 대상으로 합니다. 심볼에 대해 물으면 모든 파일에 걸쳐 그 선언, 모든 사용처, 그리고 그것을 import하는 각 모듈의 <code>import</code> 바인딩을 받습니다. 에디터의 이름 바꾸기와 같은 파일 간 식별 방식을 쓰므로, 질문한 파일만이 아니라 프로젝트 전체를 다룹니다."
+    },
+    {
+      "id": "h-9d3b62a6",
+      "kind": "html",
+      "en": "No MCP client? Same questions on the command line",
+      "tr": "MCP 클라이언트가 없나요? 명령줄에서 같은 질문하기"
+    },
+    {
+      "id": "h-132d1fdb",
+      "kind": "html",
+      "en": "Every tool has a <code>glyph query</code> verb taking the tool's own arguments as flags and printing the tool's JSON on stdout. An answered question exits 0; a refused one writes the reason to stderr and exits 2. The verbs route through the same entry point an MCP client reaches, and an integration test asks both surfaces the same question and compares the answers as text, so a verb that reformatted or summarized would fail it.",
+      "tr": "모든 도구에는 도구 자체의 인자를 플래그로 받아 도구의 JSON을 stdout으로 출력하는 <code>glyph query</code> 동사가 있습니다. 답한 질문은 0으로 종료하고, 거부한 질문은 이유를 stderr에 쓰고 2로 종료합니다. 동사는 MCP 클라이언트가 닿는 것과 같은 진입점을 거치며, 통합 테스트가 두 경로에 같은 질문을 하고 답을 텍스트로 비교하므로, 형식을 바꾸거나 요약하는 동사는 테스트에 실패합니다."
+    },
+    {
+      "id": "h-33fc2c51",
+      "kind": "html",
+      "en": "the same eleven questions, without a client",
+      "tr": "클라이언트 없이 묻는 같은 질문 열한 개"
+    },
+    {
+      "id": "h-4090bfff",
+      "kind": "html",
+      "en": "When the build is already red",
+      "tr": "빌드가 이미 실패했을 때"
+    },
+    {
+      "id": "h-fababe9f",
+      "kind": "html",
+      "en": "The tools answer questions asked before an edit. After one, the thing to read is <code>glyph check --agent</code>, which prints <code>check --json</code>'s diagnostics with two more keys on each: <code>constraints</code>, the invariants a repairing edit has to keep, and <code>symbols</code>, the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. On a <code>match</code> missing arms that means the union's variants with their payloads arrive with the error that asked for them, along with the sentence saying an <code>else</code> arm would forfeit the guarantee the diagnostic exists to protect. Where the repair is fully determined, <code>glyph fix</code> writes it and says what it declined. There is a <a href=\"/answers/repair-protocol/\">walkthrough of the whole loop</a> with real output.",
+      "tr": "도구는 편집하기 전에 묻는 질문에 답합니다. 편집한 뒤에 읽을 것은 <code>glyph check --agent</code>입니다. 이 명령은 <code>check --json</code>의 진단에 키 두 개를 더해 출력합니다. 수정하는 편집이 지켜야 할 불변식인 <code>constraints</code>와, 진단이 언급한 모든 심볼에 대한 <code>glyph_symbol</code> 응답인 <code>symbols</code>입니다. 그래서 다음 편집에 두 번째 호출이 필요 없습니다. arm이 빠진 <code>match</code>라면, 유니언의 variant와 그 payload가 그것을 요구한 오류와 함께 도착하고, <code>else</code> arm을 쓰면 이 진단이 지키려는 보장을 잃는다는 문장도 함께 옵니다. 수정 방법이 완전히 정해지는 경우에는 <code>glyph fix</code>가 직접 수정하고 하지 않은 것을 알려 줍니다. 실제 출력으로 <a href=\"/answers/repair-protocol/\">전체 루프를 따라가는 안내</a>가 있습니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-4fbc90ec",
+      "kind": "html",
+      "en": "A <code>glyph mcp [root]</code> server over stdio with eleven tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why. Hover answers at a name declared in another module, so an imported function at its call site and a field read off an imported record both have a type. An entity identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph_symbol</code> on it answers with <code>Ok(T)</code> and <code>Err(E)</code> and <code>glyph_exports</code> on <code>std/result</code> lists the surface. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.",
+      "tr": "stdio로 동작하는 <code>glyph mcp [root]</code> 서버와 도구 열한 개: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>(워크스페이스 전체), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code>, <code>glyph_exports</code>. 각 도구에는 같은 JSON을 출력하는 <code>glyph query</code> 동사가 있습니다. 답은 컴파일러 자체 쿼리에서 나오고, 도구가 갖고 있지 않은 사실은 모두 null이며 그 옆의 <code>&lt;key&gt;_absent</code> 문장이 이유를 알려 줍니다. hover는 다른 모듈에서 선언된 이름에서도 답하므로, 호출 위치의 import한 함수와 import한 레코드에서 읽은 필드 모두 타입을 가집니다. 엔티티 식별은 stdlib까지 이어집니다. prelude의 <code>Result</code>는 <code>std/result::Result</code>이며, 이는 resolver가 등록하는 모듈이자 emitter가 import를 쓰는 모듈입니다. 그래서 여기에 <code>glyph_symbol</code>을 호출하면 <code>Ok(T)</code>와 <code>Err(E)</code>로 답하고, <code>std/result</code>에 <code>glyph_exports</code>를 호출하면 그 공개 표면을 나열합니다. 그 뒤에는 Glyph 소스가 없으므로 <code>path</code>와 <code>range</code>는 빠지는 대신 그 이유와 함께 null입니다."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "앞으로 할 것"
+    },
+    {
+      "id": "h-16a6d6db",
+      "kind": "html",
+      "en": "The tools only read: you can't rename or apply an edit through MCP. The write side lives on the command line instead, as <code>glyph fix</code>. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse. The <code>tools/list</code> reply is 20,386 bytes, down from 45,509, and that is still context every session pays for on connect.",
+      "tr": "도구는 읽기만 합니다. MCP를 통해 이름을 바꾸거나 편집을 적용할 수는 없습니다. 쓰기 쪽은 대신 명령줄의 <code>glyph fix</code>에 있습니다. 서버는 캐시된 인덱스를 유지하지 않고 호출할 때마다 프로젝트를 다시 탐색하며, 파싱되지 않는 파일은 건너뜁니다. <code>tools/list</code> 응답은 45,509바이트에서 줄어든 20,386바이트이고, 여전히 모든 세션이 연결할 때 치르는 컨텍스트 비용입니다."
+    },
+    {
+      "id": "h-51177984",
+      "kind": "html",
+      "en": "Beside the tools, an agent can read the language and the diagnostic surface offline: <a href=\"/llms.txt\">llms.txt</a> is the prose, <code>glyph llms --json</code> the same knowledge as data out of the compiler's own tables, and <code>glyph build --json</code> the batch path for coded diagnostics across a whole tree.",
+      "tr": "도구 외에도 에이전트는 언어와 진단 표면을 오프라인으로 읽을 수 있습니다. <a href=\"/llms.txt\">llms.txt</a>는 설명 글이고, <code>glyph llms --json</code>은 같은 지식을 컴파일러 자체 테이블에서 꺼낸 데이터이며, <code>glyph build --json</code>은 트리 전체에 대해 코드가 붙은 진단을 한 번에 얻는 방법입니다."
+    }
+  ]
+}

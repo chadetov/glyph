@@ -1,0 +1,112 @@
+---
+title: 돈과 신뢰할 수 없는 입력을 맡겨도 되나요? · Glyph
+description: 돈은 정확하게 다루고(십진수, 그리고 2^53을 넘는 정수), 불변식은 경계에서 강제되는 타입이며, 신뢰할 수 없는 입력은 정제되지 않은 채 SQL이나 셸 싱크에 닿을 수 없습니다.
+source_hash: 890e758a8ba38ece
+prev: /answers/language/ | &larr; 이전 | 이것은 진짜 언어인가요, 구멍 많은 장난감인가요?
+next: /answers/web-serving/ | 다음 &rarr; | 웹 페이지를 서빙할 수 있나요, 아니면 JSON API만 되나요?
+---
+      <p class="q-eyebrow">16 &middot; 돈과 안전</p>
+      <h1 class="q-title">돈을 다루거나, 내가 통제하지 못하는 입력을 맡겨도 되나요?</h1>
+
+      <p class="short-answer">
+        네. 돈은 <strong>정확하게</strong> 다루고, 음수가 아님 같은 불변식은 <strong>경계에서 강제되는 타입</strong>이며, 신뢰할 수 없는 입력은 정제되지 않으면 <strong>SQL이나 셸 싱크에 닿을 수 없습니다</strong>. 각각 틀리면 컴파일 오류나 파싱 오류이며, 누군가 함수 세 개 떨어진 곳에서 기억해야 하는 관례가 아닙니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">돈은 float가 아닙니다</h2>
+        <p>
+          IEEE-754 <code>number</code> 위에 만든 금융 시스템은 보고되기를 기다리는 버그입니다. <code>0.1 + 0.2</code>는 <code>0.3</code>이 아니고, 2<sup>53</sup>을 넘는 값은 조용히 정밀도를 잃습니다. <code>std/decimal</code>은 BigInt 위의 정확한 10진 고정소수점입니다. 덧셈, 뺄셈, 곱셈은 정확하고, 나눗셈은 명시적인 자릿수를 받아 0에서 먼 쪽으로 반올림하며, 형식이 잘못된 금액은 조용한 <code>NaN</code>이 아니라 <code>Err</code>로 파싱됩니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from zero</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">없애는 버그</span>
+<pre>// JS number, the default everywhere:
+0.1 + 0.2            // 0.30000000000000004
+1_000_000_000_000.10 * 1.07   // rounding drift
+9007199254740993     // === 9007199254740992
+
+// None of these are your money anymore.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">id와 카운터는 2<sup>53</sup>을 넘어도 정확합니다</h2>
+        <p>
+          float 범위를 넘어 반올림되는 계정 id나 원장 카운터는 또 다른 종류의 재앙입니다. <code>bigint</code>는 <code>123n</code> 리터럴을 쓰는 정확한 임의 정밀도 정수이고, <code>bigint</code> 타입의 레코드 필드는 경계에서 <code>typeof === "bigint"</code>를 검증하므로, JSON <code>number</code>로 도착한 id는 조용히 잘리지 않고 거부됩니다.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">불변식은 주석이 아니라 타입입니다</h2>
+        <p>
+          "금액은 음수가 아니다", "평점은 1에서 5 사이다" 같은 검사는 한 번 작성되고 나중에 잊히는 종류입니다. <code>where</code> 정제는 불변식을 타입에 넣고, 디스크립터가 경계에서 이를 강제합니다. 조건식을 통과하지 못한 값은 애초에 <code>Amount</code>가 되지 않습니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">refinements.glyph</span>
+<pre>type Amount = int where value &gt;= 0
+type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+
+Amount.parse(-1)   <span class="cm"># Err  (not just "is a number")</span>
+Rating.parse(6)    <span class="cm"># Err</span>
+Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">인젝션은 컴파일 오류입니다</h2>
+        <p>
+          전형적인 원격 코드 실행 경로는 신뢰할 수 없는 입력이 SQL 쿼리, 셸 명령, HTML 템플릿에 닿는 것입니다. <code>std/taint</code>는 이를 타입 오류로 만듭니다. 외부에서 온 값은 <code>Tainted</code>이고, 보호하려는 싱크는 <code>Trusted</code>를 받습니다. 둘은 구조적으로 다르므로 한쪽에서 다른 쪽으로 가는 유일한 방법은 명시적인 <code>sanitize</code>입니다. 오염된 값을 싱크에 바로 넘기면 <code>tsc</code>가 컴파일을 거부합니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">안전한 경로는 컴파일됩니다</span>
+<pre>fn run_query(sql: Trusted&lt;string&gt;) -&gt; void { ... }
+
+let input: Tainted&lt;string&gt; = taint(req.body)
+run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">인젝션 경로는 컴파일되지 않습니다</span>
+<pre data-check="expect-error TS2345">module query
+
+import std/taint { Tainted, Trusted, taint, expose }
+
+fn run_query(sql: Trusted&lt;string&gt;) -&gt; string {
+  return expose(sql)
+}
+
+pub fn handle(body: string) -&gt; string {
+  let input: Tainted&lt;string&gt; = taint(body)
+  return run_query(input)
+}
+
+// [TS2345] Argument of type 'Tainted&lt;string&gt;'
+//   is not assignable to parameter of type
+//   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
+        </div>
+      </div>
+
+      <h2 class="block-label">현재 상태</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">지금 제공되는 것</h3>
+          <p>정확한 금액을 위한 <code>std/decimal</code>, 정확한 큰 정수를 위한 <code>bigint</code>, 불변식을 경계에서 검증하는 <code>where</code> 정제, 그리고 명시적인 <code>sanitize</code> 없이 신뢰할 수 없는 입력이 보호된 싱크에 닿지 못하게 하는 <code>std/taint</code>. 모두 검사됩니다. 잘못된 금액이나 id는 <code>parse</code>에서 실패하고, 잘못된 불변식도 <code>parse</code>에서 실패하며, 정제되지 않은 값은 <code>tsc</code>에서 실패합니다.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">한계</h3>
+          <p>현재 <code>where</code> 정제는 원시 기본 타입을 다룹니다. 레코드와 필드 간 불변식(<code>where value.paid &lt;= value.total</code>)은 계획된 확장입니다. taint는 자동 흐름 분석이 아니라 싱크의 타입을 <code>Trusted</code>로 지정해서 선택하는 규율입니다. 컴파일러는 여러분이 선언한 경계를 강제할 뿐, 프로그램 전체에 걸쳐 오염을 대신 추론하지 않습니다.</p>
+        </div>
+      </div>

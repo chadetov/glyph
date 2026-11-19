@@ -1,0 +1,206 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "benchmarks/index.html",
+  "locale": "ko",
+  "source_hash": "c2635229de656794",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Benchmarks · measured, not asserted · Glyph",
+      "tr": "벤치마크 · 주장하지 않고 측정합니다 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's four pillars as numbers: errors caught at compile time, one grep per symbol, one-line diffs, and about 9% fewer tokens than TypeScript, with caveats.",
+      "tr": "Glyph의 네 가지 기둥을 숫자로: 컴파일 시점에 잡히는 오류, 심볼마다 grep 한 번, 한 줄짜리 diff, 그리고 TypeScript보다 약 9% 적은 토큰. 단서와 함께."
+    },
+    {
+      "id": "h-9f2e7732",
+      "kind": "html",
+      "en": "Benchmarks",
+      "tr": "벤치마크"
+    },
+    {
+      "id": "h-9c3743c9",
+      "kind": "html",
+      "en": "Two kinds of <span class=\"accent\">evidence</span>.",
+      "tr": "두 종류의 <span class=\"accent\">근거</span>."
+    },
+    {
+      "id": "h-b3331cb8",
+      "kind": "html",
+      "en": "There are two questions worth measuring, and we keep them separate. <strong>Structural:</strong> what does Glyph reject by construction that TypeScript accepts? That's provable today, shown below. <strong>Reliability:</strong> do agents actually ship fewer defects in Glyph than in a <em>well-configured</em> strict-TypeScript setup? That's the number that decides adoption, and we don't have it yet. It's a study we're building, and we won't dress up a proxy as if it were that answer. (The real comparison isn't Glyph vs naive TS; it's Glyph vs <a href=\"/answers/vs-tooled-ts/\">strict TS + zod + eslint + ts-pattern</a>.)",
+      "tr": "측정할 만한 질문은 두 가지이고, 우리는 둘을 구분합니다. <strong>구조적 질문:</strong> TypeScript는 받아들이지만 Glyph는 구조상 거부하는 것은 무엇인가? 이는 지금 증명할 수 있으며, 아래에 나와 있습니다. <strong>신뢰성 질문:</strong> 에이전트가 <em>잘 설정된</em> strict TypeScript 환경보다 Glyph에서 실제로 결함을 덜 배포하는가? 도입을 결정짓는 숫자는 이것이고, 아직 우리에게는 없습니다. 지금 준비 중인 연구이며, 대리 지표를 그 답인 것처럼 꾸미지 않을 것입니다. (진짜 비교 대상은 아무 설정 없는 TS가 아니라 <a href=\"/answers/vs-tooled-ts/\">strict TS + zod + eslint + ts-pattern</a>입니다.)"
+    },
+    {
+      "id": "h-cae40d7f",
+      "kind": "html",
+      "en": "Structural: provable by construction",
+      "tr": "구조적 근거: 구조상 증명 가능"
+    },
+    {
+      "id": "h-2f56c6d4",
+      "kind": "html",
+      "en": "Not a statistic: paired demonstrations. Each is a case Glyph rejects and <code>tsc --strict</code> accepts, reproducible from the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory.",
+      "tr": "통계가 아니라 쌍으로 된 시연입니다. 각각은 Glyph가 거부하고 <code>tsc --strict</code>가 받아들이는 사례이며, <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> 디렉터리에서 재현할 수 있습니다."
+    },
+    {
+      "id": "h-7d361f00",
+      "kind": "html",
+      "en": "Verifiability: the bugs that cost you",
+      "tr": "검증 가능성: 비용이 큰 버그"
+    },
+    {
+      "id": "h-b9c29918",
+      "kind": "html",
+      "en": "<span class=\"accent\">Both</span> caught at compile time",
+      "tr": "<span class=\"accent\">둘 다</span> 컴파일 시점에 잡힘"
+    },
+    {
+      "id": "h-d9a4c68e",
+      "kind": "html",
+      "en": "Two mistakes agents make constantly (a missing <code>match</code> variant and a cast through <code>as unknown as</code>) are rejected by Glyph and accepted by <code>tsc --strict</code>. Both are checked cases in <code>catches/</code> (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>), re-run by the build gate. Wrong code that compiles is the expensive failure. Glyph won't let it.",
+      "tr": "에이전트가 끊임없이 저지르는 두 가지 실수(빠진 <code>match</code> variant와 <code>as unknown as</code>를 통한 캐스트)를 Glyph는 거부하고 <code>tsc --strict</code>는 받아들입니다. 둘 다 <code>catches/</code>에 있는 검사된 사례(<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>)이며, 빌드 게이트가 다시 실행합니다. 컴파일되는 잘못된 코드는 비용이 큰 실패입니다. Glyph는 이를 허용하지 않습니다."
+    },
+    {
+      "id": "h-18ef286e",
+      "kind": "html",
+      "en": "Greppability: one name, one place",
+      "tr": "검색 용이성: 이름 하나에 위치 하나"
+    },
+    {
+      "id": "h-7d95f946",
+      "kind": "html",
+      "en": "<span class=\"accent\">1</span> match, every time",
+      "tr": "언제나 결과 <span class=\"accent\">1</span>개"
+    },
+    {
+      "id": "h-c195e0eb",
+      "kind": "html",
+      "en": "Every symbol has exactly one declaration form: no overloads, decorators, or merged namespaces to scatter it.",
+      "tr": "모든 심볼은 선언 형태가 정확히 하나입니다. 심볼을 흩어 놓는 오버로드, 데코레이터, 병합된 네임스페이스가 없습니다."
+    },
+    {
+      "id": "h-395c7a50",
+      "kind": "html",
+      "en": "Diff stability: reviewable by default",
+      "tr": "diff 안정성: 기본적으로 리뷰하기 쉬움"
+    },
+    {
+      "id": "h-eb7a3918",
+      "kind": "html",
+      "en": "1 line &rarr; 1 line",
+      "tr": "1줄 &rarr; 1줄"
+    },
+    {
+      "id": "h-78c7e9a8",
+      "kind": "html",
+      "en": "A one-line Glyph edit produces a one-line TypeScript diff through the transpiler, and <code>glyph fmt</code> adds no churn. The diff is the change, not the noise around it.",
+      "tr": "Glyph에서 한 줄을 고치면 트랜스파일러를 거쳐 TypeScript에서도 한 줄짜리 diff가 나오고, <code>glyph fmt</code>는 불필요한 변동을 더하지 않습니다. diff는 주변 잡음이 아니라 변경 자체입니다."
+    },
+    {
+      "id": "h-6b841d3c",
+      "kind": "html",
+      "en": "And the safety does not cost length",
+      "tr": "그리고 안전성 때문에 길어지지 않습니다"
+    },
+    {
+      "id": "h-c31998ef",
+      "kind": "html",
+      "en": "Tokens for the same three functions",
+      "tr": "같은 함수 세 개의 토큰 수"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-18885f27",
+      "kind": "html",
+      "en": "Python",
+      "tr": "Python"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-6cc8519b",
+      "kind": "html",
+      "en": "Go",
+      "tr": "Go"
+    },
+    {
+      "id": "h-d9aa89fd",
+      "kind": "html",
+      "en": "Rust",
+      "tr": "Rust"
+    },
+    {
+      "id": "h-df8eac6d",
+      "kind": "html",
+      "en": "Safety usually costs length: Go and Rust, the other rows with static types and explicit error handling, are the longest. Glyph has both and is not longer for it: 436 tokens to TypeScript's 478, about 9% fewer, level with Python, about 23% fewer than Go and 30% fewer than Rust, on real <code>cl100k_base</code> counts of programs that pass <code>glyph check</code> with <code>tsc</code>. The lead is in the function with real control flow (<code>parse_user</code>, 132 to 174); on the one-line <code>slugify</code> Glyph is longer (67 to 47) because it has no regex literal. Three functions, a small sample. An earlier figure of 341 was measured on fixtures the compiler did not accept and is withdrawn. <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">See the methodology and caveats &rarr;</a>",
+      "tr": "안전성은 보통 길이로 대가를 치릅니다. 정적 타입과 명시적 오류 처리를 갖춘 다른 언어인 Go와 Rust가 가장 깁니다. Glyph는 둘 다 갖추었지만 그 때문에 길어지지 않습니다. <code>glyph check</code>와 <code>tsc</code>를 통과하는 프로그램을 실제 <code>cl100k_base</code>로 센 결과, TypeScript가 478 토큰일 때 436 토큰으로 약 9% 적고, Python과 비슷하며, Go보다 약 23%, Rust보다 30% 적습니다. 차이는 실제 제어 흐름이 있는 함수(<code>parse_user</code>, 132 대 174)에서 납니다. 한 줄짜리 <code>slugify</code>에서는 정규식 리터럴이 없기 때문에 Glyph가 더 깁니다(67 대 47). 함수 세 개로 된 작은 표본입니다. 예전에 발표한 341이라는 수치는 컴파일러가 받아들이지 않는 fixture로 측정한 것이어서 철회했습니다. <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">방법론과 단서 보기 &rarr;</a>"
+    },
+    {
+      "id": "h-8ac5b0ca",
+      "kind": "html",
+      "en": "Reliability: the study we're building",
+      "tr": "신뢰성: 준비 중인 연구"
+    },
+    {
+      "id": "h-a81f267c",
+      "kind": "html",
+      "en": "The structural results above are <em>reasons to expect</em> Glyph helps; they are not proof that it does. The proof is a differential study: the same agent, the same realistic tasks, written once in Glyph and once in a fully-tooled strict-TypeScript setup (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod), scored on <strong>escaped semantic defects</strong> and one-shot green-build rate. That's the number five different reviewers told us would move them, so we're building it, and until it exists these bars are a placeholder, not a claim.",
+      "tr": "위의 구조적 결과는 Glyph가 도움이 될 것이라고 <em>기대할 이유</em>이지, 실제로 도움이 된다는 증거는 아닙니다. 증거는 비교 연구입니다. 같은 에이전트가 같은 현실적인 작업을 한 번은 Glyph로, 한 번은 도구를 모두 갖춘 strict TypeScript 환경(<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod)으로 작성하고, <strong>빠져나간 의미적 결함</strong>과 한 번에 빌드가 통과하는 비율로 점수를 매깁니다. 서로 다른 리뷰어 다섯 명이 판단을 바꿀 수 있다고 말한 숫자가 바로 이것이어서 준비하고 있으며, 결과가 나오기 전까지 이 막대는 주장이 아니라 자리 표시입니다."
+    },
+    {
+      "id": "h-dcf46d14",
+      "kind": "html",
+      "en": "Escaped defects per task &middot; lower is better &middot; <span style=\"color:var(--amber)\">not measured yet</span>",
+      "tr": "작업당 빠져나간 결함 &middot; 낮을수록 좋음 &middot; <span style=\"color:var(--amber)\">아직 측정하지 않음</span>"
+    },
+    {
+      "id": "h-bce540e4",
+      "kind": "html",
+      "en": "Glyph vs fully-tooled strict TypeScript",
+      "tr": "Glyph와 도구를 모두 갖춘 strict TypeScript 비교"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "대기 중"
+    },
+    {
+      "id": "h-e82e7273",
+      "kind": "html",
+      "en": "tooled TS",
+      "tr": "도구를 갖춘 TS"
+    },
+    {
+      "id": "h-57cc1ce7",
+      "kind": "html",
+      "en": "The apparatus (a task corpus, a run/replay harness, and the pinned strongest-honest TS baseline) is in the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory; the first real pilot (with its <em>n</em>, the model, and the cost stated on the label) publishes here the moment it runs. Whatever it shows.",
+      "tr": "장치(작업 모음, 실행 및 재실행 하네스, 고정해 둔 가장 강력하고 공정한 TS 기준선)는 <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> 디렉터리에 있습니다. 첫 번째 실제 파일럿은 실행하는 즉시 (<em>n</em>, 모델, 비용을 함께 표기해) 여기에 공개합니다. 결과가 어떻든 마찬가지입니다."
+    },
+    {
+      "id": "h-88029d8d",
+      "kind": "html",
+      "en": "Why the comparison is against tooled TS &rarr;",
+      "tr": "도구를 갖춘 TS와 비교하는 이유 &rarr;"
+    },
+    {
+      "id": "h-c0b5c819",
+      "kind": "html",
+      "en": "&larr; Back to home",
+      "tr": "&larr; 홈으로 돌아가기"
+    }
+  ]
+}

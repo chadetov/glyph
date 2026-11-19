@@ -1,0 +1,208 @@
+---
+title: MCP로 에이전트를 Glyph에 연결하기 · Glyph
+description: glyph mcp는 도구 열한 개를 갖춘 MCP 서버를 실행합니다. 심볼이 무엇인지, 변경이 무엇을 깨뜨리는지, 진단, 참조 등을 답합니다. 각 도구는 glyph query 동사로도 쓸 수 있습니다.
+source_hash: 9b8dc9db4173cc83
+---
+      <p class="q-eyebrow">에이전트를 위한 안내 &middot; Model Context Protocol</p>
+      <h1 class="q-title">에이전트를 Glyph 컴파일러에 연결하기</h1>
+
+      <p class="short-answer">
+        <code>glyph mcp</code>는 프로젝트를 대상으로 도구 열한 개를 제공하는 <strong>Model Context Protocol 서버</strong>를 실행합니다. 심볼이 무엇인지, 바꾸면 무엇이 깨지는지, 한 타입의 값을 다른 타입이 선언된 곳에 넣을 수 있는지, 선언이 무엇에 의존하는지, 모듈이 무엇을 export하는지, 프로젝트 안에서 검사한 진단, 커서 위치의 타입, 이름이 정의된 곳, 그 이름에 대한 모든 참조, 유니언에 대한 모든 <code>match</code> 위치, 그리고 심볼 검색입니다. 각 도구는 <code>glyph query</code> 동사로도 쓸 수 있으므로, MCP 클라이언트가 없는 에이전트도 같은 질문을 하고 바이트 단위로 같은 답을 받습니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">에이전트에게 이것이 필요한 이유</h2>
+        <p>
+          코드베이스를 편집하는 에이전트는 보통 눈을 가린 채 일합니다. 파일을 읽고, 타입을 추측하고, 무언가를 깨뜨렸는지는 빌드한 뒤에야 알게 됩니다. Glyph는 에디터를 위해 이미 이 질문들에 답하고 있습니다. <code>glyph mcp</code>는 빌드 출력을 긁어 오거나 누가 무엇을 호출하는지 찾으려고 모든 파일을 읽지 않아도, 같은 답을 컴파일러에서 바로 에이전트에게 줍니다. 도구 중 두 개는 에디터가 결코 묻지 않는 질문에 답합니다. <code>glyph_symbol</code>은 유니언의 variant와 각각을 생성하는 문법을 반환하는데, 에이전트가 <code>match</code>를 작성하기 전에 필요한 것이 바로 이것입니다. <code>glyph_impact</code>는 편집이 존재하기도 전에 그 편집이 무엇을 깨뜨리는지 답합니다.
+        </p>
+
+        <h2 class="block-label">설정하기</h2>
+        <p>
+          어떤 MCP 클라이언트로도 실행할 수 있습니다. 클라이언트가 <code>mcp</code> 하위 명령과 함께 <code>glyph</code> 바이너리를 가리키게 하고, 프로젝트 루트를 인자로 넘기거나 프로젝트 디렉터리에서 실행하세요. stdio로 MCP를 주고받으므로 포트도 데몬도 없습니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">MCP 클라이언트 설정 (일반)</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp", "/path/to/your/project"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          처음 연결할 때 클라이언트는 <code>initialize</code>와 <code>tools/list</code>를 호출하고, 서버는 아래의 도구 열한 개를 알려 줍니다. 보내는 위치는 LSP 규칙을 따릅니다. 0부터 시작하는 <code>line</code>과, UTF-16 코드 단위로 센 0부터 시작하는 <code>character</code>입니다. 진단 범위는 <code>glyph check --json</code>이 출력하는 형식 그대로, 1부터 시작하는 <code>line</code>과 <code>col</code>, 그리고 바이트 <code>offset</code>으로 돌아옵니다.
+        </p>
+        <p>
+          각 도구의 설명에는 호출하는 순간에 필요한 계약이 담겨 있고, 전체 설명서는 <code>glyph llms --json</code>의 <code>tools</code> 아래에 도구 이름을 키로, 각 도구의 <code>glyph query</code> 동사와 함께 들어 있습니다. 예전에는 그 응답에 모든 설명서가 들어 있었습니다. 도구 열한 개, 45,509바이트 응답 중 31,446바이트가 설명이었습니다. 지금은 20,386바이트 응답 중 8,627바이트이고, 삭제한 것은 없습니다. 모든 세션은 연결할 때 <code>tools/list</code> 비용을 치르고, 설명서 비용은 요청할 때만 치릅니다. <a href="/answers/generated-docs/">그 문서</a>는 컴파일러 자체 테이블에서 생성되며, 이 서버가 제공하지 않는 도구를 언급하면 테스트가 빌드를 실패시킵니다.
+        </p>
+
+        <h2 class="block-label">도구 열한 개</h2>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph mcp가 제공하는 도구</span>
+<pre><span class="cm">// everything the compiler holds about one symbol: kind, identity,</span>
+<span class="cm">// visibility, a record's fields, a union's variants with payloads and</span>
+<span class="cm">// construction syntax, parameters and return, interface members,</span>
+<span class="cm">// whether a `match` over it must be exhaustive, its `@example`.</span>
+<span class="cm">// The identity reaches the stdlib: std/result::Result answers with</span>
+<span class="cm">// Ok(T) and Err(E), and `path` is null beside the reason why</span>
+glyph_symbol(entity)                       <span class="cm">// or (path, line, character)</span>
+
+<span class="cm">// what breaks if you make one named change to one declaration:</span>
+<span class="cm">// add_variant, remove_variant, rename, change_arity,</span>
+<span class="cm">// change_signature_type, remove. One verdict per site</span>
+glyph_impact(entity, change)
+
+<span class="cm">// can a value of `from` go where a `to` is declared? Asked of the</span>
+<span class="cm">// checker's own comparison. Each side is a `module::name` or a</span>
+<span class="cm">// Glyph type spelling read in the scope of `path`</span>
+glyph_assignable(path, from, to)
+
+<span class="cm">// every diagnostic for one file, checked inside its project, in the</span>
+<span class="cm">// shape `glyph check --json` prints, plus what was not checked</span>
+glyph_diagnostics(path)
+
+<span class="cm">// the type at a position: an expression, a declaration name, a</span>
+<span class="cm">// parameter, an annotation, a variant, or a binding</span>
+glyph_hover(path, line, character)
+
+<span class="cm">// where the name is defined, following imports across modules,</span>
+<span class="cm">// with the `module::name` so the answer chains into glyph_impact</span>
+glyph_definition(path, line, character)
+
+<span class="cm">// every edge into a symbol across the project, split by relation</span>
+<span class="cm">// (CALLS, REFERENCES, GENERATED_FROM), each with its provenance</span>
+glyph_references(path, name)               <span class="cm">// or by position</span>
+
+<span class="cm">// every `match` site over one tagged union and which variants each</span>
+<span class="cm">// site's arms name, with the union's own variants</span>
+glyph_variants(path, name)
+
+<span class="cm">// search top-level declarations and union variants by name, each</span>
+<span class="cm">// entry with its identity, `pub`, kind and one-line signature</span>
+glyph_symbols(query)
+
+<span class="cm">// what one declaration depends on: every declaration its own source</span>
+<span class="cm">// names, split by relation (CALLS, REFERENCES, FIELD_ACCESS), each</span>
+<span class="cm">// edge with both ends and its provenance. The mirror of references</span>
+glyph_dependencies(entity)
+
+<span class="cm">// what one module makes visible to an importer: every `pub`</span>
+<span class="cm">// declaration and every variant a `pub` union hoists, each with</span>
+<span class="cm">// its identity, kind and signature</span>
+glyph_exports(module)</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">직접 보기</h2>
+        <p>
+          필드 이름에 오타가 있는 파일에 대해 <code>glyph_diagnostics</code>를 <code>tools/call</code>로 호출하면, <code>glyph check --json</code>이 직렬화하는 것과 같은 Rust 타입인 컴파일러 자체 진단이, 검사가 다루지 않은 것까지 알려 주는 봉투에 담겨 돌아옵니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">요청</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": { "path": "src/user.glyph" }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">결과 (도구의 JSON 내용)</span>
+<pre>{
+  "path": "src/user.glyph",
+  "module": "user",
+  "project_root": "src",
+  "member": true,
+  "diagnostics": [
+    {
+      "code": "E0210",
+      "severity": "error",
+      "stage": "typecheck",
+      "message": "type `U` has no field `naem`; did you mean `name`?",
+      "help": "Check the field name for a typo,
+        or add the field to the type.",
+      "entity": "user::greet",
+      "file": "user",
+      "range": {
+        "start": { "line": 9, "col": 10, "offset": 99 },
+        "end":   { "line": 9, "col": 16, "offset": 105 }
+      },
+      "union": null,
+      "missing_variants": null
+    }
+  ],
+  "unindexed": [],
+  "not_run": [ ... ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          파일은 프로젝트 안에서 검사되므로, import한 레코드의 잘못된 필드나 import한 유니언에 대해 arm이 빠진 <code>match</code>도 <code>glyph check</code>와 똑같이 여기서 보고됩니다. 도구가 다루지 못한 것은 여러분이 추측하게 두지 않고 응답에 담깁니다. <code>member</code>는 프로젝트 탐색이 그 파일에 닿는지 알려 주고, <code>unindexed</code>는 파싱되지 않는 프로젝트 파일을 알려 주며, <code>not_run</code>은 <code>glyph check</code>는 하지만 이 도구는 하지 않는 검사 세 가지를 알려 줍니다. <code>tsc</code>, 빌드가 보는 <code>node_modules</code>가 필요한, 존재하지 않는 모듈을 import할 때의 <code>E0104</code>, 그리고 생성된 프로젝트를 실행해야 판정할 수 있는, 실패하는 <code>@example</code>에 대한 <code>E0400</code>입니다. 테스트가 프로젝트 여섯 개에서 두 경로를 모두 실행하고 JSON을 키 단위로 비교하므로 둘이 어긋날 수 없습니다.
+        </p>
+        <p>
+          <code>glyph_references</code>는 워크스페이스 전체를 대상으로 합니다. 심볼에 대해 물으면 모든 파일에 걸쳐 그 선언, 모든 사용처, 그리고 그것을 import하는 각 모듈의 <code>import</code> 바인딩을 받습니다. 에디터의 이름 바꾸기와 같은 파일 간 식별 방식을 쓰므로, 질문한 파일만이 아니라 프로젝트 전체를 다룹니다.
+        </p>
+
+        <h2 class="block-label">MCP 클라이언트가 없나요? 명령줄에서 같은 질문하기</h2>
+        <p>
+          모든 도구에는 도구 자체의 인자를 플래그로 받아 도구의 JSON을 stdout으로 출력하는 <code>glyph query</code> 동사가 있습니다. 답한 질문은 0으로 종료하고, 거부한 질문은 이유를 stderr에 쓰고 2로 종료합니다. 동사는 MCP 클라이언트가 닿는 것과 같은 진입점을 거치며, 통합 테스트가 두 경로에 같은 질문을 하고 답을 텍스트로 비교하므로, 형식을 바꾸거나 요약하는 동사는 테스트에 실패합니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">클라이언트 없이 묻는 같은 질문 열한 개</span>
+<pre>glyph query symbol       --path src/main.glyph --entity orders::OrderStatus
+glyph query impact       --entity orders::OrderStatus --change add_variant --variant Refunded
+glyph query assignable   --path src/main.glyph --from 'Nullable&lt;int&gt;' --to int
+glyph query diagnostics  --path src/main.glyph
+glyph query hover        --path src/main.glyph --line 9 --character 6
+glyph query definition   --path src/main.glyph --line 9 --character 6
+glyph query references   --path src/orders.glyph --name create
+glyph query variants     --path src/orders.glyph --name OrderStatus
+glyph query symbols      --query order
+glyph query dependencies --path src/main.glyph --entity main::build
+glyph query exports      --path src/main.glyph --module orders
+
+<span class="cm">// the same two, asked about a module the compiler carries</span>
+glyph query symbol       --path src/main.glyph --entity std/result::Result
+glyph query exports      --path src/main.glyph --module std/result</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">빌드가 이미 실패했을 때</h2>
+        <p>
+          도구는 편집하기 전에 묻는 질문에 답합니다. 편집한 뒤에 읽을 것은 <code>glyph check --agent</code>입니다. 이 명령은 <code>check --json</code>의 진단에 키 두 개를 더해 출력합니다. 수정하는 편집이 지켜야 할 불변식인 <code>constraints</code>와, 진단이 언급한 모든 심볼에 대한 <code>glyph_symbol</code> 응답인 <code>symbols</code>입니다. 그래서 다음 편집에 두 번째 호출이 필요 없습니다. arm이 빠진 <code>match</code>라면, 유니언의 variant와 그 payload가 그것을 요구한 오류와 함께 도착하고, <code>else</code> arm을 쓰면 이 진단이 지키려는 보장을 잃는다는 문장도 함께 옵니다. 수정 방법이 완전히 정해지는 경우에는 <code>glyph fix</code>가 직접 수정하고 하지 않은 것을 알려 줍니다. 실제 출력으로 <a href="/answers/repair-protocol/">전체 루프를 따라가는 안내</a>가 있습니다.
+        </p>
+      </div>
+
+      <h2 class="block-label">현재 상태</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">지금 제공되는 것</h3>
+          <p>stdio로 동작하는 <code>glyph mcp [root]</code> 서버와 도구 열한 개: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>(워크스페이스 전체), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code>, <code>glyph_exports</code>. 각 도구에는 같은 JSON을 출력하는 <code>glyph query</code> 동사가 있습니다. 답은 컴파일러 자체 쿼리에서 나오고, 도구가 갖고 있지 않은 사실은 모두 null이며 그 옆의 <code>&lt;key&gt;_absent</code> 문장이 이유를 알려 줍니다. hover는 다른 모듈에서 선언된 이름에서도 답하므로, 호출 위치의 import한 함수와 import한 레코드에서 읽은 필드 모두 타입을 가집니다. 엔티티 식별은 stdlib까지 이어집니다. prelude의 <code>Result</code>는 <code>std/result::Result</code>이며, 이는 resolver가 등록하는 모듈이자 emitter가 import를 쓰는 모듈입니다. 그래서 여기에 <code>glyph_symbol</code>을 호출하면 <code>Ok(T)</code>와 <code>Err(E)</code>로 답하고, <code>std/result</code>에 <code>glyph_exports</code>를 호출하면 그 공개 표면을 나열합니다. 그 뒤에는 Glyph 소스가 없으므로 <code>path</code>와 <code>range</code>는 빠지는 대신 그 이유와 함께 null입니다.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">앞으로 할 것</h3>
+          <p>도구는 읽기만 합니다. MCP를 통해 이름을 바꾸거나 편집을 적용할 수는 없습니다. 쓰기 쪽은 대신 명령줄의 <code>glyph fix</code>에 있습니다. 서버는 캐시된 인덱스를 유지하지 않고 호출할 때마다 프로젝트를 다시 탐색하며, 파싱되지 않는 파일은 건너뜁니다. <code>tools/list</code> 응답은 45,509바이트에서 줄어든 20,386바이트이고, 여전히 모든 세션이 연결할 때 치르는 컨텍스트 비용입니다.</p>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          도구 외에도 에이전트는 언어와 진단 표면을 오프라인으로 읽을 수 있습니다. <a href="/llms.txt">llms.txt</a>는 설명 글이고, <code>glyph llms --json</code>은 같은 지식을 컴파일러 자체 테이블에서 꺼낸 데이터이며, <code>glyph build --json</code>은 트리 전체에 대해 코드가 붙은 진단을 한 번에 얻는 방법입니다.
+        </p>
+      </div>

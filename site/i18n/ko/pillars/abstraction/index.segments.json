@@ -1,0 +1,224 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "pillars/abstraction/index.html",
+  "locale": "ko",
+  "source_hash": "e8827b54becde411",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Abstraction · a small, orthogonal core · Glyph",
+      "tr": "추상화 · 작고 직교하는 핵심 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's fourth pillar: one way per concept. Pattern matching over switch ladders, Result over exceptions, records over tuples, and match as the conditional.",
+      "tr": "Glyph의 네 번째 기둥: 개념마다 방법 하나. switch 사다리 대신 패턴 매칭, 예외 대신 Result, 튜플 대신 레코드, 그리고 조건문으로서의 match."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous pillar",
+      "tr": "&larr; 이전 기둥"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Diff stability: a one-line change is a one-line diff",
+      "tr": "diff 안정성: 한 줄을 바꾸면 diff도 한 줄"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Back to the start &rarr;",
+      "tr": "처음으로 돌아가기 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Verifiability: true at runtime",
+      "tr": "검증 가능성: 런타임에도 참"
+    },
+    {
+      "id": "h-f24d678d",
+      "kind": "html",
+      "en": "Pillar 04 &middot; <span class=\"polish\">The polish</span>",
+      "tr": "기둥 04 &middot; <span class=\"polish\">마무리</span>"
+    },
+    {
+      "id": "h-6e4fdd69",
+      "kind": "html",
+      "en": "Abstraction",
+      "tr": "추상화"
+    },
+    {
+      "id": "h-0e2dcb59",
+      "kind": "html",
+      "en": "Say what you mean with a <strong>small, orthogonal core</strong>: pattern matching instead of switch ladders, <code>Result</code> instead of thrown exceptions, named records instead of tuples. One good way per concept, not TypeScript's accreted layers.",
+      "tr": "<strong>작고 직교하는 핵심</strong>으로 의도를 그대로 표현합니다. switch 사다리 대신 패턴 매칭, 던지는 예외 대신 <code>Result</code>, 튜플 대신 이름 붙은 레코드. TypeScript처럼 덧붙여 쌓인 계층이 아니라, 개념마다 좋은 방법 하나입니다."
+    },
+    {
+      "id": "h-394d34b1",
+      "kind": "html",
+      "en": "Too many ways to say the same thing",
+      "tr": "같은 것을 말하는 방법이 너무 많습니다"
+    },
+    {
+      "id": "h-350fc73d",
+      "kind": "html",
+      "en": "TypeScript grew by accretion, and it kept every layer. You can model a fixed set of cases as an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can describe a shape with an <code>interface</code>, a <code>type</code>, or a <code>class</code>. There are <code>namespace</code>s and modules, decorators and higher-order functions, five idioms for nearly everything, each with its own edge cases.",
+      "tr": "TypeScript는 덧붙이며 자랐고, 모든 계층을 남겨 두었습니다. 정해진 case 집합을 <code>enum</code>, 문자열 리터럴 유니언, <code>const</code> 객체로 모델링할 수 있습니다. 모양은 <code>interface</code>, <code>type</code>, <code>class</code>로 기술할 수 있습니다. <code>namespace</code>와 모듈, 데코레이터와 고차 함수가 있고, 거의 모든 것에 관용구가 다섯 가지씩 있으며, 저마다 경계 사례가 있습니다."
+    },
+    {
+      "id": "h-ea5d3974",
+      "kind": "html",
+      "en": "For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to express a thing means more ways to pick the one with the footgun, and more idioms to keep straight while doing it. Glyph's abstraction pillar is a deliberate subtraction: one sharp tool per job, chosen so the obvious way is also the safe way.",
+      "tr": "사람에게는 유연함입니다. <strong>에이전트</strong>에게는 지뢰밭입니다. 표현 방법이 많을수록 함정이 있는 것을 고를 방법도 많고, 그러면서 헷갈리지 말아야 할 관용구도 많아집니다. Glyph의 추상화 기둥은 의도적인 빼기입니다. 일마다 날카로운 도구 하나를 두고, 가장 자연스러운 방법이 안전한 방법이 되도록 골랐습니다."
+    },
+    {
+      "id": "h-c576eb56",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> <code>match</code> is the only conditional",
+      "tr": "<span class=\"ex-label\">01</span> <code>match</code>가 유일한 조건문입니다"
+    },
+    {
+      "id": "h-1a910d0c",
+      "kind": "html",
+      "en": "There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>, everywhere, and <code>match</code> is an expression: it produces a value. One construct covers a boolean test, a union dispatch, and a value table, so there's no decision to make about <em>which</em> branching form to reach for.",
+      "tr": "<code>if</code>/<code>else</code> 문이 없습니다. 분기는 어디서나 <code>match</code>이고, <code>match</code>는 값을 만드는 표현식입니다. 구문 하나가 불리언 검사, 유니언 분기, 값 테이블을 모두 다루므로, <em>어떤</em> 분기 형태를 쓸지 고민할 필요가 없습니다."
+    },
+    {
+      "id": "h-fd1d8f8e",
+      "kind": "html",
+      "en": "TypeScript: statement, not a value",
+      "tr": "TypeScript: 값이 아니라 문장"
+    },
+    {
+      "id": "h-a5763ec7",
+      "kind": "html",
+      "en": "Glyph: one expression",
+      "tr": "Glyph: 표현식 하나"
+    },
+    {
+      "id": "h-9a3a4109",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">02</span> Tagged unions and pattern matching",
+      "tr": "<span class=\"ex-label\">02</span> 태그 유니언과 패턴 매칭"
+    },
+    {
+      "id": "h-ad530d74",
+      "kind": "html",
+      "en": "The way to model \"one of these shapes\" is a tagged union, and the way to take it apart is <code>match</code>, which destructures the payload in the same step it selects the case. No discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast inside each branch to recover the shape.",
+      "tr": "\"이 모양들 중 하나\"를 모델링하는 방법은 태그 유니언이고, 이를 분해하는 방법은 case를 고르는 단계에서 payload도 함께 구조 분해하는 <code>match</code>입니다. 직접 관리해야 할 판별 필드도, 문자열 태그에 대한 <code>switch</code> 사다리도, 모양을 되찾기 위한 분기마다의 캐스트도 없습니다."
+    },
+    {
+      "id": "h-da9f8a38",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">03</span> <code>Result</code> over exceptions",
+      "tr": "<span class=\"ex-label\">03</span> 예외 대신 <code>Result</code>"
+    },
+    {
+      "id": "h-b227a6fe",
+      "kind": "html",
+      "en": "Failure is a value, not a hidden control-flow jump. A function that can fail says so in its return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code> and hoping the right thing throws the right class. The error path is as visible as the happy path.",
+      "tr": "실패는 숨겨진 제어 흐름 점프가 아니라 값입니다. 실패할 수 있는 함수는 반환 타입(<code>Result&lt;T, E&gt;</code>)에서 그렇다고 밝히고, 호출 지점을 <code>try</code>/<code>catch</code>로 감싸고 올바른 곳에서 올바른 클래스가 던져지기를 바라는 대신 <code>?</code> 연산자로 실패를 조합합니다. 오류 경로가 정상 경로만큼 잘 보입니다."
+    },
+    {
+      "id": "h-cbb161e6",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">04</span> Named records over positional tuples",
+      "tr": "<span class=\"ex-label\">04</span> 위치 기반 튜플 대신 이름 붙은 레코드"
+    },
+    {
+      "id": "h-c219a9fc",
+      "kind": "html",
+      "en": "Data is described with named fields, always. There's no object-literal shorthand and no reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to remember. The shape reads the same at the definition, the construction, and the use.",
+      "tr": "데이터는 언제나 이름 붙은 필드로 기술합니다. 객체 리터럴 축약 문법도 없고, <code>[0]</code>과 <code>[1]</code>이 무엇인지 기억해야 하는 익명 튜플에 손을 뻗을 일도 없습니다. 모양은 정의, 생성, 사용하는 곳에서 똑같이 읽힙니다."
+    },
+    {
+      "id": "h-acbd509b",
+      "kind": "html",
+      "en": "TypeScript: what are [0] and [1]?",
+      "tr": "TypeScript: [0]과 [1]은 무엇인가?"
+    },
+    {
+      "id": "h-6ef5629f",
+      "kind": "html",
+      "en": "Glyph: the names travel with the value",
+      "tr": "Glyph: 이름이 값과 함께 다닙니다"
+    },
+    {
+      "id": "h-403ba4b0",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">05</span> One primitive per job",
+      "tr": "<span class=\"ex-label\">05</span> 일마다 기본 요소 하나"
+    },
+    {
+      "id": "h-bc427179",
+      "kind": "html",
+      "en": "When a concept needs its own tool, Glyph gives it exactly one. Shared mutable state lives in a <code>std/store</code>. A file or socket handle that must be closed once is an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single, named, purpose-built primitive, not a pattern you re-derive from a grab-bag of general parts and get subtly wrong.",
+      "tr": "개념에 고유한 도구가 필요하면 Glyph는 정확히 하나를 줍니다. 공유되는 변경 가능 상태는 <code>std/store</code>에 둡니다. 한 번만 닫아야 하는 파일이나 소켓 핸들은 <code>owned</code> 리소스입니다. 반복은 <code>for x in xs</code>입니다. 각각은 이름이 있고 목적에 맞게 만든 단일 기본 요소이며, 잡다한 범용 부품에서 매번 다시 끌어내다 미묘하게 틀리는 패턴이 아닙니다."
+    },
+    {
+      "id": "h-73dda756",
+      "kind": "html",
+      "en": "Abstraction here means <strong>fewer, sharper tools</strong>, not more. Every concept has an obvious form, and the obvious form is the one you're meant to use.",
+      "tr": "여기서 추상화란 더 많은 도구가 아니라 <strong>더 적고 날카로운 도구</strong>를 뜻합니다. 모든 개념에는 자연스러운 형태가 있고, 그 자연스러운 형태가 쓰라고 만든 형태입니다."
+    },
+    {
+      "id": "h-71727b66",
+      "kind": "html",
+      "en": "The benchmark: coming",
+      "tr": "벤치마크: 준비 중"
+    },
+    {
+      "id": "h-b0f9e141",
+      "kind": "html",
+      "en": "The way to measure this is surface area: how many distinct concepts a reader has to hold to understand a program, and how much code it takes to express a common task cleanly. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's a body of real programs to compare.",
+      "tr": "이를 측정하는 방법은 표면적입니다. 프로그램을 이해하려면 독자가 개념을 몇 가지나 알고 있어야 하는지, 흔한 작업을 깔끔하게 표현하는 데 코드가 얼마나 필요한지입니다. Glyph는 아직 실제 환경에서 쓰이지 않으므로, 아래 차트는 비교할 실제 프로그램이 충분히 쌓이면 실제 측정값으로 채울 자리 표시입니다."
+    },
+    {
+      "id": "h-a10f7a79",
+      "kind": "html",
+      "en": "Distinct concepts to read a typical module &middot; lower is better",
+      "tr": "일반적인 모듈을 읽는 데 필요한 개념 수 &middot; 낮을수록 좋음"
+    },
+    {
+      "id": "h-301f9c4a",
+      "kind": "html",
+      "en": "TypeScript vs Glyph",
+      "tr": "TypeScript와 Glyph 비교"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "대기 중"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-bbacebb4",
+      "kind": "html",
+      "en": "<span class=\"h\">Not measured yet</span> We'll publish concept-count and lines-to-express-X comparisons from real programs here as soon as there are enough to measure.",
+      "tr": "<span class=\"h\">아직 측정하지 않음</span> 측정할 만큼 실제 프로그램이 쌓이면 개념 수와 X를 표현하는 데 필요한 줄 수 비교를 여기에 공개하겠습니다."
+    },
+    {
+      "id": "h-e129d5c1",
+      "kind": "html",
+      "en": "A smaller core is easier for a person to learn once and easier for a model to get right every time. That's the whole polish layer in one sentence: take away the choices that only added risk, and what's left is a language that says what it means.",
+      "tr": "작은 핵심은 사람이 한 번 배우기 쉽고, 모델이 매번 올바르게 쓰기 쉽습니다. 마무리 계층 전체를 한 문장으로 말하면 이렇습니다. 위험만 더하던 선택지를 걷어 내면, 의도를 그대로 말하는 언어가 남습니다."
+    }
+  ]
+}

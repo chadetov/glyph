@@ -1,0 +1,173 @@
+---
+title: 하드닝 · Glyph를 스트레스 테스트하는 방법과 찾아낸 것
+description: AI 에이전트가 회의적인 엔지니어 역할을 맡아 Glyph로 앱을 만들고 보장을 깨뜨리려 시도합니다. 그 루프와 찾아낸 버그.
+source_hash: 39150fb233f95dbe
+---
+      <header class="page-hero">
+        <p class="eyebrow">Glyph를 단단하게 만드는 방법</p>
+        <h1>에이전트가 깨뜨리려 시도하고, <span class="accent">찾아낸 것은 남겨 둡니다</span>.</h1>
+        <p class="lede">
+          에이전트가 몰래 깨뜨릴 수 없다고 말하는 언어라면 그 말에 맞춰 테스트해야 합니다. 우리는 회의적인 엔지니어(답답해하는 React 개발자, 삐딱한 백엔드 개발자, 안전성을 노리는 공격자) 역할을 맡은 AI 에이전트에게 앱을 만들고 보장을 깨뜨리게 한 다음, 찾아낸 것을 고치거나 열린 gap으로 기록합니다. 그 루프와 찾아낸 것을 소개합니다.
+        </p>
+      </header>
+
+      <!-- ============ THE REFUSED CASES ============ -->
+      <section>
+        <h2 class="group-head"><code>tsc --strict</code>를 통과하고 Glyph에서는 컴파일되지 않는 사례</h2>
+        <p class="group-sub">
+          각 사례는 파일 두 개입니다. <code>tsc --strict</code>에서 깔끔하게 타입 검사를 통과하는 <code>.ts</code>와, Glyph로 쓴 같은 프로그램으로 컴파일되지 않는 것입니다. 빌드 게이트인 <code>scripts/check_catches.py</code>가 모든 사례를 다시 실행하고, 어느 한쪽이라도 동작이 달라지면 실패합니다. 그래서 보장이 조용히 사라지면 빌드도 함께 실패합니다. 표에는 <a href="/catches/">잡아내는 것 페이지</a>의 TypeScript 실수 {{catches:count}}건 중 이렇게 거부되는 {{catches:refused}}건이 나와 있고, 나머지(데이터가 들어올 때 검사하거나, 경고하거나, 실행 중에 멈추는 것)는 그 페이지에 있습니다. {{catches:breakdown}}
+        </p>
+{{catches:refused-table}}
+        <p class="group-sub" style="margin-top:24px">
+          TypeScript도 잡아내는 것으로 밝혀졌거나 두 쪽이 같은 프로그램이 아니었던 사례는 완화하지 않고 삭제했습니다. <code>catches/README.md</code>에 각 사례와 그 이유가 나와 있습니다.
+        </p>
+        <p class="group-sub">
+          맵 읽기는 키의 철자가 맞아도 거부됩니다. <code>Record&lt;string, string&gt;</code>은 어떤 키가 있는지에 대해 아무것도 말해 주지 않기 때문입니다. TypeScript는 <code>--strict</code>가 켜지 않는 <code>noUncheckedIndexedAccess</code>로 이를 잡습니다. 빠진 유니언 case도 프로젝트가 typescript-eslint의 <code>switch-exhaustiveness-check</code>나 <code>assertNever</code> default를 도입했다면 TypeScript에서 잡을 수 있습니다. Glyph에서는 두 검사 모두 선택 사항이 아닙니다.
+        </p>
+        <p class="group-sub">
+          파싱된 본문 사례에서 Glyph의 <code>json.parse</code>는 <code>User</code>가 아니라 <code>Result</code>를 반환하므로, 본문을 검사하기 전까지 대입은 타입 불일치입니다. TypeScript의 <code>JSON.parse</code>는 <code>any</code>를 반환하고, <code>user</code>에 붙은 타입 표기가 이를 세탁합니다.
+        </p>
+      </section>
+
+      <!-- ============ THE LOOP ============ -->
+      <section>
+        <h2 class="group-head">적대적 루프</h2>
+        <p class="group-sub">모든 발견은 컴파일러에서 재현하고, 근본 원인을 고치고, 독립적으로 다시 검증한 뒤에야 인정됩니다.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>탐색</h3>
+            <p>페르소나 에이전트가 프로그램(폼, 백엔드, 상태가 있는 UI)을 만들고, 언어와 씨름한 모든 곳을 기록합니다.</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>재현</h3>
+            <p>각 발견을 실패하는 가장 작은 프로그램으로 줄이고 컴파일러에서 다시 실행합니다. 재현할 수 없는 것은 버립니다.</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>수정</h3>
+            <p>Rust 컴파일러에서 근본 원인을 고치고, 수정 전에는 실패하고 수정 후에는 통과하는 회귀 테스트를 추가합니다. 전체 테스트가 계속 통과해야 하며, 그렇지 않으면 변경을 되돌립니다.</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h3>검증</h3>
+            <p>독립적인 검증 단계가 새로 빌드한 컴파일러로 모든 재현 코드를 다시 실행해서, 무엇이든 배포되기 전에 &ldquo;에이전트는 고쳤다고 생각했던&rdquo; 구멍을 잡아냅니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SILENT CORRECTNESS ============ -->
+      <section>
+        <h2 class="group-head">가장 중요했던 것: 조용히 틀리는 구멍</h2>
+        <p class="group-sub">
+          이것들은 모두 깔끔하게 컴파일되었고, <em>타입 검사를 통과한 잘못된 코드</em>를 배포할 수 있었습니다. Glyph가 막으려고 존재하는 바로 그 종류의 버그입니다. 지금은 모두 컴파일 시점에 잡힙니다.
+        </p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev critical">심각, 수정됨</span>
+            <h3><code>Result</code> match에서의 인자 없는 오류 variant</h3>
+            <p><code>Result&lt;T, Empty | BadQty(...)&gt;</code>에 대한 <code>match</code>가 중복된 <code>case&nbsp;"Err"</code> 분기 두 개로 변환되었고, 첫 번째 분기가 모든 오류를 삼켜 조용히 엉뚱한 arm으로 보냈습니다.</p>
+            <p class="now">지금은: 올바른 내부 switch를 가진 하나로 묶인 case가 생성되고, 각 variant가 제대로 전달됩니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev critical">심각, 수정됨</span>
+            <h3>조용한 catch-all이 된 철자 틀린 생성자</h3>
+            <p>match arm의 철자가 틀린 variant(<code>Loaded</code> 대신 <code>Loded</code>)가 조용히 반박 불가능한 catch-all로 바인딩되어, 비망라성을 가리고 런타임에 잘못 분기했으며, 아무 진단도 없었습니다.</p>
+            <p class="now">지금은: 알 수 없는 생성자는 실제 이름처럼 오타 위치에서 거부됩니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">높음, 수정됨</span>
+            <h3>망라성 검사를 빠져나간 부분적인 <code>bool</code> match</h3>
+            <p><code>match n &gt; 0 { true =&gt; ... }</code>(<code>false</code> arm 누락)가 컴파일되고 <code>tsc</code>를 통과한 뒤 런타임에 예외를 던졌습니다.</p>
+            <p class="now">지금은: 컴파일 시점의 비망라적 match 오류입니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">높음, 수정됨</span>
+            <h3>props를 잘못 바인딩한 다중 매개변수 컴포넌트</h3>
+            <p><code>component C(a, b)</code>가 위치 매개변수를 생성했지만 React는 컴포넌트를 props 하나로 호출하므로, <code>a</code>가 조용히 props 객체 전체에 바인딩되었습니다. <code>tsc</code>는 통과했습니다.</p>
+            <p class="now">지금은: props 레코드 하나를 쓰는 형태를 알려 주는 명확한 컴파일 오류가 납니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">높음, 수정됨</span>
+            <h3>망라성 검사를 건너뛴 JSX <code>&lt;match&gt;</code></h3>
+            <p><code>&lt;case&gt;</code>가 빠진 JSX <code>&lt;match&gt;</code>가 문제없이 컴파일되고 런타임에 예외를 던졌습니다. 검사되던 값 수준의 <code>match</code>와 달랐습니다.</p>
+            <p class="now">지금은: 같은 망라성 검사가 적용되어 빠진 case는 컴파일 오류입니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">높음, 수정됨</span>
+            <h3>엉뚱한 필드에 바인딩된 레코드 payload</h3>
+            <p>레코드 payload를 가진 variant를 이름에 바인딩하면(<code>BadQty(b)</code>) 펼쳐진 payload에서 존재하지 않는 <code>.value</code>를 읽었습니다.</p>
+            <p class="now">지금은: payload가 올바르게 바인딩되어 <code>b.sku</code>가 동작합니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RULES ENFORCED ============ -->
+      <section>
+        <h2 class="group-head">이제 검사기가 강제하는 규칙</h2>
+        <p class="group-sub">컴파일러가 예전에는 <code>tsc</code>에 맡기던 건전성 검사를, 이제 Glyph가 직접 잡아냅니다.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev high">수정됨</span>
+            <h3>호출 인자 개수</h3>
+            <p>인자가 너무 적거나 많아도 받아들여졌습니다(그리고 실행하면 <code>NaN</code>이 나왔습니다). 이제 <code>E0213</code>이 잘못된 인자 개수를 거부합니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">수정됨</span>
+            <h3>stdlib 경계를 넘는 <code>?</code> 오류 타입</h3>
+            <p>오류가 stdlib 래퍼에서 올 때는 정확한 오류 타입 규칙을 건너뛰었습니다. 이제 거기서도 강제됩니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">수정됨</span>
+            <h3><code>owned</code> 핸들의 별칭</h3>
+            <p>리소스 핸들에 <code>let g = f</code>를 쓰면 두 번 닫힐 수 있는 두 번째 바인딩이 생겼습니다. 이제 거부됩니다(<code>E0215</code>).</p>
+          </div>
+          <div class="fix">
+            <span class="sev">수정됨</span>
+            <h3>도달할 수 없는 arm과 더 깊은 검증</h3>
+            <p>catch-all 뒤의 arm을 이제 표시하고, <code>json.parse&lt;T&gt;</code>는 이제 <code>Record</code> 필드가 있는지만 확인하지 않고 구조적으로 검증합니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FIRST CONTACT ============ -->
+      <section>
+        <h2 class="group-head">처음 쓸 때의 걸림돌 제거</h2>
+        <p class="group-sub">첫인상을 나쁘게 만들었지만 아무 쓸모도 없었던 작은 것들.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev">수정됨</span>
+            <h3>접근성 속성과 data 속성</h3>
+            <p><code>aria-label</code>과 <code>data-*</code>가 뺄셈으로 파싱되었습니다. 이제 제대로 동작하고 올바른 React props로 생성됩니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">수정됨</span>
+            <h3>npm 패키지 이름</h3>
+            <p>하이픈이 들어간 이름과 scope가 있는 지정자(<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>)가 거부되었습니다. 이제 바로 import됩니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">수정됨</span>
+            <h3>브라우저 번들의 첫 실행</h3>
+            <p>브라우저 빌드에서 런타임 부트스트랩이 로드되지 않아 처음 실행할 때 충돌했습니다. 이제 생성되는 모든 모듈이 이를 불러옵니다.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">수정됨</span>
+            <h3>엉뚱한 곳을 가리키는 오류 메시지</h3>
+            <p><code>if</code>를 쓰면 이제 <code>match</code>를 안내하고, 범위 패턴은 바로 그렇다고 알려 주며, JSX 공백과 텍스트 안의 단독 <code>$</code>도 처리합니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STILL OPEN ============ -->
+      <section>
+        <h2 class="group-head">아직 열려 있는 것: 기록으로 남김</h2>
+        <p class="group-sub">단단하게 만든다는 것은 끝나지 않은 것을 밝히는 것이기도 합니다. 아래는 알려져 있고 추적 중이며, 숨기지 않습니다.</p>
+        <div class="callout">
+          <p style="margin:0 0 10px;"><strong>일부러 미뤘거나 설계 결정을 기다리는 것:</strong></p>
+          <p style="margin:0;">
+            Glyph 자체 검사기에서 암묵적 <code>any</code> 클로저를 거부하려면, 타입이 올바른 콜백에 대한 오탐을 피하기 위해 문맥 기반 추론이 필요합니다. 라이브러리마다 어댑터를 두지 않고 복잡한 타입의 TS 라이브러리를 쓰는 편리한 FFI는 아직 열려 있는 가장 큰 상호 운용 문제이며, <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">열린 질문</a>에서 추적합니다. 다른 모듈이나 표준 라이브러리에서 온 맵은 여전히 검사 없이 읽히므로 E0224가 아직 <code>sqlite.Row</code>에 닿지 않고, 바인딩이 두 개인 <code>for i, x in xs</code>는 여전히 요소 타입을 잃습니다.
+            </p>
+        </div>
+        <a href="/answers/" class="backlink">&larr; 이 수정들이 나온 엔지니어 질문 보기</a>
+      </section>

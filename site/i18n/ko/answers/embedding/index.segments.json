@@ -1,0 +1,128 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/embedding/index.html",
+  "locale": "ko",
+  "source_hash": "4dc0a3c1d0f26ab3",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I adopt Glyph inside my existing app? · Glyph",
+      "tr": "기존 앱 안에서 Glyph를 도입할 수 있나요? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "No rewrite: keep the app in TypeScript, write the domain core in Glyph, and import the compiled modules like any local file. It works under stock Vite.",
+      "tr": "다시 작성할 필요가 없습니다. 앱은 TypeScript로 두고 도메인 핵심을 Glyph로 작성한 다음, 컴파일된 모듈을 여느 로컬 파일처럼 import합니다. 기본 Vite에서 그대로 동작합니다."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 이전"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "기존 TypeScript, JavaScript, npm 라이브러리를 쓸 수 있나요?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "다음 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "API마다 검증기를 직접 작성해야 하나요?"
+    },
+    {
+      "id": "h-581974ff",
+      "kind": "html",
+      "en": "10 &middot; Inside your app",
+      "tr": "10 &middot; 기존 앱 안에서"
+    },
+    {
+      "id": "h-68c07ce1",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "기존 앱 안에서 Glyph를 도입할 수 있나요, 아니면 전부 아니면 전무인가요?"
+    },
+    {
+      "id": "h-0e1c0ddb",
+      "kind": "html",
+      "en": "No rewrite. Keep the app in TypeScript and write the part you can't afford to get wrong (models, permissions, state transitions, money math) in Glyph. <code>glyph build</code> emits modules your app imports <strong>like any local file</strong>, with no bundler config and no path aliases.",
+      "tr": "다시 작성할 필요가 없습니다. 앱은 TypeScript로 두고, 틀리면 안 되는 부분(모델, 권한, 상태 전이, 돈 계산)을 Glyph로 작성합니다. <code>glyph build</code>는 앱이 <strong>여느 로컬 파일처럼</strong> import하는 모듈을 생성하며, 번들러 설정도 경로 별칭도 필요 없습니다."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "h-c70d97da",
+      "kind": "html",
+      "en": "Most teams can't rewrite an application, and most of an application doesn't need Glyph. The part that does is the domain core: the rules an AI agent will edit next month and nobody wants silently wrong. Keeping that core in Glyph gives you exhaustive <code>match</code>, no casts, and validated boundaries exactly where they pay, while the React components, the styling, and the infrastructure stay plain TypeScript.",
+      "tr": "대부분의 팀은 애플리케이션을 다시 작성할 수 없고, 애플리케이션 대부분은 Glyph가 필요하지 않습니다. 필요한 부분은 도메인 핵심입니다. 다음 달에 AI 에이전트가 편집할 규칙이고, 아무도 조용히 틀리기를 원하지 않는 부분입니다. 이 핵심을 Glyph로 두면 망라적인 <code>match</code>, 캐스트 없음, 검증되는 경계를 정확히 효과가 있는 곳에서 얻고, React 컴포넌트, 스타일, 인프라는 평범한 TypeScript로 남습니다."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "직접 보기"
+    },
+    {
+      "id": "h-33682851",
+      "kind": "html",
+      "en": "One directory of Glyph sources, compiled into the app, imported by the UI:",
+      "tr": "Glyph 소스 디렉터리 하나를 앱 안으로 컴파일하고, UI에서 import합니다."
+    },
+    {
+      "id": "h-a3eaf0cf",
+      "kind": "html",
+      "en": "A hybrid layout: Glyph domain core, TypeScript everything else",
+      "tr": "혼합 구조: 도메인 핵심은 Glyph, 나머지는 모두 TypeScript"
+    },
+    {
+      "id": "h-abc250a1",
+      "kind": "html",
+      "en": "Everything the emitted code needs travels with it. Imports are relative, including the bundled standard library, so your project's <code>tsconfig.json</code> and bundler need nothing added: a stock Vite scaffold compiles and bundles the output as-is, and the same files pass a host <code>tsc --strict</code>. Mark what the app imports with <code>pub</code>; a declaration without it is private to its module. This isn't a hypothetical: an outside engineer <a href=\"https://github.com/yildizadem/glyph-kanban\">built a React Kanban board this way</a>, with the RBAC matrix, the analytics formulas, and the status transitions in four Glyph modules under a hand-written React UI.",
+      "tr": "생성된 코드에 필요한 것은 모두 코드와 함께 이동합니다. 번들된 표준 라이브러리를 포함해 import는 상대 경로이므로, 프로젝트의 <code>tsconfig.json</code>과 번들러에 아무것도 추가할 필요가 없습니다. 기본 Vite 프로젝트가 출력을 그대로 컴파일하고 번들하며, 같은 파일이 호스트의 <code>tsc --strict</code>도 통과합니다. 앱이 import하는 것에는 <code>pub</code>를 붙이세요. 붙이지 않은 선언은 그 모듈 안에서만 보입니다. 가정이 아닙니다. 외부 엔지니어가 <a href=\"https://github.com/yildizadem/glyph-kanban\">이 방식으로 React 칸반 보드를 만들었고</a>, RBAC 매트릭스, 분석 공식, 상태 전이를 직접 작성한 React UI 아래의 Glyph 모듈 네 개에 담았습니다."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "현재 상태"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-a33b093e",
+      "kind": "html",
+      "en": "Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself, verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>. The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">deployment guide</a> documents the hybrid layout.",
+      "tr": "생성된 출력은 호스트 프로젝트에 그대로 들어갑니다. 전체가 상대 경로 지정자이고, prelude 타입은 코드 자체가 가지고 있으며, 기본 Vite 프로젝트, 호스트 <code>tsc --strict</code>, esbuild, <code>tsx</code>로 검증했습니다. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">배포 가이드</a>에 혼합 구조가 설명되어 있습니다."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "앞으로 할 것"
+    },
+    {
+      "id": "h-6f1c79e2",
+      "kind": "html",
+      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script). Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.",
+      "tr": "아직 watch 모드는 없습니다. <code>.glyph</code> 소스를 편집한 뒤에는 <code>glyph build</code>를 다시 실행하세요(<code>dev</code> 스크립트에 연결해 두면 됩니다). <code>std/fs</code>나 <code>std/net</code>을 쓰는 모듈은 Node를 다루는 여느 TypeScript처럼 호스트에 <code>@types/node</code>가 필요합니다."
+    }
+  ]
+}

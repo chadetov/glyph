@@ -1,0 +1,634 @@
+---
+title: 에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요? · Glyph
+description: TypeScript에서는 컴파일된 뒤 깨지는 변경, 예를 들어 빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드가 Glyph에서는 에이전트가 고쳐야 하는 컴파일 오류가 됩니다.
+source_hash: debac5501878fd3d
+next: /answers/diff-stability/ | 다음 &rarr; | 에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일 전체를 다시 포맷하나요?
+---
+      <p class="q-eyebrow">01 &middot; 핵심 약속</p>
+      <h1 class="q-title">에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?</h1>
+
+      <p class="short-answer">
+        TypeScript에서 <strong>조용히 컴파일되는</strong> 종류의 변경 전체(빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드)가 <strong>에이전트가 배포하기 전에 고쳐야 하는 컴파일 오류</strong>가 됩니다.
+      </p>
+
+      <figure class="ak-hero" id="see-it">
+        <div class="ak-compare">
+          <div class="ak-pane bad">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.ts</span> 새 상태 하나, 다른 편집 없음 <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg> tsc --strict: 통과, undefined 출력</span></span>
+<pre>type Status =
+  | { tag: "Loading" }
+  | { tag: "Ready" }
+  | { tag: "Failed"; msg: string }
+<span class="add">  | { tag: "Cancelled" };</span>
+
+function label(s: Status) {
+  switch (s.tag) {
+    case "Loading": return "…";
+    case "Ready": return "done";
+    case "Failed": return s.msg;
+  }
+}</pre>
+            </div>
+          </div>
+          <div class="ak-pane good">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.glyph</span> 새 variant 하나, 그리고 컴파일러가 빠진 곳을 모두 찾음 <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 8.4l3 3 6-6.6"/></svg> 거부됨: E0200</span></span>
+<pre><span class="dim">type Status = Loading | Ready | Failed(string)<span class="cm">   // + Cancelled</span></span>
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Loading =&gt; "…",
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+<span class="add">    // no arm for Cancelled ⇒ this match no longer compiles</span>
+  }
+}</pre>
+            </div>
+            <div class="code term">
+              <span class="cap">glyph check --no-tsc, 0.1.149 (발췌)</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Cancelled`</span>
+    ╭─[ status:6:10 ]
+  6 │ ╭─▶   return match s {
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Status`: missing variants `Cancelled`
+    │     Help: Add an arm for each missing variant.</pre>
+            </div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>유니언에 상태를 추가하면 이전 집합을 처리하던 모든 곳이 컴파일되지 않고, 고쳐야 할 정확한 위치를 가리킵니다. 같은 TypeScript <code>switch</code>는 깔끔하게 컴파일되고 런타임에 <code>undefined</code>를 반환합니다.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#why-it-matters">왜 중요한가</a></li>
+          <li><a href="#errors">오류</a></li>
+          <li><a href="#typos">arm의 오타</a></li>
+          <li><a href="#imports">모듈 간</a></li>
+          <li><a href="#refinements">정제 타입</a></li>
+          <li><a href="#examples">빌드 안의 테스트</a></li>
+          <li><a href="#four-more-found-by-building-with-it">직접 만들며 찾은 것</a></li>
+          <li><a href="#where-it-stands">현재 상태</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">왜 중요한가<a class="ak-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        에이전트는 보통 코드를 요란하게 깨뜨리지 않습니다. <strong>자신 있게</strong> 깨뜨립니다. 상태를 추가하거나, 분기를 빠뜨리거나, 필드 이름을 바꾸고, 모든 것이 여전히 타입 검사를 통과하며, 버그는 프로덕션에서 드러납니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>비용이 큰 실패는 <em>컴파일되었는데 틀린</em> 것입니다. Glyph는 &ldquo;아마 처리했을 것&rdquo;을 &ldquo;처리했다는 것을 컴파일러가 증명함&rdquo;으로 바꿔 그 틈을 막습니다.</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>봉인된 유니언</b>태그 유니언은 <strong>봉인되어</strong> 있으므로 <code>match</code>는 모든 case를 다뤄야 합니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>값으로서의 오류</b>오류는 사라지는 예외가 아니라 꺼내 확인해야 하는 <strong>값</strong>입니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>검사되는 경계</b>그리고 모든 타입은 런타임 디스크립터를 가지므로, 경계를 넘어오는 데이터는 그 모양에 맞는지 검사됩니다.</li>
+      </ul>
+
+      <h2 class="ak-h" id="errors">버려진 오류는 경고입니다<a class="ak-anchor" href="#errors" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        오류도 마찬가지입니다. <code>Result&lt;T, E&gt;</code>를 반환하는 함수는 <code>match</code>로 처리하거나 <code>?</code>로 전달하도록 되어 있습니다(컴파일러는 오류 타입이 맞는지 검사합니다). 그리고 <code>Result</code>를 <em>버리면</em>(문장으로 호출하고 반환값을 무시하면) Glyph가 경고합니다(<code>E0217</code>). 버려진 오류는 삼켜진 실패이기 때문입니다.
+      </p>
+      <div class="code term wraps">
+        <span class="cap">glyph check --no-tsc, 0.1.149 (발췌)</span>
+<pre><span class="p">13 │</span>   save("a")
+<span class="del">[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored</span>
+    │ Help: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional.</pre>
+      </div>
+      <p class="ak-lede">경고는 <code>let _ = ...</code>로 의도적으로만 끌 수 있고, 실수로 꺼지는 일은 없습니다.</p>
+
+      <h2 class="ak-h" id="stdlib">표준 라이브러리의 유니언도 봉인되어 있습니다<a class="ak-anchor" href="#stdlib" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        표준 라이브러리가 소유한 유니언에도 같은 기준이 적용됩니다. <code>fs.ErrorKind</code>는 여섯 가지 종류로 된 닫힌 집합이고 검사기가 그 모양을 알기 때문에, 파일 시스템 오류에 대한 <code>match e.kind</code>에는 <code>else</code> arm이 필요 없고, 종류 하나를 빠뜨리면 <code>E0200</code>으로 실패합니다.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200 빠진 종류</span><span class="chip code">E0210 알 수 없는 필드</span><span class="chip code">E0218 else 필요</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">필드 오타, 반환 타입, 숫자와 문자열 match</span></summary><div class="body">
+        <p>
+          <code>e.mesage</code>는 <code>tsc</code>가 나중에 잡는 것이 아니라 <code>E0210</code>입니다. 반환 타입도 전달됩니다. <code>string.split(text, ",")</code>는 <code>Array&lt;string&gt;</code>이므로, <code>for i, part in string.split(text, ",")</code>는 타입 없는 반복 대상에서 얻게 되는 문자열 키가 아니라 숫자로 <code>i</code>를 바인딩합니다.
+        </p>
+        <p>
+          망라성은 유니언만을 위한 것이 아닙니다. 리터럴 arm만 있는 <code>number</code>나 <code>string</code>에 대한 <code>match</code>는 끝없는 정의역을 다 다룰 수 없으므로, Glyph는 다루지 않은 값이 런타임 예외로 흘러가게 두지 않고 <code>else</code>를 요구합니다(<code>E0218</code>).
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>규칙은 어디서나 같습니다. case 하나를 고려하지 않은 <code>match</code>는 컴파일되지 않습니다.</p></div>
+
+      <h2 class="ak-h" id="typos">철자가 틀린 arm은 catch-all이 아니라 빠진 곳입니다<a class="ak-anchor" href="#typos" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        오타가 빠진 곳을 조용히 덮을 수도 없습니다. 대문자로 시작하는 arm 머리는 새 바인딩이 아니라 <strong>variant에 대한 참조</strong>입니다.
+      </p>
+      <div class="code">
+        <span class="cap">status.glyph: 철자가 틀린 arm은 catch-all이 아니라 빠진 곳</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+<span class="del">    Loadign =&gt; "…",        // typo for Loading, read as a variant, not a binding</span>
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+  }
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0220] `Loadign` is not a variant of `Status`; did you mean `Loading`?</span>
+   ╰─ a lowercase name would be a binding; a PascalCase name is read as a variant
+<span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Loading`</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">예전 Glyph가 오타를 처리한 방식</span></summary><div class="body">
+        <p>
+          대문자로 시작하는 arm 머리는 새 바인딩이 아니라 <strong>variant에 대한 참조</strong>입니다. 예전 Glyph는 <code>Loading</code>을 <code>Loadign</code>으로 잘못 쓰면 그 오타를 모든 값을 바인딩하는 catch-all로 읽어서 match가 완전한 것처럼 보이게 했습니다. 이제 머리는 match 대상 유니언의 실제 variant를 가리켜야 합니다. 그렇지 않으면 빌드가 <code>E0220</code>으로 멈추고 가장 가까운 실제 이름을 가리키며, 실제로 빠뜨린 variant도 바로 옆에 <code>E0200</code>으로 나타납니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="payload">payload 안의 variant<a class="ak-anchor" href="#payload" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        variant가 다른 variant의 payload인 한 단계 아래에서도 같은 해석이 적용됩니다. 이제 arm은 바깥 variant가 무엇이든 payload 자신의 태그로 분기합니다.
+      </p>
+      <div class="code">
+        <span class="cap">repl.glyph: 안쪽 arm은 payload를 바인딩하지 않고 검사함</span>
+<pre>fn step(z: Zipper, line: string) -&gt; Zipper {
+  return match parse_command(line) {
+    Err(Blank) =&gt; z,                          // a comment or an empty line
+    Err(e) =&gt; { io.println(explain(e)) z },   // every other parse error
+    Ok(command) =&gt; execute(z, command),
+  }
+}</pre>
+      </div>
+      <div class="ak-chips"><span class="chip code">E0305 중복된 case 레이블</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">0.1.93 이전의 죽은 arm과 E0305 방어</span></summary><div class="body">
+        <p>
+          <code>Err(e)</code> 옆의 <code>Err(Blank)</code>는 "빈 줄은 무시하고 다른 모든 파싱 오류는 출력"으로 읽히는데, 0.1.93까지는 바깥 태그에 대한 <code>case "Err":</code> 레이블 두 개로 컴파일되었고, 첫 번째가 payload 전체를 <code>Blank</code>라는 이름으로 바인딩했습니다. 모든 오류가 첫 번째 arm으로 갔고 두 번째는 죽은 코드였는데, 아무것도 이를 알려 주지 않았습니다. Glyph는 진단을 내지 않았고 <code>tsc --strict</code>는 중복된 case 레이블을 받아들입니다. 이제 arm은 바깥 variant가 무엇이든 payload 자신의 태그로 분기하고, 컴파일러는 타입 검사기와 같은 방식으로 이름을 읽습니다. payload 유니언의 variant 목록이 결정하고, 그 목록에 닿을 수 없을 때만 이름의 모양이 결정합니다. 같은 파일에 선언된 유니언이라면 대소문자는 더 이상 상관없습니다. 다른 모듈에서 import한 유니언은 현재 variant 목록에 닿을 수 없으므로, 대문자 variant는 분기하고 소문자 variant는 빌드를 멈춥니다.
+        </p>
+        <p>
+          빌드가 멈추는 것은 이제 switch가 보호되기 때문입니다. 같은 <code>case</code> 레이블을 쓰게 되는 두 arm은 두 번째 레이블이 절대 실행되지 않는 switch가 아니라 <code>E0305</code>입니다. 이 덕분에 이 종류의 문제가 조용하지 않고 요란해집니다. 같은 태그를 두 번 사용하는 변환은 런타임에 엉뚱한 arm을 고르는 대신 빌드를 실패시킵니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="imports">import 표기 방식이 검사를 끄는 일은 없습니다<a class="ak-anchor" href="#imports" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        유니언이 어떻게 스코프에 들어왔는지는 이 모든 것을 바꾸지 않습니다. Glyph에서는 variant arm을 두 가지 방식으로 쓸 수 있고, 둘 다 똑같이 검사됩니다. <code>import model { Cond, Yes, No }</code>와 그냥 쓰는 arm, 또는 <code>import model</code>(또는 <code>import model as m</code>)과 <code>model.Yes(_)</code>입니다.
+      </p>
+      <div class="code">
+        <span class="cap">interp.glyph: import 목록은 사라졌지만 match는 여전히 검사됨</span>
+<pre><span class="del">import model { Action, All, Any, AtLeast, Clear, Condition, Context, Counter,</span>
+<span class="del">               Equals, Flag, FlagSet, Increment, Not, Set, Slot, Text }</span>
+import model
+import std/result
+
+pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;bool, SlotError&gt; {
+  return match c {
+    model.Equals({ key, value }) =&gt; result.Ok(read_text(ctx, key, "equals")? == value),
+    model.AtLeast({ key, least }) =&gt; result.Ok(read_count(ctx, key, "at-least")? &gt;= least),
+    model.FlagSet({ key }) =&gt; result.Ok(read_flag(ctx, key, "flag-set")?),
+    model.All({ of }) =&gt; all_of(ctx, of),
+    model.Any({ of }) =&gt; any_of(ctx, of),
+    model.Not({ of }) =&gt; result.Ok(!(evaluate(ctx, of)?)),
+  }
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build, 마지막 arm을 지운 뒤</span>
+<pre><span class="del">[E0200] non-exhaustive match on `Condition`: missing variants Not</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">표준 라이브러리 유니언, 문자열 enum, 그리고 그 목록이 있었던 이유</span></summary><div class="body">
+        <p>
+          표준 라이브러리의 유니언에도 마찬가지이므로, <code>option.Option&lt;string&gt;</code>에 대한 <code>match o { option.Some(s) =&gt; … }</code>는 그냥 <code>Some</code>/<code>None</code>으로 쓴 것과 똑같이 빠진 <code>None</code>에 대해 <code>E0200</code>입니다. 0.1.56까지는 한정된 표기가 검사를 통째로 건너뛰었고, 런타임에 예외를 던지는 match에 대해 빌드가 아무 진단도 보고하지 않았습니다.
+        </p>
+        <p>
+          문자열 enum도 경계를 넘습니다. <code>catalog.glyph</code>에 선언하고 다른 모듈로 import한 <code>type ColType = "text" | "int" | "real" | "bool"</code>은 네 값을 유지하므로, 네 가지를 모두 다루는 match는 <code>else</code> 없이 컴파일되고, 하나를 빠뜨리면 빠뜨린 값을 짚는 <code>E0200</code>입니다. 0.1.57까지는 <code>E0218</code>이었고, 도움말은 <code>else</code> arm을 추가하라고 했습니다. 그 도움말은 눈앞의 코드에 대해 틀렸고, 그대로 따르면 컴파일 오류가 런타임 fallthrough로 바뀌었습니다. 세 가지 import 표기 모두 동작합니다: <code>import catalog { ColType }</code>, <code>catalog.ColType</code>을 쓰는 <code>import catalog</code>, 그리고 <code>c.ColType</code>을 쓰는 <code>import catalog as c</code>.
+        </p>
+        <p>
+          이 문제는 그 import 목록에서 시작되었습니다. statechart 엔진의 모든 모듈에 직접 작성되어 있었고, 그 위에는 유니언의 생성자는 타입과 함께 들어오지 않는다는 주석이 달려 있었습니다. 주석은 문법에 대해서는 맞았지만 이유에 대해서는 틀렸습니다. 목록이 있었던 이유는 더 짧은 표기가 검사를 꺼 버렸기 때문이고, 끄는 것이 조용했기 때문에 아무도 알아채지 못했습니다. 이제 어느 형태를 고르느냐는 함정이 아니라 실제 선택입니다. 이름을 나열하는 형태는 처리하는 모든 variant를 import 목록에 두므로 <code>Equals</code>를 <code>grep</code>하면 찾을 수 있습니다. 한정된 형태는 각 arm에서 variant가 어느 모듈에서 왔는지 보여 줍니다. 어느 쪽도 검사를 잃지 않습니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="records">import한 레코드는 필드를 유지합니다<a class="ak-anchor" href="#records" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        이제 레코드도 경계를 넘으며, 0.1.58까지는 그렇지 않았습니다. 따라서 레코드는 필드 집합을 유지하고, 잘못된 필드는 익명 모양에 대한 <code>tsc</code> 오류가 아니라 레코드 이름을 짚는 <code>E0210</code>입니다.
+      </p>
+      <div class="code term">
+        <span class="cap">glyph build, import한 레코드의 오타 난 필드에 대해</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
+<span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
+      </div>
+      <div class="code">
+        <span class="cap">table.glyph: 끌어올린 바인딩과 그것을 설명하던 주석이 사라짐</span>
+<pre><span class="del">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span>
+<span class="del">// lowering from the iterand's type as the checker knows it, and a field</span>
+<span class="del">// access is not enough: without the `let`, `i` and `j` come out as strings</span>
+<span class="del">// and the row/column numbers in a `BadCell` are wrong.</span>
+<span class="del">let raw_rows: Array&lt;Array&lt;string&gt;&gt; = sheet.rows</span>
+<span class="del">for i, raw_row in raw_rows {</span>
+<span class="add">for i, raw_row in sheet.rows {</span>
+  let typed: Array&lt;Value&gt; = []
+<span class="del">  let cols: Array&lt;ColumnSpec&gt; = spec.columns</span>
+<span class="del">  for j, col in cols {</span>
+<span class="add">  for j, col in spec.columns {</span>
+    …
+  }
+}
+
+<span class="cm">// sheet: Sheet, declared in catalog.glyph and imported here.</span>
+<span class="cm">// Emitted TypeScript: sheet.rows.entries(), not Object.entries(sheet.rows).</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">line 11 버그, tsc가 놓치는 것, 식별이 경계를 넘는 방식</span></summary><div class="body">
+        <p>
+          한 파일에서 선언하고 다른 파일에서 쓰는 타입은 아무 정보 없이 도착했고, 그 때문에 별개의 검사 두 개를 잃었습니다. 그 타입의 철자가 틀린 필드는 Glyph 오류를 전혀 내지 않았으므로 <code>sheet.rowz</code>는 <code>tsc</code>까지 넘어가서, 작성한 적도 없는 모양에 대한 TypeScript 메시지로 돌아왔습니다. 그리고 <code>for i, r in sheet.rows</code>는 <code>rows</code>가 배열인지 알 수 없어서 <code>sheet.rows.entries()</code> 대신 <code>Object.entries(sheet.rows)</code>를 생성했습니다. 그러면 <code>i</code>가 문자열 <code>"0"</code>에 바인딩됩니다. 그러면 <code>i + 1</code>은 더하기 대신 문자열을 이어 붙이고, <code>line 2</code>로 보고되어야 할 행이 <code>line 11</code>로 보고됩니다.
+        </p>
+        <p>
+          알아 둘 만한 부분은 <code>tsc</code>가 어느 쪽을 잡느냐입니다. 그 인덱스에 대한 산술 연산은 잡지만, Glyph가 대신 바인딩한 변수에 대해 생성된 TypeScript 기준으로 오류를 보고합니다. 잡지 못하는 것은 숫자를 의도한 곳에 문자열이 받아들여지는 모든 곳입니다. 문자열 보간, 이어 붙이기, <code>record.get</code> 키 같은 곳입니다. 이런 코드는 두 검사기에서 모두 깔끔하게 컴파일되고 잘못된 숫자를 출력합니다. 이 프로젝트가 없애려고 존재하는 바로 그 모양의 버그이므로, 이를 다시 들여오는 모듈 경계를 Glyph가 그냥 둘 수는 없습니다.
+        </p>
+        <p>
+          이제 import한 타입은 그것을 선언한 모듈과 선언된 이름을 키로 하는 식별 정보를 경계 너머로 가지고 가므로, 세 가지 import 표기 모두 같은 타입으로 해석됩니다. 선언 자체는 필요할 때 가져와서 선언한 모듈 쪽에서 변환되는데, 이것이 사용하는 쪽에서는 할 수 없는 절반입니다. 이름 해석은 소스 범위를 기준으로 실행되고, import한 선언의 범위는 다른 파일에 속하기 때문입니다.
+        </p>
+        <p>
+          이 문제가 드러난 곳은 <code>examples/apps/csvql</code>의 쿼리 엔진입니다. 여기에는 import한 필드의 타입을 emitter에 다시 알려 주는 것 말고는 하는 일이 없는 <code>let</code> 끌어올리기가 세 개 있었고, 그 위에는 이것이 없으면 오류 메시지의 행과 열 번호가 틀리게 나온다는 네 줄짜리 주석이 있었습니다. 세 개 모두 삭제했고, 앱은 열두 개 쿼리 모두에 대해 바이트 단위로 같은 출력을 냅니다.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>경계에서 여전히 멈추는 것이 하나 있습니다. <code>table.Row</code>가 필요한 곳에 <code>catalog.Sheet</code>를 넘기면 두 타입을 모두 짚는 E0211이지만, <code>interface</code>의 멤버 목록은 경계를 넘지 않으므로 import한 인터페이스가 필요한 곳에 넘긴 레코드는 아무것과도 비교되지 않습니다. 레코드의 필드 집합과 같은 처리를 하면 구조적 만족이 무엇을 뜻하는지가 조용히 바뀌게 되는데, 이는 수정이 아니라 언어 차원의 결정입니다.</p></div>
+
+      <h2 class="ak-h" id="redact">개인정보 마스킹은 타입에 있습니다<a class="ak-anchor" href="#redact" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        "관례가 아니라 타입 수준으로 만든다"는 같은 원칙이 개인정보에도 적용됩니다. 타입에 <code>@redact fields: [ssn, dob]</code>를 붙이면 컴파일러가 그 필드를 가리는 <code>redact()</code>를 디스크립터에 생성하므로, <code>json.stringify(User.redact(u))</code>는 그 필드를 유출할 수 없습니다.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0219 @redact의 알 수 없는 필드</span></div>
+      <p class="ak-lede">타입에 없는 필드를 지정하면 아무 일도 하지 않는 마스킹이 아니라 컴파일 오류(<code>E0219</code>)입니다.</p>
+
+      <h2 class="ak-h" id="refinements">정제 타입은 끝까지 검사됩니다<a class="ak-anchor" href="#refinements" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        디스크립터는 타입이 선언한 검사를 끝까지 수행할 때만 가치가 있습니다. <code>where</code> 정제는 직접 호출한 <code>Instant.parse</code>에서만이 아니라 타입이 나타나는 모든 곳에서 조건식을 실행합니다. 레코드 필드, <code>Array</code> 요소, <code>Option</code> payload, 유니언 variant 안, 그리고 <code>json.parse&lt;T&gt;</code>를 통해서도 마찬가지입니다.
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="조건식이 실행되는 곳">
+          <li><span>Calendar</span></li>
+          <li><span>Array&lt;WireParticipant&gt;</span></li>
+          <li><span>busy</span></li>
+          <li><span>start</span></li>
+          <li><span>is_instant(value)</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>수정은 경계에서 네 단계 아래에 있습니다: <code>Calendar</code>에서 <code>Array&lt;WireParticipant&gt;</code>, <code>busy</code>, <code>start</code>, 그리고 조건식까지.</span></figcaption>
+      </figure>
+      <div class="code">
+        <span class="cap">schedule.glyph: 조건식이 타입을 따라 필드 안까지 들어감</span>
+<pre>fn is_instant(value: string) -&gt; bool {
+  return match time.parse_iso(value) {
+    Some(_) =&gt; true,
+    None =&gt; false,
+  }
+}
+
+type Instant = string where is_instant(value)
+
+type WireBlock = { start: Instant, end: Instant }
+type WireParticipant = { name: string, busy: Array&lt;WireBlock&gt; }
+type Calendar = { participants: Array&lt;WireParticipant&gt; }
+
+<span class="cm">// json.parse&lt;Calendar&gt;(text) on a file holding "start": "no"</span>
+<span class="cm">//   =&gt; Err. It returned Ok before 0.1.41.</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">0.1.41 이전의 자신만만하게 틀린 일정</span></summary><div class="body">
+        <p>
+          다른 모듈에서 import한 레코드도 마찬가지입니다. 0.1.41까지는 둘 다 키가 있는지만 확인하는 것으로 대신했는데, 이는 아무것도 검사하지 않는 것입니다.
+        </p>
+        <p>
+          이 문제가 드러난 곳은 아래의 일정 관리 앱입니다. JSON 파일에서 캘린더를 읽고, 모든 타임스탬프가 실제 ISO-8601 시각이어야 합니다. 예전에는 정제가 최상위에서 멈췄기 때문에, 직접 수정한 파일에 <code>"start": "no"</code>가 있어도 문제없이 파싱되었고, 시각은 0으로 읽혔으며, 앱은 자신만만하게 일정을 출력하고 0으로 종료했습니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="examples">테스트는 빌드의 일부로 실행됩니다<a class="ak-anchor" href="#examples" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        테스트는 코드 옆에 있고 컴파일 과정의 일부로 실행됩니다. 함수 위의 <code>@example</code>이나 <code>@doc</code> 안의 <code>```glyph @run```</code> 블록은 기억해야 할 플래그 없이 <code>glyph build</code>가 실행합니다.
+      </p>
+      <div class="code term">
+        <span class="cap">bracket.glyph: 시드 배치를 깨뜨리면 빌드가 멈춤</span>
+<pre>@example seed_order(2) == [1, 2]
+@example seed_order(4) == [1, 4, 2, 3]
+@example seed_order(8) == [1, 8, 4, 5, 2, 7, 3, 6]
+fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
+
+<span class="cm">// glyph build src --out dist</span>
+<span class="del">example failed: bracket example #16:</span>
+<span class="del">  (seed_order(8)) != ([1, 2, 3, 4, 5, 6, 7, 8])</span>
+<span class="del">1 of 23 example(s) failed.            # exit 1, no "tsc passed" line</span>
+
+<span class="cm">// glyph build src --out dist --json</span>
+<span class="del">{ "ok": false, "errors": 1, "tsc": "passed",</span>
+<span class="del">  "examples": { "total": 23, "ran": true, "skipped": false,</span>
+<span class="del">    "failures": ["bracket example #16: …"] } }</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">조용히 건너뛸 수 없는 이유와 JSON 채널</span></summary><div class="body">
+        <p>
+          거짓인 예제는 타입 오류와 똑같이 빌드를 실패시키며, 그것이 핵심입니다. 함수 본문을 다시 쓰는 에이전트는 단언을 그대로 둔 채 빌드를 통과할 수 없습니다. <code>--no-test</code>로 건너뛸 수 있지만 건너뛴 테스트 수를 출력하므로, 우회한 사실이 로그에 남습니다.
+        </p>
+        <p>
+          에이전트가 읽는 JSON 출력도 같은 판정을 보고합니다. <code>glyph build --json</code>은 진단 옆에 <code>examples</code> 객체를 담고, 실패하는 예제가 있으면 <code>ok</code>가 false가 되고 종료 코드가 0이 아닙니다. 0.1.43까지는 예제가 <code>--test</code>에서만 실행되었고 JSON 경로는 예제를 실행하기도 전에 반환했으므로, 에이전트가 읽을 수 있는 유일한 채널이 자체 단언이 거짓인 프로젝트에 대해 <code>"ok": true</code>를 출력했습니다. <code>PATH</code>에 <code>tsx</code>가 없으면 검사하지도 않은 통과를 보고하는 대신 빌드가 실패합니다.
+        </p>
+        <p>
+          아래의 대진표 앱에는 이런 예제가 23개 있습니다. <code>seed_order</code>는 두 배로 늘려 가며 표준 대진 순서를 만드는데, 미묘하게 틀리기 쉽고 정확하게 설명하기도 쉬운 종류의 함수입니다. 두 배로 늘리는 규칙을 바꾸면 테스트 파일도, 러너도, 플래그도 없이 빌드가 멈춥니다.
+        </p>
+      </div></details>
+
+      <p class="ak-kicker">직접 만들며 찾은 것</p>
+      <h2 class="ak-h" id="four-more-found-by-building-with-it">직접 만들며 찾은 네 가지 더<a class="ak-anchor" href="#four-more-found-by-building-with-it" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        이것들은 모두 깔끔하게 컴파일되고 <code>tsc --strict</code>를 통과했으며, 모두 컴파일러를 읽어서가 아니라 애플리케이션을 작성하면서 발견했습니다. 세 곳에서 나타난 같은 실패입니다. 타입은 한 가지를 말했고 프로그램은 다른 일을 했습니다.
+      </p>
+
+      <h3 class="ak-h3" id="map-keys">없을 수도 있는 키 읽기<a class="ak-anchor" href="#map-keys" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">없을 수도 있는 키 읽기: 이제 E0224</span>
+<pre>fn name_of(row: Record&lt;string, string&gt;) -&gt; string {
+  return row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
+}</pre>
+      </div>
+      <p class="ak-lede">이제 <code>record.get</code>을 가리키는 컴파일 오류입니다. 이 함수는 <code>Option&lt;V&gt;</code>를 반환하므로 키가 없는 경우를 처리할 자리가 생깁니다.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">맵 읽기가 배열 인덱싱과 다른 이유</span></summary><div class="body">
+        <p>
+          맵의 키는 임의적이므로 컴파일러는 키가 있는지 알 수 없습니다. 읽은 값의 타입을 <code>string</code>으로 지정하는 것은 검사하지 않은 것을 단언하는 것이었고, 값은 "undefined"라는 텍스트로 출력되었습니다. 키를 쓰는 것은 그대로이고 배열 인덱싱도 그대로입니다. 범위는 프로그램이 검사할 수 있는 값이지만 맵 키는 그렇지 않습니다.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="equality"><code>==</code>는 어디서나 값 비교입니다<a class="ak-anchor" href="#equality" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">코드는 실패했는데 통과한 테스트</span>
+<pre><span class="cm">@example wrap("a") == wrap("a")   // passed: deep equality</span>
+fn same() -&gt; bool {
+  return wrap("a") == wrap("a")   <span class="cm">// false. no diagnostic</span>
+}</pre>
+      </div>
+      <p class="ak-lede"><code>==</code>는 이제 어디서나 값 비교입니다. 원시 타입은 여전히 <code>===</code>로 컴파일되므로 일반적인 비교는 바뀌지 않습니다.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">망가진 코드에서 테스트가 통과할 수 있었던 이유</span></summary><div class="body">
+        <p>
+          <code>==</code>는 값 비교라고 문서화되어 있었지만 <code>===</code>로 변환되었는데, 이는 어느 한쪽이 레코드, 태그 유니언, 배열이 되는 순간 <em>참조</em> 비교입니다. 같은 표현식이 테스트에서는 구조적으로, 바로 옆 프로그램에서는 동일성으로 비교했으므로, 동작하지 않는 코드에 대해 테스트가 성공을 보고할 수 있었습니다.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="loop-binding">반복문 바인딩은 요소 타입을 유지합니다<a class="ak-anchor" href="#loop-binding" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">반복문 안에서 사라진 망라성</span>
+<pre>for t in tiers {
+  match t {
+    "free" =&gt; ...          <span class="cm">// "pro" unhandled: once merely a warning to add `else`</span>
+  }
+}</pre>
+      </div>
+      <p class="ak-lede">이제 처리하지 않은 variant를 짚어 주며, 이는 검사를 끄라는 조언이 아니라 검사를 만족시키라는 조언입니다.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">예전에 주던 catch-all 조언</span></summary><div class="body">
+        <p>
+          반복문 바인딩에 요소 타입이 없었으므로, 문자열 리터럴 유니언에 대한 <code>match</code>가 <code>string</code>에 대한 match로 격하되었고 컴파일러는 catch-all을 추가하라고 조언했습니다.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="imported-generic">import한 제네릭 유니언도 검사됩니다<a class="ak-anchor" href="#imported-generic" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">import한 제네릭 유니언에 대한 match에서 빠진 variant</span>
+<pre>import tree { Tree, Node }
+
+fn label(t: Tree&lt;string&gt;) -&gt; string {
+  return match t {
+    Node({ key: k }) =&gt; k    <span class="cm">// Leaf unhandled: built clean, threw at run time</span>
+  }
+}</pre>
+      </div>
+      <p class="ak-lede">이제는 어느 경우든 <code>E0200</code>입니다. 두 가지 import 표기 모두, 열린 매개변수든 구체적인 인스턴스화든 마찬가지입니다.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">검사가 시작조차 되지 않았던 이유</span></summary><div class="body">
+        <p>
+          자기 모듈이 선언한 유니언은 타입 매개변수가 있든 없든 검사됩니다. 형제 모듈에서 import한 유니언은 타입 매개변수가 없을 때만 검사되었습니다. <code>Tree&lt;string&gt;</code>은 import한 유니언 자체가 아니라 import한 유니언의 적용으로서 모듈 간 커버리지 경로에 도달하는데, 검사를 시작하는 관문은 전자를 찾고 있었으므로 <code>match</code>는 아예 세어지지 않았습니다. <code>tsc --strict</code>는 통과했고 <code>Leaf</code>가 예외를 던졌습니다. 두 파일에서 <code>&lt;K&gt;</code>를 지우면 같은 프로그램이 <code>E0200</code>이었습니다.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="unchecked-parse"><code>parse</code>는 하지 않은 검사를 했다고 주장할 수 없습니다<a class="ak-anchor" href="#unchecked-parse" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">검사하지 않고 성공을 보고한 <code>parse</code>: 이제 E0304</span>
+<pre>type Conn = { id: number, sock: Socket }
+
+Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the message said it was</span></pre>
+      </div>
+      <p class="ak-lede">레코드에 소켓을 담는 것은 평범한 일이고 여전히 컴파일됩니다. 이를 검증하는 것은 이제 작성한 곳과 그 레코드를 import하는 모든 모듈에서 필드와 그 타입을 짚으며 거부되고, 거부는 모양을 따라갑니다. 중첩된 레코드, <code>Array</code>, <code>Option</code>을 통해서도 마찬가지입니다.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">존재 여부가 검사가 아닌 이유와, 요구하는 수정</span></summary><div class="body">
+        <p>
+          모든 레코드 타입은 런타임 디스크립터를 가집니다. 소켓이나 <code>extern_ts</code>를 통해 닿는 것처럼 컴파일러가 안을 들여다볼 수 없는 타입의 필드에 대해, 생성된 검사는 "있는가"였는데 보고 메시지는 <code>field `sock` must be Socket</code>이었습니다. 항상 참인 불리언은 쓸모가 없습니다. 아무것도 검사하지 않은 타입을 짚는 메시지 아래에서 항상 참인 불리언은 더 나쁩니다. 경계에서 믿으라고 하는 것이 바로 <code>parse</code>이기 때문입니다.
+        </p>
+        <p>
+          요구하는 수정은 어차피 작성했을 분리입니다. 모든 필드를 검사할 수 있는 wire 타입을 두고, 그로부터 도메인 레코드를 만드는 것입니다. <code>unknown</code>은 이 검사에 걸리지 않습니다. 아무것도 주장하지 않으며, 존재 여부가 정말로 검사의 전부이기 때문입니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-signature-change-invisible-at-the-call-site-closed-in-0-1">호출 지점에서 보이지 않는 시그니처 변경: 0.1.116에서 막힘<a class="ak-anchor" href="#a-signature-change-invisible-at-the-call-site-closed-in-0-1" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        함수가 원시 문자열 대신 payload를 받도록 바꿔도, 여전히 이전 모양을 넘기는 모든 호출이 깔끔하게 빌드되었습니다.
+      </p>
+      <div class="code">
+        <span class="cap">billing.glyph: 유니언이 아무도 모르게 `string` 매개변수를 통과함</span>
+<pre>type PaymentResult = Settled(string) | Declined(string)
+
+fn takes_string(s: string) -&gt; number { return s.length }
+
+fn charge(r: PaymentResult) -&gt; number {
+  return takes_string(r)   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build, 현재</span>
+<pre><span class="del">[E0211] argument type mismatch: expected `string`, found `PaymentResult`</span>
+   ╰─ Pass a value of the expected type, or change the parameter's type.</pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">검사가 발생하는 곳과 조용한 곳</span></summary><div class="body">
+        <p>
+          <code>string</code>, <code>number</code>, <code>bool</code> 타입의 매개변수는 선언된 유니언이나 레코드 값을 아무 불평 없이 받아들였습니다. 같은 호출에 맞지 않는 <code>bool</code> 인자를 넘기면 이미 <code>E0211</code>이었는데도 말입니다.
+        </p>
+        <p>
+          검사는 선언을 읽으므로 답이 확실한 곳에서만 발생합니다. 원시 타입 별칭, 문자열 리터럴 유니언(D30), <code>extern_ts</code>나 <code>typeof</code> 본문, 그리고 <code>interface</code>는 모두 여전히 아무 말도 하지 않습니다. 태그 유니언이나 레코드처럼 <code>string</code>이 아니라고 증명할 수 있는 것이 아니기 때문입니다. <code>void</code>도 제외됩니다. 인자, <code>return</code>, <code>let</code> 타입 표기 모두에 똑같이 적용되는데, 셋이 같은 관계를 공유하기 때문입니다.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="const">타입 표기가 있는 <code>const</code>는 타입을 가집니다<a class="ak-anchor" href="#const" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>const</code>에는 받는 쪽에 같은 구멍이 있었습니다.
+      </p>
+      <div class="code">
+        <span class="cap">catalog.glyph: 타입 표기가 있는 const와, 그것에 없는 필드</span>
+<pre>type Sheet = { rows: number, cols: number }
+const ORIGIN: Sheet = { rows: 0, cols: 0 }
+
+fn f() -&gt; number {
+  return ORIGIN.rowz   <span class="cm">// compiled clean before 0.1.116</span>
+}</pre>
+      </div>
+
+      <div class="code term">
+        <span class="cap">glyph build, 현재</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">타입 표기가 없는 const, 그리고 두 수정이 모두 breaking인 이유</span></summary><div class="body">
+        <p>
+          타입 표기가 있는 모듈 수준 <code>const</code>는 표기가 무엇이든 <code>Ty::Unknown</code>으로 변환되었으므로, 함수 안의 같은 표기를 가진 <code>let</code>에서는 이미 보고되던 필드 오타가 거기서는 보이지 않았습니다.
+        </p>
+        <p>
+          타입 표기가 없는 <code>const</code>는 아무것도 주장하지 않으며, 의도적으로 <code>Unknown</code>으로 남습니다. 초기값에서 타입을 추론하는 것은 오탐의 범위가 다른 별개의 문제입니다. 두 수정 모두 <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드에서 breaking입니다. 각각 이전 릴리스가 받아들이던 프로그램을 잡기 시작하기 때문입니다. 전체 <code>glyph build</code>는 두 경우 모두 이미 <code>tsc</code>를 통해 실패했습니다.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="extra-field">추가 필드는 여전히 <code>tsc</code>가 잡습니다<a class="ak-anchor" href="#extra-field" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        레코드 리터럴 검사 하나는 여전히 Glyph가 아니라 <code>tsc</code>의 몫입니다. <code>glyph build</code>는 여기서 멈추지만, <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드는 아무 말도 하지 않습니다(G273).
+      </p>
+      <div class="code">
+        <span class="cap">point.glyph: tsc에 맡겨진 추가 필드</span>
+<pre data-check="expect-error TS2353">module point
+
+pub type Point = {
+  x: number,
+  y: number,
+}
+
+pub fn origin() -&gt; Point {
+  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+}</pre>
+      </div>
+      <div class="ak-chips"><span class="chip ts">tsc의 TS2353</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">tsc가 보고하는 방식</span></summary><div class="body">
+        <p>
+          선언된 레코드에 없는 필드를 가진 리터럴은 Glyph 검사기를 통과하고, <code>tsc</code>가 생성된 TypeScript에서 <code>TS2353</code>으로 거부하며, 이는 리터럴 위치로 다시 매핑됩니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">18</span></h3>
+
+          <p class="ak-st-group">매칭</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">봉인된 유니언에 대한 망라적인 <code>match</code>: 자기 모듈의 것이든 형제 모듈의 것이든, 제네릭이든 아니든, 그리고 <code>fs.ErrorKind</code> 같은 표준 라이브러리의 것</span><span class="chip code">E0200</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>number</code>/<code>string</code>에 대한 망라적인 <code>match</code></span><span class="chip code">E0218</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">오타 난 variant arm을 조용한 catch-all 대신 가장 가까운 variant 제안과 함께 컴파일 오류로 잡음</span><span class="chip code">E0220</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">payload 위치의 variant가 payload를 바인딩하지 않고 payload 자신의 태그로 분기</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">같은 태그에 답하는 두 arm을 하나가 조용히 이기게 두지 않고 <code>E0305</code>로 거부</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">요소 타입을 유지하는 <code>for</code> 바인딩</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">오류와 테스트</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>Result</code>와 오류 타입을 검사하는 <code>?</code> 연산자</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>Result</code>를 버리면 경고</span><span class="chip code">E0217</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>--json</code>을 포함해 빌드할 때마다 실행되는 <code>@example</code> / <code>@doc @run</code> 테스트</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">타입, 레코드, 리터럴</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>string</code>/<code>number</code>/<code>bool</code>이 필요한 곳에 넘긴 선언된 유니언이나 레코드</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">타입 표기가 있는 모듈 수준 <code>const</code>의 필드 오타</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">모든 타입에서 값 비교인 <code>==</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">맵에서 키를 읽는 것을 거부</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">선언된 타입에 대해 검사되는 객체 리터럴과 JSX 속성</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">0.1.124부터</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>0.1.124부터 객체 리터럴은 그 필드가 나타내는 레코드 타입을 가집니다. 그래서 <code>let g: string = { x: 1 }</code>, 선언된 레코드가 요구하는 필드가 빠진 리터럴, 맞지 않는 곳에 넘긴 리터럴은 <code>let</code>, <code>const</code>, <code>return</code>, 호출 인자에서 선언된 타입을 짚는 E0204나 E0211입니다. 그리고 JSX 속성은 컴포넌트의 props 레코드에 대해 검사되므로, <code>&lt;Button variant="nope" /&gt;</code>는 받아들이는 값을 보여 주는 E0211을 내고, 레코드에 선언되지 않은 속성은 <code>glyph fix</code>가 이름을 바꿔 주는 E0210을 냅니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">빠진 필수 필드나 prop을 짚어 줍니다</span><span class="chip code">E0211</span><span class="chip code">E0229</span><span class="chip since">0.1.125부터</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>0.1.125부터 필수 필드를 빠뜨린 레코드 리터럴이나 컴포넌트 요소는 메시지와 <code>--json</code>의 <code>missing_fields</code>에서 그 필드를 짚어 줍니다. 필수 prop이 빠진 요소는 속성을 하나도 쓰지 않았더라도 E0211이고, 매개변수 하나가 레코드가 아닌 컴포넌트는 E0229입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">레코드의 모든 필드를 레코드와 같은 규칙으로 비교</span><span class="chip since">0.1.127부터</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>0.1.127부터 레코드의 모든 필드는 레코드와 같은 규칙으로 비교되므로, 안에 든 중첩 레코드, 선언된 타입, 문자열 리터럴 유니언은 <code>tsc</code>가 거부하는 곳에서 거부되고, 필수로 선언된 곳의 선택 필드, 반환 타입이 맞지 않는 함수, 로컬 인터페이스의 멤버도 마찬가지입니다. 모든 필드가 선택인 레코드는 TS2559처럼 겹치는 필드가 하나도 없는 값을 거부합니다. 함수의 매개변수는 아직 비교하지 않습니다.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">데이터 경계</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">런타임 타입 디스크립터</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">타입 디스크립터의 <code>@redact</code> 개인정보 마스킹</span><span class="chip code">E0219</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 개선 중 <span class="count">13</span></h3>
+
+          <p class="ak-st-group">매칭</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">import한 유니언의 커버리지 검사는 아직 variant의 payload 안을 들여다보지 않습니다</span><span class="chip">다음으로 깊게 할 것</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>타입 매개변수가 검사를 꺼 버리곤 했습니다. 0.1.90까지 <code>Tree&lt;K&gt;</code>에 대한 <code>match</code>는 variant를 빠뜨려도 깔끔하게 빌드되고 <code>tsc --strict</code>를 통과한 뒤 런타임에 예외를 던질 수 있었는데, <code>Tree</code>에 대한 같은 match는 <code>E0200</code>이었습니다. 이는 자기 모듈이 선언한 유니언에 대해서는 막혔고, 0.1.95부터는 import한 유니언에 대해서도 막혔습니다. import 경로에서 여전히 얕은 것은 관문이 아니라 깊이입니다. import한 유니언에 대해 실행되는 검사는 variant의 payload 안을 들여다보지 않으므로, payload 자체가 유니언인 import한 유니언에 대한 <code>B(X)</code>는 빠진 <code>Y</code>를 보고하지 않고 모든 <code>B</code>에 매칭되며, 여기에는 타입 매개변수가 관여하지 않습니다. 이것이 다음으로 깊게 할 부분입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">import한 유니언의 소문자 payload variant는 빌드를 멈춥니다</span><span class="chip code">E0305</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>payload 위치의 variant는 이제 payload 유니언의 variant 목록에서 읽으므로, 자기 모듈이 선언한 유니언에서는 이름의 대소문자가 더 이상 상관없습니다. 다른 모듈에서 import한 유니언에는 읽을 목록이 없어서 여전히 이름의 모양이 답을 정하며, 그래서 <code>Err(Blank)</code>는 분기하고 <code>Err(blank)</code>는 <code>E0305</code>에서 빌드를 멈춥니다. 올바른 프로그램에 대한 요란한 실패이며, 위의 얕은 커버리지 검사와 같은 import 유니언 레지스트리가 필요합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">레코드 payload에 대한 생성자 패턴(<code>Ok(Point)</code>)은 Glyph가 아니라 <code>tsc</code>에서 실패합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>유니언이 아니라 레코드인 payload에 대한 생성자 패턴(<code>Ok(Point)</code>)은 <code>tsc</code>를 통해 작성한 적 없는 <code>.tag</code>를 짚으며 실패하는데, 원래는 타입과 패턴을 짚는 Glyph 진단이어야 합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">철자가 틀린 단독 arm은 같은 이름에 대해 두 줄을 보고합니다</span><span class="chip code">E0220</span><span class="chip code">E0103</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>오타 검사(<code>E0220</code>)는 이제 모듈에 선언된 유니언과 네임스페이스 import로 닿는 유니언(<code>model.Nooo(_)</code>)을 생성자 모양이든 단독이든 똑같이 다룹니다. 0.1.115까지는 import한 유니언에 대한 철자가 틀린 단독 머리(<code>Loadign</code>, 인자 없음)가 variant를 다룬 것으로 인정되어 아무 말도 하지 않았는데, 로컬 유니언에서의 같은 오타는 이미 <code>E0220</code>을 보고했습니다. 이제 두 표기 모두 보고합니다. 철자가 틀린 단독 arm은 한 단계 앞에서 <code>E0103</code>에도 걸리므로, 같은 이름에 대해 두 줄을 받게 됩니다.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">타입, 레코드, 리터럴</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">spread를 담은 리터럴은 타입이 없고, 추가 필드가 여전히 허용됩니다</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>spread를 담은 리터럴은 타입이 없고, 추가 필드가 여전히 허용됩니다. <code>tsc</code>는 새로 만든 리터럴의 추가 필드를 TS2353으로 거부합니다(G273).</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">import한 <code>interface</code>의 멤버와 import한 <code>const</code>의 타입은 아직 경계를 넘지 않습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>이제 타입은 모듈 경계를 온전히 넘습니다. 유니언은 태그 유니언이든 문자열 리터럴 유니언이든 망라성을 유지하고, 레코드는 필드 집합을 유지하므로, import한 레코드의 오타 난 필드는 그 레코드 자신의 타입을 짚는 <code>E0210</code>이고, 배열 필드 하나에 대한 <code>for i, x</code>는 타입 표기 없이 숫자를 바인딩합니다. 아직 넘지 않는 것은 <code>interface</code>의 멤버 목록이므로, import한 인터페이스가 필요한 곳에 넘긴 레코드는 아무것과도 비교되지 않습니다. import한 <code>const</code>도 한 단계 옆에서 같은 모양입니다. 여전히 <code>Ty::Unknown</code>이므로, 원본 모듈이 타입을 표기했든 아니든 이름 import나 네임스페이스 import를 통한 필드 오타는 조용합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">더 깊은 흐름 기반 좁히기는 로드맵에 있습니다</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">데이터 경계</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">다른 모듈이나 표준 라이브러리에서 온 맵은 검사 없이 읽힙니다</span><span class="chip code">E0224</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>다른 모듈이나 표준 라이브러리에서 온 맵은 여전히 검사 없이 읽히므로, E0224가 아직 <code>sqlite.Row</code>에 적용되지 않고, 바인딩이 두 개인 <code>for i, x in xs</code>는 여전히 타입을 잃습니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">평범한 <code>.d.ts</code>에서 온 타입에는 디스크립터가 없습니다. <code>glyph gen dts</code>로 실체화하세요</span><span class="chip code">E0304</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>다른 Glyph 모듈에서 import한 타입은 이제 자신의 디스크립터로 검증되며, 필드 위치의 <code>where</code> 정제도 마찬가지입니다. 평범한 <code>.d.ts</code>에서 import한 타입에는 검증에 쓸 디스크립터가 없고, 그런 타입을 담은 레코드에 대한 <code>parse</code>는 이제 검사하지도 않은 성공을 보고하는 대신 거부됩니다(<code>E0304</code>). 검증되는 타입을 얻으려면 <code>glyph gen dts</code>로 실체화하세요.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">도구와 표준 라이브러리</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/string</code>과 <code>std/array</code> 함수 아홉 개는 여전히 타입 없는 값을 반환합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>검사기가 모델링하는 stdlib 반환 타입은 <code>std/string</code>과 <code>std/array</code> 중 인자 개수가 고정된 절반을 다룹니다. 선택적인 마지막 인자가 있는 함수 여섯 개(<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>)와 <code>array.map</code>/<code>flat_map</code>/<code>zip</code>은 아직 타입이 없으므로, 이 함수들에서 바로 나온 값을 인덱스와 함께 반복하려면 먼저 타입 표기가 필요합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>tsc</code>가 실행되지 않는 곳에서는 원시 타입과 배열의 멤버 접근에 대한 진단이 없습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>string</code>, <code>number</code>, <code>bool</code>, <code>Array&lt;T&gt;</code>에 대한 멤버 접근과 호출은 구멍이 아니라 설계상 <code>tsc</code>에 맡겨집니다. Glyph는 거기서 원시 JS 멤버를 허용하므로 <code>s.length</code>와 <code>xs.length</code>는 컴파일되고 <code>tsc --strict</code>를 통과합니다. 빠져 있는 것은 <code>tsc</code>를 실행하지 않는 네 곳, 즉 <code>glyph check --no-tsc</code>, 언어 서버, MCP 서버, 플레이그라운드에서의 진단입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">예제가 있는 오프라인 빌드에는 <code>tsx</code>나 <code>--no-test</code>가 필요합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>예제 러너는 <code>tsx</code>를 셸로 호출하므로, 예제가 있는데 <code>PATH</code>에 <code>tsx</code>가 없는 프로젝트는 조용히 건너뛰지 않고 빌드가 실패합니다. 의도한 것이지만, 오프라인 빌드에는 <code>tsx</code>를 설치하거나 <code>--no-test</code>를 써야 한다는 뜻입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">평범한 <code>fn</code> 안의 <code>await</code>는 여러분의 소스 기준으로 잡힙니다</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>비동기 문맥은 Glyph가 <code>tsc</code>에 맡기던 유일한 규칙이었습니다. 이제 평범한 <code>fn</code> 안의 <code>await</code>는 여러분의 소스 기준의 <code>E0222</code>이며, 최상위 <code>const</code> 초기값만 여전히 허용되는 경우입니다. 이 규칙과 한 단계 앞으로 옮겨진 다른 두 규칙은 <a href="/answers/early-errors/">더 일찍 잡기</a>에 있습니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="detail">
+        <p>
+          이것이 Glyph의 네 가지 기둥 중 첫 번째인 이유와, 그 보장이 멈추는 곳은 <a href="/pillars/verifiability/">검증 가능성 기둥 페이지</a>에 있습니다.
+        </p>
+      </div>

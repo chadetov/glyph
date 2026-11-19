@@ -455,20 +455,20 @@
       <div class="two-up">
         <div class="code">
           <span class="cap">TypeScript: add "/billing"</span>
-<pre> const routes = [
-   "/home",
-<span class="del">-  "/about"</span>
-<span class="add">+  "/about",</span>
-<span class="add">+  "/billing"</span>
+<pre> <span class="k">const</span> routes = [
+   <span class="s">"/home"</span>,
+<span class="del">-  <span class="s">"/about"</span></span>
+<span class="add">+  <span class="s">"/about"</span>,</span>
+<span class="add">+  <span class="s">"/billing"</span></span>
  ]</pre>
           <div style="padding:0 16px 14px"><span class="verdict bad">3 lines moved for 1 change</span></div>
         </div>
         <div class="code">
           <span class="cap">Glyph: add "/billing"</span>
-<pre> let routes = [
-   "/home",
-   "/about",
-<span class="add">+  "/billing",</span>
+<pre> <span class="k">let</span> routes = [
+   <span class="s">"/home"</span>,
+   <span class="s">"/about"</span>,
+<span class="add">+  <span class="s">"/billing"</span>,</span>
  ]</pre>
           <div style="padding:0 16px 14px"><span class="verdict good">1 line added, exactly the change</span></div>
         </div>
@@ -493,11 +493,11 @@
 
       <div class="code">
         <span class="cap">user.glyph: change one field, review one line</span>
-<pre> type User = {
-   id: string,
-<span class="del">-  age: string,</span>
-<span class="add">+  age: number,</span>
-   email: string,
+<pre> <span class="k">type</span> <span class="t">User</span> = {
+   id: <span class="t">string</span>,
+<span class="del">-  age: <span class="t">string</span>,</span>
+<span class="add">+  age: <span class="t">number</span>,</span>
+   email: <span class="t">string</span>,
  }</pre>
       </div>
 
@@ -525,35 +525,35 @@
       <div class="two-up stack">
         <div class="code">
           <span class="cap">0.1.37: one fmt pass</span>
-<pre>type Visibility =
-  | Hidden
-  | Flagged
-  | Revealed
+<pre><span class="k">type</span> <span class="t">Visibility</span> =
+  | <span class="t">Hidden</span>
+  | <span class="t">Flagged</span>
+  | <span class="t">Revealed</span>
 
-<span class="del">// Face down. Prints as `.`.</span>
-<span class="del">// Face down and marked by the player.</span>
-<span class="del">// Face up. `Cell.adjacent` is what gets printed.</span>
-type Cell = { mine: bool, adjacent: int, visibility: Visibility }
-<span class="del">// Number of mined neighbours. Only meaningful</span>
-<span class="del">// once mines are placed.</span></pre>
+<span class="del"><span class="c">// Face down. Prints as `.`.</span></span>
+<span class="del"><span class="c">// Face down and marked by the player.</span></span>
+<span class="del"><span class="c">// Face up. `Cell.adjacent` is what gets printed.</span></span>
+<span class="k">type</span> <span class="t">Cell</span> = { mine: <span class="t">bool</span>, adjacent: <span class="t">int</span>, visibility: <span class="t">Visibility</span> }
+<span class="del"><span class="c">// Number of mined neighbours. Only meaningful</span></span>
+<span class="del"><span class="c">// once mines are placed.</span></span></pre>
           <div style="padding:0 16px 14px"><span class="verdict bad">three variant comments now document a record</span></div>
         </div>
         <div class="code">
           <span class="cap">0.1.38: the same file</span>
-<pre>type Visibility =
-<span class="add">  // Face down. Prints as `.`.</span>
-  | Hidden
-<span class="add">  // Face down and marked by the player.</span>
-  | Flagged
-<span class="add">  // Face up. `Cell.adjacent` is what gets printed.</span>
-  | Revealed
+<pre><span class="k">type</span> <span class="t">Visibility</span> =
+<span class="add">  <span class="c">// Face down. Prints as `.`.</span></span>
+  | <span class="t">Hidden</span>
+<span class="add">  <span class="c">// Face down and marked by the player.</span></span>
+  | <span class="t">Flagged</span>
+<span class="add">  <span class="c">// Face up. `Cell.adjacent` is what gets printed.</span></span>
+  | <span class="t">Revealed</span>
 
-type Cell = {
-  mine: bool,
-<span class="add">  // Number of mined neighbours. Only meaningful</span>
-<span class="add">  // once mines are placed.</span>
-  adjacent: int,
-  visibility: Visibility,
+<span class="k">type</span> <span class="t">Cell</span> = {
+  mine: <span class="t">bool</span>,
+<span class="add">  <span class="c">// Number of mined neighbours. Only meaningful</span></span>
+<span class="add">  <span class="c">// once mines are placed.</span></span>
+  adjacent: <span class="t">int</span>,
+  visibility: <span class="t">Visibility</span>,
 }</pre>
           <div style="padding:0 16px 14px"><span class="verdict good">every comment on what it describes</span></div>
         </div>

@@ -3599,7 +3599,8 @@ main :is(p, li, td, dd, figcaption, blockquote) a:not([class]):not(nav a) {
 /* site/highlight.css */
 /* Syntax highlighting, for the markup scripts/site_highlight.py adds to every
    code block at build time. Code blocks are dark in both themes, so there is
-   one set of colours. Each is at least 5:1 against --code-bg in either theme.
+   one set of colours. Each is at least 5:1 against --code-bg in either theme,
+   and at least 4.5:1 on a tinted or dimmed line.
 
    k keyword, s string, t type, c comment, f function or command (style.css)
    n number, op operator (-> => ?), ip interpolation and JSX braces,
@@ -3637,6 +3638,27 @@ pre .o {
 }
 pre .lc {
   color: var(--code-cap);
+}
+
+/* Lines marked by hand keep reading as marked once their code is coloured:
+   an added or removed line carries a faint tint behind its tokens, and the
+   tokens in a dimmed line are subdued with it. */
+pre .add {
+  background: rgba(126, 226, 168, 0.09);
+  border-radius: 2px;
+}
+pre .del {
+  background: rgba(255, 138, 138, 0.1);
+  border-radius: 2px;
+}
+pre .dim [class]:not(.c):not(.cm):not(.bx):not(.pr) {
+  opacity: 0.75;
+}
+/* A comment on a marked line takes the line's colour: the muted comment
+   grey is too faint on the tint. */
+pre .add .c,
+pre .del .c {
+  color: inherit;
 }
 
 /* site/i18n.css */

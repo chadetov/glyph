@@ -424,10 +424,10 @@
         <div class="code">
           <span class="tag-bad">TypeScript: compiles, then crashes</span>
           <span class="cap">handler.ts</span>
-<pre>function handle(body: any) {
+<pre><span class="k">function</span> handle(body: <span class="t">any</span>) {
   <span class="cm">// tsc --strict: fine.</span>
   <span class="cm">// runtime: throws on {}.</span>
-  return body.user.name.toUpperCase();
+  <span class="k">return</span> body.user.name.toUpperCase();
 }</pre>
         </div>
         <div class="code">
@@ -461,18 +461,18 @@
 
       <div class="code">
         <span class="cap">the type you write, and the descriptor you get for free</span>
-<pre>type User = {
-  id: number,
-  name: string,
-  email: string,
+<pre><span class="k">type</span> <span class="t">User</span> = {
+  id: <span class="t">number</span>,
+  name: <span class="t">string</span>,
+  email: <span class="t">string</span>,
 }
 
 <span class="cm">// generated: User.is(v), User.parse(v) -&gt; Result&lt;User, ...&gt;, User.schema</span>
 
-fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
-  return match User.parse(req.body) {   <span class="cm">// untrusted input, validated</span>
-    Ok(user) =&gt; Ok(json(201, user)),
-    Err(issues) =&gt; Ok(json(400, issues)),
+<span class="k">fn</span> create(req: <span class="t">Request</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(req.body) {   <span class="cm">// untrusted input, validated</span>
+    <span class="t">Ok</span>(user) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">201</span>, user)),
+    <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">400</span>, issues)),
   }
 }</pre>
       </div>
@@ -509,12 +509,12 @@ fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
       <div class="two-up">
         <div class="code">
           <span class="cap">status.glyph</span>
-<pre>type Status = Active | Paused | Cancelled
+<pre><span class="k">type</span> <span class="t">Status</span> = <span class="t">Active</span> | <span class="t">Paused</span> | <span class="t">Cancelled</span>
 
-fn label(s: Status) -&gt; string {
-  return match s {
-    Active =&gt; "on",
-    Paused =&gt; "hold",
+<span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> s {
+    <span class="t">Active</span> <span class="op">=&gt;</span> <span class="s">"on"</span>,
+    <span class="t">Paused</span> <span class="op">=&gt;</span> <span class="s">"hold"</span>,
     <span class="cm">// forgot Cancelled...</span>
   }
 }</pre>
@@ -522,8 +522,8 @@ fn label(s: Status) -&gt; string {
         <div class="code">
           <span class="tag-bad">compile error, not a runtime undefined</span>
           <span class="cap">$ glyph build</span>
-<pre class="wraps"><span class="del">[E0200] non-exhaustive match on
-`Status`: missing variant `Cancelled`</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on
+<span class="q">`Status`</span>: missing variant <span class="q">`Cancelled`</span></span>
 
 <span class="cm"># the equivalent TS switch returns
 # undefined at runtime and compiles
@@ -545,15 +545,15 @@ fn label(s: Status) -&gt; string {
 
       <div class="code">
         <span class="cap">pipeline.glyph</span>
-<pre>fn load(id: string) -&gt; Result&lt;User, AppError&gt; {
-  let raw = fetch_user(id)?           <span class="cm">// Err short-circuits to the caller</span>
-  let user = User.parse(raw.body)?    <span class="cm">// validation Err propagates too</span>
-  return Ok(user)
+<pre><span class="k">fn</span> load(id: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">AppError</span>&gt; {
+  <span class="k">let</span> raw = fetch_user(id)<span class="op">?</span>           <span class="cm">// Err short-circuits to the caller</span>
+  <span class="k">let</span> user = <span class="t">User</span>.parse(raw.body)<span class="op">?</span>    <span class="cm">// validation Err propagates too</span>
+  <span class="k">return</span> <span class="t">Ok</span>(user)
 }
 
-fn main() -&gt; number {
+<span class="k">fn</span> main() <span class="op">-&gt;</span> <span class="t">number</span> {
   save(user)   <span class="cm">// E0217: this returns a Result whose Err is dropped</span>
-  return 0
+  <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
 
@@ -571,11 +571,11 @@ fn main() -&gt; number {
 
       <div class="code">
         <span class="cap">patient.glyph</span>
-<pre>@redact fields: [diagnosis, notes]
-type Patient = {
-  name: string,
-  diagnosis: string,
-  notes: string,
+<pre><span class="k">@redact</span> fields: [diagnosis, notes]
+<span class="k">type</span> <span class="t">Patient</span> = {
+  name: <span class="t">string</span>,
+  diagnosis: <span class="t">string</span>,
+  notes: <span class="t">string</span>,
 }
 
 <span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>

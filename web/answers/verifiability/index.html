@@ -443,17 +443,17 @@
           <div class="ak-pane bad">
             <div class="code">
               <span class="cap"><span class="ak-lang">status.ts</span> one new state, no other edit <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg> tsc --strict: passes, prints undefined</span></span>
-<pre>type Status =
-  | { tag: "Loading" }
-  | { tag: "Ready" }
-  | { tag: "Failed"; msg: string }
-<span class="add">  | { tag: "Cancelled" };</span>
+<pre><span class="k">type</span> <span class="t">Status</span> =
+  | { tag: <span class="s">"Loading"</span> }
+  | { tag: <span class="s">"Ready"</span> }
+  | { tag: <span class="s">"Failed"</span>; msg: <span class="t">string</span> }
+<span class="add">  | { tag: <span class="s">"Cancelled"</span> };</span>
 
-function label(s: Status) {
-  switch (s.tag) {
-    case "Loading": return "…";
-    case "Ready": return "done";
-    case "Failed": return s.msg;
+<span class="k">function</span> label(s: <span class="t">Status</span>) {
+  <span class="k">switch</span> (s.tag) {
+    <span class="k">case</span> <span class="s">"Loading"</span>: <span class="k">return</span> <span class="s">"…"</span>;
+    <span class="k">case</span> <span class="s">"Ready"</span>: <span class="k">return</span> <span class="s">"done"</span>;
+    <span class="k">case</span> <span class="s">"Failed"</span>: <span class="k">return</span> s.msg;
   }
 }</pre>
             </div>
@@ -461,25 +461,25 @@ function label(s: Status) {
           <div class="ak-pane good">
             <div class="code">
               <span class="cap"><span class="ak-lang">status.glyph</span> one new variant, and the compiler finds every gap <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 8.4l3 3 6-6.6"/></svg> refused: E0200</span></span>
-<pre><span class="dim">type Status = Loading | Ready | Failed(string)<span class="cm">   // + Cancelled</span></span>
+<pre><span class="dim"><span class="k">type</span> <span class="t">Status</span> = <span class="t">Loading</span> | <span class="t">Ready</span> | <span class="t">Failed</span>(<span class="t">string</span>)<span class="cm">   // + Cancelled</span></span>
 
-fn label(s: Status) -&gt; string {
-  return match s {
-    Loading =&gt; "…",
-    Ready =&gt; "done",
-    Failed(msg) =&gt; msg,
-<span class="add">    // no arm for Cancelled ⇒ this match no longer compiles</span>
+<span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> s {
+    <span class="t">Loading</span> <span class="op">=&gt;</span> <span class="s">"…"</span>,
+    <span class="t">Ready</span> <span class="op">=&gt;</span> <span class="s">"done"</span>,
+    <span class="t">Failed</span>(msg) <span class="op">=&gt;</span> msg,
+<span class="add">    <span class="c">// no arm for Cancelled ⇒ this match no longer compiles</span></span>
   }
 }</pre>
             </div>
             <div class="code term">
               <span class="cap">glyph check --no-tsc, 0.1.149 (excerpt)</span>
-<pre class="wraps"><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Cancelled`</span>
-    ╭─[ status:6:10 ]
-  6 │ ╭─▶   return match s {
- 10 │ ├─▶   }
-    │ ╰───────── non-exhaustive match on `Status`: missing variants `Cancelled`
-    │     Help: Add an arm for each missing variant.</pre>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Cancelled`</span></span>
+    <span class="bx">╭─</span>[ status:6:10 ]
+  6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match s {
+ 10 <span class="bx">│</span> <span class="bx">├─</span>▶   }
+    <span class="bx">│</span> <span class="bx">╰─────────</span> non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Cancelled`</span>
+    <span class="bx">│</span>     <span class="f">Help:</span> Add an arm for each missing variant.</pre>
             </div>
           </div>
         </div>
@@ -530,8 +530,8 @@ fn label(s: Status) -&gt; string {
       <div class="code term wraps">
         <span class="cap">glyph check --no-tsc, 0.1.149 (excerpt)</span>
 <pre class="wraps"><span class="p">13 │</span>   save("a")
-<span class="del">[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored</span>
-    │ Help: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional.</pre>
+<span class="del"><span class="e">[E0217]</span> <span class="w">Warning:</span> typecheck: this <span class="q">`Result`</span> is discarded; its <span class="q">`Err`</span> case is silently ignored</span>
+    <span class="bx">│</span> <span class="f">Help:</span> Handle it with <span class="q">`match`</span>, propagate it with <span class="q">`?`</span>, or bind it (<span class="q">`let _ = ...`</span>) to say the discard is intentional.</pre>
       </div>
       <p class="ak-lede">You silence it deliberately with <code>let _ = ...</code>,
         never by accident.</p>
@@ -570,20 +570,20 @@ fn label(s: Status) -&gt; string {
       </p>
       <div class="code">
         <span class="cap">status.glyph: a misspelled arm is a gap, not a catch-all</span>
-<pre>fn label(s: Status) -&gt; string {
-  return match s {
-<span class="del">    Loadign =&gt; "…",        // typo for Loading, read as a variant, not a binding</span>
-    Ready =&gt; "done",
-    Failed(msg) =&gt; msg,
+<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> s {
+<span class="del">    <span class="t">Loadign</span> <span class="op">=&gt;</span> <span class="s">"…"</span>,        <span class="c">// typo for Loading, read as a variant, not a binding</span></span>
+    <span class="t">Ready</span> <span class="op">=&gt;</span> <span class="s">"done"</span>,
+    <span class="t">Failed</span>(msg) <span class="op">=&gt;</span> msg,
   }
 }</pre>
       </div>
 
       <div class="code term">
         <span class="cap">glyph build</span>
-<pre class="wraps"><span class="del">[E0220] `Loadign` is not a variant of `Status`; did you mean `Loading`?</span>
-   ╰─ a lowercase name would be a binding; a PascalCase name is read as a variant
-<span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Loading`</span></pre>
+<pre class="wraps"><span class="del"><span class="e">[E0220]</span> <span class="q">`Loadign`</span> is not a variant of <span class="q">`Status`</span>; did you mean <span class="q">`Loading`</span>?</span>
+   <span class="bx">╰─</span> a lowercase name would be a binding; a PascalCase name is read as a variant
+<span class="del"><span class="e">[E0200]</span> non-exhaustive match on <span class="q">`Status`</span>: missing variant <span class="q">`Loading`</span></span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">what older Glyph did with the typo</span></summary><div class="body">
         <p>
@@ -650,26 +650,26 @@ fn label(s: Status) -&gt; string {
       </p>
       <div class="code">
         <span class="cap">interp.glyph: the import list came out, the match is still checked</span>
-<pre><span class="del">import model { Action, All, Any, AtLeast, Clear, Condition, Context, Counter,</span>
-<span class="del">               Equals, Flag, FlagSet, Increment, Not, Set, Slot, Text }</span>
-import model
-import std/result
+<pre><span class="del"><span class="k">import</span> model { <span class="t">Action</span>, <span class="t">All</span>, <span class="t">Any</span>, <span class="t">AtLeast</span>, <span class="t">Clear</span>, <span class="t">Condition</span>, <span class="t">Context</span>, <span class="t">Counter</span>,</span>
+<span class="del">               <span class="t">Equals</span>, <span class="t">Flag</span>, <span class="t">FlagSet</span>, <span class="t">Increment</span>, <span class="t">Not</span>, <span class="t">Set</span>, <span class="t">Slot</span>, <span class="t">Text</span> }</span>
+<span class="k">import</span> model
+<span class="k">import</span> std/result
 
-pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;bool, SlotError&gt; {
-  return match c {
-    model.Equals({ key, value }) =&gt; result.Ok(read_text(ctx, key, "equals")? == value),
-    model.AtLeast({ key, least }) =&gt; result.Ok(read_count(ctx, key, "at-least")? &gt;= least),
-    model.FlagSet({ key }) =&gt; result.Ok(read_flag(ctx, key, "flag-set")?),
-    model.All({ of }) =&gt; all_of(ctx, of),
-    model.Any({ of }) =&gt; any_of(ctx, of),
-    model.Not({ of }) =&gt; result.Ok(!(evaluate(ctx, of)?)),
+<span class="k">pub</span> <span class="k">fn</span> evaluate(ctx: model.<span class="t">Context</span>, c: model.<span class="t">Condition</span>) <span class="op">-&gt;</span> result.<span class="t">Result</span>&lt;<span class="t">bool</span>, <span class="t">SlotError</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> c {
+    model.<span class="t">Equals</span>({ key, value }) <span class="op">=&gt;</span> result.<span class="t">Ok</span>(read_text(ctx, key, <span class="s">"equals"</span>)<span class="op">?</span> == value),
+    model.<span class="t">AtLeast</span>({ key, least }) <span class="op">=&gt;</span> result.<span class="t">Ok</span>(read_count(ctx, key, <span class="s">"at-least"</span>)<span class="op">?</span> &gt;= least),
+    model.<span class="t">FlagSet</span>({ key }) <span class="op">=&gt;</span> result.<span class="t">Ok</span>(read_flag(ctx, key, <span class="s">"flag-set"</span>)<span class="op">?</span>),
+    model.<span class="t">All</span>({ of }) <span class="op">=&gt;</span> all_of(ctx, of),
+    model.<span class="t">Any</span>({ of }) <span class="op">=&gt;</span> any_of(ctx, of),
+    model.<span class="t">Not</span>({ of }) <span class="op">=&gt;</span> result.<span class="t">Ok</span>(!(evaluate(ctx, of)<span class="op">?</span>)),
   }
 }</pre>
       </div>
 
       <div class="code term">
         <span class="cap">glyph build, after deleting the last arm</span>
-<pre class="wraps"><span class="del">[E0200] non-exhaustive match on `Condition`: missing variants Not</span></pre>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on <span class="q">`Condition`</span>: missing variants Not</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">standard library unions, string enums, and why the list existed</span></summary><div class="body">
         <p>
@@ -712,22 +712,22 @@ pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;b
       </p>
       <div class="code term">
         <span class="cap">glyph build, on a typo'd field of an imported record</span>
-<pre class="wraps"><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
+<pre class="wraps"><span class="del"><span class="e">[E0210]</span> type <span class="q">`Sheet`</span> has no field <span class="q">`rowz`</span>; did you mean <span class="q">`rows`</span>?</span>
 <span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
       </div>
       <div class="code">
         <span class="cap">table.glyph: the hoists and the comment explaining them are gone</span>
-<pre><span class="del">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span>
-<span class="del">// lowering from the iterand's type as the checker knows it, and a field</span>
-<span class="del">// access is not enough: without the `let`, `i` and `j` come out as strings</span>
-<span class="del">// and the row/column numbers in a `BadCell` are wrong.</span>
-<span class="del">let raw_rows: Array&lt;Array&lt;string&gt;&gt; = sheet.rows</span>
-<span class="del">for i, raw_row in raw_rows {</span>
-<span class="add">for i, raw_row in sheet.rows {</span>
-  let typed: Array&lt;Value&gt; = []
-<span class="del">  let cols: Array&lt;ColumnSpec&gt; = spec.columns</span>
-<span class="del">  for j, col in cols {</span>
-<span class="add">  for j, col in spec.columns {</span>
+<pre><span class="del"><span class="c">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span></span>
+<span class="del"><span class="c">// lowering from the iterand's type as the checker knows it, and a field</span></span>
+<span class="del"><span class="c">// access is not enough: without the `let`, `i` and `j` come out as strings</span></span>
+<span class="del"><span class="c">// and the row/column numbers in a `BadCell` are wrong.</span></span>
+<span class="del"><span class="k">let</span> raw_rows: <span class="t">Array</span>&lt;<span class="t">Array</span>&lt;<span class="t">string</span>&gt;&gt; = sheet.rows</span>
+<span class="del"><span class="k">for</span> i, raw_row <span class="k">in</span> raw_rows {</span>
+<span class="add"><span class="k">for</span> i, raw_row <span class="k">in</span> sheet.rows {</span>
+  <span class="k">let</span> typed: <span class="t">Array</span>&lt;<span class="t">Value</span>&gt; = []
+<span class="del">  <span class="k">let</span> cols: <span class="t">Array</span>&lt;<span class="t">ColumnSpec</span>&gt; = spec.columns</span>
+<span class="del">  <span class="k">for</span> j, col <span class="k">in</span> cols {</span>
+<span class="add">  <span class="k">for</span> j, col <span class="k">in</span> spec.columns {</span>
     …
   }
 }
@@ -817,18 +817,18 @@ pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;b
       </figure>
       <div class="code">
         <span class="cap">schedule.glyph: the predicate follows the type into the field</span>
-<pre>fn is_instant(value: string) -&gt; bool {
-  return match time.parse_iso(value) {
-    Some(_) =&gt; true,
-    None =&gt; false,
+<pre><span class="k">fn</span> is_instant(value: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">bool</span> {
+  <span class="k">return</span> <span class="k">match</span> time.parse_iso(value) {
+    <span class="t">Some</span>(_) <span class="op">=&gt;</span> <span class="k">true</span>,
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="k">false</span>,
   }
 }
 
-type Instant = string where is_instant(value)
+<span class="k">type</span> <span class="t">Instant</span> = <span class="t">string</span> <span class="k">where</span> is_instant(value)
 
-type WireBlock = { start: Instant, end: Instant }
-type WireParticipant = { name: string, busy: Array&lt;WireBlock&gt; }
-type Calendar = { participants: Array&lt;WireParticipant&gt; }
+<span class="k">type</span> <span class="t">WireBlock</span> = { start: <span class="t">Instant</span>, end: <span class="t">Instant</span> }
+<span class="k">type</span> <span class="t">WireParticipant</span> = { name: <span class="t">string</span>, busy: <span class="t">Array</span>&lt;<span class="t">WireBlock</span>&gt; }
+<span class="k">type</span> <span class="t">Calendar</span> = { participants: <span class="t">Array</span>&lt;<span class="t">WireParticipant</span>&gt; }
 
 <span class="cm">// json.parse&lt;Calendar&gt;(text) on a file holding "start": "no"</span>
 <span class="cm">//   =&gt; Err. It returned Ok before 0.1.41.</span></pre>
@@ -856,20 +856,20 @@ type Calendar = { participants: Array&lt;WireParticipant&gt; }
       </p>
       <div class="code term">
         <span class="cap">bracket.glyph: break the seeding and the build stops</span>
-<pre>@example seed_order(2) == [1, 2]
-@example seed_order(4) == [1, 4, 2, 3]
-@example seed_order(8) == [1, 8, 4, 5, 2, 7, 3, 6]
-fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
+<pre><span class="k">@example</span> seed_order(<span class="n">2</span>) == [<span class="n">1</span>, <span class="n">2</span>]
+<span class="k">@example</span> seed_order(<span class="n">4</span>) == [<span class="n">1</span>, <span class="n">4</span>, <span class="n">2</span>, <span class="n">3</span>]
+<span class="k">@example</span> seed_order(<span class="n">8</span>) == [<span class="n">1</span>, <span class="n">8</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">2</span>, <span class="n">7</span>, <span class="n">3</span>, <span class="n">6</span>]
+<span class="k">fn</span> seed_order(size: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Array</span>&lt;<span class="t">int</span>&gt; { … }
 
 <span class="cm">// glyph build src --out dist</span>
-<span class="del">example failed: bracket example #16:</span>
-<span class="del">  (seed_order(8)) != ([1, 2, 3, 4, 5, 6, 7, 8])</span>
-<span class="del">1 of 23 example(s) failed.            # exit 1, no "tsc passed" line</span>
+<span class="del">example failed: bracket example #<span class="n">16</span>:</span>
+<span class="del">  (seed_order(<span class="n">8</span>)) != ([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">7</span>, <span class="n">8</span>])</span>
+<span class="del"><span class="n">1</span> of <span class="n">23</span> example(s) failed.            # exit <span class="n">1</span>, no <span class="s">"tsc passed"</span> line</span>
 
 <span class="cm">// glyph build src --out dist --json</span>
-<span class="del">{ "ok": false, "errors": 1, "tsc": "passed",</span>
-<span class="del">  "examples": { "total": 23, "ran": true, "skipped": false,</span>
-<span class="del">    "failures": ["bracket example #16: …"] } }</span></pre>
+<span class="del">{ <span class="s">"ok"</span>: <span class="k">false</span>, <span class="s">"errors"</span>: <span class="n">1</span>, <span class="s">"tsc"</span>: <span class="s">"passed"</span>,</span>
+<span class="del">  <span class="s">"examples"</span>: { <span class="s">"total"</span>: <span class="n">23</span>, <span class="s">"ran"</span>: <span class="k">true</span>, <span class="s">"skipped"</span>: <span class="k">false</span>,</span>
+<span class="del">    <span class="s">"failures"</span>: [<span class="s">"bracket example #16: …"</span>] } }</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why it can't be skipped quietly, and the JSON channel</span></summary><div class="body">
         <p>
@@ -907,8 +907,8 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
       <h3 class="ak-h3" id="map-keys">Reading a key that may not be there<a class="ak-anchor" href="#map-keys" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">reading a key that may not be there: now E0224</span>
-<pre>fn name_of(row: Record&lt;string, string&gt;) -&gt; string {
-  return row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
+<pre><span class="k">fn</span> name_of(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
 }</pre>
       </div>
       <p class="ak-lede">It is now a
@@ -928,8 +928,8 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
       <div class="code">
         <span class="cap">a test that passed while the code failed</span>
 <pre><span class="cm">@example wrap("a") == wrap("a")   // passed: deep equality</span>
-fn same() -&gt; bool {
-  return wrap("a") == wrap("a")   <span class="cm">// false. no diagnostic</span>
+<span class="k">fn</span> same() <span class="op">-&gt;</span> <span class="t">bool</span> {
+  <span class="k">return</span> wrap(<span class="s">"a"</span>) == wrap(<span class="s">"a"</span>)   <span class="cm">// false. no diagnostic</span>
 }</pre>
       </div>
       <p class="ak-lede"><code>==</code> is now value equality everywhere; primitives still
@@ -947,9 +947,9 @@ fn same() -&gt; bool {
       <h3 class="ak-h3" id="loop-binding">A loop binding keeps its element type<a class="ak-anchor" href="#loop-binding" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">exhaustiveness that evaporated inside a loop</span>
-<pre>for t in tiers {
-  match t {
-    "free" =&gt; ...          <span class="cm">// "pro" unhandled: once merely a warning to add `else`</span>
+<pre><span class="k">for</span> t <span class="k">in</span> tiers {
+  <span class="k">match</span> t {
+    <span class="s">"free"</span> <span class="op">=&gt;</span> ...          <span class="cm">// "pro" unhandled: once merely a warning to add `else`</span>
   }
 }</pre>
       </div>
@@ -967,11 +967,11 @@ fn same() -&gt; bool {
       <h3 class="ak-h3" id="imported-generic">Imported generic unions are checked<a class="ak-anchor" href="#imported-generic" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">a variant left out of a match on an imported generic union</span>
-<pre>import tree { Tree, Node }
+<pre><span class="k">import</span> tree { <span class="t">Tree</span>, <span class="t">Node</span> }
 
-fn label(t: Tree&lt;string&gt;) -&gt; string {
-  return match t {
-    Node({ key: k }) =&gt; k    <span class="cm">// Leaf unhandled: built clean, threw at run time</span>
+<span class="k">fn</span> label(t: <span class="t">Tree</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> t {
+    <span class="t">Node</span>({ key: k }) <span class="op">=&gt;</span> k    <span class="cm">// Leaf unhandled: built clean, threw at run time</span>
   }
 }</pre>
       </div>
@@ -993,9 +993,9 @@ fn label(t: Tree&lt;string&gt;) -&gt; string {
       <h3 class="ak-h3" id="unchecked-parse">A <code>parse</code> can't claim a check it didn't do<a class="ak-anchor" href="#unchecked-parse" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">a <code>parse</code> that reported success without checking: now E0304</span>
-<pre>type Conn = { id: number, sock: Socket }
+<pre><span class="k">type</span> <span class="t">Conn</span> = { id: <span class="t">number</span>, sock: <span class="t">Socket</span> }
 
-Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the message said it was</span></pre>
+<span class="t">Conn</span>.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the message said it was</span></pre>
       </div>
       <p class="ak-lede">Holding a socket in a record is ordinary and still compiles.
           Validating one is now refused where it is written and in every module
@@ -1028,19 +1028,19 @@ Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the mes
       </p>
       <div class="code">
         <span class="cap">billing.glyph: a union crosses a `string` parameter unnoticed</span>
-<pre>type PaymentResult = Settled(string) | Declined(string)
+<pre><span class="k">type</span> <span class="t">PaymentResult</span> = <span class="t">Settled</span>(<span class="t">string</span>) | <span class="t">Declined</span>(<span class="t">string</span>)
 
-fn takes_string(s: string) -&gt; number { return s.length }
+<span class="k">fn</span> takes_string(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">number</span> { <span class="k">return</span> s.length }
 
-fn charge(r: PaymentResult) -&gt; number {
-  return takes_string(r)   <span class="cm">// compiled clean before 0.1.116</span>
+<span class="k">fn</span> charge(r: <span class="t">PaymentResult</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> takes_string(r)   <span class="cm">// compiled clean before 0.1.116</span>
 }</pre>
       </div>
 
       <div class="code term">
         <span class="cap">glyph build, now</span>
-<pre class="wraps"><span class="del">[E0211] argument type mismatch: expected `string`, found `PaymentResult`</span>
-   ╰─ Pass a value of the expected type, or change the parameter's type.</pre>
+<pre class="wraps"><span class="del"><span class="e">[E0211]</span> argument type mismatch: expected <span class="q">`string`</span>, found <span class="q">`PaymentResult`</span></span>
+   <span class="bx">╰─</span> Pass a value of the expected type, or change the parameter's type.</pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">where the check fires, and where it stays quiet</span></summary><div class="body">
         <p>
@@ -1064,17 +1064,17 @@ fn charge(r: PaymentResult) -&gt; number {
       </p>
       <div class="code">
         <span class="cap">catalog.glyph: an annotated const, and the field it does not have</span>
-<pre>type Sheet = { rows: number, cols: number }
-const ORIGIN: Sheet = { rows: 0, cols: 0 }
+<pre><span class="k">type</span> <span class="t">Sheet</span> = { rows: <span class="t">number</span>, cols: <span class="t">number</span> }
+<span class="k">const</span> <span class="t">ORIGIN</span>: <span class="t">Sheet</span> = { rows: <span class="n">0</span>, cols: <span class="n">0</span> }
 
-fn f() -&gt; number {
-  return ORIGIN.rowz   <span class="cm">// compiled clean before 0.1.116</span>
+<span class="k">fn</span> f() <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> <span class="t">ORIGIN</span>.rowz   <span class="cm">// compiled clean before 0.1.116</span>
 }</pre>
       </div>
 
       <div class="code term">
         <span class="cap">glyph build, now</span>
-<pre class="wraps"><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span></pre>
+<pre class="wraps"><span class="del"><span class="e">[E0210]</span> type <span class="q">`Sheet`</span> has no field <span class="q">`rowz`</span>; did you mean <span class="q">`rows`</span>?</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">unannotated consts, and why both fixes are breaking</span></summary><div class="body">
         <p>
@@ -1101,15 +1101,15 @@ fn f() -&gt; number {
       </p>
       <div class="code">
         <span class="cap">point.glyph: an extra field, left to tsc</span>
-<pre data-check="expect-error TS2353">module point
+<pre data-check="expect-error TS2353"><span class="k">module</span> point
 
-pub type Point = {
-  x: number,
-  y: number,
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Point</span> = {
+  x: <span class="t">number</span>,
+  y: <span class="t">number</span>,
 }
 
-pub fn origin() -&gt; Point {
-  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+<span class="k">pub</span> <span class="k">fn</span> origin() <span class="op">-&gt;</span> <span class="t">Point</span> {
+  <span class="k">return</span> { x: <span class="n">0</span>, y: <span class="n">0</span>, z: <span class="n">0</span> }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
 }</pre>
       </div>
       <div class="ak-chips"><span class="chip ts">TS2353 from tsc</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>

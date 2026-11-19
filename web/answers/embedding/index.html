@@ -458,12 +458,12 @@
 <pre>src/
   glyph/          # models.glyph, permissions.glyph, analytics.glyph
   generated/      # glyph build --out src/generated src/glyph
-  components/     # hand-written React/TSX
+  components/     # hand-written <span class="t">React</span>/<span class="t">TSX</span>
 
-<span class="add">// BoardContext.tsx: the app imports compiled Glyph like a local module</span>
-import { TaskCard, can_move } from "../generated/models";
+<span class="add"><span class="c">// BoardContext.tsx: the app imports compiled Glyph like a local module</span></span>
+<span class="k">import</span> { <span class="t">TaskCard</span>, can_move } <span class="k">from</span> <span class="s">"../generated/models"</span>;
 
-const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
+<span class="k">const</span> parsed = <span class="t">TaskCard</span>.parse(payload);  <span class="c">// Result, not an exception</span></pre>
       </div>
 
       <div class="detail">

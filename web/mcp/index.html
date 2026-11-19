@@ -581,21 +581,21 @@ glyph_exports(module)</pre>
 
       <div class="code">
         <span class="cap">the same eleven questions, without a client</span>
-<pre>glyph query symbol       --path src/main.glyph --entity orders::OrderStatus
-glyph query impact       --entity orders::OrderStatus --change add_variant --variant Refunded
-glyph query assignable   --path src/main.glyph --from 'Nullable&lt;int&gt;' --to int
-glyph query diagnostics  --path src/main.glyph
-glyph query hover        --path src/main.glyph --line 9 --character 6
-glyph query definition   --path src/main.glyph --line 9 --character 6
-glyph query references   --path src/orders.glyph --name create
-glyph query variants     --path src/orders.glyph --name OrderStatus
-glyph query symbols      --query order
-glyph query dependencies --path src/main.glyph --entity main::build
-glyph query exports      --path src/main.glyph --module orders
+<pre><span class="f">glyph</span> query symbol       <span class="fl">--path</span> src/main.glyph <span class="fl">--entity</span> orders::OrderStatus
+<span class="f">glyph</span> query impact       <span class="fl">--entity</span> orders::OrderStatus <span class="fl">--change</span> add_variant <span class="fl">--variant</span> Refunded
+<span class="f">glyph</span> query assignable   <span class="fl">--path</span> src/main.glyph <span class="fl">--from</span> <span class="s">'Nullable&lt;int&gt;'</span> <span class="fl">--to</span> int
+<span class="f">glyph</span> query diagnostics  <span class="fl">--path</span> src/main.glyph
+<span class="f">glyph</span> query hover        <span class="fl">--path</span> src/main.glyph <span class="fl">--line</span> 9 <span class="fl">--character</span> 6
+<span class="f">glyph</span> query definition   <span class="fl">--path</span> src/main.glyph <span class="fl">--line</span> 9 <span class="fl">--character</span> 6
+<span class="f">glyph</span> query references   <span class="fl">--path</span> src/orders.glyph <span class="fl">--name</span> create
+<span class="f">glyph</span> query variants     <span class="fl">--path</span> src/orders.glyph <span class="fl">--name</span> OrderStatus
+<span class="f">glyph</span> query symbols      <span class="fl">--query</span> order
+<span class="f">glyph</span> query dependencies <span class="fl">--path</span> src/main.glyph <span class="fl">--entity</span> main::build
+<span class="f">glyph</span> query exports      <span class="fl">--path</span> src/main.glyph <span class="fl">--module</span> orders
 
 <span class="cm">// the same two, asked about a module the compiler carries</span>
-glyph query symbol       --path src/main.glyph --entity std/result::Result
-glyph query exports      --path src/main.glyph --module std/result</pre>
+<span class="f">glyph</span> query symbol       <span class="fl">--path</span> src/main.glyph <span class="fl">--entity</span> std/result::Result
+<span class="f">glyph</span> query exports      <span class="fl">--path</span> src/main.glyph <span class="fl">--module</span> std/result</pre>
       </div>
 
       <div class="detail">

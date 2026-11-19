@@ -460,11 +460,11 @@
 
       <div class="code">
         <span class="cap">package.json, as scaffolded</span>
-<pre>"devDependencies": {
+<pre><span class="pk">"devDependencies"</span>: {
   <span class="cm">// exact. no caret, no tilde.</span>
-  "@glyphlang/glyph": "0.1.72",
-  "typescript": "^6.0.0",
-  "tsx": "^4.19.0"
+  <span class="pk">"@glyphlang/glyph"</span>: <span class="s">"0.1.72"</span>,
+  <span class="pk">"typescript"</span>: <span class="s">"^6.0.0"</span>,
+  <span class="pk">"tsx"</span>: <span class="s">"^4.19.0"</span>
 }</pre>
       </div>
 
@@ -552,9 +552,9 @@ glyph upgrade: build before you commit; a new release may report diagnostics
 
       <div class="code">
         <span class="cap">glyph --update</span>
-<pre class="wraps">$ glyph --update
+<pre class="wraps"><span class="pr">$</span> <span class="f">glyph</span> <span class="fl">--update</span>
 glyph 0.1.72 is installed; 0.1.73 is published.
-Release notes: https://glyphlang.io/versions/
+Release notes: <span class="lc">https://glyphlang.io/versions/</span>
 A 0.1.x release may reject code that compiled before, so read the notes for anything between these two.
 
 Running: npm install -g @glyphlang/glyph@0.1.73

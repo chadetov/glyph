@@ -394,9 +394,9 @@
       </div>
       <div class="code">
         <span class="cap">terminal</span>
-<pre>npm install -g @glyphlang/glyph
-npm install -g tsx typescript   <span class="cm"># run &amp; type-check toolchain</span>
-glyph doctor                    <span class="cm"># confirms your toolchain is ready</span></pre>
+<pre><span class="f">npm</span> install <span class="fl">-g</span> @glyphlang/glyph
+<span class="f">npm</span> install <span class="fl">-g</span> tsx typescript   <span class="cm"># run &amp; type-check toolchain</span>
+<span class="f">glyph</span> doctor                    <span class="cm"># confirms your toolchain is ready</span></pre>
       </div>
 
       <div class="detail">
@@ -433,7 +433,7 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
       </div>
       <div class="code">
         <span class="cap">terminal</span>
-<pre>glyph run
+<pre><span class="f">glyph</span> run
 <span class="dim">hello from glyph</span></pre>
       </div>
       <div class="detail">
@@ -470,7 +470,7 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
       </div>
       <div class="code">
         <span class="cap">terminal</span>
-<pre>glyph run
+<pre><span class="f">glyph</span> run
 <span class="dim">finished</span></pre>
       </div>
 
@@ -493,16 +493,16 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
       </div>
       <div class="code">
         <span class="cap">$ glyph run</span>
-<pre class="wraps"><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
-   ╭─[main:6:10]
-   │
- 6 │ ╭─▶   return match s {
-   ┆ ┆
- 9 │ ├─▶   }
-   │ ╰───────── missing variants `Done`
-   │
-   │  Help: Add an arm for each missing variant.
-───╯</pre>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Done`</span></span>
+   <span class="bx">╭─</span>[main:6:10]
+   <span class="bx">│</span>
+ 6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match s {
+   <span class="bx">┆</span> <span class="bx">┆</span>
+ 9 <span class="bx">│</span> <span class="bx">├─</span>▶   }
+   <span class="bx">│</span> <span class="bx">╰─────────</span> missing variants <span class="q">`Done`</span>
+   <span class="bx">│</span>
+   <span class="bx">│</span>  <span class="f">Help:</span> Add an arm for each missing variant.
+<span class="bx">───╯</span></pre>
       </div>
       <div class="detail">
         <p>
@@ -519,7 +519,7 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
       </div>
       <div class="code">
         <span class="cap">terminal</span>
-<pre>glyph run
+<pre><span class="f">glyph</span> run
 <span class="dim">finished</span></pre>
       </div>
 

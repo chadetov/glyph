@@ -444,9 +444,9 @@ let u: User = { name: "a" }
 let c = { name: "a" }
 takes(c)
 <span class="del">// 0.1.123: nothing                                    (exit 0)</span>
-<span class="add">// 0.1.124: [E0204] expected `string`, found `record`
-//          [E0204] expected `User`, found `record`
-//          [E0211] expected `User`, found `record`       (exit 1)</span></pre>
+<span class="add">// 0.1.124: <span class="e">[E0204]</span> expected <span class="q">`string`</span>, found <span class="q">`record`</span>
+//          <span class="e">[E0204]</span> expected <span class="q">`User`</span>, found <span class="q">`record`</span>
+//          <span class="e">[E0211]</span> expected <span class="q">`User`</span>, found <span class="q">`record`</span>       (exit 1)</span></pre>
             </div>
             <p>A spread-free object literal is the structural record of the fields it writes, compared structurally at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument, with the declared type named. The type survives a binding: <code>let c = { name: "a" }</code> carries <code>{ name: string }</code>, with a fresh string literal widened the way TypeScript widens it, so a misspelled key read back off it is E0210. Every refusal was established against <code>tsc --strict</code> one shape at a time, and every accepted shape but one still passes it. Two things deliberately do not change: a literal holding a spread has no type, because its fields are not enumerable there, and an extra field the record does not declare is still accepted, which is the width rule the record comparison has always applied and which <code>tsc</code> does not share on a fresh literal (TS2353); that divergence predates this release and is pinned by a test so it cannot move silently. What still stops short is the message for a missing field, <code>found `record`</code> where <code>tsc</code> names the property; that is the first item of the next release.</p>
 
@@ -457,8 +457,8 @@ takes(c)
 <pre>&lt;Button variant="nope" label="go" /&gt;
 &lt;Button variant="danger" labl="go" /&gt;
 <span class="del">// 0.1.123: nothing                                    (exit 0)</span>
-<span class="add">// 0.1.124: [E0211] expected `Variant`, found `"nope"`
-//          [E0210] type `Props` has no field `labl`      (exit 1)</span></pre>
+<span class="add">// 0.1.124: <span class="e">[E0211]</span> expected <span class="q">`Variant`</span>, found <span class="q">`"nope"`</span>
+//          <span class="e">[E0210]</span> type <span class="q">`Props`</span> has no field <span class="q">`labl`</span>      (exit 1)</span></pre>
             </div>
             <p>A component element's written attributes go through the same argument-versus-parameter check a call does, so a wrong value is E0211 carrying the values a string-literal union accepts, and an undeclared attribute is E0210 with the record's field list, which <code>glyph fix</code> renames when one declared field is a character away. It holds across an import, where the props record keeps its own name. Three readings were settled by running the equivalent TypeScript under React 18's types: children ride as <code>createElement</code> arguments and are not a prop; an element carrying a spread may get its props from the spread, so it is not asked about a missing attribute, but what it writes explicitly is still checked; and an optional field may be omitted. A missing required attribute is still caught only by <code>tsc</code>, for the same reason as the record literal above. The work also found two holes it did not fix, recorded as G242 and G243: a component reached through a lowercase namespace alias, <code>&lt;ui.Button /&gt;</code>, is classified by its first character and emitted as a string tag that React never calls while <code>tsc</code> accepts it, and <code>component Greeting(name: string)</code> is accepted although no element can ever render it. Both are in 0.1.125.</p>
 
@@ -466,8 +466,8 @@ takes(c)
             <p><code>glyph query hover</code> answered at every name declared in another module and the language server did not: its overlay registered the buffers the editor had opened, not a project, so hovering an imported function at its call site, or a field read off an imported record, came back <code>null</code> where the tool answered.</p>
             <div class="code">
               <span class="cap">textDocument/hover, over the protocol, at the call to an imported create</span>
-<pre><span class="del">// 0.1.123: null</span>
-<span class="add">// 0.1.124: fn(string) -&gt; Order</span></pre>
+<pre><span class="del"><span class="c">// 0.1.123: null</span></span>
+<span class="add"><span class="c">// 0.1.124: fn(string) -&gt; Order</span></span></pre>
             </div>
             <p>The server now holds one database per project the session touches, with the open buffers layered over the files on disk rather than standing in for them. A file is placed in the project its imports are counted from, which is the root <code>glyph query</code> uses and <code>glyph build</code> compiles from, so the two surfaces ask the same question and hover, definition, references and diagnostics agree with the tool. A buffer the editor has open outranks the bytes on disk everywhere, not only in the file the request is about: retyping a signature in an unsaved <code>orders.glyph</code> changes what hovering its call site in <code>main.glyph</code> says, and closing it without saving puts disk back in charge. A keystroke writes one input and re-registers nothing, and a body edit leaves a module's export surface content-equal so no sibling is re-analysed; measured on the latency lane's three files, a keystroke costs between one and nine percent more than it did single-file. Hover itself is now one function both surfaces call, which is how they came to give one answer.</p>
 
@@ -501,14 +501,14 @@ takes(c)
 <pre>type Mode = "read" | "write"
 type Cfg = { mode: Mode }
 
-fn ok()    -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
+fn <span class="o">ok</span>()    -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
 fn bad()   -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }
 fn wrong() -&gt; Cfg         { return { mode: "nope" } }
 <span class="del">// 0.1.122: nothing, on all three                (exit 0)</span>
-<span class="add">// 0.1.123: [E0204] expected `Mode`, found `"nope"`
+<span class="add">// 0.1.123: <span class="e">[E0204]</span> expected <span class="q">`Mode`</span>, found <span class="q">`"nope"`</span>
 //              return ["read", "nope"]
-//                              ───┬──
-//          [E0204] expected `Mode`, found `"nope"`      (exit 1)</span></pre>
+//                              <span class="bx">───┬──</span>
+//          <span class="e">[E0204]</span> expected <span class="q">`Mode`</span>, found <span class="q">`"nope"`</span>      (exit 1)</span></pre>
             </div>
             <p>A written string literal carries the one-literal type it spells, an array literal's element type is the join of its elements', and a record literal's fields carry their literals. A written array or object literal is then checked element by element and field by field against the declared type, so the message names the offending literal and underlines it instead of the whole value.</p>
             <p>The literal widens back to <code>string</code> where TypeScript widens it: a <code>let</code> with no annotation, an array bound to one, and the element binding of a <code>for</code> over a written array, all three of which widen in the emitted TypeScript too. A <code>const</code> keeps its literal, because a Glyph <code>const</code> emits a TypeScript <code>const</code> and <code>takes_mode(CM)</code> compiles, so widening it would refuse a program <code>tsc</code> accepts. A literal type that arrived through a name is not fresh and is not widened, which is TypeScript's own freshness rule. Every row of that was settled by writing the equivalent TypeScript and running <code>tsc --strict</code> on it, which is why the <code>const</code> row and the <code>for</code> row point in opposite directions.</p>
@@ -518,38 +518,38 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
             <p><code>Result</code> and <code>Option</code> are declared by no project module, so an <code>E0200</code> over one of them used to carry <code>cause: null</code>, no tool keyed their variants, and <code>glyph fix</code> declined the single most common shape it exists for: <code>match r { Ok(v) =&gt; v, }</code>. The identity turned out not to need inventing. The resolver registers <code>std/result</code> with <code>Result</code>, <code>Ok</code> and <code>Err</code>; the emitter writes <code>import { Ok, type Result } from "./.glyph-runtime/std/result"</code> into a program that never imported it; and <code>import std/result { Result }</code> already resolves. One layer was throwing that away.</p>
             <div class="code">
               <span class="cap">glyph check --agent --no-tsc, on a match over a prelude Result</span>
-<pre>"code": "E0200",
-"message": "non-exhaustive match on `Result`: missing variants `Err`",
-"entity": "main::total",
-<span class="del">// 0.1.122: "cause": null,
-//          "union": { "declaration": null, "kind": "builtin",
-//                     "module": null, "name": "Result" }</span>
-<span class="add">"cause": "std/result::Result",
-"union": { "declaration": "std/result::Result", "kind": "builtin",
-           "module": "std/result", "name": "Result" },
-"symbols": [ { "entity": "std/result::Result", "kind": "union",
-  "generics": ["T", "E"],
-  "variants": [ { "name": "Ok",  "payload": "T", "construct": "Ok(T)" },
-                { "name": "Err", "payload": "E", "construct": "Err(E)" } ],
-  "path": null,
-  "path_absent": "the stdlib is TypeScript the compiler carries and
+<pre><span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+<span class="pk">"message"</span>: <span class="s">"non-exhaustive match on `Result`: missing variants `Err`"</span>,
+<span class="pk">"entity"</span>: <span class="s">"main::total"</span>,
+<span class="del"><span class="c">// 0.1.122: "cause": null,</span>
+<span class="c">//          "union": { "declaration": null, "kind": "builtin",</span>
+<span class="c">//                     "module": null, "name": "Result" }</span></span>
+<span class="add"><span class="pk">"cause"</span>: <span class="s">"std/result::Result"</span>,
+<span class="pk">"union"</span>: { <span class="pk">"declaration"</span>: <span class="s">"std/result::Result"</span>, <span class="pk">"kind"</span>: <span class="s">"builtin"</span>,
+           <span class="pk">"module"</span>: <span class="s">"std/result"</span>, <span class="pk">"name"</span>: <span class="s">"Result"</span> },
+<span class="pk">"symbols"</span>: [ { <span class="pk">"entity"</span>: <span class="s">"std/result::Result"</span>, <span class="pk">"kind"</span>: <span class="s">"union"</span>,
+  <span class="pk">"generics"</span>: [<span class="s">"T"</span>, <span class="s">"E"</span>],
+  <span class="pk">"variants"</span>: [ { <span class="pk">"name"</span>: <span class="s">"Ok"</span>,  <span class="pk">"payload"</span>: <span class="s">"T"</span>, <span class="pk">"construct"</span>: <span class="s">"Ok(T)"</span> },
+                { <span class="pk">"name"</span>: <span class="s">"Err"</span>, <span class="pk">"payload"</span>: <span class="s">"E"</span>, <span class="pk">"construct"</span>: <span class="s">"Err(E)"</span> } ],
+  <span class="pk">"path"</span>: <span class="k">null</span>,
+  <span class="pk">"path_absent"</span>: <span class="s">"the stdlib is TypeScript the compiler carries and
     stages into the build (`runtime/std/*.ts`), not Glyph source under
     this project, so there is no `.glyph` file holding this
-    declaration and no span in one to report" } ]</span></pre>
+    declaration and no span in one to report"</span> } ]</span></pre>
             </div>
             <p>With the payload shapes in hand, the repair follows.</p>
             <div class="code">
               <span class="cap">glyph fix src</span>
-<pre>glyph fix: applied E0200 in src/main.glyph: added 1 arm(s) to the
-           match on `Result`: `Err`, and wrote `import std/process`
-           for the arm bodies
+<pre>glyph fix: applied <span class="t">E0200</span> <span class="k">in</span> src/main.glyph: added <span class="n">1</span> arm(s) to the
+           <span class="k">match</span> on <span class="s">`Result`</span>: <span class="s">`Err`</span>, and wrote <span class="s">`import std/process`</span>
+           <span class="k">for</span> the arm bodies
 
-<span class="add">  return match r {
-    Ok(v) =&gt; v,
-    // TODO(glyph fix): `Result` variant `Err` is unhandled; write this arm
-    Err(payload) =&gt; {
-      print("unhandled Result variant Err (arm written by glyph fix)")
-      process.exit(1)
+<span class="add">  <span class="k">return</span> <span class="k">match</span> r {
+    <span class="t">Ok</span>(v) <span class="op">=&gt;</span> v,
+    <span class="c">// TODO(glyph fix): `Result` variant `Err` is unhandled; write this arm</span>
+    <span class="t">Err</span>(payload) <span class="op">=&gt;</span> {
+      print(<span class="s">"unhandled Result variant Err (arm written by glyph fix)"</span>)
+      process.exit(<span class="n">1</span>)
     },
   }</span>
 
@@ -585,10 +585,10 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
             <div class="code">
               <span class="cap">glyph check --no-tsc, on src/io.glyph declaring `module std/io`</span>
 <pre><span class="del">// 0.1.122: glyph check: 2 module(s) checked, no diagnostics.   (exit 0)</span>
-<span class="add">// 0.1.123: [E0113] `std/io` declares a module under `std/`, a prefix
+<span class="add">// 0.1.123: <span class="e">[E0113]</span> <span class="q">`std/io`</span> declares a module under <span class="q">`std/`</span>, a prefix
 //                  reserved for the modules the compiler carries (D15)
-//          Help: Rename the module to a path of your own (`io`,
-//          `app/io`).                                           (exit 1)</span></pre>
+//          <span class="f">Help:</span> Rename the module to a path of your own (<span class="q">`io`</span>,
+//          <span class="q">`app/io`</span>).                                           (exit 1)</span></pre>
             </div>
             <p>The prefix is matched as a whole first segment, so <code>standard</code>, <code>externals/io</code>, <code>app/std</code> and <code>app/extern/helper</code> are untouched, and an import under either prefix still resolves. This is a dead-code hole on its own account, and it is also the guard the stdlib identities above rest on.</p>
 
@@ -619,23 +619,23 @@ fn wrong() -&gt; Cfg         { return { mode: "nope" } }
             <p><code>type Mode = "read" | "write"</code> declares a finite set of strings, and until this release the Glyph checker compared a value against it by nothing at all. A number, a <code>bool</code>, a record, a string outside the set: all four passed <code>glyph check --no-tsc</code> with nothing but unused-variable lints. <code>tsc</code> caught them on the emitted TypeScript, so a full <code>glyph build</code> was never wrong, but the four surfaces that have no <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP tools and the playground.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>type Mode = "read" | "write"
+<pre><span class="k">type</span> <span class="t">Mode</span> = <span class="s">"read"</span> | <span class="s">"write"</span>
 
-fn takes_mode(m: Mode) -&gt; Mode {
-  return m
+<span class="k">fn</span> takes_mode(m: <span class="t">Mode</span>) <span class="op">-&gt;</span> <span class="t">Mode</span> {
+  <span class="k">return</span> m
 }
 
-fn main() {
-  let a: Mode = 3
-  let b: Mode = "rw"
-  let c: Mode = takes_mode(true)
-  let d: Mode = { x: 1 }
+<span class="k">fn</span> main() {
+  <span class="k">let</span> a: <span class="t">Mode</span> = <span class="n">3</span>
+  <span class="k">let</span> b: <span class="t">Mode</span> = <span class="s">"rw"</span>
+  <span class="k">let</span> c: <span class="t">Mode</span> = takes_mode(<span class="k">true</span>)
+  <span class="k">let</span> d: <span class="t">Mode</span> = { x: <span class="n">1</span> }
 }
-<span class="del">// 0.1.121: four unused-variable warnings, exit 0</span>
-<span class="add">// 0.1.122: [E0204] expected `Mode`, found `number`</span>
-<span class="add">//          [E0204] expected `Mode`, found `"rw"`</span>
-<span class="add">//          [E0211] expected `Mode`, found `bool`</span>
-<span class="add">//          [E0204] expected `Mode`, found `record`</span></pre>
+<span class="del"><span class="c">// 0.1.121: four unused-variable warnings, exit 0</span></span>
+<span class="add"><span class="c">// 0.1.122: [E0204] expected `Mode`, found `number`</span></span>
+<span class="add"><span class="c">//          [E0204] expected `Mode`, found `"rw"`</span></span>
+<span class="add"><span class="c">//          [E0211] expected `Mode`, found `bool`</span></span>
+<span class="add"><span class="c">//          [E0204] expected `Mode`, found `record`</span></span></pre>
             </div>
             <p>That is the four <code>tsc</code> reported, at the same four statements, without running <code>tsc</code>. The rule reads the union as what it is at run time, a <code>string</code>, and asks the checker the corresponding <code>string</code> question in each direction, so it inherits the rules that already refuse a record or a container against a <code>string</code> instead of restating them. Two literal sets are compared by set, so a narrower union goes where a wider one is declared. An alias chain is followed on both sides, an imported union is decided like a local one, and <code>Nullable&lt;Mode&gt;</code> is descended with the union intact, so <code>let m: Nullable&lt;Mode&gt; = "read"</code> stands and <code>= "rw"</code> does not. A bare <code>string</code> where the union itself is declared is refused too, because <code>tsc</code> refuses it too.</p>
             <p>Four shapes are left to <code>tsc</code> on purpose rather than guessed at. A <code>string</code> produced by a value-position <code>match</code> whose arms are not all written literals is one: reading it as a bare <code>string</code> would reject correct programs, and one in this repository's own corpus was the first casualty of a stricter first cut. A union nested in a record field is another, which is the same boundary the record rules already stop at. A bare <code>string</code> inside a generic argument is the third, and it is the reason <code>fn arr() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }</code> still compiles: Glyph types every string literal <code>string</code>, so that array is <code>Array&lt;string&gt;</code> here while TypeScript reads it as <code>Array&lt;"read" | "write"&gt;</code>, and refusing the pairing would refuse the ordinary spelling of a list of modes. The fourth is a call to a generic function that returns its own type parameter: <code>id("read")</code> is a <code>Mode</code> under <code>tsc</code> and a <code>string</code> here, for the same reason. What is refused inside <code>Array&lt;Mode&gt;</code> is what is refused against <code>Mode</code> everywhere else: a <code>number</code>, a <code>bool</code>, a record, a tagged union and a literal outside the declared set.</p>
@@ -645,11 +645,11 @@ fn main() {
             <div class="code">
               <span class="cap">glyph check --no-tsc, on `const x = ` with 2,000 nested brackets</span>
 <pre><span class="del">// 0.1.121: thread 'main' has overflowed its stack
-//          fatal runtime error: stack overflow, aborting   (exit 134)</span>
-<span class="add">// 0.1.122: [E0011] this array literal nests deeper than the parser's
+//          fatal runtime <span class="e">error:</span> stack overflow, aborting   (exit 134)</span>
+<span class="add">// 0.1.122: <span class="e">[E0011]</span> this array literal nests deeper than the parser's
 //                  limit of 64 levels                      (exit 1)
-//          Help: Name the inner levels: pull them out into `let`
-//          bindings, or into a `fn` that returns one of them, so no
+//          <span class="f">Help:</span> Name the inner levels: pull them out into <span class="q">`let`</span>
+//          bindings, or into a <span class="q">`fn`</span> that returns one of them, so no
 //          single expression, type or pattern is more than 64 levels
 //          deep.</span></pre>
             </div>
@@ -660,40 +660,40 @@ fn main() {
             <p><code>glyph check --agent</code> prints that object with two more keys. <code>constraints</code> are the invariants a repairing edit has to keep, written out so the edit that satisfies the diagnostic does not break the guarantee the diagnostic existed to protect. <code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call.</p>
             <div class="code">
               <span class="cap">glyph check --agent, on a match missing two arms over an imported union</span>
-<pre>"code": "E0200",
-"message": "non-exhaustive match on `OrderStatus`: missing variants
-            `Paid`, `Cancelled`",
-"entity": "main::describe",
-"cause":  "orders::OrderStatus",
-"related": ["Pending", "Paid", "Cancelled"],
-"missing_variants": ["Paid", "Cancelled"],
-<span class="add">"constraints": [
-  "preserve exhaustiveness: this match must name every case of
-   `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
-  "do not add an `else` arm: `OrderStatus` is declared in this
+<pre><span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+<span class="pk">"message"</span>: <span class="s">"non-exhaustive match on `OrderStatus`: missing variants
+            `Paid`, `Cancelled`"</span>,
+<span class="pk">"entity"</span>: <span class="s">"main::describe"</span>,
+<span class="pk">"cause"</span>:  <span class="s">"orders::OrderStatus"</span>,
+<span class="pk">"related"</span>: [<span class="s">"Pending"</span>, <span class="s">"Paid"</span>, <span class="s">"Cancelled"</span>],
+<span class="pk">"missing_variants"</span>: [<span class="s">"Paid"</span>, <span class="s">"Cancelled"</span>],
+<span class="add"><span class="pk">"constraints"</span>: [
+  <span class="s">"preserve exhaustiveness: this match must name every case of
+   `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`."</span>,
+  <span class="s">"do not add an `else` arm: `OrderStatus` is declared in this
    project, and a catch-all forfeits the guarantee that adding a
-   variant to it later forces this match to be updated (D9)."
+   variant to it later forces this match to be updated (D9)."</span>
 ],
-"symbols": [ { "entity": "orders::OrderStatus", "kind": "union",
-  "variants": [
-    { "name": "Paid", "payload": "{ transaction_id: string }",
-      "construct": "Paid({ transaction_id: string })" }, ... ] } ],
-"symbols_absent": []</span></pre>
+<span class="pk">"symbols"</span>: [ { <span class="pk">"entity"</span>: <span class="s">"orders::OrderStatus"</span>, <span class="pk">"kind"</span>: <span class="s">"union"</span>,
+  <span class="pk">"variants"</span>: [
+    { <span class="pk">"name"</span>: <span class="s">"Paid"</span>, <span class="pk">"payload"</span>: <span class="s">"{ transaction_id: string }"</span>,
+      <span class="pk">"construct"</span>: <span class="s">"Paid({ transaction_id: string })"</span> }, <span class="c">...</span> ] } ],
+<span class="pk">"symbols_absent"</span>: []</span></pre>
             </div>
             <p>Where the repair is fully determined, <code>glyph fix</code> writes it. Three rules landed: the missing arms of a non-exhaustive <code>match</code>, the checker's did-you-mean on an arm head that names no variant, and the one declared field a character away from a field typo. It joins the unused-import rule that was already there.</p>
             <div class="code">
               <span class="cap">glyph fix src</span>
-<pre>glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the
-           match on `OrderStatus`: `Paid`, `Cancelled`, and wrote
-           `import std/process` for the arm bodies and `Paid`,
-           `Cancelled` into `import orders`
+<pre>glyph fix: applied <span class="t">E0200</span> <span class="k">in</span> src/main.glyph: added <span class="n">2</span> arm(s) to the
+           <span class="k">match</span> on <span class="s">`OrderStatus`</span>: <span class="s">`Paid`</span>, <span class="s">`Cancelled`</span>, and wrote
+           <span class="s">`import std/process`</span> <span class="k">for</span> the arm bodies and <span class="s">`Paid`</span>,
+           <span class="s">`Cancelled`</span> into <span class="s">`import orders`</span>
 
-<span class="add">import orders { OrderStatus, Pending, Paid, Cancelled }
+<span class="add"><span class="k">import</span> orders { <span class="t">OrderStatus</span>, <span class="t">Pending</span>, <span class="t">Paid</span>, <span class="t">Cancelled</span> }
     ...
-    // TODO(glyph fix): `OrderStatus` variant `Paid` is unhandled; write this arm
-    Paid({ transaction_id }) =&gt; {
-      print("unhandled OrderStatus variant Paid (arm written by glyph fix)")
-      process.exit(1)
+    <span class="c">// TODO(glyph fix): `OrderStatus` variant `Paid` is unhandled; write this arm</span>
+    <span class="t">Paid</span>({ transaction_id }) <span class="op">=&gt;</span> {
+      print(<span class="s">"unhandled OrderStatus variant Paid (arm written by glyph fix)"</span>)
+      process.exit(<span class="n">1</span>)
     },</span>
 
 <span class="cm">// glyph check --no-tsc: 2 module(s) checked, no diagnostics.</span></pre>
@@ -748,30 +748,30 @@ fn main() {
             <p>A prelude container assigned to a primitive was silent. <code>Option&lt;int&gt;</code> into a <code>string</code>, <code>Nullable&lt;int&gt;</code> into an <code>int</code> parameter: <code>glyph check --no-tsc</code> said nothing about either, and <code>tsc</code> only caught the first. The <code>Nullable</code> case is the one <code>tsc</code> can't make, because the emitted <code>const v: number | null = 3</code> narrows back to <code>number</code> before the call is checked, so the Glyph checker was the only place it could be caught and it wasn't.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>fn takes_int(n: int) -&gt; int {
-  return n
+<pre><span class="k">fn</span> takes_int(n: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">int</span> {
+  <span class="k">return</span> n
 }
 
-fn main() {
-  let o: Option&lt;int&gt; = Some(3)
-  let x: string = o
-  let v: Nullable&lt;int&gt; = 3
-  let y: int = takes_int(v)
+<span class="k">fn</span> main() {
+  <span class="k">let</span> o: <span class="t">Option</span>&lt;<span class="t">int</span>&gt; = <span class="t">Some</span>(<span class="n">3</span>)
+  <span class="k">let</span> x: <span class="t">string</span> = o
+  <span class="k">let</span> v: <span class="t">Nullable</span>&lt;<span class="t">int</span>&gt; = <span class="n">3</span>
+  <span class="k">let</span> y: <span class="t">int</span> = takes_int(v)
 }
-<span class="del">// 0.1.120: builds clean</span>
-<span class="add">// 0.1.121: [E0204] expected `string`, found `Option&lt;number&gt;`</span>
-<span class="add">//          [E0211] expected `number`, found `Nullable&lt;number&gt;`</span></pre>
+<span class="del"><span class="c">// 0.1.120: builds clean</span></span>
+<span class="add"><span class="c">// 0.1.121: [E0204] expected `string`, found `Option&lt;number&gt;`</span></span>
+<span class="add"><span class="c">//          [E0211] expected `number`, found `Nullable&lt;number&gt;`</span></span></pre>
             </div>
             <p>Five containers are covered in both directions: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> and <code>Nullable</code> are never a <code>string</code>, a <code>number</code> or a <code>bool</code>, whatever their arguments. <code>Nullable&lt;T&gt;</code> against a scalar is decided one level in against <code>T</code>, so <code>let v: Nullable&lt;int&gt; = 3</code> stays correct and <code>let v: Nullable&lt;int&gt; = "three"</code> is <code>E0204</code>. Error messages print an application's arguments now: "found <code>Nullable&lt;number&gt;</code>", not "found <code>Nullable</code>", which named the container and dropped the thing you have to check. An alias of a container isn't covered yet: <code>type MaybeInt = Option&lt;int&gt;</code> passes silently where the container itself is refused, because the alias chain doesn't follow a body that is a generic application.</p>
             <p>The third program is the one a newcomer writes first. <code>Order { id: "a", total: 1 }</code> is the TypeScript-adjacent guess for constructing a record, and Glyph has no such form. What the compiler used to say about it was that some code was unreachable, on a build that exited 0: the name resolved to the type, and the braces parsed as a block after the <code>return</code>.</p>
             <div class="code">
               <span class="cap">orders.glyph</span>
-<pre>fn make() -&gt; Order {
-  return Order { id: "a", total: 1 }
+<pre><span class="k">fn</span> make() <span class="op">-&gt;</span> <span class="t">Order</span> {
+  <span class="k">return</span> <span class="t">Order</span> { id: <span class="s">"a"</span>, total: <span class="n">1</span> }
 }
-<span class="del">// 0.1.120: [E0108] Warning: lint: unreachable code   (exit 0)</span>
-<span class="add">// 0.1.121: [E0228] `Order` is a type, not a value; a value is the record</span>
-<span class="add">//          literal `{ id: ..., total: ... }`, with the type on the annotation</span></pre>
+<span class="del"><span class="c">// 0.1.120: [E0108] Warning: lint: unreachable code   (exit 0)</span></span>
+<span class="add"><span class="c">// 0.1.121: [E0228] `Order` is a type, not a value; a value is the record</span></span>
+<span class="add"><span class="c">//          literal `{ id: ..., total: ... }`, with the type on the annotation</span></span></pre>
             </div>
             <p>The message is read off the declaration, so a record lists its fields, a tagged union lists its variants with their payload shapes, and a string-literal union lists its literals. <code>Order.parse(raw)</code> and <code>Order.is(v)</code> are still legal, because the receiver of a type's own descriptor is the one expression position a type name belongs in. Raising the error is also what takes the unreachable-code warning off, since the lint tier only runs on a module that produced no errors.</p>
 
@@ -822,18 +822,18 @@ fn main() {
             <p>A function imported from another module and a value assigned across that boundary used to get a pass that the same code in one file never got. Passing a union imported from a sibling module where a plain <code>string</code> parameter is declared drew nothing from <code>glyph check --no-tsc</code>; the identical call with the union declared locally has reported <code>E0211</code> since 0.1.116.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>import lib { Status, Pending }
+<pre><span class="k">import</span> lib { <span class="t">Status</span>, <span class="t">Pending</span> }
 
-fn shout(s: string) -> string {
-  return s
+<span class="k">fn</span> shout(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> s
 }
 
-fn main() {
-  let st: Status = Pending
+<span class="k">fn</span> main() {
+  <span class="k">let</span> st: <span class="t">Status</span> = <span class="t">Pending</span>
   shout(st)
 }
-<span class="del">// 0.1.119: builds clean</span>
-<span class="add">// 0.1.120: [E0211] expected `string`, found `Status`</span></pre>
+<span class="del"><span class="c">// 0.1.119: builds clean</span></span>
+<span class="add"><span class="c">// 0.1.120: [E0211] expected `string`, found `Status`</span></span></pre>
             </div>
             <p>Two more of the same shape close alongside it. A <code>match</code> over a local alias of an imported union (<code>type Local = Shape</code>, then <code>match s: Local { ... }</code>) was not exhaustiveness-checked at all; it now gets the same <code>E0200</code> a match over <code>Shape</code> directly has always gotten. And <code>import std/string</code>, the namespace form the stdlib reference recommends, bound the name <code>string</code> without the checker noticing: <code>let x: string = 5</code> built clean under that import, while the named form <code>import std/string { trim }</code> caught it. Both forms now report <code>E0204</code>. Separately, a user program that declares its own <code>type Option&lt;T&gt;</code> no longer gets the prelude <code>Option</code>'s runtime check stapled onto a type of its own.</p>
             <h4>What changed underneath: the emitter reads the checker's answers instead of computing its own</h4>
@@ -880,13 +880,13 @@ fn main() {
             <p><code>std/http</code> bounded nothing by default: <code>get</code> against a peer that accepted the connection and said nothing waited for as long as the process lived. All six verbs (<code>get</code>, <code>post</code>, <code>put</code>, <code>patch</code>, <code>del</code>, <code>head</code>) now carry a 30,000ms deadline unless the call sets its own, and a deadline past what <code>setTimeout</code> can hold is refused up front instead of firing after one millisecond and blaming the network. Filing that refusal under an existing <code>HttpErrorKind</code> would have been the wrong answer with confidence attached, so <code>HttpErrorKind</code> gains a fourth member, <code>"argument"</code>: the request was never issued because one of its arguments was invalid.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>match e.kind {
-  "timeout" => io.println("timed out"),
-  "network" => io.println("network error"),
-  "status" => io.println("bad status"),
+<pre><span class="k">match</span> e.kind {
+  <span class="s">"timeout"</span> <span class="op">=&gt;</span> io.println(<span class="s">"timed out"</span>),
+  <span class="s">"network"</span> <span class="op">=&gt;</span> io.println(<span class="s">"network error"</span>),
+  <span class="s">"status"</span> <span class="op">=&gt;</span> io.println(<span class="s">"bad status"</span>),
 }
-<span class="del">// 0.1.117: builds clean</span>
-<span class="add">// 0.1.118: [E0200] match is not exhaustive: missing case for "argument"</span></pre>
+<span class="del"><span class="c">// 0.1.117: builds clean</span></span>
+<span class="add"><span class="c">// 0.1.118: [E0200] match is not exhaustive: missing case for "argument"</span></span></pre>
             </div>
             <p>An explicit <code>timeout_ms: 0</code> on a <code>Fetch</code> sent through <code>send</code> still means no timeout; that stays the one greppable opt-out. Nothing that compiles or runs today changes behaviour, except that a request nobody bounded now fails with <code>kind: "timeout"</code> after thirty seconds instead of hanging.</p>
             <h4>fold_while and try_fold, for a fold that knows when to stop</h4>
@@ -924,35 +924,35 @@ io.println(<span class="t">string</span>.from(total)) <span class="c">// 6, stop
             <p>A field a real API sends as JSON <code>null</code> had no Glyph type to declare it with. <code>Option&lt;T&gt;</code> only decodes its own tagged form, and an optional field of the base type accepted <code>null</code> but gave the program nothing to match on. <code>Nullable&lt;T&gt;</code> is a new prelude type for exactly that field: it emits as TypeScript <code>T | null</code>, and its check accepts <code>null</code> or a <code>T</code>, rejecting the tagged <code>Option</code> encoding as a value of the wrong shape.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>type Frame = { op: int, s: Nullable&lt;int&gt; }
+<pre><span class="k">type</span> <span class="t">Frame</span> = { op: <span class="t">int</span>, s: <span class="t">Nullable</span>&lt;<span class="t">int</span>&gt; }
 
-import std/nullable
+<span class="k">import</span> std/nullable
 
-fn main() -> void {
-  return match Frame.parse(json.parse("{\"op\":1,\"s\":null}")) {
-    Ok(f) => io.println(string.from(nullable.is_null(f.s))),
-    Err(e) => io.println("rejected"),
+<span class="k">fn</span> main() <span class="op">-&gt;</span> <span class="k">void</span> {
+  <span class="k">return</span> <span class="k">match</span> <span class="t">Frame</span>.parse(json.parse(<span class="s">"{\"op\":1,\"s\":null}"</span>)) {
+    <span class="t">Ok</span>(f) <span class="op">=&gt;</span> io.println(<span class="t">string</span>.from(nullable.is_null(f.s))),
+    <span class="t">Err</span>(e) <span class="op">=&gt;</span> io.println(<span class="s">"rejected"</span>),
   }
 }
-<span class="add">// {"op":1,"s":null} and {"op":1,"s":3} both decode; {"s":{"tag":"Some","value":3}} does not</span></pre>
+<span class="add"><span class="c">// {"op":1,"s":null} and {"op":1,"s":3} both decode; {"s":{"tag":"Some","value":3}} does not</span></span></pre>
             </div>
             <p>It is its own type, not an <code>Option</code>: assigning one where the other is declared is <code>E0204</code> at a <code>let</code> and <code>E0211</code> at an argument in either direction, and there is no <code>match</code> arm for <code>Some</code> or <code>None</code> on it. The bridge is explicit, <code>std/nullable</code>'s <code>to_option</code>, <code>from_option</code> and <code>is_null</code>, one greppable call at the point null enters a program. <code>T</code> may not itself be <code>Nullable</code> or <code>Option</code> (<code>E0227</code>): the first would give two states one runtime spelling, the second would put a tagged object under a null-tolerant field. <code>glyph gen dts</code> and <code>glyph gen openapi</code> route a schema's <code>nullable</code> field to <code>Nullable&lt;T&gt;</code> instead of collapsing it to an optional field. <code>Option&lt;T&gt;</code> is untouched, so this addition rejects nothing that built before.</p>
             <h4>A bare-name type alias is a second name for its declaration</h4>
             <p><code>type B = A</code>, with <code>type A = { x: number }</code>, used to declare a type of its own: a <code>B</code> passed where an <code>A</code> was expected was <code>E0211</code> on a program <code>tsc</code> accepts, and <code>b.naem</code> on a <code>b: B</code> got no field check at all, while the identical two declarations imported from a sibling module answered both correctly. One spelling had two answers, decided only by which file it was written in.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>type A = { x: number }
-type B = A
+<pre><span class="k">type</span> <span class="t">A</span> = { x: <span class="t">number</span> }
+<span class="k">type</span> <span class="t">B</span> = <span class="t">A</span>
 
-fn takes_a(a: A) -> number {
-  return a.x
+<span class="k">fn</span> takes_a(a: <span class="t">A</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> a.x
 }
 
-fn main(b: B) -> number {
-  return takes_a(b)
+<span class="k">fn</span> main(b: <span class="t">B</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> takes_a(b)
 }
-<span class="del">// 0.1.116: [E0211] argument type mismatch: expected `A`, found `B`</span>
-<span class="add">// 0.1.117: no diagnostics. B.parse is A.parse, and b.naem is E0210 as it already was on an a: A</span></pre>
+<span class="del"><span class="c">// 0.1.116: [E0211] argument type mismatch: expected `A`, found `B`</span></span>
+<span class="add"><span class="c">// 0.1.117: no diagnostics. B.parse is A.parse, and b.naem is E0210 as it already was on an a: A</span></span></pre>
             </div>
             <p>Only a bare name is followed to the declaration it names; a record, a union, a generic application such as <code>Record&lt;string, T&gt;</code>, or a body carrying a <code>where</code> is still the declaration's own type, unchanged by this rule. A <code>where</code> over an alias of a record or union is now <code>E0300</code> like the inline spelling, since the two are one type once the alias is followed: <code>type Positive = Rec where value.x &gt; 0</code> with <code>Rec</code> a record built clean before and is refused now.</p>
             <h4>gen dts anchors a class instead of naming one that doesn't exist</h4>
@@ -978,29 +978,29 @@ fn main(b: B) -> number {
             <p>Passing a value of a declared union or record where a <code>string</code>, <code>number</code> or <code>bool</code> is declared drew nothing from <code>glyph check --no-tsc</code>, while the same call with a <code>bool</code> argument was <code>E0211</code>. Only <code>tsc</code> caught the union:</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>type PaymentResult = | Settled | Declined
+<pre><span class="k">type</span> <span class="t">PaymentResult</span> = | <span class="t">Settled</span> | <span class="t">Declined</span>
 
-fn takes_string(s: string) -> string {
-  return s
+<span class="k">fn</span> takes_string(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> s
 }
 
-fn main(r: PaymentResult) -> string {
-  return takes_string(r)
+<span class="k">fn</span> main(r: <span class="t">PaymentResult</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> takes_string(r)
 }
-<span class="del">// 0.1.115: glyph check --no-tsc says nothing. tsc catches it at build time.</span>
-<span class="add">// 0.1.116: [E0211] argument type mismatch: expected `string`, found `PaymentResult`</span></pre>
+<span class="del"><span class="c">// 0.1.115: glyph check --no-tsc says nothing. tsc catches it at build time.</span></span>
+<span class="add"><span class="c">// 0.1.116: [E0211] argument type mismatch: expected `string`, found `PaymentResult`</span></span></pre>
             </div>
             <p>The reverse direction is caught too: a <code>string</code>, <code>number</code> or <code>bool</code> passed where a locally declared union or record is expected. The one exclusion is the zero-field record <code>type T = { }</code>, which TypeScript lets a plain string satisfy, so Glyph does not disagree with a program <code>tsc --strict</code> accepts.</p>
             <p>A bare PascalCase match arm naming a variant of the wrong imported union used to escape as a resolver error rather than a checker one:</p>
             <div class="code">
               <span class="cap">app.glyph, matching an Answer imported from model</span>
-<pre>match a {
-  Yes => 1,
-  No => 0,
-  Zed => 2,   // Zed is a variant of model's Mood, not of Answer
+<pre><span class="k">match</span> a {
+  <span class="t">Yes</span> <span class="op">=&gt;</span> <span class="n">1</span>,
+  <span class="t">No</span> <span class="op">=&gt;</span> <span class="n">0</span>,
+  <span class="t">Zed</span> <span class="op">=&gt;</span> <span class="n">2</span>,   <span class="c">// Zed is a variant of model's Mood, not of Answer</span>
 }
-<span class="del">// 0.1.115: glyph check --no-tsc says nothing.</span>
-<span class="add">// 0.1.116: [E0220] `Zed` is not a variant of `Answer`; did you mean `Yes`?</span></pre>
+<span class="del"><span class="c">// 0.1.115: glyph check --no-tsc says nothing.</span></span>
+<span class="add"><span class="c">// 0.1.116: [E0220] `Zed` is not a variant of `Answer`; did you mean `Yes`?</span></span></pre>
             </div>
             <p>That is the same diagnostic the module-local check has always raised for an unknown arm head; the imported path now raises it too, with the same nearest-variant suggestion.</p>
             <p>Two positions around module-level <code>const</code> are checked for the first time. An annotated const is typed by its annotation, so a wrong field on it is now <code>E0210</code> the way the identical program with a <code>let</code> already was. And a const's own initializer is checked against that annotation, so <code>const LIMIT: number = "ten"</code> is <code>E0204</code> instead of compiling clean and only failing under <code>tsc</code>.</p>
@@ -1069,7 +1069,7 @@ fn main(r: PaymentResult) -> string {
               <span class="cap">Row.is, from glyph build</span>
 <pre>(value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).kind === <span class="s">"red"</span> || ... === <span class="s">"blue"</span></pre>
               <span class="cap">Row.is, from the playground</span>
-<pre><span class="del">(value as Record&lt;string, unknown&gt;).kind !== undefined</span></pre>
+<pre><span class="del">(value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).kind !== <span class="k">undefined</span></span></pre>
             </div>
             <p>The page was showing a validator that accepts <code>{ kind: 42 }</code> for a type whose declaration forbids it, and <code>Row.parse</code> had no rejecting branch at all. For a language, that is not a rendering difference.</p>
             <h4>One scan, and an honest note where it cannot reach</h4>
@@ -1201,8 +1201,8 @@ fn main(r: PaymentResult) -> string {
             <p><code>glyph check --json</code> ran no <code>@example</code> gate at all. The same project, the same flags, two answers:</p>
             <div class="code">
               <span class="cap">0.1.107</span>
-<pre>glyph check src --no-tsc          <span class="del">example failed: main::add example #1</span>   exit 1
-glyph check src --no-tsc --json   <span class="add">{"ok": true, "errors": 0}</span>            exit 0</pre>
+<pre><span class="f">glyph</span> check src <span class="fl">--no-tsc</span>          <span class="del">example failed: main::add example #1</span>   exit 1
+<span class="f">glyph</span> check src <span class="fl">--no-tsc</span> <span class="fl">--json</span>   <span class="add">{"ok": true, "errors": 0}</span>            exit 0</pre>
             </div>
             <p>The gate ran on the path a person reads and not on the path a tool reads. <code>glyph check</code>'s promise is that it cannot report a clean tree that <code>build</code> would fail, and under <code>--json</code> it did exactly that. This is why the release is marked breaking: a project whose example was failing silently now fails out loud, so a green build can go red on upgrade. That is the fix working.</p>
             <p>Two more holes of the same shape went with it. A project whose augmented copy would not compile reported "1 example(s) passed" and exited 0. A malformed <code>@example</code> was reported as a missing <code>tsx</code> install. Failures now carry structure rather than prose: a code, the declaration they belong to, and the detail, taken from values the compiler already had instead of parsed back out of its own output.</p>
@@ -1241,7 +1241,7 @@ glyph_diagnostics    <span class="add">a::f</span></pre>
               <span class="cap">after, on 0.1.106</span>
 <pre><span class="del">import helper { one }fn main(argv: Array&lt;string&gt;) -&gt; number {</span>
 glyph fix:   removed 2 unused import(s)          exit 0
-glyph check: [E0002] expected newline after import   exit 1</pre>
+glyph check: <span class="e">[E0002]</span> expected newline after import   exit 1</pre>
             </div>
             <p>An import's span ends past the newline that terminates it. Removing a whole import walks that back; the path that prunes individual names, added in 0.1.99, spliced over the raw span and took the newline with it. It survived only when a blank line happened to sit below the import and absorb the loss, which is why the existing tests never saw it.</p>
             <p>Both paths now share one helper, so the terminator is preserved rather than reconstructed. Separately, <code>glyph fix</code> re-parses every file before writing it and refuses to write one it broke. That second change is the one that matters: it catches this whole class whatever causes it, and an autofix that can corrupt a file should never be the thing that tells you it worked.</p>
@@ -1296,16 +1296,16 @@ main::label   <span class="del">compiles, and routes Suspended into else</span><
             <p>Seven places in the checker each decided whether a match had a catch-all arm, and they did not agree. Four of them treated a capitalised bare name as one, on the reasoning that a boolean has no constructors so the name must be a variable.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>match ready {
-  true =&gt; 1,
-  Red =&gt; 2,
+<pre><span class="k">match</span> ready {
+  <span class="k">true</span> <span class="op">=&gt;</span> <span class="n">1</span>,
+  <span class="t">Red</span> <span class="op">=&gt;</span> <span class="n">2</span>,
 }
 
-<span class="del">// before: no error here, then at emit time</span>
-<span class="del">//   E0300 emission for a match mixing literal and</span>
-<span class="del">//   variant patterns is not implemented yet</span>
-<span class="add">// now:    E0209 non-exhaustive match on bool:</span>
-<span class="add">//         `false` not covered</span></pre>
+<span class="del"><span class="c">// before: no error here, then at emit time</span></span>
+<span class="del"><span class="c">//   E0300 emission for a match mixing literal and</span></span>
+<span class="del"><span class="c">//   variant patterns is not implemented yet</span></span>
+<span class="add"><span class="c">// now:    E0209 non-exhaustive match on bool:</span></span>
+<span class="add"><span class="c">//         `false` not covered</span></span></pre>
             </div>
             <p>The reasoning was wrong, and the rest of the compiler had already settled it: a capitalised name in a pattern resolves as a reference, not a binding, and every emitted form turns it into a tag test. A pattern that binds nothing and tests a tag absorbs nothing, so calling it a catch-all certified a match the emitter could not build. The compiler was saying your program was fine and that it could not compile it.</p>
             <p>All seven now ask one question, and it takes the strict answer wherever two readings were defensible.</p>
@@ -1326,16 +1326,16 @@ main::label   <span class="del">compiles, and routes Suspended into else</span><
             <p>An agent that recorded a position and asked again after an edit got a confident answer about the wrong thing. Inserting one function above another was enough.</p>
             <div class="code">
               <span class="cap">before, against 0.1.103</span>
-<pre>glyph_references { path, line: 7, character: 3 }
-  -&gt; charge, and its one call site
+<pre>glyph_references { path, line: <span class="n">7</span>, character: <span class="n">3</span> }
+  <span class="op">-&gt;</span> charge, and its one call site
 
-<span class="del">// then `fn audit` is inserted above `charge`</span>
-glyph_references { path, line: 7, character: 3 }
-  <span class="del">-&gt; audit          // no error, well-formed, wrong entity</span>
+<span class="del"><span class="c">// then `fn audit` is inserted above `charge`</span></span>
+glyph_references { path, line: <span class="n">7</span>, character: <span class="n">3</span> }
+  <span class="del"><span class="op">-&gt;</span> audit          <span class="c">// no error, well-formed, wrong entity</span></span>
 
 <span class="cap">now</span>
-glyph_references { path, name: "charge" }
-  <span class="add">-&gt; charge, and its one call site, whatever moved above it</span></pre>
+glyph_references { path, name: <span class="s">"charge"</span> }
+  <span class="add"><span class="op">-&gt;</span> charge, and its one call site, whatever moved above it</span></pre>
             </div>
             <p>The position form is unchanged, because an editor has a real cursor and that is the right question for it. What was missing is the question an agent asks: the declaration called <code>charge</code>. Send both and they are cross-checked: if the coordinate has gone stale you are told, naming what sits at the position and what the name resolves to, rather than being handed one of them.</p>
             <p>A name that no longer exists says so and lists what the module does declare. Resolving to whatever is nearby is the failure this exists to fix, so it does not fall back.</p>
@@ -1381,14 +1381,14 @@ glyph_references { path, name: "charge" }
             <p>No new language features. The query layer moves to salsa 0.28, and four things that kept turning up during release checks are fixed.</p>
             <div class="code">
               <span class="cap">before, and after</span>
-<pre><span class="del">// glyph fmt turned this</span>
-0
-match i &gt;= n { true =&gt; { break }, false =&gt; {}, }?
+<pre><span class="del"><span class="c">// glyph fmt turned this</span></span>
+<span class="n">0</span>
+<span class="k">match</span> i &gt;= n { <span class="k">true</span> <span class="op">=&gt;</span> { <span class="k">break</span> }, <span class="k">false</span> <span class="op">=&gt;</span> {}, }<span class="op">?</span>
 
-<span class="del">// into a call, because it wrapped the match in parentheses</span>
-<span class="del">0(match i &gt;= n { ... },)?</span>
+<span class="del"><span class="c">// into a call, because it wrapped the match in parentheses</span></span>
+<span class="del"><span class="n">0</span>(<span class="k">match</span> i &gt;= n { ... },)<span class="op">?</span></span>
 
-<span class="add">// a match delimits itself; the parentheses are gone</span></pre>
+<span class="add"><span class="c">// a match delimits itself; the parentheses are gone</span></span></pre>
             </div>
             <p>A <code>match</code> used as the target of <code>?</code> or <code>.</code> was printed wrapped in parentheses it never needed. Formatting again read the leading bracket as a call on whatever preceded it, so the output meant something the input did not. This was present in every release up to now.</p>
             <p>Installing on Alpine used to hand you a glibc binary and let the loader fail with a bare "not found". The launcher now recognises musl and says what is wrong. If it cannot tell, it proceeds as before, because a wrong diagnosis on a working machine is worse than the error it replaces.</p>
@@ -1410,17 +1410,17 @@ match i &gt;= n { true =&gt; { break }, false =&gt; {}, }?
             <p>Writing a <code>//</code> note on the first line of a wrapped <code>@example</code> deleted the assertion. The example still ran, and still reported success, having checked something else.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>@example has_bug(3)
-  == false
-@example has_bug(3) <span class="del">// a note</span>
-  == false
+<pre><span class="k">@example</span> has_bug(<span class="n">3</span>)
+  == <span class="k">false</span>
+<span class="k">@example</span> has_bug(<span class="n">3</span>) <span class="del">// a note</span>
+  == <span class="k">false</span>
 
-pub fn has_bug(n: number) -&gt; bool {
-  return true
+<span class="k">pub</span> <span class="k">fn</span> has_bug(n: <span class="t">number</span>) <span class="op">-&gt;</span> <span class="t">bool</span> {
+  <span class="k">return</span> <span class="k">true</span>
 }
 
-<span class="del">// before: 1 of 2 example(s) failed  &lt;- the noted one passed</span>
-<span class="add">// now:    2 of 2 example(s) failed</span></pre>
+<span class="del"><span class="c">// before: 1 of 2 example(s) failed  &lt;- the noted one passed</span></span>
+<span class="add"><span class="c">// now:    2 of 2 example(s) failed</span></span></pre>
             </div>
             <p>Two identical false claims, and only one was caught. The comment merged into the annotation's argument text, the assertion's right-hand side went with it, and an example with no comparison left is treated as asserting the expression is true. It fired in both directions: a module of nine examples had five false claims pass, and the same defect failed five true ones.</p>
             <p>The parser now keeps a comment out of the argument text it captures, so the assertion survives. Formatting also reaches its final shape in one pass, and a comment written above one annotation stays with that annotation instead of moving to the one above it.</p>
@@ -1441,13 +1441,13 @@ pub fn has_bug(n: number) -&gt; bool {
             <p>A client had no way to ask for a response as text. The body arrives best-effort JSON-parsed, so printing it went through <code>string.from</code> and a JSON body rendered as <code>[object Object]</code>, silently.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
-<pre>match http.to_text(response) {
-  Ok(body) =&gt; io.println(body),
-  Err(e) =&gt; io.println("no body: ${e}"),
+<pre><span class="k">match</span> http.to_text(response) {
+  <span class="t">Ok</span>(body) <span class="op">=&gt;</span> io.println(body),
+  <span class="t">Err</span>(e) <span class="op">=&gt;</span> io.println(<span class="s">"no body: </span><span class="ip">${</span>e<span class="ip">}</span><span class="s">"</span>),
 }
 
-<span class="del">// before: string.from(response.body) -&gt; [object Object]</span>
-<span class="add">// now:    the exact bytes the server sent</span></pre>
+<span class="del"><span class="c">// before: string.from(response.body) -&gt; [object Object]</span></span>
+<span class="add"><span class="c">// now:    the exact bytes the server sent</span></span></pre>
             </div>
             <p><code>Response</code> now carries the unparsed body alongside the parsed one, mirroring what <code>Request</code> has always done for signature verification. The parsed value is lossy: a <code>text/plain</code> body of <code>42</code> parses to a number, so it cannot tell you what arrived. <code>to_text</code> reads the bytes instead.</p>
             <p class="rel-note">Two items planned for this release are still open because both are API decisions rather than fixes: whether <code>http.get</code> should require a timeout the way <code>tls.connect</code> does, and how an <code>Option</code> field should read an explicit <code>null</code> from ordinary JSON.</p>

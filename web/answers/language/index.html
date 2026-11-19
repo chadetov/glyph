@@ -461,9 +461,9 @@
 
       <div class="code">
         <span class="cap">visibility: private by default</span>
-<pre><span class="add">pub fn</span> charge(cents: int) -&gt; Result&lt;Receipt, string&gt; { validate(cents)? ... }
+<pre><span class="add">pub fn</span> charge(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Receipt</span>, <span class="t">string</span>&gt; { validate(cents)<span class="op">?</span> ... }
 
-<span class="dim">fn</span> validate(cents: int) -&gt; Result&lt;int, string&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
+<span class="dim">fn</span> validate(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">int</span>, <span class="t">string</span>&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
       </div>
 
       <div class="detail">
@@ -477,11 +477,11 @@
 
       <div class="code">
         <span class="cap">interfaces constrain generics</span>
-<pre><span class="add">interface</span> Named {
-  fn name() -&gt; string
+<pre><span class="add">interface</span> <span class="t">Named</span> {
+  <span class="k">fn</span> name() <span class="op">-&gt;</span> <span class="t">string</span>
 }
 
-pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
+<span class="k">pub</span> <span class="k">fn</span> label&lt;<span class="t">T</span>: <span class="add">Named</span>&gt;(x: <span class="t">T</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
   x.name()
 }</pre>
       </div>
@@ -500,7 +500,7 @@ pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
         <span class="cap">defer + structured concurrency</span>
 <pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
 
-let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { fetch_b() }])</pre>
+<span class="k">let</span> both = <span class="k">await</span> task.<span class="add">all</span>([<span class="k">fn</span>() { fetch_a() }, <span class="k">fn</span>() { fetch_b() }])</pre>
       </div>
 
       <div class="detail">
@@ -532,17 +532,17 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
 
       <div class="code">
         <span class="cap">from the link checker: fence tracking, and an awaited arm</span>
-<pre>for raw in lines {
-  let fence = is_fence(raw)
+<pre><span class="k">for</span> raw <span class="k">in</span> lines {
+  <span class="k">let</span> fence = is_fence(raw)
   <span class="add">mut</span> in_fence = <span class="add">match</span> fence {      <span class="cm"># reads the binding it assigns</span>
-    true =&gt; !in_fence,
-    false =&gt; in_fence,
+    <span class="k">true</span> <span class="op">=&gt;</span> !in_fence,
+    <span class="k">false</span> <span class="op">=&gt;</span> in_fence,
   }
 }
 
-let cache = <span class="add">match</span> args.offline {
-  true =&gt; no_cache(),
-  false =&gt; <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
+<span class="k">let</span> cache = <span class="add">match</span> args.offline {
+  <span class="k">true</span> <span class="op">=&gt;</span> no_cache(),
+  <span class="k">false</span> <span class="op">=&gt;</span> <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
 }</pre>
       </div>
 
@@ -576,14 +576,14 @@ let cache = <span class="add">match</span> args.offline {
 
       <div class="code">
         <span class="cap">one rotation case of a red-black rebalance, as one arm</span>
-<pre>type Tree =
-  | Leaf
-  | Node({ color: Color, left: Tree, value: number, right: Tree })
+<pre><span class="k">type</span> <span class="t">Tree</span> =
+  | <span class="t">Leaf</span>
+  | <span class="t">Node</span>({ color: <span class="t">Color</span>, left: <span class="t">Tree</span>, value: <span class="t">number</span>, right: <span class="t">Tree</span> })
 
-match t {
-  Node({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) =&gt;
-    Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b }), value: y, right: c }),
-  other =&gt; other,
+<span class="k">match</span> t {
+  <span class="t">Node</span>({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) <span class="op">=&gt;</span>
+    <span class="t">Node</span>({ color: <span class="t">Red</span>, left: <span class="t">Node</span>({ color: <span class="t">Black</span>, left: a, value: x, right: b }), value: y, right: c }),
+  other <span class="op">=&gt;</span> other,
 }</pre>
       </div>
 
@@ -632,14 +632,14 @@ match t {
 
       <div class="code">
         <span class="cap">from the expense splitter: no annotation, and <code>i</code> is a number</span>
-<pre>let wire = <span class="add">match</span> WireLedger.parse(decoded) {
-  Ok(w) =&gt; w,
-  Err(issues) =&gt; {
-    return Err(BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }))
+<pre><span class="k">let</span> wire = <span class="add">match</span> <span class="t">WireLedger</span>.parse(decoded) {
+  <span class="t">Ok</span>(w) <span class="op">=&gt;</span> w,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> {
+    <span class="k">return</span> <span class="t">Err</span>(<span class="t">BadInput</span>({ message: <span class="s">"</span><span class="ip">${</span>path<span class="ip">}</span><span class="s"> is not a settle ledger: </span><span class="ip">${</span>describe_issues(issues)<span class="ip">}</span><span class="s">"</span> }))
   },
 }
 
-for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", "1", "2"</span>
+<span class="k">for</span> i, w <span class="k">in</span> wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", "1", "2"</span>
   ...
 }</pre>
       </div>
@@ -670,14 +670,14 @@ for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", 
 
       <div class="code">
         <span class="cap">from the dependency resolver: a lookup, an empty fallback, an indexed walk</span>
-<pre>let path = <span class="add">match</span> record.get(res.reached, name) {
-  Some(p) =&gt; p,
-  None =&gt; [],
+<pre><span class="k">let</span> path = <span class="add">match</span> <span class="k">record</span>.get(res.reached, name) {
+  <span class="t">Some</span>(p) <span class="op">=&gt;</span> p,
+  <span class="t">None</span> <span class="op">=&gt;</span> [],
 }
 
-for i, hop in path {               <span class="cm"># i is a number, so the indent nests</span>
-  let indent = string.repeat(STEP, i + 1)
-  mut out = array.push(out, "${indent}${hop}")
+<span class="k">for</span> i, hop <span class="k">in</span> path {               <span class="cm"># i is a number, so the indent nests</span>
+  <span class="k">let</span> indent = <span class="t">string</span>.repeat(<span class="t">STEP</span>, i + <span class="n">1</span>)
+  <span class="k">mut</span> out = array.push(out, <span class="s">"</span><span class="ip">${</span>indent<span class="ip">}</span><span class="ip">${</span>hop<span class="ip">}</span><span class="s">"</span>)
 }</pre>
       </div>
 
@@ -712,14 +712,14 @@ for i, hop in path {               <span class="cm"># i is a number, so the inde
 
       <div class="code">
         <span class="cap">what landed</span>
-<pre>string.<span class="add">repeat</span>(s, n)           string.<span class="add">slice</span>(s, start, end?)       array.<span class="add">fold</span>(xs, init, f)
-string.<span class="add">pad_start</span>(s, w, pad?)   string.<span class="add">index_of</span>(s, needle, from?)  array.<span class="add">index_of</span>(xs, x)
-string.<span class="add">pad_end</span>(s, w, pad?)     string.<span class="add">replace_all</span>(s, from, to)     array.<span class="add">flat_map</span>(xs, f)
-string.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span>(s)
+<pre><span class="t">string</span>.<span class="add">repeat</span>(s, n)           <span class="t">string</span>.<span class="add">slice</span>(s, start, end<span class="op">?</span>)       array.<span class="add">fold</span>(xs, init, f)
+<span class="t">string</span>.<span class="add">pad_start</span>(s, w, pad<span class="op">?</span>)   <span class="t">string</span>.<span class="add">index_of</span>(s, needle, from<span class="op">?</span>)  array.<span class="add">index_of</span>(xs, x)
+<span class="t">string</span>.<span class="add">pad_end</span>(s, w, pad<span class="op">?</span>)     <span class="t">string</span>.<span class="add">replace_all</span>(s, from, to)     array.<span class="add">flat_map</span>(xs, f)
+<span class="t">string</span>.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span>(s)
 
 <span class="cm"># the 25-line block six apps each carried, and what replaced it:</span>
-let total = array.<span class="add">fold</span>(expenses, 0, fn(sum, e) { sum + e.cents })
-io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<span class="add">pad_start</span>(amount, 9)}")</pre>
+<span class="k">let</span> total = array.<span class="add">fold</span>(expenses, <span class="n">0</span>, <span class="k">fn</span>(sum, e) { sum + e.cents })
+io.println(<span class="s">"</span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_end</span>(name, width)<span class="ip">}</span><span class="s">  </span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_start</span>(amount, <span class="n">9</span>)<span class="ip">}</span><span class="s">"</span>)</pre>
       </div>
 
       <div class="detail">
@@ -786,25 +786,25 @@ io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<s
 
       <div class="code">
         <span class="cap">walk a tree, and name what went wrong</span>
-<pre>let names = fs.<span class="add">read_dir</span>(dir)?
-for name in names {
-  let child = path.join([dir, name])
-  match fs.<span class="add">is_dir</span>(child) {
-    true  =&gt; visit(child),
-    false =&gt; {
-      let info = fs.<span class="add">stat</span>(child)?
+<pre><span class="k">let</span> names = fs.<span class="add">read_dir</span>(dir)<span class="op">?</span>
+<span class="k">for</span> name <span class="k">in</span> names {
+  <span class="k">let</span> child = path.join([dir, name])
+  <span class="k">match</span> fs.<span class="add">is_dir</span>(child) {
+    <span class="k">true</span>  <span class="op">=&gt;</span> visit(child),
+    <span class="k">false</span> <span class="op">=&gt;</span> {
+      <span class="k">let</span> info = fs.<span class="add">stat</span>(child)<span class="op">?</span>
       report_size(child, info.size)
     },
   }
 }
 
-match err.<span class="add">kind</span> {                        <span class="cm"># no else arm: E0200 if you miss one</span>
-  fs.ErrorKind.<span class="add">NotFound</span>         =&gt; io.eprintln("no such path"),
-  fs.ErrorKind.<span class="add">NotADirectory</span>    =&gt; io.eprintln("that is a file"),
-  fs.ErrorKind.<span class="add">IsADirectory</span>     =&gt; io.eprintln("that is a directory"),
-  fs.ErrorKind.<span class="add">AlreadyExists</span>    =&gt; io.eprintln("already there"),
-  fs.ErrorKind.<span class="add">PermissionDenied</span> =&gt; io.eprintln("cannot read it"),
-  fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
+<span class="k">match</span> err.<span class="add">kind</span> {                        <span class="cm"># no else arm: E0200 if you miss one</span>
+  fs.<span class="t">ErrorKind</span>.<span class="add">NotFound</span>         <span class="op">=&gt;</span> io.eprintln(<span class="s">"no such path"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">NotADirectory</span>    <span class="op">=&gt;</span> io.eprintln(<span class="s">"that is a file"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">IsADirectory</span>     <span class="op">=&gt;</span> io.eprintln(<span class="s">"that is a directory"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">AlreadyExists</span>    <span class="op">=&gt;</span> io.eprintln(<span class="s">"already there"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">PermissionDenied</span> <span class="op">=&gt;</span> io.eprintln(<span class="s">"cannot read it"</span>),
+  fs.<span class="t">ErrorKind</span>.<span class="add">Other</span>({ code })   <span class="op">=&gt;</span> io.eprintln(<span class="s">"errno </span><span class="ip">${</span>code<span class="ip">}</span><span class="s">"</span>),
 }</pre>
       </div>
 
@@ -884,12 +884,12 @@ match err.<span class="add">kind</span> {                        <span class="cm
 
       <div class="code">
         <span class="cap">std/decimal</span>
-<pre>let price = decimal("10.50")?
-let tax   = decimal("0.84")?
+<pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
+<span class="k">let</span> tax   = decimal(<span class="s">"0.84"</span>)<span class="op">?</span>
 price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
 
-decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", half away from zero</span>
-decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
+decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>).to_string()   <span class="cm"># "0.67", half away from zero</span>
+decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(decimal(<span class="s">"2"</span>)<span class="op">?</span>)   <span class="cm"># exact past 2^53</span></pre>
       </div>
 
       <div class="detail">
@@ -925,16 +925,16 @@ decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 
 
       <div class="code">
         <span class="cap">a deferred task, and a map of handlers</span>
-<pre>fn task_for(url: string) -&gt; <span class="add">async fn() -&gt; Fetched</span> {
-  return async fn() -&gt; Fetched { return { url: url, body: await fetch_one(url) } }
+<pre><span class="k">fn</span> task_for(url: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="add">async fn() -&gt; Fetched</span> {
+  <span class="k">return</span> <span class="k">async</span> <span class="k">fn</span>() <span class="op">-&gt;</span> <span class="t">Fetched</span> { <span class="k">return</span> { url: url, body: <span class="k">await</span> fetch_one(url) } }
 }
 
-type Handler = <span class="add">async fn(string) -&gt; string</span>
+<span class="k">type</span> <span class="t">Handler</span> = <span class="add">async fn(string) -&gt; string</span>
 
-async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: string) -&gt; string {
-  return match record.get(routes, name) {
-    Some(h) =&gt; await h(arg),
-    None    =&gt; "no route",
+<span class="k">async</span> <span class="k">fn</span> dispatch(routes: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">Handler</span>&gt;, name: <span class="t">string</span>, arg: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> <span class="k">record</span>.get(routes, name) {
+    <span class="t">Some</span>(h) <span class="op">=&gt;</span> <span class="k">await</span> h(arg),
+    <span class="t">None</span>    <span class="op">=&gt;</span> <span class="s">"no route"</span>,
   }
 }</pre>
       </div>
@@ -956,21 +956,21 @@ async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: stri
 
       <div class="code">
         <span class="cap">one of the four rotation cases</span>
-<pre>type Tree&lt;K, V&gt; =
-  | Leaf
-  | Node({ color: Color, left: <span class="add">Tree&lt;K, V&gt;</span>, key: K, value: V, size: int, right: <span class="add">Tree&lt;K, V&gt;</span> })
+<pre><span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; =
+  | <span class="t">Leaf</span>
+  | <span class="t">Node</span>({ color: <span class="t">Color</span>, left: <span class="add">Tree&lt;K, V&gt;</span>, key: <span class="t">K</span>, value: <span class="t">V</span>, size: <span class="t">int</span>, right: <span class="add">Tree&lt;K, V&gt;</span> })
 
-fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
-  return match t {
-    Node({ color: Black, left: <span class="add">Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b })</span>, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) =&gt; node(
-      Red,
-      node(Black, a, xk, xv, b),
+<span class="k">fn</span> balance&lt;<span class="t">K</span>, <span class="t">V</span>&gt;(t: <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt;) <span class="op">-&gt;</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> t {
+    <span class="t">Node</span>({ color: <span class="t">Black</span>, left: <span class="add">Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b })</span>, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) <span class="op">=&gt;</span> node(
+      <span class="t">Red</span>,
+      node(<span class="t">Black</span>, a, xk, xv, b),
       yk,
       yv,
-      node(Black, c, zk, zv, d),
+      node(<span class="t">Black</span>, c, zk, zv, d),
     ),
     <span class="cm">// the other three cases, then:</span>
-    other =&gt; other,
+    other <span class="op">=&gt;</span> other,
   }
 }</pre>
       </div>

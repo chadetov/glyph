@@ -461,8 +461,8 @@
       </div>
       <div class="code">
         <span class="cap">dist/main.ts (tail)</span>
-<pre>// ...emitted TypeScript...
-//# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
+<pre><span class="c">// ...emitted TypeScript...</span>
+<span class="c">//# sourceMappingURL=main.ts.map    </span><span class="cm">// v3 map, .glyph embedded</span></pre>
       </div>
 
       <div class="detail">
@@ -492,17 +492,17 @@
       </div>
       <div class="code">
         <span class="cap">an unused import, added a step before the code that would have used it</span>
-<pre class="wraps">$ printf 'look\nquit\n' | glyph run adventure.glyph
+<pre class="wraps"><span class="pr">$</span> <span class="f">printf</span> <span class="s">'look\nquit\n'</span> | <span class="f">glyph</span> run adventure.glyph
 <span class="cm">...the game plays and exits 0...</span>
 
-[E0106] Warning: lint: unused import `math`
-    ╭─[adventure:21:1]
-    │
- 21 │ import std/math
-    │         ╰─────── unused import `math`
-    │ Help: Remove the import. Nothing in this module references it.
+<span class="e">[E0106]</span> <span class="w">Warning:</span> lint: unused import <span class="q">`math`</span>
+    <span class="bx">╭─</span>[adventure:21:1]
+    <span class="bx">│</span>
+ 21 <span class="bx">│</span> import std/math
+    <span class="bx">│</span>         <span class="bx">╰───────</span> unused import <span class="q">`math`</span>
+    <span class="bx">│</span> <span class="f">Help:</span> Remove the import. Nothing in this module references it.
 
-glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
+glyph run: 0 <span class="e">error</span>(s), 1 <span class="w">warning</span>(s) in the source tree</pre>
       </div>
 
       <div class="detail">

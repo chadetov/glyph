@@ -443,7 +443,7 @@ pub fn g() -&gt; number {
   return tx(v)
 }
 <span class="del">// 0.1.126: nothing                                         (exit 0)</span>
-<span class="add">// 0.1.127: [E0211] argument type mismatch: expected `record`, found `record`
+<span class="add">// 0.1.127: <span class="e">[E0211]</span> argument type mismatch: expected <span class="q">`record`</span>, found <span class="q">`record`</span>
 //                                                           (exit 1)</span></pre>
             </div>
             <p>The message still calls both sides <code>record</code> when neither has a name, which is a known display gap. One program goes the other way: a record that refers to itself through a field, such as <code>type Node = { kids: Array&lt;Node&gt;, }</code>, passed to an interface shaped the same way used to be refused by name one level down. <code>tsc</code> accepts it, and now Glyph does too.</p>
@@ -458,7 +458,7 @@ pub fn g() -&gt; number {
   return ti(v)
 }
 <span class="del">// 0.1.126: nothing                                         (exit 0)</span>
-<span class="add">// 0.1.127: [E0211] ... it has no field in common with `record`, whose fields
+<span class="add">// 0.1.127: <span class="e">[E0211]</span> ... it has no field in common with <span class="q">`record`</span>, whose fields
 //          are all optional                                 (exit 1)</span></pre>
             </div>
             <p>An extra field on a fresh object literal is still accepted. <code>tsc</code> refuses it (TS2353) and Glyph doesn't yet; that's recorded as G273.</p>
@@ -487,10 +487,10 @@ pub fn g() -&gt; number {
             <p><code>Component</code> is a prelude name, and <code>-&gt; Component</code> is how a component declares that it returns a rendered element. The emitter wrote the bare word into the TypeScript, which <code>tsc</code> could not resolve. The flagship React example only got past that by importing React's <code>Component</code> class over the prelude name, which <code>tsc</code> refuses for a different reason.</p>
             <div class="code">
               <span class="cap">glyph check, with React 18's types</span>
-<pre>fn view() -&gt; Component { return &lt;p&gt;hi&lt;/p&gt; }
-pub component App() -&gt; Component { return &lt;div&gt;{view()}&lt;/div&gt; }
-<span class="del">// 0.1.125: [TS2304] Cannot find name 'Component'      (twice, exit 1)</span>
-<span class="add">// 0.1.126: tsc --strict passed                         (exit 0)</span></pre>
+<pre><span class="k">fn</span> view() <span class="op">-&gt;</span> <span class="t">Component</span> { <span class="k">return</span> &lt;<span class="t">p</span>&gt;hi&lt;/<span class="t">p</span>&gt; }
+<span class="k">pub</span> <span class="k">component</span> <span class="t">App</span>() <span class="op">-&gt;</span> <span class="t">Component</span> { <span class="k">return</span> &lt;<span class="t">div</span>&gt;<span class="ip">{</span>view()<span class="ip">}</span>&lt;/<span class="t">div</span>&gt; }
+<span class="del"><span class="c">// 0.1.125: [TS2304] Cannot find name 'Component'      (twice, exit 1)</span></span>
+<span class="add"><span class="c">// 0.1.126: tsc --strict passed                         (exit 0)</span></span></pre>
             </div>
             <p>The prelude <code>Component</code> now lowers to <code>React.ReactNode</code>. It was picked by running <code>tsc</code> on every value a component can return in Glyph: an element, a fragment, an <code>&lt;if&gt;</code> without an <code>&lt;else&gt;</code> (which yields <code>null</code>), a <code>&lt;match&gt;</code> and a <code>&lt;for&gt;</code> list. <code>ReactNode</code> is the narrowest type that accepts all of them. A component with no annotation now returns <code>Component</code> too, where the checker used to record <code>void</code>, so hover and <code>glyph_symbol</code> read <code>fn(Props) -&gt; Component</code>. A module whose JSX lives only in plain functions now gets its <code>import * as React</code> line. One edge: React's types before 18.2.8 refuse a function component that returns <code>ReactNode</code>.</p>
 
@@ -504,8 +504,8 @@ pub component App() {
   return &lt;p&gt;{v}&lt;/p&gt;
 }
 <span class="del">// 0.1.125: nothing                                            (exit 0)</span>
-<span class="add">// 0.1.126: [E0229] ... parameter `p` is `unknown`, which gives it nothing it can read
-//          [E0201] ...                                         (exit 1)</span></pre>
+<span class="add">// 0.1.126: <span class="e">[E0229]</span> ... parameter <span class="q">`p`</span> is <span class="q">`unknown`</span>, which gives it nothing it can read
+//          <span class="e">[E0201]</span> ...                                         (exit 1)</span></pre>
             </div>
 
             <h4>Go-to-definition through a namespace</h4>
@@ -536,9 +536,9 @@ pub component App() {
             <div class="code">
               <span class="cap">import ui, then a wrong attribute</span>
 <pre>&lt;ui.Button variant="nope" label="go" /&gt;
-<span class="del">// 0.1.124: [E0106] unused import `ui`     tsc --strict passed  (exit 0)
+<span class="del">// 0.1.124: <span class="e">[E0106]</span> unused import <span class="q">`ui`</span>     tsc --strict <span class="o">passed</span>  (exit 0)
 //          renders &lt;ui.Button variant="nope" label="go"&gt;&lt;/ui.Button&gt;</span>
-<span class="add">// 0.1.125: [E0211] expected `Variant`, found `"nope"`           (exit 1)
+<span class="add">// 0.1.125: <span class="e">[E0211]</span> expected <span class="q">`Variant`</span>, found <span class="q">`"nope"`</span>           (exit 1)
 //          renders &lt;button&gt;go&lt;/button&gt; once the value is fixed</span></pre>
             </div>
             <p>A dotted name is a component whatever the case of its base, which is TypeScript's rule for a member-expression tag. One classifier now decides it, where the resolver and the emitter each kept their own copy. The base resolves like any name, the props check reaches the component through a namespace or an aliased import, and the member goes through the same export check <code>ui.Button</code> does as a value, so <code>&lt;ui.Nope /&gt;</code> and an unexported component are E0105.</p>
@@ -550,8 +550,8 @@ pub component App() {
 <pre>&lt;Button label="go" /&gt;
 &lt;Button /&gt;
 <span class="del">// 0.1.124: first line caught by tsc only; second line passes  (exit 0)</span>
-<span class="add">// 0.1.125: [E0211] expected `Props`, found `record`: missing field `variant`
-//          [E0211] expected `Props`, found `record`: missing fields `variant`, `label`</span></pre>
+<span class="add">// 0.1.125: <span class="e">[E0211]</span> expected <span class="q">`Props`</span>, found <span class="q">`record`</span>: missing field <span class="q">`variant`</span>
+//          <span class="e">[E0211]</span> expected <span class="q">`Props`</span>, found <span class="q">`record`</span>: missing fields <span class="q">`variant`</span>, <span class="q">`label`</span></span></pre>
             </div>
             <p>The second line is the one that mattered. An element with no attributes was emitted with <code>null</code> props, and React's types accept <code>null</code> for any component, so <code>&lt;Button /&gt;</code> against required props passed <code>tsc --strict</code> and the component read <code>undefined</code> when it rendered. It passes <code>{}</code> now, so <code>tsc</code> refuses it too, and Glyph asks every component element without a spread for its required props. A <code>?</code> prop may be left out. A required <code>children</code> prop is reported missing even when children are written between the tags, because they are passed outside the props object; <code>tsc</code> says the same, and the message should explain it and does not yet.</p>
 

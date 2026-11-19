@@ -439,14 +439,14 @@
 
       <div class="code">
         <span class="cap">from a clone</span>
-<pre>npm install -g tsx typescript
-cd glyph-compiler
-cargo build --release -p glyph-cli      <span class="cm"># target/release/glyph</span>
-cargo test --workspace
-cd .. &amp;&amp; python3 scripts/check_clippy.py  <span class="cm"># the exact clippy command CI runs</span>
+<pre><span class="f">npm</span> install <span class="fl">-g</span> tsx typescript
+<span class="f">cd</span> glyph-compiler
+<span class="f">cargo</span> build <span class="fl">--release</span> <span class="fl">-p</span> glyph-cli      <span class="cm"># target/release/glyph</span>
+<span class="f">cargo</span> test <span class="fl">--workspace</span>
+<span class="f">cd</span> .. &amp;&amp; <span class="f">python3</span> scripts/check_clippy.py  <span class="cm"># the exact clippy command CI runs</span>
 
 <span class="cm"># after an intentional syntax-tree change</span>
-INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
+INSTA_UPDATE=always <span class="f">cargo</span> test <span class="fl">-p</span> glyph-parser <span class="fl">--test</span> snapshots</pre>
       </div>
 
       <div class="detail">

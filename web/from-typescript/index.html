@@ -549,14 +549,14 @@
 
       <div class="code">
         <span class="cap">glyph check --no-tsc (trimmed)</span>
-<pre class="wraps"><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Plan`: missing variants `Team`</span>
-   ╭─[ plan:6:10 ]
-   │
- 6 │ ╭─▶   return match p {
-   ┆ ┆
- 9 │ ├─▶   }
-   │ ╰───────── non-exhaustive match on `Plan`: missing variants `Team`
-   │     Help: Add an arm for each missing variant.</pre>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Plan`</span>: missing variants <span class="q">`Team`</span></span>
+   <span class="bx">╭─</span>[ plan:6:10 ]
+   <span class="bx">│</span>
+ 6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match p {
+   <span class="bx">┆</span> <span class="bx">┆</span>
+ 9 <span class="bx">│</span> <span class="bx">├─</span>▶   }
+   <span class="bx">│</span> <span class="bx">╰─────────</span> non-exhaustive match on <span class="q">`Plan`</span>: missing variants <span class="q">`Team`</span>
+   <span class="bx">│</span>     <span class="f">Help:</span> Add an arm for each missing variant.</pre>
       </div>
 
       <div class="detail">

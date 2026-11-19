@@ -12165,7 +12165,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.155 (record 89): `unknown` is assignable only to `unknown`,
+  Planned for 0.1.157 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -12776,7 +12776,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `k/`: both remove `Paid` and `Cancelled`.*
 
-  Planned for 0.1.151 (record 106).
+  Planned for 0.1.153 (record 106).
 
   *Reproduced against 0.1.147 (the release build) by record 106's probe
   `k/`: `glyph fix` prints "removed 2 unused import(s)" and then declines the
@@ -12794,7 +12794,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.142 (the release build) by record 106's probe
   `g5_first`.*
 
-  Planned for 0.1.151 (record 106).
+  Planned for 0.1.153 (record 106).
 
   *Reproduced against 0.1.148 (the release build) by record 106's probe
   `g/g5_first`: the decline still says "its arm `other` handles `Loaded`
@@ -12810,7 +12810,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `h1_lcvariant`.*
 
-  Planned for 0.1.151 (record 106).
+  Planned for 0.1.153 (record 106).
 
   *Reproduced against 0.1.147 (the release build) by record 106's probe
   `g/h1_lcvariant`: `glyph fix` applies the E0220 rename and still declines
@@ -13009,6 +13009,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.145 (the release build) by record 111's probe
   `q/deep`.*
 
+  Planned for 0.1.150 (record 111).
+
 - **G370. Two statements on one line with nothing between them parse silently,
   and a value can be dropped.** `let x = h() g` binds `h()` and leaves `g` a
   dead statement, `let s = "a" "b"` binds `"a"` and drops `"b"`, and `let a =
@@ -13069,7 +13071,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.147 by record 113's probe t5.*
 
-  Planned for 0.1.150 (record 113).
+  Planned for 0.1.151 (record 113).
 
 - **G374. A generic record whose `Record` field is keyed by a type parameter
   cannot be checked.** With `type Idx<K: string> = { m: Record<K, int>, }`,
@@ -13109,3 +13111,5 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.148 (the release build) by record 115's probes `k2`
   and `k2t` (`/private/tmp/claude-501/linus115/`).*
+
+  Planned for 0.1.152 (record 115).

@@ -53,6 +53,8 @@ column at the narrowest width it is shown side by side gets the class
 scroll. See stack_wide_pairs(). A bare <pre> that holds tool output (a
 diagnostic, an error, a run's output, or a block captioned with a `$` prompt)
 gets the class `wraps`, so a phone wraps it; see mark_wrapping_blocks().
+{{icon:NAME}} is the line icon NAME from site/site.json `icons`, the set the
+menu draws from.
 
 The release notes are the one source page that renders as several.
 site/pages/versions/index.html carries {{versions:...}} placeholders, and
@@ -536,6 +538,7 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
     where = str(path.relative_to(ROOT))
     t = ctx.s
     body = body.replace("{{version}}", version)
+    body = re.sub(r"\{\{icon:([a-z-]+)\}\}", lambda m: icon(site, m.group(1), where), body)
     if fm.get("next_steps"):
         body += next_steps(site, fm["next_steps"], where)
     body = section_anchors(body, t)

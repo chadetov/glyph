@@ -57,7 +57,8 @@
     "footer.gh_releases": "Releases auf GitHub",
     "footer.edit": "Diese Seite bearbeiten",
     "footer.tagline": "Glyph: TypeScript, das deine Agenten nicht unbemerkt kaputtmachen können.",
-    "footer.license": "MIT oder Apache-2.0"
+    "footer.license": "MIT oder Apache-2.0",
+    "footer.pillars": "Die vier Säulen"
   },
   "nav": {
     "Why Glyph": "Warum Glyph",
@@ -102,6 +103,13 @@
     "cases that nothing in a fully configured TypeScript setup catches": "Fälle, die in einem maximal konfigurierten TypeScript-Setup nichts findet",
     "See what it catches": "Sehen, was es findet",
     "Versions": "Versionen",
-    "Playground": "Playground"
+    "Playground": "Playground",
+    "Connect your agent": "Agent anbinden",
+    "MCP server": "MCP-Server",
+    "Wire your agent into the compiler's queries": "Verbinde deinen Agenten mit den Abfragen des Compilers",
+    "Ask the compiler": "Den Compiler fragen",
+    "Look up a symbol, a type or a change before editing": "Symbol, Typ oder Änderung vor dem Bearbeiten nachschlagen",
+    "The four pillars": "Die vier Säulen",
+    "Verifiability, greppability, abstraction, diff stability": "Überprüfbarkeit, Durchsuchbarkeit, Abstraktion, stabile Diffs"
   }
 }

@@ -57,7 +57,8 @@
     "footer.gh_releases": "Releases บน GitHub",
     "footer.edit": "แก้ไขหน้านี้",
     "footer.tagline": "Glyph: TypeScript ที่เอเจนต์ของคุณทำพังแบบเงียบๆ ไม่ได้",
-    "footer.license": "MIT หรือ Apache-2.0"
+    "footer.license": "MIT หรือ Apache-2.0",
+    "footer.pillars": "สี่เสาหลัก"
   },
   "nav": {
     "Why Glyph": "ทำไมต้อง Glyph",
@@ -102,6 +103,13 @@
     "cases that nothing in a fully configured TypeScript setup catches": "กรณีที่ไม่มีอะไรในโปรเจกต์ TypeScript ที่ตั้งค่าเต็มที่จับได้",
     "See what it catches": "ดูว่าจับอะไรได้บ้าง",
     "Versions": "เวอร์ชัน",
-    "Playground": "Playground"
+    "Playground": "Playground",
+    "Connect your agent": "เชื่อมต่อเอเจนต์",
+    "MCP server": "เซิร์ฟเวอร์ MCP",
+    "Wire your agent into the compiler's queries": "เชื่อมเอเจนต์ของคุณเข้ากับคิวรีของคอมไพเลอร์",
+    "Ask the compiler": "ถามคอมไพเลอร์",
+    "Look up a symbol, a type or a change before editing": "ค้นสัญลักษณ์ ชนิด หรือผลของการเปลี่ยนแปลงก่อนแก้ไข",
+    "The four pillars": "สี่เสาหลัก",
+    "Verifiability, greppability, abstraction, diff stability": "ตรวจสอบได้ ค้นหาได้ด้วย grep นามธรรม และ diff ที่คงที่"
   }
 }

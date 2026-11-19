@@ -57,7 +57,8 @@
     "footer.gh_releases": "GitHub 上的 Releases",
     "footer.edit": "编辑本页",
     "footer.tagline": "Glyph：你的智能体没法悄悄改坏的 TypeScript。",
-    "footer.license": "MIT 或 Apache-2.0"
+    "footer.license": "MIT 或 Apache-2.0",
+    "footer.pillars": "四大支柱"
   },
   "nav": {
     "Why Glyph": "为什么选 Glyph",
@@ -102,6 +103,13 @@
     "cases that nothing in a fully configured TypeScript setup catches": "案例，即使 TypeScript 项目配置拉满，也没有任何工具能发现",
     "See what it catches": "看看它能发现什么",
     "Versions": "版本",
-    "Playground": "Playground"
+    "Playground": "Playground",
+    "Connect your agent": "连接你的智能体",
+    "MCP server": "MCP 服务器",
+    "Wire your agent into the compiler's queries": "把智能体接入编译器的查询",
+    "Ask the compiler": "询问编译器",
+    "Look up a symbol, a type or a change before editing": "编辑前先查询符号、类型或改动的影响",
+    "The four pillars": "四大支柱",
+    "Verifiability, greppability, abstraction, diff stability": "可验证性、可检索性、抽象、稳定的 diff"
   }
 }

@@ -57,7 +57,8 @@
     "footer.gh_releases": "GitHub 릴리스",
     "footer.edit": "이 페이지 편집",
     "footer.tagline": "Glyph: 에이전트가 몰래 깨뜨릴 수 없는 TypeScript.",
-    "footer.license": "MIT 또는 Apache-2.0"
+    "footer.license": "MIT 또는 Apache-2.0",
+    "footer.pillars": "네 가지 기둥"
   },
   "nav": {
     "Why Glyph": "왜 Glyph인가",
@@ -102,6 +103,13 @@
     "cases that nothing in a fully configured TypeScript setup catches": "최대한 엄격하게 설정한 TypeScript 환경의 어떤 도구도 잡지 못하는 사례",
     "See what it catches": "무엇을 잡아내는지 보기",
     "Versions": "버전",
-    "Playground": "플레이그라운드"
+    "Playground": "플레이그라운드",
+    "Connect your agent": "에이전트 연결",
+    "MCP server": "MCP 서버",
+    "Wire your agent into the compiler's queries": "에이전트를 컴파일러 쿼리에 연결합니다",
+    "Ask the compiler": "컴파일러에게 묻기",
+    "Look up a symbol, a type or a change before editing": "편집하기 전에 심볼, 타입, 변경의 영향을 조회합니다",
+    "The four pillars": "네 가지 기둥",
+    "Verifiability, greppability, abstraction, diff stability": "검증 가능성, 검색 용이성, 추상화, 안정적인 diff"
   }
 }

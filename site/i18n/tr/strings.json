@@ -57,7 +57,8 @@
     "footer.gh_releases": "GitHub'daki release'ler",
     "footer.edit": "Bu sayfayı düzenle",
     "footer.tagline": "Glyph: ajanlarınızın siz fark etmeden bozamayacağı TypeScript.",
-    "footer.license": "MIT veya Apache-2.0"
+    "footer.license": "MIT veya Apache-2.0",
+    "footer.pillars": "Dört temel ilke"
   },
   "nav": {
     "Why Glyph": "Neden Glyph",
@@ -102,6 +103,13 @@
     "cases that nothing in a fully configured TypeScript setup catches": "tamamen yapılandırılmış bir TypeScript kurulumunda hiçbir şeyin yakalamadığı vaka",
     "See what it catches": "Neleri yakaladığını gör",
     "Versions": "Sürümler",
-    "Playground": "Playground"
+    "Playground": "Playground",
+    "Connect your agent": "Ajanınızı bağlayın",
+    "MCP server": "MCP sunucusu",
+    "Wire your agent into the compiler's queries": "Ajanınızı derleyicinin sorgularına bağlayın",
+    "Ask the compiler": "Derleyiciye sorun",
+    "Look up a symbol, a type or a change before editing": "Düzenlemeden önce bir sembolü, tipi ya da değişikliği sorgulayın",
+    "The four pillars": "Dört temel ilke",
+    "Verifiability, greppability, abstraction, diff stability": "Doğrulanabilirlik, aranabilirlik, soyutlama, kararlı diff"
   }
 }

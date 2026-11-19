@@ -1,0 +1,112 @@
+---
+title: ไว้ใจมันกับเรื่องเงินและ input ที่ไม่น่าไว้ใจได้ไหม? · Glyph
+description: เงินมีความแม่นยำ (ทศนิยม และจำนวนเต็มที่เกิน 2^53) invariant เป็น type ที่ขอบเขตบังคับใช้ และ input ที่ไม่น่าไว้ใจไปถึง sink ของ SQL หรือ shell โดยไม่ผ่านการ sanitize ไม่ได้
+source_hash: 890e758a8ba38ece
+prev: /answers/language/ | &larr; ก่อนหน้า | นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่?
+next: /answers/web-serving/ | ถัดไป &rarr; | ให้บริการหน้าเว็บได้ไหม หรือได้แค่ JSON API?
+---
+      <p class="q-eyebrow">16 &middot; เงินและความปลอดภัย</p>
+      <h1 class="q-title">ไว้ใจมันกับเรื่องเงิน และกับ input ที่ควบคุมไม่ได้ได้ไหม?</h1>
+
+      <p class="short-answer">
+        ได้ เงิน<strong>แม่นยำ</strong> invariant อย่างไม่ติดลบเป็น<strong>type ที่ขอบเขตบังคับใช้</strong> และ input ที่ไม่น่าไว้ใจ<strong>ไปถึง sink ของ SQL หรือ shell ไม่ได้</strong>ถ้าไม่ผ่านการ sanitize แต่ละข้อเป็น error ตอนคอมไพล์หรือตอน parse ถ้าคุณทำผิด ไม่ใช่ธรรมเนียมที่ใครสักคนต้องจำไว้ห่างออกไปสามฟังก์ชัน
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">เงินไม่ใช่ float</h2>
+        <p>
+          ระบบการเงินที่ใช้ <code>number</code> แบบ IEEE-754 คือบั๊กที่รอการรายงาน: <code>0.1 + 0.2</code> ไม่ใช่ <code>0.3</code> และค่าที่เกิน 2<sup>53</sup> เสียความแม่นยำไปเงียบๆ <code>std/decimal</code> เป็น fixed-point ฐานสิบที่แม่นยำบน BigInt การบวก ลบ และคูณแม่นยำ การหารต้องระบุ scale และปัดครึ่งออกจากศูนย์ จำนวนเงินที่ผิดรูป parse ได้เป็น <code>Err</code> ไม่มีวันเป็น <code>NaN</code> แบบเงียบๆ
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from zero</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">บั๊กที่มันกำจัด</span>
+<pre>// JS number, the default everywhere:
+0.1 + 0.2            // 0.30000000000000004
+1_000_000_000_000.10 * 1.07   // rounding drift
+9007199254740993     // === 9007199254740992
+
+// None of these are your money anymore.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">id และตัวนับยังแม่นยำเมื่อเกิน 2<sup>53</sup></h2>
+        <p>
+          id บัญชีหรือตัวนับในบัญชีแยกประเภทที่ล้นช่วงของ float แล้วถูกปัด เป็นหายนะอีกแบบหนึ่ง <code>bigint</code> คือจำนวนเต็มความแม่นยำไม่จำกัดที่แม่นยำ มี literal แบบ <code>123n</code> และ field ของ record ที่มี type เป็น <code>bigint</code> จะ validate <code>typeof === "bigint"</code> ที่ขอบเขต id ที่มาเป็น <code>number</code> ใน JSON จึงถูกปฏิเสธแทนที่จะถูกตัดทอนไปเงียบๆ
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">invariant เป็น type ไม่ใช่ comment</h2>
+        <p>
+          "จำนวนเงินไม่ติดลบ" และ "คะแนนอยู่ระหว่าง 1 ถึง 5" คือการตรวจที่เขียนครั้งเดียวแล้วถูกลืมทีหลัง refinement แบบ <code>where</code> ใส่ invariant ไว้ใน type และ descriptor บังคับใช้มันที่ขอบเขต ค่าที่ไม่ผ่าน predicate จะไม่มีวันกลายเป็น <code>Amount</code> ตั้งแต่แรก
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">refinements.glyph</span>
+<pre>type Amount = int where value &gt;= 0
+type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+
+Amount.parse(-1)   <span class="cm"># Err  (not just "is a number")</span>
+Rating.parse(6)    <span class="cm"># Err</span>
+Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">injection เป็น compile error</h2>
+        <p>
+          เส้นทางคลาสสิกสู่การรันโค้ดจากระยะไกลคือ input ที่ไม่น่าไว้ใจไปถึง SQL query, คำสั่ง shell หรือ template HTML <code>std/taint</code> ทำให้สิ่งนั้นเป็น type error ค่าจากภายนอกเป็น <code>Tainted</code> sink ที่คุณต้องการป้องกันรับ <code>Trusted</code> ทั้งสองต่างกันในเชิงโครงสร้าง ทางเดียวที่จะไปจากตัวหนึ่งสู่อีกตัวคือ <code>sanitize</code> ที่เขียนชัดแจ้ง ส่งค่าที่ tainted ให้ sink ตรงๆ แล้ว <code>tsc</code> จะไม่ยอมคอมไพล์
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">เส้นทางที่ปลอดภัยคอมไพล์ผ่าน</span>
+<pre>fn run_query(sql: Trusted&lt;string&gt;) -&gt; void { ... }
+
+let input: Tainted&lt;string&gt; = taint(req.body)
+run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">เส้นทางที่มี injection คอมไพล์ไม่ผ่าน</span>
+<pre data-check="expect-error TS2345">module query
+
+import std/taint { Tainted, Trusted, taint, expose }
+
+fn run_query(sql: Trusted&lt;string&gt;) -&gt; string {
+  return expose(sql)
+}
+
+pub fn handle(body: string) -&gt; string {
+  let input: Tainted&lt;string&gt; = taint(body)
+  return run_query(input)
+}
+
+// [TS2345] Argument of type 'Tainted&lt;string&gt;'
+//   is not assignable to parameter of type
+//   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
+        </div>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p><code>std/decimal</code> สำหรับเงินที่แม่นยำ, <code>bigint</code> สำหรับจำนวนเต็มขนาดใหญ่ที่แม่นยำ, refinement แบบ <code>where</code> เพื่อให้ invariant ถูก validate ที่ขอบเขต และ <code>std/taint</code> เพื่อให้ input ที่ไม่น่าไว้ใจไปถึง sink ที่ป้องกันไว้ไม่ได้ถ้าไม่มี <code>sanitize</code> ที่ชัดแจ้ง แต่ละข้อถูกตรวจ: จำนวนเงินหรือ id ที่ผิด fail ที่ <code>parse</code>, invariant ที่ผิด fail ที่ <code>parse</code> และค่าที่ไม่ผ่านการ sanitize fail ที่ <code>tsc</code></p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">หยุดตรงไหน</h3>
+          <p>ตอนนี้ refinement แบบ <code>where</code> ครอบคลุม type พื้นฐานที่เป็น primitive ส่วน invariant ของ record และข้าม field (<code>where value.paid &lt;= value.total</code>) เป็นส่วนขยายที่วางแผนไว้ taint เป็นวินัยที่คุณเลือกใช้โดยให้ type ของ sink เป็น <code>Trusted</code> ไม่ใช่การวิเคราะห์ flow อัตโนมัติ: คอมไพเลอร์บังคับใช้ขอบเขตที่คุณประกาศ มันไม่ได้อนุมาน taint ทั่วทั้งโปรแกรมให้คุณ</p>
+        </div>
+      </div>

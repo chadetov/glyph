@@ -1,0 +1,107 @@
+---
+title: สำหรับทีม · Glyph รับประกันอะไรและต้องแลกกับอะไร · Glyph
+description: สำหรับหัวหน้าทีมที่กำลังพิจารณา Glyph: คอมไพเลอร์รับประกันอะไรและหยุดตรงไหน การนำมาใช้ในแอป TypeScript ทางออกถ้าจะเลิกใช้ การ pin เวอร์ชัน และสถานะก่อน 1.0
+source_hash: d4a38356fad5c816
+next_steps: |
+  ไปต่อที่ไหน
+  แนะนำ | /catches/ | catches | ดูว่า TypeScript ปล่อยอะไรผ่าน | กรณีที่โปรเจกต์ TypeScript แบบ strict ยอมรับ เรียงอันดับแล้ว แต่ละกรณีรันทั้งใน <code>tsc --strict</code> และใน Glyph | ดูสิ่งที่จับได้
+  /start/ | start | เขียนโปรแกรมแรก | ติดตั้ง สร้างโปรเจกต์ รัน ตั้งใจทำให้พัง แล้วอ่าน error ใช้เวลาประมาณสิบนาที
+  /playground/ | playground | ลองในเบราว์เซอร์ | คอมไพเลอร์รันในหน้าเว็บ ไม่ต้องติดตั้งอะไร
+---
+      <p class="q-eyebrow">สำหรับทีม</p>
+      <h1 class="q-title">รับประกันอะไร การนำมาใช้ต้องแลกกับอะไร และจะออกอย่างไร</h1>
+
+      <p class="short-answer">
+        Glyph ปฏิเสธรายการกรณีที่เจาะจงและตรวจแล้ว ซึ่งโปรเจกต์ TypeScript แบบ strict ยอมรับ และคอมไพล์เป็น TypeScript ที่คุณเก็บไว้ใช้ต่อได้ถ้าเลิกใช้ ตอนนี้ยังเป็นพรีวิวช่วงแรก: ยังไม่ถึง 1.0 ดูแลหลักๆ โดยคนคนเดียว และออกรุ่นใหม่หลายครั้งต่อสัปดาห์
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">รับประกันอะไร</h2>
+        <p>
+          ทุกข้อกล่าวอ้างว่า Glyph จับอะไรได้ คือกรณีหนึ่งในไดเรกทอรี <code>catches/</code> ของ repository: โปรแกรมเดียวกันใน TypeScript และใน Glyph ซึ่ง CI gate รันทั้งคู่ {{catches:breakdown}} ในบรรดาข้อผิดพลาดที่ไม่ถูกปฏิเสธ {{catches:warned-all}} ข้อได้คำเตือน {{catches:boundary-all}} ข้อเป็นข้อมูลผิดที่ถูกหยุดโดยการตรวจที่ขอบเขตตอนรัน และ {{catches:runtime-all}} ข้อหยุดตอนรัน ข้อที่คนรีวิวโค้ดจากเอเจนต์พึ่งพามากที่สุด:
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>โค้ด</th><th>สิ่งที่ถูกปฏิเสธ</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Code"><code>E0200</code></td><td data-label="What is refused"><code>match</code> ที่ขาด case ของ union ไป การเพิ่ม case จึงแสดงรายการทุกจุดที่ต้องแก้</td></tr>
+            <tr><td data-label="Code"><code>E0013</code></td><td data-label="What is refused">cast (<code>as</code>, <code>as unknown as</code>) ไม่มี cast และไม่มี <code>any</code></td></tr>
+            <tr><td data-label="Code"><code>E0204</code></td><td data-label="What is refused">JSON ที่ parse แล้วถูก assign ให้ชื่อที่มี type โดยไม่ได้ตรวจ</td></tr>
+            <tr><td data-label="Code"><code>E0224</code></td><td data-label="What is refused">การอ่านจาก map ที่มี type ราวกับว่า key มีอยู่เสมอ</td></tr>
+            <tr><td data-label="Code"><code>E0217</code></td><td data-label="What is refused"><code>Result</code> ที่ถูกทิ้งไปเฉยๆ (เป็นคำเตือน <code>let _ =</code> บอกว่าตั้งใจ)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="/catches/">หน้าสิ่งที่จับได้</a> แสดงทุกกรณีพร้อม TypeScript, Glyph และ error และบอกว่ากรณีไหนที่ typescript-eslint ที่ตั้งค่าเต็มที่ก็จับได้เช่นกัน
+        </p>
+
+        <h2 class="block-label">หยุดตรงไหน</h2>
+        <p>
+          การรับประกันครอบคลุมโค้ดที่เขียนด้วย Glyph exception ที่ throw จากภายใน dependency ของ npm ยังข้าม <code>Result</code> ไปได้ และ type ที่ import จาก <code>.d.ts</code> ของแพ็กเกจไม่มีการตรวจตอนรัน ภายใน Glyph ช่องโหว่ที่ยังเปิดอยู่ {{catches:gap-cases}} ข้อแสดงพร้อมหมายเลข gap ใน<a href="/catches/#not-yet">สิ่งที่ยังจับไม่ได้</a> และบัญชีฉบับเต็มอยู่ที่ <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> สำหรับการเปรียบเทียบกับ TypeScript แบบ strict บวก zod, eslint และ ts-pattern รวมถึงจุดที่ชุดนั้นยังทำได้ดีกว่า ดู<a href="/answers/vs-tooled-ts/">ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ</a>
+        </p>
+
+        <h2 class="block-label">นำมาใช้ในแอปที่มีอยู่</h2>
+        <p>
+          ไม่ต้องเขียนใหม่ คุณเขียนส่วนที่พลาดไม่ได้ (model, สิทธิ์, การเปลี่ยนสถานะ, เงิน) ด้วย Glyph ส่วนที่เหลือของแอปยังเป็น TypeScript และ import module ที่ emit ออกมาเหมือนไฟล์ในเครื่องทั่วไป ตัวอย่างทีละขั้นใช้ Vite scaffold แบบมาตรฐาน: <a href="/answers/embedding/">นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม?</a>
+        </p>
+
+        <h2 class="block-label">ทางออกถ้าจะเลิกใช้</h2>
+        <p>
+          <code>glyph build</code> เขียน TypeScript ธรรมดา หนึ่งไฟล์ต่อหนึ่ง module ที่ผ่าน <code>tsc --strict</code> ถ้าคุณเลิกใช้ Glyph ก็ commit output นั้นแล้วใช้ <code>tsc</code> ต่อไป license เป็น MIT หรือ Apache-2.0 จึง fork ได้เสมอ <a href="/from-typescript/">สำหรับคนที่มาจาก TypeScript</a> แสดง module คู่กับไฟล์ที่ emit ออกมา
+        </p>
+
+        <h2 class="block-label">การ pin และการอัปเกรด</h2>
+        <p>
+          <code>glyph init</code> pin คอมไพเลอร์เป็นเวอร์ชันที่แน่นอนใน <code>package.json</code> โดยไม่มี <code>^</code> จึงไม่มีรุ่นไหนหลุดเข้ามาใน build ของคุณโดยบังเอิญ ส่วนที่เหลือใช้สามคำสั่ง:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">อัปเกรดอย่างตั้งใจ</span>
+<pre>glyph doctor     <span class="cm"># your version against the latest release; never fails CI for that</span>
+glyph upgrade    <span class="cm"># moves the project's pin, runs npm install, links the notes</span>
+glyph --update   <span class="cm"># moves the installed compiler itself</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          รายละเอียดใน <a href="/answers/upgrades/">รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?</a>
+        </p>
+
+        <h2 class="block-label">ความถี่ในการออกรุ่น และเครื่องหมาย Breaking</h2>
+        <p>
+          <a href="/versions/">หน้าเวอร์ชัน</a> มีรายการของทุกรุ่นตั้งแต่ 0.1.0 ถึง {{releases:latest}} รวม {{releases:count}} รุ่น และ 22 รุ่นในนั้นออกในเดือนพฤศจิกายน 2026 จนถึงวันที่ 19 รุ่นจะถูกทำเครื่องหมาย Breaking เมื่อมันปฏิเสธโปรแกรมที่รุ่นก่อนยอมรับ ซึ่งเป็นวิธีที่การแก้ความถูกต้องส่วนใหญ่ลงมา มี {{releases:breaking}} รายการที่มีเครื่องหมายนี้ เครื่องหมายได้มาจากการรันโปรแกรมที่เล็กที่สุดที่ได้รับผลกระทบด้วยทั้งสองรุ่น ไม่ใช่จากการอ่าน diff และรุ่นก่อน 0.1.99 ไม่ได้ทดสอบด้วยวิธีนี้ รุ่นเก่าที่ไม่มีเครื่องหมายจึงหมายถึงยังไม่ได้ทดสอบ ไม่ใช่ปลอดภัย
+        </p>
+        <p>
+          รุ่น Breaking มีต้นทุนจริงแค่ไหน: บันทึกของรุ่นล่าสุดแต่ละรุ่นบอกว่าเกิดอะไรขึ้นเมื่อรันรุ่นเก่าและรุ่นใหม่กับแอปตัวอย่างใน repository นี่คือรุ่น Breaking ล่าสุด ยกมาจากบันทึกของแต่ละรุ่น:
+        </p>
+{{releases:breaking-cost}}
+        <p>
+          แอปตัวอย่างเป็นโค้ดของโปรเจกต์เอง ซึ่งถูกดูแลให้คอมไพล์ผ่านทุกรุ่น รูปแบบที่เพิ่งถูกปฏิเสธจึงมีโอกาสโผล่ในนั้นน้อยกว่าในโค้ดของคุณ บันทึกแต่ละรุ่นระบุรูปแบบที่ปฏิเสธไว้ ควรอ่านก่อนอัปเกรด
+        </p>
+
+        <h2 class="block-label">สถานะ</h2>
+        <p>
+          Glyph ยังไม่ถึง 1.0 ก่อน 1.0 syntax, standard library และรูปร่างของ TypeScript ที่ emit ออกมาอาจเปลี่ยน และรุ่นใหม่อาจปฏิเสธโค้ดที่เคยคอมไพล์ผ่าน <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a> บอกว่าอะไรอาจเปลี่ยนและอะไรถูกรักษาให้คงที่ <a href="https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md">MAINTAINERS.md</a> บอกตรงๆ ว่าตอนนี้โปรเจกต์ดูแลหลักๆ โดยคนคนเดียว
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ข้อโต้แย้งและคำตอบ</h2>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/human-value/"><span class="q">เราไม่ค่อยใช้ AI ยังคุ้มอยู่ไหม?</span><p>การตรวจเหมือนกันไม่ว่าใครจะเขียนโค้ด: เจอเรื่องไม่คาดคิดตอนรันน้อยลง diff เล็กลง และโค้ดที่ grep หาได้</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">เราใช้ TypeScript แบบ strict กับ lint อยู่แล้ว</span><p>การตรวจพวกนั้นทุกข้อต้องเลือกเปิดเอง และปิดได้ในบรรทัดเดียว ของ Glyph ปิดไม่ได้</p></a>
+        <a class="a-card" href="/answers/ai-authoring/"><span class="q">เอเจนต์ของเราจะเขียนภาษาที่แทบไม่เคยเห็นได้หรือ?</span><p>สิ่งที่โมเดลรู้เกี่ยวกับ TypeScript ส่วนใหญ่ใช้ต่อได้ และคอมไพเลอร์บอกชื่อส่วนที่เหลือให้</p></a>
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">ทำไมต้องคอมไพล์เป็น TypeScript?</span><p>เพราะ npm, React และ Node อยู่ตรงนั้น และนั่นคือเหตุผลที่นำมาใช้ทีละไฟล์ได้</p></a>
+        <a class="a-card" href="/answers/debugging/"><span class="q">คนที่ on-call เห็นอะไรเมื่อมันพัง?</span><p>TypeScript ที่อ่านได้ source map ที่ชี้กลับไปยังไฟล์ <code>.glyph</code> และรหัส error ที่คงที่</p></a>
+        <a class="a-card" href="/evidence/"><span class="q">เรารู้ได้อย่างไรว่าทั้งหมดนี้เป็นจริง?</span><p>แต่ละข้อกล่าวอ้างบนเว็บนี้ถูกตรวจอย่างไร และจะทำซ้ำเองได้อย่างไร</p></a>
+      </div>

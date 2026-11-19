@@ -1,0 +1,260 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "evidence/index.html",
+  "locale": "th",
+  "source_hash": "22fcc8a3d8e611cf",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Evidence · how each claim on this site is checked · Glyph",
+      "tr": "หลักฐาน · แต่ละข้อกล่าวอ้างบนเว็บนี้ถูกตรวจอย่างไร · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How each claim on this site is checked: the catches fixtures and the CI gate behind them, the TypeScript setup they are compared with, and how to reproduce one.",
+      "tr": "แต่ละข้อกล่าวอ้างบนเว็บนี้ถูกตรวจอย่างไร: fixture ของ catches และ CI gate ที่อยู่เบื้องหลัง การตั้งค่า TypeScript ที่ใช้เปรียบเทียบ และวิธีทำซ้ำเอง"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "The rest of the record",
+      "tr": "ส่วนที่เหลือของบันทึก"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "แนะนำ"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "Catches",
+      "tr": "สิ่งที่จับได้"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Every case: the TypeScript, the Glyph, the error, and whether tooled TypeScript would catch it.",
+      "tr": "ทุกกรณี: TypeScript, Glyph, error และ TypeScript ที่ใส่เครื่องมือครบจะจับได้หรือไม่"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See every case",
+      "tr": "ดูทุกกรณี"
+    },
+    {
+      "id": "ns./hardening/.title",
+      "kind": "ns.title",
+      "en": "Hardening",
+      "tr": "การทดสอบความแข็งแรง"
+    },
+    {
+      "id": "ns./hardening/.desc",
+      "kind": "ns.desc",
+      "en": "How agents playing skeptical engineers attack the compiler, and the bugs that found.",
+      "tr": "เอเจนต์ที่สวมบทวิศวกรขี้สงสัยโจมตีคอมไพเลอร์อย่างไร และบั๊กที่พวกมันเจอ"
+    },
+    {
+      "id": "ns./benchmarks/.title",
+      "kind": "ns.title",
+      "en": "Benchmarks",
+      "tr": "Benchmark"
+    },
+    {
+      "id": "ns./benchmarks/.desc",
+      "kind": "ns.desc",
+      "en": "What is measured (token density, grep, diffs) and the reliability study that isn't done yet.",
+      "tr": "อะไรที่วัดแล้ว (ความหนาแน่นของ token, grep, diff) และงานศึกษาเรื่องความน่าเชื่อถือที่ยังไม่เสร็จ"
+    },
+    {
+      "id": "ns./versions/.title",
+      "kind": "ns.title",
+      "en": "Versions",
+      "tr": "เวอร์ชัน"
+    },
+    {
+      "id": "ns./versions/.desc",
+      "kind": "ns.desc",
+      "en": "Every release, what it changed, and which ones are Breaking.",
+      "tr": "ทุกรุ่น เปลี่ยนอะไรบ้าง และรุ่นไหนเป็น Breaking"
+    },
+    {
+      "id": "h-03867aea",
+      "kind": "html",
+      "en": "Evidence",
+      "tr": "หลักฐาน"
+    },
+    {
+      "id": "h-dc5eb7de",
+      "kind": "html",
+      "en": "How each claim on this site is checked",
+      "tr": "แต่ละข้อกล่าวอ้างบนเว็บนี้ถูกตรวจอย่างไร"
+    },
+    {
+      "id": "h-e3358e09",
+      "kind": "html",
+      "en": "A claim that Glyph catches something is a pair of programs in the repository, one in TypeScript and one in Glyph, and a CI gate runs both on every change. If the TypeScript stops compiling or the Glyph stops being refused, the build fails. You can run any case yourself in two commands.",
+      "tr": "ข้อกล่าวอ้างว่า Glyph จับอะไรได้ คือโปรแกรมคู่หนึ่งใน repository ตัวหนึ่งเป็น TypeScript อีกตัวเป็น Glyph และมี CI gate รันทั้งคู่ทุกครั้งที่มีการเปลี่ยนแปลง ถ้า TypeScript คอมไพล์ไม่ผ่าน หรือ Glyph ไม่ปฏิเสธอีกต่อไป build จะ fail คุณรันกรณีไหนก็ได้เองด้วยสองคำสั่ง"
+    },
+    {
+      "id": "h-1fc65ae1",
+      "kind": "html",
+      "en": "The fixtures",
+      "tr": "fixture"
+    },
+    {
+      "id": "h-d916d7bf",
+      "kind": "html",
+      "en": "Each directory under <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> holds <code>ts.ts</code>, <code>glyph.glyph</code> and a <code>case.toml</code> saying what each one does. <code>scripts/check_catches.py</code> runs in CI. It requires every <code>ts.ts</code> to pass <code>tsc --strict</code>, since a TypeScript program that doesn't compile proves nothing, and checks the Glyph half according to the case's kind. {{catches:breakdown}} By the kind the gate checks:",
+      "tr": "แต่ละไดเรกทอรีใต้ <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> มี <code>ts.ts</code>, <code>glyph.glyph</code> และ <code>case.toml</code> ที่บอกว่าแต่ละตัวทำอะไร <code>scripts/check_catches.py</code> รันใน CI มันกำหนดให้ <code>ts.ts</code> ทุกตัวต้องผ่าน <code>tsc --strict</code> เพราะโปรแกรม TypeScript ที่คอมไพล์ไม่ผ่านไม่ได้พิสูจน์อะไร และตรวจฝั่ง Glyph ตามชนิดของกรณี {{catches:breakdown}} แยกตามชนิดที่ gate ตรวจ:"
+    },
+    {
+      "id": "h-f5387f9b",
+      "kind": "html",
+      "en": "Kind",
+      "tr": "ชนิด"
+    },
+    {
+      "id": "h-2249bd50",
+      "kind": "html",
+      "en": "Cases",
+      "tr": "กรณี"
+    },
+    {
+      "id": "h-cdb22e2c",
+      "kind": "html",
+      "en": "What the gate requires of the Glyph",
+      "tr": "สิ่งที่ gate กำหนดให้ฝั่ง Glyph"
+    },
+    {
+      "id": "h-eb9256d3",
+      "kind": "html",
+      "en": "The build fails with the code in <code>case.toml</code>",
+      "tr": "build fail ด้วยรหัสที่อยู่ใน <code>case.toml</code>"
+    },
+    {
+      "id": "h-ca67701b",
+      "kind": "html",
+      "en": "The build passes and reports that code as a warning",
+      "tr": "build ผ่าน และรายงานรหัสนั้นเป็นคำเตือน"
+    },
+    {
+      "id": "h-1ee000e2",
+      "kind": "html",
+      "en": "The program runs, and the check at the boundary turns the bad data into an <code>Err</code>",
+      "tr": "โปรแกรมรัน และการตรวจที่ขอบเขตเปลี่ยนข้อมูลที่ผิดให้เป็น <code>Err</code>"
+    },
+    {
+      "id": "h-16733f99",
+      "kind": "html",
+      "en": "The program builds, then stops when it runs, with the stated output",
+      "tr": "โปรแกรม build ผ่าน แล้วหยุดตอนรัน พร้อม output ที่ระบุไว้"
+    },
+    {
+      "id": "h-822949d7",
+      "kind": "html",
+      "en": "Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case",
+      "tr": "Glyph ยอมรับโปรแกรมและมันทำสิ่งที่ผิด เมื่อช่องโหว่ถูกปิด gate จะ fail และบอกให้ย้ายกรณีนั้น"
+    },
+    {
+      "id": "h-92bc404d",
+      "kind": "html",
+      "en": "A case that stops being demonstrable is deleted rather than softened, and the <a href=\"https://github.com/chadetov/glyph/blob/main/catches/README.md\">catches README</a> lists the six that were deleted and why. One of them turned out to be caught by <code>tsc</code> too; another only worked because its TypeScript took a value as <code>any</code>.",
+      "tr": "กรณีที่แสดงให้เห็นไม่ได้อีกต่อไปจะถูกลบทิ้ง ไม่ใช่ถูกทำให้อ่อนลง และ <a href=\"https://github.com/chadetov/glyph/blob/main/catches/README.md\">README ของ catches</a> แสดงหกกรณีที่ถูกลบพร้อมเหตุผล หนึ่งในนั้นกลายเป็นว่า <code>tsc</code> ก็จับได้ อีกกรณีใช้ได้แค่เพราะ TypeScript ของมันรับค่ามาเป็น <code>any</code>"
+    },
+    {
+      "id": "h-db083445",
+      "kind": "html",
+      "en": "The TypeScript it is compared against",
+      "tr": "TypeScript ที่ใช้เปรียบเทียบ"
+    },
+    {
+      "id": "h-4d9ff34c",
+      "kind": "html",
+      "en": "Each case also says whether a fully configured TypeScript project would have caught the mistake, which is where the \"would TypeScript catch it\" tag comes from. \"Fully configured\" is <code>tsc --strict</code> plus every option that makes it stricter, and a typescript-eslint run. The gate installs the packages fresh on each run (TypeScript 6, eslint 9, typescript-eslint 8, tsx 4 and the latest <code>@types/node</code>) and fails, rather than skips, without the network.",
+      "tr": "แต่ละกรณีบอกด้วยว่าโปรเจกต์ TypeScript ที่ตั้งค่าเต็มที่จะจับความผิดพลาดนั้นได้หรือไม่ ซึ่งเป็นที่มาของป้าย \"TypeScript จะจับได้ไหม\" \"ตั้งค่าเต็มที่\" หมายถึง <code>tsc --strict</code> บวกทุก option ที่ทำให้เข้มขึ้น และการรัน typescript-eslint gate ติดตั้งแพ็กเกจใหม่ทุกครั้งที่รัน (TypeScript 6, eslint 9, typescript-eslint 8, tsx 4 และ <code>@types/node</code> ล่าสุด) และจะ fail แทนที่จะข้ามเมื่อไม่มี network"
+    },
+    {
+      "id": "h-f909a15d",
+      "kind": "html",
+      "en": "tsconfig options on top of strict",
+      "tr": "option ของ tsconfig ที่เพิ่มจาก strict"
+    },
+    {
+      "id": "h-e79273f1",
+      "kind": "html",
+      "en": "A case's tag is <code>none</code>, <code>flag:</code> plus the one option that reports it, or <code>lint:</code> plus the rule. When the corrected program also trips a rule for an unrelated reason, the case carries <code>ts_ok.ts</code> and the tag only counts what fires on the mistake. For example, <code>non-exhaustive-match</code> is <code>lint:switch-exhaustiveness-check</code>: typescript-eslint catches it if you turn that rule on, and the page says so.",
+      "tr": "ป้ายของแต่ละกรณีคือ <code>none</code>, <code>flag:</code> ตามด้วย option ตัวเดียวที่รายงานมัน หรือ <code>lint:</code> ตามด้วยกฎ เมื่อโปรแกรมที่แก้แล้วไปโดนกฎด้วยเหตุผลที่ไม่เกี่ยวข้อง กรณีนั้นจะมี <code>ts_ok.ts</code> และป้ายจะนับเฉพาะสิ่งที่ทำงานกับความผิดพลาดนั้น ตัวอย่างเช่น <code>non-exhaustive-match</code> คือ <code>lint:switch-exhaustiveness-check</code>: typescript-eslint จับได้ถ้าคุณเปิดกฎนั้น และหน้าเว็บก็บอกไว้แบบนั้น"
+    },
+    {
+      "id": "h-e4bf87e8",
+      "kind": "html",
+      "en": "Reproduce one case",
+      "tr": "ทำซ้ำหนึ่งกรณี"
+    },
+    {
+      "id": "h-1e0de939",
+      "kind": "html",
+      "en": "Run the gate on a single case from a clone of the repository, or do it by hand. Both halves of <code>non-exhaustive-match</code>, as they ran for this page:",
+      "tr": "รัน gate กับกรณีเดียวจาก clone ของ repository หรือทำด้วยมือ ทั้งสองฝั่งของ <code>non-exhaustive-match</code> ตามที่รันสำหรับหน้านี้:"
+    },
+    {
+      "id": "h-41fe29d9",
+      "kind": "html",
+      "en": "the gate, one case",
+      "tr": "gate กรณีเดียว"
+    },
+    {
+      "id": "h-fa9e17d5",
+      "kind": "html",
+      "en": "the TypeScript half, by hand",
+      "tr": "ฝั่ง TypeScript ทำด้วยมือ"
+    },
+    {
+      "id": "h-ddaaa114",
+      "kind": "html",
+      "en": "the Glyph half, by hand",
+      "tr": "ฝั่ง Glyph ทำด้วยมือ"
+    },
+    {
+      "id": "h-6672a1cf",
+      "kind": "html",
+      "en": "The snippets on this site compile",
+      "tr": "โค้ดตัวอย่างบนเว็บนี้คอมไพล์ได้"
+    },
+    {
+      "id": "h-994c5a78",
+      "kind": "html",
+      "en": "<code>scripts/check_docs_compile.py</code> runs in CI and compiles every Glyph snippet on the site that stands on its own (it opens with <code>module</code> and declares something), plus the ones in the docs and <code>llms.txt</code>. A snippet that is meant to fail has to name the error it draws, and it has to draw exactly that one. Snippets that need React or an npm package are compiled against those packages' real types. Fragments are counted and skipped, and the count is printed so the skipped share stays visible.",
+      "tr": "<code>scripts/check_docs_compile.py</code> รันใน CI และคอมไพล์โค้ดตัวอย่าง Glyph ทุกชิ้นบนเว็บที่ยืนได้ด้วยตัวเอง (เปิดด้วย <code>module</code> และประกาศอะไรบางอย่าง) รวมถึงชิ้นที่อยู่ในเอกสารและ <code>llms.txt</code> โค้ดตัวอย่างที่ตั้งใจให้ fail ต้องระบุ error ที่มันได้ และต้องได้ error นั้นพอดี โค้ดที่ต้องใช้ React หรือแพ็กเกจ npm จะคอมไพล์กับ type จริงของแพ็กเกจเหล่านั้น ชิ้นส่วนที่ไม่สมบูรณ์จะถูกนับและข้าม และจำนวนจะถูกพิมพ์ออกมา สัดส่วนที่ข้ามจึงยังมองเห็นได้"
+    },
+    {
+      "id": "h-260fe982",
+      "kind": "html",
+      "en": "What it does not catch yet",
+      "tr": "สิ่งที่ยังจับไม่ได้"
+    },
+    {
+      "id": "h-e4a785b3",
+      "kind": "html",
+      "en": "The {{catches:gap-cases}} <code>gap</code> cases are on <a href=\"/catches/#not-yet\">the catches page</a>, each with its gap number. Every gap found by building apps in Glyph is in the ledger, <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>, where a bracketed marker is the only live status (<code>[FIXED]</code>, <code>[HALF FIXED]</code>, or none for open) and <code>scripts/check_gaps.py</code> fails CI when an open entry was last reproduced more than five releases ago.",
+      "tr": "กรณี <code>gap</code> {{catches:gap-cases}} กรณีอยู่ใน<a href=\"/catches/#not-yet\">หน้าสิ่งที่จับได้</a> แต่ละกรณีมีหมายเลข gap ทุก gap ที่เจอจากการสร้างแอปด้วย Glyph อยู่ในบัญชี <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> ซึ่งเครื่องหมายในวงเล็บเหลี่ยมเป็นสถานะปัจจุบันเพียงอย่างเดียว (<code>[FIXED]</code>, <code>[HALF FIXED]</code> หรือไม่มีเลยสำหรับที่ยังเปิด) และ <code>scripts/check_gaps.py</code> ทำให้ CI fail เมื่อรายการที่ยังเปิดอยู่ถูกทำซ้ำครั้งล่าสุดเกินห้ารุ่นมาแล้ว"
+    },
+    {
+      "id": "h-ae7fa29b",
+      "kind": "html",
+      "en": "How a release is marked Breaking",
+      "tr": "รุ่นถูกทำเครื่องหมาย Breaking อย่างไร"
+    },
+    {
+      "id": "h-d28e217b",
+      "kind": "html",
+      "en": "A release is marked Breaking when it rejects a program the previous version accepted. That is decided by writing the smallest affected program and running it under the published previous release and the new binary, then comparing exit codes. It is not inferred from the wording of the notes. Releases before 0.1.99 were never tested this way, so an unmarked one is untested rather than safe. The record is on <a href=\"/versions/\">the versions page</a>.",
+      "tr": "รุ่นจะถูกทำเครื่องหมาย Breaking เมื่อมันปฏิเสธโปรแกรมที่รุ่นก่อนยอมรับ การตัดสินทำโดยเขียนโปรแกรมที่เล็กที่สุดที่ได้รับผลกระทบ แล้วรันด้วยรุ่นก่อนที่เผยแพร่แล้วและ binary ใหม่ จากนั้นเทียบ exit code ไม่ได้อนุมานจากถ้อยคำในบันทึก รุ่นก่อน 0.1.99 ไม่เคยถูกทดสอบด้วยวิธีนี้ รุ่นที่ไม่มีเครื่องหมายจึงหมายถึงยังไม่ได้ทดสอบ ไม่ใช่ปลอดภัย บันทึกอยู่ใน<a href=\"/versions/\">หน้าเวอร์ชัน</a>"
+    }
+  ]
+}

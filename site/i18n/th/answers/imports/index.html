@@ -1,0 +1,217 @@
+---
+title: ใช้โค้ด TypeScript, JavaScript และ npm ที่มีอยู่ได้ไหม? · Glyph
+description: Glyph คอมไพล์เป็น TypeScript ธรรมดาและใช้ npm ได้: module .glyph import แพ็กเกจไหนก็ได้ และ .ts ที่มีอยู่ import มันได้ นำมาใช้ทีละไฟล์
+source_hash: 5a2ca99ba7fdb55b
+prev: /answers/upgrades/ | &larr; ก่อนหน้า | รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?
+next: /answers/embedding/ | ถัดไป &rarr; | นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม หรือต้องเปลี่ยนทั้งหมด?
+---
+      <p class="q-eyebrow">09 &middot; การนำมาใช้</p>
+      <h1 class="q-title">ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?</h1>
+
+      <p class="short-answer">
+        ได้ Glyph คอมไพล์เป็น <strong>TypeScript ธรรมดา</strong>และใช้ npm ได้: module <code>.glyph</code> import จากแพ็กเกจไหนก็ได้ และตัวมันเองก็ถูก import จาก <code>.ts</code> ที่คุณมีอยู่ได้ คุณนำมาใช้<strong>ทีละไฟล์</strong>
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          ไม่มีใครเขียน codebase ใหม่ทั้งหมดเพื่อลองภาษา เพราะ output ของ Glyph <em>คือ</em> TypeScript ไฟล์ <code>.glyph</code> จึงวางลงในมุมหนึ่งของโปรเจกต์ TS/React/Node ที่มีอยู่ได้ import แพ็กเกจเดียวกัน และ export กลับไปให้ <code>.ts</code> รอบๆ เส้นทางแบบค่อยเป็นค่อยไปนี้คือเหตุผลทั้งหมดที่เลือก TypeScript เป็นเป้าหมายแทนที่จะสร้าง runtime ใหม่
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>คุณ import แพ็กเกจด้วยชื่อ (รวมถึงชื่อที่มีขีดและมี scope ของ npm) และ Glyph emit import ตามที่คุณคาดไว้:</p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">form.glyph</span>
+<pre>import react { useState }
+import react-hook-form { useForm }
+import @hookform/resolvers/zod {
+  zodResolver,
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">form.ts: ที่ emit ออกมา</span>
+<pre>import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver }
+  from "@hookform/resolvers/zod";</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          ถ้าแพ็กเกจติดตั้งแล้วและมี type มาด้วย (หรือมี <code>@types/...</code>) ก็แค่นั้น ไม่มี stub ไม่มีไฟล์ adapter <code>glyph build</code> หา <code>node_modules</code> ของโปรเจกต์และชี้ type-checker ไปที่นั่น type จริงของแพ็กเกจจึงตรวจโค้ดของคุณ และการเรียกที่ผิดเป็น error จริง import แบบ subpath (<code>pkg/sub</code>) resolve ผ่าน map <code>exports</code> ของแพ็กเกจด้วย type ของ subpath จึงถูกตรวจ นี่คือการใช้ zod แบบ inline โดยไม่มีอะไรเขียนเอง:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre>import zod { z }
+
+let user_schema = z.object({
+  name: z.string(),
+  age: z.number(),
+})
+let user = user_schema.parse(input)
+print(user.name)</pre>
+        </div>
+        <div class="code">
+          <span class="cap">การเรียกที่ zod ไม่ได้นิยามไว้</span>
+<pre data-check="needs-npm expect-error TS2339">module main
+
+import zod { z }
+
+pub fn main() -&gt; number {
+  // ZodString has no such method:
+  let n = z.string().nonexistent_method()
+  return 0
+}
+
+// [TS2339] Property 'nonexistent_method'
+//   does not exist on type 'ZodString'.
+//   mapped back onto main.glyph:7</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph run</code> รันโปรแกรมเดียวกันกับ zod ที่ติดตั้งไว้ จึงไม่ใช่แค่การตรวจ type: รายการ config เดียวที่ resolve แพ็กเกจให้ type-checker ก็ resolve ให้ runtime ด้วย แพ็กเกจที่<em>ไม่มี</em> type มาและไม่มี <code>@types/...</code> ยังต้องมี declaration ที่คุณเขียนเอง ซึ่งเป็นหน้าที่ของโฟลเดอร์ <code>.types/</code> (กลไก <code>.d.ts</code> เดียวกับที่ TypeScript ใช้อยู่แล้ว) และเมื่อคุณต้องการรูปร่างของไลบรารีเป็น type ของ Glyph เต็มตัวที่<em>ถูก validate</em> แทนที่จะเป็น import แค่ type <code>glyph gen dts</code> จะเปลี่ยน <code>.d.ts</code> เป็น type จริงที่มี descriptor ดู<a href="/answers/typed-apis/">ต้องเขียน validator ด้วยมือให้ทุก API ไหม?</a>
+        </p>
+        <p>
+          type ที่ derive จากค่าใช้ได้เต็มที่ <code>type User = z.infer&lt;typeof user_schema&gt;</code> ใช้ได้โดยตรง: <code>typeof user_schema</code> เป็น type query บน reference ของค่าจริง (พิมพ์ผิดจะเป็น error ชื่อที่ resolve ไม่ได้) และ <code>z.infer&lt;...&gt;</code> เป็น member-generic type ธรรมดา มันถูก emit ตรงตัวและ <code>tsc</code> ลดรูปมัน <code>u.name</code> จึงเป็น <code>string</code> validation มาจาก <code>parse</code> ของ schema เอง ซึ่งเป็นวิธีที่ zod ทำงานอยู่แล้ว JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) ก็ใช้ได้เต็มที่ สำหรับ idiom ของ TypeScript ที่หายากซึ่ง Glyph ยังเขียนไม่ได้ <code>extern_ts("...")</code> คือทางออกฉุกเฉินที่มีขอบเขตและ grep หาได้: <code>tsc</code> ตรวจมัน แต่ต้องเข้าใจให้ถูก มันคือขอบเขตของความไว้ใจ ไม่ใช่ขอบเขตที่ validate ตอนรัน (Glyph มองไม่เห็นข้างใน ค่าที่ได้กลับมาเป็น <code>unknown</code> ให้ narrow ต่อ) ไลบรารีจึงไม่มีวันบังคับให้คุณเขียนไฟล์ adapter เอง
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">เมื่อต้องการ TypeScript ที่เขียนเองทั้งไฟล์</h2>
+        <p>
+          บางครั้งทางออกฉุกเฉินไม่ใช่ type หรือ expression แต่เป็นโค้ด runtime จริง: loop ของ node stream, <code>new Promise</code>, worker thread วาง <code>.ts</code> ไว้ใต้ <code>&lt;src&gt;/extern/</code> แล้วเรียกถึงด้วย <code>import extern/&lt;name&gt;</code>
+        </p>
+<pre>// src/extern/raw_server.ts   (hand-written TypeScript)
+export function serve_raw(port: number, handler: (raw: string) =&gt; string): void { ... }
+
+// src/main.glyph
+import extern/raw_server { serve_raw }   // typed from the .ts; a wrong arg is a real tsc error</pre>
+        <p>
+          build นำ <code>&lt;src&gt;/extern/**</code> เข้าไปใน output และ emit specifier แบบ relative <code>tsc</code> จึงตรวจ type ของ extern ไปพร้อมกับโค้ด Glyph และการ build ใหม่ไม่มีวันตัดมันทิ้ง import แบบ relative ยังใช้ไม่ได้ในซอร์ส Glyph (เป็นกฎเรื่อง grep) <code>extern/*</code> จึงเป็น path เดียวที่สงวนไว้ และ <code>grep -rn 'import extern/'</code> เจอทุกจุดที่คุณออกจากภาษา มันเป็นทิศตรงข้ามกับทางที่ง่าย คือไฟล์ <code>.ts</code> ที่ import Glyph ที่คอมไพล์แล้ว ซึ่งไม่ต้องทำอะไรเลย extern ทั่วไป (http server, <code>fs</code>) ตรวจ type กับ node shim ที่มาด้วยได้โดยไม่ต้องติดตั้งอะไร
+        </p>
+
+        <h2 class="block-label">เฝ้าดู subprocess โดยไม่ต้องติดตั้งอะไร</h2>
+        <p>
+          declaration ของ node ที่มาด้วยมีครึ่งที่เป็น async ของ <code>child_process</code> ไม่ใช่แค่แบบ blocking เครื่องมือที่รายงาน output ของคำสั่งที่ใช้เวลานานระหว่างที่มันรันจึงเป็น Glyph แทนที่จะเป็น extern:
+        </p>
+<pre>module main
+
+import child_process { spawn }
+import std/io
+
+pub async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let child = spawn(&quot;git&quot;, [&quot;status&quot;, &quot;--short&quot;])
+
+  // Ask for text and node decodes for you, holding back a character whose
+  // bytes straddle two chunks. Decoding a raw chunk yourself does not.
+  child.stdout.setEncoding(&quot;utf8&quot;)
+  child.stdout.on(&quot;data&quot;, fn(chunk) {
+    io.print(&quot;${chunk}&quot;)
+  })
+  child.on(&quot;close&quot;, fn(code) {
+    io.println(&quot;git exited ${code}&quot;)
+  })
+  return 0
+}</pre>
+        <p>
+          <code>io.print</code> ไม่ใช่ <code>io.println</code>: chunk คือชิ้นหนึ่งของ stream ไม่ใช่บรรทัด และบรรทัดหนึ่งอาจมาข้ามสอง chunk overload ทำตาม <code>@types/node</code> pipe จึงกลับมาเป็นค่าที่ไม่ใช่ null จาก <code>spawn(command, args)</code> ธรรมดา และเป็น nullable เมื่อคุณส่ง <code>stdio</code> การอ่าน <code>child.stdout</code> หลัง <code>stdio: "inherit"</code> เป็น <code>TS18047</code> ที่นี่ และเป็น <code>TS18047</code> กับ typing จริง แทนที่จะเป็นสองเรื่องที่ต่างกันเกี่ยวกับค่าเดียวกัน:
+        </p>
+<pre data-check="expect-error TS18047">module main
+
+import child_process { spawn }
+
+pub fn main() -&gt; void {
+  let child = spawn(&quot;git&quot;, [&quot;status&quot;], { stdio: &quot;inherit&quot; })
+  // [TS18047] 'child.stdout' is possibly 'null'.
+  child.stdout.setEncoding(&quot;utf8&quot;)
+}</pre>
+
+        <h2 class="block-label">แก้ shim แล้วการรันครั้งถัดไปก็ใช้ shim ที่คุณแก้</h2>
+        <p>
+          shim เป็นไฟล์ที่คุณแก้ไปเรื่อยๆ จึงต้องนับเป็นซอร์ส <code>glyph run</code> cache build ไว้ภายใต้ fingerprint ของซอร์ส และ fingerprint นั้นครอบคลุมทุก <code>.ts</code> และ <code>.tsx</code> ใต้ <code>extern/</code> ทั้งตาม path และตามเนื้อหา แก้ เปลี่ยนชื่อ เพิ่ม หรือลบสักไฟล์ การรันครั้งถัดไปจะ build ใหม่และรัน <code>tsc</code> ใหม่ shim ที่เป็น symlink จะถูกตามไป <code>.ts</code> ที่เก็บไว้นอก source tree จึงถูก hash ตามเนื้อหาจริง
+        </p>
+        <p>
+          นั่นคือสิ่งที่ทำให้ shim เป็นเจ้าของ type ได้ แทนที่ทั้งสองไฟล์จะประกาศสำเนาของตัวเอง export รูปร่างจาก shim แล้ว import มันใน module ของ Glyph คอมไพเลอร์จะยึดทั้งสองให้ตรงกันทุกครั้งที่รัน:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">src/extern/web.ts</span>
+<pre>export type WebResponse = {
+  status: number;
+  content_type: string;
+  location: string;   // "" when not a redirect
+  body: string;
+};</pre>
+        </div>
+        <div class="code">
+          <span class="cap">shim เปลี่ยนชื่อ field และ build ก็บอก</span>
+<pre>import extern/web { serve_web, WebResponse }
+
+<span class="cm">// location -&gt; redirect_to in web.ts, nothing
+// touched here, and glyph run stops:</span>
+<span class="del">[TS2353]</span> Object literal may only specify
+known properties, and 'location' does not
+exist in type 'WebResponse'.
+   ╰─ server:53:3</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          จนถึง 0.1.44 fingerprint ข้าม <code>extern/</code> ไปทั้งหมด การเปลี่ยนชื่อนั้นจึงได้ build ที่สะอาดและตรวจ type ผ่าน ซึ่งรัน shim สำเนาเก่า ไฟล์ใต้ <code>extern/</code> ที่ไม่ใช่ <code>.ts</code> หรือ <code>.tsx</code> ยังไม่กระทบ cache ซึ่งเป็นความตั้งใจ: <code>README.md</code> ข้าง shim ถูกคัดลอกไปใน output ด้วย แต่ไม่มีอะไรตรวจ type หรือรันมัน จึงไม่มีอะไรต้อง build ใหม่
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">client แบบ class: ตัวที่ใช้กับฐานข้อมูลและ messaging</h2>
+        <p>
+          client ของฐานข้อมูลและ messaging ส่วนใหญ่เป็นแบบ class: คุณเขียน <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code> Glyph มี <code>new</code> สำหรับเรื่องนี้โดยเฉพาะ มัน emit <code>new</code> ของ TypeScript ตรงตัว และ <code>tsc</code> ตรวจมันกับ constructor จริงของแพ็กเกจ argument ที่ผิดจึงเป็น error จริง และ callee ที่ไม่ได้นิยามถูกจับด้วยชื่อ มันใช้ได้เฉพาะ interop: Glyph ไม่มี <code>class</code> ของตัวเอง และ <code>new</code> สร้างได้เฉพาะ type ที่มาจากแพ็กเกจ declaration ใน <code>.types</code> หรือ <code>extern_ts</code>
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">client แบบ class (kafkajs)</span>
+<pre>import kafkajs { Kafka }
+
+let kafka = new Kafka({
+  clientId: "app",
+  brokers: ["localhost:9092"],
+})
+let producer = kafka.producer()
+await producer.connect()</pre>
+        </div>
+        <div class="code">
+          <span class="cap">client แบบ factory ไม่ต้องใช้ <code>new</code></span>
+<pre>import redis { createClient }
+
+// createClient() is a function, so you
+// just call it. No new, no wrapper.
+let client = createClient()
+await client.connect()
+await client.set("k", "v")</pre>
+        </div>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>import แพ็กเกจ npm ไหนก็ได้ (รวมชื่อที่มีขีดและมี scope) แพ็กเกจที่ติดตั้งแล้วซึ่งมี type มาเอง (หรือมี <code>@types/...</code>) ตรวจ type และรันได้โดยไม่มี stub client แบบ class สร้างด้วย <code>new</code> ซึ่ง <code>tsc</code> ตรวจกับ constructor จริง client แบบ factory import และเรียกได้ตรงๆ builtin ของ Node (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> รวมถึง <code>spawn</code> แบบ streaming และตัวอื่นๆ) ตรวจ type ได้ทันที โดยโหลด <code>@types/node</code> อัตโนมัติเมื่อคุณติดตั้ง และ CI build runtime ของคอมไพเลอร์เองกับแพ็กเกจนั้นที่ <code>latest</code> declaration ที่ stdlib พึ่งพาจึงเพี้ยนจากของจริงของ node ไม่ได้ declaration ที่มีแค่โค้ดของคุณเรียกถึงยังไม่อยู่ในการตรวจนั้น และบางตัวยังกว้างกว่าของ node declaration แบบ ambient ใน <code>.types/</code> สำหรับอย่างอื่น <code>glyph gen dts</code> สำหรับเปลี่ยน <code>.d.ts</code> เป็น type ของ Glyph ที่ validate ได้ และ output <code>.ts</code> ที่สะอาดซึ่ง TypeScript ที่มีอยู่ import กลับได้ เมื่อต้องการ TypeScript ที่เขียนเองทั้งไฟล์ <code>import extern/&lt;name&gt;</code> เรียกถึง <code>.ts</code> ใต้ <code>&lt;src&gt;/extern/</code> ซึ่งถูกนำเข้าและตรวจ type ไปพร้อมโค้ดของคุณ และถูกติดตามโดย cache ของ <code>glyph run</code> การแก้มันจึงทำให้ build ใหม่</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังมา</h3>
+          <p>ตอนนี้การ materialize จัดการรูปร่างที่ SDK จริงมีได้ (namespace, re-export ข้ามไฟล์และแบบ alias/namespace, <code>exports</code> แบบ subpath และ generic เต็มรูปแบบ) และ type ที่ derive จากค่า (<code>z.infer&lt;typeof s&gt;</code>) ก็ใช้ได้เต็มที่ ช่องว่างหลักที่เหลือคือ output ของแพ็กเกจที่ไม่ได้ materialize ถูกตรวจ type กับ <code>.d.ts</code> ของมัน แต่ไม่ถูก validate ตอนรันถ้าคุณไม่ materialize ฝั่ง <code>extern/</code> root ของซอร์สต่างกันระหว่างสองคำสั่ง: <code>glyph run app.glyph</code> ใช้ไดเรกทอรีของไฟล์เป็น root ส่วน <code>glyph build src/</code> ใช้ไดเรกทอรีที่คุณระบุ โปรแกรมในไดเรกทอรีย่อยจึงหา shim ในสองที่ต่างกัน และจนกว่าเราจะเลือก root เดียว โปรเจกต์ที่จัดแบบนั้นต้องให้ shim เข้าถึงได้จากทั้งสองที่ มันจะ fail อย่างชัดเจนเมื่อเข้าถึงไม่ได้</p>
+        </div>
+      </div>

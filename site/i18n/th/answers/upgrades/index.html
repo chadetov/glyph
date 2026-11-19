@@ -1,0 +1,125 @@
+---
+title: รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม? · Glyph
+description: โปรเจกต์ Glyph pin คอมไพเลอร์ไว้แบบตายตัว รุ่นใหม่จึงไม่มีวันมาถึงคุณโดยบังเอิญ glyph doctor บอกว่ามีรุ่นใหม่ และ glyph upgrade พาคุณไปที่รุ่นนั้น
+source_hash: b4d1d08012358fef
+prev: /answers/ai-authoring/ | &larr; ก่อนหน้า | AI เขียนภาษาที่แทบไม่เคยเห็นได้อย่างน่าเชื่อถือหรือ?
+next: /answers/imports/ | ถัดไป &rarr; | ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?
+---
+      <p class="q-eyebrow">08 &middot; การอัปเกรด</p>
+      <h1 class="q-title">รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?</h1>
+
+      <p class="short-answer">
+        ไม่ ถ้าคุณไม่ได้ขอ โปรเจกต์ Glyph pin คอมไพเลอร์ไว้ที่<strong>เวอร์ชันที่แน่นอน</strong> รุ่นที่เผยแพร่เมื่อเช้าจึงไม่มาถึง build ของคุณตอนบ่าย ก่อน 1.0 รุ่นใหม่ได้รับอนุญาตให้เพิ่ม diagnostic ที่ปฏิเสธโค้ดที่เมื่อวานยังคอมไพล์ผ่าน และนั่นมักเป็นจุดประสงค์ของรุ่นนั้น การตัดสินใจรับมันจึงเป็นของคุณ และใช้คำสั่งเดียว
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          เครื่องมือส่วนใหญ่คุณ pin ด้วย caret เพราะรุ่น patch คือการแก้บั๊ก คอมไพเลอร์ก่อน 1.0 ไม่ใช่แบบนั้น งานทั้งหมดของ Glyph คือการปฏิเสธโปรแกรม และการทำได้ดีขึ้นหมายถึง error ใหม่: การตรวจ import ที่เข้มขึ้น ช่องโหว่เรื่องความครบถ้วนที่เคยหลุดไป จำนวน argument ที่ตัวตรวจไม่เคย model ไว้ รุ่นเหล่านั้นคือรุ่นที่ดี และก็เป็นรุ่นที่คุณไม่อยากให้มาถึงผ่าน <code>npm install</code> ที่คุณรันเพื่อเพิ่มไลบรารีจัดการวันที่
+        </p>
+        <p>
+          <code>glyph init</code> จึงไม่เขียน <code>^</code> บนเวอร์ชัน <code>0.x</code> caret ยังปล่อยให้ patch ลอยอยู่ ซึ่งเป็นกับดัก: <code>^0.1.9</code> ยอมรับ 0.1.x ทุกตัวที่ตามมาแบบเงียบๆ
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">package.json ตามที่สร้างไว้</span>
+<pre>"devDependencies": {
+  <span class="cm">// exact. no caret, no tilde.</span>
+  "@glyphlang/glyph": "0.1.72",
+  "typescript": "^6.0.0",
+  "tsx": "^4.19.0"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          commit <code>package-lock.json</code> ไว้ข้างๆ แล้ว clone ใหม่จะ build ด้วย toolchain ที่คุณทดสอบแล้ว ไม่ใช่อะไรก็ตามที่ออกมาหลังจากนั้น
+        </p>
+
+        <h2 class="block-label">อีกครึ่งหนึ่ง</h2>
+        <p>
+          การ pin มีรูปแบบความล้มเหลวที่ชัดเจนแบบเดียว: คุณค้างอยู่กับคอมไพเลอร์เก่าเป็นปีโดยไม่รู้ตัว ไม่มีอะไรในเครื่องของคุณบอก และเว็บไซต์ที่คุณต้องจำไปเปิดดูก็ไม่ใช่ช่องทาง คอมไพเลอร์จึงบอกคุณเองเมื่อคุณถามอะไรก็ตามเกี่ยวกับการตั้งค่าของคุณ:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph doctor</span>
+<pre>glyph &mdash; 0.1.72
+  [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
+             what changed: https://glyphlang.io/versions/
+
+glyph doctor &mdash; JavaScript toolchain
+  [ok]       node: v22.1.0
+  [ok]       tsx: tsx v4.19.0
+  [ok]       tsc: Version 6.0.2
+All good. `glyph run` and `glyph build --check` are ready.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          การเจอรุ่นที่ใหม่กว่า<em>ไม่เคย</em>เปลี่ยน exit code จึงรันใน CI ได้อย่างปลอดภัย รุ่นที่เผยแพร่ไม่ได้หมายถึง toolchain ที่พัง และ pipeline ที่เขียวไม่ควรกลายเป็นแดงเพราะมีคนปล่อยรุ่นใหม่เมื่อสิบนาทีก่อน ถ้าเครื่องออฟไลน์ การตรวจจะบอกแล้วทำต่อ <code>--offline</code> ข้ามมันทั้งหมดและไม่เรียก network เลย
+        </p>
+        <p>
+          ไม่มีอย่างอื่นติดต่อ registry <code>build</code>, <code>run</code> และ <code>check</code> ไม่เคยทำ คอมไพเลอร์ที่โทรกลับบ้านทุกครั้งที่ build เป็นผลิตภัณฑ์อีกแบบ
+        </p>
+
+        <h2 class="block-label">รับการอัปเกรด</h2>
+      </div>
+
+      <div class="code">
+        <span class="cap">เปลี่ยนบรรทัดเดียว และคุณเป็นคนตัดสินว่าเมื่อไร</span>
+<pre>$ glyph upgrade --dry-run
+glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
+
+$ glyph upgrade
+glyph upgrade: /app/package.json now pins 0.1.73 (was 0.1.72).
+glyph upgrade: what changed: https://glyphlang.io/versions/
+glyph upgrade: build before you commit; a new release may report diagnostics
+               this project did not have.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          มันเขียนบรรทัดเดียวใหม่แล้วรัน <code>npm install</code> ไม่แตะซอร์สของคุณ และไม่ทำทีว่าการอัปเกรดเสร็จแล้ว: การ build หลังจากนั้นคือประเด็น เพราะรุ่นที่คุณเพิ่งรับมาได้รับอนุญาตให้มีความเห็นที่โค้ดของคุณยังไม่เคยเจอ <code>--to &lt;version&gt;</code> ระบุรุ่นที่ต้องการ รวมถึงรุ่นที่เก่ากว่าเมื่อคุณอยากย้อนกลับ และ <code>--no-install</code> ปล่อยการติดตั้งให้คุณทำเอง
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ย้ายเครื่องมือ ไม่ใช่โปรเจกต์</h2>
+        <p>
+          <code>upgrade</code> ย้าย pin ใน <code>package.json</code> ซึ่งเป็นคำสั่งที่ผิดเมื่อสิ่งที่ล้าหลังคือคอมไพเลอร์ใน <code>PATH</code> ของคุณ และช่วงหนึ่ง <code>doctor</code> ก็พิมพ์มันออกมาอยู่ดี ชี้การติดตั้งแบบ global ไปที่ manifest ที่อาจไม่มีอยู่ <code>glyph --update</code> คืออีกครึ่ง ตอนนี้การแยกเป็นกฎแล้ว ไม่ใช่เรื่องบังเอิญ: flag ทำงานกับเครื่องมือ แบบเดียวกับ <code>--version</code>, <code>--help</code> และ <code>--explain</code> และคำสั่งย่อยทำงานกับโค้ดของคุณ <code>--update-dry-run</code> หยุดหลังพิมพ์คำสั่ง <code>npm</code> ที่มันจะรัน
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --update</span>
+<pre>$ glyph --update
+glyph 0.1.72 is installed; 0.1.73 is published.
+Release notes: https://glyphlang.io/versions/
+A 0.1.x release may reject code that compiled before, so read the notes for anything between these two.
+
+Running: npm install -g @glyphlang/glyph@0.1.73
+<span class="cm">   ... npm output ...</span>
+
+npm finished. Confirm with:
+    glyph --version</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          มันย้ายเฉพาะการติดตั้งที่มันระบุได้ คอมไพเลอร์ที่เรียกผ่าน <code>npx</code>, build จาก source tree ของ Glyph หรืออยู่ใน path ที่มันไม่รู้จัก จะได้คำสั่งพิมพ์ออกมาและไม่มีอะไรถูกเขียนทับ เพราะการแทนที่ binary ของ Homebrew หรือ <code>cargo build</code> ของใครสักคนด้วยการเดา จะทำให้ <code>PATH</code> ชี้ไปที่สิ่งที่ไม่มีใครเลือก มันยังไม่อ้างว่าการอัปเดตสำเร็จ: npm อาจ exit ศูนย์ทั้งที่ข้าม <code>optionalDependency</code> ที่ดึงมาไม่ได้ ซึ่งเป็นวิธีที่ Glyph รุ่นหนึ่งเคยออกไปโดยไม่มี binary ของแพลตฟอร์ม บรรทัดสุดท้ายจึงระบุ <code>glyph --version</code> เป็นการตรวจ แทนที่จะยืนยันว่าสำเร็จ
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>โปรเจกต์ที่สร้างขึ้น pin แบบตายตัว จึงไม่มีรุ่นไหนมาถึง build โดยบังเอิญ <code>glyph doctor</code> รายงานคอมไพเลอร์ของคุณเทียบกับ registry และลิงก์ไปที่บันทึกประจำรุ่น โดยไม่เคยกระทบ exit code และไม่ถูกเรียกจาก <code>build</code>/<code>run</code>/<code>check</code> <code>glyph upgrade</code> ย้าย pin ติดตั้ง และอ่าน caret จากโปรเจกต์เก่า โปรเจกต์ที่มีอยู่ก่อนจึงย้ายมาใช้ pin แบบตายตัวได้ด้วย <code>glyph --update</code> ย้ายตัวคอมไพเลอร์เองสำหรับการติดตั้ง npm แบบ global และรายงานแทนที่จะเดาสำหรับวิธีอื่นๆ ที่มันอาจถูกติดตั้งมา</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังคมขึ้น</h3>
+          <p>บันทึกประจำรุ่นเป็นหน้าเดียวสำหรับทั้งสาย <code>glyph upgrade</code> จึงลิงก์ไปที่หน้านั้น ไม่ใช่รายการของรุ่นที่คุณกำลังย้ายไป ยังไม่มีอะไรบอกคุณว่า diagnostic ไหนของรุ่นใหม่ที่โค้ดของคุณกำลังจะโดน: การรู้หมายถึงต้อง build ซึ่งเป็นเหตุผลที่คำสั่งบอกให้ทำ และการอัปเกรดข้ามหลายรุ่นในครั้งเดียวก็เป็นขั้นตอนเดียวเหมือนรุ่นเดียว โดยไม่มีสรุปว่ามีอะไรสะสมมาในระหว่างนั้น <code>glyph --update</code> เรียก npm และอ่าน exit code ของมัน จึงบอกคุณได้ว่า npm ทำเสร็จ แต่บอกไม่ได้ว่า binary ใน <code>PATH</code> เป็นเวอร์ชันที่คุณขอ นั่นคือเหตุผลที่มันชี้ไปที่ <code>glyph --version</code> แทนที่จะบอกว่าสำเร็จ</p>
+        </div>
+      </div>

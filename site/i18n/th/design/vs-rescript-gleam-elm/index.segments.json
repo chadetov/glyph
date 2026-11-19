@@ -1,0 +1,326 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/vs-rescript-gleam-elm/index.html",
+  "locale": "th",
+  "source_hash": "c1473253c170e78d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why not ReScript, Gleam or Elm? · Glyph",
+      "tr": "ทำไมไม่ใช้ ReScript, Gleam หรือ Elm? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Three typed languages that compile to JavaScript and are older and more proven than Glyph. Where each is ahead, and the four things Glyph does differently.",
+      "tr": "สามภาษาที่มี type และคอมไพล์เป็น JavaScript ซึ่งเก่ากว่าและพิสูจน์ตัวเองมากกว่า Glyph แต่ละตัวเหนือกว่าตรงไหน และสี่อย่างที่ Glyph ทำต่างออกไป"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "ไปต่อที่ไหน"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "แนะนำ"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "สิ่งที่ Glyph ปฏิเสธ"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "แต่ละกรณี ตรวจทั้งใน <code>tsc --strict</code> และใน Glyph"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "ดูสิ่งที่จับได้"
+    },
+    {
+      "id": "ns./design/vs-effect/.title",
+      "kind": "ns.title",
+      "en": "Glyph and Effect",
+      "tr": "Glyph และ Effect"
+    },
+    {
+      "id": "ns./design/vs-effect/.desc",
+      "kind": "ns.desc",
+      "en": "A TypeScript library compared with a language.",
+      "tr": "เปรียบเทียบไลบรารี TypeScript กับภาษา"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "Back to design",
+      "tr": "กลับไปที่การออกแบบ"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars, the spec, and the other comparisons.",
+      "tr": "สี่เสาหลัก สเปก และการเปรียบเทียบอื่นๆ"
+    },
+    {
+      "id": "h-33d40d52",
+      "kind": "html",
+      "en": "Design &middot; Comparison",
+      "tr": "การออกแบบ &middot; การเปรียบเทียบ"
+    },
+    {
+      "id": "h-389767f5",
+      "kind": "html",
+      "en": "Why not ReScript, Gleam or Elm?",
+      "tr": "ทำไมไม่ใช้ ReScript, Gleam หรือ Elm?"
+    },
+    {
+      "id": "h-af688b28",
+      "kind": "html",
+      "en": "All three are typed languages that compile to JavaScript, and all three are older, more widely used and more settled than Glyph. If you are choosing a language for a new codebase and don't need to stay close to TypeScript, they deserve a look first. Glyph's differences are narrower: it emits TypeScript source rather than JavaScript, it imports npm packages typed from their own <code>.d.ts</code>, it generates runtime validators from your types, and its compiler answers impact queries for an agent.",
+      "tr": "ทั้งสามเป็นภาษาที่มี type และคอมไพล์เป็น JavaScript และทั้งสามเก่ากว่า มีคนใช้มากกว่า และนิ่งกว่า Glyph ถ้าคุณกำลังเลือกภาษาสำหรับ codebase ใหม่และไม่จำเป็นต้องอยู่ใกล้ TypeScript ก็ควรดูพวกมันก่อน ความต่างของ Glyph แคบกว่านั้น: มัน emit ซอร์ส TypeScript แทน JavaScript import แพ็กเกจ npm โดยได้ type จาก <code>.d.ts</code> ของแพ็กเกจเอง generate validator สำหรับตอนรันจาก type ของคุณ และคอมไพเลอร์ของมันตอบคิวรีเรื่องผลกระทบให้เอเจนต์ได้"
+    },
+    {
+      "id": "h-9db697b1",
+      "kind": "html",
+      "en": "How each describes itself",
+      "tr": "แต่ละตัวอธิบายตัวเองอย่างไร"
+    },
+    {
+      "id": "h-50946247",
+      "kind": "html",
+      "en": "ReScript's home page leads with \"JavaScript Made Simple for Humans and AI\" and \"Types &gt; Vibes\", and says it \"compiles to clean, efficient JavaScript\" with \"No <code>any</code>, no magic types, no surprise <code>undefined</code>.\" It offers to \"automatically generate TypeScript types\" (<a href=\"https://rescript-lang.org/\">rescript-lang.org</a>).",
+      "tr": "หน้าแรกของ ReScript เปิดด้วย \"JavaScript Made Simple for Humans and AI\" และ \"Types &gt; Vibes\" และบอกว่ามัน \"compiles to clean, efficient JavaScript\" โดย \"No <code>any</code>, no magic types, no surprise <code>undefined</code>.\" และเสนอว่าจะ \"automatically generate TypeScript types\" (<a href=\"https://rescript-lang.org/\">rescript-lang.org</a>)"
+    },
+    {
+      "id": "h-07f5d70c",
+      "kind": "html",
+      "en": "Gleam's home page calls it \"a friendly language for building type-safe systems that scale\" with \"No null values, no exceptions, clear error messages\". It runs on the Erlang VM and \"can additionally compile to JavaScript\", and \"also generates TypeScript definitions\" (<a href=\"https://gleam.run/\">gleam.run</a>).",
+      "tr": "หน้าแรกของ Gleam เรียกตัวเองว่า \"a friendly language for building type-safe systems that scale\" พร้อม \"No null values, no exceptions, clear error messages\" มันรันบน Erlang VM และ \"can additionally compile to JavaScript\" และ \"also generates TypeScript definitions\" (<a href=\"https://gleam.run/\">gleam.run</a>)"
+    },
+    {
+      "id": "h-2b945603",
+      "kind": "html",
+      "en": "Elm's home page describes \"A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions\", for \"reliable web applications\", and says Elm \"detects all API changes automatically\" to \"guarantee that every single Elm package follows semantic versioning\" (<a href=\"https://elm-lang.org/\">elm-lang.org</a>).",
+      "tr": "หน้าแรกของ Elm อธิบายว่าเป็น \"A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions\" สำหรับ \"reliable web applications\" และบอกว่า Elm \"detects all API changes automatically\" เพื่อ \"guarantee that every single Elm package follows semantic versioning\" (<a href=\"https://elm-lang.org/\">elm-lang.org</a>)"
+    },
+    {
+      "id": "h-01ac98c4",
+      "kind": "html",
+      "en": "These quotes were read on 2026-11-19.",
+      "tr": "ข้อความที่ยกมานี้อ่านเมื่อวันที่ 2026-11-19"
+    },
+    {
+      "id": "h-cb1468cf",
+      "kind": "html",
+      "en": "Where they are ahead",
+      "tr": "จุดที่พวกมันเหนือกว่า"
+    },
+    {
+      "id": "h-024dc204",
+      "kind": "html",
+      "en": "Area",
+      "tr": "ด้าน"
+    },
+    {
+      "id": "h-13abaeff",
+      "kind": "html",
+      "en": "ReScript, Gleam, Elm",
+      "tr": "ReScript, Gleam, Elm"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-25e271b6",
+      "kind": "html",
+      "en": "Maturity",
+      "tr": "ความเติบโตเต็มที่"
+    },
+    {
+      "id": "h-1114b65a",
+      "kind": "html",
+      "en": "Years of production use. ReScript's home page shows a wall of company logos; Elm's cites NoRedInk with 300k+ lines and no confusing runtime exception in production",
+      "tr": "ใช้งานจริงใน production มาหลายปี หน้าแรกของ ReScript แสดงโลโก้บริษัทเต็มหน้า ส่วน Elm อ้างถึง NoRedInk ที่มีโค้ดมากกว่า 300k บรรทัดและไม่มี runtime exception ที่สับสนใน production"
+    },
+    {
+      "id": "h-d39753e9",
+      "kind": "html",
+      "en": "Early preview, pre-1.0, maintained mainly by one person, and many releases are Breaking",
+      "tr": "พรีวิวช่วงแรก ยังไม่ถึง 1.0 ดูแลหลักๆ โดยคนคนเดียว และหลายรุ่นเป็น Breaking"
+    },
+    {
+      "id": "h-5ca778bb",
+      "kind": "html",
+      "en": "Guarantees",
+      "tr": "การรับประกัน"
+    },
+    {
+      "id": "h-37779cbd",
+      "kind": "html",
+      "en": "Elm claims no runtime exceptions; Gleam no null values and no exceptions; ReScript no <code>any</code> and no surprise <code>undefined</code>",
+      "tr": "Elm อ้างว่าไม่มี runtime exception, Gleam ไม่มีค่า null และไม่มี exception, ReScript ไม่มี <code>any</code> และไม่มี <code>undefined</code> ที่ไม่คาดคิด"
+    },
+    {
+      "id": "h-85bd0f64",
+      "kind": "html",
+      "en": "No <code>any</code> and no cast, but {{catches:gap-cases}} known holes are <a href=\"/catches/#not-yet\">listed</a>, and an exception thrown inside an npm package still bypasses <code>Result</code>",
+      "tr": "ไม่มี <code>any</code> และไม่มี cast แต่ช่องโหว่ที่รู้แล้ว {{catches:gap-cases}} ข้อ<a href=\"/catches/#not-yet\">แสดงไว้</a> และ exception ที่ throw จากภายในแพ็กเกจ npm ยังข้าม <code>Result</code> ไปได้"
+    },
+    {
+      "id": "h-40429184",
+      "kind": "html",
+      "en": "Error messages",
+      "tr": "ข้อความ error"
+    },
+    {
+      "id": "h-c755cb73",
+      "kind": "html",
+      "en": "Elm's home page leads with \"friendly error messages\" and Gleam's promises \"clear error messages\", both with years of users behind them",
+      "tr": "หน้าแรกของ Elm เปิดด้วย \"friendly error messages\" และ Gleam สัญญาว่ามี \"clear error messages\" ทั้งคู่มีผู้ใช้หลายปีอยู่เบื้องหลัง"
+    },
+    {
+      "id": "h-1d2e725c",
+      "kind": "html",
+      "en": "Every error has a stable code and a help line, but they have had far less use",
+      "tr": "ทุก error มีรหัสที่คงที่และบรรทัดช่วยเหลือ แต่ถูกใช้งานมาน้อยกว่ามาก"
+    },
+    {
+      "id": "h-e0472088",
+      "kind": "html",
+      "en": "Tooling and ecosystem",
+      "tr": "เครื่องมือและ ecosystem"
+    },
+    {
+      "id": "h-c2efa572",
+      "kind": "html",
+      "en": "Gleam ships \"compiler, build tool, formatter, editor integrations, and package manager all built in\"; Elm enforces semantic versioning on its packages",
+      "tr": "Gleam มาพร้อม \"compiler, build tool, formatter, editor integrations, and package manager all built in\" ส่วน Elm บังคับใช้ semantic versioning กับแพ็กเกจของมัน"
+    },
+    {
+      "id": "h-dd64be5b",
+      "kind": "html",
+      "en": "npm for packages; the VS Code extension is built from source",
+      "tr": "ใช้ npm สำหรับแพ็กเกจ extension ของ VS Code ต้อง build จากซอร์ส"
+    },
+    {
+      "id": "h-27445f6a",
+      "kind": "html",
+      "en": "Targets",
+      "tr": "เป้าหมาย"
+    },
+    {
+      "id": "h-449df469",
+      "kind": "html",
+      "en": "Gleam also runs on the Erlang VM",
+      "tr": "Gleam รันบน Erlang VM ได้ด้วย"
+    },
+    {
+      "id": "h-216bd394",
+      "kind": "html",
+      "en": "TypeScript only, for Node and the browser",
+      "tr": "TypeScript เท่านั้น สำหรับ Node และเบราว์เซอร์"
+    },
+    {
+      "id": "h-939c7737",
+      "kind": "html",
+      "en": "What Glyph does differently",
+      "tr": "สิ่งที่ Glyph ทำต่างออกไป"
+    },
+    {
+      "id": "h-3e2381c1",
+      "kind": "html",
+      "en": "Each of these was run on Glyph 0.1.149 for this page.",
+      "tr": "แต่ละข้อนี้รันบน Glyph 0.1.149 สำหรับหน้านี้"
+    },
+    {
+      "id": "h-d2f85608",
+      "kind": "html",
+      "en": "It emits TypeScript source",
+      "tr": "มัน emit ซอร์ส TypeScript"
+    },
+    {
+      "id": "h-a5acbd44",
+      "kind": "html",
+      "en": "<code>glyph build</code> writes one <code>.ts</code> file per module, which <code>tsc --strict</code> then checks, and which you keep if you stop using Glyph. ReScript and Gleam emit JavaScript and generate type definitions next to it. The <a href=\"/from-typescript/#what-the-emitted-typescript-looks-like\">emitted TypeScript</a> is shown on the TypeScript page.",
+      "tr": "<code>glyph build</code> เขียนไฟล์ <code>.ts</code> หนึ่งไฟล์ต่อหนึ่ง module ซึ่ง <code>tsc --strict</code> ตรวจต่อ และคุณเก็บไว้ใช้ได้ถ้าเลิกใช้ Glyph ReScript และ Gleam emit JavaScript และ generate type definition ไว้ข้างๆ <a href=\"/from-typescript/#what-the-emitted-typescript-looks-like\">TypeScript ที่ emit ออกมา</a>แสดงไว้ในหน้า TypeScript"
+    },
+    {
+      "id": "h-7f79a4f0",
+      "kind": "html",
+      "en": "It imports npm packages typed from their own declarations",
+      "tr": "มัน import แพ็กเกจ npm โดยได้ type จาก declaration ของแพ็กเกจเอง"
+    },
+    {
+      "id": "h-0c3ce6cd",
+      "kind": "html",
+      "en": "A module imports a package by name, and the package's <code>.d.ts</code> types every use. There is no binding to write first. In ReScript, \"<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values\" (<a href=\"https://rescript-lang.org/docs/manual/external\">external</a>), with the types declared on the ReScript side. Gleam's externals need type annotations, and the compiler \"cannot verify that the function implemented in the other language returns the specified types\" (<a href=\"https://gleam.run/documentation/externals/\">externals</a>). Elm talks to JavaScript through flags, ports and custom elements (<a href=\"https://guide.elm-lang.org/interop/\">interop</a>). With <code>pg</code> and <code>@types/pg</code> installed, this is refused:",
+      "tr": "module หนึ่ง import แพ็กเกจด้วยชื่อ และ <code>.d.ts</code> ของแพ็กเกจให้ type กับทุกจุดที่ใช้ ไม่มี binding ที่ต้องเขียนก่อน ใน ReScript \"<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values\" (<a href=\"https://rescript-lang.org/docs/manual/external\">external</a>) โดยประกาศ type ไว้ฝั่ง ReScript ส่วน external ของ Gleam ต้องมี type annotation และคอมไพเลอร์ \"cannot verify that the function implemented in the other language returns the specified types\" (<a href=\"https://gleam.run/documentation/externals/\">externals</a>) Elm คุยกับ JavaScript ผ่าน flag, port และ custom element (<a href=\"https://guide.elm-lang.org/interop/\">interop</a>) เมื่อติดตั้ง <code>pg</code> และ <code>@types/pg</code> แล้ว โค้ดนี้จะถูกปฏิเสธ:"
+    },
+    {
+      "id": "h-8d75025c",
+      "kind": "html",
+      "en": "The code is <code>TS2322</code> because <code>tsc</code> is what checks a library's values, mapped back onto the Glyph line. Glyph's own checker does not see them, so <code>glyph check --no-tsc</code>, the editor and the MCP tools miss this error (G257). A type imported from a <code>.d.ts</code> also has no runtime check.",
+      "tr": "รหัสเป็น <code>TS2322</code> เพราะ <code>tsc</code> คือตัวที่ตรวจค่าของไลบรารี แล้ว map กลับมาที่บรรทัดของ Glyph ตัวตรวจของ Glyph เองมองไม่เห็นค่าเหล่านี้ <code>glyph check --no-tsc</code>, editor และเครื่องมือ MCP จึงพลาด error นี้ (G257) type ที่ import จาก <code>.d.ts</code> ก็ไม่มีการตรวจตอนรันด้วย"
+    },
+    {
+      "id": "h-7d263a14",
+      "kind": "html",
+      "en": "It generates the validator from the type",
+      "tr": "มัน generate validator จาก type"
+    },
+    {
+      "id": "h-af555a20",
+      "kind": "html",
+      "en": "Every record and union carries a runtime check generated from its declaration, so <code>json.parse&lt;User&gt;</code> returns <code>Err</code> when the data does not match. In Elm you write a decoder for each shape, and its guide notes that \"the decoders people write end up working as a validation phase\" (<a href=\"https://guide.elm-lang.org/effects/json.html\">JSON</a>).",
+      "tr": "ทุก record และ union มีการตรวจตอนรันที่ generate จาก declaration ของมัน <code>json.parse&lt;User&gt;</code> จึงคืน <code>Err</code> เมื่อข้อมูลไม่ตรง ใน Elm คุณเขียน decoder ให้แต่ละรูปร่าง และคู่มือของมันบอกว่า \"the decoders people write end up working as a validation phase\" (<a href=\"https://guide.elm-lang.org/effects/json.html\">JSON</a>)"
+    },
+    {
+      "id": "h-e12a02b6",
+      "kind": "html",
+      "en": "main.glyph: prints \"refused\", because the JSON has no email",
+      "tr": "main.glyph: พิมพ์ \"refused\" เพราะ JSON ไม่มี email"
+    },
+    {
+      "id": "h-0b211920",
+      "kind": "html",
+      "en": "Its compiler answers what a change will break",
+      "tr": "คอมไพเลอร์ของมันตอบได้ว่าการเปลี่ยนแปลงจะทำอะไรพัง"
+    },
+    {
+      "id": "h-e65ec874",
+      "kind": "html",
+      "en": "Before an edit, an agent can ask which places a change reaches, over MCP (<code>glyph_impact</code>) or with <code>glyph query impact</code>. On a union <code>Plan = Free | Pro | Team</code> with one exhaustive <code>match</code> and one that ends in <code>else</code>, asking about a new variant answers per site:",
+      "tr": "ก่อนแก้ เอเจนต์ถามได้ว่าการเปลี่ยนแปลงไปถึงจุดไหนบ้าง ผ่าน MCP (<code>glyph_impact</code>) หรือด้วย <code>glyph query impact</code> บน union <code>Plan = Free | Pro | Team</code> ที่มี <code>match</code> แบบครบทุกกรณีหนึ่งจุด และอีกจุดที่ลงท้ายด้วย <code>else</code> การถามถึง variant ใหม่จะได้คำตอบรายจุด:"
+    },
+    {
+      "id": "h-4227f025",
+      "kind": "html",
+      "en": "The second site would fail to compile after the change, which any of these compilers would also tell you once the change is made. The first would keep compiling and send the new case to its <code>else</code>, and the query is what names it. <a href=\"/agents/\">For agent builders</a> lists the other tools.",
+      "tr": "จุดที่สองจะคอมไพล์ไม่ผ่านหลังการเปลี่ยนแปลง ซึ่งคอมไพเลอร์ของทั้งสามภาษาก็บอกได้เมื่อเปลี่ยนไปแล้ว จุดแรกจะยังคอมไพล์ผ่านและส่ง case ใหม่ไปที่ <code>else</code> ของมัน และคิวรีนี้คือสิ่งที่ระบุชื่อมัน <a href=\"/agents/\">สำหรับคนสร้างเอเจนต์</a>แสดงเครื่องมืออื่นๆ"
+    },
+    {
+      "id": "h-738097d0",
+      "kind": "html",
+      "en": "What this page does not claim",
+      "tr": "สิ่งที่หน้านี้ไม่ได้อ้าง"
+    },
+    {
+      "id": "h-9acaa78c",
+      "kind": "html",
+      "en": "It has not compared error messages, compile speed or runtime performance, and it has not tried calling any of the three from Glyph or the other way round. The quotes describe each project in its own words; how well each lives up to them is for you to check, as it is for Glyph's own claims on <a href=\"/evidence/\">the evidence page</a>.",
+      "tr": "หน้านี้ไม่ได้เปรียบเทียบข้อความ error ความเร็วในการคอมไพล์ หรือประสิทธิภาพตอนรัน และไม่ได้ลองเรียกภาษาใดในสามภาษานี้จาก Glyph หรือในทางกลับกัน ข้อความที่ยกมาอธิบายแต่ละโปรเจกต์ด้วยถ้อยคำของมันเอง แต่ละตัวทำได้ตามนั้นแค่ไหนเป็นสิ่งที่คุณต้องตรวจเอง เช่นเดียวกับข้อกล่าวอ้างของ Glyph เองใน<a href=\"/evidence/\">หน้าหลักฐาน</a>"
+    }
+  ]
+}

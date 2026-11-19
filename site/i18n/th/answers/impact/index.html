@@ -1,0 +1,110 @@
+---
+title: คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง? · Glyph
+description: glyph_impact รับ declaration ที่คุณกำลังจะเปลี่ยนและการแก้ แล้วตอบด้วยคำตัดสินพร้อมเหตุผลสำหรับทุกจุด ก่อนที่คุณจะแตะไฟล์
+source_hash: 42e24af1156f67f1
+prev: /answers/binary/ | &larr; ก่อนหน้า | จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?
+next: /answers/ask-the-compiler/ | ถัดไป &rarr; | เอเจนต์ของฉันถามคอมไพเลอร์ได้ไหมว่าสัญลักษณ์คืออะไร ก่อนเขียนโค้ด?
+---
+      <p class="q-eyebrow">21 &middot; ก่อนแก้</p>
+      <h1 class="q-title">คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง ก่อนที่ฉันจะแก้?</h1>
+
+      <p class="short-answer">
+        สำหรับการแก้หกแบบ ได้ <code>glyph_impact</code> รับ declaration ที่คุณกำลังจะเปลี่ยนและตัวการเปลี่ยนแปลง (เปลี่ยนชื่อ ลบ variant เปลี่ยน type ของ parameter เปลี่ยนจำนวน argument ลบทิ้ง) แล้วตอบด้วย<strong>คำตัดสินหนึ่งข้อต่อจุด</strong>จากรายการที่ปิดไว้ แต่ละข้อพร้อมเหตุผลว่าทำไมเป็นคำตัดสินนั้นและไม่ใช่ข้ออื่น
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          เมื่อเปลี่ยนชื่อฟังก์ชัน ขยาย union หรือเปลี่ยนสิ่งที่ parameter รับ คุณจะ grep หาชื่อเก่าแล้วหวังว่าเจอทุกจุดที่เรียก หรือไม่ก็แก้ไปแล้วอ่านว่าคอมไพเลอร์บอกอะไรหลังจากนั้น ไม่มีวิธีไหนบอกคุณได้ว่าจุดไหนจะยังคอมไพล์ผ่านแต่ผิดแบบเงียบๆ: <code>match</code> ที่มี arm แบบ catch-all ไม่ fail เมื่อคุณเพิ่ม variant มันแค่เริ่มส่ง case ใหม่ไปที่ที่ไม่มีใครเลือก จุดนั้นไม่เคยโผล่ใน build <code>glyph_impact</code> ตอบก่อนแก้ บนการวิเคราะห์เดียวกับที่คอมไพเลอร์รัน
+        </p>
+
+        <h2 class="block-label">สิ่งที่ได้กลับมา</h2>
+        <p>
+          request ระบุ entity ด้วยตัวตน <code>module::name</code> และการเปลี่ยนแปลงจากรายการที่ปิดไว้: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code> การเปลี่ยนแปลงเป็นสิ่งบังคับ เพราะคำตัดสินคือข้อเท็จจริงเกี่ยวกับการแก้ ถ้าไม่ระบุการแก้ ทุกจุดจะกลับมาเป็นแค่ reference แทนที่จะเป็นผลที่ตามมา คำตอบระบุ entity การเปลี่ยนแปลง และรายการ <code>impact</code>: หนึ่งรายการต่อจุด แต่ละรายการมี declaration ที่มันอยู่ <code>relation</code>, <code>verdict</code>, <code>because</code> และรหัส diagnostic ที่คอมไพเลอร์จะแจ้งเมื่อมีอยู่ตัวเดียว คำตัดสินเป็นชุดปิดและแต่ละตัวมีความหมายเดียว: <code>WILL_FAIL</code> (คอมไพเลอร์พิสูจน์ได้ว่าจุดนั้นจะคอมไพล์ไม่ผ่าน), <code>ABSORBS</code> (พิสูจน์ได้ว่าการเปลี่ยนแปลงถูกรับไว้ตรงนี้แบบเงียบๆ), <code>SAFE</code> (พิสูจน์ได้ว่าจุดนั้นยังถูกต้อง), <code>UNDETERMINED</code> (ดูจุดนี้แล้วแต่ยืนยันผลไม่ได้) และ <code>NOT_INDEXED</code> (คำถามนี้ถามไม่ได้เลยสำหรับจุดที่มีรูปแบบนี้)
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>
+          module หนึ่งประกาศ <code>label(s: string) -&gt; number</code> มีผู้เรียกสามจุด: จุดหนึ่งส่ง string literal อีกจุดส่งค่าที่ type เป็น alias ของ <code>string</code> ที่ import มาจาก module อื่น และอีกจุดอ่าน <code>label</code> เป็นค่าและไม่เคยเรียกมัน การถามว่า <code>change_signature_type</code> ทำอะไรกับแต่ละจุดได้คำตัดสินสามแบบ เพราะเป็นข้อกล่าวอ้างสามแบบ:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">request</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_impact",
+    "arguments": {
+      "entity": "lib::label",
+      "change": { "kind": "change_signature_type" }
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">ผลลัพธ์ ตัดเหลือสามจุด</span>
+<pre>{
+  "entity": "lib::label",
+  "impact": [
+    {
+      "entity": "literal::probe",
+      "verdict": "WILL_FAIL",
+      "diagnostic": "E0211",
+      "because": "every argument at this site is paired with
+        a parameter the relation reads in full, so a
+        replacement parameter type any of those pairings does
+        not accept is E0211 here. The pairings: argument 1
+        (`\"x\"`, `\"x\"`) against parameter `s: string`: ..."
+    },
+    {
+      "entity": "imported::probe",
+      "verdict": "UNDETERMINED",
+      "diagnostic": null,
+      "because": "argument 1 (`c`, `Cell`) against parameter
+        `s: string`: `Cell` is declared in another module as
+        an alias for a primitive, and the checker compares an
+        imported declaration only when the declaration at the
+        end of its chain of names is a tagged union or a
+        record (G215, G226), so a replacement is compared
+        against nothing here and only `tsc` on a full `glyph
+        build` would see a mismatch"
+    },
+    {
+      "entity": "reader::sizer",
+      "verdict": "NOT_INDEXED",
+      "diagnostic": null,
+      "because": "this site reads the name rather than
+        applying it, so no argument is paired with a
+        parameter here, and Glyph does not compare a
+        function value's parameter types against the type
+        its use context expects"
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          การแก้เดียวกัน สามจุด สามคำตัดสิน และ <code>because</code> ในแต่ละข้อคือประโยคจริงที่คอมไพเลอร์สร้าง ไม่ใช่ป้ายหมวดหมู่ นี่สะท้อนเทสต์ของคอมไพเลอร์เองสำหรับการเปลี่ยนแปลงนี้ (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> ใน <code>glyph-cli/tests/agent_loop.rs</code>): เทสต์ทำการแก้หลังจากนั้น และตรวจว่า E0211 เกิดตรงจุดที่ <code>WILL_FAIL</code> บอกไว้พอดี และคอมไพเลอร์เงียบในอีกสองจุด
+        </p>
+
+        <h2 class="block-label">บนแอปพลิเคชันจริง</h2>
+        <p>
+          <code>examples/apps/csvql</code> query engine สำหรับ CSV สิบเอ็ดไฟล์ใน repository นี้ มี tagged union หนึ่งตัวคือ <code>Value</code> ซึ่งวันนี้มีสี่ variant การถาม <code>glyph_impact</code> ว่าการเพิ่มตัวที่ห้า (<code>Blob</code>) ทำอะไร เจอจุดที่ match 10 จุดใน 4 ไฟล์: 8 จุดจะคอมไพล์ไม่ผ่าน และ 2 จุดมี arm แบบ catch-all ที่จะกลืน variant ใหม่ไปเงียบๆ เมื่อเพิ่ม variant จริงๆ คอมไพเลอร์รายงาน <code>E0200</code> 8 ตัวพอดี ที่ 8 จุดที่คาดไว้พอดี และไม่บอกอะไรเลยที่ 2 จุด <code>ABSORBS</code> ทั้งก่อนและหลัง การค้นหาข้อความหา arm แบบ catch-all ทั่วแอปเดียวกัน ซึ่งเป็นสิ่งที่คุณจะทำถ้าไม่มีเครื่องมือ เจอ 2 จุดจริงนั้นฝังอยู่ใน 20 ผลลัพธ์ (precision 0.10) และไม่บอกอะไรเลยเกี่ยวกับ 8 จุดที่ fail เพราะมันไม่รู้ว่า <code>match</code> ตรวจค่าที่เป็น type อะไร
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>การเปลี่ยนแปลงหกแบบที่เป็นชุดปิด (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) และคำตัดสินห้าแบบที่เป็นชุดปิด หนึ่งรายการต่อจุดที่ได้รับผลกระทบพร้อมเหตุผลและรหัส diagnostic <code>change_signature_type</code> ตัดสินทีละ argument ของการเรียกตามกฎการเปรียบเทียบของตัวตรวจเอง และแต่ละจุดได้คำตัดสินที่อ่อนที่สุดของ argument ทั้งหมด element ของ JSX ตัดสินเหมือนการเรียกที่มันถูกแปลงไป: <code>&lt;Card title="x" /&gt;</code> คือ props record หนึ่งตัวที่ส่งให้ <code>Card</code> และแต่ละ attribute แสดงคู่กับ field ที่มันถูกตรวจ พร้อมคำตัดสินที่ argument ของการเรียกที่มี type เดียวกันจะได้ ความครอบคลุม (การค้นหาอ่านอะไรได้และอะไรไม่ได้) ระบุทีละการค้นหา แทนที่จะระบุครั้งเดียวทั้งคำตอบ และทุก node บอกว่ามาจากซอร์ส Glyph, ทางออก <code>extern_ts</code> หรือ <code>.d.ts</code> ที่มองไม่เห็นข้างใน</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">หยุดตรงไหน</h3>
+          <p>ความลึกแม่นยำที่หนึ่งขั้นและว่างเปล่าเลยจากนั้น: Glyph ไม่เคยอนุมาน type ของ declaration จาก body ของมัน type ของฟังก์ชันที่ถูกเรียกจึงไปไม่ถึง signature ของผู้เรียก และการเปลี่ยน X ทำให้เป็นโมฆะได้เฉพาะ expression ที่ระบุชื่อ X ถ้าขอความลึก 2 คำตอบจะกลับมาพร้อม <code>next_query</code> ที่ระบุคำถามที่ถูกต้องแทน เพราะสิ่งที่ขั้นที่สองต้องใช้คือการแก้ที่ใครสักคนทำให้จุดแรก และการแก้นั้นยังไม่มี <code>UNDETERMINED</code> และ <code>NOT_INDEXED</code> เป็นข้อกล่าวอ้างคนละแบบ: argument ที่ตัวตรวจไม่มี type ให้ หรือ record ที่จับคู่กับ field ที่ไม่มีกฎไหนอ่าน คือ <code>UNDETERMINED</code> (ดูแล้วแต่ตัดสินไม่ได้) ฟังก์ชันที่ถูกอ่านเป็นค่าแทนที่จะถูกเรียกคือ <code>NOT_INDEXED</code> (คำถามถามไม่ได้ตรงนั้นตั้งแต่แรก) <code>ABSORBS</code> คือตัวที่ต้องจับตา: จุดนั้นยังคอมไพล์ผ่านและถูกพิสูจน์แล้วว่าผิด ซึ่ง build ที่เขียวจะไม่มีวันแสดงให้คุณเห็น</p>
+        </div>
+      </div>

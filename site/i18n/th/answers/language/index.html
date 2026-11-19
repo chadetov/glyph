@@ -1,0 +1,348 @@
+---
+title: นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่? · Glyph
+description: การมองเห็นของ module, interface เชิงโครงสร้างสำหรับข้อจำกัดของ generic, defer, structured concurrency และ match ที่เป็นค่า พร้อม semantics ของ JavaScript ที่มันสืบทอดมา
+source_hash: 5ef4512407bef58a
+prev: /answers/state/ | &larr; ก่อนหน้า | จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?
+next: /answers/finance/ | ถัดไป &rarr; | ไว้ใจมันกับเรื่องเงิน และกับ input ที่ควบคุมไม่ได้ได้ไหม?
+---
+      <p class="q-eyebrow">15 &middot; ความครบถ้วนของภาษา</p>
+      <h1 class="q-title">นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่?</h1>
+
+      <p class="short-answer">
+        มันมีสิ่งที่คุณต้องใช้ใน codebase จริง: <strong>การมองเห็นของ module</strong>, <strong>interface</strong> สำหรับจำกัด generic, <strong>defer</strong> สำหรับ cleanup และ helper สำหรับ<strong>concurrency</strong> ตรงไหนที่มันพึ่ง JavaScript มันก็บอกไว้ แทนที่จะแกล้งทำเป็นไม่ใช่
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          ภาษาที่เขียนไฟล์เดียวได้แต่จัดโครงสร้างโปรเจกต์ไม่ได้ ไม่ใช่ภาษาที่คุณจะเดิมพัน codebase ด้วย ช่องว่างที่สำคัญไม่ได้แปลกประหลาด: ซ่อน helper ได้ไหม generic กำหนดความสามารถได้ไหม ปล่อย file handle ในทุกทางออกได้ไหม รันสองอย่างพร้อมกันแล้วรอทั้งคู่ได้ไหม Glyph ตอบทั้งสี่ข้อ โดยไม่ย้อนกลับไปทางที่เต็มไปด้วย annotation ซึ่งตั้งใจทิ้งไปแล้ว
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>
+          declaration เป็น private ของ module จนกว่าคุณจะทำเครื่องหมาย <code>pub</code> API สาธารณะจึงหาได้ด้วยการค้นหาครั้งเดียว (<code>grep '^pub'</code>) และ helper ไม่มีวันรั่วออกไปโดยบังเอิญ:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">การมองเห็น: private โดยค่าเริ่มต้น</span>
+<pre><span class="add">pub fn</span> charge(cents: int) -&gt; Result&lt;Receipt, string&gt; { validate(cents)? ... }
+
+<span class="dim">fn</span> validate(cents: int) -&gt; Result&lt;int, string&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>interface</code> เป็นเชิงโครงสร้างเหมือนของ TypeScript: เป็นชุดของ signature ของ member ที่ generic กำหนดได้ ไม่มี <code>implements</code> ไม่มีพิธีแบบ nominal ค่าใดที่มี member ครบก็ผ่าน และ <code>tsc</code> บังคับใช้
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">interface จำกัด generic</span>
+<pre><span class="add">interface</span> Named {
+  fn name() -&gt; string
+}
+
+pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
+  x.name()
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>defer</code> รัน cleanup เมื่อออกจาก block ในทุกเส้นทาง รวมถึงการ return ก่อนเวลาหรือ error ที่ถูก throw defer หลายตัวรันแบบเข้าหลังออกก่อน และใช้ร่วมกับ handle แบบ <code>owned</code> ได้ และ <code>std/task</code> รวมงานที่ทำพร้อมกันให้มีอายุเดียว แทนที่จะปล่อย promise ที่หลุดลอยไว้
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">defer + structured concurrency</span>
+<pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
+
+let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { fetch_b() }])</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ส่วนที่ต้องพูดตรงๆ: Glyph คอมไพล์เป็น TypeScript และรันบน JavaScript engine ลำดับการประเมินค่า value กับ reference ความเท่ากัน (<code>==</code> คือ <code>===</code> ไม่มี overloading) และ model แบบ single-thread ที่มี garbage collector จึงสืบทอดมา ไม่ได้คิดขึ้นใหม่ ตอนนี้สเปกระบุสิ่งเหล่านี้เป็นการรับประกัน แทนที่จะปล่อยให้คุณไปรู้เอง การจัดการหน่วยความจำเองและ model ที่ไม่มี GC ไม่อยู่ใน roadmap มันอยู่นอกขอบเขตของภาษาที่ transpile เป็น TypeScript
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ไม่มี <code>if</code> <code>match</code> จึงต้องแบกทุกอย่าง</h2>
+        <p>
+          สิ่งแรกที่นักพัฒนา TypeScript ถามหลังจากได้ฟังเรื่องความครบถ้วนคือ <code>match</code> เป็นเงื่อนไขทั่วไปจริงหรือแค่วิธีสวยๆ ในการ destructure union คำตอบคืออย่างแรก และที่ที่พิสูจน์ได้คือการ assign <code>match</code> ที่เป็นค่าทั้งหมดของ <code>let</code> หรือ <code>mut</code> รับทุกอย่างที่ statement รับได้: arm เป็น block ได้ arm <code>await</code> ได้ arm <code>break</code> ออกจาก loop รอบนอกได้ และ arm อ่าน binding ที่มันกำลัง assign ได้ ซึ่งเป็นวิธีพับ state ผ่าน loop โดยไม่มี <code>if</code>
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">จากตัวตรวจลิงก์: การติดตาม fence และ arm ที่ await</span>
+<pre>for raw in lines {
+  let fence = is_fence(raw)
+  <span class="add">mut</span> in_fence = <span class="add">match</span> fence {      <span class="cm"># reads the binding it assigns</span>
+    true =&gt; !in_fence,
+    false =&gt; in_fence,
+  }
+}
+
+let cache = <span class="add">match</span> args.offline {
+  true =&gt; no_cache(),
+  false =&gt; <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ทั้งคู่คอมไพล์เป็น <code>switch</code> ธรรมดาที่ assign binding ในแต่ละ arm <code>await</code> จึงอยู่ในฟังก์ชัน async ที่ครอบอยู่ และตัวสะสมเป็นตัวแปรปกติที่ TypeScript อนุมานได้ <code>match</code> ที่ใช้<em>ภายใน</em> expression ที่ใหญ่กว่า เป็น argument หรือ operand ยังกลายเป็น closure ซึ่งหมายความว่า arm ต้องเป็น expression เดียว การยกมันออกมาเป็น <code>let</code> ของตัวเองปลดข้อจำกัดนั้น โค้ดทั้งสองชิ้นมาจาก <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a> ตัวตรวจลิงก์ใน Markdown ที่เขียนขึ้นเพื่อหาเรื่องแบบนี้โดยเฉพาะ
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">pattern ระบุรูปร่างที่ลึกกว่าหนึ่งชั้นได้</h2>
+        <p>
+          variant ที่มีหลาย field ถือ record ไว้ arm ที่ต้องการจำรูปร่างหนึ่งจึงต้องเอื้อมผ่าน field ของ record จนถึง 0.1.90 ตำแหน่ง field รับแค่ชื่อและไม่มีอย่างอื่น: คุณเปลี่ยนชื่อได้ และแค่นั้น การ match tag ตรงนั้นเป็น compile error และ constructor ที่ซ้อนกันทำให้ parser ล้ม วิธีเลี่ยงคือ bind ทุก field แล้วเขียน <code>match</code> ซ้อนกันทีละชั้น ซึ่งสำหรับอะไรอย่างการปรับสมดุล red-black tree ก็กลายเป็นอีกโปรแกรมหนึ่ง: arm ไม่ตรงกับ case อีกต่อไป และแต่ละชั้นต้องร้อย binding ข้างบนใหม่
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">case การหมุนหนึ่งแบบของการปรับสมดุล red-black เป็น arm เดียว</span>
+<pre>type Tree =
+  | Leaf
+  | Node({ color: Color, left: Tree, value: number, right: Tree })
+
+match t {
+  Node({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) =&gt;
+    Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b }), value: y, right: c }),
+  other =&gt; other,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ตอนนี้ field รับ pattern ใดก็ได้: tag ของ variant, constructor ที่ซ้อนกัน, destructure ที่ซ้อนกัน, literal, array pattern มีผลที่ตามมาที่ควรรู้ก่อนเขียน field ที่ทดสอบค่าอาจไม่ match arm จึงไม่นับว่าครอบคลุม variant ของมันอีกต่อไป และ match ที่มี arm <code>Node</code> แค่ <code>Node({ color: Red, ... })</code> จะถูกรายงานว่าไม่ครบจนกว่าจะมี arm ข้างเคียงหรือ <code>else</code> รับส่วนที่เหลือ ตัวตรวจพิสูจน์ความครอบคลุมบนชุดของ tag ไม่ใช่บนผลคูณของ field มันจึงไม่คำนวณว่า arm <code>Red</code> กับ arm <code>Black</code> รวมกันครบ <code>Node</code> การขอ catch-all คือการตีความที่ไม่มีทางปล่อยให้ match หลุดท้ายตอนรัน เช่นเดียวกับที่ที่ไม่มี variant ให้นับเลย: match บน record ธรรมดาที่ทุก arm ทดสอบ field ต้องมี <code>else</code> ตามหลัง
+        </p>
+        <p>
+          ที่หนึ่งที่สิ่งนี้ไปถึงซึ่งคุณอาจไม่คาดคิดคือตำแหน่งใน array <code>[Black]</code> ทั้ง arm เคยนับว่า match กับ array หนึ่ง element ใดก็ได้ match ที่พึ่งมันจึงถูกรับรองว่าครบ แล้วก็ใช้ arm นั้นกับ <code>[Red]</code> ด้วย element ที่เป็น PascalCase เป็นการอ้างถึง variant ที่นี่เช่นกัน match แบบนั้นตอนนี้จึงเป็น <code>E0208</code> บน array ความยาว 1 ให้ bind element แล้ว match มันแยกต่างหาก การแปลงข้างใต้ยังเป็นแบบเก่า ซึ่งเป็นเหตุผลที่การตรวจเป็นครึ่งที่ออกมาก่อน
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">และคอมไพเลอร์รู้ว่า <code>match</code> ให้อะไรออกมา</h2>
+        <p>
+          คำถามต่อมาคือตัวที่ตัดสินว่าทั้งหมดนี้รับน้ำหนักได้จริงหรือไม่: เมื่อคุณ bind ค่าออกมาจาก branch แล้ว Glyph รู้ type ของมันไหม หรือยักไหล่แล้วปล่อยให้ <code>tsc</code> จัดการทีหลัง? จนถึง 0.1.45 มันยักไหล่ <code>match</code> expression ทุกตัวมี type เป็น unknown ค่าที่ออกมาจาก construct แตก branch เพียงตัวเดียวในภาษาจึงไม่มี type ตั้งแต่ตรงนั้น ตอนนี้ <code>match</code> ได้ type ของ arm เมื่อมันตรงกัน และรู้ว่า <code>T.parse</code> คืน <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> ซึ่งเป็นรูปร่างที่โค้ดจริงส่วนใหญ่แตก branch
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">จากตัวแบ่งค่าใช้จ่าย: ไม่มี annotation และ <code>i</code> เป็นตัวเลข</span>
+<pre>let wire = <span class="add">match</span> WireLedger.parse(decoded) {
+  Ok(w) =&gt; w,
+  Err(issues) =&gt; {
+    return Err(BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }))
+  },
+}
+
+for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", "1", "2"</span>
+  ...
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ทั้งสองส่วนนั้นเป็นเรื่องที่เคยผิดแบบเงียบๆ loop emit <code>wire.expenses.entries()</code> เมื่อ type ของสิ่งที่วนเป็น unknown มันจะ emit <code>Object.entries(...)</code> แทน และ <code>i</code> เป็น<em>string</em> <code>"0"</code> ซึ่งเป็น TypeScript ที่ถูกต้อง build จึงสะอาด และโปรแกรมพิมพ์ <code>01:a</code> ทั้งที่หมายถึง <code>1:a</code> และ <code>wire.expensez</code> ตอนนี้เป็น <code>[E0210] type WireLedger has no field expensez</code> จาก Glyph บนบรรทัดของ <code>.glyph</code> แทนที่จะเป็น <code>TS2339</code> บน TypeScript ที่ generate การรวม type คือความเท่ากันที่ส่วนหัว: arm ที่ลงท้ายด้วย <code>return</code> ไม่ได้ร่วมโหวต และ arm ที่ type ไม่ตรงกันทำให้ผลเป็น unknown เหมือนเดิม มันมองลึกลงไปอีกชั้นเฉพาะที่ type argument <code>None =&gt; []</code> จึงตรงกับ arm ที่เป็น <code>Array&lt;string&gt;</code> แทนที่จะทำให้ทั้ง <code>match</code> จม และ loop ที่ตามมายัง bind ตัวเลขได้ chain เดียวกันบน <code>record.get</code> ใช้ได้ด้วยเหตุผลเดียวกัน: ฟังก์ชันทั้งหกตัวของ <code>std/record</code> พา type ของค่าออกมาจาก record ที่คุณส่ง โค้ดนี้มาจาก <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a> ซึ่งเคยมี annotation ที่สิ่งนี้ลบออกไป
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">จากตัว resolve dependency: การค้นหา ค่าว่างสำรอง และการเดินตาม index</span>
+<pre>let path = <span class="add">match</span> record.get(res.reached, name) {
+  Some(p) =&gt; p,
+  None =&gt; [],
+}
+
+for i, hop in path {               <span class="cm"># i is a number, so the indent nests</span>
+  let indent = string.repeat(STEP, i + 1)
+  mut out = array.push(out, "${indent}${hop}")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          นั่นคือรูปร่างที่เสียหายมากที่สุด <code>record.get</code> บน <code>Record&lt;string, Array&lt;string&gt;&gt;</code> เป็น <code>Option&lt;Array&lt;string&gt;&gt;</code> และ <code>[]</code> เป็น array ของอะไรก็ได้ arm ทั้งสองจึงตรงกันที่ <code>Array</code> และ type ของ element มาจาก arm ที่มี จนถึง 0.1.55 พวกมันถูกเทียบด้วยความเท่ากัน <code>[]</code> นับเป็นความไม่ตรงกัน และ loop ด้านล่างพิมพ์ <code>01:x</code> บน build ที่ไม่มี diagnostic และ <code>tsc --strict</code> ผ่าน โค้ดอยู่ที่ <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a> ซึ่งเคยเปิดด้วย <code>let path: Array&lt;string&gt;</code> ใต้ comment สามบรรทัดที่อธิบายว่า annotation นั้นรับน้ำหนักอยู่
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ต้องเขียน <code>pad_start</code> เองไหม?</h2>
+        <p>
+          ช่องว่างแรกที่คุณเจอในโปรแกรมจริงไม่ใช่ฟีเจอร์ของ type system แต่คือการเอื้อมหา <code>string.slice</code> แล้วไม่เจออะไร รอบ dogfooding ห้ารอบติดกันบันทึกรายการเดียวกัน และจนถึง 0.1.47 แอปหกตัวใน repo นี้มี <code>repeat</code> ของตัวเอง ห้าตัวมี <code>pad_start</code> ของตัวเอง และทุกตัวมี loop ในที่ที่ควรเป็น fold ตอนนี้ชื่อทั้งสิบเอ็ดนั้นมาพร้อมแล้ว และสำเนาถูกลบออกจากแอปทั้งเจ็ดที่มี
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">สิ่งที่เพิ่มเข้ามา</span>
+<pre>string.<span class="add">repeat</span>(s, n)           string.<span class="add">slice</span>(s, start, end?)       array.<span class="add">fold</span>(xs, init, f)
+string.<span class="add">pad_start</span>(s, w, pad?)   string.<span class="add">index_of</span>(s, needle, from?)  array.<span class="add">index_of</span>(xs, x)
+string.<span class="add">pad_end</span>(s, w, pad?)     string.<span class="add">replace_all</span>(s, from, to)     array.<span class="add">flat_map</span>(xs, f)
+string.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span>(s)
+
+<span class="cm"># the 25-line block six apps each carried, and what replaced it:</span>
+let total = array.<span class="add">fold</span>(expenses, 0, fn(sum, e) { sum + e.cents })
+io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<span class="add">pad_start</span>(amount, 9)}")</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          สามตัวในนั้นตั้งใจทำต่างจากชื่อเดียวกันใน TypeScript <code>repeat</code> คืน <code>""</code> เมื่อจำนวนติดลบ ในขณะที่ TS throw ซึ่งทำให้ <code>repeat(pad, width - len(s))</code> ปลอดภัยกับ string ที่ยาวเกินอยู่แล้ว ฟังก์ชัน <code>index_of</code> ทั้งสองคืน <code>Option&lt;number&gt;</code> แทน <code>-1</code> เพราะ <code>-1</code> เป็นตัวเลขที่ตรวจ type ผ่านทุกที่ที่ index จริงผ่าน และ fail ห่างจากจุดเรียกมาก การแทนที่มีแค่ <code>replace_all</code> จึงไม่มีรูปแบบที่แทนแค่ตัวแรกให้สับสนกับ <code>String.prototype.replace</code> ซึ่งแทนแค่ครั้งเดียวแบบเงียบๆ
+        </p>
+        <p>
+          <code>fold</code> คือตัวที่ได้ประโยชน์ต่อเสาหลัก ไม่ใช่แค่ประหยัดการพิมพ์ <code>mut</code> คือบันทึกที่ grep หาได้ของทุกจุดที่ state เปลี่ยน และถ้าไม่มี fold <code>grep mut</code> จะกลับมาเต็มไปด้วย loop นับเลขที่ไม่ได้แก้อะไรที่คนรีวิวสนใจ การลบตัวที่เขียนเองทำให้ <code>examples/apps/</code> ลดจาก 192 จุดแก้ค่าเหลือ 161 การเขียนใหม่ตรวจด้วย output ไม่ใช่ด้วยการรีวิว: แอปทั้งเจ็ดรันกับ input ตายตัวก่อนและหลัง stdout, exit code และ HTTP response 26 ไฟล์ เหมือนกันทุกไบต์
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">เดินไดเรกทอรีแล้วบอกได้ไหมว่าอะไรพัง?</h2>
+        <p>
+          <code>std/fs</code> มีหกฟังก์ชันและไม่มีตัวไหนแสดงรายการในไดเรกทอรี ตัวตรวจลิงก์ใน repo นี้เอื้อมข้าม stdlib ไปใช้ <code>readdirSync</code> ของ node และหาว่า path ไหนเป็นไดเรกทอรีโดยลองอ่านแล้วดู <code>errno</code> ที่กลับมา ทั้งสองส่วนแก้แล้ว <code>fs.read_dir</code> คืนชื่อรายการลึกลงไปหนึ่งชั้น <code>fs.is_dir</code> ตอบเป็น <code>bool</code> แบบเดียวกับ <code>fs.exists</code> และ <code>fs.stat</code> คืน <code>FileInfo</code> ที่มี <code>is_dir</code>, <code>is_file</code>, <code>size</code> เป็นไบต์ และ <code>modified</code> เป็นมิลลิวินาทีนับจาก epoch ซึ่ง <code>time.format_iso</code> render ได้โดยตรง ไม่มี <code>walk</code> แบบ recursive และไม่มี glob การเดินคือสามตัวนั้นบวก <code>path.join</code> ประมาณสิบบรรทัด
+        </p>
+        <p>
+          ฝั่งความล้มเหลวเปลี่ยนมากกว่า <code>FsError.kind</code> เคยเป็น <code>{ tag: string }</code> โดยมี <code>NotFound</code> เป็นการจำแนกทั้งหมด การแยก &ldquo;path นั้นเป็นไดเรกทอรี&rdquo; ออกจาก &ldquo;path นั้นไม่มีอยู่&rdquo; จึงต้องเทียบ string ของ errno ตอนนี้ห้าชนิดที่โปรแกรมกู้คืนได้จริงมีชื่อ และ errno ที่ไม่มีชื่อมาถึงครบถ้วนในส่วนท้าย <code>Other</code>
+        </p>
+        <p>
+          ตัวตรวจรู้ว่าการจำแนกนั้นเป็นชุดปิด <code>match</code> บน <code>err.kind</code> จึงถูกถือมาตรฐานเดียวกับ union ที่คุณประกาศเอง: ครอบคลุมทั้งหกแล้วไม่ต้องมี <code>else</code> ขาดไปหนึ่งแล้ว build จะ fail ด้วย <code>E0200</code> ที่ระบุ <code>fs.ErrorKind</code> <code>fs.FsError</code> และ <code>fs.FileInfo</code> ก็มี field ที่ถูกตรวจ <code>err.mesage</code> จึงเป็น <code>E0210</code> เทียบกับซอร์ส Glyph ของคุณ แทนที่จะเป็น error ของ <code>tsc</code> เทียบกับ TypeScript ที่ generate
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">เดิน tree และระบุว่าอะไรผิด</span>
+<pre>let names = fs.<span class="add">read_dir</span>(dir)?
+for name in names {
+  let child = path.join([dir, name])
+  match fs.<span class="add">is_dir</span>(child) {
+    true  =&gt; visit(child),
+    false =&gt; {
+      let info = fs.<span class="add">stat</span>(child)?
+      report_size(child, info.size)
+    },
+  }
+}
+
+match err.<span class="add">kind</span> {                        <span class="cm"># no else arm: E0200 if you miss one</span>
+  fs.ErrorKind.<span class="add">NotFound</span>         =&gt; io.eprintln("no such path"),
+  fs.ErrorKind.<span class="add">NotADirectory</span>    =&gt; io.eprintln("that is a file"),
+  fs.ErrorKind.<span class="add">IsADirectory</span>     =&gt; io.eprintln("that is a directory"),
+  fs.ErrorKind.<span class="add">AlreadyExists</span>    =&gt; io.eprintln("already there"),
+  fs.ErrorKind.<span class="add">PermissionDenied</span> =&gt; io.eprintln("cannot read it"),
+  fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          มีสองอย่างเล็กกว่าที่มาพร้อมกัน ทั้งคู่มาจากแอปเดียวกัน <code>regex.captures_all</code> ให้ capture group ของทุก match แทนที่จะให้แค่ข้อความที่ match การสแกน <code>key=value</code> แบบแบนจึงไม่ต้องเป็น loop ที่เขียนเอง และ <code>task.pool_settled</code> คือ <code>task.pool</code> ที่มีพฤติกรรมเมื่อล้มเหลวแบบ <code>all_settled</code>: concurrency ที่มีขอบเขต ผลลัพธ์หนึ่งตัวต่องาน และ host ที่ตายไปหนึ่งตัวทำให้เสียแค่ผลของ host นั้น ไม่ใช่ทุกผลที่ pool เก็บไว้
+        </p>
+        <p>
+          การตรวจนั้นใช้งานจริง ลบ arm <code>PermissionDenied</code> ออกจาก <code>match</code> ข้างบน แล้ว <code>glyph check --no-tsc</code> จะหยุดด้วย <code>E0200</code>: match ไม่ครบบน <code>fs.ErrorKind</code> ขาด variant <code>PermissionDenied</code> ตอนที่ model ของ stdlib ถูกเขียนครั้งแรก มันครอบคลุมแค่ return type และ match แบบนี้คอมไพล์ผ่านสะอาดแล้ว throw ตอนรัน ตอนนี้รูปร่างของ field และ variant ของ <code>fs.FsError</code>, <code>fs.FileInfo</code> และ <code>fs.ErrorKind</code> ถูก model แล้ว
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">รู้ได้อย่างไรว่าฟังก์ชันเหล่านี้ถูกตัว?</h2>
+        <p>
+          เพราะแอปที่ขอมันต้องเลิกใช้ทางเลี่ยงเสียก่อน รุ่นนั้นจึงจะนับว่าเสร็จ ฟังก์ชันในไลบรารีที่ออกมาแล้วกับทางเลี่ยงที่ยังอยู่ต่อเป็นข้อกล่าวอ้างคนละแบบ การเปลี่ยนแปลงเดียวกันที่เพิ่มสี่ตัวนี้จึงลบสำเนาของตัวตรวจลิงก์ไปด้วย: import <code>readdirSync</code>, การเทียบ string ของ <code>errno</code> ทั้งสองจุด, scanner ที่เขียนเอง 97 บรรทัด และ pool แบบ fail-fast รวมแล้วลบออกไป 122 บรรทัด
+        </p>
+        <p>
+          การลบสองอย่างในนั้นเปลี่ยนสิ่งที่โปรแกรมทำ และความต่างถูกวัด ไม่ใช่ถูกเถียง ชี้ทั้งรุ่นเก่าและรุ่นใหม่ไปที่ tree ที่มีไดเรกทอรีที่คุณอ่านไม่ได้: รุ่นใหม่พิมพ์ <code>permission denied</code> และนับ path นั้นว่าอ่านไม่ได้ ส่วนรุ่นเก่าซึ่งถามได้แค่ว่า errno เป็น <code>EISDIR</code> หรือไม่ ไม่ใส่มันในรายงานเลย ทำให้หนึ่งในสาม URL throw: <code>pool_settled</code> พิมพ์ครบสามแถวและระบุความล้มเหลว ส่วน <code>pool</code> ไม่พิมพ์อะไรเลยและตายไปด้วย rejection ที่ไม่ถูกจัดการ พาผลที่ดีสองตัวไปด้วย
+        </p>
+        <p>
+          การเขียน scanner ใหม่ยังคลายความกังวลด้านการออกแบบด้วย เพราะ capture group ที่ไม่ได้มีส่วนร่วมอ่านได้เป็น <code>""</code> เหมือนกับตัวที่ match ค่าว่าง <code>captures_all</code> จึงดูเหมือนบอกไม่ได้ว่า branch ไหนของ alternation ทำงาน แต่บอกได้ ถ้าคุณเขียน group ของแต่ละ branch ครอบทั้ง construct แทนที่จะครอบแค่ส่วนที่ต้องการ: group ที่ทำงานจะเริ่มด้วย <code>`</code>, <code>[</code>, <code>!</code> หรือ <code>&lt;</code> และว่างไม่ได้ ชิ้นที่อาจว่าง คือปลายทางของลิงก์ ซ้อนอยู่ข้างในและไม่เคยเป็นสิ่งที่คุณถามถึง นั่นเปลี่ยนการเดินทีละอักขระ 180 บรรทัดให้เหลือสอง pattern และการ dispatch 12 บรรทัด โดย output เหมือนกันทุกไบต์ทั้งบนเอกสารของ repo เองและบน fixture ที่สร้างมาเพื่อทำให้มันพัง
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">เงินไม่ได้คำนวณด้วย float</h2>
+        <p>
+          ช่องว่างที่จะจบการประเมินด้าน fintech ทันทีคือการคำนวณเงินด้วย <code>number</code> แบบ IEEE-754 ซึ่ง <code>0.1 + 0.2</code> ไม่ใช่ <code>0.3</code> และค่าที่เกิน 2<sup>53</sup> เสียความแม่นยำไปเงียบๆ <code>std/decimal</code> เป็น fixed-point ฐานสิบที่แม่นยำบน BigInt: จำนวนเต็มความแม่นยำไม่จำกัดที่มีจำนวนหลักทศนิยมตายตัว การบวก ลบ และคูณจึงแม่นยำ และการหารต้องระบุ scale และการปัดเศษ จำนวนเงินที่ผิดรูป parse ได้เป็น <code>Err</code> ไม่มีวันเป็น <code>NaN</code> แบบเงียบๆ
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", half away from zero</span>
+decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          สำหรับจำนวน<em>เต็ม</em>ขนาดใหญ่ที่แม่นยำ อย่าง id บัญชีและตัวนับ มี type <code>bigint</code>: literal เป็น <code>123n</code> มัน emit เป็น <code>bigint</code> จริงของ TypeScript และ field ของ record ที่มี type เป็น <code>bigint</code> จะ validate <code>typeof === "bigint"</code> ที่ขอบเขต id ที่ส่งมาเป็น <code>number</code> ใน JSON จึงถูกปฏิเสธแทนที่จะถูกปัดเงียบๆ เมื่อเกิน 2<sup>53</sup>
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">callback แบบ async มี type ในที่สุด</h2>
+        <p>
+          type ของฟังก์ชันเคยเป็น <code>fn(A) -&gt; T</code> และไม่มีอย่างอื่น ซึ่ง emit เป็น <code>(a: A) =&gt; T</code> body แบบ async ไม่เข้ากับสิ่งนั้น ฟังก์ชันที่คืนงานที่เลื่อนไว้ หรือ record ของ handler แบบ async จึงต้องปล่อยไว้โดยไม่มี annotation และตัวตรวจก็เลิกดู <code>async fn(A) -&gt; T</code> คือ type ที่ขาดไปนั้น มัน emit เป็น <code>(a0: A) =&gt; Promise&lt;T&gt;</code> และ <code>async fn()</code> ที่ไม่มี return emit เป็น <code>() =&gt; Promise&lt;void&gt;</code>
+        </p>
+        <p>
+          Glyph แยกสองอย่างนี้ออกจากกันเอง แทนที่จะปล่อยให้ <code>tsc</code>: ฟังก์ชันธรรมดาในที่ที่ต้องการฟังก์ชัน async เป็น <code>E0204</code> ที่ return และ <code>E0211</code> ที่ argument ของการเรียก และข้อความระบุทั้งสองฝั่ง กรณีเดียวที่มันไม่ตัดสินคือ return แบบ <code>void</code> ซึ่ง TypeScript ยอมให้ฟังก์ชันใดก็ได้
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">งานที่เลื่อนไว้ และ map ของ handler</span>
+<pre>fn task_for(url: string) -&gt; <span class="add">async fn() -&gt; Fetched</span> {
+  return async fn() -&gt; Fetched { return { url: url, body: await fetch_one(url) } }
+}
+
+type Handler = <span class="add">async fn(string) -&gt; string</span>
+
+async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: string) -&gt; string {
+  return match record.get(routes, name) {
+    Some(h) =&gt; await h(arg),
+    None    =&gt; "no route",
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">type แบบ recursive ที่ match ได้ลึกจนสุด</h2>
+        <p>
+          union อ้างถึงตัวเองภายใน payload ของมันได้ พร้อม type parameter และ arm ของ match ซ้อน constructor pattern ไว้ใน field ของ constructor pattern อีกตัวได้ เอาสองอย่างนี้มารวมกัน กฎการปรับสมดุลของ red-black tree ก็เหลือสี่ arm: แต่ละ arm ระบุรูปร่างที่มันเขียนใหม่พอดี และคอมไพเลอร์คือผู้ตรวจรูปร่าง แทนที่จะเป็น comment ข้างบนที่อ้างไว้ <code>examples/apps/leaderboard/main.glyph</code> คือโปรแกรมทั้งหมด เป็น leaderboard ที่เก็บทุกคะแนนไว้ใน tree และตอบคิวรี rank, top-N และช่วง ด้วยการเดิน tree แทนการเรียง log ใหม่
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">หนึ่งในสี่ case ของการหมุน</span>
+<pre>type Tree&lt;K, V&gt; =
+  | Leaf
+  | Node({ color: Color, left: <span class="add">Tree&lt;K, V&gt;</span>, key: K, value: V, size: int, right: <span class="add">Tree&lt;K, V&gt;</span> })
+
+fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
+  return match t {
+    Node({ color: Black, left: <span class="add">Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b })</span>, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) =&gt; node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    <span class="cm">// the other three cases, then:</span>
+    other =&gt; other,
+  }
+}</pre>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>การมองเห็นแบบ <code>pub</code> ที่บังคับใช้กับทั้งสองวิธีในการอ้างถึง type ของ module ข้างเคียง (import ด้วยชื่อ และ annotation <code>lib.Secret</code>), ข้อจำกัดแบบ <code>interface</code> เชิงโครงสร้าง, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> เป็น type ที่เขียนได้, union ที่อ้างถึงตัวเองใน payload ซึ่ง match ได้ด้วย arm ที่ซ้อน constructor pattern ไว้ใน field ของอีกตัว, <code>match</code> เป็นค่าของ <code>let</code> หรือ <code>mut</code> โดยมี block, <code>await</code> และการควบคุม loop ใน arm, <code>match</code> ที่ arm ตรงกันพา type ไปใช้ในส่วนที่เหลือของโปรแกรม, <code>T.parse</code> ที่มี type, <code>std/decimal</code> สำหรับคำนวณเงินอย่างแม่นยำ, <code>bigint</code> สำหรับจำนวนเต็มขนาดใหญ่ที่แม่นยำ, ตัวคั่นหลัก, ส่วนของสเปกที่รับผิดชอบ semantics ที่สืบทอดจาก JS และ standard library ที่มี <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> และ <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code> บวก <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, การจำแนก <code>FsError.kind</code> ที่ตัวตรวจบังคับคุณ และ <code>regex.captures_all</code> ส่วนใหญ่ของ <code>std/string</code> และ <code>std/array</code> พา return type เข้ามาในโปรแกรมของคุณแล้ว <code>string.split</code> จึงเป็น <code>Array&lt;string&gt;</code> และ loop บนมันก็ bind index เป็นตัวเลข <code>std/record</code> ก็ถูก model ด้วย โดยอ่าน type ของค่าจาก record ที่คุณส่ง: <code>record.get(t, k)</code> บน <code>Record&lt;string, Array&lt;string&gt;&gt;</code> เป็น <code>Option&lt;Array&lt;string&gt;&gt;</code> และ <code>record.keys(t)</code> เป็น <code>Array&lt;string&gt;</code> <code>array.sort(record.keys(t), cmp)</code> จึงรักษา type ของ element ไว้</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">หยุดตรงไหน</h3>
+          <p>import ที่เป็น private รายงานว่า &ldquo;not exported by M&rdquo; ซึ่งเป็นข้อความเดียวกับชื่อที่ไม่มีอยู่ การแยก &ldquo;เป็น private ให้ทำเครื่องหมาย <code>pub</code>&rdquo; ออกจาก &ldquo;ไม่มีชื่อนี้&rdquo; เป็นการปรับปรุงที่อยู่ในคิว การมองเห็นถูกตรวจบน type annotation ไม่ใช่บนค่าที่อ่านผ่าน namespace: <code>lib.helper()</code> ที่ <code>helper</code> เป็น private ยังเป็น error ของ <code>tsc</code> ไม่ใช่ของ Glyph บริบทของ async ถูกตรวจแล้ว (<code>E0222</code>) ยกเว้นจุดเดียว: initializer ของ <code>const</code> ระดับ module ไม่มีสิ่งที่เรียกได้ครอบอยู่ <code>await</code> ระดับบนสุดตรงนั้นจึงได้รับอนุญาต และ ESM ที่ emit ออกมาก็รันมัน การรวม type ของ arm ยังต้องให้ arm ตรงกันที่ส่วนหัวของ type: เมื่อได้ type ต่างกัน ผลจะเป็น unknown สำหรับ Glyph และมีแค่ <code>tsc</code> ที่ตรวจสิ่งที่คุณทำกับมัน ฟังก์ชันใน stdlib เก้าตัวอยู่ในสถานะเดียวกัน หกตัวรับ argument ท้ายที่ไม่บังคับ (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) และการตรวจจำนวน argument เทียบตัวเลขหนึ่งตัวกับตัวเลขหนึ่งตัว การ model มันจึงจะรายงาน error ผิดๆ ทุกครั้งที่เรียกโดยไม่ใส่ argument ตัวสุดท้าย ส่วน <code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ได้ type ของ element จาก callback ที่ตัวตรวจไม่ได้เดินเข้าไป ค่าที่ออกมาจากเก้าตัวนี้โดยตรงต้องมี annotation ก่อนวนด้วย index และ <code>match</code> บน <code>string.index_of</code> ที่ไม่มี arm <code>None</code> ยัง build ผ่านสะอาดและ throw ตอนรัน <code>array.index_of</code> ถูก model แล้วและรายงาน <code>E0200</code> member และจำนวน argument ของการเรียกบนค่าที่ตัวตรวจให้ type ไม่ได้ยังไม่ถูกตรวจที่ขอบเขตนั้น แทนที่จะเป็น error ฝั่งไลบรารี <code>string</code> ใช้ index เป็นหน่วย code unit ของ UTF-16 แบบเดียวกับที่ <code>len</code> และ <code>split</code> ใช้มาตลอด และเรื่องนี้ตัดสินแล้ว: ไม่มี <code>chars</code> หรือ <code>char_at</code> และไม่มีแผนจะทำ เพราะครึ่งหนึ่งของ surrogate ที่ถูกคืนมาดูเหมือนอักขระจนกระทั่งถูกเขียนออกไป ให้เข้ารหัสด้วย <code>encoding.hex_encode</code> แล้วอ่านทีละสองหลัก hex <code>captures_all</code> คืน group แต่ไม่มี offset scanner ที่ต้องรู้ว่า match เริ่มตรงไหนในบรรทัดจึงยังต้องเขียน loop เอง และ <code>fs.read_dir</code> ให้รายการตามลำดับของ OS จึงต้องเรียงเองเมื่อ output ต้องทำซ้ำได้ pattern ของ field ที่ซ้อนกันยังเหลือขอบหนึ่งจุด: constructor ที่มี payload อยู่ใน field บน union ที่เข้าถึงผ่าน namespace import <code>import tree { Node }</code> แล้ว <code>Node({ left: Node({ key: k }) })</code> คอมไพล์ผ่าน แต่ <code>import tree</code> แล้ว <code>tree.Node({ left: tree.Node({ key: k }) })</code> เป็น <code>E0300</code> บน union เดียวกัน ขออีกจุดหายไปแล้ว: union ที่เป็น generic บน parameter ของตัวเอง (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) เคยปฏิเสธ arm ที่ซ้อนกัน ซึ่ง union เดียวกันที่ไม่มี parameter ยอมรับ ตอนนี้รับได้แล้ว ทั้งที่ type parameter ที่ยังเปิดอยู่และที่ instantiation ที่ระบุจริง การค้นหาเดียวกันนี้เป็นตัวตัดสินด้วยว่า match ถูกตรวจหา variant ที่ขาดหรือไม่ จนถึงรุ่นนี้ <code>match</code> บน <code>Tree&lt;K&gt;</code> จึงละ <code>Leaf</code> ได้ build ผ่านสะอาด ผ่าน <code>tsc --strict</code> และ throw ตอนรัน ขณะที่การเขียนแบบไม่ generic เป็น <code>E0200</code> ตอนนี้ทั้งสองแบบรายงาน และการย้าย union ไปอยู่ห่างออกไปหนึ่ง import ก็ไม่เปลี่ยนคำตอบอีกต่อไป: <code>match</code> บน <code>Tree&lt;string&gt;</code> ที่ import มาซึ่งละ <code>Leaf</code> เป็น <code>E0200</code> ที่ระบุ <code>Leaf</code> เหมือนกับ <code>Tree</code> ที่ไม่ generic ที่ import มา นั่นเป็นอีกเส้นทางโค้ดที่ตรวจแยกกัน และมันเป็นไปในทางตรงข้ามจนถึงรุ่นนี้ คือ build ผ่านสะอาดแล้ว throw ตอนรัน มีอย่างหนึ่งเกี่ยวกับความครอบคลุมของ union ที่ import มาที่ควรรู้ก่อนพึ่งพามัน: payload ของ variant ไม่เคยถูกตรวจเช่นกัน <code>B(X)</code> ที่ <code>X</code> เป็น variant ของ union ใน payload เองจึง match กับ <code>B</code> ทุกตัวแทนที่จะรายงาน <code>Y</code> ที่ขาดไป และเรื่องนั้นไม่เกี่ยวกับ generic การ bind field หรือการ match tag ที่ไม่มี payload ในนั้นใช้ได้ทุกกรณี</p>
+        </div>
+      </div>

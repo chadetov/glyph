@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "mcp/index.html",
+  "locale": "th",
+  "source_hash": "9b8dc9db4173cc83",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Wire your agent into Glyph over MCP · Glyph",
+      "tr": "เชื่อมเอเจนต์ของคุณเข้ากับ Glyph ผ่าน MCP · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph mcp runs an MCP server with eleven tools: what a symbol is, what a change breaks, diagnostics, references and more. Each is also a glyph query verb.",
+      "tr": "glyph mcp รันเซิร์ฟเวอร์ MCP ที่มีสิบเอ็ดเครื่องมือ: สัญลักษณ์คืออะไร การเปลี่ยนแปลงทำอะไรพัง diagnostic การอ้างอิง และอื่นๆ แต่ละตัวเป็นคำสั่งย่อยของ glyph query ด้วย"
+    },
+    {
+      "id": "h-3e836396",
+      "kind": "html",
+      "en": "For agents &middot; Model Context Protocol",
+      "tr": "สำหรับเอเจนต์ &middot; Model Context Protocol"
+    },
+    {
+      "id": "h-09d8dc95",
+      "kind": "html",
+      "en": "Wire your agent into Glyph's compiler",
+      "tr": "เชื่อมเอเจนต์ของคุณเข้ากับคอมไพเลอร์ของ Glyph"
+    },
+    {
+      "id": "h-06f85893",
+      "kind": "html",
+      "en": "<code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> with eleven tools over your project: what a symbol is, what breaks if you change it, whether a value of one type can go where another is declared, what a declaration depends on, what a module exports, diagnostics checked inside the project, the type at a cursor, where a name is defined, every reference to it, every <code>match</code> site over a union, and symbol search. Each one is also a <code>glyph query</code> verb, so an agent with no MCP client asks the same questions and gets the same bytes.",
+      "tr": "<code>glyph mcp</code> รัน<strong>เซิร์ฟเวอร์ Model Context Protocol</strong> ที่มีสิบเอ็ดเครื่องมือบนโปรเจกต์ของคุณ: สัญลักษณ์คืออะไร ถ้าเปลี่ยนแล้วอะไรพัง ค่าของ type หนึ่งไปอยู่ในที่ที่ประกาศเป็นอีก type ได้ไหม declaration หนึ่งพึ่งพาอะไร module หนึ่ง export อะไร diagnostic ที่ตรวจภายในโปรเจกต์ type ที่ตำแหน่งเคอร์เซอร์ ชื่อหนึ่งถูกนิยามไว้ที่ไหน การอ้างอิงถึงมันทุกจุด ทุกจุดที่ <code>match</code> บน union และการค้นหาสัญลักษณ์ แต่ละตัวเป็นคำสั่งย่อยของ <code>glyph query</code> ด้วย เอเจนต์ที่ไม่มี MCP client จึงถามคำถามเดียวกันและได้ไบต์ชุดเดียวกัน"
+    },
+    {
+      "id": "h-77095b90",
+      "kind": "html",
+      "en": "Why an agent wants this",
+      "tr": "ทำไมเอเจนต์ถึงต้องการสิ่งนี้"
+    },
+    {
+      "id": "h-5041d57e",
+      "kind": "html",
+      "en": "An agent editing a codebase usually works blind. It reads files, guesses at types, and finds out whether it broke something only after a build. Glyph already answers those questions for an editor. <code>glyph mcp</code> gives an agent the same answers straight from the compiler, without scraping build output or reading every file to find who calls what. Two of the tools answer questions an editor never asks: <code>glyph_symbol</code> returns a union's variants with the syntax that constructs each, which is what an agent needs before it writes the <code>match</code>, and <code>glyph_impact</code> answers what an edit breaks before the edit exists.",
+      "tr": "เอเจนต์ที่แก้ codebase ปกติทำงานแบบมองไม่เห็น มันอ่านไฟล์ เดา type และรู้ว่าทำอะไรพังหรือเปล่าก็ต่อเมื่อ build แล้ว Glyph ตอบคำถามเหล่านี้ให้ editor อยู่แล้ว <code>glyph mcp</code> ให้คำตอบเดียวกันกับเอเจนต์ตรงจากคอมไพเลอร์ โดยไม่ต้องขูด output ของ build หรืออ่านทุกไฟล์เพื่อหาว่าใครเรียกอะไร มีสองเครื่องมือที่ตอบคำถามที่ editor ไม่เคยถาม: <code>glyph_symbol</code> คืน variant ของ union พร้อม syntax ที่ใช้สร้างแต่ละตัว ซึ่งเป็นสิ่งที่เอเจนต์ต้องรู้ก่อนเขียน <code>match</code> และ <code>glyph_impact</code> ตอบว่าการแก้จะทำอะไรพังก่อนที่การแก้นั้นจะเกิดขึ้น"
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "ตั้งค่า"
+    },
+    {
+      "id": "h-7418b107",
+      "kind": "html",
+      "en": "Any MCP client can launch it. Point the client at the <code>glyph</code> binary with the <code>mcp</code> subcommand, and pass your project root as an argument or run it from the project directory. It speaks MCP over stdio, so there's no port and no daemon.",
+      "tr": "MCP client ไหนก็เปิดมันได้ ชี้ client ไปที่ binary <code>glyph</code> พร้อมคำสั่งย่อย <code>mcp</code> แล้วส่ง root ของโปรเจกต์เป็น argument หรือรันจากไดเรกทอรีของโปรเจกต์ มันสื่อสาร MCP ผ่าน stdio จึงไม่มี port และไม่มี daemon"
+    },
+    {
+      "id": "h-1c9558ae",
+      "kind": "html",
+      "en": "mcp client config (generic)",
+      "tr": "config ของ mcp client (แบบทั่วไป)"
+    },
+    {
+      "id": "h-14f598ae",
+      "kind": "html",
+      "en": "On first connect the client calls <code>initialize</code> and <code>tools/list</code>; the server reports the eleven tools below. Positions you send follow the LSP convention: a 0-based <code>line</code> and a 0-based <code>character</code> in UTF-16 code units. Diagnostic ranges come back the way <code>glyph check --json</code> prints them, with a 1-based <code>line</code> and <code>col</code> plus the byte <code>offset</code>.",
+      "tr": "เมื่อเชื่อมต่อครั้งแรก client จะเรียก <code>initialize</code> และ <code>tools/list</code> แล้วเซิร์ฟเวอร์จะรายงานสิบเอ็ดเครื่องมือด้านล่าง ตำแหน่งที่คุณส่งไปใช้ตามแบบของ LSP: <code>line</code> เริ่มจาก 0 และ <code>character</code> เริ่มจาก 0 นับเป็นหน่วย UTF-16 ช่วงของ diagnostic กลับมาแบบเดียวกับที่ <code>glyph check --json</code> พิมพ์ คือ <code>line</code> และ <code>col</code> เริ่มจาก 1 พร้อม <code>offset</code> เป็นไบต์"
+    },
+    {
+      "id": "h-d2740b17",
+      "kind": "html",
+      "en": "Each tool's description carries the contract you need at the moment of the call, and the full manual lives in <code>glyph llms --json</code> under <code>tools</code>, keyed by tool name, with each tool's <code>glyph query</code> verb beside it. That reply used to carry every manual: eleven tools, 31,446 bytes of description in a 45,509-byte reply. It is 8,627 in a 20,386-byte reply now, and nothing was deleted. Every session pays for <code>tools/list</code> on connect and pays for the manual only when it asks. <a href=\"/answers/generated-docs/\">That document</a> is generated from the compiler's own tables, and a test fails the build if it names a tool this server does not serve.",
+      "tr": "คำอธิบายของแต่ละเครื่องมือมีข้อตกลงที่คุณต้องใช้ตอนเรียก และคู่มือฉบับเต็มอยู่ใน <code>glyph llms --json</code> ใต้ <code>tools</code> โดยใช้ชื่อเครื่องมือเป็น key และมีคำสั่งย่อย <code>glyph query</code> ของแต่ละตัวอยู่ข้างๆ เดิม reply นั้นเคยมีคู่มือทุกตัว: สิบเอ็ดเครื่องมือ คำอธิบาย 31,446 ไบต์ ใน reply ขนาด 45,509 ไบต์ ตอนนี้เหลือ 8,627 ใน reply ขนาด 20,386 ไบต์ และไม่มีอะไรถูกลบทิ้ง ทุก session จ่ายค่า <code>tools/list</code> ตอนเชื่อมต่อ และจ่ายค่าคู่มือเฉพาะเมื่อขอ <a href=\"/answers/generated-docs/\">เอกสารนั้น</a> generate จากตารางของคอมไพเลอร์เอง และมีเทสต์ที่ทำให้ build fail ถ้าเอกสารอ้างถึงเครื่องมือที่เซิร์ฟเวอร์นี้ไม่ได้ให้บริการ"
+    },
+    {
+      "id": "h-1323cb30",
+      "kind": "html",
+      "en": "The eleven tools",
+      "tr": "สิบเอ็ดเครื่องมือ"
+    },
+    {
+      "id": "h-65beb4ac",
+      "kind": "html",
+      "en": "tools exposed by glyph mcp",
+      "tr": "เครื่องมือที่ glyph mcp เปิดให้ใช้"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-a75b63e1",
+      "kind": "html",
+      "en": "A <code>tools/call</code> for <code>glyph_diagnostics</code> on a file with a field typo returns the compiler's own diagnostic, the same Rust type <code>glyph check --json</code> serializes, inside an envelope that also says what the check did not cover.",
+      "tr": "<code>tools/call</code> ไปที่ <code>glyph_diagnostics</code> กับไฟล์ที่มีชื่อ field พิมพ์ผิด จะคืน diagnostic ของคอมไพเลอร์เอง ซึ่งเป็น type ของ Rust ตัวเดียวกับที่ <code>glyph check --json</code> serialize อยู่ภายใน envelope ที่บอกด้วยว่าการตรวจไม่ได้ครอบคลุมอะไร"
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "request"
+    },
+    {
+      "id": "h-3841873d",
+      "kind": "html",
+      "en": "result (the tool's JSON content)",
+      "tr": "ผลลัพธ์ (เนื้อหา JSON ของเครื่องมือ)"
+    },
+    {
+      "id": "h-a4f1eb83",
+      "kind": "html",
+      "en": "The file is checked inside its project, so a wrong field on an imported record and a <code>match</code> missing arms over an imported union are reported here the way <code>glyph check</code> reports them. What the tool could not cover is on the answer rather than left for you to assume: <code>member</code> says whether the project walk reaches the file, <code>unindexed</code> names project files that don't parse, and <code>not_run</code> names the three checks <code>glyph check</code> makes and this one doesn't: <code>tsc</code>, <code>E0104</code> for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which is decided by running the emitted project. A test runs both surfaces on six projects and compares the JSON key for key, so the two can't drift.",
+      "tr": "ไฟล์ถูกตรวจภายในโปรเจกต์ของมัน field ที่ผิดบน record ที่ import มา และ <code>match</code> ที่ขาด arm บน union ที่ import มา จึงถูกรายงานที่นี่แบบเดียวกับที่ <code>glyph check</code> รายงาน สิ่งที่เครื่องมือครอบคลุมไม่ได้อยู่ในคำตอบ ไม่ได้ปล่อยให้คุณเดาเอง: <code>member</code> บอกว่าการไล่โปรเจกต์ไปถึงไฟล์นี้หรือไม่ <code>unindexed</code> ระบุไฟล์ในโปรเจกต์ที่ parse ไม่ผ่าน และ <code>not_run</code> ระบุสามการตรวจที่ <code>glyph check</code> ทำแต่ตัวนี้ไม่ทำ: <code>tsc</code>, <code>E0104</code> สำหรับ import ที่อ้างถึง module ที่ไม่มีอยู่ ซึ่งต้องใช้มุมมอง <code>node_modules</code> ของ build และ <code>E0400</code> สำหรับ <code>@example</code> ที่ fail ซึ่งตัดสินโดยการรันโปรเจกต์ที่ emit ออกมา มีเทสต์ที่รันทั้งสองช่องทางบนหกโปรเจกต์และเทียบ JSON ทีละ key ทั้งสองจึงไม่มีทางเพี้ยนออกจากกัน"
+    },
+    {
+      "id": "h-26714f00",
+      "kind": "html",
+      "en": "<code>glyph_references</code> is workspace-wide: ask about a symbol and you get its declaration, every use, and each importing module's <code>import</code> binding, across every file. It uses the same cross-file identity the editor's rename does, so the answer covers the whole project, not just the file you asked from.",
+      "tr": "<code>glyph_references</code> ครอบคลุมทั้ง workspace: ถามถึงสัญลักษณ์หนึ่งแล้วคุณจะได้ declaration ของมัน ทุกจุดที่ใช้ และ binding ของ <code>import</code> ในแต่ละ module ที่ import มัน ข้ามทุกไฟล์ มันใช้ตัวตนข้ามไฟล์แบบเดียวกับที่การ rename ใน editor ใช้ คำตอบจึงครอบคลุมทั้งโปรเจกต์ ไม่ใช่แค่ไฟล์ที่คุณถามมา"
+    },
+    {
+      "id": "h-9d3b62a6",
+      "kind": "html",
+      "en": "No MCP client? Same questions on the command line",
+      "tr": "ไม่มี MCP client? ถามคำถามเดียวกันบน command line"
+    },
+    {
+      "id": "h-132d1fdb",
+      "kind": "html",
+      "en": "Every tool has a <code>glyph query</code> verb taking the tool's own arguments as flags and printing the tool's JSON on stdout. An answered question exits 0; a refused one writes the reason to stderr and exits 2. The verbs route through the same entry point an MCP client reaches, and an integration test asks both surfaces the same question and compares the answers as text, so a verb that reformatted or summarized would fail it.",
+      "tr": "ทุกเครื่องมือมีคำสั่งย่อยของ <code>glyph query</code> ที่รับ argument ของเครื่องมือเป็น flag และพิมพ์ JSON ของเครื่องมือออกทาง stdout คำถามที่ได้คำตอบจะ exit 0 คำถามที่ถูกปฏิเสธจะเขียนเหตุผลลง stderr และ exit 2 คำสั่งย่อยวิ่งผ่าน entry point เดียวกับที่ MCP client ใช้ และมี integration test ที่ถามคำถามเดียวกันกับทั้งสองช่องทางแล้วเทียบคำตอบเป็นข้อความ คำสั่งย่อยที่จัดรูปแบบใหม่หรือสรุปคำตอบจะทำให้เทสต์ fail"
+    },
+    {
+      "id": "h-33fc2c51",
+      "kind": "html",
+      "en": "the same eleven questions, without a client",
+      "tr": "สิบเอ็ดคำถามเดียวกัน โดยไม่ต้องมี client"
+    },
+    {
+      "id": "h-4090bfff",
+      "kind": "html",
+      "en": "When the build is already red",
+      "tr": "เมื่อ build แดงไปแล้ว"
+    },
+    {
+      "id": "h-fababe9f",
+      "kind": "html",
+      "en": "The tools answer questions asked before an edit. After one, the thing to read is <code>glyph check --agent</code>, which prints <code>check --json</code>'s diagnostics with two more keys on each: <code>constraints</code>, the invariants a repairing edit has to keep, and <code>symbols</code>, the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. On a <code>match</code> missing arms that means the union's variants with their payloads arrive with the error that asked for them, along with the sentence saying an <code>else</code> arm would forfeit the guarantee the diagnostic exists to protect. Where the repair is fully determined, <code>glyph fix</code> writes it and says what it declined. There is a <a href=\"/answers/repair-protocol/\">walkthrough of the whole loop</a> with real output.",
+      "tr": "เครื่องมือเหล่านี้ตอบคำถามที่ถามก่อนแก้ หลังแก้ สิ่งที่ต้องอ่านคือ <code>glyph check --agent</code> ซึ่งพิมพ์ diagnostic ของ <code>check --json</code> โดยเพิ่ม key อีกสองตัวในแต่ละข้อ: <code>constraints</code> คือ invariant ที่การแก้ต้องรักษาไว้ และ <code>symbols</code> คือคำตอบของ <code>glyph_symbol</code> สำหรับทุกสัญลักษณ์ที่ diagnostic อ้างถึง การแก้ครั้งถัดไปจึงไม่ต้องเรียกซ้ำ สำหรับ <code>match</code> ที่ขาด arm นั่นหมายความว่า variant ของ union พร้อม payload มาพร้อมกับ error ที่ต้องการมัน รวมถึงประโยคที่บอกว่า arm แบบ <code>else</code> จะทำให้เสียการรับประกันที่ diagnostic นั้นมีไว้ปกป้อง ในกรณีที่วิธีซ่อมถูกกำหนดไว้ชัดเจน <code>glyph fix</code> จะเขียนให้ และบอกว่ามันปฏิเสธอะไรไปบ้าง มี<a href=\"/answers/repair-protocol/\">ตัวอย่างทีละขั้นของทั้ง loop</a> พร้อม output จริง"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-4fbc90ec",
+      "kind": "html",
+      "en": "A <code>glyph mcp [root]</code> server over stdio with eleven tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why. Hover answers at a name declared in another module, so an imported function at its call site and a field read off an imported record both have a type. An entity identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph_symbol</code> on it answers with <code>Ok(T)</code> and <code>Err(E)</code> and <code>glyph_exports</code> on <code>std/result</code> lists the surface. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.",
+      "tr": "เซิร์ฟเวอร์ <code>glyph mcp [root]</code> ผ่าน stdio ที่มีสิบเอ็ดเครื่องมือ: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (ทั้ง workspace), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> และ <code>glyph_exports</code> แต่ละตัวมีคำสั่งย่อย <code>glyph query</code> ที่พิมพ์ JSON เดียวกัน คำตอบมาจากคิวรีของคอมไพเลอร์เอง และทุกข้อเท็จจริงที่เครื่องมือไม่มีจะเป็น null โดยมีประโยค <code>&lt;key&gt;_absent</code> อยู่ข้างๆ บอกเหตุผล hover ตอบได้ที่ชื่อที่ประกาศไว้ใน module อื่น ฟังก์ชันที่ import มา ณ จุดที่เรียก และ field ที่อ่านจาก record ที่ import มา จึงมี type ทั้งคู่ ตัวตนของ entity ไปถึง stdlib: <code>Result</code> ใน prelude คือ <code>std/result::Result</code> ซึ่งเป็น module ที่ resolver ลงทะเบียนมันไว้ และเป็น module ที่ emitter เขียน import มาจาก <code>glyph_symbol</code> บนมันจึงตอบด้วย <code>Ok(T)</code> และ <code>Err(E)</code> และ <code>glyph_exports</code> บน <code>std/result</code> แสดงรายการ API ไม่มีซอร์ส Glyph อยู่เบื้องหลัง <code>path</code> และ <code>range</code> จึงเป็น null พร้อมเหตุผลนั้น แทนที่จะหายไปเฉยๆ"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "กำลังมา"
+    },
+    {
+      "id": "h-16a6d6db",
+      "kind": "html",
+      "en": "The tools only read: you can't rename or apply an edit through MCP. The write side lives on the command line instead, as <code>glyph fix</code>. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse. The <code>tools/list</code> reply is 20,386 bytes, down from 45,509, and that is still context every session pays for on connect.",
+      "tr": "เครื่องมือทำได้แค่อ่าน: คุณ rename หรือแก้ไขผ่าน MCP ไม่ได้ ฝั่งเขียนอยู่บน command line แทน ในชื่อ <code>glyph fix</code> เซิร์ฟเวอร์สแกนโปรเจกต์ใหม่ทุกครั้งที่เรียกแทนที่จะเก็บ index ไว้ใน cache และข้ามไฟล์ที่ parse ไม่ผ่าน reply ของ <code>tools/list</code> มีขนาด 20,386 ไบต์ ลดลงจาก 45,509 และนั่นก็ยังเป็น context ที่ทุก session ต้องจ่ายตอนเชื่อมต่อ"
+    },
+    {
+      "id": "h-51177984",
+      "kind": "html",
+      "en": "Beside the tools, an agent can read the language and the diagnostic surface offline: <a href=\"/llms.txt\">llms.txt</a> is the prose, <code>glyph llms --json</code> the same knowledge as data out of the compiler's own tables, and <code>glyph build --json</code> the batch path for coded diagnostics across a whole tree.",
+      "tr": "นอกจากเครื่องมือ เอเจนต์ยังอ่านภาษาและชุด diagnostic แบบออฟไลน์ได้: <a href=\"/llms.txt\">llms.txt</a> คือฉบับร้อยแก้ว <code>glyph llms --json</code> คือความรู้เดียวกันในรูปข้อมูลจากตารางของคอมไพเลอร์เอง และ <code>glyph build --json</code> คือทางสำหรับรับ diagnostic ที่มีรหัสทั้ง tree แบบ batch"
+    }
+  ]
+}

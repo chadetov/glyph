@@ -1,0 +1,94 @@
+---
+title: ร่วมพัฒนา · คอมไพเลอร์สร้างขึ้นอย่างไร และช่วยได้อย่างไร · Glyph
+description: คอมไพเลอร์ของ Glyph สร้างขึ้นอย่างไร (Rust workspace: lex, parse, resolve, typecheck, emit) วิธี build และทดสอบ และการทำงานของ issue และ pull request
+source_hash: 98fd22506cb2f943
+next_steps: |
+  ไปต่อที่ไหน
+  เริ่มที่นี่ | https://github.com/chadetov/glyph | github | repository | ซอร์สโค้ด, issue, discussion และ release | เปิดบน GitHub
+  /design/ | design | การออกแบบ | สี่เสาหลัก และบันทึก decision ที่ทุกการเปลี่ยนแปลงถูกตัดสินด้วย
+---
+      <p class="q-eyebrow">ร่วมพัฒนา</p>
+      <h1 class="q-title">คอมไพเลอร์สร้างขึ้นอย่างไร และช่วยได้อย่างไร</h1>
+
+      <p class="short-answer">
+        คอมไพเลอร์เป็น Rust workspace ที่มีสิบสอง crate อยู่ใน repository สาธารณะเดียว license เป็น MIT หรือ Apache-2.0 ตอนนี้ bug report ที่มีโค้ดทำซ้ำสั้นๆ ช่วยได้มากที่สุด การเปลี่ยนแปลงตัวภาษาเริ่มจาก issue เพราะทุกกฎย้อนกลับไปหา design decision ที่มีหมายเลขได้
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">pipeline</h2>
+        <p>
+          <code>glyph build</code> ทำ lex, parse, resolve ชื่อ, ตรวจ type และ emit TypeScript แล้วรัน <code>tsc --strict</code> กับสิ่งที่มันเขียน ขั้นกลางๆ รันเป็นคิวรีแบบ incremental บน <a href="https://github.com/salsa-rs/salsa">salsa</a> การตรวจซ้ำจึงใช้ผลลัพธ์ที่การแก้ไม่ได้ทำให้เป็นโมฆะซ้ำได้
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">ไฟล์ .glyph หนึ่งไฟล์ ผ่าน crate ต่างๆ</span>
+<pre>glyph-lexer → glyph-parser → glyph-resolver → glyph-typechecker → glyph-emit → tsc --strict
+                (glyph-ast)        └──────── glyph-db (salsa) ────────┘</pre>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Crate</th><th>ทำอะไร</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Crate"><code>glyph-lexer</code></td><td data-label="What it does">token, keyword, ขึ้นบรรทัดใหม่ที่มีความหมาย, template literal</td></tr>
+            <tr><td data-label="Crate"><code>glyph-ast</code></td><td data-label="What it does">type ของ syntax tree พร้อม source span บนทุก node</td></tr>
+            <tr><td data-label="Crate"><code>glyph-parser</code></td><td data-label="What it does">Pratt parser สำหรับทุก decision ในสเปก รวม JSX</td></tr>
+            <tr><td data-label="Crate"><code>glyph-resolver</code></td><td data-label="What it does">การ resolve ชื่อ, กราฟของ module, การตรวจ import ข้าม module, prelude</td></tr>
+            <tr><td data-label="Crate"><code>glyph-db</code></td><td data-label="What it does">pipeline คิวรีของ salsa และการทำให้เป็นโมฆะข้ามไฟล์</td></tr>
+            <tr><td data-label="Crate"><code>glyph-typechecker</code></td><td data-label="What it does">การตรวจความครบถ้วน, <code>?</code>, generic, <code>owned</code>, runtime descriptor, model ของ stdlib</td></tr>
+            <tr><td data-label="Crate"><code>glyph-emit</code></td><td data-label="What it does">ตัวเขียน TypeScript, การ generate descriptor, source map ระดับ expression</td></tr>
+            <tr><td data-label="Crate"><code>glyph-formatter</code></td><td data-label="What it does"><code>glyph fmt</code>: layout เดียว รักษา comment ไว้ รันซ้ำได้ผลเท่าเดิม</td></tr>
+            <tr><td data-label="Crate"><code>glyph-lsp</code></td><td data-label="What it does">language server และเซิร์ฟเวอร์ MCP ใช้ชั้นวิเคราะห์ร่วมกัน</td></tr>
+            <tr><td data-label="Crate"><code>glyph-cli</code></td><td data-label="What it does">binary <code>glyph</code> และทุกคำสั่งย่อย</td></tr>
+            <tr><td data-label="Crate"><code>glyph-wasm</code></td><td data-label="What it does">คอมไพเลอร์ใน WebAssembly ซึ่งรัน playground</td></tr>
+            <tr><td data-label="Crate"><code>glyph-runtime</code></td><td data-label="What it does">เป็น stub เทสต์รันผ่าน emitter และ <code>tsx</code> แทน</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md">glyph-compiler/README.md</a> มีบันทึกของทุก crate และจำนวนเทสต์ปัจจุบัน
+        </p>
+
+        <h2 class="block-label">build และทดสอบ</h2>
+        <p>
+          Rust 1.95 ถูก pin ไว้ใน <code>rust-toolchain.toml</code> เทสต์บางตัวเรียก <code>tsc</code> และ <code>tsx</code> จึงต้องติดตั้งด้วย CI รัน clippy โดยถือ warning เป็น error และทั้ง <code>cargo build</code> และ <code>cargo test</code> ไม่ได้รันมัน จึงควรรันสคริปต์ก่อน push
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">จาก clone</span>
+<pre>npm install -g tsx typescript
+cd glyph-compiler
+cargo build --release -p glyph-cli      <span class="cm"># target/release/glyph</span>
+cargo test --workspace
+cd .. &amp;&amp; python3 scripts/check_clippy.py  <span class="cm"># the exact clippy command CI runs</span>
+
+<span class="cm"># after an intentional syntax-tree change</span>
+INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          diagnostic ใหม่ต้องมาพร้อมโปรแกรมใต้ <code>tests/negative/</code> ที่ต้อง fail ด้วยรหัสนั้น ข้อกล่าวอ้างว่า Glyph จับอะไรที่ TypeScript พลาดได้ต้องอยู่ใน <code>catches/</code> ซึ่ง<a href="/evidence/">มี gate รันทั้งสองฝั่ง</a>
+        </p>
+
+        <h2 class="block-label">อะไรที่วางแผนไว้ และอะไรที่ยังพัง</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">docs/roadmap/releases.md</a> คือ roadmap ของการออกรุ่น: แต่ละรุ่นที่ออกไปแล้วทำอะไร และรุ่นถัดๆ ไปมีไว้ทำอะไร <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> คือบัญชี gap ข้อจำกัดทุกข้อที่เจอจากการสร้างแอปจริง แต่ละข้อมีหมายเลข (<code>G</code> ตามด้วยตัวเลข) พร้อมเครื่องหมายสถานะ gap ที่ยังเปิดอยู่และมีโค้ดทำซ้ำเป็นจุดเริ่มต้นที่ดี
+        </p>
+
+        <h2 class="block-label">issue และ pull request</h2>
+        <p>
+          การแก้ toolchain, diagnostic, เอกสาร และตัวอย่าง ส่ง pull request ได้เลย การเปลี่ยน syntax หรือ semantics ต้องเริ่มจาก issue และเรื่องที่ใหญ่กว่านั้นต้องผ่านกระบวนการ RFC ใน <code>docs/rfcs/</code> PR ที่ผ่อนกฎลง "เพื่อให้ใช้ง่ายขึ้น" น่าจะถูกปฏิเสธ เพราะข้อจำกัดคือหัวใจของเรื่อง ให้ pull request หนึ่งตัวแก้ gap เดียว ปกติหนึ่งถึงสาม commit และ sign ทุก commit (<code>git commit -s</code>) <code>main</code> ถูกป้องกันไว้และ merge ได้แบบ rebase เท่านั้น <a href="https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md">CONTRIBUTING.md</a> มีกฎทั้งหมด และ issue ที่ติดป้าย <a href="https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">good first issue</a> ถูกกำหนดขอบเขตไว้สำหรับการเปลี่ยนแปลงครั้งแรก
+        </p>
+
+        <h2 class="block-label">License</h2>
+        <p>
+          MIT หรือ Apache-2.0 ตามที่คุณเลือก (<a href="https://github.com/chadetov/glyph/blob/main/LICENSE-MIT">LICENSE-MIT</a>, <a href="https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE">LICENSE-APACHE</a>) การร่วมพัฒนาถูกรับภายใต้ license คู่เดียวกัน ยืนยันด้วยบรรทัด sign-off
+        </p>
+      </div>

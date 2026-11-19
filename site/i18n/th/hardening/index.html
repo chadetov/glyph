@@ -1,0 +1,173 @@
+---
+title: การทดสอบความแข็งแรง · Glyph ถูกทดสอบหนักอย่างไร และเจออะไรบ้าง
+description: เอเจนต์ AI สวมบทวิศวกรขี้สงสัย สร้างแอปด้วย Glyph และพยายามทำลายการรับประกันของมัน loop ทั้งหมด และบั๊กที่มันเจอ
+source_hash: 39150fb233f95dbe
+---
+      <header class="page-hero">
+        <p class="eyebrow">Glyph ถูกทำให้แข็งแรงอย่างไร</p>
+        <h1>เอเจนต์พยายามทำให้พัง <span class="accent">และเราเก็บสิ่งที่พวกมันเจอไว้</span></h1>
+        <p class="lede">
+          ภาษาที่บอกว่าเอเจนต์ของคุณทำพังแบบเงียบๆ ไม่ได้ ต้องถูกทดสอบตามนั้น เรารันเอเจนต์ AI ที่สวมบทวิศวกรขี้สงสัย (นักพัฒนา React ที่หงุดหงิด คนทำ backend ที่ชอบเถียง และคนที่จ้องหาช่องโหว่ด้านความปลอดภัย) ให้สร้างแอปและพยายามทำลายการรับประกัน แล้วแก้สิ่งที่พวกมันเจอ หรือบันทึกไว้เป็น gap ที่ยังเปิดอยู่ นี่คือ loop นั้น และสิ่งที่มันเจอ
+        </p>
+      </header>
+
+      <!-- ============ THE REFUSED CASES ============ -->
+      <section>
+        <h2 class="group-head">กรณีที่ผ่าน <code>tsc --strict</code> แต่คอมไพล์ไม่ผ่านใน Glyph</h2>
+        <p class="group-sub">
+          แต่ละกรณีมีสองไฟล์: <code>.ts</code> ที่ตรวจ type ผ่านสะอาดภายใต้ <code>tsc --strict</code> และโปรแกรมเดียวกันใน Glyph ที่คอมไพล์ไม่ผ่าน build gate ชื่อ <code>scripts/check_catches.py</code> รันทุกกรณีซ้ำ และจะ fail ถ้าฝั่งใดฝั่งหนึ่งไม่ทำงานตามที่ควร การรับประกันที่หายไปเงียบๆ จึงทำให้ build พังไปด้วย ตารางแสดง {{catches:refused}} ข้อจากข้อผิดพลาดใน TypeScript {{catches:count}} ข้อใน<a href="/catches/">หน้าสิ่งที่จับได้</a>ที่ถูกปฏิเสธด้วยวิธีนี้ หน้านั้นมีส่วนที่เหลือ ซึ่ง Glyph ตรวจเมื่อข้อมูลเข้ามา เตือน หรือหยุดตอนรัน {{catches:breakdown}}
+        </p>
+{{catches:refused-table}}
+        <p class="group-sub" style="margin-top:24px">
+          กรณีที่กลายเป็นว่า TypeScript ก็จับได้ หรือที่สองฝั่งไม่ใช่โปรแกรมเดียวกัน ถูกลบทิ้งไม่ใช่ถูกทำให้อ่อนลง <code>catches/README.md</code> แสดงแต่ละกรณีพร้อมเหตุผล
+        </p>
+        <p class="group-sub">
+          การอ่านจาก map ถูกปฏิเสธแม้จะสะกด key ถูก เพราะ <code>Record&lt;string, string&gt;</code> ไม่ได้บอกอะไรเลยว่ามี key ไหนอยู่บ้าง TypeScript จับได้ด้วย <code>noUncheckedIndexedAccess</code> ซึ่ง <code>--strict</code> ไม่ได้เปิดให้ case ของ union ที่ขาดไปก็จับได้ใน TypeScript เช่นกัน ด้วย <code>switch-exhaustiveness-check</code> ของ typescript-eslint หรือ default แบบ <code>assertNever</code> ถ้าโปรเจกต์เลือกใช้ ใน Glyph การตรวจทั้งสองอย่างไม่ใช่ตัวเลือก
+        </p>
+        <p class="group-sub">
+          ในกรณี body ที่ parse แล้ว <code>json.parse</code> ของ Glyph คืนค่าเป็น <code>Result</code> ไม่ใช่ <code>User</code> การ assign จึงเป็น type ที่ไม่ตรงกันจนกว่า body จะถูกตรวจ <code>JSON.parse</code> ของ TypeScript คืนค่า <code>any</code> และ annotation บน <code>user</code> ก็ฟอกมันให้ดูสะอาด
+        </p>
+      </section>
+
+      <!-- ============ THE LOOP ============ -->
+      <section>
+        <h2 class="group-head">loop แบบปรปักษ์</h2>
+        <p class="group-sub">ทุกสิ่งที่เจอจะถูกทำซ้ำกับคอมไพเลอร์ แก้ที่ต้นเหตุ และยืนยันซ้ำโดยอิสระก่อนจะนับ</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>สำรวจ</h3>
+            <p>เอเจนต์ที่สวมบทบาทสร้างโปรแกรม (ฟอร์ม backend UI ที่มี state) และบันทึกทุกจุดที่ภาษาขัดขวางพวกมัน</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>ทำซ้ำ</h3>
+            <p>ทุกสิ่งที่เจอถูกย่อให้เหลือโปรแกรมที่ล้มเหลวที่เล็กที่สุด แล้วรันซ้ำกับคอมไพเลอร์ อะไรที่ทำซ้ำไม่ได้จะถูกทิ้ง</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>แก้</h3>
+            <p>แก้ที่ต้นเหตุในคอมไพเลอร์ Rust พร้อม regression test ที่ fail ก่อนแก้และผ่านหลังแก้ เทสต์ทั้งชุดต้องยังเขียวอยู่ ไม่อย่างนั้นการเปลี่ยนแปลงจะถูก revert</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h3>ยืนยัน</h3>
+            <p>รอบตรวจที่เป็นอิสระรันโค้ดทำซ้ำทุกตัวกับคอมไพเลอร์ที่เพิ่ง build ใหม่ เพื่อจับ gap แบบ &ldquo;เอเจนต์คิดว่าแก้แล้ว&rdquo; ก่อนที่อะไรจะถูกปล่อยออกไป</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SILENT CORRECTNESS ============ -->
+      <section>
+        <h2 class="group-head">ที่สำคัญที่สุด: ช่องโหว่ที่ทำให้ผิดแบบเงียบๆ</h2>
+        <p class="group-sub">
+          แต่ละข้อนี้คอมไพล์ผ่านสะอาด และอาจปล่อย<em>โค้ดผิดที่ผ่านการตรวจ type</em>ออกไปได้ ซึ่งเป็นประเภทบั๊กที่ Glyph มีไว้ป้องกันพอดี ตอนนี้ทุกข้อถูกจับได้ตอนคอมไพล์
+        </p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev critical">วิกฤต แก้แล้ว</span>
+            <h3>error variant ที่ไม่มี payload ใน match ของ <code>Result</code></h3>
+            <p><code>match</code> บน <code>Result&lt;T, Empty | BadQty(...)&gt;</code> ถูกแปลงเป็น branch <code>case&nbsp;"Err"</code> ซ้ำกันสองตัว ตัวแรกกลืน error ทุกตัวและส่งไปยัง arm ที่ผิดแบบเงียบๆ</p>
+            <p class="now">ตอนนี้: case เดียวที่จัดกลุ่มแล้ว พร้อม switch ด้านในที่ถูกต้อง แต่ละ variant ไปถูกที่</p>
+          </div>
+          <div class="fix">
+            <span class="sev critical">วิกฤต แก้แล้ว</span>
+            <h3>constructor ที่สะกดผิดกลายเป็น catch-all แบบเงียบๆ</h3>
+            <p>variant ที่พิมพ์ผิดใน arm ของ match (<code>Loded</code> แทน <code>Loaded</code>) ถูก bind เงียบๆ เป็น catch-all ที่ match ได้ทุกอย่าง ทำให้มองไม่เห็นว่าไม่ครบทุกกรณี และส่งผิดที่ตอนรัน โดยไม่มี diagnostic เลย</p>
+            <p class="now">ตอนนี้: constructor ที่ไม่รู้จักถูกปฏิเสธตรงจุดที่พิมพ์ผิด เหมือนชื่อทั่วไป</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">สูง แก้แล้ว</span>
+            <h3>match บน <code>bool</code> ที่ไม่ครบหลุดการตรวจความครบถ้วนไปได้</h3>
+            <p><code>match n &gt; 0 { true =&gt; ... }</code> (ขาด arm <code>false</code>) คอมไพล์ผ่านและผ่าน <code>tsc</code> แล้ว throw ตอนรัน</p>
+            <p class="now">ตอนนี้: เป็น error แบบ match ไม่ครบทุกกรณีตอนคอมไพล์</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">สูง แก้แล้ว</span>
+            <h3>component ที่มีหลาย parameter bind props ผิด</h3>
+            <p><code>component C(a, b)</code> emit parameter ตามตำแหน่ง แต่ React เรียก component โดยส่ง props เป็นตัวแรก <code>a</code> จึงถูก bind เงียบๆ กับ props object ทั้งก้อน และมันผ่าน <code>tsc</code></p>
+            <p class="now">ตอนนี้: compile error ที่ชัดเจน ชี้ไปที่รูปแบบ props record ตัวเดียว</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">สูง แก้แล้ว</span>
+            <h3><code>&lt;match&gt;</code> ใน JSX ข้ามการตรวจความครบถ้วน</h3>
+            <p><code>&lt;match&gt;</code> ใน JSX ที่ขาด <code>&lt;case&gt;</code> คอมไพล์ผ่านเขียวแล้ว throw ตอนรัน ต่างจาก <code>match</code> ระดับค่าที่ถูกตรวจ</p>
+            <p class="now">ตอนนี้: ใช้การตรวจความครบถ้วนแบบเดียวกัน case ที่ขาดเป็น compile error</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">สูง แก้แล้ว</span>
+            <h3>payload ที่เป็น record ถูก bind กับ field ผิด</h3>
+            <p>การ bind variant ที่มี payload เป็น record เข้ากับชื่อ (<code>BadQty(b)</code>) ไปอ่าน <code>.value</code> ที่ไม่มีอยู่จาก payload ที่ถูกแผ่ออก</p>
+            <p class="now">ตอนนี้: payload ถูก bind อย่างถูกต้อง <code>b.sku</code> จึงใช้ได้</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RULES ENFORCED ============ -->
+      <section>
+        <h2 class="group-head">กฎที่ตัวตรวจบังคับใช้แล้วตอนนี้</h2>
+        <p class="group-sub">ความถูกต้องที่คอมไพเลอร์เคยปล่อยให้ <code>tsc</code> จัดการ ตอนนี้ Glyph จับได้เอง</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev high">แก้แล้ว</span>
+            <h3>จำนวน argument ในการเรียก</h3>
+            <p>argument ที่น้อยหรือมากเกินไปเคยถูกยอมรับ (และรันได้ <code>NaN</code>) ตอนนี้ <code>E0213</code> ปฏิเสธจำนวน argument ที่ผิด</p>
+          </div>
+          <div class="fix">
+            <span class="sev">แก้แล้ว</span>
+            <h3>error type ของ <code>?</code> ข้ามขอบเขตของ stdlib</h3>
+            <p>กฎเรื่อง error type ต้องตรงกันพอดีเคยถูกข้ามเมื่อ error มาจาก wrapper ของ stdlib ตอนนี้บังคับใช้ที่นั่นด้วย</p>
+          </div>
+          <div class="fix">
+            <span class="sev">แก้แล้ว</span>
+            <h3>การสร้างชื่อแฝงให้ handle แบบ <code>owned</code></h3>
+            <p><code>let g = f</code> บน resource handle สร้าง binding ตัวที่สองที่อาจปิดซ้ำสองครั้ง ตอนนี้ถูกปฏิเสธ (<code>E0215</code>)</p>
+          </div>
+          <div class="fix">
+            <span class="sev">แก้แล้ว</span>
+            <h3>arm ที่ไปไม่ถึง และการ validate ที่ลึกขึ้น</h3>
+            <p>arm ที่อยู่หลัง catch-all ถูกเตือนแล้ว <code>json.parse&lt;T&gt;</code> ตอนนี้ validate field ของ <code>Record</code> ตามโครงสร้าง แทนที่จะตรวจแค่ว่ามีอยู่</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FIRST CONTACT ============ -->
+      <section>
+        <h2 class="group-head">ความติดขัดตอนใช้ครั้งแรก เอาออกแล้ว</h2>
+        <p class="group-sub">เรื่องเล็กๆ ที่ทำให้ความประทับใจแรกแย่ และไม่มีประโยชน์อะไรเลย</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev">แก้แล้ว</span>
+            <h3>Accessibility และ data attribute</h3>
+            <p><code>aria-label</code> และ <code>data-*</code> เคยถูก parse เป็นการลบ ตอนนี้ใช้ได้ และ emit เป็น React props ที่ถูกต้อง</p>
+          </div>
+          <div class="fix">
+            <span class="sev">แก้แล้ว</span>
+            <h3>ชื่อแพ็กเกจ npm</h3>
+            <p>ชื่อที่มีขีดและมี scope (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>) เคยถูกปฏิเสธ ตอนนี้ import ได้โดยตรง</p>
+          </div>
+          <div class="fix">
+            <span class="sev">แก้แล้ว</span>
+            <h3>การรันครั้งแรกใน browser bundle</h3>
+            <p>runtime bootstrap ไม่ถูกโหลดใน build สำหรับเบราว์เซอร์ ทำให้ crash ตอนรันครั้งแรก ตอนนี้ทุก module ที่ emit ออกมาดึงมันเข้ามาด้วย</p>
+          </div>
+          <div class="fix">
+            <span class="sev">แก้แล้ว</span>
+            <h3>ข้อความ error ที่ชี้ผิดทาง</h3>
+            <p>การเขียน <code>if</code> ตอนนี้ชี้ไปที่ <code>match</code> range pattern บอกไว้ตรงๆ และจัดการ whitespace ใน JSX กับ <code>$</code> เดี่ยวๆ ในข้อความได้แล้ว</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STILL OPEN ============ -->
+      <section>
+        <h2 class="group-head">ยังเปิดอยู่: บันทึกไว้</h2>
+        <p class="group-sub">การทำให้แข็งแรงหมายถึงการระบุสิ่งที่ยังไม่เสร็จด้วย สิ่งเหล่านี้รู้แล้วและถูกติดตาม ไม่ได้ซ่อนไว้</p>
+        <div class="callout">
+          <p style="margin:0 0 10px;"><strong>ตั้งใจเลื่อนออกไป หรือรอ design decision:</strong></p>
+          <p style="margin:0;">
+            การปฏิเสธ closure ที่เป็น <code>any</code> แบบแฝงในตัวตรวจของ Glyph เองต้องใช้การอนุมานตามบริบท เพื่อไม่ให้เตือนผิดกับ callback ที่มี type ถูกต้อง FFI ที่ใช้สะดวก คือการใช้ไลบรารี TS ที่มี type ซับซ้อนโดยไม่ต้องมี adapter แยกแต่ละไลบรารี เป็นคำถามเรื่อง interop ที่ใหญ่ที่สุดที่ยังเปิดอยู่ ติดตามไว้ใน <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">open questions</a> map ที่มาจาก module อื่นหรือจาก standard library ยังถูกอ่านโดยไม่ตรวจ E0224 จึงยังไปไม่ถึง <code>sqlite.Row</code> และ <code>for i, x in xs</code> ที่มีสอง binding ยังเสีย type ของ element ไป
+            </p>
+        </div>
+        <a href="/answers/" class="backlink">&larr; ดูคำถามของวิศวกรที่เป็นที่มาของการแก้เหล่านี้</a>
+      </section>

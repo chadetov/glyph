@@ -170,7 +170,7 @@
       "id": "h-8bfb0506",
       "kind": "html",
       "en": "The three highest-ranked cases that pass <code>tsc --strict</code> with every extra flag on and typescript-eslint strict, ranked by how often an agent writes them and how bad they are when they ship.",
-      "tr": "กรณีสามอันดับแรกที่ผ่าน <code>tsc --strict</code> ได้ แม้จะเปิด flag เสริมทุกตัวและใช้ typescript-eslint แบบ strict เรียงตามความถี่ที่เอเจนต์เขียนออกมาและความเสียหายเมื่อหลุดขึ้น production ตัวอย่างแต่ละกรณีแสดงเป็นภาษาอังกฤษตามที่อยู่ใน repository"
+      "tr": "กรณีสามอันดับแรกที่ผ่าน <code>tsc --strict</code> ได้ แม้จะเปิด flag เสริมทุกตัวและใช้ typescript-eslint แบบ strict เรียงตามความถี่ที่เอเจนต์เขียนออกมาและความเสียหายเมื่อหลุดขึ้น production"
     },
     {
       "id": "h-bb229a74",

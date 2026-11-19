@@ -1,0 +1,121 @@
+---
+title: Glyph และ Effect · เปรียบเทียบไลบรารีกับภาษา · Glyph
+description: Effect เป็นไลบรารี TypeScript ที่มี error แบบมี type และ ecosystem ขนาดใหญ่ ส่วน Glyph เป็นภาษาที่คอมไพล์เป็น TypeScript แต่ละตัวทำอะไรได้ดีกว่า พร้อมโค้ด
+source_hash: f62ac4a8fc9859e6
+next_steps: |
+  ไปต่อที่ไหน
+  แนะนำ | /catches/ | catches | สิ่งที่ Glyph ปฏิเสธ | แต่ละกรณี ตรวจทั้งใน <code>tsc --strict</code> และใน Glyph | ดูสิ่งที่จับได้
+  /design/ | design | กลับไปที่การออกแบบ | สี่เสาหลัก สเปก และการเปรียบเทียบอื่นๆ
+---
+      <p class="q-eyebrow">การออกแบบ &middot; การเปรียบเทียบ</p>
+      <h1 class="q-title">Glyph และ Effect</h1>
+
+      <p class="short-answer">
+        ทั้งคู่มุ่งไปที่ TypeScript ที่คนและเอเจนต์พึ่งพาได้ Effect เป็นไลบรารี: คุณยังเขียน TypeScript ต่อไปและได้ error แบบมี type, dependency ที่ถูกติดตาม และชุดเครื่องมือขนาดใหญ่ Glyph เป็นภาษาที่คอมไพล์เป็น TypeScript จึงปฏิเสธสิ่งที่ TypeScript ยอมได้ รวมถึง cast ที่ทำลายการรับประกันของไลบรารี Effect เติบโตเต็มที่กว่ามาก
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Effect อธิบายตัวเองอย่างไร</h2>
+        <p>
+          หน้าแรกของ Effect เปิดด้วย "Reliable TypeScript for the AI era" และบอกว่า "declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code" (<a href="https://effect.website">effect.website</a>) เอกสารของมันเรียกตัวเองว่า "an ecosystem of tools that help you build better applications and libraries" ซึ่งสร้างขึ้นรอบ type <code>Effect&lt;Success, Error, Requirements&gt;</code> ที่บันทึกว่าการคำนวณคืนอะไร ล้มเหลวได้อย่างไร และต้องการอะไร (<a href="https://effect.website/docs/getting-started/why-effect/">Why Effect</a>) มันต้องใช้ TypeScript 5.4 ขึ้นไปและเปิด <code>strict</code> (<a href="https://effect.website/docs/getting-started/installation/">Installation</a>) ข้อความที่ยกมานี้อ่านเมื่อวันที่ 2026-11-19
+        </p>
+
+        <h2 class="block-label">ความต่างที่ตามมาจากการเป็นไลบรารีกับการเป็นภาษา</h2>
+        <p>
+          type ของ Effect ถูกตรวจโดย <code>tsc</code> ทุกอย่างที่ <code>tsc</code> ยอมจึงยังใช้ได้ข้างๆ มัน โค้ดนี้คอมไพล์ผ่าน <code>tsc --strict</code> กับ effect 4.1.4 และ TypeScript 6 cast เอา <code>NotFound</code> ออกจาก error channel และโปรแกรมรายงานความล้มเหลวจาก effect ที่มี type บอกว่าล้มเหลวไม่ได้
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">eff.ts: tsc --strict exit 0 และเมื่อรันจะพิมพ์ "Failure undefined"</span>
+<pre>import { Effect } from "effect"
+
+class NotFound {
+  readonly _tag = "NotFound"
+}
+
+const find = (id: string): Effect.Effect&lt;number, NotFound&gt; =&gt;
+  id === "1" ? Effect.succeed(1) : Effect.fail(new NotFound())
+
+<span class="cm">// The error channel says NotFound can happen. A cast erases it.</span>
+const quiet = find("2") as unknown as Effect.Effect&lt;number, never&gt;
+
+<span class="cm">// And a parsed body still takes any type you name.</span>
+type User = { email: string }
+const user = JSON.parse("{}") as User
+
+console.log(Effect.runSyncExit(quiet)._tag, user.email)</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ฟังก์ชันเดียวกันใน Glyph คืนค่าเป็น <code>Result</code> และไม่มี cast ให้เขียน module ที่สองถูกปฏิเสธก่อนที่จะ emit TypeScript ใดๆ ออกมา
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">find.glyph: build ผ่าน ผ่าน tsc --strict</span>
+<pre>module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">เพิ่ม cast: ถูกปฏิเสธ</span>
+<pre data-check="expect-error E0013">module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}
+
+pub fn quiet() -&gt; number {
+  let n = find("2") as number
+  return n
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          ข้อความช่วยเหลือของ <code>E0013</code> อ่านว่า: "Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>." ทีมหนึ่งทำให้ใกล้เคียงแบบนี้ได้ใน codebase ที่ใช้ Effect ด้วยกฎ lint และ<a href="/answers/vs-tooled-ts/">การเปรียบเทียบนั้น</a>อธิบายว่าทำไมกฎที่ใครก็ปิดได้จึงเป็นการรับประกันคนละแบบ
+        </p>
+
+        <h2 class="block-label">สิ่งที่ Effect ทำได้ดีกว่า</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>ด้าน</th><th>Effect</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">ความเติบโตเต็มที่</td><td data-label="Effect">ใช้งานจริงใน production หน้าแรกของมันมี Cloudflare อยู่ในรายชื่อบริษัท</td><td data-label="Glyph">พรีวิวช่วงแรก ยังไม่ถึง 1.0 ดูแลหลักๆ โดยคนคนเดียว</td></tr>
+            <tr><td data-label="Area">Ecosystem</td><td data-label="Effect">HTTP API, workflow, clustering, schema, scheduling, tracing และ dependency injection ทั้งหมดจากโปรเจกต์เดียว</td><td data-label="Glyph">standard library 40 module ที่เหลือมาจาก npm</td></tr>
+            <tr><td data-label="Area">dependency ใน type</td><td data-label="Effect">parameter <code>Requirements</code> ติดตามว่าการคำนวณต้องการอะไร</td><td data-label="Glyph">ไม่มีสิ่งที่เทียบเท่า signature ของฟังก์ชันบันทึกแค่ผลลัพธ์และ error</td></tr>
+            <tr><td data-label="Area">การนำมาใช้</td><td data-label="Effect">เป็นแพ็กเกจ npm คุณครอบโค้ดที่มีอยู่แล้ว refactor ขึ้นไปเรื่อยๆ โดยไม่มีคอมไพเลอร์ใหม่</td><td data-label="Glyph">คอมไพเลอร์ตัวที่สองใน build นำมาใช้ทีละ module</td></tr>
+            <tr><td data-label="Area">Concurrency</td><td data-label="Effect">มี structured concurrency, retry และ scheduling ในตัว</td><td data-label="Glyph">helper <code>par</code> และ <code>std/task</code> ซึ่งเล็กกว่ามาก</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">สิ่งที่ Glyph ทำได้แต่ไลบรารีทำไม่ได้</h2>
+        <p>
+          ภาษาเป็นตัวกำหนดว่าอะไรเขียนได้ Glyph ไม่มี <code>any</code> ไม่มี cast ไม่มี non-null assertion และไม่มี comment ที่ปิดปาก error และทุก <code>match</code> บน union ต้องครอบคลุมทุก case record และ union มีการตรวจตอนรันที่ generate จาก declaration <code>json.parse&lt;User&gt;(body)</code> จึง validate ได้ Schema ของ Effect ก็ derive type จากคำอธิบายเดียวเช่นกัน (<code>Schema.Schema.Type&lt;typeof Person&gt;</code> ใน<a href="https://effect.website/docs/schema/introduction/">บทนำของมัน</a>) type กับ validator จึงไม่เพี้ยนออกจากกันเหมือนกัน สิ่งที่ต่างคือไม่มีอะไรใน TypeScript บังคับให้ codebase ใช้มัน คอมไพเลอร์ยังตอบคำถามเกี่ยวกับโปรแกรมให้เอเจนต์ได้ด้วย เช่นการเปลี่ยนแปลงจะทำอะไรพัง <a href="/agents/">ผ่าน MCP หรือ command line</a>
+        </p>
+        <p>
+          หน้านี้ยังไม่ได้ทดสอบการใช้ Effect จากภายใน module ของ Glyph จึงไม่อ้างอะไรเกี่ยวกับการใช้สองอย่างร่วมกัน
+        </p>
+      </div>

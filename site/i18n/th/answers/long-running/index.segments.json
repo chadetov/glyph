@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/long-running/index.html",
+  "locale": "th",
+  "source_hash": "babc2c3ac5bb52bc",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I write a server, or does the process just exit? · Glyph",
+      "tr": "เขียน server ได้ไหม หรือ process จะจบไปเลย? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A Glyph program can be a long-running server. main sets up and returns; the process stays alive while sockets and timers are pending, exactly as Node does.",
+      "tr": "โปรแกรม Glyph เป็น server ที่ทำงานยาวได้ main เตรียมการแล้ว return และ process ยังทำงานต่อตราบที่ยังมี socket และ timer ค้างอยู่ เหมือนที่ Node ทำ"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I write a program someone types into?",
+      "tr": "เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?"
+    },
+    {
+      "id": "h-d7b98512",
+      "kind": "html",
+      "en": "19 &middot; Servers &amp; daemons",
+      "tr": "19 &middot; server และ daemon"
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "เขียน server ได้ไหม หรือ process จะจบไปเลย?"
+    },
+    {
+      "id": "h-357d442e",
+      "kind": "html",
+      "en": "You can write a server. <code>main</code> sets things up and returns, and the process <strong>stays alive while sockets and timers are still pending</strong>, the same rule Node uses. Until 0.1.63 it did not: the runner tore the process down the moment <code>main</code> returned, so a server bound its port and died in the same tick.",
+      "tr": "คุณเขียน server ได้ <code>main</code> เตรียมการแล้ว return และ process <strong>ยังทำงานต่อตราบที่ยังมี socket และ timer ค้างอยู่</strong> ซึ่งเป็นกฎเดียวกับที่ Node ใช้ จนถึง 0.1.63 ยังไม่ใช่แบบนี้: ตัวรันปิด process ทันทีที่ <code>main</code> return server จึง bind port แล้วตายใน tick เดียวกัน"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-802abf2b",
+      "kind": "html",
+      "en": "This is the difference between a language that can run a script and one that can run a service. A server, a file watcher, a bot holding a gateway connection, a job runner: none of them finish inside <code>main</code>. They set up handlers and hand the process over to events.",
+      "tr": "นี่คือความต่างระหว่างภาษาที่รันสคริปต์ได้กับภาษาที่รัน service ได้ server, file watcher, bot ที่ถือ connection กับ gateway, job runner ไม่มีตัวไหนจบภายใน <code>main</code> พวกมันตั้ง handler แล้วส่ง process ต่อให้ event"
+    },
+    {
+      "id": "h-ddc1b8fa",
+      "kind": "html",
+      "en": "The old behaviour failed in the worst possible way, which is quietly. <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line inside the <code>listen</code> callback, and exited 0. Nothing in the source looked wrong and it type-checked. An agent that hits that has no error to report and no reason to think anything failed.",
+      "tr": "พฤติกรรมเดิมล้มเหลวในแบบที่แย่ที่สุด คือแบบเงียบๆ <code>glyph run app.glyph --serve 4100</code> ไม่พิมพ์อะไรเลย แม้แต่บรรทัดใน callback ของ <code>listen</code> แล้ว exit 0 ไม่มีอะไรในซอร์สดูผิด และตรวจ type ผ่าน เอเจนต์ที่เจอแบบนั้นไม่มี error ให้รายงาน และไม่มีเหตุผลให้คิดว่าอะไรล้มเหลว"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-fbc29a6a",
+      "kind": "html",
+      "en": "A TCP server in full. <code>main</code> returns immediately; the callbacks run for as long as the process lives:",
+      "tr": "TCP server แบบเต็ม <code>main</code> return ทันที callback รันไปตลอดที่ process ยังอยู่:"
+    },
+    {
+      "id": "h-72b727b4",
+      "kind": "html",
+      "en": "A server, start to finish",
+      "tr": "server ตั้งแต่ต้นจนจบ"
+    },
+    {
+      "id": "h-4c1b7d58",
+      "kind": "html",
+      "en": "<code>net</code> is a Node builtin, so it is an ordinary import, but it is not one of the six the compiler ships ambient types for (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Either install <code>@types/node</code> and the build prefers it, or drop a declaration in <code>.types/net.d.ts</code> next to your source, which is what the chat app does so it needs no dependencies at all.",
+      "tr": "<code>net</code> เป็น builtin ของ Node จึงเป็น import ธรรมดา แต่มันไม่ใช่หนึ่งในหกตัวที่คอมไพเลอร์มี type แบบ ambient มาให้ (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>) ให้ติดตั้ง <code>@types/node</code> แล้ว build จะเลือกใช้มัน หรือวาง declaration ไว้ใน <code>.types/net.d.ts</code> ข้างซอร์ส ซึ่งเป็นสิ่งที่แอป chat ทำเพื่อไม่ต้องมี dependency เลย"
+    },
+    {
+      "id": "h-4c982701",
+      "kind": "html",
+      "en": "Two things worth knowing. The <code>return 0</code> runs before the first client ever connects: it is the code the process will eventually leave with, not a statement about when it leaves. And anything that fails <em>after</em> <code>main</code> has returned has to set its own exit code, because <code>main</code>'s return value is already spent. That is what the <code>error</code> handler is for. Without it, a server that cannot bind its port drains its event loop and exits 0, reporting success.",
+      "tr": "สองเรื่องที่ควรรู้ <code>return 0</code> รันก่อนที่ client แรกจะเชื่อมต่อด้วยซ้ำ: มันคือรหัสที่ process จะใช้ตอนออกในที่สุด ไม่ใช่การบอกว่าจะออกเมื่อไร และอะไรก็ตามที่ล้มเหลว<em>หลัง</em> <code>main</code> return ไปแล้วต้องตั้ง exit code เอง เพราะค่าที่ <code>main</code> return ถูกใช้ไปแล้ว นั่นคือหน้าที่ของ handler <code>error</code> ถ้าไม่มี server ที่ bind port ไม่ได้จะปล่อย event loop ให้ว่างแล้ว exit 0 รายงานว่าสำเร็จ"
+    },
+    {
+      "id": "h-b957e585",
+      "kind": "html",
+      "en": "A real one",
+      "tr": "ตัวจริง"
+    },
+    {
+      "id": "h-e196848d",
+      "kind": "html",
+      "en": "<code>examples/apps/chat</code> is a chat server holding several TCP clients at once. The parts that do not touch the network stay separate and testable: line reassembly, routing, and the room engine are pure functions checked by <code>@example</code>, and one file talks to sockets.",
+      "tr": "<code>examples/apps/chat</code> คือ chat server ที่ถือ TCP client หลายตัวพร้อมกัน ส่วนที่ไม่แตะ network แยกไว้และทดสอบได้: การต่อบรรทัด การ route และ engine ของห้อง เป็น pure function ที่ตรวจด้วย <code>@example</code> และมีไฟล์เดียวที่คุยกับ socket"
+    },
+    {
+      "id": "h-bfe5fdf1",
+      "kind": "html",
+      "en": "Three clients connected at once",
+      "tr": "client สามตัวเชื่อมต่อพร้อมกัน"
+    },
+    {
+      "id": "h-6ad09c69",
+      "kind": "html",
+      "en": "TCP does not deliver messages, it delivers bytes, so the tail of a chunk is usually half a line. That reassembly is a pure function with the awkward cases written down as examples rather than provoked over a socket:",
+      "tr": "TCP ไม่ได้ส่งข้อความ มันส่งไบต์ ท้าย chunk จึงมักเป็นครึ่งบรรทัด การต่อบรรทัดเป็น pure function ที่เขียนกรณียุ่งยากไว้เป็นตัวอย่าง แทนที่จะไปกระตุ้นให้เกิดผ่าน socket:"
+    },
+    {
+      "id": "h-02e0830c",
+      "kind": "html",
+      "en": "The other direction: a long-running client",
+      "tr": "อีกทิศทาง: client ที่ทำงานยาว"
+    },
+    {
+      "id": "h-468113df",
+      "kind": "html",
+      "en": "A bot is the same shape pointed outward. <code>examples/apps/discord</code> is a Discord gateway client: it connects over a WebSocket, identifies, heartbeats on the interval the server dictates, tracks a sequence number so a dropped connection resumes rather than starting over, notices when the connection is open but dead, and backs off between reconnects.",
+      "tr": "bot คือรูปแบบเดียวกันที่หันออกไปข้างนอก <code>examples/apps/discord</code> คือ client ของ Discord gateway: เชื่อมต่อผ่าน WebSocket ยืนยันตัว ส่ง heartbeat ตามช่วงที่ server กำหนด ติดตามเลขลำดับเพื่อให้ connection ที่หลุดกลับมาต่อได้แทนที่จะเริ่มใหม่ สังเกตเมื่อ connection เปิดอยู่แต่ตายแล้ว และถอยรอระหว่างการเชื่อมต่อใหม่"
+    },
+    {
+      "id": "h-39d6dc9e",
+      "kind": "html",
+      "en": "The part worth copying is where the logic lives. Deciding what to do about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token is a pure function from a session and one event to a new session and a list of actions. One module carries those actions out on a real socket. That is why the reconnect logic, which is the hard part to get right, is checked by <code>@example</code> rather than by unplugging a network cable:",
+      "tr": "ส่วนที่ควรลอกไปคือที่ที่ logic อยู่ การตัดสินว่าจะทำอะไรกับ <code>RECONNECT</code>, heartbeat ที่พลาด หรือ token ที่ถูกปฏิเสธ เป็น pure function จาก session กับ event หนึ่งตัว ไปเป็น session ใหม่และรายการ action มี module เดียวที่ทำ action เหล่านั้นบน socket จริง นั่นคือเหตุผลที่ logic การเชื่อมต่อใหม่ ซึ่งเป็นส่วนที่ทำให้ถูกยาก ถูกตรวจด้วย <code>@example</code> แทนที่จะต้องถอดสาย network:"
+    },
+    {
+      "id": "h-eb9066f0",
+      "kind": "html",
+      "en": "Those three examples are each a bug that was in the code first. Writing a mock gateway and pointing the bot at it caught one of them. The other two were caught by a second mock written from Discord's documentation instead of from the client, which sends the things a cooperative mock never does: an unprompted heartbeat request, and a close code that means \"your token is wrong, stop asking\". A mock written by the author of the client only tests the parts of the protocol the author read.",
+      "tr": "ตัวอย่างทั้งสามนี้แต่ละตัวคือบั๊กที่อยู่ในโค้ดมาก่อน การเขียน gateway จำลองแล้วชี้ bot ไปที่มันจับได้หนึ่งตัว อีกสองตัวถูกจับโดย mock ตัวที่สองซึ่งเขียนจากเอกสารของ Discord แทนที่จะเขียนจาก client มันส่งสิ่งที่ mock ที่ให้ความร่วมมือไม่เคยส่ง: คำขอ heartbeat ที่ไม่มีใครขอ และ close code ที่หมายถึง \"token ของคุณผิด เลิกถามได้แล้ว\" mock ที่เขียนโดยคนเขียน client ทดสอบได้แค่ส่วนของ protocol ที่คนเขียนอ่านมา"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-3954ea38",
+      "kind": "html",
+      "en": "Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit. <code>std/timers</code> schedules work (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) and <code>std/websocket</code> opens a connection, so neither needs a hand-written declaration.",
+      "tr": "การ return จาก <code>main</code> ตั้ง exit code โดยไม่หยุด process server, watcher และ event loop จึงรันได้ โปรแกรมที่แค่คำนวณยังออกทันทีที่ <code>main</code> return ด้วยรหัสเดิม จึงไม่มีอะไรเปลี่ยนสำหรับโปรแกรมสั้นๆ builtin ของ Node อย่าง <code>net</code> เป็น import ธรรมดา และโปรแกรมที่ throw ระหว่างเตรียมการยังจบการทำงาน โดยตอนนี้จบหลังจากที่ diagnostic ไปถึง stderr ที่ pipe ไว้แล้ว แทนที่จะอาจถูกตัดทิ้งตอน exit <code>std/timers</code> ตั้งเวลางาน (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) และ <code>std/websocket</code> เปิด connection ทั้งสองจึงไม่ต้องมี declaration ที่เขียนเอง"
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "กำลังคมขึ้น"
+    },
+    {
+      "id": "h-5f8ed8fa",
+      "kind": "html",
+      "en": "A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.",
+      "tr": "listener ที่ bind ไม่ได้หลัง <code>main</code> return ไปแล้วจะ exit 0 ถ้าโปรแกรมไม่ได้บอกเป็นอย่างอื่น: <code>process.set_exit_code(1)</code> บันทึกความล้มเหลวโดยไม่ทิ้งงานที่ยังทำอยู่ และ <code>process.exit(1)</code> หยุดทันที คอมไพเลอร์ยังเตือนไม่ได้ว่าคุณลืม และยังไม่มีวิธีเขียนบอกว่าฟังก์ชันไม่ return <code>main</code> ของ server จึงมี <code>return 0</code> ที่ไม่มีวันไปถึง"
+    }
+  ]
+}

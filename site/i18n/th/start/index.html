@@ -1,0 +1,154 @@
+---
+title: เริ่มที่นี่ · โปรแกรม Glyph แรกของคุณใน 10 นาที · Glyph
+description: สร้างโปรเจกต์ Glyph ด้วย npx รัน ตั้งใจทำให้พัง อ่าน error จากคอมไพเลอร์ แล้วแก้ ใช้เวลาสิบนาที ไม่ต้องติดตั้งอะไรแบบ global
+source_hash: 0967efaee1e51c6b
+prev: / | &larr; หน้าแรก | TypeScript ที่เอเจนต์ของคุณทำพังแบบเงียบๆ ไม่ได้
+next: /answers/verifiability/ | ถัดไป &rarr; | อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?
+next_steps: |
+  ไปต่อจากนี้
+  ถัดไป &middot; ไม่ต้องติดตั้ง | /playground/ | playground | Playground | ลอง Glyph ในเบราว์เซอร์ ไม่ต้องติดตั้ง | เปิด playground
+  https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md | spec | ทัวร์ห้านาที | ทั้งภาษาแบบรวบรัด
+  /answers/ | answers | คำตอบ | คำตอบพร้อมตัวอย่างเรื่อง React, API ที่มี type, npm และ TypeScript ที่ใส่เครื่องมือครบ
+---
+      <p class="q-eyebrow">เริ่มที่นี่ &middot; ประมาณ 10 นาที</p>
+      <h1 class="q-title">โปรแกรม Glyph แรกของคุณ</h1>
+
+      <p class="short-answer">
+        สร้างโปรเจกต์ รัน แล้ว<strong>ตั้งใจทำให้พัง</strong> และอ่าน error ที่คอมไพเลอร์ให้มา ไม่ต้องรู้จัก Glyph มาก่อน ถ้าเคยเขียน TypeScript มาบ้าง คุณจะตามได้ทุกบรรทัด
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; สร้างโปรเจกต์</h2>
+        <p>
+          Glyph เผยแพร่บน npm เป็น binary ที่ build ไว้แล้วสำหรับ macOS และ Linux (x64 และ ARM) และ Windows (x64) และต้องใช้ Node 18 ขึ้นไป วิธีนี้ไม่ติดตั้งอะไรแบบ global: <code>npx</code> ดึงคอมไพเลอร์มาสร้างโปรเจกต์ และโปรเจกต์จะ pin สำเนาของตัวเองไว้พร้อมกับ <code>tsx</code> และ <code>typescript</code> ซึ่ง Glyph ใช้ในการรันและตรวจ type
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx -y @glyphlang/glyph init hello
+cd hello
+npm install</pre>
+      </div>
+      <div class="detail">
+        <p>
+          ถ้าอยากให้ <code>glyph</code> อยู่ใน PATH ให้ติดตั้งแบบ global พร้อมเครื่องมือสองตัวที่มันใช้ แล้วตัด <code>npx</code> ออกจากคำสั่งในหน้านี้:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal แบบติดตั้ง global</span>
+<pre>npm install -g @glyphlang/glyph tsx typescript
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span>
+glyph init hello
+cd hello</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">2 &middot; ดูว่ามันสร้างอะไรให้</h2>
+        <p><code>glyph init</code> สร้างโปรเจกต์ตั้งต้นที่รันได้: <code>src/main.glyph</code>, <code>src/.types/README.md</code> ที่อธิบายว่าแพ็กเกจ npm ที่มี type ไม่ต้องใส่อะไรไว้ตรงนั้น และไดเรกทอรีนี้มีไว้สำหรับแพ็กเกจที่ไม่มี type มาด้วย, <code>package.json</code>, <code>.gitignore</code> และไฟล์สองไฟล์ที่เอเจนต์เขียนโค้ดอ่านเองได้: <code>AGENTS.md</code> ซึ่งชี้ไปที่ <code>glyph llms</code> สำหรับเอกสารอ้างอิงภาษาฉบับเต็ม และ <code>.mcp.json</code> ซึ่งลงทะเบียน <code>glyph mcp</code> ไว้ เอเจนต์จึงถามคอมไพเลอร์เรื่อง type และการอ้างอิงได้แทนที่จะไล่ค้นเอง ในโปรเจกต์ที่มีอยู่แล้ว <code>glyph agents</code> จะเขียนสองไฟล์นี้ให้ <code>package.json</code> pin คอมไพเลอร์ <code>typescript</code> และ <code>tsx</code> ไว้ใน <code>devDependencies</code> ใครที่ clone โปรเจกต์ไปก็ build ได้ด้วย <code>npm install</code> โดยไม่ต้องติดตั้ง global</p>
+        <p>เปิด <code>src/main.glyph</code> มันคือ hello-world:</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+import std/io
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  io.println("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          สองอย่างที่ควรสังเกต: โปรแกรมจะรัน <code>main(argv)</code> ของมัน และ <code>main</code> คืนค่าเป็น <code>number</code> ซึ่งคือ exit code ของ process การ return จะตั้ง exit code โดยไม่บังคับให้ process หยุด โปรแกรมที่เปิด server จึงยังให้บริการต่อได้
+        </p>
+
+        <h2 class="block-label">3 &middot; รัน</h2>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx glyph run
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph run</code> ตรวจ type คอมไพล์เป็น TypeScript แล้วรันมัน นี่คือ loop ที่คุณจะทำซ้ำไปตลอดหน้านี้
+        </p>
+
+        <h2 class="block-label">4 &middot; เพิ่มของจริงเข้าไป</h2>
+        <p>
+          ทีนี้แทนที่ body ด้วย logic เล็กๆ: สถานะของงาน และฟังก์ชันที่ติดป้ายให้สถานะนั้น นี่คือการแนะนำสองสิ่งที่คุณจะใช้ตลอด: <em>tagged union</em> (<code>type Status = ...</code>) และ <code>match</code> ซึ่งเป็นเงื่อนไขแบบเดียวที่ Glyph มี
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">5 &middot; ตั้งใจทำให้พัง</h2>
+        <p>
+          ส่วนนี้แสดงให้เห็นว่า Glyph มี<em>ไว้ทำอะไร</em> ลบ arm <code>Done</code> ออกจาก <code>match</code> (แบบที่เอเจนต์ทำเมื่อเพิ่ม case ที่ไหนสักแห่งแล้วลืมจัดการ) แล้วรันอีกครั้ง
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph (ลบ arm Done ออกแล้ว)</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          มันไม่รัน ใน TypeScript ฟังก์ชันแบบเดียวกันนี้ที่เขียน return type ไว้ก็ถูกปฏิเสธเช่นกัน (TS2366) แต่ <code>switch</code> ที่แค่ log หรืออัปเดต state หรือที่มี <code>default:</code> จะคอมไพล์ผ่านสะอาดและข้าม case ใหม่ไปเงียบๆ ที่นี่ match ทุกตัวที่ไม่ครบทุกกรณีเป็น compile error ที่มีรหัสคงที่ (<code>E0200</code>) ระบุตำแหน่งแน่นอน และมีวิธีแก้หนึ่งบรรทัด รัน <code>glyph --explain E0200</code> เมื่อไหร่ก็ได้ที่อยากอ่านฉบับยาว
+        </p>
+
+        <h2 class="block-label">6 &middot; แก้</h2>
+        <p>ใส่ arm กลับเข้าไป (หรือเพิ่ม <code>else</code>) แล้วมันก็จะรันได้อีกครั้ง</p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          นี่คือ loop หลัก: เขียน รัน และเมื่อมีอะไรผิด คอมไพเลอร์จะบอกคุณว่าผิดอะไรและแก้อย่างไร ก่อนโค้ดจะขึ้น production ไม่ใช่หลังจากนั้น
+        </p>
+      </div>

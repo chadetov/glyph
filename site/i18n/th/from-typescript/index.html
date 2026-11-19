@@ -1,0 +1,229 @@
+---
+title: สำหรับคนที่มาจาก TypeScript · อะไรเปลี่ยนใน Glyph · Glyph
+description: Glyph อ่านแล้วแทบเหมือน TypeScript และคอมไพล์เป็น TypeScript สิ่งที่เปลี่ยน: syntax ต่างกันไม่กี่จุด ไม่มี any, as หรือ ! มีทางออกฉุกเฉินทางเดียวที่ grep หาได้ และวิธีใช้ npm
+source_hash: bc168f89faa5ea6e
+next_steps: |
+  ไปต่อที่ไหน
+  แนะนำ | /catches/ | catches | ดูว่า TypeScript ปล่อยอะไรผ่าน | แต่ละกรณีรันทั้งใน <code>tsc --strict</code> และใน Glyph พร้อม error | ดูสิ่งที่จับได้
+  /start/ | start | เขียนโปรแกรมแรก | ติดตั้ง สร้างโปรเจกต์ รัน ตั้งใจทำให้พัง แล้วอ่าน error ใช้เวลาประมาณสิบนาที
+  /playground/ | playground | ลองในเบราว์เซอร์ | คอมไพเลอร์รันในหน้าเว็บ ไม่ต้องติดตั้งอะไร
+---
+      <p class="q-eyebrow">สำหรับคนที่มาจาก TypeScript</p>
+      <h1 class="q-title">อะไรเปลี่ยนไปเมื่อคุณเขียน TypeScript อยู่แล้ว</h1>
+
+      <p class="short-answer">
+        น้อยกว่าที่คิด Glyph คอมไพล์เป็น TypeScript ที่ผ่าน <code>tsc --strict</code> ใช้ npm และวิธี deploy เดิมได้ และอ่านแล้วแทบเหมือนกัน ความต่างมีอยู่ไม่กี่จุด และแต่ละจุดแลกช่องทางที่จะเขียนผิดกับการตรวจที่คอมไพเลอร์ทำให้
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ถ้ารู้ TypeScript คุณก็รู้เกือบทั้งหมดแล้ว</h2>
+        <p>
+          คุณไม่ต้องเรียนภาษาใหม่ แค่สี่อย่างนี้ ซึ่งเป็นสิ่งที่อยู่ในทุกตัวอย่างบนเว็บนี้
+        </p>
+      </div>
+
+      <dl class="gloss-list">
+        <div>
+          <dt><code>match</code></dt>
+          <dd><code>switch</code> ที่ต้องครบทุกกรณี: เมื่อใช้กับ union คอมไพเลอร์บังคับให้คุณจัดการทุก case และมันเป็นเงื่อนไขแบบเดียวที่มี: ไม่มี <code>if</code>/<code>else</code> และไม่มี ternary <a href="#there-is-no-if">อธิบายไว้ด้านล่าง</a></dd>
+        </div>
+        <div>
+          <dt><code>Result&lt;T, E&gt;</code></dt>
+          <dd>error เป็นค่าที่ return ออกมา ไม่ใช่ exception ที่ throw คุณจัดการด้วย <code>match</code> หรือส่งต่อขึ้นไปด้วย operator <code>?</code></dd>
+        </div>
+        <div>
+          <dt><code>fn f() -&gt; T</code></dt>
+          <dd>ฟังก์ชัน โดย <code>-&gt;</code> คือ return type ของมัน <code>type X = {...}</code> คือ record และ <code>type X = A | B</code> คือ tagged union</dd>
+        </div>
+        <div>
+          <dt><code>mut x = e</code></dt>
+          <dd>การ assign ค่าใหม่ต้องเขียนให้ชัดและ grep หาได้ binding แบบ <code>let</code> ธรรมดาจะไม่เปลี่ยนค่าลับหลังคุณ ถ้าจะเปลี่ยนต้องเขียน <code>mut</code></dd>
+        </div>
+      </dl>
+
+      <div class="detail">
+        <p>
+          "เอเจนต์" ในเว็บนี้หมายถึงผู้ช่วยเขียนโค้ดด้วย AI อย่าง Claude, Copilot และ Cursor Glyph ช่วยพวกมันได้มากที่สุด แต่การตรวจเหมือนกันไม่ว่าคนหรือโมเดลจะเป็นคนเขียนโค้ด ถ้าคุณใช้ TypeScript แบบ strict ร่วมกับ zod และ eslint อยู่แล้ว <a href="/answers/vs-tooled-ts/">นี่คือสิ่งที่ภาษาเพิ่มให้จากตรงนั้น</a>
+        </p>
+
+        <h2 class="block-label">ไม่มี if</h2>
+        <p>
+          การแตก branch ตาม boolean คือ <code>match</code> บน <code>true</code> และ <code>false</code> ถ้าต้องทำอะไรแค่ฝั่งเดียว arm อีกฝั่งก็เป็น block ว่าง
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript</span>
+<pre>function label(admin: boolean): string {
+  return admin ? "admin" : "member";
+}
+
+if (verbose) {
+  console.log("starting");
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph</span>
+<pre>fn label(admin: bool) -&gt; string {
+  return match admin {
+    true =&gt; "admin",
+    false =&gt; "member",
+  }
+}
+
+match verbose {
+  true =&gt; io.println("starting"),
+  false =&gt; {},
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          เหตุผลคือ decision D3 ในสเปก: มี construct เดียวสำหรับแตก branch ตามค่า จึงมีรูปแบบเดียวให้อ่าน เขียน และค้นหา ค่าที่ออกมาจาก branch จะออกมาจาก <code>match</code> เสมอ ซึ่งตัวตรวจของ Glyph เองหา result type ให้ แทนที่จะโยนให้ <code>tsc</code> สำหรับ union construct เดียวกันนี้ต้องครอบคลุมทุก case (<code>E0200</code>) สำหรับ boolean ได้ประโยชน์ไม่มาก เพราะ <code>false =&gt; {}</code> ก็ไม่ได้บอกอะไรมากกว่าการไม่เขียน <code>else</code>
+        </p>
+        <p>
+          มันมีต้นทุน ternary บรรทัดเดียวกลายเป็น <code>match</code> สี่บรรทัด การ return ก่อนเวลาตามเงื่อนไขคือ <code>match</code> ที่มี arm ว่าง และเป็นสิ่งแรกที่คนอ่าน TypeScript รู้สึกว่าแปลก สเปกบันทึกความยืดยาวนี้ไว้ว่าเป็นต้นทุนที่ยอมรับ ถ้ายังเขียน <code>if</code> จะได้ error <code>E0006</code> ซึ่งข้อความช่วยเหลือแสดงรูปแบบ <code>match</code> ให้ ส่วน ternary จะได้ <code>E0013</code> พร้อมข้อความช่วยเหลือแบบเดียวกัน
+        </p>
+
+        <h2 class="block-label">ภาษีที่คุณจ่ายอยู่แล้ว</h2>
+        <p>
+          ถ้าคุณใช้เอเจนต์ AI สร้างโค้ดบน codebase ที่เป็น TypeScript นี่คือต้นทุนรายวัน แต่ละข้อมีคำตอบเฉพาะใน Glyph ลิงก์ไว้จากรายการ
+        </p>
+      </div>
+
+      <ul class="tax-list">
+        <li>เอเจนต์มโน API ขึ้นมา เพราะ TypeScript ลบ type ทิ้งและ runtime ก็ไม่ตรงกับตอนคอมไพล์อีกต่อไป type ของ Glyph มีการตรวจตอนรันติดมาด้วย (<code>T.parse</code>, <code>T.is</code>) ดู<a href="/answers/typed-apis/">API ที่มี type</a></li>
+        <li>เอเจนต์กลบความไม่แน่ใจด้วย <code>any</code> และ <code>as unknown as T</code> และคอมไพเลอร์ก็ยอม ทั้งสองอย่างไม่มีใน Glyph ดูตารางด้านล่าง</li>
+        <li>คุณขอให้แก้บรรทัดเดียว แต่ได้ไฟล์ที่ถูกเขียนใหม่ทั้งไฟล์ เพราะ formatter ลามไปทุกครั้งที่แก้ <code>glyph fmt</code> มี layout เดียวและไม่มีตัวเลือก ดู<a href="/answers/diff-stability/">diff ที่สะอาด</a></li>
+        <li>คุณดูแล validator ที่เขียนด้วยมือไว้ข้างทุก type (zod และ serializer) แล้วเอเจนต์เปลี่ยนชื่อ field ในที่หนึ่งแต่ไม่เปลี่ยนในที่อื่น ทุกอย่างยังคอมไพล์ผ่าน ใน Glyph type คือ validator</li>
+        <li>คุณ <code>grep</code> หาสัญลักษณ์แล้วเจอสิบจุดที่ไม่เกี่ยวข้อง: overload, decorator, namespace ที่ merge กัน Glyph ไม่มีสิ่งเหล่านั้นเลย ดู<a href="/answers/greppability/">การค้นหาโค้ด</a></li>
+      </ul>
+
+      <div class="detail">
+        <h2 class="block-label">สวิตช์ปิดการตรวจที่ TypeScript ให้มา และสิ่งที่ Glyph มีแทน</h2>
+        <p>
+          construct ของ TypeScript แต่ละตัวด้านล่างสั่งให้ตัวตรวจหยุดตรวจ ไม่มีตัวไหนเป็น syntax ของ Glyph คอลัมน์กลางคือสิ่งที่ <code>glyph check --no-tsc</code> พิมพ์ออกมาสำหรับแต่ละตัวบน 0.1.149
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>TypeScript</th><th>ใน Glyph</th><th>สิ่งที่เขียนแทน</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="TypeScript"><code>x!</code></td><td data-label="In Glyph">ไม่ใช่ syntax: <code>E0013</code></td><td data-label="What you write instead"><code>Option&lt;T&gt;</code> ที่จัดการด้วย <code>match</code> หรือส่งต่อขึ้นไปด้วย <code>?</code></td></tr>
+            <tr><td data-label="TypeScript"><code>x as T</code>, <code>as unknown as T</code></td><td data-label="In Glyph">ไม่มี cast: <code>E0013</code> ซึ่งข้อความช่วยเหลือบอกให้ validate</td><td data-label="What you write instead"><code>T.parse(x)</code> ซึ่งคืนค่าเป็น <code>Result</code></td></tr>
+            <tr><td data-label="TypeScript"><code>any</code></td><td data-label="In Glyph">ไม่ใช่ type: <code>E0103</code> ชื่อที่ resolve ไม่ได้</td><td data-label="What you write instead"><code>unknown</code> ที่ถูก narrow ด้วย <code>T.parse</code>, <code>T.is</code> หรือ arm ของ <code>match</code> แบบ <code>is T</code></td></tr>
+            <tr><td data-label="TypeScript"><code>(v): v is T</code></td><td data-label="In Glyph">ไม่มี type guard ที่ผู้ใช้เขียนเอง: <code>E0002</code></td><td data-label="What you write instead"><code>T.is(v)</code> ที่ถูก generate ขึ้นมา ซึ่งตรวจตามรูปร่างที่ประกาศไว้ guard จึงตรวจน้อยกว่าที่อ้างไม่ได้</td></tr>
+            <tr><td data-label="TypeScript"><code>// @ts-ignore</code>, <code>// eslint-disable</code></td><td data-label="In Glyph">comment ธรรมดา error ใต้มันยังทำงานอยู่</td><td data-label="What you write instead">ไม่มี ไม่มี comment หรือ flag ไหนปิด diagnostic ของ Glyph ได้</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph check</code> มี flag ที่ข้ามทั้ง pass (<code>--no-tsc</code> ข้ามการรัน <code>tsc --strict</code> และ <code>--no-test</code> ข้ามเทสต์ <code>@example</code>) แต่ไม่มีตัวไหนปิดการตรวจเพียงข้อเดียว รายการเต็มของสิ่งที่โปรเจกต์ TypeScript ยอมรับแต่ Glyph ปฏิเสธ โดยแต่ละกรณีรันกับคอมไพเลอร์ทั้งสองตัว อยู่ใน<a href="/catches/">หน้าสิ่งที่จับได้</a>
+        </p>
+
+        <h2 class="block-label">ทางออกฉุกเฉินทางเดียว และคุณ grep หาได้</h2>
+        <p>
+          เมื่อต้องการ TypeScript ที่ Glyph เขียนไม่ได้ <code>extern_ts("...")</code> รับ type หรือ expression แบบ inline หนึ่งตัว และ <code>tsc</code> ยังตรวจมันอยู่ ถ้าเป็นทั้ง module ให้วางไฟล์ <code>.ts</code> ไว้ใต้ <code>src/extern/</code> แล้วเขียน <code>import extern/name</code> นอกจากนี้ import แบบ relative ใช้ไม่ได้ เส้นทางนี้จึงเป็นทางเข้าทางเดียว ทั้งสองแบบมีคำว่า <code>extern</code> อยู่ <code>grep -rn extern src/</code> จึงแสดงทุกจุดที่ตัวตรวจส่งต่อให้ TypeScript
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">src/clock.glyph</span>
+<pre>module clock
+
+pub fn now_ms() -&gt; number {
+  return extern_ts("Date.now()")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">TypeScript ที่ถูก emit ออกมาหน้าตาเป็นอย่างไร</h2>
+        <p>
+          TypeScript ธรรมดา หนึ่งไฟล์ต่อหนึ่ง module ที่คุณอ่านและ commit ได้ union กลายเป็น discriminated union บวกกับค่าที่ถือการตรวจตอนรันของมัน และ <code>match</code> กลายเป็น <code>switch</code> บน tag นี่คือ output ของ <code>glyph build</code> สำหรับ module ทางซ้าย โดยตัดบรรทัด import ออก
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">plan.glyph</span>
+<pre>module plan
+
+pub type Plan = Free | Pro | Team
+
+pub fn seats(p: Plan) -&gt; number {
+  return match p {
+    Free =&gt; 1,
+    Pro =&gt; 5,
+    Team =&gt; 50,
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">plan.ts (emit ออกมา ตัดบางส่วน)</span>
+<pre>export type Plan =
+  | { tag: "Free" }
+  | { tag: "Pro" }
+  | { tag: "Team" };
+
+export const Free: Plan = { tag: "Free" };
+export const Pro: Plan = { tag: "Pro" };
+export const Team: Plan = { tag: "Team" };
+export const Plan = {
+  is(value: unknown): value is Plan { ... },
+  parse(value: unknown) { ... },
+  schema: ...,
+};
+
+export function seats(p: Plan): number {
+  const __m0 = p;
+  switch (__m0.tag) {
+    case "Free": { return 1; }
+    case "Pro": { return 5; }
+    case "Team": { return 50; }
+    default: throw new Error("non-exhaustive match");
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          ลบ arm <code>Team</code> แล้ว build จะหยุดก่อนที่จะเขียน TypeScript ใดๆ ออกมา:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc (ตัดบางส่วน)</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Plan`: missing variants `Team`</span>
+   ╭─[ plan:6:10 ]
+   │
+ 6 │ ╭─▶   return match p {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── non-exhaustive match on `Plan`: missing variants `Team`
+   │     Help: Add an arm for each missing variant.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ถ้าคุณเลิกใช้ Glyph ไฟล์ <code>.ts</code> ที่ emit ออกมาคือสิ่งที่คุณเก็บไว้ มันไม่มี dependency ตอนรันนอกจากไดเรกทอรี support เล็กๆ ที่ build เขียนไว้ข้างๆ
+        </p>
+
+        <h2 class="block-label">npm และ TypeScript ที่คุณมีอยู่แล้ว</h2>
+        <p>
+          module <code>.glyph</code> import แพ็กเกจ npm ด้วยชื่อ (<code>import kafkajs { Kafka }</code>) โดยได้ type จาก declaration ของแพ็กเกจเอง และไฟล์ <code>.ts</code> ที่มีอยู่ก็ import module Glyph ที่ emit ออกมาได้เหมือนไฟล์ในเครื่องทั่วไป คุณจึงเริ่มจาก module เดียวในแอปที่ยังเป็น TypeScript ได้ รายละเอียดอยู่ในสามคำตอบ
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/imports/"><span class="q">ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?</span><p>การ import แพ็กเกจ การเก็บ shim ที่เป็น <code>.ts</code> ไว้ และการ import Glyph กลับเข้าไปใน <code>.ts</code></p></a>
+        <a class="a-card" href="/answers/embedding/"><span class="q">นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม?</span><p>แกนของโดเมนเป็น Glyph ส่วนที่เหลือเป็น TypeScript ใน Vite scaffold แบบมาตรฐาน</p></a>
+        <a class="a-card" href="/answers/react/"><span class="q">ใช้กับ React ได้ไหม?</span><p>component, JSX, hook, Context และจุดที่ <code>tsc</code> ยังเป็นคนตรวจ</p></a>
+      </div>

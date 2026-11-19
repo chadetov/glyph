@@ -1,0 +1,86 @@
+---
+title: คำตอบ · สิ่งที่วิศวกรถามเกี่ยวกับ Glyph · Glyph
+description: คำตอบเจาะจงสำหรับสิ่งที่วิศวกรถามเกี่ยวกับ Glyph: อะไรกันไม่ให้พังแบบเงียบๆ, React และ npm, ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ และการดีบักบน production
+source_hash: f574b9ebcd22635e
+---
+      <header class="page-hero">
+        <p class="eyebrow">คำตอบ</p>
+        <h1>สิ่งที่วิศวกร<span class="accent">ถามเกี่ยวกับ Glyph</span></h1>
+        <p class="lede">
+          แต่ละคำตอบมีตัวอย่างประกอบ และปิดท้ายด้วยสิ่งที่ยังใช้ไม่ได้ เริ่มจากตรงที่คุณสงสัยได้เลย ถ้าเพิ่งรู้จัก Glyph <a href="/start/">เริ่มที่นี่ใน 10 นาที</a>เป็นทางที่เร็วที่สุดในการลองครั้งแรก
+        </p>
+      </header>
+
+      <div class="ans-group">
+        <h2 class="block-label">ปัญหาที่แก้</h2>
+        <p class="ans-group-sub">การแก้ของเอเจนต์ทำอะไรพังได้โดยไม่มีใครสังเกต และ Glyph ทำอะไรกับแต่ละเรื่อง</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/verifiability/"><span class="n">01</span><span class="q">อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?</span><p>ไม่มี <code>any</code> ไม่มี cast <code>match</code> ต้องครบทุกกรณี type ที่ถูกตรวจตอนรัน และเทสต์ที่อยู่ข้างโค้ดซึ่งรันทุกครั้งที่ build</p></a>
+          <a class="a-card" href="/answers/diff-stability/"><span class="n">02</span><span class="q">การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?</span><p>การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด มี layout มาตรฐานแบบเดียว ไม่มีอะไรถูกจัดกลุ่มใหม่</p></a>
+          <a class="a-card" href="/answers/greppability/"><span class="n">03</span><span class="q">เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?</span><p>หนึ่งชื่อ หนึ่งรูปแบบ declaration <code>grep</code> เจอมันเสมอ</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">ตัดสินใจว่าจะใช้หรือไม่</h2>
+        <p class="ans-group-sub">ทำไมต้องเป็นภาษาแทนที่จะเป็นเครื่องมือเพิ่ม และการนำมาใช้มีต้นทุนอะไร</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/why-typescript/"><span class="n">04</span><span class="q">ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?</span><p>เพราะ ecosystem ของคุณอยู่ที่นั่น และนั่นคือเหตุผลที่นำมาใช้ทีละไฟล์ได้</p></a>
+          <a class="a-card" href="/answers/vs-tooled-ts/"><span class="n">05</span><span class="q">ทำไมไม่ใช้แค่ TypeScript แบบ strict + zod + eslint + ts-pattern?</span><p>ความเป็นข้อบังคับ: ภาษาที่เอเจนต์ปิดผ่านการตั้งค่าไม่ได้</p></a>
+          <a class="a-card" href="/answers/human-value/"><span class="n">06</span><span class="q">Glyph คุ้มไหมถ้าฉันไม่ได้ใช้ AI?</span><p>คุ้ม: การรับประกันเป็นประโยชน์ทางวิศวกรรมตรงๆ ที่คนได้รับโดยตรง</p></a>
+          <a class="a-card" href="/answers/ai-authoring/"><span class="n">07</span><span class="q">AI เขียนภาษาที่แทบไม่เคยเห็นได้อย่างน่าเชื่อถือหรือ?</span><p>สิ่งที่โมเดลรู้เกี่ยวกับ TypeScript ส่วนใหญ่ใช้ต่อได้ และคอมไพเลอร์บอกจุดที่ใช้ไม่ได้</p></a>
+          <a class="a-card" href="/answers/upgrades/"><span class="n">08</span><span class="q">รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?</span><p>โปรเจกต์ pin คอมไพเลอร์ไว้แบบตายตัว จึงไม่มีรุ่นไหนเข้ามาโดยบังเอิญ <code>glyph doctor</code> บอกว่ามีรุ่นใหม่ <code>glyph upgrade</code> อัปเกรดให้</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">ใช้กับ stack ที่คุณมี</h2>
+        <p class="ans-group-sub">แพ็กเกจ npm แอปที่มีอยู่ ขอบเขตของ API และ React</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/imports/"><span class="n">09</span><span class="q">ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?</span><p>ได้: import แพ็กเกจ npm ไหนก็ได้ เก็บ shim <code>.ts</code> ที่เขียนเองไว้ตรงที่จำเป็น และ import Glyph กลับเข้าไปใน <code>.ts</code></p></a>
+          <a class="a-card" href="/answers/embedding/"><span class="n">10</span><span class="q">นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม หรือต้องเปลี่ยนทั้งหมด?</span><p>ไม่ต้องเขียนใหม่: แกนของโดเมนเป็น Glyph ส่วนที่เหลือเป็น TypeScript แอป Vite แบบมาตรฐาน import TypeScript ที่ emit ออกมาได้เหมือน module อื่นๆ</p></a>
+          <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">ต้องเขียน validator ด้วยมือให้ทุก API ไหม?</span><p>ไม่ต้อง การประกาศ type จะ generate validator ให้</p></a>
+          <a class="a-card" href="/answers/codegen/"><span class="n">12</span><span class="q">generate client และ server ที่มี type จากสเปก API ได้ไหม?</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: โค้ดที่ commit ได้และ grep หาได้</p></a>
+          <a class="a-card" href="/answers/react/"><span class="n">13</span><span class="q">ใช้กับ React ได้ไหม: component, hook และ Context?</span><p>JSX, hook และ action ของ reducer ที่ต้องครบทุกกรณี รองรับเต็มที่</p></a>
+          <a class="a-card" href="/answers/state/"><span class="n">14</span><span class="q">จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?</span><p>store: <code>const</code> ที่มี <code>.set</code>/<code>.update</code> เป็นช่องทางเขียน</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">สร้างอะไรได้บ้าง</h2>
+        <p class="ans-group-sub">ภาษาและ standard library แยกตามประเภทของโปรแกรม</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/language/"><span class="n">15</span><span class="q">นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่?</span><p>การมองเห็นของ module, interface bound, defer, <code>match</code> ที่ใช้เป็นค่าได้ทุกที่และมี type ของมัน และ standard library ที่มี <code>slice</code>, <code>pad_start</code> และ <code>fold</code></p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">16</span><span class="q">ไว้ใจมันกับเรื่องเงิน และกับ input ที่ควบคุมไม่ได้ได้ไหม?</span><p>ทศนิยมและ id ที่แม่นยำ invariant ในรูป type และ injection เป็น compile error</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">ให้บริการหน้าเว็บได้ไหม หรือได้แค่ JSON API?</span><p>HTML, redirect, response header และ form post โดยไม่ต้องเขียน server เอง</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">18</span><span class="q">เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?</span><p><code>io.read_line</code> ตอบกลับทีละบรรทัดที่เข้ามา แทนที่จะรอให้ stdin ปิด REPL หรือ game loop จึงใช้ได้</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">19</span><span class="q">เขียน server ได้ไหม หรือ process จะจบไปเลย?</span><p><code>main</code> เตรียมการแล้ว return process ยังทำงานต่อตราบที่ยังมี socket และ timer ค้างอยู่ ซึ่งเป็นกฎเดียวกับที่ Node ใช้</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">20</span><span class="q">จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?</span><p><code>std/bytes</code> คือลำดับของ octet พร้อม codec ที่ปฏิเสธ input ที่ผิดรูปแทนที่จะข้ามไป และ HMAC ที่ใช้ key จริง</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">ทำงานกับเอเจนต์</h2>
+        <p class="ans-group-sub">คำถามที่เอเจนต์ถามคอมไพเลอร์ก่อนและหลังการแก้</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/impact/"><span class="n">21</span><span class="q">คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง ก่อนที่ฉันจะแก้?</span><p><code>glyph_impact</code>: คำตัดสินหนึ่งข้อต่อจุด จากรายการที่ปิดไว้ พร้อมเหตุผล ก่อนที่คุณจะแตะไฟล์</p></a>
+          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">เอเจนต์ของฉันถามคอมไพเลอร์ได้ไหมว่าสัญลักษณ์คืออะไร ก่อนเขียนโค้ด?</span><p><code>glyph_symbol</code>: variant ของ union พร้อม syntax ที่ใช้สร้างแต่ละตัว ในการเรียกครั้งเดียว มีสิบเอ็ดเครื่องมือ แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code></p></a>
+          <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">เมื่อ build ล้มเหลว คอมไพเลอร์บอกเอเจนต์ไหมว่าต้องแก้อย่างไร?</span><p>diagnostic มีสัญลักษณ์ที่ผิด ทางเลือกที่ถูกต้อง และสิ่งที่การแก้ต้องไม่ทำพัง <code>glyph fix</code> เขียนการแก้ที่คอมไพเลอร์ตัดสินได้เอง</p></a>
+          <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมา หรือเขียนด้วยมือและล้าสมัย?</span><p><code>glyph llms --json</code> emit diagnostic, prelude, signature ของ stdlib และคู่มือเครื่องมือ ออกมาจากตารางของคอมไพเลอร์เอง และมี gate ที่ fail เมื่อสำเนาที่เขียนด้วยมือไม่ตรงกัน</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">error, editor และ production</h2>
+        <p class="ans-group-sub">สิ่งที่คุณเห็นเมื่อมีอะไรผิด ตั้งแต่ใน editor จนถึงตอน on-call</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?</span><p>language server สำหรับ editor ที่รองรับ LSP และ error ที่มีรหัสคงที่ซึ่งบอกวิธีแก้</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?</span><p>บริบทของ <code>await</code>, arm ของ <code>match</code> ที่ไม่มีค่า และ <code>mut</code> ที่ขาดไป รายงานเทียบกับซอร์สของคุณแทนที่จะเป็น TypeScript ที่ emit ออกมา</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?</span><p>field ไหน ผิดกฎข้อไหน ขัดกับ predicate <code>where</code> ตัวไหน และ <code>code</code> สำหรับแตก branch</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">เมื่อพังบน production ตอนตีสาม คนที่ on-call เห็นอะไร?</span><p>TS ที่อ่านได้และเป็นของคุณ source map ที่ชี้กลับไปยัง <code>.glyph</code> และ <code>run</code> ที่รายงานแบบเดียวกับ <code>build</code></p></a>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 44px;">
+        <a class="btn primary" href="/answers/verifiability/">อ่านตามลำดับ &rarr;</a>
+      </div>

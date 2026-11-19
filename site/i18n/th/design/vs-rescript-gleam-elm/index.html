@@ -1,0 +1,146 @@
+---
+title: ทำไมไม่ใช้ ReScript, Gleam หรือ Elm? · Glyph
+description: สามภาษาที่มี type และคอมไพล์เป็น JavaScript ซึ่งเก่ากว่าและพิสูจน์ตัวเองมากกว่า Glyph แต่ละตัวเหนือกว่าตรงไหน และสี่อย่างที่ Glyph ทำต่างออกไป
+source_hash: c1473253c170e78d
+next_steps: |
+  ไปต่อที่ไหน
+  แนะนำ | /catches/ | catches | สิ่งที่ Glyph ปฏิเสธ | แต่ละกรณี ตรวจทั้งใน <code>tsc --strict</code> และใน Glyph | ดูสิ่งที่จับได้
+  /design/vs-effect/ | compare | Glyph และ Effect | เปรียบเทียบไลบรารี TypeScript กับภาษา
+  /design/ | design | กลับไปที่การออกแบบ | สี่เสาหลัก สเปก และการเปรียบเทียบอื่นๆ
+---
+      <p class="q-eyebrow">การออกแบบ &middot; การเปรียบเทียบ</p>
+      <h1 class="q-title">ทำไมไม่ใช้ ReScript, Gleam หรือ Elm?</h1>
+
+      <p class="short-answer">
+        ทั้งสามเป็นภาษาที่มี type และคอมไพล์เป็น JavaScript และทั้งสามเก่ากว่า มีคนใช้มากกว่า และนิ่งกว่า Glyph ถ้าคุณกำลังเลือกภาษาสำหรับ codebase ใหม่และไม่จำเป็นต้องอยู่ใกล้ TypeScript ก็ควรดูพวกมันก่อน ความต่างของ Glyph แคบกว่านั้น: มัน emit ซอร์ส TypeScript แทน JavaScript import แพ็กเกจ npm โดยได้ type จาก <code>.d.ts</code> ของแพ็กเกจเอง generate validator สำหรับตอนรันจาก type ของคุณ และคอมไพเลอร์ของมันตอบคิวรีเรื่องผลกระทบให้เอเจนต์ได้
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">แต่ละตัวอธิบายตัวเองอย่างไร</h2>
+        <p>
+          หน้าแรกของ ReScript เปิดด้วย "JavaScript Made Simple for Humans and AI" และ "Types &gt; Vibes" และบอกว่ามัน "compiles to clean, efficient JavaScript" โดย "No <code>any</code>, no magic types, no surprise <code>undefined</code>." และเสนอว่าจะ "automatically generate TypeScript types" (<a href="https://rescript-lang.org/">rescript-lang.org</a>)
+        </p>
+        <p>
+          หน้าแรกของ Gleam เรียกตัวเองว่า "a friendly language for building type-safe systems that scale" พร้อม "No null values, no exceptions, clear error messages" มันรันบน Erlang VM และ "can additionally compile to JavaScript" และ "also generates TypeScript definitions" (<a href="https://gleam.run/">gleam.run</a>)
+        </p>
+        <p>
+          หน้าแรกของ Elm อธิบายว่าเป็น "A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions" สำหรับ "reliable web applications" และบอกว่า Elm "detects all API changes automatically" เพื่อ "guarantee that every single Elm package follows semantic versioning" (<a href="https://elm-lang.org/">elm-lang.org</a>)
+        </p>
+        <p>ข้อความที่ยกมานี้อ่านเมื่อวันที่ 2026-11-19</p>
+
+        <h2 class="block-label">จุดที่พวกมันเหนือกว่า</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>ด้าน</th><th>ReScript, Gleam, Elm</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">ความเติบโตเต็มที่</td><td data-label="ReScript, Gleam, Elm">ใช้งานจริงใน production มาหลายปี หน้าแรกของ ReScript แสดงโลโก้บริษัทเต็มหน้า ส่วน Elm อ้างถึง NoRedInk ที่มีโค้ดมากกว่า 300k บรรทัดและไม่มี runtime exception ที่สับสนใน production</td><td data-label="Glyph">พรีวิวช่วงแรก ยังไม่ถึง 1.0 ดูแลหลักๆ โดยคนคนเดียว และหลายรุ่นเป็น Breaking</td></tr>
+            <tr><td data-label="Area">การรับประกัน</td><td data-label="ReScript, Gleam, Elm">Elm อ้างว่าไม่มี runtime exception, Gleam ไม่มีค่า null และไม่มี exception, ReScript ไม่มี <code>any</code> และไม่มี <code>undefined</code> ที่ไม่คาดคิด</td><td data-label="Glyph">ไม่มี <code>any</code> และไม่มี cast แต่ช่องโหว่ที่รู้แล้ว {{catches:gap-cases}} ข้อ<a href="/catches/#not-yet">แสดงไว้</a> และ exception ที่ throw จากภายในแพ็กเกจ npm ยังข้าม <code>Result</code> ไปได้</td></tr>
+            <tr><td data-label="Area">ข้อความ error</td><td data-label="ReScript, Gleam, Elm">หน้าแรกของ Elm เปิดด้วย "friendly error messages" และ Gleam สัญญาว่ามี "clear error messages" ทั้งคู่มีผู้ใช้หลายปีอยู่เบื้องหลัง</td><td data-label="Glyph">ทุก error มีรหัสที่คงที่และบรรทัดช่วยเหลือ แต่ถูกใช้งานมาน้อยกว่ามาก</td></tr>
+            <tr><td data-label="Area">เครื่องมือและ ecosystem</td><td data-label="ReScript, Gleam, Elm">Gleam มาพร้อม "compiler, build tool, formatter, editor integrations, and package manager all built in" ส่วน Elm บังคับใช้ semantic versioning กับแพ็กเกจของมัน</td><td data-label="Glyph">ใช้ npm สำหรับแพ็กเกจ extension ของ VS Code ต้อง build จากซอร์ส</td></tr>
+            <tr><td data-label="Area">เป้าหมาย</td><td data-label="ReScript, Gleam, Elm">Gleam รันบน Erlang VM ได้ด้วย</td><td data-label="Glyph">TypeScript เท่านั้น สำหรับ Node และเบราว์เซอร์</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">สิ่งที่ Glyph ทำต่างออกไป</h2>
+        <p>
+          แต่ละข้อนี้รันบน Glyph 0.1.149 สำหรับหน้านี้
+        </p>
+
+        <h3>มัน emit ซอร์ส TypeScript</h3>
+        <p>
+          <code>glyph build</code> เขียนไฟล์ <code>.ts</code> หนึ่งไฟล์ต่อหนึ่ง module ซึ่ง <code>tsc --strict</code> ตรวจต่อ และคุณเก็บไว้ใช้ได้ถ้าเลิกใช้ Glyph ReScript และ Gleam emit JavaScript และ generate type definition ไว้ข้างๆ <a href="/from-typescript/#what-the-emitted-typescript-looks-like">TypeScript ที่ emit ออกมา</a>แสดงไว้ในหน้า TypeScript
+        </p>
+
+        <h3>มัน import แพ็กเกจ npm โดยได้ type จาก declaration ของแพ็กเกจเอง</h3>
+        <p>
+          module หนึ่ง import แพ็กเกจด้วยชื่อ และ <code>.d.ts</code> ของแพ็กเกจให้ type กับทุกจุดที่ใช้ ไม่มี binding ที่ต้องเขียนก่อน ใน ReScript "<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values" (<a href="https://rescript-lang.org/docs/manual/external">external</a>) โดยประกาศ type ไว้ฝั่ง ReScript ส่วน external ของ Gleam ต้องมี type annotation และคอมไพเลอร์ "cannot verify that the function implemented in the other language returns the specified types" (<a href="https://gleam.run/documentation/externals/">externals</a>) Elm คุยกับ JavaScript ผ่าน flag, port และ custom element (<a href="https://guide.elm-lang.org/interop/">interop</a>) เมื่อติดตั้ง <code>pg</code> และ <code>@types/pg</code> แล้ว โค้ดนี้จะถูกปฏิเสธ:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-npm expect-error TS2322">module main
+
+import pg { Pool }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let _pool = new Pool({ max: "two", })
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ glyph check (trimmed)</span>
+<pre><span class="del">[TS2322] Error: tsc: Type 'string' is not assignable to type 'number'.</span>
+   ╭─[ main:6:24 ]
+   │
+ 6 │   let _pool = new Pool({ max: "two", })
+   │                        ───────┬───────
+   │                               ╰───────── Type 'string' is not assignable to type 'number'.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          รหัสเป็น <code>TS2322</code> เพราะ <code>tsc</code> คือตัวที่ตรวจค่าของไลบรารี แล้ว map กลับมาที่บรรทัดของ Glyph ตัวตรวจของ Glyph เองมองไม่เห็นค่าเหล่านี้ <code>glyph check --no-tsc</code>, editor และเครื่องมือ MCP จึงพลาด error นี้ (G257) type ที่ import จาก <code>.d.ts</code> ก็ไม่มีการตรวจตอนรันด้วย
+        </p>
+
+        <h3>มัน generate validator จาก type</h3>
+        <p>
+          ทุก record และ union มีการตรวจตอนรันที่ generate จาก declaration ของมัน <code>json.parse&lt;User&gt;</code> จึงคืน <code>Err</code> เมื่อข้อมูลไม่ตรง ใน Elm คุณเขียน decoder ให้แต่ละรูปร่าง และคู่มือของมันบอกว่า "the decoders people write end up working as a validation phase" (<a href="https://guide.elm-lang.org/effects/json.html">JSON</a>)
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph: พิมพ์ "refused" เพราะ JSON ไม่มี email</span>
+<pre>module main
+
+import std/io
+import std/json
+
+type User = {
+  id: number,
+  email: string,
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  return match json.parse&lt;User&gt;("{\"id\": 1}") {
+    Ok(u) =&gt; {
+      io.println(u.email)
+      return 0
+    },
+    Err(_) =&gt; {
+      io.println("refused")
+      return 1
+    },
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h3>คอมไพเลอร์ของมันตอบได้ว่าการเปลี่ยนแปลงจะทำอะไรพัง</h3>
+        <p>
+          ก่อนแก้ เอเจนต์ถามได้ว่าการเปลี่ยนแปลงไปถึงจุดไหนบ้าง ผ่าน MCP (<code>glyph_impact</code>) หรือด้วย <code>glyph query impact</code> บน union <code>Plan = Free | Pro | Team</code> ที่มี <code>match</code> แบบครบทุกกรณีหนึ่งจุด และอีกจุดที่ลงท้ายด้วย <code>else</code> การถามถึง variant ใหม่จะได้คำตอบรายจุด:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">$ glyph query impact --entity main::Plan --change add_variant --variant Enterprise (three fields of each site)</span>
+<pre>{"entity": "main::seats", "verdict": "ABSORBS", "diagnostic": null}
+{"entity": "main::label", "verdict": "WILL_FAIL", "diagnostic": "E0200"}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          จุดที่สองจะคอมไพล์ไม่ผ่านหลังการเปลี่ยนแปลง ซึ่งคอมไพเลอร์ของทั้งสามภาษาก็บอกได้เมื่อเปลี่ยนไปแล้ว จุดแรกจะยังคอมไพล์ผ่านและส่ง case ใหม่ไปที่ <code>else</code> ของมัน และคิวรีนี้คือสิ่งที่ระบุชื่อมัน <a href="/agents/">สำหรับคนสร้างเอเจนต์</a>แสดงเครื่องมืออื่นๆ
+        </p>
+
+        <h2 class="block-label">สิ่งที่หน้านี้ไม่ได้อ้าง</h2>
+        <p>
+          หน้านี้ไม่ได้เปรียบเทียบข้อความ error ความเร็วในการคอมไพล์ หรือประสิทธิภาพตอนรัน และไม่ได้ลองเรียกภาษาใดในสามภาษานี้จาก Glyph หรือในทางกลับกัน ข้อความที่ยกมาอธิบายแต่ละโปรเจกต์ด้วยถ้อยคำของมันเอง แต่ละตัวทำได้ตามนั้นแค่ไหนเป็นสิ่งที่คุณต้องตรวจเอง เช่นเดียวกับข้อกล่าวอ้างของ Glyph เองใน<a href="/evidence/">หน้าหลักฐาน</a>
+        </p>
+      </div>

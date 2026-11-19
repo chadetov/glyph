@@ -1,0 +1,230 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/generated-docs/index.html",
+  "locale": "th",
+  "source_hash": "31b76a81a51f0211",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Is the documentation my agent reads generated? · Glyph",
+      "tr": "เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมาหรือเปล่า? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph llms --json emits the diagnostics, the prelude, the stdlib signatures and the language decisions from the compiler's own tables, so they cannot drift.",
+      "tr": "glyph llms --json emit diagnostic, prelude, signature ของ stdlib และ decision ของภาษา ออกมาจากตารางของคอมไพเลอร์เอง มันจึงเพี้ยนไม่ได้"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; ก่อนหน้า"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "เมื่อ build ล้มเหลว คอมไพเลอร์บอกเอเจนต์ไหมว่าต้องแก้อย่างไร?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "ถัดไป &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?"
+    },
+    {
+      "id": "h-594c6826",
+      "kind": "html",
+      "en": "24 &middot; Docs that can't drift",
+      "tr": "24 &middot; เอกสารที่เพี้ยนไม่ได้"
+    },
+    {
+      "id": "h-bbccff1f",
+      "kind": "html",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมา หรือเขียนด้วยมือและล้าสมัย?"
+    },
+    {
+      "id": "h-c50aeece",
+      "kind": "html",
+      "en": "Generated. <code>glyph llms --json</code> emits the diagnostic catalogue, the prelude, the stdlib signatures, the language decisions and the tool manual out of the compiler's own tables, and a gate fails the build when a hand-written copy disagrees. Every Glyph example in the document an agent bootstraps from is compiled, including the wrong ones.",
+      "tr": "generate ขึ้นมา <code>glyph llms --json</code> emit แคตตาล็อก diagnostic, prelude, signature ของ stdlib, decision ของภาษา และคู่มือเครื่องมือ ออกมาจากตารางของคอมไพเลอร์เอง และมี gate ที่ทำให้ build fail เมื่อสำเนาที่เขียนด้วยมือไม่ตรงกัน ทุกตัวอย่าง Glyph ในเอกสารที่เอเจนต์ใช้เริ่มต้นถูกคอมไพล์ รวมถึงตัวที่ผิดด้วย"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "h-c74ff5a4",
+      "kind": "html",
+      "en": "The question is not rhetorical, because the honest answer used to be \"written by hand, and yes.\" The agent bootstrap said the MCP server \"exposes five tools\" and listed five. The server served seven. The two the server's own instructions tell an agent to reach for first appeared in it zero times. The 58 error codes lived in three hand-maintained copies, checked only for whether the code string was present. Of 19 Glyph examples in that document, 2 were compiled and 17 were skipped as fragments.",
+      "tr": "คำถามนี้ไม่ใช่วาทศิลป์ เพราะคำตอบตรงๆ เคยเป็น \"เขียนด้วยมือ และใช่\" เอกสารเริ่มต้นสำหรับเอเจนต์บอกว่าเซิร์ฟเวอร์ MCP \"exposes five tools\" และแสดงห้าตัว เซิร์ฟเวอร์ให้บริการเจ็ดตัว สองตัวที่คำแนะนำของเซิร์ฟเวอร์เองบอกให้เอเจนต์ใช้ก่อนไม่ปรากฏในนั้นเลย รหัส error 58 ตัวอยู่ในสำเนาที่ดูแลด้วยมือสามชุด ตรวจแค่ว่ามี string ของรหัสอยู่หรือไม่ จากตัวอย่าง Glyph 19 ตัวในเอกสารนั้น คอมไพล์ 2 ตัว และ 17 ตัวถูกข้ามไปในฐานะชิ้นส่วน"
+    },
+    {
+      "id": "h-b65fc913",
+      "kind": "html",
+      "en": "Every one of those is the same defect. A document about a compiler, maintained beside the compiler, by people who meant well. An agent that reads it cannot tell which sentences are still true, and neither could we.",
+      "tr": "ทุกข้อเหล่านั้นคือข้อบกพร่องเดียวกัน เอกสารเกี่ยวกับคอมไพเลอร์ ดูแลอยู่ข้างคอมไพเลอร์ โดยคนที่มีเจตนาดี เอเจนต์ที่อ่านมันบอกไม่ได้ว่าประโยคไหนยังจริงอยู่ และเราก็บอกไม่ได้เช่นกัน"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "ดูของจริง"
+    },
+    {
+      "id": "h-b81e3a56",
+      "kind": "html",
+      "en": "Seven sections, each read off a table the compiler already has. A diagnostic entry carries the catalogue sentence, the one-line fix, the long explanation, and the help and note taken from a diagnostic the compiler drew. 51 of the 77 codes also carry a wrong program that draws the code, compiled at the moment you ask; the other 26 say the corpus has no case for it.",
+      "tr": "เจ็ดส่วน แต่ละส่วนอ่านจากตารางที่คอมไพเลอร์มีอยู่แล้ว รายการ diagnostic มีประโยคจากแคตตาล็อก วิธีแก้หนึ่งบรรทัด คำอธิบายแบบยาว และ help กับ note ที่เอามาจาก diagnostic ที่คอมไพเลอร์สร้าง 51 จาก 77 รหัสมีโปรแกรมที่ผิดซึ่งได้รหัสนั้นด้วย คอมไพล์ตอนที่คุณถาม อีก 26 ตัวบอกว่าชุดตัวอย่างไม่มีกรณีสำหรับมัน"
+    },
+    {
+      "id": "h-25ad2c9c",
+      "kind": "html",
+      "en": "glyph llms --json, the E0200 entry (trimmed)",
+      "tr": "glyph llms --json รายการ E0200 (ตัดบางส่วน)"
+    },
+    {
+      "id": "h-3b207613",
+      "kind": "html",
+      "en": "77 codes come out of one table in the compiler, and <code>docs/error-codes.md</code> and the catalogue table in the agent bootstrap are written from it by a script that fails on drift. Merging the three copies that used to exist turned up a code with an explanation and no place in the list, and a row whose escaped pipe had quietly broken the table it sat in.",
+      "tr": "รหัส 77 ตัวมาจากตารางเดียวในคอมไพเลอร์ และ <code>docs/error-codes.md</code> กับตารางแคตตาล็อกในเอกสารเริ่มต้นสำหรับเอเจนต์ถูกเขียนจากมันโดยสคริปต์ที่ fail เมื่อเพี้ยน การรวมสามสำเนาที่เคยมีเจอรหัสหนึ่งที่มีคำอธิบายแต่ไม่มีที่ในรายการ และแถวหนึ่งที่ pipe ที่ escape ไว้ทำให้ตารางที่มันอยู่พังไปเงียบๆ"
+    },
+    {
+      "id": "h-7e62b4b3",
+      "kind": "html",
+      "en": "The prelude, the stdlib, and the decisions",
+      "tr": "prelude, stdlib และ decision"
+    },
+    {
+      "id": "h-527db667",
+      "kind": "html",
+      "en": "The prelude is the 24 names the resolver resolves against, with what each one is. The stdlib is 40 modules and 340 exports, and each signature is read out of the checker's own tables and printed by the same type printer a diagnostic uses, so the signature in the document is the signature the checker will hold you to. The exports split three ways and never two: 129 signatures are modeled in every position, 46 carry a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code> with a line saying how many positions are left, and 165 have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is never published as a complete signature.",
+      "tr": "prelude คือ 24 ชื่อที่ resolver ใช้ resolve พร้อมบอกว่าแต่ละตัวคืออะไร stdlib คือ 40 module กับ 340 export และแต่ละ signature อ่านออกมาจากตารางของตัวตรวจเอง และพิมพ์ด้วย type printer ตัวเดียวกับที่ diagnostic ใช้ signature ในเอกสารจึงเป็น signature ที่ตัวตรวจจะบังคับคุณ export แบ่งเป็นสามกลุ่มเสมอ ไม่ใช่สอง: 129 signature ถูก model ครบทุกตำแหน่ง 46 ตัวมี <code>?</code> ในตำแหน่งที่ควรเป็น type ของ parameter และนับเป็น <code>partially_modeled</code> พร้อมบรรทัดที่บอกว่ายังเหลืออีกกี่ตำแหน่ง และ 165 ตัวไม่มี signature เลย <code>?</code> คือ <code>unknown</code> ที่ถูก render จึงไม่เคยถูกเผยแพร่เป็น signature ที่สมบูรณ์"
+    },
+    {
+      "id": "h-1016682f",
+      "kind": "html",
+      "en": "\"stdlib\"",
+      "tr": "\"stdlib\""
+    },
+    {
+      "id": "h-7b998f67",
+      "kind": "html",
+      "en": "\"prelude\" and \"decisions\"",
+      "tr": "\"prelude\" และ \"decisions\""
+    },
+    {
+      "id": "h-d02a769f",
+      "kind": "html",
+      "en": "<code>duplicate_numbers</code> is there because the generator reads the spec's own list, and the first time it ran it found two different decisions both numbered D43 and printed <code>\"duplicate_numbers\": [43]</code>. It reports a collision rather than deduplicating it, which is how anyone found out. Nothing in the compiler keys on a D number, so no program was affected; a reader following a citation was. That one is fixed: D43 is the <code>mut</code>-across-<code>await</code> rule and <code>never</code> is D47, so the list comes back empty. There are 49 decisions today, D1 to D49.",
+      "tr": "<code>duplicate_numbers</code> มีอยู่เพราะ generator อ่านรายการของสเปกเอง และครั้งแรกที่รัน มันเจอ decision สองข้อที่ต่างกันแต่มีหมายเลข D43 ทั้งคู่ แล้วพิมพ์ <code>\"duplicate_numbers\": [43]</code> มันรายงานการชนแทนที่จะตัดตัวซ้ำทิ้ง ซึ่งเป็นวิธีที่ทำให้มีคนรู้ ไม่มีอะไรในคอมไพเลอร์ใช้หมายเลข D เป็น key จึงไม่มีโปรแกรมไหนได้รับผลกระทบ แต่คนอ่านที่ตามการอ้างอิงได้รับผลกระทบ ข้อนั้นแก้แล้ว: D43 คือกฎ <code>mut</code> ข้าม <code>await</code> และ <code>never</code> คือ D47 รายการจึงกลับมาว่าง ตอนนี้มี 49 decision ตั้งแต่ D1 ถึง D49"
+    },
+    {
+      "id": "h-8539cac7",
+      "kind": "html",
+      "en": "The wrong programs are readable too",
+      "tr": "โปรแกรมที่ผิดก็อ่านได้เช่นกัน"
+    },
+    {
+      "id": "h-b2d0bb7d",
+      "kind": "html",
+      "en": "The compiler's negative corpus is a set of programs that must fail, with the code each one must draw. It used to be visible only to <code>cargo test</code>. An agent learning what a rule refuses is exactly the reader it was written for, so it answers now, and each case is compiled when you ask so the diagnostic beside it is this compiler's.",
+      "tr": "ชุดตัวอย่างเชิงลบของคอมไพเลอร์คือชุดโปรแกรมที่ต้อง fail พร้อมรหัสที่แต่ละตัวต้องได้ มันเคยมองเห็นได้แค่จาก <code>cargo test</code> เอเจนต์ที่กำลังเรียนรู้ว่ากฎปฏิเสธอะไรคือผู้อ่านที่มันถูกเขียนมาให้ ตอนนี้มันจึงตอบได้ และแต่ละกรณีถูกคอมไพล์เมื่อคุณถาม diagnostic ข้างๆ จึงเป็นของคอมไพเลอร์ตัวนี้"
+    },
+    {
+      "id": "h-eb5a2b6c",
+      "kind": "html",
+      "en": "glyph llms --negative E0008",
+      "tr": "glyph llms --negative E0008"
+    },
+    {
+      "id": "h-0eeb8564",
+      "kind": "html",
+      "en": "With no code it lists 117 cases over 53 of the 77 codes in 0.1.149, and names the 24 that have none rather than leaving you to infer coverage from what came back. A second corpus, <code>catches/</code>, pairs a program <code>tsc --strict</code> accepts with the Glyph that refuses it, and those come back on the same answer where they exist. Both are embedded from the directories themselves, so a case added to either is in the answer with no second edit to remember.",
+      "tr": "ถ้าไม่ระบุรหัส มันแสดง 117 กรณีบน 53 จาก 77 รหัสใน 0.1.149 และระบุชื่อ 24 รหัสที่ไม่มี แทนที่จะปล่อยให้คุณอนุมานความครอบคลุมจากสิ่งที่กลับมา ชุดที่สองคือ <code>catches/</code> จับคู่โปรแกรมที่ <code>tsc --strict</code> ยอมรับกับ Glyph ที่ปฏิเสธมัน และกลับมาในคำตอบเดียวกันเมื่อมี ทั้งสองชุดฝังมาจากไดเรกทอรีเอง กรณีที่เพิ่มในชุดไหนก็อยู่ในคำตอบโดยไม่ต้องจำไปแก้ที่ที่สอง"
+    },
+    {
+      "id": "h-94746f75",
+      "kind": "html",
+      "en": "Every example compiles, including the wrong ones",
+      "tr": "ทุกตัวอย่างคอมไพล์ได้ รวมถึงตัวที่ผิด"
+    },
+    {
+      "id": "h-31753a2c",
+      "kind": "html",
+      "en": "Generating the reference is half of it. The other half is the prose an agent bootstraps from, where the examples are the part it copies. Every Glyph fence in that document is either a complete program that compiles, or is marked as a fragment of a named complete example whose lines it has to appear in. It was 19 fences with 2 compiled; it is 24 with 20 compiled and 4 marked, and none skipped. The stdlib reference went from 4 of 8 to 8 of 8.",
+      "tr": "การ generate เอกสารอ้างอิงเป็นแค่ครึ่งเดียว อีกครึ่งคือร้อยแก้วที่เอเจนต์ใช้เริ่มต้น ซึ่งตัวอย่างคือส่วนที่มันลอกไป ทุก fence ของ Glyph ในเอกสารนั้นเป็นโปรแกรมสมบูรณ์ที่คอมไพล์ได้ หรือถูกทำเครื่องหมายว่าเป็นชิ้นส่วนของตัวอย่างสมบูรณ์ที่มีชื่อ ซึ่งบรรทัดของมันต้องปรากฏอยู่ในนั้น เคยมี 19 fence คอมไพล์ 2 ตอนนี้มี 24 คอมไพล์ 20 ทำเครื่องหมาย 4 และไม่มีตัวไหนถูกข้าม เอกสารอ้างอิง stdlib เพิ่มจาก 4 ใน 8 เป็น 8 ใน 8"
+    },
+    {
+      "id": "h-d4615d6d",
+      "kind": "html",
+      "en": "A fence can also be marked as a program that must fail, naming the code it draws, which is how the document carries the five wrong forms it warns you about: the one that draws <code>E0228</code>, the one that draws <code>E0008</code>, and three more. A warning paired with the diagnostic is checkable. A warning written in prose is a promise.",
+      "tr": "fence ยังถูกทำเครื่องหมายเป็นโปรแกรมที่ต้อง fail ได้ด้วย โดยระบุรหัสที่มันได้ ซึ่งเป็นวิธีที่เอกสารถือรูปแบบที่ผิดห้าแบบที่มันเตือนไว้: ตัวที่ได้ <code>E0228</code> ตัวที่ได้ <code>E0008</code> และอีกสามตัว คำเตือนที่คู่กับ diagnostic ตรวจได้ คำเตือนที่เขียนเป็นร้อยแก้วเป็นแค่คำสัญญา"
+    },
+    {
+      "id": "h-10fd6248",
+      "kind": "html",
+      "en": "Compiling the documents found two things reading them was never going to find. An inline triple backtick had read as a fence opener, so 250 lines counted as one snippet and nothing inside them was checked. And a worked server in the stdlib reference called <code>http.serve</code>, which <code>std/http</code> does not export. The function is <code>listen</code>.",
+      "tr": "การคอมไพล์เอกสารเจอสองอย่างที่การอ่านไม่มีวันเจอ triple backtick แบบ inline ถูกอ่านเป็นตัวเปิด fence 250 บรรทัดจึงนับเป็นชิ้นเดียวและไม่มีอะไรข้างในถูกตรวจ และ server ตัวอย่างในเอกสารอ้างอิง stdlib เรียก <code>http.serve</code> ซึ่ง <code>std/http</code> ไม่ได้ export ฟังก์ชันที่ถูกคือ <code>listen</code>"
+    },
+    {
+      "id": "h-f2abc397",
+      "kind": "html",
+      "en": "What it costs to hand over, and what it stopped costing",
+      "tr": "ต้นทุนของการส่งมอบ และสิ่งที่ไม่ต้องจ่ายอีกแล้ว"
+    },
+    {
+      "id": "h-2dc5770c",
+      "kind": "html",
+      "en": "The eleven MCP tools used to carry their whole manual in the <code>tools/list</code> reply, which every session pays for on connect: 31,446 bytes of description in a 45,509-byte reply. The same eleven tools carry 8,627 in a 20,386-byte reply now. Nothing was deleted. The previous text is held verbatim, keyed by tool name, and published inside <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away instead of in every session's first reply. A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a count that disagrees with the list, fails the build. That is the check \"exposes five tools\" needed.",
+      "tr": "เครื่องมือ MCP สิบเอ็ดตัวเคยแบกคู่มือทั้งหมดไว้ใน reply ของ <code>tools/list</code> ซึ่งทุก session จ่ายตอนเชื่อมต่อ: คำอธิบาย 31,446 ไบต์ ใน reply ขนาด 45,509 ไบต์ ตอนนี้เครื่องมือสิบเอ็ดตัวเดิมแบก 8,627 ใน reply ขนาด 20,386 ไบต์ ไม่มีอะไรถูกลบ ข้อความเดิมถูกเก็บไว้ตรงตัว ใช้ชื่อเครื่องมือเป็น key และเผยแพร่ภายใน <code>glyph llms --json</code> ข้อตกลงที่คุณต้องใช้ตอนเรียกจึงอยู่ในคำอธิบาย และส่วนที่เหลืออยู่ห่างไปหนึ่งคำสั่ง แทนที่จะอยู่ใน reply แรกของทุก session มีเทสต์ที่อ่านรายการเครื่องมือและเอกสารไปพร้อมกัน เอกสารที่อ้างถึงเครื่องมือที่เซิร์ฟเวอร์ไม่ได้ให้บริการ หรือจำนวนที่ไม่ตรงกับรายการ จะทำให้ build fail นั่นคือการตรวจที่ \"exposes five tools\" ต้องการ"
+    },
+    {
+      "id": "h-ebc0730a",
+      "kind": "html",
+      "en": "All of this is offline and local. <code>glyph llms</code> prints the prose, <code>glyph llms --json</code> the data, <code>glyph llms --negative</code> the wrong programs. The same prose is served at <a href=\"/llms.txt\">llms.txt</a> for an agent with a network and no binary. What an agent asks about <em>your</em> code, rather than about the language, is the <a href=\"/answers/ask-the-compiler/\">query tools</a>.",
+      "tr": "ทั้งหมดนี้ทำงานแบบออฟไลน์และในเครื่อง <code>glyph llms</code> พิมพ์ร้อยแก้ว <code>glyph llms --json</code> พิมพ์ข้อมูล <code>glyph llms --negative</code> พิมพ์โปรแกรมที่ผิด ร้อยแก้วเดียวกันให้บริการที่ <a href=\"/llms.txt\">llms.txt</a> สำหรับเอเจนต์ที่มี network แต่ไม่มี binary สิ่งที่เอเจนต์ถามเกี่ยวกับโค้ด<em>ของคุณ</em> แทนที่จะเกี่ยวกับภาษา คือ<a href=\"/answers/ask-the-compiler/\">เครื่องมือคิวรี</a>"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "สถานะตอนนี้"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "ใช้ได้วันนี้"
+    },
+    {
+      "id": "h-ef7b0c9f",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler: 77 diagnostic codes, 51 of them with a compiled counter-example, the 32 reserved words, the 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.",
+      "tr": "<code>glyph llms --json</code> emit เจ็ดส่วนออกมาจากคอมไพเลอร์: รหัส diagnostic 77 ตัว 51 ตัวมีตัวอย่างค้านที่คอมไพล์แล้ว คำสงวน 32 คำ ชื่อใน prelude 24 ชื่อ stdlib 40 module ที่มี export 340 ตัว decision ของภาษา 49 ข้อที่ parse จากสเปก และเครื่องมือสิบเอ็ดตัวพร้อมคำสั่งย่อย <code>glyph query</code> และคู่มือเต็ม <code>docs/error-codes.md</code> และตาราง diagnostic ของเอกสารเริ่มต้นถูกเขียนจากตารางรหัสของคอมไพเลอร์เองโดยสคริปต์ที่ fail เมื่อเพี้ยน และสะท้อน <code>llms.txt</code> ใหม่ไปพร้อมกัน มีเทสต์ที่ยึดแคตตาล็อกเครื่องมือให้ตรงกับสิ่งที่เซิร์ฟเวอร์ให้บริการ ทุก fence ของ Glyph ในเอกสารเริ่มต้นและเอกสารอ้างอิง stdlib คอมไพล์ได้หรือเป็นชิ้นส่วนที่ทำเครื่องหมายไว้ของตัวที่คอมไพล์ได้ และรูปแบบที่ผิดห้าแบบเป็นโปรแกรมที่คู่กับรหัสที่แต่ละตัวได้ <code>glyph llms --negative</code> ตอบจากชุดตัวอย่างเดียวกับที่ <code>cargo test</code> รัน"
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "หยุดตรงไหน"
+    },
+    {
+      "id": "h-5c7219d3",
+      "kind": "html",
+      "en": "Two counts of the wrong programs appear in this document and they count different things: 51 of the 77 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 117 cases over 53 codes in 0.1.149 because it reads the refusals in <code>catches/</code> as well; the next release adds the 22 refusals added to <code>catches/</code> since, for 139 cases over 55 codes. In 0.1.149, 24 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 165 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 175 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.",
+      "tr": "จำนวนโปรแกรมที่ผิดปรากฏสองครั้งในเอกสารนี้และนับคนละอย่าง: 51 จาก 77 รหัสมีตัวอย่างค้านจาก <code>tests/negative/</code> และ <code>glyph llms --negative</code> แสดง 117 กรณีบน 53 รหัสใน 0.1.149 เพราะมันอ่านการปฏิเสธใน <code>catches/</code> ด้วย รุ่นถัดไปเพิ่มการปฏิเสธ 22 ตัวที่เพิ่มใน <code>catches/</code> ตั้งแต่นั้น รวมเป็น 139 กรณีบน 55 รหัส ใน 0.1.149 มี 24 รหัสที่ไม่มีโปรแกรมที่ผิดในชุดไหนเลย และคำตอบระบุชื่อมันแทนที่จะแต่งขึ้นมา 165 จาก 340 export ของ stdlib กลับมาโดยไม่มี signature: implementation เป็น TypeScript ที่ <code>tsc</code> ตรวจ และตารางของคอมไพเลอร์เองไม่ได้ model อะไรให้มัน <code>glyph_symbol</code> บน <code>std/result::all</code> หรือ <code>std/io::println</code> จึงรายงาน <code>kind: null</code> พร้อมเหตุผลนั้น ใน 175 ตัวที่มี มี 46 ตัวที่ยังมี <code>?</code> ในตำแหน่งที่ควรเป็น type ของ parameter และเอกสารเป็น snapshot ที่คุณดึงมา ไม่ใช่ service: ไม่มีชั้น retrieval ไม่มี embedding และไม่มีช่องทางแชทครอบมัน"
+    }
+  ]
+}

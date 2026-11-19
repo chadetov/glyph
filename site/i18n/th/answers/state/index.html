@@ -1,0 +1,83 @@
+---
+title: จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร? · Glyph
+description: Glyph ไม่มีตัวแปร global ที่เปลี่ยนค่าได้ state ที่ใช้ร่วมกันอยู่ใน std/store: const ระดับ module ที่ get, set และ update เป็นช่องทางเขียนเพียงทางเดียว หาเจอได้ด้วยการค้นครั้งเดียว
+source_hash: 59f9695c32448ee8
+prev: /answers/react/ | &larr; ก่อนหน้า | ใช้กับ React ได้ไหม: component, hook และ Context?
+next: /answers/language/ | ถัดไป &rarr; | นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่?
+---
+      <p class="q-eyebrow">14 &middot; state ที่ใช้ร่วมกัน</p>
+      <h1 class="q-title">จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?</h1>
+
+      <p class="short-answer">
+        ด้วย <strong>store</strong> Glyph ไม่มีตัวแปร global ที่เปลี่ยนค่าได้ binding ระดับ module เป็น <code>const</code> state ที่ใช้ร่วมกันอยู่ใน <code>std/store</code>: <code>const</code> ระดับ module ที่ถือค่าซึ่งคุณอ่านด้วย <code>get()</code> และเปลี่ยนด้วย <code>set()</code>/<code>update()</code> binding ไม่เคยย้าย มีแค่ค่าภายในที่เปลี่ยน ผ่านการเรียก method ทุกการเขียนจึงเป็นข้อความ <code>.set(</code> หรือ <code>.update(</code> ที่ grep หาได้
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>
+          ประกาศ store ครั้งเดียวที่ระดับ module ทุกฟังก์ชันใน module ใช้ร่วมกัน ไม่ต้องส่ง <code>let</code> ผ่าน <code>main</code> ไม่ต้องใช้ closure ที่จับตัวแปร:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>import std/store { create }
+import std/array
+
+type Task = {
+  id: number,
+  title: string,
+}
+
+const tasks = create&lt;Array&lt;Task&gt;&gt;([])
+const next_id = create(0)
+
+fn add(title: string) -&gt; Task {
+  next_id.update(fn(n: number) -&gt; number {
+    return n + 1
+  })
+  let task = { id: next_id.get(), title: title }
+  tasks.update(fn(cur: Array&lt;Task&gt;) -&gt; Array&lt;Task&gt; {
+    return array.push(cur, task)
+  })
+  return task
+}
+
+fn all() -&gt; Array&lt;Task&gt; {
+  return tasks.get()
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">ช่องทางเขียนทั้งหมด ในการ grep ครั้งเดียว</span>
+<pre>$ grep -rn 'tasks\.\(set\|update\)' src/
+src/tasks.glyph:16:  tasks.update(fn(cur...
+
+# every place the task list can change,
+# enumerated. nothing hides in an
+# ordinary `x = ...` assignment
+# somewhere else in the file.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมต้องเป็น store ไม่ใช่ global ที่เปลี่ยนค่าได้</h2>
+        <p>
+          นี่เป็นการตัดสินใจออกแบบโดยเจตนา Glyph จำกัด <code>mut</code> ไว้ที่การ assign ระดับ local และให้ binding ระดับ module เป็น <code>const</code> เพราะ global ที่เขียนได้กระจายอยู่ทั่วคือสิ่งที่ทำให้ state ยากจะเข้าใจและยากจะ<em>หาเจอ</em> store ไม่ต้องผ่อนกฎข้อไหนเลย: binding <code>const s</code> เปลี่ยนไม่ได้ และค่าภายในเปลี่ยนได้แค่ผ่าน <code>set</code>/<code>update</code> state ที่ใช้ร่วมกันจึงมาในรูป<strong>ไลบรารี ไม่ใช่ syntax ใหม่</strong> (ไม่มี linear type ไม่มีกฎการแก้ค่าที่อ่อนลง) และการแก้ค่าอยู่ในที่เดียวที่ตรวจสอบแล้ว แทนที่จะกระจายไปทั่วโปรแกรม
+        </p>
+        <p>
+          มีมุมคมอยู่หนึ่งจุด ซึ่งเหมือนใน TypeScript: collection ว่างอนุมาน type ของ element ไม่ได้ จึงต้องใส่ type argument ให้ชัด: <code>create&lt;Array&lt;Task&gt;&gt;([])</code> store ที่เป็นค่าเดี่ยว (<code>create(0)</code>) อนุมานได้ปกติ
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p><code>std/store</code> ที่มี <code>create</code>, <code>get</code>, <code>set</code> และ <code>update</code>: ที่อยู่เดียวที่ grep หาได้สำหรับ state ที่ใช้ร่วมกันและเปลี่ยนค่าได้</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังมา</h3>
+          <p>ความสะดวกที่สร้างบน primitive เดียวกัน (store ที่ derive หรือคำนวณจากตัวอื่น, subscription) วางซ้อนอยู่ด้านบนโดยไม่ต้องเปลี่ยนภาษา</p>
+        </div>
+      </div>

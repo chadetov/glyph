@@ -1,0 +1,224 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "agents/index.html",
+  "locale": "th",
+  "source_hash": "74db8e3bf226ba57",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "For agents and tool builders · Glyph",
+      "tr": "สำหรับเอเจนต์และคนสร้างเครื่องมือ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How an agent works with Glyph: an MCP server with eleven tools, the same queries on the command line, and glyph check --agent for repairing a red build.",
+      "tr": "เอเจนต์ทำงานกับ Glyph อย่างไร: เซิร์ฟเวอร์ MCP ที่มีสิบเอ็ดเครื่องมือ คิวรีเดียวกันบน command line และ glyph check --agent สำหรับซ่อม build ที่แดง"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Each piece in depth",
+      "tr": "แต่ละส่วนแบบละเอียด"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Start here",
+      "tr": "เริ่มที่นี่"
+    },
+    {
+      "id": "ns./mcp/.title",
+      "kind": "ns.title",
+      "en": "The MCP server",
+      "tr": "เซิร์ฟเวอร์ MCP"
+    },
+    {
+      "id": "ns./mcp/.desc",
+      "kind": "ns.desc",
+      "en": "Setup, the eleven tools with their arguments, the <code>glyph query</code> verbs, and what the server doesn't do yet.",
+      "tr": "การตั้งค่า เครื่องมือสิบเอ็ดตัวพร้อม argument คำสั่งย่อยของ <code>glyph query</code> และสิ่งที่เซิร์ฟเวอร์ยังทำไม่ได้"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Set up the server",
+      "tr": "ตั้งค่าเซิร์ฟเวอร์"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.title",
+      "kind": "ns.title",
+      "en": "Can my agent ask the compiler what a symbol is?",
+      "tr": "เอเจนต์ของฉันถามคอมไพเลอร์ได้ไหมว่าสัญลักษณ์นี้คืออะไร?"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.desc",
+      "kind": "ns.desc",
+      "en": "<code>glyph_symbol</code>: a union's cases with the syntax that constructs each.",
+      "tr": "<code>glyph_symbol</code>: case ของ union พร้อม syntax ที่ใช้สร้างแต่ละ case"
+    },
+    {
+      "id": "ns./answers/impact/.title",
+      "kind": "ns.title",
+      "en": "Can the compiler say what a change breaks first?",
+      "tr": "คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพังก่อนแก้?"
+    },
+    {
+      "id": "ns./answers/impact/.desc",
+      "kind": "ns.desc",
+      "en": "Six change kinds, one verdict per site, and the csvql run above in full.",
+      "tr": "การเปลี่ยนแปลงหกแบบ คำตัดสินหนึ่งข้อต่อจุด และการรัน csvql ข้างบนแบบเต็ม"
+    },
+    {
+      "id": "ns./answers/repair-protocol/.title",
+      "kind": "ns.title",
+      "en": "Does a failed build tell my agent how to fix it?",
+      "tr": "build ที่ล้มเหลวบอกเอเจนต์ไหมว่าต้องแก้อย่างไร?"
+    },
+    {
+      "id": "ns./answers/repair-protocol/.desc",
+      "kind": "ns.desc",
+      "en": "<code>check --agent</code>, <code>glyph fix</code>, and a walkthrough with real output.",
+      "tr": "<code>check --agent</code>, <code>glyph fix</code> และตัวอย่างทีละขั้นพร้อม output จริง"
+    },
+    {
+      "id": "ns./answers/generated-docs/.title",
+      "kind": "ns.title",
+      "en": "Is the agent's documentation generated?",
+      "tr": "เอกสารสำหรับเอเจนต์ถูก generate ขึ้นมาหรือเปล่า?"
+    },
+    {
+      "id": "ns./answers/generated-docs/.desc",
+      "kind": "ns.desc",
+      "en": "What <code>glyph llms</code> emits, where each number comes from, and what is still missing.",
+      "tr": "<code>glyph llms</code> emit อะไรออกมา ตัวเลขแต่ละตัวมาจากไหน และอะไรที่ยังขาด"
+    },
+    {
+      "id": "ns./answers/ai-authoring/.title",
+      "kind": "ns.title",
+      "en": "Can an AI write a language it has barely seen?",
+      "tr": "AI เขียนภาษาที่แทบไม่เคยเห็นได้หรือ?"
+    },
+    {
+      "id": "ns./answers/ai-authoring/.desc",
+      "kind": "ns.desc",
+      "en": "What carries over from TypeScript, and how the compiler covers the rest.",
+      "tr": "อะไรใช้ต่อจาก TypeScript ได้ และคอมไพเลอร์ช่วยส่วนที่เหลืออย่างไร"
+    },
+    {
+      "id": "h-753824bb",
+      "kind": "html",
+      "en": "For agents and tool builders",
+      "tr": "สำหรับเอเจนต์และคนสร้างเครื่องมือ"
+    },
+    {
+      "id": "h-035437e3",
+      "kind": "html",
+      "en": "The compiler's interface for agents",
+      "tr": "อินเทอร์เฟซของคอมไพเลอร์สำหรับเอเจนต์"
+    },
+    {
+      "id": "h-59e0f1f6",
+      "kind": "html",
+      "en": "An agent can ask Glyph's compiler what a symbol is, what an edit will break, and why a build failed, and get JSON back. <code>glyph mcp</code> serves eleven tools over stdio, each one also a <code>glyph query</code> verb, and <code>glyph llms</code> prints the language reference offline.",
+      "tr": "เอเจนต์ถามคอมไพเลอร์ของ Glyph ได้ว่าสัญลักษณ์คืออะไร การแก้จะทำอะไรพัง และทำไม build ล้มเหลว แล้วได้คำตอบเป็น JSON <code>glyph mcp</code> ให้บริการสิบเอ็ดเครื่องมือผ่าน stdio แต่ละตัวเป็นคำสั่งย่อยของ <code>glyph query</code> ด้วย และ <code>glyph llms</code> พิมพ์เอกสารอ้างอิงภาษาแบบออฟไลน์"
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "ตั้งค่า"
+    },
+    {
+      "id": "h-f72d5056",
+      "kind": "html",
+      "en": "<code>glyph init</code> writes this <code>.mcp.json</code> into a new project, and <code>glyph agents</code> writes it (with an <code>AGENTS.md</code> pointing at <code>glyph llms</code>) into an existing one. Any MCP client that reads the file launches the server; there is no port and no daemon.",
+      "tr": "<code>glyph init</code> เขียน <code>.mcp.json</code> นี้ลงในโปรเจกต์ใหม่ และ <code>glyph agents</code> เขียนมัน (พร้อม <code>AGENTS.md</code> ที่ชี้ไปที่ <code>glyph llms</code>) ลงในโปรเจกต์ที่มีอยู่แล้ว MCP client ไหนที่อ่านไฟล์นี้ก็จะเปิดเซิร์ฟเวอร์เอง ไม่มี port และไม่มี daemon"
+    },
+    {
+      "id": "h-95651357",
+      "kind": "html",
+      "en": ".mcp.json, as glyph init writes it",
+      "tr": ".mcp.json ตามที่ glyph init เขียน"
+    },
+    {
+      "id": "h-bef1632c",
+      "kind": "html",
+      "en": "One call, with its real answer",
+      "tr": "การเรียกหนึ่งครั้ง พร้อมคำตอบจริง"
+    },
+    {
+      "id": "h-d90f4a66",
+      "kind": "html",
+      "en": "A file reads a field that its record doesn't declare (<code>u.naem</code>). The agent calls <code>glyph_diagnostics</code> and gets the compiler's own diagnostic, with the fields the record does declare and the record that owns them. This is the tool's output on 0.1.149, trimmed only where marked.",
+      "tr": "ไฟล์หนึ่งอ่าน field ที่ record ของมันไม่ได้ประกาศไว้ (<code>u.naem</code>) เอเจนต์เรียก <code>glyph_diagnostics</code> และได้ diagnostic ของคอมไพเลอร์เอง พร้อม field ที่ record ประกาศไว้จริงและ record ที่เป็นเจ้าของ นี่คือ output ของเครื่องมือบน 0.1.149 ตัดเฉพาะจุดที่ทำเครื่องหมายไว้"
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "request"
+    },
+    {
+      "id": "h-f6a214f7",
+      "kind": "html",
+      "en": "result",
+      "tr": "ผลลัพธ์"
+    },
+    {
+      "id": "h-7039cad1",
+      "kind": "html",
+      "en": "<code>not_run</code> names what this check did not cover, so an empty <code>diagnostics</code> list can't be mistaken for a full build. Without an MCP client, <code>glyph query diagnostics --path src/user.glyph</code> prints the same JSON. The full tool list, with every verb, is on <a href=\"/mcp/\">the MCP page</a>.",
+      "tr": "<code>not_run</code> บอกว่าการตรวจครั้งนี้ไม่ได้ครอบคลุมอะไร list <code>diagnostics</code> ที่ว่างจึงไม่ถูกเข้าใจผิดว่าเป็น build เต็ม ถ้าไม่มี MCP client <code>glyph query diagnostics --path src/user.glyph</code> ก็พิมพ์ JSON เดียวกัน รายการเครื่องมือทั้งหมดพร้อมทุกคำสั่งย่อยอยู่ใน<a href=\"/mcp/\">หน้า MCP</a>"
+    },
+    {
+      "id": "h-1fb11ce5",
+      "kind": "html",
+      "en": "Before an edit: what will it break?",
+      "tr": "ก่อนแก้: จะทำอะไรพัง?"
+    },
+    {
+      "id": "h-ada15b5d",
+      "kind": "html",
+      "en": "<code>examples/apps/csvql</code> is an eleven-file CSV query engine with a four-case union, <code>Value</code>. Asked what adding a fifth case does, <code>glyph_impact</code> lists 10 <code>match</code> sites in 4 files: 8 <code>WILL_FAIL</code> and 2 <code>ABSORBS</code>, where a catch-all arm will swallow the new case and keep compiling. Adding the case for real gives exactly 8 <code>E0200</code> errors, at those 8 sites. The 2 absorbing sites stay silent, which is why the answer names them.",
+      "tr": "<code>examples/apps/csvql</code> เป็น query engine สำหรับ CSV สิบเอ็ดไฟล์ ที่มี union สี่ case ชื่อ <code>Value</code> เมื่อถามว่าการเพิ่ม case ที่ห้าจะมีผลอย่างไร <code>glyph_impact</code> แสดง <code>match</code> 10 จุดใน 4 ไฟล์: <code>WILL_FAIL</code> 8 จุด และ <code>ABSORBS</code> 2 จุด ซึ่ง arm แบบ catch-all จะกลืน case ใหม่ไปและยังคอมไพล์ผ่าน เมื่อเพิ่ม case จริงๆ ได้ error <code>E0200</code> 8 ตัวพอดี ที่ 8 จุดนั้น 2 จุดที่กลืนไปจะเงียบ ซึ่งเป็นเหตุผลที่คำตอบต้องระบุชื่อมัน"
+    },
+    {
+      "id": "h-1b4a94d5",
+      "kind": "html",
+      "en": "the same question on the command line",
+      "tr": "คำถามเดียวกันบน command line"
+    },
+    {
+      "id": "h-e02ae173",
+      "kind": "html",
+      "en": "After a red build: what does the fix have to keep?",
+      "tr": "หลัง build แดง: การแก้ต้องรักษาอะไรไว้?"
+    },
+    {
+      "id": "h-fd59d326",
+      "kind": "html",
+      "en": "<code>glyph check --agent</code> prints <code>check --json</code>'s diagnostics with two more keys on each. <code>constraints</code> lists what a repairing edit must not break; for the typo above it reads \"the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others\". <code>symbols</code> carries the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. Where the fix is fully determined, <code>glyph fix</code> writes it.",
+      "tr": "<code>glyph check --agent</code> พิมพ์ diagnostic ของ <code>check --json</code> โดยเพิ่ม key อีกสองตัวในแต่ละข้อ <code>constraints</code> แสดงสิ่งที่การแก้ต้องไม่ทำพัง สำหรับคำผิดข้างบนจะอ่านได้ว่า \"the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others\" <code>symbols</code> ถือคำตอบของ <code>glyph_symbol</code> สำหรับทุกสัญลักษณ์ที่ diagnostic อ้างถึง การแก้ครั้งถัดไปจึงไม่ต้องเรียกซ้ำ ในกรณีที่วิธีแก้ถูกกำหนดไว้ชัดเจน <code>glyph fix</code> จะเขียนให้"
+    },
+    {
+      "id": "h-b85dc276",
+      "kind": "html",
+      "en": "Reading the language offline",
+      "tr": "อ่านภาษาแบบออฟไลน์"
+    },
+    {
+      "id": "h-1f29991a",
+      "kind": "html",
+      "en": "<code>glyph llms</code> prints the language reference, and <code>/llms.txt</code> on this site is the same document. <code>glyph llms --json</code> is that knowledge as data, read from the compiler's own tables: 77 diagnostic codes, 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions, and the eleven tools. <code>glyph llms --negative</code> returns 117 wrong programs in 0.1.149 (139 from the next release) with the code each one draws, compiled when you ask. <code>scripts/check_llms_sync.py</code> fails when the diagnostic and reserved-word tables in the reference drift from the compiler's own.",
+      "tr": "<code>glyph llms</code> พิมพ์เอกสารอ้างอิงภาษา และ <code>/llms.txt</code> บนเว็บนี้คือเอกสารเดียวกัน <code>glyph llms --json</code> คือความรู้ชุดนั้นในรูปข้อมูล อ่านจากตารางของคอมไพเลอร์เอง: รหัส diagnostic 77 ตัว ชื่อใน prelude 24 ชื่อ stdlib 40 module ที่มี export 340 ตัว decision ของภาษา 49 ข้อ และเครื่องมือสิบเอ็ดตัว <code>glyph llms --negative</code> คืนโปรแกรมที่ผิด 117 ตัวใน 0.1.149 (139 ตัวตั้งแต่รุ่นถัดไป) พร้อมรหัสที่แต่ละตัวได้ คอมไพล์เมื่อคุณขอ <code>scripts/check_llms_sync.py</code> จะ fail เมื่อตาราง diagnostic และคำสงวนในเอกสารอ้างอิงไม่ตรงกับของคอมไพเลอร์"
+    },
+    {
+      "id": "h-d7b19eb8",
+      "kind": "html",
+      "en": "offline entry points",
+      "tr": "จุดเริ่มต้นแบบออฟไลน์"
+    }
+  ]
+}

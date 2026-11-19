@@ -1,0 +1,50 @@
+---
+title: ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่? · Glyph
+description: TypeScript คือที่ที่เอเจนต์เขียนโค้ดมากที่สุดอยู่แล้ว และเป็นที่อยู่ของ npm, React และ Node Glyph นำมาใช้ทีละไฟล์ได้ก็เพราะเป้าหมายของมันคือ TS
+source_hash: 9f7bf2e8baaad5d9
+prev: /answers/greppability/ | &larr; ก่อนหน้า | เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?
+next: /answers/vs-tooled-ts/ | ถัดไป &rarr; | ทำไมไม่ใช้แค่ TypeScript แบบ strict + zod + eslint + ts-pattern?
+---
+      <p class="q-eyebrow">04 &middot; จุดยืน</p>
+      <h1 class="q-title">ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?</h1>
+
+      <p class="short-answer">
+        เพราะ TypeScript คือที่ที่เอเจนต์เขียนโค้ดมากที่สุดอยู่แล้ว และเป็นที่อยู่ของ ecosystem ของคุณ (npm, React, Node) Glyph นำมาใช้ทีละไฟล์ได้<strong>ก็เพราะเป้าหมายของมันคือ TS เท่านั้น</strong>
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          ภาษาใหม่จะรอดหรือไม่ขึ้นกับว่าคุณไปจากศูนย์ถึงการปล่อยของจริงได้อย่างไร การคอมไพล์เป็น TypeScript หมายความว่าคุณไม่ต้องออกจาก codebase, bundler, test runner หรือวิธี deploy ของคุณเลย Glyph เสียบเข้าไปข้างไฟล์ <code>.ts</code> ที่คุณมีอยู่แล้ว และ import กันได้สะอาดทั้งสองทาง:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">โปรเจกต์เดียวกัน: .glyph และ .ts วางคู่กัน</span>
+<pre><span class="cm">// cart.glyph: new, written in Glyph</span>
+import { formatPrice } from "./format.ts"
+
+<span class="cm">// checkout.ts: existing, untouched</span>
+import { total } from "./cart.glyph"</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          คุณใส่ Go ลงใน codebase TypeScript ทีละไฟล์ไม่ได้: runtime ต่างกัน ระบบ module ต่างกัน ecosystem ต่างกัน ข้อเท็จจริงข้อเดียวนี้คือเหตุผลที่เป้าหมายเป็น TS
+        </p>
+        <p>
+          <strong>ข้อที่ยุติธรรมเกี่ยวกับ Go:</strong> keyword ที่มีน้อยและคงที่ของมันทำให้เอเจนต์มีทางผิดพลาดน้อยลง เราเห็นด้วย และนั่นคือเหตุผลที่ Glyph ตั้งใจรักษา core ให้เล็ก มีวิธีเดียวในการทำแต่ละอย่าง Go รวมอยู่ใน<a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmark</a> ความหนาแน่นของเราเพื่อเปรียบเทียบกันตรงๆ
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>output ที่เป็น TypeScript สะอาด import สองทางกับ <code>.ts</code> ที่มีอยู่ และ core เล็กๆ ที่รันได้ทุกที่ที่ Node หรือ browser bundle รันได้</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังวัด</h3>
+          <p>benchmark ข้ามภาษา (Glyph, TS, Go, Python, Rust) โตตามชุดข้อมูล ข้อกล่าวอ้างเรื่อง &ldquo;พื้นผิวเล็ก&rdquo; จึงยังเป็นตัวเลข ไม่ใช่แค่คำยืนยัน</p>
+        </div>
+      </div>

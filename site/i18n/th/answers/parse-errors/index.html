@@ -1,0 +1,105 @@
+---
+title: เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร? · Glyph
+description: parse ที่ล้มเหลวบอกชื่อ field บอกว่าค่าผิดกฎข้อไหน ยก predicate where ที่ถูกละเมิดมาให้ดู และติดป้ายปัญหาด้วยรหัสที่ใช้แตก branch ได้
+source_hash: 7f1a8b2bd45c7f9e
+prev: /answers/early-errors/ | &larr; ก่อนหน้า | ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?
+next: /answers/debugging/ | ถัดไป &rarr; | เมื่อพังบน production ตอนตีสาม คนที่ on-call เห็นอะไร?
+---
+      <p class="q-eyebrow">27 &middot; parse ไม่ผ่าน</p>
+      <h1 class="q-title">เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?</h1>
+
+      <p class="short-answer">
+        รู้ ทุกปัญหาบอกชื่อ field บอกว่า<strong>ค่าผิดกฎข้อไหน</strong> และมี <code>code</code> ที่ใช้แตก branch ได้ field ที่ถูกจำกัดด้วย predicate <code>where</code> จะรายงานตัว predicate เอง การปฏิเสธจึง grep ย้อนกลับไปหาบรรทัดที่กำหนดกฎนั้นได้
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          validator ที่บอกว่า "payload นี้ผิด" ทำงานได้แค่ครึ่งเดียว handler ยังต้องตัดสินว่า นี่คือ client ที่ลืม field หรือ client ที่ส่งรหัสผ่านยาวสี่ตัวอักษร? อันหนึ่งคือ 400 อีกอันคือ 422 และถ้า validator ไม่บอก คุณก็ต้อง parse body เดิมสองรอบด้วย type สองแบบเพื่อกู้ข้อมูลหนึ่งบิตที่ validator มีอยู่แล้ว
+        </p>
+        <p>
+          นั่นคือสิ่งที่เกิดขึ้นจริงตอนสร้าง auth API ด้วย Glyph การสมัครที่ไม่มี key <code>password</code> เลยกลับมาเป็น <code>weak_password</code> เพราะกรณีไม่มีกับกรณีสั้นเกินไปให้ string เดียวกัน
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>type เดียว ข้อจำกัดเดียว:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">signup.glyph</span>
+<pre>pub type Password = string where value.length &gt;= 8
+
+pub type Signup = {
+  email: string,
+  password: Password,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          payload ที่ผิดสี่แบบ คำตอบสี่แบบ แต่ละแบบคือ <code>Issue</code> หนึ่งตัว แสดงเป็น <code>code | path | message</code>:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Signup.parse(...)</span>
+<pre><span class="cm">// { "email": "user@example.com" }</span>
+missing     ["password"]  field `password` is required
+
+<span class="cm">// { "email": "user@example.com", "password": "short" }</span>
+refinement  ["password"]  expected Password (string where value.length &gt;= 8)
+
+<span class="cm">// { "email": 42, "password": "longenough" }</span>
+type        ["email"]     field `email` must be string
+
+<span class="cm">// [1, 2, 3]</span>
+type        []            expected Signup (an object), got an array</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ตัวที่สองคือประเด็น <code>value.length &gt;= 8</code> เขียนครั้งเดียวที่ type และการปฏิเสธยกมันมาตรงตัว คัด string นั้นจาก body ของ HTTP 422 ไปใส่ <code>grep</code> แล้วคุณจะเจอ declaration ที่สร้างมัน ไม่มีใครต้องเก็บสำเนาของกฎไว้ในชั้นข้อความ error ซึ่งเป็นวิธีที่ทั้งสองเพี้ยนออกจากกัน
+        </p>
+        <p>
+          ตัวที่สี่เคยแย่กว่าแค่ข้อความที่ไม่ดี array เป็น object สำหรับ <code>typeof</code> record ที่ไม่มี field บังคับจึงยอมรับมันทันที และ <code>[1, 2, 3]</code> ที่ถูกส่งมาได้ปัญหาที่ชวนงงหนึ่งข้อต่อ field ที่ประกาศไว้ ไม่มีข้อไหนบอกว่าคุณส่ง list มา
+        </p>
+
+        <h2 class="block-label">type ที่ซ้อนกันตอบแทนตัวเองได้</h2>
+        <p>
+          field ที่ type ของมันมี descriptor ของตัวเองจะถูก validate ด้วย <code>parse</code> ของ type นั้น และปัญหาของมันกลับมาพร้อมชื่อ field นำหน้า path <code>Password</code> ที่ซ้อนลงไปสองชั้นจึงรายงาน <code>["body", "password"]</code> และยังมีข้อความของตัวเอง คุณได้ทั้งตำแหน่งและเหตุผลจากปัญหาเดียวกัน โดยไม่ต้องรันอะไรซ้ำ
+        </p>
+
+        <h2 class="block-label">ใช้รหัส ไม่ใช่ string</h2>
+        <p>
+          <code>Issue</code> มี <code>code</code> ที่ไม่บังคับ: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code> หรือ <code>"unexpected"</code> ให้แตก branch ด้วยสิ่งนั้น การ match ด้วยข้อความคือความเปราะบางที่ Glyph มีไว้กำจัด และข้อความมีไว้ให้คนที่อ่าน response body
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">การแยก 400/422 โดยไม่อ่านข้อความ</span>
+<pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
+  let first = issues[0]
+  return match first.code == "refinement" {
+    true =&gt; 422,
+    false =&gt; 400,
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>code</code> ไม่บังคับ <code>Issue</code> ที่คุณสร้างเอง และทุกโค้ดที่ใช้มันซึ่งเขียนก่อนที่มันจะมี จึงยังคอมไพล์ได้โดยไม่ต้องแก้
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>record และ type แบบ <code>where</code> รายงานกฎที่ล้มเหลว ไม่ใช่แค่ field ที่ล้มเหลว: <code>"missing"</code> สำหรับ field บังคับที่ไม่มี, <code>"type"</code> สำหรับรูปร่างที่ผิด (รวมถึงสิ่งที่ไม่ใช่ object หรือเป็น array), <code>"refinement"</code> สำหรับค่าที่ผ่าน type พื้นฐานแต่ไม่ผ่าน predicate และ <code>"unexpected"</code> สำหรับ key ที่ type ไม่ได้ประกาศ refinement ยก predicate ของมันมาให้ field ที่ type มี descriptor จะส่งต่อให้ descriptor นั้น ปัญหาที่ซ้อนกันจึงมาพร้อม path เต็ม field ที่ไม่บังคับ (<code>f?: T</code>) ไม่เคยถูกรายงานว่าหายไป</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังคมขึ้น</h3>
+          <p>มีสองขอบ field ที่ type ไม่มี descriptor ของตัวเอง เช่น type parameter ที่ไม่มีข้อจำกัด หรือ type ที่ import จาก <code>.d.ts</code> ที่เขียนเอง ยังได้การตรวจแบบแบนและปัญหา <code>"type"</code> คอมไพเลอร์ไม่สังเคราะห์ descriptor ให้สิ่งเหล่านั้น และการรัน <code>glyph gen dts</code> กับ declaration คือสิ่งที่ให้ descriptor แก่มัน module ที่ประกาศ type ของตัวเองชื่อ <code>Issue</code> เคยบังตัวใน prelude ภายในไฟล์ที่ emit และทำให้ทุก descriptor ใน module นั้นพัง ตั้งแต่ 0.1.60 declaration นั้นเป็น <code>E0110</code> ที่บรรทัดที่ตั้งชื่อ type คุณจึงรู้ว่าปัญหาอยู่ตรงไหน แทนที่จะต้องอ่าน error ของ <code>tsc</code> เกี่ยวกับโค้ดที่ generate</p>
+        </div>
+      </div>

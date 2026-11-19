@@ -1,0 +1,132 @@
+---
+title: เขียน server ได้ไหม หรือ process จะจบไปเลย? · Glyph
+description: โปรแกรม Glyph เป็น server ที่ทำงานยาวได้ main เตรียมการแล้ว return และ process ยังทำงานต่อตราบที่ยังมี socket และ timer ค้างอยู่ เหมือนที่ Node ทำ
+source_hash: babc2c3ac5bb52bc
+prev: /answers/interactive-cli/ | &larr; ก่อนหน้า | เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?
+next: /answers/binary/ | ถัดไป &rarr; | จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?
+---
+      <p class="q-eyebrow">19 &middot; server และ daemon</p>
+      <h1 class="q-title">เขียน server ได้ไหม หรือ process จะจบไปเลย?</h1>
+
+      <p class="short-answer">
+        คุณเขียน server ได้ <code>main</code> เตรียมการแล้ว return และ process <strong>ยังทำงานต่อตราบที่ยังมี socket และ timer ค้างอยู่</strong> ซึ่งเป็นกฎเดียวกับที่ Node ใช้ จนถึง 0.1.63 ยังไม่ใช่แบบนี้: ตัวรันปิด process ทันทีที่ <code>main</code> return server จึง bind port แล้วตายใน tick เดียวกัน
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
+        <p>
+          นี่คือความต่างระหว่างภาษาที่รันสคริปต์ได้กับภาษาที่รัน service ได้ server, file watcher, bot ที่ถือ connection กับ gateway, job runner ไม่มีตัวไหนจบภายใน <code>main</code> พวกมันตั้ง handler แล้วส่ง process ต่อให้ event
+        </p>
+        <p>
+          พฤติกรรมเดิมล้มเหลวในแบบที่แย่ที่สุด คือแบบเงียบๆ <code>glyph run app.glyph --serve 4100</code> ไม่พิมพ์อะไรเลย แม้แต่บรรทัดใน callback ของ <code>listen</code> แล้ว exit 0 ไม่มีอะไรในซอร์สดูผิด และตรวจ type ผ่าน เอเจนต์ที่เจอแบบนั้นไม่มี error ให้รายงาน และไม่มีเหตุผลให้คิดว่าอะไรล้มเหลว
+        </p>
+
+        <h2 class="block-label">ดูของจริง</h2>
+        <p>
+          TCP server แบบเต็ม <code>main</code> return ทันที callback รันไปตลอดที่ process ยังอยู่:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">server ตั้งแต่ต้นจนจบ</span>
+<pre>module main
+
+import std/io
+import std/process
+import net { createServer }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let server = createServer(fn(socket) {
+    mut socket.write("hello\n")
+    mut socket.end()
+  })
+
+  mut server.on("error", fn(err) {
+    io.eprintln("cannot listen: ${err.message}")
+    process.exit(1)
+  })
+
+  mut server.listen(4000, fn() {
+    io.println("listening on 4000")
+  })
+  return 0
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>net</code> เป็น builtin ของ Node จึงเป็น import ธรรมดา แต่มันไม่ใช่หนึ่งในหกตัวที่คอมไพเลอร์มี type แบบ ambient มาให้ (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>) ให้ติดตั้ง <code>@types/node</code> แล้ว build จะเลือกใช้มัน หรือวาง declaration ไว้ใน <code>.types/net.d.ts</code> ข้างซอร์ส ซึ่งเป็นสิ่งที่แอป chat ทำเพื่อไม่ต้องมี dependency เลย
+        </p>
+        <p>
+          สองเรื่องที่ควรรู้ <code>return 0</code> รันก่อนที่ client แรกจะเชื่อมต่อด้วยซ้ำ: มันคือรหัสที่ process จะใช้ตอนออกในที่สุด ไม่ใช่การบอกว่าจะออกเมื่อไร และอะไรก็ตามที่ล้มเหลว<em>หลัง</em> <code>main</code> return ไปแล้วต้องตั้ง exit code เอง เพราะค่าที่ <code>main</code> return ถูกใช้ไปแล้ว นั่นคือหน้าที่ของ handler <code>error</code> ถ้าไม่มี server ที่ bind port ไม่ได้จะปล่อย event loop ให้ว่างแล้ว exit 0 รายงานว่าสำเร็จ
+        </p>
+
+        <h2 class="block-label">ตัวจริง</h2>
+        <p>
+          <code>examples/apps/chat</code> คือ chat server ที่ถือ TCP client หลายตัวพร้อมกัน ส่วนที่ไม่แตะ network แยกไว้และทดสอบได้: การต่อบรรทัด การ route และ engine ของห้อง เป็น pure function ที่ตรวจด้วย <code>@example</code> และมีไฟล์เดียวที่คุยกับ socket
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">client สามตัวเชื่อมต่อพร้อมกัน</span>
+<pre><span class="cm">alice&gt;</span> /join #general
+<span class="cm">bob&gt;</span>   /join #general
+<span class="cm">carol&gt;</span> /join #random
+<span class="cm">alice&gt;</span> hello everyone
+
+alice sees:  1  #general &lt;alice&gt; hello everyone
+bob sees:    1  #general &lt;alice&gt; hello everyone
+carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          TCP ไม่ได้ส่งข้อความ มันส่งไบต์ ท้าย chunk จึงมักเป็นครึ่งบรรทัด การต่อบรรทัดเป็น pure function ที่เขียนกรณียุ่งยากไว้เป็นตัวอย่าง แทนที่จะไปกระตุ้นให้เกิดผ่าน socket:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/chat/framing.glyph</span>
+<pre>@example feed("", "hel").lines == []
+@example feed("hel", "lo\n").lines == ["hello"]
+@example feed("", "a\nb\nc\n").lines == ["a", "b", "c"]
+@example feed("", "a\nb").rest == "b"
+@example feed("", "hi\r\n").lines == ["hi"]
+pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">อีกทิศทาง: client ที่ทำงานยาว</h2>
+        <p>
+          bot คือรูปแบบเดียวกันที่หันออกไปข้างนอก <code>examples/apps/discord</code> คือ client ของ Discord gateway: เชื่อมต่อผ่าน WebSocket ยืนยันตัว ส่ง heartbeat ตามช่วงที่ server กำหนด ติดตามเลขลำดับเพื่อให้ connection ที่หลุดกลับมาต่อได้แทนที่จะเริ่มใหม่ สังเกตเมื่อ connection เปิดอยู่แต่ตายแล้ว และถอยรอระหว่างการเชื่อมต่อใหม่
+        </p>
+        <p>
+          ส่วนที่ควรลอกไปคือที่ที่ logic อยู่ การตัดสินว่าจะทำอะไรกับ <code>RECONNECT</code>, heartbeat ที่พลาด หรือ token ที่ถูกปฏิเสธ เป็น pure function จาก session กับ event หนึ่งตัว ไปเป็น session ใหม่และรายการ action มี module เดียวที่ทำ action เหล่านั้นบน socket จริง นั่นคือเหตุผลที่ logic การเชื่อมต่อใหม่ ซึ่งเป็นส่วนที่ทำให้ถูกยาก ถูกตรวจด้วย <code>@example</code> แทนที่จะต้องถอดสาย network:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/discord/session.glyph</span>
+<pre>@example a_close_while_a_reconnect_is_pending_is_ignored()
+@example a_failed_attempt_schedules_another()
+@example a_rejected_token_stops_rather_than_retrying()
+pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          ตัวอย่างทั้งสามนี้แต่ละตัวคือบั๊กที่อยู่ในโค้ดมาก่อน การเขียน gateway จำลองแล้วชี้ bot ไปที่มันจับได้หนึ่งตัว อีกสองตัวถูกจับโดย mock ตัวที่สองซึ่งเขียนจากเอกสารของ Discord แทนที่จะเขียนจาก client มันส่งสิ่งที่ mock ที่ให้ความร่วมมือไม่เคยส่ง: คำขอ heartbeat ที่ไม่มีใครขอ และ close code ที่หมายถึง "token ของคุณผิด เลิกถามได้แล้ว" mock ที่เขียนโดยคนเขียน client ทดสอบได้แค่ส่วนของ protocol ที่คนเขียนอ่านมา
+        </p>
+      </div>
+
+      <h2 class="block-label">สถานะตอนนี้</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">ใช้ได้วันนี้</h3>
+          <p>การ return จาก <code>main</code> ตั้ง exit code โดยไม่หยุด process server, watcher และ event loop จึงรันได้ โปรแกรมที่แค่คำนวณยังออกทันทีที่ <code>main</code> return ด้วยรหัสเดิม จึงไม่มีอะไรเปลี่ยนสำหรับโปรแกรมสั้นๆ builtin ของ Node อย่าง <code>net</code> เป็น import ธรรมดา และโปรแกรมที่ throw ระหว่างเตรียมการยังจบการทำงาน โดยตอนนี้จบหลังจากที่ diagnostic ไปถึง stderr ที่ pipe ไว้แล้ว แทนที่จะอาจถูกตัดทิ้งตอน exit <code>std/timers</code> ตั้งเวลางาน (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) และ <code>std/websocket</code> เปิด connection ทั้งสองจึงไม่ต้องมี declaration ที่เขียนเอง</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">กำลังคมขึ้น</h3>
+          <p>listener ที่ bind ไม่ได้หลัง <code>main</code> return ไปแล้วจะ exit 0 ถ้าโปรแกรมไม่ได้บอกเป็นอย่างอื่น: <code>process.set_exit_code(1)</code> บันทึกความล้มเหลวโดยไม่ทิ้งงานที่ยังทำอยู่ และ <code>process.exit(1)</code> หยุดทันที คอมไพเลอร์ยังเตือนไม่ได้ว่าคุณลืม และยังไม่มีวิธีเขียนบอกว่าฟังก์ชันไม่ return <code>main</code> ของ server จึงมี <code>return 0</code> ที่ไม่มีวันไปถึง</p>
+        </div>
+      </div>

@@ -1,0 +1,1212 @@
+{
+  "_about": "The texts of each case in catches/ as the generated pages show them. Translate each \"tr\" from its \"en\"; keep tags, <code> content and placeholders. A case whose English changes shows in English until its \"tr\" is redone. See site/i18n/README.md.",
+  "locale": "th",
+  "cases": {
+    "absent-map-key": {
+      "page_title": {
+        "en": "A key that may not be there",
+        "tr": "key ที่อาจไม่มีอยู่"
+      },
+      "why": {
+        "en": "Reading a field from a row of strings, with the name misspelled.",
+        "tr": "อ่าน field จากแถวที่เป็น string แต่สะกดชื่อผิด"
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints undefined",
+        "tr": "คอมไพล์ผ่าน แล้วพิมพ์ undefined"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>Any key reads as a <code>string</code>,</b> even one that is not there, so the misspelled field prints <code>undefined</code>.",
+        "tr": "<b>key ไหนก็อ่านได้เป็น <code>string</code></b> แม้แต่ key ที่ไม่มีอยู่ field ที่สะกดผิดจึงพิมพ์ <code>undefined</code>"
+      },
+      "glyph_result": {
+        "en": "<b>A map read says it might be empty,</b> so the code has to say what happens then.",
+        "tr": "<b>การอ่านจาก map บอกว่าอาจไม่มีค่า</b> โค้ดจึงต้องระบุว่าถ้าไม่มีจะทำอะไร"
+      },
+      "page_note": {
+        "en": "TypeScript's <code>Record&lt;string, string&gt;</code> claims every possible key has a string. Glyph treats it as a map, where a lookup can find nothing, so it refuses the correctly spelled <code>row.name</code> too.",
+        "tr": "<code>Record&lt;string, string&gt;</code> ของ TypeScript อ้างว่าทุก key ที่เป็นไปได้มี string อยู่ Glyph มองว่ามันเป็น map ซึ่งการค้นหาอาจไม่เจออะไร จึงปฏิเสธ <code>row.name</code> ที่สะกดถูกด้วย"
+      }
+    },
+    "array-covariance": {
+      "page_title": {
+        "en": "Array covariance",
+        "tr": "covariance ของ array"
+      },
+      "why": {
+        "en": "Passing a list of dogs where a list of animals is expected.",
+        "tr": "ส่ง list ของสุนัขไปในที่ที่ต้องการ list ของสัตว์"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "คอมไพล์ผ่าน แล้ว crash ตอนรัน"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>A cat ends up in the list of dogs.</b>",
+        "tr": "<b>แมวไปอยู่ใน list ของสุนัข</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A list of dogs is not a writable list of animals.</b>",
+        "tr": "<b>list ของสุนัขไม่ใช่ list ของสัตว์ที่เขียนเพิ่มได้</b>"
+      },
+      "page_note": {
+        "en": "TypeScript lets <code>Dog[]</code> stand in for <code>Animal[]</code> even when the function adds to it.",
+        "tr": "TypeScript ยอมให้ใช้ <code>Dog[]</code> แทน <code>Animal[]</code> แม้ฟังก์ชันจะเพิ่มของลงไปก็ตาม"
+      }
+    },
+    "arrow-function-returns-nothing": {
+      "page_title": {
+        "en": "An arrow function that returns nothing",
+        "tr": "arrow function ที่ไม่คืนค่าอะไรเลย"
+      },
+      "why": {
+        "en": "Mapping users to rows.",
+        "tr": "แปลง user เป็นแถว"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "คอมไพล์ผ่าน แล้วให้คำตอบผิด"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "เขียนแบบนี้ไม่ได้"
+      },
+      "ts_result": {
+        "en": "<b>The braces are a function body,</b> and <code>label:</code> is a statement label.",
+        "tr": "<b>วงเล็บปีกกากลายเป็น body ของฟังก์ชัน</b> และ <code>label:</code> เป็น statement label"
+      },
+      "glyph_result": {
+        "en": "<b>The ambiguous form is not valid Glyph.</b>",
+        "tr": "<b>รูปแบบที่กำกวมนี้ไม่ใช่ Glyph ที่ถูกต้อง</b>"
+      },
+      "page_note": {
+        "en": "To return an object from a TypeScript arrow function, the braces need parentheses: <code>u =&gt; ({ ... })</code>.",
+        "tr": "ถ้าจะคืน object จาก arrow function ใน TypeScript ต้องครอบวงเล็บปีกกาด้วยวงเล็บ: <code>u =&gt; ({ ... })</code>"
+      }
+    },
+    "as-unknown-as": {
+      "page_title": {
+        "en": "<code>as unknown as T</code>",
+        "tr": "<code>as unknown as T</code>"
+      },
+      "why": {
+        "en": "Forcing a value into the type you want.",
+        "tr": "บังคับค่าให้เป็น type ที่ต้องการ"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "คอมไพล์ผ่าน แล้ว crash ตอนรัน"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "เขียนแบบนี้ไม่ได้"
+      },
+      "ts_result": {
+        "en": "<b>A double cast switches checking off.</b>",
+        "tr": "<b>cast สองชั้นปิดการตรวจทิ้ง</b>"
+      },
+      "glyph_result": {
+        "en": "<b>There is no cast to write.</b> The help says what to do instead.",
+        "tr": "<b>ไม่มี cast ให้เขียน</b> ข้อความช่วยเหลือบอกว่าควรทำอะไรแทน"
+      },
+      "page_note": {
+        "en": "<code>as unknown as T</code> is how agents silence a type error they can't fix.",
+        "tr": "<code>as unknown as T</code> คือวิธีที่เอเจนต์ใช้ปิดปาก type error ที่แก้ไม่ได้"
+      }
+    },
+    "change-hidden-in-a-helper": {
+      "page_title": {
+        "en": "A change hidden in a helper",
+        "tr": "การแก้ไขที่ซ่อนอยู่ใน helper"
+      },
+      "why": {
+        "en": "A function that edits the object it was given.",
+        "tr": "ฟังก์ชันที่แก้ object ที่ได้รับมา"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "คอมไพล์ผ่านโดยไม่มีคำเตือน"
+      },
+      "glyph_verdict": {
+        "en": "refused until it is marked",
+        "tr": "ถูกปฏิเสธจนกว่าจะทำเครื่องหมาย"
+      },
+      "ts_result": {
+        "en": "<b>The caller's user is renamed.</b> Nothing at the call site says so.",
+        "tr": "<b>user ของผู้เรียกถูกเปลี่ยนชื่อ</b> โดยไม่มีอะไรที่จุดเรียกบอกไว้เลย"
+      },
+      "glyph_result": {
+        "en": "<b>Changing a field takes <code>mut</code>.</b>",
+        "tr": "<b>การเปลี่ยน field ต้องใช้ <code>mut</code></b>"
+      },
+      "page_note": {
+        "en": "Glyph does not forbid the change. It makes it visible: searching for <code>mut</code> lists every field a function writes.",
+        "tr": "Glyph ไม่ได้ห้ามการแก้ไข แต่ทำให้มองเห็นได้: ค้นหา <code>mut</code> แล้วจะได้รายการทุก field ที่ฟังก์ชันเขียนทับ"
+      }
+    },
+    "code-after-return": {
+      "page_title": {
+        "en": "Code after <code>return</code>",
+        "tr": "โค้ดหลัง <code>return</code>"
+      },
+      "why": {
+        "en": "Adding tax after the function already returned.",
+        "tr": "บวกภาษีหลังจากที่ฟังก์ชัน return ไปแล้ว"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "คอมไพล์ผ่านโดยไม่มีคำเตือน"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "มีคำเตือน"
+      },
+      "ts_result": {
+        "en": "<b>The tax line never runs.</b>",
+        "tr": "<b>บรรทัดคิดภาษีไม่เคยได้รัน</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dead line.</b>",
+        "tr": "<b>Glyph ชี้ไปที่บรรทัดที่ไม่มีวันรัน</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only shows unreachable code as a faded hint in the editor by default.",
+        "tr": "โดยค่าเริ่มต้น TypeScript แสดงโค้ดที่ไปไม่ถึงเป็นแค่ตัวอักษรจางๆ ใน editor"
+      }
+    },
+    "comparing-records-with-triple-equals": {
+      "page_title": {
+        "en": "Comparing two records with <code>===</code>",
+        "tr": "เปรียบเทียบ record สองตัวด้วย <code>===</code>"
+      },
+      "why": {
+        "en": "Skipping a save when nothing changed.",
+        "tr": "ข้ามการบันทึกเมื่อไม่มีอะไรเปลี่ยน"
+      },
+      "ts_verdict": {
+        "en": "compiles, then compares identity, not data",
+        "tr": "คอมไพล์ผ่าน แล้วเปรียบเทียบตัวตน ไม่ใช่ข้อมูล"
+      },
+      "glyph_verdict": {
+        "en": "compares the data",
+        "tr": "เปรียบเทียบข้อมูล"
+      },
+      "ts_result": {
+        "en": "<b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs.",
+        "tr": "<b>ข้อมูลเหมือนกัน แต่ <code>===</code> ถามว่าเป็น object ตัวเดียวกันหรือไม่</b> การบันทึกจึงรันทุกครั้ง"
+      },
+      "glyph_result": {
+        "en": "<b>Two records with the same fields are equal.</b>",
+        "tr": "<b>record สองตัวที่ field เหมือนกันถือว่าเท่ากัน</b>"
+      },
+      "page_note": {
+        "en": "This is JavaScript working as designed: <code>===</code> on objects compares identity, and comparing data needs a helper such as lodash's <code>isEqual</code>. The mistake is reaching for <code>===</code> when the data was meant. In Glyph <code>==</code> on records compares the data, so the obvious spelling is the right one.",
+        "tr": "นี่คือ JavaScript ที่ทำงานตามที่ออกแบบไว้: <code>===</code> กับ object เปรียบเทียบตัวตน และการเปรียบเทียบข้อมูลต้องใช้ helper อย่าง <code>isEqual</code> ของ lodash ความผิดพลาดคือการหยิบ <code>===</code> มาใช้ทั้งที่ตั้งใจเทียบข้อมูล ใน Glyph <code>==</code> กับ record เปรียบเทียบข้อมูล วิธีเขียนที่ตรงไปตรงมาจึงเป็นวิธีที่ถูก"
+      }
+    },
+    "computed-value-never-used": {
+      "page_title": {
+        "en": "A computed value that is never used",
+        "tr": "ค่าที่คำนวณแล้วแต่ไม่เคยถูกใช้"
+      },
+      "why": {
+        "en": "Cleaning an input, then returning the original by mistake.",
+        "tr": "ทำความสะอาด input แล้วเผลอคืนค่าเดิมกลับไป"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "คอมไพล์ผ่านโดยไม่มีคำเตือน"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "มีคำเตือน"
+      },
+      "ts_result": {
+        "en": "<b>The cleaning never happens.</b>",
+        "tr": "<b>การทำความสะอาดไม่เคยเกิดขึ้น</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the unused value.</b>",
+        "tr": "<b>Glyph ชี้ไปที่ค่าที่ไม่ได้ใช้</b>"
+      },
+      "page_note": {
+        "en": "<code>noUnusedLocals</code> is not part of <code>--strict</code>, so TypeScript says nothing by default.",
+        "tr": "<code>noUnusedLocals</code> ไม่ได้อยู่ใน <code>--strict</code> โดยค่าเริ่มต้น TypeScript จึงไม่บอกอะไรเลย"
+      }
+    },
+    "config-with-a-setting-missing": {
+      "page_title": {
+        "en": "A config with a setting missing",
+        "tr": "config ที่ขาดค่าตั้งไปหนึ่งค่า"
+      },
+      "why": {
+        "en": "A limit for each plan, loaded from a file someone forgot to update.",
+        "tr": "ขีดจำกัดของแต่ละแพ็กเกจ โหลดจากไฟล์ที่มีคนลืมอัปเดต"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "คอมไพล์ผ่าน แล้วทำงานกับข้อมูลที่ผิด"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "ถูกตรวจเมื่อข้อมูลเข้ามา"
+      },
+      "ts_result": {
+        "en": "<b>The type promises every plan has a limit.</b> The file does not.",
+        "tr": "<b>type สัญญาว่าทุกแพ็กเกจมีขีดจำกัด</b> แต่ไฟล์ไม่มี"
+      },
+      "glyph_result": {
+        "en": "<b>Every plan must be there, and nothing else.</b>",
+        "tr": "<b>ทุกแพ็กเกจต้องมีอยู่ และต้องไม่มีอย่างอื่นเกินมา</b>"
+      },
+      "page_note": {
+        "en": "<code>Record&lt;Plan, number&gt;</code> promises a value for every plan, and <code>as</code> never looks. Glyph requires every key in the type and refuses extra ones.",
+        "tr": "<code>Record&lt;Plan, number&gt;</code> สัญญาว่ามีค่าสำหรับทุกแพ็กเกจ และ <code>as</code> ไม่เคยตรวจ Glyph กำหนดให้ต้องมีทุก key ใน type และปฏิเสธ key ที่เกินมา"
+      }
+    },
+    "connection-left-open": {
+      "page_title": {
+        "en": "A connection left open",
+        "tr": "connection ที่ไม่ได้ปิด"
+      },
+      "why": {
+        "en": "Returning early before cleanup.",
+        "tr": "return ก่อนจะ cleanup"
+      },
+      "ts_verdict": {
+        "en": "compiles, then leaks a connection",
+        "tr": "คอมไพล์ผ่าน แล้ว connection รั่ว"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>Every rejected request leaks a connection.</b>",
+        "tr": "<b>ทุก request ที่ถูกปฏิเสธทำให้ connection รั่วหนึ่งตัว</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Every path must close it.</b>",
+        "tr": "<b>ทุกเส้นทางต้องปิดมัน</b>"
+      },
+      "page_note": {
+        "en": "This check applies to values declared <code>owned</code>. A resource without it is not tracked.",
+        "tr": "การตรวจนี้ใช้กับค่าที่ประกาศเป็น <code>owned</code> resource ที่ไม่ได้ประกาศแบบนั้นจะไม่ถูกติดตาม"
+      }
+    },
+    "data-from-outside-the-program": {
+      "page_title": {
+        "en": "Data from outside the program",
+        "tr": "ข้อมูลจากนอกโปรแกรม"
+      },
+      "why": {
+        "en": "A request body, a file, an API response.",
+        "tr": "request body ไฟล์ หรือ response จาก API"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "คอมไพล์ผ่าน แล้วทำงานกับข้อมูลที่ผิด"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "ถูกตรวจเมื่อข้อมูลเข้ามา"
+      },
+      "ts_result": {
+        "en": "<b>Nothing checks the data.</b> <code>undefined</code> travels on as a plan.",
+        "tr": "<b>ไม่มีอะไรตรวจข้อมูลเลย</b> <code>undefined</code> ถูกส่งต่อไปในฐานะแพ็กเกจ"
+      },
+      "glyph_result": {
+        "en": "<b>A body that is not a real <code>User</code> is an <code>Err</code>.</b> The program never holds a fake one.",
+        "tr": "<b>body ที่ไม่ใช่ <code>User</code> จริงจะเป็น <code>Err</code></b> โปรแกรมไม่มีวันถือของปลอมไว้"
+      },
+      "page_note": {
+        "en": "<code>as User</code> does not check anything. It tells the compiler to trust you. Glyph has no <code>as</code>.",
+        "tr": "<code>as User</code> ไม่ได้ตรวจอะไรเลย มันแค่บอกคอมไพเลอร์ให้เชื่อคุณ Glyph ไม่มี <code>as</code>"
+      }
+    },
+    "duplicate-case": {
+      "page_title": {
+        "en": "A duplicate case",
+        "tr": "case ที่ซ้ำกัน"
+      },
+      "why": {
+        "en": "Deciding which orders can be refunded.",
+        "tr": "ตัดสินว่าคำสั่งซื้อไหนคืนเงินได้"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "คอมไพล์ผ่านโดยไม่มีคำเตือน"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>The second rule is dead.</b> Nobody notices.",
+        "tr": "<b>กฎข้อที่สองไม่มีวันทำงาน</b> และไม่มีใครสังเกต"
+      },
+      "glyph_result": {
+        "en": "<b>An arm that can never run is an error.</b>",
+        "tr": "<b>arm ที่ไม่มีวันได้รันถือเป็น error</b>"
+      },
+      "page_note": {
+        "en": "tsc does not flag a <code>case</code> label that appears twice.",
+        "tr": "tsc ไม่เตือนเมื่อ label ของ <code>case</code> ซ้ำกันสองครั้ง"
+      }
+    },
+    "error-nobody-looked-at": {
+      "page_title": {
+        "en": "An error nobody looked at",
+        "tr": "error ที่ไม่มีใครดู"
+      },
+      "why": {
+        "en": "Calling something that can fail and moving on.",
+        "tr": "เรียกสิ่งที่อาจล้มเหลวแล้วทำต่อไปเลย"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "คอมไพล์ผ่านโดยไม่มีคำเตือน"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "มีคำเตือน"
+      },
+      "ts_result": {
+        "en": "<b>The failure is dropped</b> and the user is told it worked.",
+        "tr": "<b>ความล้มเหลวถูกทิ้งไป</b> และผู้ใช้ได้รับแจ้งว่าสำเร็จ"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dropped failure.</b>",
+        "tr": "<b>Glyph ชี้ไปที่ความล้มเหลวที่ถูกทิ้ง</b>"
+      },
+      "page_note": {
+        "en": "A warning, not an error. To drop it on purpose, say so: <code>let _ = save(user)</code>.",
+        "tr": "เป็นคำเตือน ไม่ใช่ error ถ้าตั้งใจจะทิ้งก็ให้เขียนบอกไว้: <code>let _ = save(user)</code>"
+      }
+    },
+    "error-the-signature-hides": {
+      "page_title": {
+        "en": "An error the signature hides",
+        "tr": "error ที่ signature ซ่อนไว้"
+      },
+      "why": {
+        "en": "A function that can fail, called by code that does not know it can.",
+        "tr": "ฟังก์ชันที่อาจล้มเหลว ถูกเรียกโดยโค้ดที่ไม่รู้ว่ามันล้มเหลวได้"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "คอมไพล์ผ่าน แล้ว crash ตอนรัน"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>The type says <code>Config</code>.</b> Nothing says it can throw.",
+        "tr": "<b>type บอกว่าเป็น <code>Config</code></b> ไม่มีอะไรบอกว่ามัน throw ได้"
+      },
+      "glyph_result": {
+        "en": "<b>Failure is part of the return type,</b> so the caller has to handle it.",
+        "tr": "<b>ความล้มเหลวเป็นส่วนหนึ่งของ return type</b> ผู้เรียกจึงต้องจัดการ"
+      },
+      "page_note": {
+        "en": "A TypeScript function's type lists what it returns, never what it throws. In Glyph, failure is part of the return type, so every caller can see it.",
+        "tr": "type ของฟังก์ชันใน TypeScript บอกว่าคืนอะไร แต่ไม่เคยบอกว่า throw อะไร ใน Glyph ความล้มเหลวเป็นส่วนหนึ่งของ return type ผู้เรียกทุกคนจึงมองเห็น"
+      }
+    },
+    "filter-that-keeps-everyone": {
+      "page_title": {
+        "en": "A filter that keeps everyone",
+        "tr": "filter ที่ปล่อยทุกคนผ่าน"
+      },
+      "why": {
+        "en": "Checking each user against an async permission call.",
+        "tr": "ตรวจ user แต่ละคนด้วยการเรียกตรวจสิทธิ์แบบ async"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "คอมไพล์ผ่าน แล้วให้คำตอบผิด"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>Nothing is filtered out.</b>",
+        "tr": "<b>ไม่มีใครถูกกรองออกเลย</b>"
+      },
+      "glyph_result": {
+        "en": "<b>An async function is not a yes/no answer.</b>",
+        "tr": "<b>ฟังก์ชัน async ไม่ใช่คำตอบใช่หรือไม่ใช่</b>"
+      },
+      "page_note": {
+        "en": "An async function returns a Promise, and any Promise counts as true. A permission filter built this way lets everyone through.",
+        "tr": "ฟังก์ชัน async คืนค่าเป็น Promise และ Promise ทุกตัวนับเป็น true filter ตรวจสิทธิ์ที่เขียนแบบนี้จึงปล่อยทุกคนผ่าน"
+      }
+    },
+    "gap-g380-mutation-without-mut": {
+      "summary": {
+        "en": "<code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it.",
+        "tr": "<code>xs.sort(...)</code> ภายใน helper เรียงลำดับ array ของผู้เรียกใหม่ โดยไม่มี <code>mut</code> กำกับ"
+      }
+    },
+    "gap-g381-member-read-on-unknown": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "<code>input + 1</code> กับ string, <code>users.find(...).name</code> และการอ่าน field จากค่า <code>unknown</code> ถูกจับได้เฉพาะในขั้น <code>tsc</code> เท่านั้น ไม่ใช่โดยตัวตรวจของ Glyph เอง editor และเครื่องมือของเอเจนต์จึงมองไม่เห็น"
+      }
+    },
+    "gap-g382-string-plus-number": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "<code>input + 1</code> กับ string, <code>users.find(...).name</code> และการอ่าน field จากค่า <code>unknown</code> ถูกจับได้เฉพาะในขั้น <code>tsc</code> เท่านั้น ไม่ใช่โดยตัวตรวจของ Glyph เอง editor และเครื่องมือของเอเจนต์จึงมองไม่เห็น"
+      }
+    },
+    "gap-g384-dropped-async-call": {
+      "summary": {
+        "en": "<code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns.",
+        "tr": "<code>forEach(async ...)</code> ทิ้ง promise ทุกตัว งานจึงเสร็จหลังโค้ดที่พึ่งพามัน และไม่มีอะไรเตือน"
+      }
+    },
+    "gap-g385-record-in-template": {
+      "summary": {
+        "en": "<code>\"Welcome back, ${user}!\"</code> with a record prints <code>[object Object]</code>.",
+        "tr": "<code>\"Welcome back, ${user}!\"</code> กับ record จะพิมพ์ออกมาเป็น <code>[object Object]</code>"
+      }
+    },
+    "gap-g386-or-on-a-number": {
+      "summary": {
+        "en": "<code>requested || 3</code> turns a real <code>0</code> into <code>3</code>.",
+        "tr": "<code>requested || 3</code> เปลี่ยน <code>0</code> ที่เป็นค่าจริงให้กลายเป็น <code>3</code>"
+      }
+    },
+    "gap-g387-sql-by-interpolation": {
+      "summary": {
+        "en": "A SQL query built with <code>${name}</code> is accepted by <code>std/sqlite</code>.",
+        "tr": "<code>std/sqlite</code> ยอมรับ SQL query ที่สร้างด้วย <code>${name}</code>"
+      }
+    },
+    "gap-g388-sort-as-text": {
+      "summary": {
+        "en": "<code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>.",
+        "tr": "<code>.sort()</code> กับตัวเลขจะเรียงแบบข้อความ: <code>100,25,9</code>"
+      }
+    },
+    "gap-g390-index-update-across-await": {
+      "summary": {
+        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
+        "tr": "การอัปเดตที่หายไปข้าม <code>await</code> บน <code>c[0]</code> ทั้งที่การเขียนแบบเดียวกันลง field ถูกปฏิเสธ"
+      }
+    },
+    "gap-g391-null-in-optional-field": {
+      "summary": {
+        "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",
+        "tr": "<code>null</code> ของ JSON ใน field ที่ไม่บังคับรอดผ่านการตรวจไปได้ การ spread ทับค่าเริ่มต้นจึงทิ้ง <code>null</code> ไว้"
+      }
+    },
+    "gap-g392-find-method-option": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "<code>input + 1</code> กับ string, <code>users.find(...).name</code> และการอ่าน field จากค่า <code>unknown</code> ถูกจับได้เฉพาะในขั้น <code>tsc</code> เท่านั้น ไม่ใช่โดยตัวตรวจของ Glyph เอง editor และเครื่องมือของเอเจนต์จึงมองไม่เห็น"
+      }
+    },
+    "invalid-date": {
+      "page_title": {
+        "en": "An invalid date",
+        "tr": "วันที่ที่ไม่ถูกต้อง"
+      },
+      "why": {
+        "en": "Parsing a date from a form.",
+        "tr": "parse วันที่จากฟอร์ม"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives a wrong date or crashes",
+        "tr": "คอมไพล์ผ่าน แล้วได้วันที่ผิดหรือ crash"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "เขียนแบบนี้ไม่ได้"
+      },
+      "ts_result": {
+        "en": "<b>Bad dates roll over</b> into real ones.",
+        "tr": "<b>วันที่ผิดถูกปัดเลื่อน</b> ไปเป็นวันที่จริง"
+      },
+      "glyph_result": {
+        "en": "<b>Parsing can fail, and the type says so.</b>",
+        "tr": "<b>การ parse อาจล้มเหลว และ type บอกไว้</b>"
+      },
+      "page_note": {
+        "en": "JavaScript's <code>Date</code> turns February 30 into March 2 without complaint. Glyph has no <code>Date</code>; <code>time.parse_iso</code> returns <code>None</code>.",
+        "tr": "<code>Date</code> ของ JavaScript เปลี่ยน 30 กุมภาพันธ์เป็น 2 มีนาคมโดยไม่บ่นสักคำ Glyph ไม่มี <code>Date</code> และ <code>time.parse_iso</code> คืนค่า <code>None</code>"
+      }
+    },
+    "lost-update-across-await": {
+      "page_title": {
+        "en": "A lost update across <code>await</code>",
+        "tr": "การอัปเดตที่หายไประหว่าง <code>await</code>"
+      },
+      "why": {
+        "en": "Two requests charge the same account at once.",
+        "tr": "สอง request ตัดเงินจากบัญชีเดียวกันพร้อมกัน"
+      },
+      "ts_verdict": {
+        "en": "compiles, then loses money at run time",
+        "tr": "คอมไพล์ผ่าน แล้วเงินหายตอนรัน"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>One charge vanishes.</b> No test reliably catches it.",
+        "tr": "<b>การตัดเงินครั้งหนึ่งหายไป</b> ไม่มีเทสต์ไหนจับได้อย่างสม่ำเสมอ"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph spots the read-then-write around the wait.</b>",
+        "tr": "<b>Glyph เห็นการอ่านแล้วเขียนที่คร่อมจุดที่รอ</b>"
+      },
+      "page_note": {
+        "en": "While one call waits on <code>fee()</code>, another can update the balance. The first then writes back a stale value.",
+        "tr": "ระหว่างที่การเรียกหนึ่งรอ <code>fee()</code> อีกการเรียกหนึ่งอาจอัปเดตยอดเงินไปแล้ว จากนั้นการเรียกแรกก็เขียนค่าเก่าทับกลับลงไป"
+      }
+    },
+    "median-with-a-fractional-index": {
+      "page_title": {
+        "en": "A median with a fractional index",
+        "tr": "median ที่ใช้ index เป็นเศษส่วน"
+      },
+      "why": {
+        "en": "Taking the middle of a sorted list.",
+        "tr": "หาค่ากลางของ list ที่เรียงแล้ว"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "คอมไพล์ผ่าน แล้วให้คำตอบผิด"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "ถูกหยุดตอนรัน"
+      },
+      "ts_result": {
+        "en": "<b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.",
+        "tr": "<b>การอ่าน index 1.5 ได้ <code>undefined</code></b> และการคำนวณของผู้เรียกเปลี่ยนมันเป็น <code>NaN</code>"
+      },
+      "glyph_result": {
+        "en": "<b>A bad index stops the program</b> instead of spreading <code>NaN</code>.",
+        "tr": "<b>index ที่ผิดจะหยุดโปรแกรม</b> แทนที่จะปล่อยให้ <code>NaN</code> ลามต่อ"
+      },
+      "page_note": {
+        "en": "Glyph checks every array index when the code runs. This one is not caught at build time.",
+        "tr": "Glyph ตรวจ index ของ array ทุกครั้งตอนโค้ดรัน กรณีนี้จับไม่ได้ตอน build"
+      }
+    },
+    "method-forgets-its-object": {
+      "page_title": {
+        "en": "A method that forgets its object",
+        "tr": "method ที่ลืม object ของตัวเอง"
+      },
+      "why": {
+        "en": "Passing a method around as a value.",
+        "tr": "ส่ง method ไปมาเหมือนเป็นค่า"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "คอมไพล์ผ่าน แล้ว crash ตอนรัน"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>The method is pulled off its string</b> and loses track of it.",
+        "tr": "<b>method ถูกดึงออกจาก string ของมัน</b> แล้วไม่รู้ว่าต้องทำงานกับอะไร"
+      },
+      "glyph_result": {
+        "en": "<b>A method has to be called where it is read.</b> Pass a function instead.",
+        "tr": "<b>method ต้องถูกเรียกตรงที่อ่านมันออกมา</b> ให้ส่งฟังก์ชันแทน"
+      },
+      "page_note": {
+        "en": "A TypeScript method depends on the object it is called on (<code>this</code>). Taken out of <code>name.toUpperCase()</code> as a value, it no longer knows which string to use.",
+        "tr": "method ใน TypeScript ขึ้นกับ object ที่มันถูกเรียกด้วย (<code>this</code>) เมื่อถูกดึงออกจาก <code>name.toUpperCase()</code> มาเป็นค่า มันก็ไม่รู้แล้วว่าต้องใช้ string ตัวไหน"
+      }
+    },
+    "negative-age": {
+      "page_title": {
+        "en": "A negative age",
+        "tr": "อายุติดลบ"
+      },
+      "why": {
+        "en": "A rule about a value, not just its type.",
+        "tr": "กฎเกี่ยวกับค่า ไม่ใช่แค่ type ของมัน"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "คอมไพล์ผ่าน แล้วทำงานกับข้อมูลที่ผิด"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "ถูกตรวจเมื่อข้อมูลเข้ามา"
+      },
+      "ts_result": {
+        "en": "<b>The rule lives in a comment,</b> where nothing enforces it.",
+        "tr": "<b>กฎอยู่ใน comment</b> ซึ่งไม่มีอะไรบังคับใช้"
+      },
+      "glyph_result": {
+        "en": "<b>The rule is part of the type,</b> and checked with it.",
+        "tr": "<b>กฎเป็นส่วนหนึ่งของ type</b> และถูกตรวจไปพร้อมกัน"
+      },
+      "page_note": {
+        "en": "In TypeScript, a rule like \"never negative\" lives in a comment or a separate validator. In Glyph it is part of the type, so every check of the type enforces it.",
+        "tr": "ใน TypeScript กฎอย่าง \"ห้ามติดลบ\" อยู่ใน comment หรือใน validator แยกต่างหาก ใน Glyph มันเป็นส่วนหนึ่งของ type การตรวจ type ทุกครั้งจึงบังคับใช้กฎนี้ด้วย"
+      }
+    },
+    "non-exhaustive-match": {
+      "page_title": {
+        "en": "A case nobody handled",
+        "tr": "case ที่ไม่มีใครจัดการ"
+      },
+      "why": {
+        "en": "An agent adds an <code>\"archived\"</code> status. The handler that announces each status was written before it existed.",
+        "tr": "เอเจนต์เพิ่มสถานะ <code>\"archived\"</code> แต่ handler ที่ประกาศแต่ละสถานะถูกเขียนก่อนที่สถานะนี้จะมี"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "คอมไพล์ผ่านโดยไม่มีคำเตือน"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>Archiving an item logs nothing.</b> Nothing says the <code>switch</code> is out of date.",
+        "tr": "<b>การ archive รายการไม่ log อะไรเลย</b> ไม่มีอะไรบอกว่า <code>switch</code> ล้าสมัยแล้ว"
+      },
+      "glyph_result": {
+        "en": "<b>The build stops and names the case.</b>",
+        "tr": "<b>build หยุดและระบุชื่อ case</b>"
+      },
+      "page_note": {
+        "en": "TypeScript checks that a <code>switch</code> covers every case only when the function returns a value from every branch, or with the <code>assertNever</code> idiom. A handler that returns nothing gets neither. In Glyph every <code>match</code> must cover every case, so adding a variant lists each place that has to change.",
+        "tr": "TypeScript ตรวจว่า <code>switch</code> ครอบคลุมทุก case ก็ต่อเมื่อฟังก์ชันคืนค่าจากทุก branch หรือใช้ idiom <code>assertNever</code> เท่านั้น handler ที่ไม่คืนค่าอะไรไม่ได้ทั้งสองอย่าง ใน Glyph ทุก <code>match</code> ต้องครอบคลุมทุก case การเพิ่ม variant จึงแสดงรายการทุกจุดที่ต้องแก้"
+      }
+    },
+    "number-accepted-as-enum": {
+      "page_title": {
+        "en": "A number accepted as an enum",
+        "tr": "ตัวเลขที่ถูกรับเป็น enum"
+      },
+      "why": {
+        "en": "A status code read from the database.",
+        "tr": "รหัสสถานะที่อ่านมาจากฐานข้อมูล"
+      },
+      "ts_verdict": {
+        "en": "compiles, then picks the wrong state",
+        "tr": "คอมไพล์ผ่าน แล้วเลือกสถานะผิด"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>An unknown code becomes a real status.</b>",
+        "tr": "<b>รหัสที่ไม่รู้จักกลายเป็นสถานะจริง</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A number is not a <code>Status</code>.</b>",
+        "tr": "<b>ตัวเลขไม่ใช่ <code>Status</code></b>"
+      },
+      "page_note": {
+        "en": "Any number is assignable to a numeric enum in TypeScript, even one with no matching member.",
+        "tr": "ใน TypeScript ตัวเลขใดๆ assign ให้ numeric enum ได้ แม้จะไม่มี member ที่ตรงกันก็ตาม"
+      }
+    },
+    "number-that-is-not-a-number": {
+      "page_title": {
+        "en": "A number that is not a number",
+        "tr": "ตัวเลขที่ไม่ใช่ตัวเลข"
+      },
+      "why": {
+        "en": "User input, a query string, a CSV cell.",
+        "tr": "input จากผู้ใช้ query string หรือช่องใน CSV"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "คอมไพล์ผ่าน แล้วทำงานกับข้อมูลที่ผิด"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b><code>NaN</code> spreads</b> through every sum it touches.",
+        "tr": "<b><code>NaN</code> ลามไป</b> ทุกผลรวมที่มันแตะ"
+      },
+      "glyph_result": {
+        "en": "<b>Parsing returns a <code>Result</code>:</b> a number, or a reason it failed.",
+        "tr": "<b>การ parse คืนค่าเป็น <code>Result</code></b> คือตัวเลข หรือเหตุผลที่ล้มเหลว"
+      },
+      "page_note": {
+        "en": "The error points at this line, before <code>total</code> is ever called. To compile, the code has to say what a bad input means: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>",
+        "tr": "error ชี้มาที่บรรทัดนี้ ก่อนที่ <code>total</code> จะถูกเรียกเสียอีก ถ้าจะคอมไพล์ผ่าน โค้ดต้องบอกว่า input ที่ผิดหมายถึงอะไร: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>"
+      }
+    },
+    "one-function-many-names": {
+      "page_title": {
+        "en": "One function, many names",
+        "tr": "ฟังก์ชันเดียว หลายชื่อ"
+      },
+      "why": {
+        "en": "Finding every caller before you change something.",
+        "tr": "หาผู้เรียกทุกจุดก่อนจะแก้อะไร"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "คอมไพล์ผ่านโดยไม่มีคำเตือน"
+      },
+      "glyph_verdict": {
+        "en": "one name everywhere",
+        "tr": "ชื่อเดียวทุกที่"
+      },
+      "ts_result": {
+        "en": "<b><code>grep getUser</code> misses two of three callers.</b>",
+        "tr": "<b><code>grep getUser</code> พลาดผู้เรียกไปสองในสามจุด</b>"
+      },
+      "glyph_result": {
+        "en": "<b>No default exports, no renaming.</b> <code>grep get_user</code> finds every caller.",
+        "tr": "<b>ไม่มี default export ไม่มีการเปลี่ยนชื่อ</b> <code>grep get_user</code> เจอผู้เรียกครบทุกจุด"
+      },
+      "page_note": {
+        "en": "This is what lets an agent change a function safely: it can find every place that uses it with a plain text search.",
+        "tr": "นี่คือสิ่งที่ทำให้เอเจนต์แก้ฟังก์ชันได้อย่างปลอดภัย: มันหาทุกจุดที่ใช้ฟังก์ชันนั้นได้ด้วยการค้นหาข้อความธรรมดา"
+      }
+    },
+    "one-step-past-the-end": {
+      "page_title": {
+        "en": "One step past the end",
+        "tr": "เกินท้ายไปหนึ่งช่อง"
+      },
+      "why": {
+        "en": "Summing a list with a loop.",
+        "tr": "หาผลรวมของ list ด้วย loop"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "คอมไพล์ผ่าน แล้วให้คำตอบผิด"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "ถูกหยุดตอนรัน"
+      },
+      "ts_result": {
+        "en": "<b><code>&lt;=</code> reads one past the end.</b>",
+        "tr": "<b><code>&lt;=</code> อ่านเกินท้ายไปหนึ่งช่อง</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program.",
+        "tr": "<b>Glyph ไม่มี <code>for</code> แบบภาษา C</b> การอ่านเกินท้ายจะหยุดโปรแกรม"
+      },
+      "page_note": {
+        "en": "Out-of-range reads return <code>undefined</code> in TypeScript, and arithmetic turns that into <code>NaN</code>.",
+        "tr": "ใน TypeScript การอ่านนอกช่วงคืนค่า <code>undefined</code> และการคำนวณเปลี่ยนมันเป็น <code>NaN</code>"
+      }
+    },
+    "quantity-of-one-and-a-half": {
+      "page_title": {
+        "en": "A quantity of 1.5",
+        "tr": "จำนวน 1.5 ชิ้น"
+      },
+      "why": {
+        "en": "An order line that can only be a whole number.",
+        "tr": "รายการสั่งซื้อที่ต้องเป็นจำนวนเต็มเท่านั้น"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "คอมไพล์ผ่าน แล้วทำงานกับข้อมูลที่ผิด"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "ถูกตรวจเมื่อข้อมูลเข้ามา"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript has one <code>number</code>.</b> Half an item ships.",
+        "tr": "<b>TypeScript มี <code>number</code> อยู่แบบเดียว</b> ของครึ่งชิ้นจึงถูกส่งออกไป"
+      },
+      "glyph_result": {
+        "en": "<b><code>int</code> is its own type,</b> and it is checked.",
+        "tr": "<b><code>int</code> เป็น type ของมันเอง</b> และถูกตรวจ"
+      },
+      "page_note": {
+        "en": "TypeScript has one <code>number</code> type for whole numbers and fractions alike. Glyph has <code>int</code>, and checks it when the data arrives.",
+        "tr": "TypeScript มี type <code>number</code> แบบเดียวทั้งสำหรับจำนวนเต็มและเศษส่วน Glyph มี <code>int</code> และตรวจมันเมื่อข้อมูลเข้ามา"
+      }
+    },
+    "split-into-a-pair": {
+      "page_title": {
+        "en": "Destructuring a <code>split</code>",
+        "tr": "การ destructure ผลของ <code>split</code>"
+      },
+      "why": {
+        "en": "Splitting an address into a user and a host.",
+        "tr": "แยกที่อยู่อีเมลเป็น user กับ host"
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "คอมไพล์ผ่าน แล้วพิมพ์ข้อความผิด"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads \"nobody at undefined\".",
+        "tr": "<b>TypeScript สันนิษฐานว่าส่วนที่สองมีอยู่</b> ถ้าไม่มี <code>@</code> ข้อความจะออกมาเป็น \"nobody at undefined\""
+      },
+      "glyph_result": {
+        "en": "<b>The missing part has to be handled.</b>",
+        "tr": "<b>ต้องจัดการกรณีที่ส่วนนั้นหายไป</b>"
+      },
+      "page_note": {
+        "en": "<code>split</code> can return one piece. TypeScript types <code>host</code> as <code>string</code> anyway.",
+        "tr": "<code>split</code> อาจคืนมาแค่ชิ้นเดียว แต่ TypeScript ก็ยังให้ type ของ <code>host</code> เป็น <code>string</code>"
+      }
+    },
+    "switch-fallthrough": {
+      "page_title": {
+        "en": "Switch fallthrough",
+        "tr": "switch ที่ตกทะลุ"
+      },
+      "why": {
+        "en": "A discount per plan.",
+        "tr": "ส่วนลดตามแพ็กเกจ"
+      },
+      "ts_verdict": {
+        "en": "compiles, then charges the wrong price",
+        "tr": "คอมไพล์ผ่าน แล้วคิดราคาผิด"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "เขียนแบบนี้ไม่ได้"
+      },
+      "ts_result": {
+        "en": "<b>The missing <code>break</code> runs the next case.</b>",
+        "tr": "<b><code>break</code> ที่หายไปทำให้ case ถัดไปรันด้วย</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>match</code> arms never fall through.</b>",
+        "tr": "<b>arm ของ <code>match</code> ไม่มีวันตกทะลุ</b>"
+      },
+      "page_note": {
+        "en": "<code>noFallthroughCasesInSwitch</code> is not part of <code>--strict</code>.",
+        "tr": "<code>noFallthroughCasesInSwitch</code> ไม่ได้อยู่ใน <code>--strict</code>"
+      }
+    },
+    "template-prints-undefined": {
+      "page_title": {
+        "en": "A template that prints \"undefined\"",
+        "tr": "template ที่พิมพ์คำว่า \"undefined\""
+      },
+      "why": {
+        "en": "Showing an optional relation.",
+        "tr": "แสดงความสัมพันธ์ที่อาจไม่มี"
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "คอมไพล์ผ่าน แล้วพิมพ์ข้อความผิด"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>The user sees the word \"undefined\".</b>",
+        "tr": "<b>ผู้ใช้เห็นคำว่า \"undefined\"</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The missing case needs a default.</b>",
+        "tr": "<b>กรณีที่ไม่มีค่าต้องมีค่าเริ่มต้น</b>"
+      },
+      "page_note": {
+        "en": "<code>?.</code> stops the crash, but the <code>undefined</code> it produces still gets printed.",
+        "tr": "<code>?.</code> ป้องกัน crash ได้ แต่ <code>undefined</code> ที่ได้ออกมาก็ยังถูกพิมพ์อยู่ดี"
+      }
+    },
+    "trap-array-holes": {
+      "summary": {
+        "en": "<code>Array(3).map(...)</code> returns three holes, because <code>map</code> skips them. Glyph has no <code>Array(n)</code>; arrays are written as literals.",
+        "tr": "<code>Array(3).map(...)</code> คืนช่องว่างสามช่อง เพราะ <code>map</code> ข้ามมันไป Glyph ไม่มี <code>Array(n)</code> array เขียนเป็น literal"
+      }
+    },
+    "trap-foreach-method-this": {
+      "summary": {
+        "en": "<code>[1, 2, 3].forEach(counter.increment)</code> runs the method without its object. Glyph has no classes and no <code>this</code>.",
+        "tr": "<code>[1, 2, 3].forEach(counter.increment)</code> รัน method โดยไม่มี object ของมัน Glyph ไม่มี class และไม่มี <code>this</code>"
+      }
+    },
+    "trap-map-parseint": {
+      "summary": {
+        "en": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> is <code>[10, NaN, NaN]</code>, because <code>map</code> passes the index as the number base. Glyph has <code>number.parse</code>, which returns a <code>Result</code>.",
+        "tr": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> ได้ <code>[10, NaN, NaN]</code> เพราะ <code>map</code> ส่ง index ไปเป็นฐานของตัวเลข Glyph มี <code>number.parse</code> ซึ่งคืนค่าเป็น <code>Result</code>"
+      }
+    },
+    "trap-math-max-empty": {
+      "summary": {
+        "en": "<code>Math.max(...[])</code> is <code>-Infinity</code>. Glyph's <code>array.max</code> returns an <code>Option</code>, empty for an empty list.",
+        "tr": "<code>Math.max(...[])</code> ได้ <code>-Infinity</code> ส่วน <code>array.max</code> ของ Glyph คืนค่าเป็น <code>Option</code> ซึ่งว่างเมื่อ list ว่าง"
+      }
+    },
+    "trap-regex-lastindex": {
+      "summary": {
+        "en": "A <code>/g</code> regex reused with <code>.test</code> fails every second match, because it remembers <code>lastIndex</code>. Glyph has no regex objects; <code>regex.matches(pattern, text)</code> has no state.",
+        "tr": "regex แบบ <code>/g</code> ที่ใช้ซ้ำกับ <code>.test</code> จะพลาดทุกการจับคู่ครั้งที่สอง เพราะมันจำ <code>lastIndex</code> ไว้ Glyph ไม่มี regex object และ <code>regex.matches(pattern, text)</code> ไม่มี state"
+      }
+    },
+    "trusting-find-with-bang": {
+      "page_title": {
+        "en": "Trusting <code>find</code> with <code>!</code>",
+        "tr": "เชื่อผลของ <code>find</code> ด้วย <code>!</code>"
+      },
+      "why": {
+        "en": "Looking a record up by id.",
+        "tr": "ค้นหา record ด้วย id"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "คอมไพล์ผ่าน แล้ว crash ตอนรัน"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b><code>!</code> tells the compiler \"trust me\".</b> At run time it does nothing.",
+        "tr": "<b><code>!</code> บอกคอมไพเลอร์ว่า \"เชื่อฉันเถอะ\"</b> ตอนรันมันไม่ได้ทำอะไรเลย"
+      },
+      "glyph_result": {
+        "en": "<b><code>find</code> returns an <code>Option</code>,</b> so the empty case must be handled.",
+        "tr": "<b><code>find</code> คืนค่าเป็น <code>Option</code></b> จึงต้องจัดการกรณีที่ไม่เจอ"
+      },
+      "page_note": {
+        "en": "Without the <code>!</code>, <code>tsc --strict</code> refuses this line. The <code>!</code> is what switches that check off, and it does nothing at run time. Glyph has no <code>!</code>.",
+        "tr": "ถ้าไม่มี <code>!</code> แล้ว <code>tsc --strict</code> จะปฏิเสธบรรทัดนี้ <code>!</code> คือสิ่งที่ปิดการตรวจนั้น และมันไม่ทำอะไรเลยตอนรัน Glyph ไม่มี <code>!</code>"
+      }
+    },
+    "two-types-same-shape": {
+      "page_title": {
+        "en": "Two types with the same shape",
+        "tr": "สอง type ที่มีรูปร่างเหมือนกัน"
+      },
+      "why": {
+        "en": "Verified and unverified email addresses.",
+        "tr": "อีเมลที่ยืนยันแล้วกับที่ยังไม่ยืนยัน"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "คอมไพล์ผ่านโดยไม่มีคำเตือน"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>An unverified address gets the invoice.</b>",
+        "tr": "<b>ใบแจ้งหนี้ถูกส่งไปยังอีเมลที่ยังไม่ยืนยัน</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Two named types are different types.</b>",
+        "tr": "<b>type ที่มีชื่อสองตัวเป็นคนละ type กัน</b>"
+      },
+      "page_note": {
+        "en": "TypeScript compares object types by shape, so same-shaped types are interchangeable whatever they are called.",
+        "tr": "TypeScript เปรียบเทียบ object type ตามรูปร่าง type ที่รูปร่างเหมือนกันจึงใช้แทนกันได้ ไม่ว่าจะชื่ออะไร"
+      }
+    },
+    "type-guard-that-checks-less": {
+      "page_title": {
+        "en": "A type guard that checks less than it claims",
+        "tr": "type guard ที่ตรวจน้อยกว่าที่อ้าง"
+      },
+      "why": {
+        "en": "Validating a request body by hand.",
+        "tr": "ตรวจสอบ request body ด้วยมือ"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "คอมไพล์ผ่าน แล้ว crash ตอนรัน"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "ถูกตรวจเมื่อข้อมูลเข้ามา"
+      },
+      "ts_result": {
+        "en": "<b>The guard says \"User\" after checking one field.</b>",
+        "tr": "<b>guard บอกว่าเป็น \"User\" หลังจากตรวจไปแค่ field เดียว</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>User.is</code> checks every field.</b> Glyph has no hand-written guards.",
+        "tr": "<b><code>User.is</code> ตรวจทุก field</b> Glyph ไม่มี guard ที่เขียนด้วยมือ"
+      },
+      "page_note": {
+        "en": "TypeScript trusts a <code>x is User</code> function completely, whatever its body actually checks.",
+        "tr": "TypeScript เชื่อฟังก์ชัน <code>x is User</code> ทั้งหมด ไม่ว่า body ของมันจะตรวจอะไรจริงๆ"
+      }
+    },
+    "typo-in-an-options-object": {
+      "page_title": {
+        "en": "A typo in an options object",
+        "tr": "พิมพ์ผิดใน options object"
+      },
+      "why": {
+        "en": "Building the options in a variable, then passing them.",
+        "tr": "สร้าง options ไว้ในตัวแปรก่อน แล้วค่อยส่งเข้าไป"
+      },
+      "ts_verdict": {
+        "en": "compiles, then uses the wrong setting",
+        "tr": "คอมไพล์ผ่าน แล้วใช้ค่าตั้งผิด"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>The misspelled option is silently dropped.</b>",
+        "tr": "<b>option ที่สะกดผิดถูกทิ้งไปเงียบๆ</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The wrong name is an error.</b>",
+        "tr": "<b>ชื่อที่ผิดเป็น error</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only checks for unknown keys on a literal written directly in the call, not on one built in a variable first.",
+        "tr": "TypeScript ตรวจ key ที่ไม่รู้จักเฉพาะใน literal ที่เขียนลงไปในการเรียกโดยตรง ไม่ตรวจ literal ที่สร้างไว้ในตัวแปรก่อน"
+      }
+    },
+    "typo-nobody-sees": {
+      "page_title": {
+        "en": "A typo nobody sees",
+        "tr": "คำผิดที่ไม่มีใครเห็น"
+      },
+      "why": {
+        "en": "Reading a field from a response.",
+        "tr": "อ่าน field จาก response"
+      },
+      "ts_verdict": {
+        "en": "compiles, then fails at run time",
+        "tr": "คอมไพล์ผ่าน แล้วล้มเหลวตอนรัน"
+      },
+      "glyph_verdict": {
+        "en": "refused by glyph check",
+        "tr": "ถูกปฏิเสธโดย glyph check"
+      },
+      "ts_result": {
+        "en": "<b><code>res.json()</code> is <code>any</code>,</b> so nothing about it is checked.",
+        "tr": "<b><code>res.json()</code> เป็น <code>any</code></b> จึงไม่มีอะไรเกี่ยวกับมันถูกตรวจเลย"
+      },
+      "glyph_result": {
+        "en": "<b>There is no <code>any</code>.</b> Data nobody has checked is <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gives it a type.",
+        "tr": "<b>ไม่มี <code>any</code></b> ข้อมูลที่ยังไม่มีใครตรวจเป็น <code>unknown</code> และ <code>json.parse&lt;User&gt;</code> ให้ type กับมัน"
+      },
+      "page_note": {
+        "en": "<code>any</code> switches type checking off for everything it touches, and it spreads: <code>data.usr</code> is <code>any</code> too. Glyph has no <code>any</code>. The refusal here comes from the <code>tsc</code> step that <code>glyph check</code> and <code>glyph build</code> run; Glyph's own checker does not see it yet (G381).",
+        "tr": "<code>any</code> ปิดการตรวจ type ของทุกอย่างที่มันแตะ และมันลามต่อ: <code>data.usr</code> ก็เป็น <code>any</code> ด้วย Glyph ไม่มี <code>any</code> การปฏิเสธในกรณีนี้มาจากขั้น <code>tsc</code> ที่ <code>glyph check</code> และ <code>glyph build</code> รัน ตัวตรวจของ Glyph เองยังมองไม่เห็น (G381)"
+      }
+    },
+    "unvalidated-boundary-read": {
+      "page_title": {
+        "en": "A parsed body given a type without a check",
+        "tr": "body ที่ parse แล้วได้ type โดยไม่มีการตรวจ"
+      },
+      "why": {
+        "en": "Reading a request body into a typed variable.",
+        "tr": "อ่าน request body ใส่ตัวแปรที่มี type"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "คอมไพล์ผ่าน แล้วทำงานกับข้อมูลที่ผิด"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>The annotation is a promise nothing keeps.</b> <code>JSON.parse</code> returns <code>any</code>, so a body of any shape gets through.",
+        "tr": "<b>annotation เป็นสัญญาที่ไม่มีอะไรรักษา</b> <code>JSON.parse</code> คืนค่า <code>any</code> body รูปร่างไหนก็ผ่านได้"
+      },
+      "glyph_result": {
+        "en": "<b><code>json.parse</code> returns a <code>Result</code> of <code>unknown</code>,</b> and that is not a <code>User</code>.",
+        "tr": "<b><code>json.parse</code> คืนค่า <code>Result</code> ของ <code>unknown</code></b> ซึ่งไม่ใช่ <code>User</code>"
+      },
+      "page_note": {
+        "en": "Writing <code>const user: User</code> looks like a check and is not one. In Glyph, <code>json.parse&lt;User&gt;(body)</code> checks the body and returns a <code>Result</code> to match on.",
+        "tr": "การเขียน <code>const user: User</code> ดูเหมือนการตรวจ แต่ไม่ใช่ ใน Glyph <code>json.parse&lt;User&gt;(body)</code> ตรวจ body และคืนค่าเป็น <code>Result</code> ให้ match ต่อ"
+      }
+    },
+    "unverifiable-parse": {
+      "page_title": {
+        "en": "A validator that cannot check what it claims",
+        "tr": "validator ที่ตรวจสิ่งที่อ้างไม่ได้"
+      },
+      "why": {
+        "en": "A record holding a socket, checked by a hand-written guard.",
+        "tr": "record ที่ถือ socket ไว้ ตรวจด้วย guard ที่เขียนด้วยมือ"
+      },
+      "ts_verdict": {
+        "en": "compiles, then accepts a string as a socket",
+        "tr": "คอมไพล์ผ่าน แล้วรับ string เป็น socket"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ถูกปฏิเสธตอน build"
+      },
+      "ts_result": {
+        "en": "<b>The guard says <code>Conn</code> after checking that <code>sock</code> exists.</b> A string passes as a socket.",
+        "tr": "<b>guard บอกว่าเป็น <code>Conn</code> หลังจากตรวจแค่ว่ามี <code>sock</code> อยู่</b> string จึงผ่านในฐานะ socket"
+      },
+      "glyph_result": {
+        "en": "<b>A socket has no runtime check,</b> so Glyph refuses <code>Conn.parse</code> instead of generating a check that cannot hold.",
+        "tr": "<b>socket ไม่มีการตรวจตอนรัน</b> Glyph จึงปฏิเสธ <code>Conn.parse</code> แทนที่จะสร้างการตรวจที่เป็นจริงไม่ได้"
+      },
+      "page_note": {
+        "en": "Split the wire type from the domain type: parse the fields that can be checked, then build the record around the socket.",
+        "tr": "แยก type สำหรับข้อมูลที่รับส่งออกจาก type ของโดเมน: parse field ที่ตรวจได้ แล้วจึงสร้าง record ครอบ socket"
+      }
+    },
+    "value-outside-the-list": {
+      "page_title": {
+        "en": "A value outside the list",
+        "tr": "ค่าที่อยู่นอกรายการ"
+      },
+      "why": {
+        "en": "An API starts sending a status your code has never seen.",
+        "tr": "API เริ่มส่งสถานะที่โค้ดของคุณไม่เคยเห็นมาก่อน"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "คอมไพล์ผ่าน แล้วทำงานกับข้อมูลที่ผิด"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "ถูกตรวจเมื่อข้อมูลเข้ามา"
+      },
+      "ts_result": {
+        "en": "<b><code>\"deleted\"</code> is treated as one of the two.</b> Every check on <code>status</code> is now wrong.",
+        "tr": "<b><code>\"deleted\"</code> ถูกนับเป็นหนึ่งในสองค่านั้น</b> การตรวจ <code>status</code> ทุกจุดจึงผิดหมด"
+      },
+      "glyph_result": {
+        "en": "<b>Only the listed values get through.</b>",
+        "tr": "<b>ผ่านได้เฉพาะค่าที่อยู่ในรายการ</b>"
+      },
+      "page_note": {
+        "en": "In TypeScript a union like <code>\"active\" | \"banned\"</code> exists only while compiling. At run time nothing stops a third value. Glyph checks it when the data comes in.",
+        "tr": "ใน TypeScript union อย่าง <code>\"active\" | \"banned\"</code> มีอยู่แค่ตอนคอมไพล์ ตอนรันไม่มีอะไรห้ามค่าที่สาม Glyph ตรวจมันเมื่อข้อมูลเข้ามา"
+      }
+    }
+  }
+}

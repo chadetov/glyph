@@ -1,0 +1,82 @@
+---
+title: Benchmark · วัดจริง ไม่ใช่แค่อ้าง · Glyph
+description: สี่เสาหลักของ Glyph ในรูปตัวเลข: error ที่จับได้ตอนคอมไพล์ grep ครั้งเดียวต่อสัญลักษณ์ diff หนึ่งบรรทัด และ token น้อยกว่า TypeScript ประมาณ 9% พร้อมข้อควรระวัง
+source_hash: c2635229de656794
+---
+      <header class="page-hero">
+        <p class="eyebrow">Benchmark</p>
+        <h1><span class="accent">หลักฐาน</span>สองแบบ</h1>
+        <p class="lede">
+          มีคำถามสองข้อที่ควรวัด และเราแยกมันออกจากกัน <strong>เชิงโครงสร้าง:</strong> Glyph ปฏิเสธอะไรโดยการออกแบบที่ TypeScript ยอมรับ? ข้อนี้พิสูจน์ได้วันนี้ ดังที่แสดงด้านล่าง <strong>ความน่าเชื่อถือ:</strong> เอเจนต์ปล่อย defect ใน Glyph น้อยกว่าในชุด TypeScript แบบ strict ที่<em>ตั้งค่ามาอย่างดี</em>จริงหรือไม่? นั่นคือตัวเลขที่ตัดสินว่าจะนำมาใช้หรือไม่ และเรายังไม่มี มันเป็นงานศึกษาที่เรากำลังสร้าง และเราจะไม่แต่งตัวชี้วัดทางอ้อมให้ดูเหมือนเป็นคำตอบนั้น (การเปรียบเทียบที่แท้จริงไม่ใช่ Glyph กับ TS แบบดิบๆ แต่เป็น Glyph กับ <a href="/answers/vs-tooled-ts/">TS แบบ strict + zod + eslint + ts-pattern</a>)
+        </p>
+      </header>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">เชิงโครงสร้าง: พิสูจน์ได้จากการออกแบบ</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 24px;">
+          ไม่ใช่สถิติ แต่เป็นการสาธิตเป็นคู่ แต่ละคู่คือกรณีที่ Glyph ปฏิเสธและ <code>tsc --strict</code> ยอมรับ ทำซ้ำได้จากไดเรกทอรี <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a>
+        </p>
+        <div class="stat-row">
+          <div class="card stat">
+            <span class="label">ตรวจสอบได้: บั๊กที่ทำให้คุณเสียหาย</span>
+            <div class="big">จับได้<span class="accent">ทั้งคู่</span>ตอนคอมไพล์</div>
+            <p>
+              ความผิดพลาดสองอย่างที่เอเจนต์ทำอยู่ตลอด (variant ของ <code>match</code> ที่ขาดไป และการ cast ผ่าน <code>as unknown as</code>) ถูก Glyph ปฏิเสธ และ <code>tsc --strict</code> ยอมรับ ทั้งสองเป็นกรณีที่ตรวจแล้วใน <code>catches/</code> (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>) ซึ่ง build gate รันซ้ำ โค้ดผิดที่คอมไพล์ผ่านคือความล้มเหลวที่แพง Glyph ไม่ยอมให้เกิด
+            </p>
+          </div>
+          <div class="card stat">
+            <span class="label">ค้นหาได้ด้วย grep: หนึ่งชื่อ หนึ่งที่</span>
+            <div class="big">เจอ <span class="accent">1</span> จุดทุกครั้ง</div>
+            <p>
+              ทุกสัญลักษณ์มีรูปแบบ declaration แบบเดียว: ไม่มี overload, decorator หรือ namespace ที่ merge กันให้มันกระจัดกระจาย
+            </p>
+            <div class="grepout">
+              <span class="prompt">$ grep -n "fn welcome" main.glyph</span><br />
+              <span class="ln-no">15:</span> fn welcome(user: User) -&gt; Result&lt;string, string&gt; {
+            </div>
+          </div>
+          <div class="card stat">
+            <span class="label">diff ที่คงที่: รีวิวได้โดยค่าเริ่มต้น</span>
+            <div class="big"><span class="accent">1 บรรทัด &rarr; 1 บรรทัด</span></div>
+            <p>
+              การแก้ Glyph หนึ่งบรรทัดให้ diff ของ TypeScript หนึ่งบรรทัดผ่าน transpiler และ <code>glyph fmt</code> ไม่สร้างความวุ่นวายเพิ่ม diff คือการเปลี่ยนแปลง ไม่ใช่สิ่งรบกวนรอบๆ
+            </p>
+          </div>
+        </div>
+
+        <div class="chart">
+          <span class="label">และความปลอดภัยไม่ได้ทำให้โค้ดยาวขึ้น</span>
+          <h3>จำนวน token ของสามฟังก์ชันเดียวกัน</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill glyph" style="width: 70%">436</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Python</span><div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div></div>
+          <div class="bar-row"><span class="bar-lang">TypeScript</span><div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Go</span><div class="bar-track"><div class="bar-fill other" style="width: 91%">564</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Rust</span><div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div></div>
+          <p class="bench-note">
+            ความปลอดภัยปกติทำให้โค้ดยาวขึ้น: Go และ Rust ซึ่งเป็นแถวอื่นที่มี static type และจัดการ error แบบชัดแจ้ง ยาวที่สุด Glyph มีทั้งสองอย่างแต่ไม่ได้ยาวขึ้น: 436 token เทียบกับ 478 ของ TypeScript น้อยกว่าประมาณ 9% เท่ากับ Python น้อยกว่า Go ประมาณ 23% และน้อยกว่า Rust 30% นับด้วย <code>cl100k_base</code> จริงบนโปรแกรมที่ผ่าน <code>glyph check</code> พร้อม <code>tsc</code> ส่วนที่นำอยู่ในฟังก์ชันที่มี control flow จริง (<code>parse_user</code>, 132 ต่อ 174) ส่วน <code>slugify</code> ที่มีบรรทัดเดียว Glyph ยาวกว่า (67 ต่อ 47) เพราะไม่มี regex literal สามฟังก์ชันเป็นตัวอย่างที่เล็ก ตัวเลข 341 ก่อนหน้านี้วัดจาก fixture ที่คอมไพเลอร์ไม่ยอมรับ และถูกถอนออกแล้ว <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">ดูวิธีวัดและข้อควรระวัง &rarr;</a>
+          </p>
+        </div>
+
+      </section>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">ความน่าเชื่อถือ: งานศึกษาที่เรากำลังสร้าง</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 22px;">
+          ผลเชิงโครงสร้างข้างบนเป็น<em>เหตุผลที่จะคาดหวัง</em>ว่า Glyph ช่วยได้ ไม่ใช่หลักฐานว่ามันช่วยจริง หลักฐานคืองานศึกษาเชิงเปรียบเทียบ: เอเจนต์ตัวเดียวกัน งานที่สมจริงชุดเดียวกัน เขียนครั้งหนึ่งด้วย Glyph และอีกครั้งด้วย TypeScript แบบ strict ที่ใส่เครื่องมือครบ (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod) ให้คะแนนด้วย<strong>จำนวน semantic defect ที่หลุดออกไป</strong>และอัตราที่ build เขียวในครั้งเดียว นั่นคือตัวเลขที่ผู้รีวิวห้าคนบอกเราว่าจะทำให้เขาเปลี่ยนใจ เราจึงกำลังสร้างมัน และจนกว่ามันจะมี แท่งกราฟเหล่านี้เป็นแค่ที่ว่างรอไว้ ไม่ใช่ข้อกล่าวอ้าง
+        </p>
+        <div class="chart">
+          <span class="label">defect ที่หลุดออกไปต่องาน &middot; ยิ่งน้อยยิ่งดี &middot; <span style="color:var(--amber)">ยังไม่ได้วัด</span></span>
+          <h3>Glyph เทียบกับ TypeScript แบบ strict ที่ใส่เครื่องมือครบ</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill pending" style="width: 30%">รอผล</div></div></div>
+          <div class="bar-row"><span class="bar-lang">TS ที่ใส่เครื่องมือครบ</span><div class="bar-track"><div class="bar-fill pending" style="width: 55%">รอผล</div></div></div>
+          <p class="bench-note">
+            อุปกรณ์ทั้งหมด (ชุดงาน harness สำหรับรันและเล่นซ้ำ และ baseline ของ TS ที่แข็งที่สุดอย่างตรงไปตรงมาซึ่ง pin ไว้) อยู่ในไดเรกทอรี <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> pilot จริงครั้งแรก (พร้อมค่า <em>n</em> โมเดล และต้นทุนที่ระบุไว้บนป้าย) จะเผยแพร่ที่นี่ทันทีที่รัน ไม่ว่าผลจะออกมาอย่างไร
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+          <a class="btn" href="/answers/vs-tooled-ts/">ทำไมการเปรียบเทียบจึงเทียบกับ TS ที่ใส่เครื่องมือครบ &rarr;</a>
+        </div>
+      </section>
+
+      <a href="/" class="backlink">&larr; กลับไปหน้าแรก</a>

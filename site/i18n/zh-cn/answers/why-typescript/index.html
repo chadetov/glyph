@@ -1,0 +1,50 @@
+---
+title: 为什么是 TypeScript，而不是 Go 或者一门全新的语言？ · Glyph
+description: 智能体写得最多的代码就是 TypeScript，npm、React 和 Node 也都在这里。Glyph 能逐个文件地引入，正是因为它的目标语言是 TS。
+source_hash: 9f7bf2e8baaad5d9
+prev: /answers/greppability/ | &larr; 上一篇 | 智能体（或者我）能找到任何东西的定义位置吗？
+next: /answers/vs-tooled-ts/ | 下一篇 &rarr; | 为什么不直接用严格模式的 TypeScript + zod + eslint + ts-pattern？
+---
+      <p class="q-eyebrow">04 &middot; 定位</p>
+      <h1 class="q-title">为什么是 TypeScript，而不是 Go 或者一门全新的语言？</h1>
+
+      <p class="short-answer">
+        因为智能体写得最多的代码就是 TypeScript，你的生态（npm、React、Node）也在这里。Glyph 能逐个文件地引入，<strong>正是因为它的目标语言是 TS</strong>。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么重要</h2>
+        <p>
+          一门新语言的成败，取决于从零到上线的路有多长。编译成 TypeScript 意味着你不用离开自己的代码库、打包工具、测试运行器或部署流程。Glyph 直接放在你已有的 <code>.ts</code> 文件旁边，两个方向的导入都很顺畅：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">同一个项目：.glyph 与 .ts 并存</span>
+<pre><span class="cm">// cart.glyph: new, written in Glyph</span>
+import { formatPrice } from "./format.ts"
+
+<span class="cm">// checkout.ts: existing, untouched</span>
+import { total } from "./cart.glyph"</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          你没法把 Go 逐个文件地放进 TypeScript 代码库：它是不同的运行时、不同的模块系统、不同的生态。仅这一点，就决定了目标语言是 TS。
+        </p>
+        <p>
+          <strong>关于 Go 的合理观点：</strong>它的关键字少而稳定，智能体出错的方式也就更少。我们同意：这正是 Glyph 有意保持一个小核心、每件事只有一种做法的原因。我们的密度<a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">基准测试</a>中包含了 Go，可以直接比较。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>干净的 TypeScript 输出，与你现有 <code>.ts</code> 文件的双向导入，以及一个能在任何 Node 或浏览器打包环境中运行的小核心。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">正在测量</h3>
+          <p>跨语言基准测试（Glyph、TS、Go、Python、Rust）随语料库一起扩充，所以&ldquo;语法面小&rdquo;这个说法始终是一个数字，而不是一句断言。</p>
+        </div>
+      </div>

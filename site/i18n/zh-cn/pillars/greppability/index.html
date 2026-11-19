@@ -1,0 +1,130 @@
+---
+title: 可检索性 · 一个名字，一个位置 · Glyph
+description: Glyph 的第二个支柱：每个符号在声明处只有一种形式。没有重载、装饰器、命名空间合并或 barrel 重新导出，所以 grep 就能找到它。
+source_hash: dc081d192bed2b9f
+prev: /pillars/verifiability/ | &larr; 上一个支柱 | 可验证性：在运行时也成立
+next: /pillars/diff-stability/ | 下一个支柱 &rarr; | 稳定的 diff：改一行就是一行 diff
+---
+      <p class="q-eyebrow">支柱 02 &middot; <span class="wedge">切入点</span></p>
+      <h1 class="q-title">可检索性</h1>
+
+      <p class="short-answer">
+        <strong>一个名字，一个位置。</strong>每个符号在声明处都只有一种语法形式，所以普通的 <code>grep</code> 总能找到定义，不需要索引，不需要语言服务器，也不需要运气。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么“这是在哪里定义的？”很难回答</h2>
+        <p class="lede">
+          在一个成熟的 TypeScript 代码库中，最简单的问题，<em>这个名字是从哪里来的？</em>，往往最难回答。语言提供了五六种把一个符号分散到多处的方式：重载把一个函数拆成好几个签名，装饰器把它包进别的东西里，<code>namespace</code> 和 <code>interface</code> 合并把一个类型分散到多个文件，<code>declare module</code> 扩充你并不拥有的代码，barrel <code>index.ts</code> 文件重新导出一切，所以你导入的路径并不是任何东西真正所在的地方。
+        </p>
+        <p class="lede">
+          人可以靠 LSP 和肌肉记忆应付。<strong>智能体</strong>则用 grep：它把仓库当文本来读，而上面每一种结构都是文本在代码位置上撒谎的地方。Glyph 去掉了它们。结果是一门搜索可以作为可靠基础操作、而不是靠猜测的语言。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> 一个声明，一种形式</h2>
+        <p>
+          函数、类型或组件只声明一次，用一种语法。没有拆分签名的重载，也无法重新声明一个名字：两个同名的顶层定义是硬错误（<code>E0100</code>）。所以查找定义只有唯一的答案。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript：四个匹配，其中一个是函数体</span>
+          <span class="cap">$ grep -n "parseUser" src/</span>
+<pre><span class="cm">users.ts:4:  export function parseUser(</span>
+<span class="cm">users.ts:9:  export function parseUser(</span>
+<span class="cm">index.ts:2: export { parseUser } from</span>
+<span class="cm">api.ts:7:   import { parseUser } from</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph：第一个匹配就是定义</span>
+          <span class="cap">$ grep -n "fn parseUser" src/</span>
+<pre>users.glyph:12:fn parseUser(
+  raw: unknown,
+) -&gt; Result&lt;User, string&gt; {</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          声明关键字是你搜索的名字的一部分。<code>grep "fn parseUser"</code> 不会匹配到调用、导入或重新导出，只会匹配它被<strong>定义</strong>的那一处。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> 没有 barrel 文件：导入路径就是位置</h2>
+        <p>
+          Glyph 的导入从不重新导出，只包含导入的模块会被拒绝（<code>E0102</code>）。没有 <code>index.ts</code> 那样的中转层。所以导入写的就是符号真正所在的模块：路径<em>就是</em>地址。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">导入准确告诉你该去哪里找</span>
+<pre>import myapp/users { parseUser }
+<span class="cm">//     ^^^^^^^^^^^ the file is src/myapp/users.glyph.</span>
+<span class="cm">//     not a re-export of a re-export of a barrel.</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">03</span> 没有隐藏的方式附加行为</h2>
+        <p>
+          没有把函数包进看不见的一层的装饰器，没有从整个目录树汇集成员的 <code>namespace</code> 合并，没有在一个你绝不会想到去打开的文件里扩充第三方类型的 <code>declare module</code>，也没有改变方法所指对象的隐式 <code>this</code>。一个名字只解析到一个声明，塑造它的一切都在那个声明处可见。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> 连修改都能 grep 到</h2>
+        <p>
+          可检索性不只是找到定义，还包括找到<em>副作用</em>。共享状态放在 <code>std/store</code> 中，对它的每次修改都是字面上的 <code>.set(</code> 或 <code>.update(</code> 调用。所以一次搜索就能列出一份状态的全部写入点，而不用去找散落在文件各处的赋值。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
+<pre><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(fn(cur) { ... })
+<span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
+<span class="cm"># every place the task list can change, enumerated.</span>
+<span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          当一个代码库的<strong>文本如实反映它的结构</strong>时，它就是可检索的。这里的每项限制（每个名字一种形式、不重新导出、不合并）都是为了让搜索返回答案，而不只是线索。
+        </p>
+
+        <h2 class="block-label">基准测试：即将进行</h2>
+        <p>
+          这个说法可测量的版本是精确度：对某个符号，普通 grep 的匹配中有多大比例正是你要找的东西，智能体需要多少步才能找到定义？Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有真实的代码库可以测量，就会填入真实数字。
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">查找定义时的 grep 精确度 &middot; 越高越好</span>
+        <h3>TypeScript 对比 Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 70%;">待定</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 38%;">待定</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">尚未测量</span> 一旦有了真实的 Glyph 代码库，我们就会报告 grep 精确度和找到定义所需的步数，并在这里公布，无论结果如何。
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          规模越大、自主程度越高，收益越明显。人会慢慢摸清一个代码库的隐藏角落；从零开始的智能体则不会。可检索性让工具（或新同事）可以通过阅读来导航，看到的就是仓库真实的样子。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">“一条 lint 规则就能禁止重载和装饰器”</h2>
+        <p>
+          在你自己的仓库里，可以。ESLint 能禁止命名空间，团队也可以约定不用重载。但语言仍然允许这一切，所以这个保证只在配置存在时有效，而且只覆盖配置作用到的代码。对依赖、生成的文件或别人的仓库做 <code>grep</code> 时，不能指望它。在 Glyph 中这些结构根本不存在，所以 <code>grep</code> 在每个 Glyph 文件上都一样有效，包括你们团队没人配置过的文件。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          从智能体的角度看会是什么样，用一次搜索找到定义或找到对某个值的每次写入，在<a href="/answers/greppability/">智能体（或者我）能找到任何东西的定义位置吗？</a>中有解答。
+        </p>
+      </div>

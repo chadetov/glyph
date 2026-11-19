@@ -1,0 +1,121 @@
+---
+title: Glyph 与 Effect · 一个库和一门语言的比较 · Glyph
+description: Effect 是一个带类型化错误和庞大生态的 TypeScript 库；Glyph 是一门编译到 TypeScript 的语言。各自擅长什么，附代码。
+source_hash: f62ac4a8fc9859e6
+next_steps: |
+  接下来去哪里
+  推荐 | /catches/ | catches | Glyph 拒绝什么 | 每个案例都分别在 <code>tsc --strict</code> 和 Glyph 下检查过。 | 查看案例
+  /design/ | design | 回到设计 | 四大支柱、规范，以及其他比较。
+---
+      <p class="q-eyebrow">设计 &middot; 比较</p>
+      <h1 class="q-title">Glyph 与 Effect</h1>
+
+      <p class="short-answer">
+        两者的目标都是让人和智能体都能信赖的 TypeScript。Effect 是一个库：你继续写 TypeScript，并获得类型化的错误、可追踪的依赖和一个很大的工具箱。Glyph 是一门编译到 TypeScript 的语言，所以它可以拒绝 TypeScript 允许的写法，包括那些会抵消库所提供保证的类型断言。Effect 要成熟得多。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Effect 如何描述自己</h2>
+        <p>
+          Effect 首页的标题是 "Reliable TypeScript for the AI era"，并称它的 "declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code"（<a href="https://effect.website">effect.website</a>）。它的文档称它是 "an ecosystem of tools that help you build better applications and libraries"，围绕 <code>Effect&lt;Success, Error, Requirements&gt;</code> 类型构建，这个类型记录一次计算返回什么、可能怎样失败、需要什么（<a href="https://effect.website/docs/getting-started/why-effect/">Why Effect</a>）。它要求 TypeScript 5.4 或更新版本，并打开 <code>strict</code>（<a href="https://effect.website/docs/getting-started/installation/">Installation</a>）。这些引文读取于 2026-11-19。
+        </p>
+
+        <h2 class="block-label">库与语言之别带来的差异</h2>
+        <p>
+          Effect 的类型由 <code>tsc</code> 检查，所以凡是 <code>tsc</code> 允许的，在它旁边照样允许。下面这段代码在 effect 4.1.4 和 TypeScript 6 下能通过 <code>tsc --strict</code>。类型断言把 <code>NotFound</code> 从错误通道中去掉了，于是一个类型上声明不会失败的 effect，程序却报告了失败。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">eff.ts：tsc --strict 退出码为 0；运行后打印 "Failure undefined"</span>
+<pre>import { Effect } from "effect"
+
+class NotFound {
+  readonly _tag = "NotFound"
+}
+
+const find = (id: string): Effect.Effect&lt;number, NotFound&gt; =&gt;
+  id === "1" ? Effect.succeed(1) : Effect.fail(new NotFound())
+
+<span class="cm">// The error channel says NotFound can happen. A cast erases it.</span>
+const quiet = find("2") as unknown as Effect.Effect&lt;number, never&gt;
+
+<span class="cm">// And a parsed body still takes any type you name.</span>
+type User = { email: string }
+const user = JSON.parse("{}") as User
+
+console.log(Effect.runSyncExit(quiet)._tag, user.email)</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          同一个函数在 Glyph 中返回 <code>Result</code>，而且没有类型断言可写。第二个模块在生成任何 TypeScript 之前就被拒绝了。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">find.glyph：能构建，能通过 tsc --strict</span>
+<pre>module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">加上类型断言：被拒绝</span>
+<pre data-check="expect-error E0013">module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}
+
+pub fn quiet() -&gt; number {
+  let n = find("2") as number
+  return n
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>E0013</code> 的帮助信息是："Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>." 在 Effect 代码库中，团队可以用 lint 规则做到接近的效果，<a href="/answers/vs-tooled-ts/">那篇比较</a>说明了为什么一条可以被关掉的规则是另一种性质的保证。
+        </p>
+
+        <h2 class="block-label">Effect 做得更好的地方</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>方面</th><th>Effect</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">成熟度</td><td data-label="Effect">已用于生产环境；首页列出的公司中有 Cloudflare</td><td data-label="Glyph">早期预览版，尚未到 1.0，主要由一个人维护</td></tr>
+            <tr><td data-label="Area">生态</td><td data-label="Effect">HTTP API、工作流、集群、schema、调度、追踪和依赖注入，全部来自同一个项目</td><td data-label="Glyph">40 个模块的标准库；其他一切来自 npm</td></tr>
+            <tr><td data-label="Area">类型中的依赖</td><td data-label="Effect"><code>Requirements</code> 参数追踪一次计算需要什么</td><td data-label="Glyph">没有对应的东西；函数签名只记录它的结果和错误</td></tr>
+            <tr><td data-label="Area">引入方式</td><td data-label="Effect">一个 npm 包；包装现有代码并逐步向上重构，不需要新的编译器</td><td data-label="Glyph">构建中多一个编译器，一次引入一个模块</td></tr>
+            <tr><td data-label="Area">并发</td><td data-label="Effect">内置结构化并发、重试和调度</td><td data-label="Glyph"><code>par</code> 和 <code>std/task</code> 辅助函数，规模小得多</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Glyph 能做而库做不到的事</h2>
+        <p>
+          语言决定了什么能写出来。Glyph 没有 <code>any</code>，没有类型断言，没有非空断言，也没有能屏蔽错误的注释，而且对联合类型的每个 <code>match</code> 都必须覆盖每种情况。记录和联合类型带有根据声明生成的运行时检查，所以 <code>json.parse&lt;User&gt;(body)</code> 会做校验。Effect 的 Schema 也是从一份描述推导出类型（见<a href="https://effect.website/docs/schema/introduction/">它的介绍</a>中的 <code>Schema.Schema.Type&lt;typeof Person&gt;</code>），所以在那里类型和校验器也不会出现偏差；区别在于，TypeScript 中没有任何东西强制代码库使用它。编译器还能为智能体回答关于程序的问题，比如某个改动会破坏什么，<a href="/agents/">通过 MCP 或命令行</a>都可以。
+        </p>
+        <p>
+          本页没有测试过在 Glyph 模块内部使用 Effect，所以对两者结合使用不做任何断言。
+        </p>
+      </div>

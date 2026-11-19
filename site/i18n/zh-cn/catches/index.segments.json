@@ -1,0 +1,80 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "catches/index.html",
+  "locale": "zh-cn",
+  "source_hash": "09d8897c06eb2254",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What TypeScript lets through and Glyph catches · Glyph",
+      "tr": "TypeScript 放过、Glyph 能发现的问题 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Code AI agents write that passes tsc --strict, each shown beside the same program in Glyph with the real compiler output. A build gate re-runs every case.",
+      "tr": "AI 智能体写出的、能通过 tsc --strict 的代码，每个都与同一程序的 Glyph 版本并排展示，附真实的编译器输出。构建检查会重新运行每个案例。"
+    },
+    {
+      "id": "h-62a67cf6",
+      "kind": "html",
+      "en": "Cases TypeScript lets through",
+      "tr": "TypeScript 放过的案例"
+    },
+    {
+      "id": "h-e64296aa",
+      "kind": "html",
+      "en": "Caught before it ships",
+      "tr": "上线之前就被发现"
+    },
+    {
+      "id": "h-2b7258ab",
+      "kind": "html",
+      "en": "Each entry is two programs in <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a>, and the output under each one is what the tools printed. A build gate, <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a>, re-runs every case and fails if either half stops doing what the page says. The full TypeScript configuration it checks against is in that script.",
+      "tr": "每个条目都是 <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> 中的两个程序，每个程序下方的输出就是工具实际打印的内容。构建检查 <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a> 会重新运行每个案例，只要任何一半不再符合页面的描述就会失败。它用来对照的完整 TypeScript 配置就在这个脚本里。"
+    },
+    {
+      "id": "h-edf64e1e",
+      "kind": "html",
+      "en": "{{catches:count}} TypeScript mistakes",
+      "tr": "{{catches:count}} 个 TypeScript 错误"
+    },
+    {
+      "id": "h-792e25f6",
+      "kind": "html",
+      "en": "{{catches:trap-count}} JavaScript traps that do not exist in Glyph",
+      "tr": "{{catches:trap-count}} 个在 Glyph 中不存在的 JavaScript 陷阱"
+    },
+    {
+      "id": "h-b2b3836d",
+      "kind": "html",
+      "en": "Older traps that agents still hit now and then. Glyph refuses each program, but not by spotting the mistake: the feature behind it is not in the language, and the replacement is named.",
+      "tr": "一些老陷阱，智能体仍然时不时会踩到。Glyph 会拒绝每个这样的程序，但不是因为发现了错误：导致错误的特性根本不在语言里，并且会给出替代写法。"
+    },
+    {
+      "id": "h-2db8dfc2",
+      "kind": "html",
+      "en": "What Glyph does not catch yet",
+      "tr": "Glyph 还发现不了的问题"
+    },
+    {
+      "id": "h-e0a2f441",
+      "kind": "html",
+      "en": "{{catches:gap-cases}} holes Glyph does not close yet. Each of these compiles in Glyph today and does the same wrong thing as in TypeScript. Every one has a reproduction in <code>catches/</code> and an open gap number, and the gate fails when a fix lands so the entry cannot outlive the hole.",
+      "tr": "{{catches:gap-cases}} 个 Glyph 尚未堵上的漏洞。这些程序今天在 Glyph 中都能编译，并且和在 TypeScript 中一样出错。每个都在 <code>catches/</code> 中有复现，并有一个未关闭的 gap 编号；修复落地时检查会失败，所以条目不会比漏洞活得更久。"
+    },
+    {
+      "id": "h-e0eee93e",
+      "kind": "html",
+      "en": "Logic errors are the largest class in every study of agent-written code, and no type checker sees them: a wrong formula, or a task that was misread, compiles in Glyph as it does in TypeScript.",
+      "tr": "在每一项关于智能体所写代码的研究中，逻辑错误都是最大的一类，而任何类型检查器都看不到它们：写错的公式、理解错的任务，在 Glyph 中和在 TypeScript 中一样能编译。"
+    },
+    {
+      "id": "h-2343e2b3",
+      "kind": "html",
+      "en": "Glyph has one escape hatch, <code>extern_ts</code>, for TypeScript it cannot express. It is a fixed keyword, so <code>grep extern_ts</code> lists every place the rules are suspended.",
+      "tr": "Glyph 有一个逃生口 <code>extern_ts</code>，用于它无法表达的 TypeScript。它是固定的关键字，所以 <code>grep extern_ts</code> 能列出每一处规则被暂停的地方。"
+    }
+  ]
+}

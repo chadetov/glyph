@@ -1,0 +1,172 @@
+---
+title: 智能体读的文档是生成的吗？ · Glyph
+description: glyph llms --json 从编译器自己的表中输出诊断、prelude、标准库签名和语言决策，所以它们不会与编译器产生偏差。
+source_hash: 31b76a81a51f0211
+prev: /answers/repair-protocol/ | &larr; 上一篇 | 构建失败时，编译器会告诉智能体怎么修吗？
+next: /answers/tooling/ | 下一篇 &rarr; | 编辑器、调试和报错的体验如何？
+---
+      <p class="q-eyebrow">24 &middot; 不会过时的文档</p>
+      <h1 class="q-title">智能体读的文档是生成的，还是手写的、已经过时的？</h1>
+
+      <p class="short-answer">
+        是生成的。<code>glyph llms --json</code> 从编译器自己的表中输出诊断目录、prelude、标准库签名、语言决策和工具手册，手写的副本与之不一致时，有一项检查会让构建失败。智能体用来起步的那份文档中，每个 Glyph 示例都经过编译，包括那些错误示例。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么重要</h2>
+        <p>
+          这个问题并非只是设问，因为以前如实的回答是“手写的，而且确实过时了”。智能体引导文档说 MCP 服务器“提供五个工具”，并列出了五个，而服务器实际提供七个。服务器自己的说明里让智能体首先使用的那两个工具，在文档中一次都没有出现。58 个错误码分散在三份手工维护的副本中，检查只看错误码字符串是否存在。那份文档里的 19 个 Glyph 示例，只有 2 个经过编译，另外 17 个被当作片段跳过。
+        </p>
+        <p>
+          这些问题都是同一个缺陷：一份关于编译器的文档，在编译器旁边由好心的人维护。读它的智能体分不清哪些句子仍然成立，我们自己也分不清。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>
+          七个部分，每个都读取自编译器已有的一张表。一个诊断条目包含目录中的说明句、一行修复提示、详细解释，以及从编译器实际给出的诊断中取得的 help 和 note。77 个错误码中有 51 个还带有一个触发该错误码的错误程序，在你询问时现场编译；另外 26 个会说明语料库中没有它的案例。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --json 中的 E0200 条目（有删减）</span>
+<pre>{
+  "code": "E0200",
+  "phase": "typechecker",
+  "meaning": "Non-exhaustive `match` on a tagged union (yours, a prelude
+    `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a
+    string-literal union (`\"free\" | \"pro\"`, D30) missing a literal ...",
+  "fix": "Add an arm for each missing variant",
+  "help": "Add an arm for each missing variant.",
+  "note": "Tagged unions are sealed (D9): adding a variant forces every
+           match to be updated. A `_`/`else` catch-all is allowed but
+           forfeits that guarantee.",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "files": [ { "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+      "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+      "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a
+      case: an entry is a wrong program and the code it draws. A fix
+      invented here would compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          77 个错误码都来自编译器中的一张表，<code>docs/error-codes.md</code> 和智能体引导文档中的目录表，都由一个脚本根据这张表写出，出现偏差时脚本会失败。合并原来那三份副本时，发现了一个有解释却不在列表中的错误码，还有一行因为转义的竖线悄悄破坏了它所在的表格。
+        </p>
+
+        <h2 class="block-label">prelude、标准库和语言决策</h2>
+        <p>
+          prelude 是解析器用来解析名字的 24 个名字，并说明每个是什么。标准库有 40 个模块、340 个导出，每个签名都从检查器自己的表中读取，并由诊断所用的同一个类型打印器打印，所以文档中的签名就是检查器会用来约束你的签名。这些导出分为三类，而不是两类：129 个签名在每个位置都有建模；46 个在参数类型的位置带有 <code>?</code>，计为 <code>partially_modeled</code>，并附一行说明还剩多少个位置；165 个完全没有签名。<code>?</code> 是 <code>unknown</code> 的显示形式，所以它永远不会作为完整签名发布。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">"stdlib"</span>
+<pre>{ "path": "std/array", "exports": [
+  { "name": "filter",
+    "signature":
+      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;" },
+  { "name": "find",
+    "signature":
+      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;" },
+  { "name": "fold",
+    "signature":
+      "fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U" } ] }
+
+"modeled": 129, "partially_modeled": 46,
+"unmodeled": 165</pre>
+        </div>
+        <div class="code">
+          <span class="cap">"prelude" 和 "decisions"</span>
+<pre>"prelude": { "count": 24, "names": [
+  { "name": "int", "role": "type" },
+  { "name": "Ok",  "role": "value" },
+  { "name": "par", "role": "namespace" }, ... ] }
+
+"decisions": { "count": 49,
+  "duplicate_numbers": [],
+  "decisions": [
+    { "id": "D9",
+      "section": "Control flow &amp; expressions",
+      "title": "`else` is a catch-all arm; `_` is a
+        position-level wildcard; a PascalCase arm
+        head is a variant reference ..." }, ... ] }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          之所以有 <code>duplicate_numbers</code>，是因为生成器读取的是规范自己的列表，它第一次运行时就发现两个不同的决策都编号为 D43，并打印出 <code>"duplicate_numbers": [43]</code>。它报告冲突而不是自动去重，大家也正是这样才发现了问题。编译器中没有任何东西以 D 编号为键，所以没有程序受到影响，受影响的是顺着引用查找的读者。这个问题已经修复：D43 是跨 <code>await</code> 的 <code>mut</code> 规则，<code>never</code> 是 D47，所以这个列表现在是空的。目前共有 49 项决策，从 D1 到 D49。
+        </p>
+
+        <h2 class="block-label">错误程序也可以读取</h2>
+        <p>
+          编译器的反例语料库是一组必须失败的程序，并注明每个程序必须触发的错误码。以前只有 <code>cargo test</code> 能看到它。而一个想了解某条规则会拒绝什么的智能体，正是这份语料库所针对的读者，所以它现在可以直接回答，每个案例都在你询问时现场编译，旁边的诊断就是本编译器给出的。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --negative E0008</span>
+<pre>{
+  "code": "E0008",
+  "meaning": "Assignment without `mut` (`x = e` should be `mut x = e`, or
+              `let x = e` for a new binding; D5)",
+  "fix": "Write `mut x = e`, or `let x = e` for a new binding",
+  "negative": [ {
+    "name": "bare_assignment_without_mut",
+    "files": [ { "path": "bare_assignment_without_mut.glyph",
+      "source": "module neg\n\nfn count() -&gt; number {\n  let total = 0\n
+                 total = total + 1\n  return total\n}\n" } ],
+    "diagnostic": { "code": "E0008", "stage": "parse",
+      "message": "assignment requires `mut`",
+      "help": "Glyph marks every mutation (D5): write `mut x = ...` to
+               reassign an existing binding, or `let x = ...` to
+               introduce a new one.",
+      "range": { "start": { "line": 5, "col": 3, "offset": 53 }, ... } } } ],
+  "catches": [],
+  "catches_absent": "`catches/` pairs no TypeScript-accepted program with E0008"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          不指定错误码时，0.1.149 列出覆盖 77 个错误码中 53 个的 117 个案例，并列出没有案例的 24 个，而不是让你从返回结果中推断覆盖范围。另一个语料库 <code>catches/</code> 把一个被 <code>tsc --strict</code> 接受的程序和拒绝它的 Glyph 程序配成一对，有对应案例时也会在同一个答案中返回。两个语料库都直接从目录嵌入，所以在任一个中新增的案例都会出现在答案中，不需要记得再改第二处。
+        </p>
+
+        <h2 class="block-label">每个示例都能编译，包括错误示例</h2>
+        <p>
+          生成参考资料只是一半，另一半是智能体用来起步的那些文字，其中的示例正是它会照抄的部分。那份文档中的每个 Glyph 代码块，要么是一个能编译的完整程序，要么被标记为某个具名完整示例的片段，而且它的各行必须出现在那个示例中。以前是 19 个代码块，2 个经过编译；现在是 24 个，20 个经过编译，4 个被标记，没有一个被跳过。标准库参考从 8 个中有 4 个变成了 8 个全部经过编译。
+        </p>
+        <p>
+          代码块也可以被标记为必须失败的程序，并注明它触发的错误码，文档正是这样给出它提醒你避免的五种错误写法：触发 <code>E0228</code> 的那一种，触发 <code>E0008</code> 的那一种，以及另外三种。和诊断配对的警告是可以检查的，用文字写出的警告只是一个承诺。
+        </p>
+        <p>
+          编译这些文档发现了两个光靠阅读永远发现不了的问题。一个行内的三个反引号被当成了代码块的开头，于是 250 行被算作一个片段，里面的内容都没有被检查。另外，标准库参考中一个完整的服务器示例调用了 <code>http.serve</code>，而 <code>std/http</code> 并没有导出它，那个函数叫 <code>listen</code>。
+        </p>
+
+        <h2 class="block-label">交付它的成本，以及省下的成本</h2>
+        <p>
+          十一个 MCP 工具以前把整份手册都放在 <code>tools/list</code> 回复中，而每个会话在连接时都要为它付出代价：45,509 字节的回复中有 31,446 字节是描述。现在同样十一个工具，20,386 字节的回复中描述占 8,627 字节。什么都没有删。以前的文字原样保留，按工具名索引，发布在 <code>glyph llms --json</code> 中，所以调用时需要的约定在描述里，其余部分只需一条命令就能拿到，而不是出现在每个会话的第一个回复中。有一个测试会同时读取工具列表和文档，所以如果文档提到了服务器不提供的工具，或者数量与列表不一致，构建就会失败。“提供五个工具”那句话需要的正是这项检查。
+        </p>
+        <p>
+          这一切都离线在本地完成。<code>glyph llms</code> 打印文字说明，<code>glyph llms --json</code> 打印数据，<code>glyph llms --negative</code> 打印错误程序。同样的文字说明也发布在 <a href="/llms.txt">llms.txt</a>，供能联网但没有可执行文件的智能体使用。智能体针对<em>你的</em>代码而不是针对语言本身提出的问题，由<a href="/answers/ask-the-compiler/">查询工具</a>回答。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p><code>glyph llms --json</code> 从编译器中输出七个部分：77 个诊断错误码，其中 51 个带有现场编译的反例；32 个保留字；24 个 prelude 名字；40 个标准库模块及其 340 个导出；从规范中解析出的 49 项语言决策；以及十一个工具及其 <code>glyph query</code> 子命令和完整手册。<code>docs/error-codes.md</code> 和引导文档中的诊断表由一个脚本根据编译器自己的错误码表写出，出现偏差时脚本会失败，并同步重新生成 <code>llms.txt</code>。有一个测试保证工具目录与服务器实际提供的一致。引导文档和标准库参考中的每个 Glyph 代码块都能编译，或者是某个能编译的程序中被标记的片段，五种错误写法都是与各自触发的错误码配对的程序。<code>glyph llms --negative</code> 的回答来自 <code>cargo test</code> 运行的同一批语料库。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">它的边界</h3>
+          <p>本页中出现了两个错误程序的数量，它们统计的东西不同：77 个错误码中有 51 个带有来自 <code>tests/negative/</code> 的反例，而 0.1.149 中 <code>glyph llms --negative</code> 列出覆盖 53 个错误码的 117 个案例，因为它还会读取 <code>catches/</code> 中被拒绝的程序；下一个版本会加入此后新增到 <code>catches/</code> 的 22 个被拒绝程序，共计覆盖 55 个错误码的 139 个案例。在 0.1.149 中，有 24 个错误码在两个语料库中都没有错误程序，答案会列出它们，而不是编造一个。340 个标准库导出中有 165 个没有签名：它们的实现是由 <code>tsc</code> 检查的 TypeScript，编译器自己的表没有为它们建模任何东西，所以对 <code>std/result::all</code> 或 <code>std/io::println</code> 调用 <code>glyph_symbol</code> 会报告 <code>kind: null</code> 并附上这个原因。在有签名的 175 个中，仍有 46 个在参数类型的位置带有 <code>?</code>。另外，这份文档是你获取的一个快照，而不是一项服务：它没有检索层，没有向量嵌入，也没有基于它的对话界面。</p>
+        </div>
+      </div>

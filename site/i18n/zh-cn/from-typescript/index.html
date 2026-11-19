@@ -1,0 +1,229 @@
+---
+title: 从 TypeScript 迁移过来 · Glyph 里有哪些变化 · Glyph
+description: Glyph 读起来几乎和 TypeScript 一样，并编译成 TypeScript。变化在于：少量语法差异，没有 any、as 和 !，只有一个可以 grep 到的逃生口，以及 npm 的用法。
+source_hash: bc168f89faa5ea6e
+next_steps: |
+  接下来去哪里
+  推荐 | /catches/ | catches | 看看 TypeScript 放过了什么 | 每个案例都分别在 <code>tsc --strict</code> 和 Glyph 下运行，附报错。 | 查看案例
+  /start/ | start | 写第一个程序 | 安装、创建项目、运行、故意改错、读报错。大约十分钟。
+  /playground/ | playground | 在浏览器里试试 | 编译器直接在页面里运行，什么都不用安装。
+---
+      <p class="q-eyebrow">从 TypeScript 迁移过来</p>
+      <h1 class="q-title">已经在写 TypeScript 的话，会有哪些变化</h1>
+
+      <p class="short-answer">
+        比你想象的少。Glyph 编译出能通过 <code>tsc --strict</code> 的 TypeScript，保留 npm 和你的部署方式，读起来也几乎一样。差异只有几处，每一处都是把一种犯错的方式换成一项由编译器完成的检查。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">懂 TypeScript，就已经懂了大部分</h2>
+        <p>
+          你不需要学一门新语言，只要学这四样。本站每个示例里都有它们。
+        </p>
+      </div>
+
+      <dl class="gloss-list">
+        <div>
+          <dt><code>match</code></dt>
+          <dd>穷尽的 <code>switch</code>：对联合类型分支时，编译器要求你处理每一种情况。它也是唯一的条件结构：没有 <code>if</code>/<code>else</code>，也没有三元运算符，<a href="#there-is-no-if">原因见下文</a>。</dd>
+        </div>
+        <div>
+          <dt><code>Result&lt;T, E&gt;</code></dt>
+          <dd>错误是返回值，而不是抛出的异常。你可以用 <code>match</code> 处理它，或者用 <code>?</code> 运算符向上传递。</dd>
+        </div>
+        <div>
+          <dt><code>fn f() -&gt; T</code></dt>
+          <dd>函数；<code>-&gt;</code> 后面是返回类型。<code>type X = {...}</code> 是记录，<code>type X = A | B</code> 是标签联合。</dd>
+        </div>
+        <div>
+          <dt><code>mut x = e</code></dt>
+          <dd>重新赋值是显式的，可以 grep 到。普通的 <code>let</code> 绑定不会在你背后改变；要修改它就写 <code>mut</code>。</dd>
+        </div>
+      </dl>
+
+      <div class="detail">
+        <p>
+          本站说的“智能体”指 Claude、Copilot、Cursor 这样的 AI 编程助手。Glyph 对它们帮助最大，但无论代码是人写的还是模型写的，检查都一样。如果你已经在用严格模式的 TypeScript 加 zod 和 eslint，<a href="/answers/vs-tooled-ts/">这里说明一门语言能在此之上多带来什么</a>。
+        </p>
+
+        <h2 class="block-label">没有 if</h2>
+        <p>
+          对布尔值分支，就是对 <code>true</code> 和 <code>false</code> 做 <code>match</code>。如果只需处理其中一边，另一个分支写成空块。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript</span>
+<pre>function label(admin: boolean): string {
+  return admin ? "admin" : "member";
+}
+
+if (verbose) {
+  console.log("starting");
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph</span>
+<pre>fn label(admin: bool) -&gt; string {
+  return match admin {
+    true =&gt; "admin",
+    false =&gt; "member",
+  }
+}
+
+match verbose {
+  true =&gt; io.println("starting"),
+  false =&gt; {},
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          原因是规范中的决策 D3：对值做分支只用一种结构，所以读、写、搜索时都只有一种形式。从分支中得出的值总是来自 <code>match</code>，其结果类型由 Glyph 自己的检查器推导，而不是交给 <code>tsc</code>。对联合类型来说，正是这个结构必须覆盖每一种情况（<code>E0200</code>）。对布尔值来说收益不大，因为 <code>false =&gt; {}</code> 和省略 <code>else</code> 表达的意思一样。
+        </p>
+        <p>
+          这是有代价的。一行三元表达式会变成四行 <code>match</code>，按条件提前返回会变成带一个空分支的 <code>match</code>，而这也是 TypeScript 读者第一眼会觉得别扭的地方。规范把这种啰嗦记为一项可接受的代价。硬要写 <code>if</code> 会得到错误 <code>E0006</code>，其帮助信息会给出 <code>match</code> 写法；三元运算符是 <code>E0013</code>，帮助信息相同。
+        </p>
+
+        <h2 class="block-label">你已经在付的代价</h2>
+        <p>
+          如果你在 TypeScript 代码库上用 AI 智能体开发，下面这些就是日常成本。每一项在 Glyph 中都有具体的应对，链接见列表。
+        </p>
+      </div>
+
+      <ul class="tax-list">
+        <li>智能体会臆造 API，因为 TypeScript 会擦除类型，运行时和编译时不再一致。Glyph 的类型带有运行时检查（<code>T.parse</code>、<code>T.is</code>），见<a href="/answers/typed-apis/">类型化的 API</a>。</li>
+        <li>智能体用 <code>any</code> 和 <code>as unknown as T</code> 掩盖不确定性，而编译器任由它们这样做。这两者在 Glyph 中都不存在，见下表。</li>
+        <li>你只要求改一行，结果整个文件都被重写了，因为格式化工具在每次编辑时都会连锁改动。<code>glyph fmt</code> 只有一种排版，没有任何选项，见<a href="/answers/diff-stability/">干净的 diff</a>。</li>
+        <li>你在每个类型旁边维护一个手写的校验器（zod，再加一个序列化器），智能体在其中一处改了字段名，其他地方却没改，而这一切照样能编译。在 Glyph 中，类型本身就是校验器。</li>
+        <li>你 <code>grep</code> 一个符号，却找到十个不相关的匹配：重载、装饰器、合并的命名空间。Glyph 这些都没有，见<a href="/answers/greppability/">查找代码</a>。</li>
+      </ul>
+
+      <div class="detail">
+        <h2 class="block-label">TypeScript 提供的关闭开关，以及 Glyph 的替代做法</h2>
+        <p>
+          下面每个 TypeScript 结构都是在让检查器停止检查。它们都不是 Glyph 语法。中间一列是 <code>glyph check --no-tsc</code> 在 0.1.149 上对每一项打印的内容。
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>TypeScript</th><th>在 Glyph 中</th><th>改成怎么写</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="TypeScript"><code>x!</code></td><td data-label="In Glyph">不是合法语法：<code>E0013</code></td><td data-label="What you write instead">用 <code>match</code> 处理 <code>Option&lt;T&gt;</code>，或者用 <code>?</code> 向上传递</td></tr>
+            <tr><td data-label="TypeScript"><code>x as T</code>, <code>as unknown as T</code></td><td data-label="In Glyph">没有类型断言：<code>E0013</code>，帮助信息建议去做校验</td><td data-label="What you write instead"><code>T.parse(x)</code>，返回 <code>Result</code></td></tr>
+            <tr><td data-label="TypeScript"><code>any</code></td><td data-label="In Glyph">不是类型：<code>E0103</code>，名称无法解析</td><td data-label="What you write instead"><code>unknown</code>，通过 <code>T.parse</code>、<code>T.is</code> 或 <code>match</code> 分支 <code>is T</code> 收窄</td></tr>
+            <tr><td data-label="TypeScript"><code>(v): v is T</code></td><td data-label="In Glyph">不能自己写类型守卫：<code>E0002</code></td><td data-label="What you write instead">生成的 <code>T.is(v)</code>，按声明的结构检查，所以守卫不会检查得比它声称的少</td></tr>
+            <tr><td data-label="TypeScript"><code>// @ts-ignore</code>, <code>// eslint-disable</code></td><td data-label="In Glyph">只是普通注释；下面的错误照样报出</td><td data-label="What you write instead">没有。任何注释或 flag 都关不掉 Glyph 的诊断</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph check</code> 有一些跳过整个阶段的 flag（<code>--no-tsc</code> 跳过 <code>tsc --strict</code>，<code>--no-test</code> 跳过 <code>@example</code> 测试），但没有能屏蔽单项检查的 flag。TypeScript 项目接受而 Glyph 拒绝的完整列表，每个案例都在两个编译器下运行过，见<a href="/catches/">案例页面</a>。
+        </p>
+
+        <h2 class="block-label">只有一个逃生口，而且可以 grep 到</h2>
+        <p>
+          需要写 Glyph 表达不了的 TypeScript 时，<code>extern_ts("...")</code> 接受一个内联的类型或表达式，<code>tsc</code> 仍然会检查它。对整个模块，把 <code>.ts</code> 放在 <code>src/extern/</code> 下，然后写 <code>import extern/name</code>；除此之外相对导入都不合法，所以这条路径是唯一的入口。两种形式都包含 <code>extern</code> 这个词，所以 <code>grep -rn extern src/</code> 能列出检查器把控制权交给 TypeScript 的每一处。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">src/clock.glyph</span>
+<pre>module clock
+
+pub fn now_ms() -&gt; number {
+  return extern_ts("Date.now()")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">生成的 TypeScript 是什么样子</h2>
+        <p>
+          普通的 TypeScript，每个模块一个文件，可以阅读，也可以提交。联合类型会变成可辨识联合，外加一个带运行时检查的值；<code>match</code> 会变成对标签的 <code>switch</code>。下面是 <code>glyph build</code> 对左边模块的输出，省略了 import 行。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">plan.glyph</span>
+<pre>module plan
+
+pub type Plan = Free | Pro | Team
+
+pub fn seats(p: Plan) -&gt; number {
+  return match p {
+    Free =&gt; 1,
+    Pro =&gt; 5,
+    Team =&gt; 50,
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">plan.ts（生成的代码，有删节）</span>
+<pre>export type Plan =
+  | { tag: "Free" }
+  | { tag: "Pro" }
+  | { tag: "Team" };
+
+export const Free: Plan = { tag: "Free" };
+export const Pro: Plan = { tag: "Pro" };
+export const Team: Plan = { tag: "Team" };
+export const Plan = {
+  is(value: unknown): value is Plan { ... },
+  parse(value: unknown) { ... },
+  schema: ...,
+};
+
+export function seats(p: Plan): number {
+  const __m0 = p;
+  switch (__m0.tag) {
+    case "Free": { return 1; }
+    case "Pro": { return 5; }
+    case "Team": { return 50; }
+    default: throw new Error("non-exhaustive match");
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          删掉 <code>Team</code> 分支，构建会在写出任何 TypeScript 之前停止：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc（有删节）</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Plan`: missing variants `Team`</span>
+   ╭─[ plan:6:10 ]
+   │
+ 6 │ ╭─▶   return match p {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── non-exhaustive match on `Plan`: missing variants `Team`
+   │     Help: Add an arm for each missing variant.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          如果你不再使用 Glyph，留下的就是生成的 <code>.ts</code>。除了构建时写在旁边的一个小的支持目录，它没有任何运行时依赖。
+        </p>
+
+        <h2 class="block-label">npm，以及你已有的 TypeScript</h2>
+        <p>
+          <code>.glyph</code> 模块按名字导入 npm 包（<code>import kafkajs { Kafka }</code>），类型来自包自带的声明；你现有的 <code>.ts</code> 也能像导入本地文件一样导入生成的 Glyph 模块。所以你可以先在一个仍然是 TypeScript 的应用里写一个模块。具体细节见下面三个问答。
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/imports/"><span class="q">我能使用现有的 TypeScript、JavaScript 和 npm 库吗？</span><p>导入包、保留一个 <code>.ts</code> 适配层，以及在 <code>.ts</code> 中反过来导入 Glyph。</p></a>
+        <a class="a-card" href="/answers/embedding/"><span class="q">能在现有应用里引入 Glyph 吗？</span><p>领域核心用 Glyph，其余用 TypeScript，基于一个标准的 Vite 脚手架。</p></a>
+        <a class="a-card" href="/answers/react/"><span class="q">能和 React 一起用吗？</span><p>组件、JSX、hooks、Context，以及哪些地方仍由 <code>tsc</code> 负责检查。</p></a>
+      </div>

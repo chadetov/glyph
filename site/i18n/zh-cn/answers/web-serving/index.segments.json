@@ -1,0 +1,140 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/web-serving/index.html",
+  "locale": "zh-cn",
+  "source_hash": "3919e268d4a46ec8",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I serve a web page, or only a JSON API? · Glyph",
+      "tr": "能提供网页，还是只能做 JSON API？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "std/http serves HTML pages, redirects, custom response headers and form posts, not only JSON, with the response headers modeled by the type checker.",
+      "tr": "std/http 不只能返回 JSON，还能提供 HTML 页面、重定向、自定义响应头和表单提交，响应头由类型检查器建模。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "涉及金额、以及我无法控制的输入时，能信任它吗？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I write a program someone types into?",
+      "tr": "能写一个让人输入命令的程序吗？"
+    },
+    {
+      "id": "h-5d50e323",
+      "kind": "html",
+      "en": "17 &middot; Serving the web",
+      "tr": "17 &middot; 提供网页"
+    },
+    {
+      "id": "h-97be9762",
+      "kind": "html",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "能提供网页，还是只能做 JSON API？"
+    },
+    {
+      "id": "h-9d03ea2d",
+      "kind": "html",
+      "en": "A web page. <code>std/http</code> sets response headers, so a <code>text/html</code> page, a 302 redirect, a cache header, and an HTML form post are all ordinary Glyph. No Express, no hand-written TypeScript shim.",
+      "tr": "能提供网页。<code>std/http</code> 可以设置响应头，所以 <code>text/html</code> 页面、302 重定向、缓存头和 HTML 表单提交都是普通的 Glyph 代码。不需要 Express，也不需要手写的 TypeScript 适配层。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么重要"
+    },
+    {
+      "id": "h-a57473e4",
+      "kind": "html",
+      "en": "Until 0.1.46 a response was <code>{ status, body }</code> and the server picked the content type from the body's shape: a string was <code>text/plain</code>, anything else was JSON. That is fine for an API and useless for anything a browser renders. The way out was to write your own server on <code>node:http</code> in a hand-written <code>.ts</code> file, which puts your whole request path outside the type checker. Two missing constructors were costing an entire application boundary.",
+      "tr": "在 0.1.46 之前，响应是 <code>{ status, body }</code>，由服务器根据响应体的形状选择内容类型：字符串是 <code>text/plain</code>，其他一律是 JSON。这对 API 没问题，但对浏览器要渲染的东西毫无用处。唯一的办法是在手写的 <code>.ts</code> 文件里基于 <code>node:http</code> 自己写服务器，这会让整个请求路径脱离类型检查器。缺两个构造函数，代价是整个应用的一条边界。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-f74a4195",
+      "kind": "html",
+      "en": "This is the router of <code>examples/apps/shortlink/main.glyph</code>, a URL shortener that ships in the repo. An HTML form creates a code, a POST answers with a redirect so a browser reload never re-posts, and following a code is a 302 to the target:",
+      "tr": "这是 <code>examples/apps/shortlink/main.glyph</code> 的路由，一个随仓库提供的短链接服务。HTML 表单创建短码，POST 用重定向作答，这样浏览器刷新时不会重复提交，访问短码则以 302 跳转到目标地址："
+    },
+    {
+      "id": "h-917f3204",
+      "kind": "html",
+      "en": "shortlink.glyph: an HTML page, a form post, and the 302",
+      "tr": "shortlink.glyph：HTML 页面、表单提交和 302"
+    },
+    {
+      "id": "h-78792ee0",
+      "kind": "html",
+      "en": "The same app was in the repo one release ago at 615 lines, 121 of which were a hand-written <code>node:http</code> server in a <code>.ts</code> file next to it, because a <code>Location</code> and a <code>text/html</code> body had no spelling. It is 494 lines now and imports nothing outside <code>std</code>. A handler returns <code>Result&lt;Response, string&gt;</code>, so a 404 is an ordinary <code>Ok</code> and an <code>Err</code> is reserved for what the app cannot answer, which the server turns into a 500. <code>serve</code> stays pending while it listens, so nothing has to keep the process alive by hand and a failed bind comes back as a value.",
+      "tr": "一个版本之前，仓库里的同一个应用有 615 行，其中 121 行是旁边一个 <code>.ts</code> 文件里手写的 <code>node:http</code> 服务器，因为 <code>Location</code> 和 <code>text/html</code> 响应体没有对应的写法。现在它有 494 行，除了 <code>std</code> 之外不导入任何东西。处理函数返回 <code>Result&lt;Response, string&gt;</code>，所以 404 是普通的 <code>Ok</code>，<code>Err</code> 留给应用无法回答的情况，由服务器转成 500。<code>serve</code> 在监听期间保持挂起，所以不需要手动维持进程存活，绑定失败也会以值的形式返回。"
+    },
+    {
+      "id": "h-3d3a95ed",
+      "kind": "html",
+      "en": "<code>Response</code> carries a required <code>headers: Record&lt;string, string&gt;</code>. Required, not optional: every constructor fills it in, so reading <code>resp.headers</code> never needs an absence check, and the channel cannot be forgotten. <code>with_header(resp, \"cache-control\", \"no-store\")</code> returns a new response rather than mutating one, because Glyph has no record-field mutation. The type checker knows all three constructors return a <code>Response</code>, so a handler whose declared return type says <code>Result&lt;Response, string&gt;</code> is checked in Glyph, not by <code>tsc</code> on generated output.",
+      "tr": "<code>Response</code> 带有一个必填的 <code>headers: Record&lt;string, string&gt;</code>。是必填而不是可选：每个构造函数都会填上它，所以读取 <code>resp.headers</code> 永远不需要检查是否存在，这个通道也不会被遗忘。<code>with_header(resp, \"cache-control\", \"no-store\")</code> 返回一个新的响应，而不是修改原有的，因为 Glyph 没有记录字段的修改操作。类型检查器知道这三个构造函数都返回 <code>Response</code>，所以声明返回类型为 <code>Result&lt;Response, string&gt;</code> 的处理函数在 Glyph 中就被检查，而不是由 <code>tsc</code> 在生成的输出上检查。"
+    },
+    {
+      "id": "h-45380bd8",
+      "kind": "html",
+      "en": "Two details you would otherwise get wrong by hand. Any character Node refuses to write in a header is stripped from the value on the way out, so a <code>location</code> built from a query parameter cannot inject a second header or a second response, and an emoji in a shortened URL cannot take the server down. And <code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
+      "tr": "有两个细节，手写时很容易出错。Node 拒绝写入响应头的任何字符都会在输出时从值中剔除，所以用查询参数构造的 <code>location</code> 无法注入第二个响应头或第二个响应，短链接中的 emoji 也无法让服务器崩溃。另外，<code>form(req)</code> 会把 <code>+</code> 解码为空格，同时处理百分号转义，手写的表单解析通常会漏掉这一对；它读取的是原始请求体，所以对于自己解析请求体的处理函数，<code>req.body</code> 保持不变。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-cc38faef",
+      "kind": "html",
+      "en": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, and <code>form</code>; response headers on the wire with the content type inferred only when you did not set one; request headers, query parameters, path segments, and the raw body on the way in; the client reports the response headers it received.",
+      "tr": "<code>html</code>、<code>redirect</code>、<code>with_header</code>、<code>json</code>、<code>text</code> 和 <code>form</code>；响应头会实际发送，只有在你没有设置内容类型时才会推断它；入站方向可以读取请求头、查询参数、路径片段和原始请求体；客户端会报告它收到的响应头。"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "正在进行"
+    },
+    {
+      "id": "h-faa08bc9",
+      "kind": "html",
+      "en": "Percent encoding is the gap the snippet above shows: <code>form</code> decodes a form body, but there is no <code>encode_component</code> for building a URL, so the shortener writes its own. Also missing on the client side: a timeout, a redirect policy, <code>head</code>, and the final URL a redirect landed on. There is no static-file server and no template engine, and there is no plan for either.",
+      "tr": "上面的代码片段暴露了百分号编码这个缺口：<code>form</code> 能解码表单请求体，但没有用于构造 URL 的 <code>encode_component</code>，所以短链接服务自己写了一个。客户端方面还缺少：超时、重定向策略、<code>head</code>，以及重定向最终到达的 URL。没有静态文件服务器，也没有模板引擎，这两者都没有计划。"
+    }
+  ]
+}

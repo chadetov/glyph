@@ -1,0 +1,174 @@
+---
+title: 能和 React 一起用吗：组件、hooks 和 Context？ · Glyph
+description: React 是内置支持的：component 编译成函数组件，JSX 转换为 createElement，reducer 的 action 会被穷尽匹配。
+source_hash: 7cfdf0dbb16b7eaf
+prev: /answers/codegen/ | &larr; 上一篇 | 能根据 API 规范生成类型化的客户端和服务端吗？
+next: /answers/state/ | 下一篇 &rarr; | 怎样在函数之间共享可变状态？
+---
+      <p class="q-eyebrow">13 &middot; 前端</p>
+      <h1 class="q-title">能和 React 一起用吗：组件、hooks 和 Context？</h1>
+
+      <p class="short-answer">
+        能。<code>component</code> 编译成 React 函数组件，JSX 转换为 <code>createElement</code>，React 自己的 hooks 按名字导入并解构它们返回的二元组，reducer 的状态还能得到普通 TypeScript 没有的穷尽性检查。页面本身（标题、挂载点、保存的状态）通过 <code>std/dom</code> 和 <code>std/storage</code> 访问。首先值得了解的 gap：Glyph 自己的检查器不会推断 hook 返回值的类型，这些值由 <code>tsc</code> 检查。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么这很重要</h2>
+        <p>
+          智能体写的代码有很大一部分是 React。Glyph 把它当作一等目标，而不是外挂：<code>component</code> 是独立的关键字（所以 <code>grep "^component "</code> 就能审查整个 UI）。React 的 hooks 从 <code>react</code> 导入，用它们真实的名字和类型调用，由 <code>tsc</code> 对照 React 自己的类型声明检查。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>使用 React 真正的 <code>useReducer</code>，reducer 处理一个标签联合。每个 action 都必须处理，编译器会检查：</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">counter.glyph，基于 react@18 及其类型</span>
+<pre>import react { useReducer }
+
+type Action = Inc | Dec | Reset
+
+fn reducer(n: number, a: Action) -&gt; number {
+  return match a {
+    Inc =&gt; n + 1,
+    Dec =&gt; n - 1,
+    Reset =&gt; 0,
+<span class="add">    // add an Action variant and this match is E0200</span>
+  }
+}
+
+pub component Counter() {
+  let [count, dispatch] = useReducer(reducer, 0)
+  return &lt;button on_click={fn() { dispatch(Inc) }}&gt;{count}&lt;/button&gt;
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          加一个 <code>Double</code> action，reducer 就会编译失败，报 <code>E0200</code> 并指出它的名字，而普通 TypeScript 的 <code>switch</code> 会让它直接上线。二元组用 <code>let [count, dispatch]</code> 解构，生成的 TypeScript 会加上 <code>satisfies readonly [unknown, unknown]</code>，所以 <code>tsc</code> 会证明 hook 返回的是二元组，同时仍然推断每个元素的类型。Glyph 自己的检查器不推断来自 React 的值的类型，所以传给 <code>dispatch</code> 或状态 setter 的错误参数，是在构建时由 <code>tsc</code> 报告的，而不是在编辑器里或 <code>--no-tsc</code> 时报告。React <strong>Context</strong> 现在可以通过 <code>createContext</code> / <code>useContext</code> 使用，成员表达式形式的元素名（<code>&lt;ThemeContext.Provider&gt;</code>）也可以直接使用，不需要变通。
+        </p>
+        <p>
+          JSX 属性展开同样可用：<code>&lt;input {...register("email")} /&gt;</code> 会转换为 props 中的对象展开，所以 react-hook-form 的惯用写法不需要适配层。Zod 的值派生类型是一等支持的：<code>type FormData = z.infer&lt;typeof schema&gt;</code> 可以直接使用，不需要逃生口。唯一的区别是：组件只接受一个 props 记录，而不是多个位置参数。这条边界具体在哪里，见<a href="/answers/imports/">使用你的库</a>和<a href="/hardening/">加固页面</a>。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">props 会在 tsc 之前检查吗？</h2>
+        <p>
+          会。Glyph 自己把每个元素与其组件的 props 记录进行比对，所以错误的值、拼错的 prop 和缺少的必需 prop 都是指出该 prop 的 Glyph 错误。你在编辑器里和通过 MCP 都能看到它们，而不只是在完整构建中。无论组件是按名字导入还是通过模块导入，效果都一样：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph，<code>Card</code> 声明在 <code>ui.glyph</code> 中</span>
+<pre>import ui
+
+pub component App() {
+  return &lt;div&gt;
+    &lt;ui.Card title="Q3" /&gt;
+    &lt;ui.Card title="Q4" cout={2} /&gt;
+  &lt;/div&gt;
+}
+
+<span class="add">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`
+// E0210 type `CardProps` has no field `cout`; did you mean `count`?
+// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>--json</code> 会把缺少的名字放在 <code>missing_fields</code> 列表里，所以智能体不用解析信息就能补上 props。组件还必须以一个记录接收 props：<code>component Greeting(name: string)</code> 会在参数处报 E0229，因为 React 只会传入 props 对象，这样的元素永远无法通过类型检查。如果你是把它当函数调用而不是渲染它，就用 <code>fn</code> 声明。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">JSX 中的 &lt;match&gt; 会像 match 一样被检查吗？</h2>
+        <p>
+          它们就是同一个东西。每个 <code>&lt;case&gt;</code> 接受与 <code>match</code> 分支相同的模式，编译器用处理分支的同一套代码来处理它。case 绑定的名字具有负载的类型，访问负载记录中不存在的字段是 E0210，缺少变体是 E0200。对值做判断的 case 只覆盖其变体的一部分，所以需要一个同级 case 或 <code>&lt;case else&gt;</code> 来处理其余情况：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">results.glyph</span>
+<pre>type Page =
+  | Loading
+  | Loaded({ users: Array&lt;User&gt;, total: number })
+  | Failed(string)
+
+component Results(props: { page: Page }) {
+  return &lt;match value={props.page}&gt;
+    &lt;case Loading&gt;&lt;p&gt;Loading...&lt;/p&gt;&lt;/case&gt;
+    &lt;case Loaded({ users, totl })&gt;&lt;p&gt;{users.length} of {totl}&lt;/p&gt;&lt;/case&gt;
+    &lt;case Failed(message)&gt;&lt;p&gt;{message}&lt;/p&gt;&lt;/case&gt;
+  &lt;/match&gt;
+}
+
+<span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">页面怎么启动它？</h2>
+        <p>
+          Glyph 没有顶层语句，所以由页面自己调用导出的 <code>main</code>。应用由两个模块组成：一个放组件，另一个通过 <code>std/dom</code> 和 react-dom 的 <code>createRoot</code> 把组件挂载到 <code>#root</code> 上。事件属性使用蛇形命名（<code>on_change</code> 生成 React 的 <code>onChange</code>），处理函数是一个 lambda，输入框的文本是 <code>e.currentTarget.value</code>。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">app.glyph</span>
+<pre data-check="needs-react">module app
+
+import react { useState }
+
+pub component App() {
+  let [name, set_name] = useState("")
+  return &lt;main&gt;
+    &lt;input value={name} on_change={fn(e) { set_name(e.currentTarget.value) }} /&gt;
+    &lt;p&gt;Hello, {name}&lt;/p&gt;
+  &lt;/main&gt;
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-react">module main
+
+import react-dom/client { createRoot }
+import std/dom
+import std/console
+import std/option { Some, None }
+import app { App }
+
+pub fn main() -&gt; void {
+  match dom.element_by_id("root") {
+    Some(root) =&gt; createRoot(root).render(&lt;App /&gt;),
+    None =&gt; console.error("the page has no #root element"),
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">index.html，与两个模块放在一起</span>
+<pre>&lt;div id="root"&gt;&lt;/div&gt;
+&lt;script type="module"&gt;
+  import { main } from "./dist/gen/main.ts";
+  main();
+&lt;/script&gt;</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>npx glyph build . --out dist/gen</code> 检查模块，对照 React 的类型声明运行 <code>tsc --strict</code>，并把 TypeScript 写到 <code>dist/gen</code>。然后 <code>npx vite build --outDir dist/web</code> 读取 <code>index.html</code>，跟随导入，把它和 React 打包在一起。这个 <code>main</code> 不接受参数也不返回值，因为脚本调用它时不传参数；<code>glyph init</code> 生成的 <code>main(argv) -&gt; number</code> 是 <code>glyph run</code> 在 node 下调用的那个。完整的演练（包括 <code>package.json</code> 和安装命令）见 <code>glyph llms</code> 打印的参考文档中的<a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">在浏览器页面中运行 Glyph</a>。CI 以同样的方式构建 <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a>，并在无头 Chromium 中渲染它。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>组件、JSX、片段（<code>&lt;&gt;...&lt;/&gt;</code>）、成员表达式形式的元素名（<code>&lt;Ctx.Provider&gt;</code>）、JSX 属性展开（<code>{...register()}</code>）、在任何导入写法下都会在 <code>tsc</code> 之前对照组件检查的 props、按名字导入的 React 自己的 hooks（<code>useState</code>、<code>useReducer</code>、<code>useEffect</code>），由 tsc 检查类型并解构二元组（<code>let [count, set_count] = useState(0)</code>）、带有穷尽标签联合 action 的 <code>useReducer</code>、作为 <code>match</code> 检查和转换并使用分支模式的 <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>、通过 <code>createContext</code>/<code>useContext</code> 使用的 Context，以及通过 <code>std/dom</code>（标题、挂载点、地址）、<code>std/storage</code> 和 <code>std/console</code> 访问的页面。JSX 文本按 TSX 的方式读取，所以 <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> 是普通文本；文本中的 <code>}</code>、<code>&gt;</code>、<code>//</code> 以及 <code>&amp;amp;</code> 这样的 HTML 实体会被拒绝（E0012），并给出应该使用的写法。数组上的成员读取会被检查，所以对 <code>Array&lt;string&gt;</code> 写 <code>{items.foo}</code> 是 E0210。<a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> 是一个基于 React 18 的完整应用，用 Vite 打包并在浏览器中渲染。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">正在进行</h3>
+          <p>Glyph 的检查器不推断 hook 结果的类型，所以对数字状态调用 <code>set_count("x")</code> 是构建中的 <code>tsc</code> 错误，而不是编辑器里的 Glyph 错误。<code>std/dom</code> 只能读取页面和设置标题：React 掌管它渲染的 DOM，所以没有元素 setter，也没有事件监听器。effect 必须写成 <code>fn() -&gt; void { ... }</code>，因为 lambda 会返回它的最后一个表达式，React 会把它当作清理函数调用。内联写的 props 类型在这些信息中仍然显示为 <code>record</code>；具名的类型会显示它的名字。把 Glyph 的输出嵌入现有的 Vite 应用、UI 用 TypeScript 编写的做法，见<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">部署指南</a>。</p>
+        </div>
+      </div>

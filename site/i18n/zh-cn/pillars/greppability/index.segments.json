@@ -1,0 +1,230 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "pillars/greppability/index.html",
+  "locale": "zh-cn",
+  "source_hash": "dc081d192bed2b9f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Greppability · one name, one place · Glyph",
+      "tr": "可检索性 · 一个名字，一个位置 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's second pillar: every symbol has one form at its declaration. No overloads, decorators, namespace merging or barrel re-exports, so grep finds it.",
+      "tr": "Glyph 的第二个支柱：每个符号在声明处只有一种形式。没有重载、装饰器、命名空间合并或 barrel 重新导出，所以 grep 就能找到它。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous pillar",
+      "tr": "&larr; 上一个支柱"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Verifiability: true at runtime",
+      "tr": "可验证性：在运行时也成立"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next pillar &rarr;",
+      "tr": "下一个支柱 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Diff stability: a one-line change is a one-line diff",
+      "tr": "稳定的 diff：改一行就是一行 diff"
+    },
+    {
+      "id": "h-e8d9455d",
+      "kind": "html",
+      "en": "Pillar 02 &middot; <span class=\"wedge\">The wedge</span>",
+      "tr": "支柱 02 &middot; <span class=\"wedge\">切入点</span>"
+    },
+    {
+      "id": "h-6b14954f",
+      "kind": "html",
+      "en": "Greppability",
+      "tr": "可检索性"
+    },
+    {
+      "id": "h-376314fa",
+      "kind": "html",
+      "en": "<strong>One name, one place.</strong> Every symbol has exactly one syntactic form at the spot it's declared, so a plain <code>grep</code> finds the definition, always, with no index, no language server, and no luck required.",
+      "tr": "<strong>一个名字，一个位置。</strong>每个符号在声明处都只有一种语法形式，所以普通的 <code>grep</code> 总能找到定义，不需要索引，不需要语言服务器，也不需要运气。"
+    },
+    {
+      "id": "h-cfc911db",
+      "kind": "html",
+      "en": "Why \"where is this defined?\" is hard",
+      "tr": "为什么“这是在哪里定义的？”很难回答"
+    },
+    {
+      "id": "h-8a696257",
+      "kind": "html",
+      "en": "In a mature TypeScript codebase, the simplest question, <em>where does this name come from?</em>, is often the hardest. The language offers half a dozen ways to spread one symbol across many places: overloads split a function into several signatures, decorators wrap it in something else, <code>namespace</code> and <code>interface</code> merging scatter a type across files, <code>declare module</code> augments code you don't own, and barrel <code>index.ts</code> files re-export everything so the path you import from isn't where anything actually lives.",
+      "tr": "在一个成熟的 TypeScript 代码库中，最简单的问题，<em>这个名字是从哪里来的？</em>，往往最难回答。语言提供了五六种把一个符号分散到多处的方式：重载把一个函数拆成好几个签名，装饰器把它包进别的东西里，<code>namespace</code> 和 <code>interface</code> 合并把一个类型分散到多个文件，<code>declare module</code> 扩充你并不拥有的代码，barrel <code>index.ts</code> 文件重新导出一切，所以你导入的路径并不是任何东西真正所在的地方。"
+    },
+    {
+      "id": "h-7ac6182d",
+      "kind": "html",
+      "en": "A human copes with an LSP and muscle memory. An <strong>agent</strong> greps: it reads the repo as text, and every one of those constructs is a place the text lies about where the code is. Glyph removes them. The result is a language where search is a reliable primitive, not a heuristic.",
+      "tr": "人可以靠 LSP 和肌肉记忆应付。<strong>智能体</strong>则用 grep：它把仓库当文本来读，而上面每一种结构都是文本在代码位置上撒谎的地方。Glyph 去掉了它们。结果是一门搜索可以作为可靠基础操作、而不是靠猜测的语言。"
+    },
+    {
+      "id": "h-e0bad820",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> One declaration, one form",
+      "tr": "<span class=\"ex-label\">01</span> 一个声明，一种形式"
+    },
+    {
+      "id": "h-b1b69e3e",
+      "kind": "html",
+      "en": "A function, type, or component is declared exactly once, with one syntax. There are no overloads to split a signature and no way to redeclare a name: two top-level things with the same name is a hard error (<code>E0100</code>). So the search for a definition has exactly one answer.",
+      "tr": "函数、类型或组件只声明一次，用一种语法。没有拆分签名的重载，也无法重新声明一个名字：两个同名的顶层定义是硬错误（<code>E0100</code>）。所以查找定义只有唯一的答案。"
+    },
+    {
+      "id": "h-e3252323",
+      "kind": "html",
+      "en": "TypeScript: four hits, one is the body",
+      "tr": "TypeScript：四个匹配，其中一个是函数体"
+    },
+    {
+      "id": "h-5df9ace5",
+      "kind": "html",
+      "en": "Glyph: the first hit is the definition",
+      "tr": "Glyph：第一个匹配就是定义"
+    },
+    {
+      "id": "h-eb25898c",
+      "kind": "html",
+      "en": "The declaration keyword is part of the name you search for. <code>grep \"fn parseUser\"</code> cannot match a call, an import, or a re-export, only the one place it's <strong>defined</strong>.",
+      "tr": "声明关键字是你搜索的名字的一部分。<code>grep \"fn parseUser\"</code> 不会匹配到调用、导入或重新导出，只会匹配它被<strong>定义</strong>的那一处。"
+    },
+    {
+      "id": "h-79996f09",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">02</span> No barrel files: the import path is the location",
+      "tr": "<span class=\"ex-label\">02</span> 没有 barrel 文件：导入路径就是位置"
+    },
+    {
+      "id": "h-f450e21f",
+      "kind": "html",
+      "en": "Glyph imports never re-export, and a module whose only contents are imports is rejected (<code>E0102</code>). There is no <code>index.ts</code> laundering layer. So an import names the module the symbol actually lives in: the path <em>is</em> the address.",
+      "tr": "Glyph 的导入从不重新导出，只包含导入的模块会被拒绝（<code>E0102</code>）。没有 <code>index.ts</code> 那样的中转层。所以导入写的就是符号真正所在的模块：路径<em>就是</em>地址。"
+    },
+    {
+      "id": "h-f4999a77",
+      "kind": "html",
+      "en": "the import tells you exactly where to look",
+      "tr": "导入准确告诉你该去哪里找"
+    },
+    {
+      "id": "h-6c9d2ede",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">03</span> No hidden ways to attach behavior",
+      "tr": "<span class=\"ex-label\">03</span> 没有隐藏的方式附加行为"
+    },
+    {
+      "id": "h-c09fa1b1",
+      "kind": "html",
+      "en": "There are no decorators wrapping a function in an unseen layer, no <code>namespace</code> merging pooling members from across the tree, no <code>declare module</code> augmenting a third-party type from a file you'd never think to open, and no implicit <code>this</code> rebinding what a method refers to. A name resolves to one declaration, and everything that shapes it is visible at that declaration.",
+      "tr": "没有把函数包进看不见的一层的装饰器，没有从整个目录树汇集成员的 <code>namespace</code> 合并，没有在一个你绝不会想到去打开的文件里扩充第三方类型的 <code>declare module</code>，也没有改变方法所指对象的隐式 <code>this</code>。一个名字只解析到一个声明，塑造它的一切都在那个声明处可见。"
+    },
+    {
+      "id": "h-1f8a2312",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">04</span> Even mutation is greppable",
+      "tr": "<span class=\"ex-label\">04</span> 连修改都能 grep 到"
+    },
+    {
+      "id": "h-844b3d63",
+      "kind": "html",
+      "en": "Greppability isn't only about finding definitions, it's about finding <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a literal <code>.set(</code> or <code>.update(</code> call. So one search enumerates the entire write-surface of a piece of state, instead of hunting for assignments scattered through the file.",
+      "tr": "可检索性不只是找到定义，还包括找到<em>副作用</em>。共享状态放在 <code>std/store</code> 中，对它的每次修改都是字面上的 <code>.set(</code> 或 <code>.update(</code> 调用。所以一次搜索就能列出一份状态的全部写入点，而不用去找散落在文件各处的赋值。"
+    },
+    {
+      "id": "h-69824f13",
+      "kind": "html",
+      "en": "A codebase is greppable when its <strong>text tells the truth about its structure.</strong> Every restriction here (one form per name, no re-exports, no merging) is there so that a search returns the answer, not a lead.",
+      "tr": "当一个代码库的<strong>文本如实反映它的结构</strong>时，它就是可检索的。这里的每项限制（每个名字一种形式、不重新导出、不合并）都是为了让搜索返回答案，而不只是线索。"
+    },
+    {
+      "id": "h-71727b66",
+      "kind": "html",
+      "en": "The benchmark: coming",
+      "tr": "基准测试：即将进行"
+    },
+    {
+      "id": "h-45b81f92",
+      "kind": "html",
+      "en": "The measurable version of this claim is precision: for a given symbol, what fraction of a plain grep's hits are the thing you were actually looking for, and how many steps does it take an agent to reach a definition? Glyph isn't in real-world use yet, so the chart below is a placeholder, it fills in with real numbers once there's a real codebase to measure.",
+      "tr": "这个说法可测量的版本是精确度：对某个符号，普通 grep 的匹配中有多大比例正是你要找的东西，智能体需要多少步才能找到定义？Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有真实的代码库可以测量，就会填入真实数字。"
+    },
+    {
+      "id": "h-22a29cf4",
+      "kind": "html",
+      "en": "Grep precision for a definition &middot; higher is better",
+      "tr": "查找定义时的 grep 精确度 &middot; 越高越好"
+    },
+    {
+      "id": "h-301f9c4a",
+      "kind": "html",
+      "en": "TypeScript vs Glyph",
+      "tr": "TypeScript 对比 Glyph"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "待定"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-78ff0968",
+      "kind": "html",
+      "en": "<span class=\"h\">Not measured yet</span> We'll report grep precision and steps-to-definition from a real Glyph codebase as soon as one exists, and publish the numbers here whatever they turn out to be.",
+      "tr": "<span class=\"h\">尚未测量</span> 一旦有了真实的 Glyph 代码库，我们就会报告 grep 精确度和找到定义所需的步数，并在这里公布，无论结果如何。"
+    },
+    {
+      "id": "h-31f8c9a6",
+      "kind": "html",
+      "en": "The payoff compounds with scale and with autonomy. A human learns a codebase's hiding places; an agent starting cold does not. Greppability is what lets a tool (or a new teammate) navigate by reading, the way the repo actually is.",
+      "tr": "规模越大、自主程度越高，收益越明显。人会慢慢摸清一个代码库的隐藏角落；从零开始的智能体则不会。可检索性让工具（或新同事）可以通过阅读来导航，看到的就是仓库真实的样子。"
+    },
+    {
+      "id": "h-1ee9e785",
+      "kind": "html",
+      "en": "\"A lint rule can ban overloads and decorators\"",
+      "tr": "“一条 lint 规则就能禁止重载和装饰器”"
+    },
+    {
+      "id": "h-054477f5",
+      "kind": "html",
+      "en": "In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to overload. The language still allows all of it, so the guarantee lasts as long as the config does and covers only the code it runs on. A <code>grep</code> over a dependency, a generated file or someone else's repository can't count on it. In Glyph the constructs don't exist, so <code>grep</code> works the same on every Glyph file, including ones nobody on your team configured.",
+      "tr": "在你自己的仓库里，可以。ESLint 能禁止命名空间，团队也可以约定不用重载。但语言仍然允许这一切，所以这个保证只在配置存在时有效，而且只覆盖配置作用到的代码。对依赖、生成的文件或别人的仓库做 <code>grep</code> 时，不能指望它。在 Glyph 中这些结构根本不存在，所以 <code>grep</code> 在每个 Glyph 文件上都一样有效，包括你们团队没人配置过的文件。"
+    },
+    {
+      "id": "h-7ef205c4",
+      "kind": "html",
+      "en": "What this looks like from the agent's side, finding a definition or every write to a value with one search, is answered in <a href=\"/answers/greppability/\">Can an agent (or I) find where anything is defined?</a>",
+      "tr": "从智能体的角度看会是什么样，用一次搜索找到定义或找到对某个值的每次写入，在<a href=\"/answers/greppability/\">智能体（或者我）能找到任何东西的定义位置吗？</a>中有解答。"
+    }
+  ]
+}

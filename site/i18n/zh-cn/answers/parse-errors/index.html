@@ -1,0 +1,105 @@
+---
+title: 解析失败时，我能知道原因吗？ · Glyph
+description: 解析失败时会指出字段、说明值违反了哪条规则、引用它违反的 where 谓词，并给问题加上一个可以用来分支处理的错误码。
+source_hash: 7f1a8b2bd45c7f9e
+prev: /answers/early-errors/ | &larr; 上一篇 | 为什么 Glyph 能发现 tsc 能发现的问题，而且更早？
+next: /answers/debugging/ | 下一篇 &rarr; | 凌晨 3 点在生产环境出问题时，值班的人会看到什么？
+---
+      <p class="q-eyebrow">27 &middot; 解析失败</p>
+      <h1 class="q-title">解析失败时，我能知道原因吗？</h1>
+
+      <p class="short-answer">
+        能。每个问题都会指出字段，说明<strong>值违反了哪条规则</strong>，并带有一个可以用来分支处理的 <code>code</code>。受 <code>where</code> 谓词约束的字段会报告谓词本身，所以通过 grep 就能从拒绝信息找回施加这条约束的那一行。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么这很重要</h2>
+        <p>
+          一个只会说“这个负载有问题”的校验器只做了一半的工作。处理函数仍然要判断：这是一个忘了某个字段的客户端，还是一个发来四个字符长密码的客户端？前者是 400，后者是 422，如果校验器不说，你最终只能用两个不同的类型把同一个请求体解析两遍，来找回校验器本来就知道的那一点信息。
+        </p>
+        <p>
+          用 Glyph 构建一个认证 API 时正好遇到了这种情况。一个完全没有 <code>password</code> 键的注册请求返回了 <code>weak_password</code>，因为缺失和过短产生的是同一个字符串。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>一个类型，一条约束：</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">signup.glyph</span>
+<pre>pub type Password = string where value.length &gt;= 8
+
+pub type Signup = {
+  email: string,
+  password: Password,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          四个有问题的负载，四个不同的答案。每个都是一个 <code>Issue</code>，显示为 <code>code | path | message</code>：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Signup.parse(...)</span>
+<pre><span class="cm">// { "email": "user@example.com" }</span>
+missing     ["password"]  field `password` is required
+
+<span class="cm">// { "email": "user@example.com", "password": "short" }</span>
+refinement  ["password"]  expected Password (string where value.length &gt;= 8)
+
+<span class="cm">// { "email": 42, "password": "longenough" }</span>
+type        ["email"]     field `email` must be string
+
+<span class="cm">// [1, 2, 3]</span>
+type        []            expected Signup (an object), got an array</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          关键是第二个。<code>value.length &gt;= 8</code> 只在类型上写了一次，拒绝信息原样引用它。从 HTTP 422 响应体里把这个字符串复制出来，用 <code>grep</code> 搜索，就能找到产生它的声明。没有人需要在错误信息层另存一份规则，而两份副本正是这样渐渐不一致的。
+        </p>
+        <p>
+          第四个以前比糟糕的信息还要糟。对 <code>typeof</code> 来说数组也是对象，所以没有必填字段的记录会直接接受它，而提交的 <code>[1, 2, 3]</code> 会按每个声明的字段各返回一个让人困惑的问题，没有一个提到你发来的是一个列表。
+        </p>
+
+        <h2 class="block-label">嵌套类型自己给出答案</h2>
+        <p>
+          如果字段的类型有自己的描述符，就由那个类型的 <code>parse</code> 来校验，它的问题返回时路径前面会加上字段名。所以嵌套两层的 <code>Password</code> 会报告 <code>["body", "password"]</code>，并仍然带着它自己的信息。你从同一个问题里同时得到位置和原因，不需要重新运行任何东西。
+        </p>
+
+        <h2 class="block-label">看错误码，而不是看字符串</h2>
+        <p>
+          <code>Issue</code> 带有一个可选的 <code>code</code>：<code>"missing"</code>、<code>"type"</code>、<code>"refinement"</code> 或 <code>"unexpected"</code>。根据它来分支。匹配信息文本正是 Glyph 要消除的脆弱之处，信息是给阅读响应体的人看的。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">不读信息文本的 400/422 区分</span>
+<pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
+  let first = issues[0]
+  return match first.code == "refinement" {
+    true =&gt; 422,
+    false =&gt; 400,
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>code</code> 是可选的，所以你手动构造的 <code>Issue</code>，以及在它出现之前写好的所有使用方，都无需修改就能编译。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>记录和 <code>where</code> 类型会报告失败的规则，而不只是失败的字段：缺少必填字段时为 <code>"missing"</code>，形状不对（包括非对象或数组）时为 <code>"type"</code>，值通过了基础类型但不满足谓词时为 <code>"refinement"</code>，类型没有声明的键为 <code>"unexpected"</code>。细化类型会引用它的谓词。字段的类型有描述符时会委托给它，所以嵌套的问题带着完整路径返回。可选字段（<code>f?: T</code>）永远不会被报告为缺失。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">正在改进</h3>
+          <p>有两个边缘情况。如果字段的类型自身没有描述符，比如不受约束的类型参数，或者从手写的 <code>.d.ts</code> 导入的类型，它仍然只做扁平检查并得到 <code>"type"</code> 问题；编译器不会为这些类型合成描述符，对声明运行 <code>glyph gen dts</code> 才能为它们生成一个。以前，一个模块如果自己声明了名为 <code>Issue</code> 的类型，会在生成的文件里遮蔽 prelude 中的那个，导致该模块的每个描述符都失效；从 0.1.60 开始，这样的声明会在命名该类型的那一行报 <code>E0110</code>，所以你能知道问题出在哪，而不是去读一条关于生成代码的 <code>tsc</code> 错误。</p>
+        </div>
+      </div>

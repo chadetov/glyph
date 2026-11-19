@@ -1,0 +1,110 @@
+---
+title: 编译器能告诉我改动会破坏什么吗？ · Glyph
+description: glyph_impact 接受你将要修改的声明和这次编辑，在你动文件之前，为每个位置给出一个结论和原因。
+source_hash: 42e24af1156f67f1
+prev: /answers/binary/ | &larr; 上一篇 | 能处理二进制数据吗，还是一切都是字符串？
+next: /answers/ask-the-compiler/ | 下一篇 &rarr; | 我的智能体能在写代码之前问编译器某个符号是什么吗？
+---
+      <p class="q-eyebrow">21 &middot; 编辑之前</p>
+      <h1 class="q-title">编译器能在我改动之前告诉我改动会破坏什么吗？</h1>
+
+      <p class="short-answer">
+        对于六种编辑，可以。<code>glyph_impact</code> 接受你将要修改的声明和修改本身（改名、删除一个变体、修改参数类型、修改参数个数、删除声明），然后<strong>为每个位置给出一个结论</strong>，结论来自一个固定列表，每个都附有为什么是这个结论而不是其他结论的原因。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么这很重要</h2>
+        <p>
+          改一个函数名、扩大一个联合类型、或者改变一个参数接受的类型时，你要么 grep 旧名字，希望找全了所有调用；要么先改，然后看编译器事后怎么说。这两种方式都无法告诉你哪些位置会继续编译通过、却悄悄变成错误的：带兜底分支的 <code>match</code> 在你添加变体时不会失败，它只是开始把新情况交给一个没人选择过的分支。这样的位置永远不会出现在构建结果中。<code>glyph_impact</code> 在编辑之前作答，依据的是编译器运行的同一套分析。
+        </p>
+
+        <h2 class="block-label">返回什么</h2>
+        <p>
+          请求用 <code>module::name</code> 标识指定一个实体，并从一个固定列表中指定一种修改：<code>add_variant</code>、<code>remove_variant</code>、<code>rename</code>、<code>change_arity</code>、<code>change_signature_type</code>、<code>remove</code>。修改是必填的，因为结论是关于某次编辑的事实；如果不指定编辑，每个位置返回的都只能是一个单纯的引用，而不是一个后果。答案会给出实体、修改，以及一个 <code>impact</code> 列表：每个位置一条，每条包含它所在的声明、一个 <code>relation</code>、一个 <code>verdict</code>、一个 <code>because</code>，以及恰好只有一个诊断码时编译器会报出的那个诊断码。结论是固定的，每个只表示一件事：<code>WILL_FAIL</code>（编译器能证明这个位置会编译失败）、<code>ABSORBS</code>（能证明修改在这里被悄悄吸收）、<code>SAFE</code>（能证明这个位置保持正确）、<code>UNDETERMINED</code>（检查了这个位置，但无法确定后果），以及 <code>NOT_INDEXED</code>（对这种形态的位置根本无法提出这个问题）。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>
+          一个模块声明了 <code>label(s: string) -&gt; number</code>。有三个调用方用到它：一个传入字符串字面量，一个传入的值的类型是从另一个模块导入的 <code>string</code> 别名，还有一个把 <code>label</code> 当作值读取而从不调用。询问 <code>change_signature_type</code> 对每个位置有什么影响，会得到三个不同的结论，因为它们是三种不同的判断：
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">请求</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_impact",
+    "arguments": {
+      "entity": "lib::label",
+      "change": { "kind": "change_signature_type" }
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">结果，只保留这三个位置</span>
+<pre>{
+  "entity": "lib::label",
+  "impact": [
+    {
+      "entity": "literal::probe",
+      "verdict": "WILL_FAIL",
+      "diagnostic": "E0211",
+      "because": "every argument at this site is paired with
+        a parameter the relation reads in full, so a
+        replacement parameter type any of those pairings does
+        not accept is E0211 here. The pairings: argument 1
+        (`\"x\"`, `\"x\"`) against parameter `s: string`: ..."
+    },
+    {
+      "entity": "imported::probe",
+      "verdict": "UNDETERMINED",
+      "diagnostic": null,
+      "because": "argument 1 (`c`, `Cell`) against parameter
+        `s: string`: `Cell` is declared in another module as
+        an alias for a primitive, and the checker compares an
+        imported declaration only when the declaration at the
+        end of its chain of names is a tagged union or a
+        record (G215, G226), so a replacement is compared
+        against nothing here and only `tsc` on a full `glyph
+        build` would see a mismatch"
+    },
+    {
+      "entity": "reader::sizer",
+      "verdict": "NOT_INDEXED",
+      "diagnostic": null,
+      "because": "this site reads the name rather than
+        applying it, so no argument is paired with a
+        parameter here, and Glyph does not compare a
+        function value's parameter types against the type
+        its use context expects"
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          同一次编辑，三个位置，三个结论，每个位置上的 <code>because</code> 就是编译器实际生成的那句话，而不是一个分类标签。这与编译器针对这种修改的测试一致（<code>glyph-cli/tests/agent_loop.rs</code> 中的 <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>）：测试随后真正做出这次编辑，检查 E0211 恰好出现在 <code>WILL_FAIL</code> 所说的位置，并且编译器在另外两个位置不报错。
+        </p>
+
+        <h2 class="block-label">在真实应用上</h2>
+        <p>
+          <code>examples/apps/csvql</code> 是本仓库中一个由十一个文件组成的 CSV 查询引擎，它有一个标签联合 <code>Value</code>，目前有四个变体。询问 <code>glyph_impact</code> 添加第五个变体（<code>Blob</code>）会怎样，会在 4 个文件中找到 10 个 match 位置：8 个会编译失败，2 个包含会悄悄吸收新变体的兜底分支。真正添加这个变体后，编译器报告了恰好 8 个 <code>E0200</code> 失败，位置恰好是预测的那 8 个，并且在 2 个 <code>ABSORBS</code> 位置上，无论添加前后都不报错。在同一个应用中用文本搜索兜底分支，也就是没有这个工具时你会做的事，会在 20 个结果中找到同样那 2 个真正的位置（精确率 0.10），而对那 8 个会失败的位置什么也说不出来，因为它不知道一个 <code>match</code> 匹配的是哪个类型。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>六种固定的修改类型（<code>add_variant</code>、<code>remove_variant</code>、<code>rename</code>、<code>change_arity</code>、<code>change_signature_type</code>、<code>remove</code>）和五种固定的结论，每个受影响位置一条，附有原因和诊断码。<code>change_signature_type</code> 按每个调用参数、依据检查器自己的比较规则判定，一个位置的结论取其所有参数中最弱的那个。JSX 元素按它降级成的调用来判定：<code>&lt;Card title="x" /&gt;</code> 是传给 <code>Card</code> 的一个 props 记录，每个属性都对照它被检查的字段列出，结论与同类型调用参数会得到的结论相同。覆盖范围（一次搜索能读到和读不到什么）按每次搜索说明，而不是对整个答案只说一次，每个节点都标明它来自 Glyph 源码、<code>extern_ts</code> 逃生口，还是不透明的 <code>.d.ts</code>。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">边界在哪里</h3>
+          <p>深度为一跳时是精确的，超过一跳则为空：Glyph 从不根据函数体推断声明的类型，所以被调用方的类型无法影响调用方的签名，对 X 的修改只会让直接提到 X 的表达式失效。如果要求深度 2，答案会返回一个 <code>next_query</code>，给出需要提出的确切问题，因为第二跳需要的是有人对第一个位置做出的修复，而这个修复还不存在。<code>UNDETERMINED</code> 和 <code>NOT_INDEXED</code> 是不同的判断：检查器没有类型的参数，或者与一个没有规则读取的字段配对的记录，是 <code>UNDETERMINED</code>（检查过但无法判定）；被当作值读取而不是被调用的函数是 <code>NOT_INDEXED</code>（在那里根本无法提出这个问题）。最需要留意的是 <code>ABSORBS</code>：这个位置会继续编译通过，却已被证明是错的，而通过的构建永远不会让你看到这一点。</p>
+        </div>
+      </div>

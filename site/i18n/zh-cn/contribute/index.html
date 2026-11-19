@@ -1,0 +1,94 @@
+---
+title: 参与贡献 · 编译器的实现方式，以及如何参与 · Glyph
+description: Glyph 编译器是怎样实现的（一个 Rust 工作区：词法分析、语法分析、名称解析、类型检查、代码生成），如何构建和测试它，以及 issue 和 pull request 的流程。
+source_hash: 98fd22506cb2f943
+next_steps: |
+  接下来去哪里
+  从这里开始 | https://github.com/chadetov/glyph | github | 代码仓库 | 源代码、issue、讨论和发布版本。 | 在 GitHub 上打开
+  /design/ | design | 设计 | 四大支柱，以及评判每个改动所依据的决策记录。
+---
+      <p class="q-eyebrow">参与贡献</p>
+      <h1 class="q-title">编译器的实现方式，以及如何参与</h1>
+
+      <p class="short-answer">
+        编译器是一个由十二个 crate 组成的 Rust 工作区，放在一个公开仓库中，许可证为 MIT 或 Apache-2.0。目前最有帮助的是附带小型复现的 bug 报告。对语言本身的改动要先从 issue 开始，因为每条规则都对应一项带编号的设计决策。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">编译流水线</h2>
+        <p>
+          <code>glyph build</code> 进行词法分析、语法分析、名称解析、类型检查并生成 TypeScript，然后对生成的代码运行 <code>tsc --strict</code>。中间几个阶段在 <a href="https://github.com/salsa-rs/salsa">salsa</a> 上以增量查询的方式运行，所以重新检查时会复用没有因编辑而失效的结果。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">一个 .glyph 文件依次经过各个 crate</span>
+<pre>glyph-lexer → glyph-parser → glyph-resolver → glyph-typechecker → glyph-emit → tsc --strict
+                (glyph-ast)        └──────── glyph-db (salsa) ────────┘</pre>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Crate</th><th>作用</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Crate"><code>glyph-lexer</code></td><td data-label="What it does">词法单元、关键字、有意义的换行、模板字面量</td></tr>
+            <tr><td data-label="Crate"><code>glyph-ast</code></td><td data-label="What it does">语法树类型，每个节点都带有源码范围</td></tr>
+            <tr><td data-label="Crate"><code>glyph-parser</code></td><td data-label="What it does">Pratt 解析器，覆盖规范中的每项决策，包括 JSX</td></tr>
+            <tr><td data-label="Crate"><code>glyph-resolver</code></td><td data-label="What it does">名称解析、模块图、跨模块导入检查、prelude</td></tr>
+            <tr><td data-label="Crate"><code>glyph-db</code></td><td data-label="What it does">salsa 查询流水线和跨文件失效</td></tr>
+            <tr><td data-label="Crate"><code>glyph-typechecker</code></td><td data-label="What it does">穷尽性检查、<code>?</code>、泛型、<code>owned</code>、运行时描述符、标准库模型</td></tr>
+            <tr><td data-label="Crate"><code>glyph-emit</code></td><td data-label="What it does">TypeScript 代码生成、描述符生成、表达式级别的 source map</td></tr>
+            <tr><td data-label="Crate"><code>glyph-formatter</code></td><td data-label="What it does"><code>glyph fmt</code>：一种排版，保留注释，幂等</td></tr>
+            <tr><td data-label="Crate"><code>glyph-lsp</code></td><td data-label="What it does">语言服务器和 MCP 服务器，共用一个分析层</td></tr>
+            <tr><td data-label="Crate"><code>glyph-cli</code></td><td data-label="What it does"><code>glyph</code> 可执行文件和所有子命令</td></tr>
+            <tr><td data-label="Crate"><code>glyph-wasm</code></td><td data-label="What it does">编译成 WebAssembly 的编译器，用于运行 Playground</td></tr>
+            <tr><td data-label="Crate"><code>glyph-runtime</code></td><td data-label="What it does">一个占位 crate；测试改为通过代码生成器和 <code>tsx</code> 运行</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md">glyph-compiler/README.md</a> 有完整的 crate 说明和当前的测试数量。
+        </p>
+
+        <h2 class="block-label">构建和测试</h2>
+        <p>
+          <code>rust-toolchain.toml</code> 固定了 Rust 1.95。有些测试会调用 <code>tsc</code> 和 <code>tsx</code>，所以也要安装它们。CI 会以“警告即错误”的方式运行 clippy，而 <code>cargo build</code> 和 <code>cargo test</code> 都不会运行它，所以推送之前请先运行这个脚本。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">在克隆的仓库中</span>
+<pre>npm install -g tsx typescript
+cd glyph-compiler
+cargo build --release -p glyph-cli      <span class="cm"># target/release/glyph</span>
+cargo test --workspace
+cd .. &amp;&amp; python3 scripts/check_clippy.py  <span class="cm"># the exact clippy command CI runs</span>
+
+<span class="cm"># after an intentional syntax-tree change</span>
+INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          新增的诊断要附带一个放在 <code>tests/negative/</code> 下的程序，它必须以该错误码失败。声称 Glyph 能发现某个 TypeScript 漏掉的问题，要放进 <code>catches/</code>，在那里<a href="/evidence/">有一个检查会运行两半程序</a>。
+        </p>
+
+        <h2 class="block-label">计划了什么，哪些还有问题</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">docs/roadmap/releases.md</a> 是发布路线图：每个已发布版本做了什么，接下来的版本要做什么。<a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> 是 gap 清单，记录了构建真实应用时发现的每项限制，每项都有编号（<code>G</code> 加数字）和状态标记。一个带复现的未解决 gap 是很好的切入点。
+        </p>
+
+        <h2 class="block-label">Issue 和 pull request</h2>
+        <p>
+          工具链修复、诊断、文档和示例可以直接提 pull request。对语法或语义的改动要从 issue 开始，较大的改动要走 <code>docs/rfcs/</code> 中的 RFC 流程；为了“方便”而放宽某条规则的 PR 很可能会被拒绝，因为限制本身就是目的。一个 pull request 只处理一个 gap，通常一到三个提交，并给每个提交签名（<code>git commit -s</code>）。<code>main</code> 是受保护分支，只允许 rebase 合并。完整规则见 <a href="https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md">CONTRIBUTING.md</a>，标有 <a href="https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">good first issue</a> 的 issue 适合作为第一次贡献。
+        </p>
+
+        <h2 class="block-label">许可证</h2>
+        <p>
+          MIT 或 Apache-2.0，任你选择（<a href="https://github.com/chadetov/glyph/blob/main/LICENSE-MIT">LICENSE-MIT</a>、<a href="https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE">LICENSE-APACHE</a>）。贡献按同样的双许可证接受，由 sign-off 行确认。
+        </p>
+      </div>

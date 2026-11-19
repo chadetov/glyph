@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/upgrades/index.html",
+  "locale": "zh-cn",
+  "source_hash": "b4d1d08012358fef",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Will a new Glyph release break my build? · Glyph",
+      "tr": "新的 Glyph 版本会破坏我的构建吗？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A Glyph project pins its compiler exactly, so a release never reaches you by accident. glyph doctor tells you one exists and glyph upgrade moves you to it.",
+      "tr": "Glyph 项目会精确固定编译器版本，所以新版本不会意外进入你的构建。glyph doctor 告诉你有新版本，glyph upgrade 负责升级。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "AI 能可靠地写一门它几乎没见过的语言吗？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "我能使用现有的 TypeScript、JavaScript 和 npm 库吗？"
+    },
+    {
+      "id": "h-266e4a01",
+      "kind": "html",
+      "en": "08 &middot; Upgrades",
+      "tr": "08 &middot; 升级"
+    },
+    {
+      "id": "h-7af5847c",
+      "kind": "html",
+      "en": "Will a new Glyph release break my build?",
+      "tr": "新的 Glyph 版本会破坏我的构建吗？"
+    },
+    {
+      "id": "h-f4dc288a",
+      "kind": "html",
+      "en": "Not without you asking for it. A Glyph project pins its compiler to an <strong>exact version</strong>, so a release published this morning does not reach your build this afternoon. Before 1.0 a release is allowed to add a diagnostic that rejects code which compiled yesterday, and that is usually the point of the release, so the decision to take one is yours and it is one command.",
+      "tr": "除非你主动要求，否则不会。Glyph 项目把编译器固定到一个<strong>精确版本</strong>，所以今天早上发布的版本不会在下午进入你的构建。在 1.0 之前，一个版本可以新增诊断，拒绝昨天还能编译的代码，而这通常正是这个版本的意义所在，所以要不要升级由你决定，而且只需要一条命令。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么这很重要"
+    },
+    {
+      "id": "h-47c7a582",
+      "kind": "html",
+      "en": "Most tools you pin with a caret, because a patch release is a bug fix. A compiler before 1.0 is not that. Glyph's whole job is to reject programs, and getting better at it means new errors: a stricter check on an import, an exhaustiveness hole that used to slip through, an arity the checker had not modeled. Those releases are the good ones. They are also exactly the ones you do not want arriving through an <code>npm install</code> you ran to add a date library.",
+      "tr": "大多数工具你会用 ^ 来固定，因为补丁版本是 bug 修复。1.0 之前的编译器不是这样。Glyph 的工作就是拒绝程序，而做得更好意味着新的错误：对导入更严格的检查、以前会漏过去的穷尽性漏洞、检查器之前没有建模的参数数量。这些是好的版本。但它们也正是你不希望在为了添加一个日期库而运行 <code>npm install</code> 时混进来的版本。"
+    },
+    {
+      "id": "h-d1c65588",
+      "kind": "html",
+      "en": "So <code>glyph init</code> writes no <code>^</code>. On a <code>0.x</code> version a caret still floats the patch, which is the trap: <code>^0.1.9</code> quietly accepts every later 0.1.x.",
+      "tr": "所以 <code>glyph init</code> 不写 <code>^</code>。对 <code>0.x</code> 版本来说，^ 仍然会让补丁版本浮动，这正是陷阱所在：<code>^0.1.9</code> 会悄悄接受之后的每个 0.1.x。"
+    },
+    {
+      "id": "h-5339eb44",
+      "kind": "html",
+      "en": "package.json, as scaffolded",
+      "tr": "package.json，脚手架生成的样子"
+    },
+    {
+      "id": "h-9b0cc8ae",
+      "kind": "html",
+      "en": "Commit the <code>package-lock.json</code> next to it and a fresh clone builds with the toolchain you tested, not with whatever shipped since.",
+      "tr": "把旁边的 <code>package-lock.json</code> 也提交，新克隆的仓库就会用你测试过的工具链构建，而不是用之后发布的随便哪个版本。"
+    },
+    {
+      "id": "h-ff0a175d",
+      "kind": "html",
+      "en": "The other half",
+      "tr": "另一半"
+    },
+    {
+      "id": "h-9f122561",
+      "kind": "html",
+      "en": "A pin has one obvious failure mode: you sit on an old compiler for a year and never find out. Nothing on your machine would tell you, and a website you have to remember to visit is not a channel. So the compiler tells you, when you ask it anything about your setup:",
+      "tr": "固定版本有一个明显的失效方式：你在一个旧编译器上待了一年却毫不知情。你机器上的任何东西都不会告诉你，而一个需要你记得去访问的网站也算不上通知渠道。所以，当你向编译器询问关于你的环境配置的任何问题时，它会告诉你："
+    },
+    {
+      "id": "h-42b52e59",
+      "kind": "html",
+      "en": "glyph doctor",
+      "tr": "glyph doctor"
+    },
+    {
+      "id": "h-2a126797",
+      "kind": "html",
+      "en": "Finding a newer release <em>never</em> changes the exit code, so this is safe to run in CI. A published release is not a broken toolchain, and a green pipeline should not go red because somebody shipped ten minutes ago. If the machine is offline the check says so and moves on; <code>--offline</code> skips it entirely and makes no network call at all.",
+      "tr": "发现新版本<em>永远</em>不会改变退出码，所以在 CI 中运行它是安全的。一个已发布的版本并不意味着工具链坏了，绿色的流水线不应该因为有人十分钟前发了版本就变红。如果机器离线，检查会说明这一点然后继续；<code>--offline</code> 会完全跳过它，不发出任何网络请求。"
+    },
+    {
+      "id": "h-193447d0",
+      "kind": "html",
+      "en": "Nothing else reaches the registry. <code>build</code>, <code>run</code> and <code>check</code> never do. A compiler that phones home on every build is a different product.",
+      "tr": "其他命令都不会访问 registry。<code>build</code>、<code>run</code> 和 <code>check</code> 从不这样做。每次构建都要联网报告的编译器是另一种产品。"
+    },
+    {
+      "id": "h-010eb101",
+      "kind": "html",
+      "en": "Taking the upgrade",
+      "tr": "进行升级"
+    },
+    {
+      "id": "h-3b711bf0",
+      "kind": "html",
+      "en": "One line changes, and you decide when",
+      "tr": "只改一行，时机由你决定"
+    },
+    {
+      "id": "h-03df523e",
+      "kind": "html",
+      "en": "It rewrites one line and runs <code>npm install</code>. It does not touch your source, and it does not pretend the upgrade is finished: building afterwards is the point, because the release you just took is allowed to have opinions your code has not met yet. <code>--to &lt;version&gt;</code> names a specific one, including an older one when you want to go back, and <code>--no-install</code> leaves the install to you.",
+      "tr": "它改写一行并运行 <code>npm install</code>。它不碰你的源码，也不假装升级已经完成：之后的构建才是关键，因为你刚升级的版本可能对你的代码有它还没遇到过的意见。<code>--to &lt;version&gt;</code> 指定一个具体版本，想回退时也可以指定更旧的版本；<code>--no-install</code> 则把安装留给你自己。"
+    },
+    {
+      "id": "h-acd610d7",
+      "kind": "html",
+      "en": "Moving the tool, not the project",
+      "tr": "升级工具，而不是项目"
+    },
+    {
+      "id": "h-6a0faca9",
+      "kind": "html",
+      "en": "<code>upgrade</code> moves a pin in a <code>package.json</code>. That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have. <code>glyph --update</code> is the other half. The split is a rule now rather than a coincidence: flags act on the tool, the way <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and subcommands act on your code. <code>--update-dry-run</code> stops after printing the <code>npm</code> command it would have run.",
+      "tr": "<code>upgrade</code> 修改的是 <code>package.json</code> 中固定的版本。如果落后的是你 <code>PATH</code> 上的编译器，用它就不对了，而有一段时间 <code>doctor</code> 照样会打印它，让全局安装去修改一个可能并不存在的清单文件。<code>glyph --update</code> 是另一半。这种划分现在是一条规则而不是巧合：flag 作用于工具本身，就像 <code>--version</code>、<code>--help</code> 和 <code>--explain</code> 那样；子命令作用于你的代码。<code>--update-dry-run</code> 在打印它将要运行的 <code>npm</code> 命令后停止。"
+    },
+    {
+      "id": "h-c1acb4b2",
+      "kind": "html",
+      "en": "glyph --update",
+      "tr": "glyph --update"
+    },
+    {
+      "id": "h-e478c4dc",
+      "kind": "html",
+      "en": "It only moves an install it can identify. A compiler reached through <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does not recognise gets the command printed and nothing overwritten, because replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess leaves <code>PATH</code> pointing at something nobody chose. It also stops short of claiming the update landed: npm can exit zero having skipped an <code>optionalDependency</code> it could not fetch, which is how a Glyph release once shipped with no platform binary, so the last line names <code>glyph --version</code> as the check rather than asserting success.",
+      "tr": "它只会更新它能识别的安装。通过 <code>npx</code> 调用的编译器、从 Glyph 源码树构建的编译器，或者位于它不认识的路径上的编译器，只会打印出命令而不覆盖任何东西，因为凭猜测替换一个 Homebrew 二进制文件或某人的 <code>cargo build</code> 产物，会让 <code>PATH</code> 指向一个没有人选择过的东西。它也不会声称更新已经成功：npm 可能在跳过一个无法获取的 <code>optionalDependency</code> 后仍以 0 退出，Glyph 曾经就因此发布过一个没有平台二进制文件的版本，所以最后一行给出的是用 <code>glyph --version</code> 检查，而不是断言成功。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-b2838e1c",
+      "kind": "html",
+      "en": "Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too. <code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.",
+      "tr": "脚手架生成的项目会精确固定版本，所以没有版本会意外进入构建。<code>glyph doctor</code> 对照 registry 报告你的编译器版本并链接到版本说明，它永远不会影响自己的退出码，也不会被 <code>build</code>/<code>run</code>/<code>check</code> 触发。<code>glyph upgrade</code> 修改固定的版本并安装，还能读取旧项目中的 ^ 写法，所以已有的项目也能改成精确固定。<code>glyph --update</code> 升级编译器本身，适用于全局 npm 安装；对于其他所有安装方式，它只报告而不猜测。"
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "正在改进"
+    },
+    {
+      "id": "h-72347421",
+      "kind": "html",
+      "en": "The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between. <code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.",
+      "tr": "版本说明是整条版本线共用的一个页面，所以 <code>glyph upgrade</code> 链接的是这个页面，而不是你要升级到的那个版本的条目。目前还没有什么能告诉你，新版本的哪些诊断会被你的代码触发：要知道就得构建，所以命令会提示你这样做。一次跨越多个版本的升级，和升级一个版本是同样的一步，不会汇总中间累积的变化。<code>glyph --update</code> 调用 npm 并读取它的退出码，所以它能告诉你 npm 执行完了，却不能告诉你 <code>PATH</code> 上的二进制文件就是你要的版本；这就是为什么它指向 <code>glyph --version</code>，而不是说更新成功了。"
+    }
+  ]
+}

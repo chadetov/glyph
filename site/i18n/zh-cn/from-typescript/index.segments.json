@@ -1,0 +1,398 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "from-typescript/index.html",
+  "locale": "zh-cn",
+  "source_hash": "bc168f89faa5ea6e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Coming from TypeScript · what changes in Glyph · Glyph",
+      "tr": "从 TypeScript 迁移过来 · Glyph 里有哪些变化 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph reads almost like TypeScript and compiles to it. What changes: a few syntax deltas, no any, as or !, one greppable escape hatch, and how npm works.",
+      "tr": "Glyph 读起来几乎和 TypeScript 一样，并编译成 TypeScript。变化在于：少量语法差异，没有 any、as 和 !，只有一个可以 grep 到的逃生口，以及 npm 的用法。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "接下来去哪里"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "推荐"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "See what TypeScript lets through",
+      "tr": "看看 TypeScript 放过了什么"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case run under <code>tsc --strict</code> and under Glyph, with the error.",
+      "tr": "每个案例都分别在 <code>tsc --strict</code> 和 Glyph 下运行，附报错。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "查看案例"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "写第一个程序"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "安装、创建项目、运行、故意改错、读报错。大约十分钟。"
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "Try it in the browser",
+      "tr": "在浏览器里试试"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "The compiler runs in the page, with nothing to install.",
+      "tr": "编译器直接在页面里运行，什么都不用安装。"
+    },
+    {
+      "id": "h-1400e396",
+      "kind": "html",
+      "en": "Coming from TypeScript",
+      "tr": "从 TypeScript 迁移过来"
+    },
+    {
+      "id": "h-7d374caf",
+      "kind": "html",
+      "en": "What changes when you already write TypeScript",
+      "tr": "已经在写 TypeScript 的话，会有哪些变化"
+    },
+    {
+      "id": "h-5166948b",
+      "kind": "html",
+      "en": "Less than you'd expect. Glyph compiles to TypeScript that passes <code>tsc --strict</code>, keeps npm and your deploy, and reads almost the same. The differences are a handful of deltas, and each one trades a way to be wrong for a check the compiler makes.",
+      "tr": "比你想象的少。Glyph 编译出能通过 <code>tsc --strict</code> 的 TypeScript，保留 npm 和你的部署方式，读起来也几乎一样。差异只有几处，每一处都是把一种犯错的方式换成一项由编译器完成的检查。"
+    },
+    {
+      "id": "h-380f8519",
+      "kind": "html",
+      "en": "If you know TypeScript, you know most of this",
+      "tr": "懂 TypeScript，就已经懂了大部分"
+    },
+    {
+      "id": "h-a355cda9",
+      "kind": "html",
+      "en": "You don't learn a new language, just these four. They are the ones in every sample on this site.",
+      "tr": "你不需要学一门新语言，只要学这四样。本站每个示例里都有它们。"
+    },
+    {
+      "id": "h-46e350dd",
+      "kind": "html",
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
+      "tr": "穷尽的 <code>switch</code>：对联合类型分支时，编译器要求你处理每一种情况。它也是唯一的条件结构：没有 <code>if</code>/<code>else</code>，也没有三元运算符，<a href=\"#there-is-no-if\">原因见下文</a>。"
+    },
+    {
+      "id": "h-12d01dfb",
+      "kind": "html",
+      "en": "Errors as return values, not thrown exceptions. You handle one with <code>match</code>, or propagate it with the <code>?</code> operator.",
+      "tr": "错误是返回值，而不是抛出的异常。你可以用 <code>match</code> 处理它，或者用 <code>?</code> 运算符向上传递。"
+    },
+    {
+      "id": "h-d9b07eb7",
+      "kind": "html",
+      "en": "A function; the <code>-&gt;</code> is its return type. A <code>type X = {...}</code> is a record, and a <code>type X = A | B</code> is a tagged union.",
+      "tr": "函数；<code>-&gt;</code> 后面是返回类型。<code>type X = {...}</code> 是记录，<code>type X = A | B</code> 是标签联合。"
+    },
+    {
+      "id": "h-82ab0a00",
+      "kind": "html",
+      "en": "Reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.",
+      "tr": "重新赋值是显式的，可以 grep 到。普通的 <code>let</code> 绑定不会在你背后改变；要修改它就写 <code>mut</code>。"
+    },
+    {
+      "id": "h-40accee4",
+      "kind": "html",
+      "en": "\"Agents\" on this site means AI coding assistants such as Claude, Copilot and Cursor. Glyph helps them most, but the checks are the same whether a person or a model wrote the code. If you already run strict TypeScript with zod and eslint, <a href=\"/answers/vs-tooled-ts/\">here is what a language adds over that</a>.",
+      "tr": "本站说的“智能体”指 Claude、Copilot、Cursor 这样的 AI 编程助手。Glyph 对它们帮助最大，但无论代码是人写的还是模型写的，检查都一样。如果你已经在用严格模式的 TypeScript 加 zod 和 eslint，<a href=\"/answers/vs-tooled-ts/\">这里说明一门语言能在此之上多带来什么</a>。"
+    },
+    {
+      "id": "h-06d12c99",
+      "kind": "html",
+      "en": "There is no if",
+      "tr": "没有 if"
+    },
+    {
+      "id": "h-aaf8fd69",
+      "kind": "html",
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
+      "tr": "对布尔值分支，就是对 <code>true</code> 和 <code>false</code> 做 <code>match</code>。如果只需处理其中一边，另一个分支写成空块。"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-63d595e5",
+      "kind": "html",
+      "en": "The reason is decision D3 in the spec: one construct for branching on a value, so there is one shape to read, write and search for. A value that comes out of a branch always comes out of a <code>match</code>, whose result type Glyph's own checker works out instead of handing it to <code>tsc</code>. For a union, the same construct is the one that must cover every case (<code>E0200</code>). For a boolean that buys little, since <code>false =&gt; {}</code> says no more than leaving out an <code>else</code>.",
+      "tr": "原因是规范中的决策 D3：对值做分支只用一种结构，所以读、写、搜索时都只有一种形式。从分支中得出的值总是来自 <code>match</code>，其结果类型由 Glyph 自己的检查器推导，而不是交给 <code>tsc</code>。对联合类型来说，正是这个结构必须覆盖每一种情况（<code>E0200</code>）。对布尔值来说收益不大，因为 <code>false =&gt; {}</code> 和省略 <code>else</code> 表达的意思一样。"
+    },
+    {
+      "id": "h-7765a037",
+      "kind": "html",
+      "en": "It costs you something. A one-line ternary becomes a four-line <code>match</code>, an early return on a condition is a <code>match</code> with an empty arm, and it is the first thing that looks wrong to a TypeScript reader. The spec records the verbosity as an accepted cost. Writing <code>if</code> anyway is error <code>E0006</code>, whose help shows the <code>match</code> form; a ternary is <code>E0013</code> with the same help.",
+      "tr": "这是有代价的。一行三元表达式会变成四行 <code>match</code>，按条件提前返回会变成带一个空分支的 <code>match</code>，而这也是 TypeScript 读者第一眼会觉得别扭的地方。规范把这种啰嗦记为一项可接受的代价。硬要写 <code>if</code> 会得到错误 <code>E0006</code>，其帮助信息会给出 <code>match</code> 写法；三元运算符是 <code>E0013</code>，帮助信息相同。"
+    },
+    {
+      "id": "h-5a5cbe2a",
+      "kind": "html",
+      "en": "The tax you already pay",
+      "tr": "你已经在付的代价"
+    },
+    {
+      "id": "h-73849589",
+      "kind": "html",
+      "en": "If you build with AI agents on a TypeScript codebase, these are the daily costs. Each one has a specific answer in Glyph, linked from the list.",
+      "tr": "如果你在 TypeScript 代码库上用 AI 智能体开发，下面这些就是日常成本。每一项在 Glyph 中都有具体的应对，链接见列表。"
+    },
+    {
+      "id": "h-887166ae",
+      "kind": "html",
+      "en": "Agents hallucinate APIs, because TypeScript erases its types and the runtime no longer agrees with compile time. Glyph types carry a runtime check (<code>T.parse</code>, <code>T.is</code>), see <a href=\"/answers/typed-apis/\">typed APIs</a>.",
+      "tr": "智能体会臆造 API，因为 TypeScript 会擦除类型，运行时和编译时不再一致。Glyph 的类型带有运行时检查（<code>T.parse</code>、<code>T.is</code>），见<a href=\"/answers/typed-apis/\">类型化的 API</a>。"
+    },
+    {
+      "id": "h-31205be6",
+      "kind": "html",
+      "en": "Agents paper over uncertainty with <code>any</code> and <code>as unknown as T</code>, and the compiler lets them. Neither exists in Glyph, see the table below.",
+      "tr": "智能体用 <code>any</code> 和 <code>as unknown as T</code> 掩盖不确定性，而编译器任由它们这样做。这两者在 Glyph 中都不存在，见下表。"
+    },
+    {
+      "id": "h-d3367c49",
+      "kind": "html",
+      "en": "You ask for a one-line change and get a whole file rewritten, because the formatter cascades on every edit. <code>glyph fmt</code> has one layout with no options, see <a href=\"/answers/diff-stability/\">clean diffs</a>.",
+      "tr": "你只要求改一行，结果整个文件都被重写了，因为格式化工具在每次编辑时都会连锁改动。<code>glyph fmt</code> 只有一种排版，没有任何选项，见<a href=\"/answers/diff-stability/\">干净的 diff</a>。"
+    },
+    {
+      "id": "h-3414000c",
+      "kind": "html",
+      "en": "You keep a hand-written validator next to every type (zod, and a serializer), and an agent renames a field in one but not the others; all of it still compiles. In Glyph the type is the validator.",
+      "tr": "你在每个类型旁边维护一个手写的校验器（zod，再加一个序列化器），智能体在其中一处改了字段名，其他地方却没改，而这一切照样能编译。在 Glyph 中，类型本身就是校验器。"
+    },
+    {
+      "id": "h-ea4184c4",
+      "kind": "html",
+      "en": "You <code>grep</code> for a symbol and find ten unrelated matches: overloads, decorators, merged namespaces. Glyph has none of those, see <a href=\"/answers/greppability/\">finding things</a>.",
+      "tr": "你 <code>grep</code> 一个符号，却找到十个不相关的匹配：重载、装饰器、合并的命名空间。Glyph 这些都没有，见<a href=\"/answers/greppability/\">查找代码</a>。"
+    },
+    {
+      "id": "h-f6530aaf",
+      "kind": "html",
+      "en": "The off-switches TypeScript gives you, and what Glyph has instead",
+      "tr": "TypeScript 提供的关闭开关，以及 Glyph 的替代做法"
+    },
+    {
+      "id": "h-0fe3d59b",
+      "kind": "html",
+      "en": "Each TypeScript construct below tells the checker to stop checking. None of them is Glyph syntax. The middle column is what <code>glyph check --no-tsc</code> printed for each one on 0.1.149.",
+      "tr": "下面每个 TypeScript 结构都是在让检查器停止检查。它们都不是 Glyph 语法。中间一列是 <code>glyph check --no-tsc</code> 在 0.1.149 上对每一项打印的内容。"
+    },
+    {
+      "id": "h-c8db21bc",
+      "kind": "html",
+      "en": "In Glyph",
+      "tr": "在 Glyph 中"
+    },
+    {
+      "id": "h-5d68f239",
+      "kind": "html",
+      "en": "What you write instead",
+      "tr": "改成怎么写"
+    },
+    {
+      "id": "h-67832a79",
+      "kind": "html",
+      "en": "Not syntax: <code>E0013</code>",
+      "tr": "不是合法语法：<code>E0013</code>"
+    },
+    {
+      "id": "h-84f8c408",
+      "kind": "html",
+      "en": "An <code>Option&lt;T&gt;</code> handled with <code>match</code>, or passed up with <code>?</code>",
+      "tr": "用 <code>match</code> 处理 <code>Option&lt;T&gt;</code>，或者用 <code>?</code> 向上传递"
+    },
+    {
+      "id": "h-beb1a8e3",
+      "kind": "html",
+      "en": "No cast exists: <code>E0013</code>, whose help says to validate",
+      "tr": "没有类型断言：<code>E0013</code>，帮助信息建议去做校验"
+    },
+    {
+      "id": "h-006076f6",
+      "kind": "html",
+      "en": "<code>T.parse(x)</code>, which returns a <code>Result</code>",
+      "tr": "<code>T.parse(x)</code>，返回 <code>Result</code>"
+    },
+    {
+      "id": "h-a549d366",
+      "kind": "html",
+      "en": "Not a type: <code>E0103</code>, unresolved name",
+      "tr": "不是类型：<code>E0103</code>，名称无法解析"
+    },
+    {
+      "id": "h-6fd9cc30",
+      "kind": "html",
+      "en": "<code>unknown</code>, narrowed by <code>T.parse</code>, <code>T.is</code> or a <code>match</code> arm <code>is T</code>",
+      "tr": "<code>unknown</code>，通过 <code>T.parse</code>、<code>T.is</code> 或 <code>match</code> 分支 <code>is T</code> 收窄"
+    },
+    {
+      "id": "h-3c065f9d",
+      "kind": "html",
+      "en": "No user-written type guards: <code>E0002</code>",
+      "tr": "不能自己写类型守卫：<code>E0002</code>"
+    },
+    {
+      "id": "h-039d3bb4",
+      "kind": "html",
+      "en": "The generated <code>T.is(v)</code>, which checks the declared shape, so a guard can't check less than it claims",
+      "tr": "生成的 <code>T.is(v)</code>，按声明的结构检查，所以守卫不会检查得比它声称的少"
+    },
+    {
+      "id": "h-deba3acc",
+      "kind": "html",
+      "en": "An ordinary comment; the error under it still fires",
+      "tr": "只是普通注释；下面的错误照样报出"
+    },
+    {
+      "id": "h-a20798f5",
+      "kind": "html",
+      "en": "Nothing. No comment or flag turns a Glyph diagnostic off",
+      "tr": "没有。任何注释或 flag 都关不掉 Glyph 的诊断"
+    },
+    {
+      "id": "h-6869a73b",
+      "kind": "html",
+      "en": "<code>glyph check</code> has flags that skip a whole pass (<code>--no-tsc</code> skips the <code>tsc --strict</code> run, <code>--no-test</code> skips the <code>@example</code> tests), and none that silence one check. The full list of what a TypeScript project accepts and Glyph refuses, each case run under both compilers, is on <a href=\"/catches/\">the catches page</a>.",
+      "tr": "<code>glyph check</code> 有一些跳过整个阶段的 flag（<code>--no-tsc</code> 跳过 <code>tsc --strict</code>，<code>--no-test</code> 跳过 <code>@example</code> 测试），但没有能屏蔽单项检查的 flag。TypeScript 项目接受而 Glyph 拒绝的完整列表，每个案例都在两个编译器下运行过，见<a href=\"/catches/\">案例页面</a>。"
+    },
+    {
+      "id": "h-ae85dea9",
+      "kind": "html",
+      "en": "One escape hatch, and you can grep for it",
+      "tr": "只有一个逃生口，而且可以 grep 到"
+    },
+    {
+      "id": "h-c32f7ec7",
+      "kind": "html",
+      "en": "When you need TypeScript that Glyph can't spell, <code>extern_ts(\"...\")</code> takes one inline type or expression, and <code>tsc</code> still checks it. For a whole module, put the <code>.ts</code> under <code>src/extern/</code> and write <code>import extern/name</code>; relative imports are otherwise illegal, so that path is the only way in. Both forms contain the word <code>extern</code>, so <code>grep -rn extern src/</code> lists every place the checker hands over to TypeScript.",
+      "tr": "需要写 Glyph 表达不了的 TypeScript 时，<code>extern_ts(\"...\")</code> 接受一个内联的类型或表达式，<code>tsc</code> 仍然会检查它。对整个模块，把 <code>.ts</code> 放在 <code>src/extern/</code> 下，然后写 <code>import extern/name</code>；除此之外相对导入都不合法，所以这条路径是唯一的入口。两种形式都包含 <code>extern</code> 这个词，所以 <code>grep -rn extern src/</code> 能列出检查器把控制权交给 TypeScript 的每一处。"
+    },
+    {
+      "id": "h-cd5d6b49",
+      "kind": "html",
+      "en": "What the emitted TypeScript looks like",
+      "tr": "生成的 TypeScript 是什么样子"
+    },
+    {
+      "id": "h-169034ff",
+      "kind": "html",
+      "en": "Plain TypeScript, one file per module, that you can read and commit. A union becomes a discriminated union plus a value carrying its runtime check, and a <code>match</code> becomes a <code>switch</code> on the tag. This is <code>glyph build</code>'s output for the module on the left, with the import lines trimmed.",
+      "tr": "普通的 TypeScript，每个模块一个文件，可以阅读，也可以提交。联合类型会变成可辨识联合，外加一个带运行时检查的值；<code>match</code> 会变成对标签的 <code>switch</code>。下面是 <code>glyph build</code> 对左边模块的输出，省略了 import 行。"
+    },
+    {
+      "id": "h-563a40e0",
+      "kind": "html",
+      "en": "plan.ts (emitted, trimmed)",
+      "tr": "plan.ts（生成的代码，有删节）"
+    },
+    {
+      "id": "h-3b534e13",
+      "kind": "html",
+      "en": "Delete the <code>Team</code> arm and the build stops before any TypeScript is written:",
+      "tr": "删掉 <code>Team</code> 分支，构建会在写出任何 TypeScript 之前停止："
+    },
+    {
+      "id": "h-7077f971",
+      "kind": "html",
+      "en": "glyph check --no-tsc (trimmed)",
+      "tr": "glyph check --no-tsc（有删节）"
+    },
+    {
+      "id": "h-f59e4630",
+      "kind": "html",
+      "en": "If you stop using Glyph, the emitted <code>.ts</code> is what you keep. It has no runtime dependency beyond a small bundled support directory the build writes next to it.",
+      "tr": "如果你不再使用 Glyph，留下的就是生成的 <code>.ts</code>。除了构建时写在旁边的一个小的支持目录，它没有任何运行时依赖。"
+    },
+    {
+      "id": "h-4a394bc5",
+      "kind": "html",
+      "en": "npm, and the TypeScript you already have",
+      "tr": "npm，以及你已有的 TypeScript"
+    },
+    {
+      "id": "h-76fdeb65",
+      "kind": "html",
+      "en": "A <code>.glyph</code> module imports an npm package by name (<code>import kafkajs { Kafka }</code>), typed from the package's own declarations, and your existing <code>.ts</code> imports the emitted Glyph modules like any local file. So you can start with one module inside an app that stays TypeScript. The details are in three answers.",
+      "tr": "<code>.glyph</code> 模块按名字导入 npm 包（<code>import kafkajs { Kafka }</code>），类型来自包自带的声明；你现有的 <code>.ts</code> 也能像导入本地文件一样导入生成的 Glyph 模块。所以你可以先在一个仍然是 TypeScript 的应用里写一个模块。具体细节见下面三个问答。"
+    },
+    {
+      "id": "h-e9a25225",
+      "kind": "html",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "我能使用现有的 TypeScript、JavaScript 和 npm 库吗？"
+    },
+    {
+      "id": "h-f9974c7b",
+      "kind": "html",
+      "en": "Importing packages, keeping a <code>.ts</code> shim, and importing Glyph back into <code>.ts</code>.",
+      "tr": "导入包、保留一个 <code>.ts</code> 适配层，以及在 <code>.ts</code> 中反过来导入 Glyph。"
+    },
+    {
+      "id": "h-959b40fe",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app?",
+      "tr": "能在现有应用里引入 Glyph 吗？"
+    },
+    {
+      "id": "h-2a8fcb81",
+      "kind": "html",
+      "en": "The domain core in Glyph, the rest in TypeScript, in a stock Vite scaffold.",
+      "tr": "领域核心用 Glyph，其余用 TypeScript，基于一个标准的 Vite 脚手架。"
+    },
+    {
+      "id": "h-93bd5c12",
+      "kind": "html",
+      "en": "Does it work with React?",
+      "tr": "能和 React 一起用吗？"
+    },
+    {
+      "id": "h-0bc7f09f",
+      "kind": "html",
+      "en": "Components, JSX, hooks, Context, and where <code>tsc</code> still does the checking.",
+      "tr": "组件、JSX、hooks、Context，以及哪些地方仍由 <code>tsc</code> 负责检查。"
+    }
+  ]
+}

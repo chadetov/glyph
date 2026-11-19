@@ -1,0 +1,1226 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/verifiability/index.html",
+  "locale": "zh-cn",
+  "source_hash": "debac5501878fd3d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What stops an agent from silently breaking my code? · Glyph",
+      "tr": "什么能防止智能体悄悄改坏我的代码？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.",
+      "tr": "在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "智能体的编辑会保持干净，还是会把整个文件重新格式化？"
+    },
+    {
+      "id": "h-817ec091",
+      "kind": "html",
+      "en": "01 &middot; The core promise",
+      "tr": "01 &middot; 核心承诺"
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "什么能防止智能体悄悄改坏我的代码？"
+    },
+    {
+      "id": "h-8860267a",
+      "kind": "html",
+      "en": "A whole class of change that <strong>quietly compiles</strong> in TypeScript (a missing case, an unhandled error, a renamed field) becomes a <strong>compile error the agent has to fix before it can ship</strong>.",
+      "tr": "一整类在 TypeScript 中<strong>悄悄编译通过</strong>的改动（漏掉的分支、未处理的错误、被改名的字段），在 Glyph 中会变成<strong>智能体必须先修复才能发布的编译错误</strong>。"
+    },
+    {
+      "id": "h-0dca38d0",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.ts</span> one new state, no other edit",
+      "tr": "<span class=\"ak-lang\">status.ts</span> 新增一个状态，没有其他改动"
+    },
+    {
+      "id": "h-a7fd8366",
+      "kind": "html",
+      "en": "tsc --strict: passes, prints undefined",
+      "tr": "tsc --strict：通过，打印 undefined"
+    },
+    {
+      "id": "h-df578f1c",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.glyph</span> one new variant, and the compiler finds every gap",
+      "tr": "<span class=\"ak-lang\">status.glyph</span> 新增一个变体，编译器找出每一处遗漏"
+    },
+    {
+      "id": "h-f12dfbd8",
+      "kind": "html",
+      "en": "refused: E0200",
+      "tr": "被拒绝：E0200"
+    },
+    {
+      "id": "h-dddaf308",
+      "kind": "html",
+      "en": "glyph check --no-tsc, 0.1.149 (excerpt)",
+      "tr": "glyph check --no-tsc，0.1.149（节选）"
+    },
+    {
+      "id": "h-b4036960",
+      "kind": "html",
+      "en": "<span>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update. The equivalent TypeScript <code>switch</code> compiles clean and returns <code>undefined</code> at runtime.</span>",
+      "tr": "<span>给联合类型加一个状态，原先处理旧集合的每一处都会编译失败，并指出需要更新的确切位置。等价的 TypeScript <code>switch</code> 能干净地编译通过，运行时却返回 <code>undefined</code>。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">为什么重要</a>"
+    },
+    {
+      "id": "h-493ba471",
+      "kind": "html",
+      "en": "<a href=\"#errors\">Errors</a>",
+      "tr": "<a href=\"#errors\">错误</a>"
+    },
+    {
+      "id": "h-299aad85",
+      "kind": "html",
+      "en": "<a href=\"#typos\">Typos in arms</a>",
+      "tr": "<a href=\"#typos\">分支中的拼写错误</a>"
+    },
+    {
+      "id": "h-f1f1c9bc",
+      "kind": "html",
+      "en": "<a href=\"#imports\">Across modules</a>",
+      "tr": "<a href=\"#imports\">跨模块</a>"
+    },
+    {
+      "id": "h-ef1ba415",
+      "kind": "html",
+      "en": "<a href=\"#refinements\">Refinements</a>",
+      "tr": "<a href=\"#refinements\">精化类型</a>"
+    },
+    {
+      "id": "h-736c66f8",
+      "kind": "html",
+      "en": "<a href=\"#examples\">Tests in the build</a>",
+      "tr": "<a href=\"#examples\">构建中的测试</a>"
+    },
+    {
+      "id": "h-1af522cc",
+      "kind": "html",
+      "en": "<a href=\"#four-more-found-by-building-with-it\">Found by building</a>",
+      "tr": "<a href=\"#four-more-found-by-building-with-it\">实际构建中发现的</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么重要"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-32dffb36",
+      "kind": "html",
+      "en": "Agents don't usually break code loudly. They break it <strong>confidently</strong>: they add a state, drop a branch, or rename a field, everything still type-checks, and the bug surfaces in production.",
+      "tr": "智能体通常不会大张旗鼓地改坏代码。它们改坏代码时<strong>信心十足</strong>：加一个状态，删掉一个分支，或者给字段改个名，一切照样通过类型检查，bug 到了生产环境才暴露出来。"
+    },
+    {
+      "id": "h-593cf2d6",
+      "kind": "html",
+      "en": "The expensive failures are the ones that <em>compiled and were wrong</em>. Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into &ldquo;the compiler proved you did.&rdquo;",
+      "tr": "代价最高的失败是那些<em>编译通过却是错的</em>。Glyph 把&ldquo;你大概处理了这种情况&rdquo;变成&ldquo;编译器证明了你处理了&rdquo;，以此堵上这个缺口。"
+    },
+    {
+      "id": "h-7c47ac02",
+      "kind": "html",
+      "en": "<b>Sealed unions</b>Tagged unions are <strong>sealed</strong>, so <code>match</code> must cover every case.",
+      "tr": "<b>封闭的联合类型</b>标签联合是<strong>封闭的</strong>，所以 <code>match</code> 必须覆盖每一种情况。"
+    },
+    {
+      "id": "h-a732dd83",
+      "kind": "html",
+      "en": "<b>Errors as values</b>Errors are <strong>values</strong> you have to unwrap, not exceptions that vanish.",
+      "tr": "<b>错误即值</b>错误是你必须解包的<strong>值</strong>，而不是会凭空消失的异常。"
+    },
+    {
+      "id": "h-7cc9aefc",
+      "kind": "html",
+      "en": "<b>Checked boundaries</b>And every type carries a runtime descriptor, so data crossing a boundary is checked against its shape.",
+      "tr": "<b>受检的边界</b>每个类型都带有运行时描述符，所以跨越边界的数据会按它的形状进行检查。"
+    },
+    {
+      "id": "h-9e145fb3",
+      "kind": "html",
+      "en": "A dropped error is a warning",
+      "tr": "丢弃的错误会产生警告"
+    },
+    {
+      "id": "h-a0f7e838",
+      "kind": "html",
+      "en": "Same for errors: a function that returns <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or propagated with <code>?</code> (and the compiler checks the error type lines up). And if you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure.",
+      "tr": "错误也一样：返回 <code>Result&lt;T, E&gt;</code> 的函数应当用 <code>match</code> 处理，或者用 <code>?</code> 向上传递（编译器会检查错误类型是否对得上）。如果你把一个 <code>Result</code> <em>丢掉</em>（把调用当作语句，忽略它的返回值），Glyph 会发出警告（<code>E0217</code>），因为被丢弃的错误就是被吞掉的失败。"
+    },
+    {
+      "id": "h-3c7c9444",
+      "kind": "html",
+      "en": "You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "要消除警告，你得用 <code>let _ = ...</code> 有意为之，而不会是无意的。"
+    },
+    {
+      "id": "h-4faa036c",
+      "kind": "html",
+      "en": "The standard library's unions are sealed too",
+      "tr": "标准库的联合类型同样是封闭的"
+    },
+    {
+      "id": "h-ac5ad03f",
+      "kind": "html",
+      "en": "The bar is the same for a union the standard library owns. <code>fs.ErrorKind</code> is a closed set of six kinds, and the checker knows its shape, so <code>match e.kind</code> on a filesystem error needs no <code>else</code> arm and fails with <code>E0200</code> when you leave a kind out.",
+      "tr": "对标准库拥有的联合类型，标准也一样。<code>fs.ErrorKind</code> 是一个包含六种类型的封闭集合，检查器知道它的形状，所以对文件系统错误做 <code>match e.kind</code> 不需要 <code>else</code> 分支，漏掉某一种时会以 <code>E0200</code> 失败。"
+    },
+    {
+      "id": "h-d6bf3201",
+      "kind": "html",
+      "en": "E0200 missing kind",
+      "tr": "E0200 缺少某种类型"
+    },
+    {
+      "id": "h-82c9da4e",
+      "kind": "html",
+      "en": "E0210 unknown field",
+      "tr": "E0210 未知字段"
+    },
+    {
+      "id": "h-b365b66a",
+      "kind": "html",
+      "en": "E0218 needs else",
+      "tr": "E0218 需要 else"
+    },
+    {
+      "id": "h-68b00f6d",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">field typos, return types, number and string matches</span>",
+      "tr": "详情 <span class=\"hint\">字段拼写错误、返回类型、数字与字符串的 match</span>"
+    },
+    {
+      "id": "h-0469c431",
+      "kind": "html",
+      "en": "<code>e.mesage</code> is <code>E0210</code> rather than something <code>tsc</code> catches downstream. Return types travel too: <code>string.split(text, \",\")</code> is an <code>Array&lt;string&gt;</code>, so <code>for i, part in string.split(text, \",\")</code> binds <code>i</code> as a number instead of the string key you'd get from an untyped iterand.",
+      "tr": "<code>e.mesage</code> 是 <code>E0210</code>，而不是等到下游由 <code>tsc</code> 发现。返回类型也会传递：<code>string.split(text, \",\")</code> 是 <code>Array&lt;string&gt;</code>，所以 <code>for i, part in string.split(text, \",\")</code> 把 <code>i</code> 绑定为数字，而不是未标注类型的迭代对象会给出的字符串键。"
+    },
+    {
+      "id": "h-50f9d186",
+      "kind": "html",
+      "en": "Exhaustiveness isn't just for unions. A <code>match</code> on a <code>number</code> or <code>string</code> with only literal arms can't cover an unbounded domain, so Glyph requires an <code>else</code> (<code>E0218</code>) rather than letting the uncovered value fall through to a runtime throw.",
+      "tr": "穷尽检查不只针对联合类型。对 <code>number</code> 或 <code>string</code> 的 <code>match</code> 如果只有字面量分支，就无法覆盖无界的取值范围，所以 Glyph 要求一个 <code>else</code>（<code>E0218</code>），而不是让未覆盖的值落到运行时抛出异常。"
+    },
+    {
+      "id": "h-bf2adc90",
+      "kind": "html",
+      "en": "The rule is the same everywhere: a <code>match</code> that doesn't account for a case doesn't compile.",
+      "tr": "规则处处相同：没有考虑到某种情况的 <code>match</code> 无法编译。"
+    },
+    {
+      "id": "h-94ceef2f",
+      "kind": "html",
+      "en": "A misspelled arm is a gap, not a catch-all",
+      "tr": "拼错的分支是一处遗漏，而不是兜底分支"
+    },
+    {
+      "id": "h-325a109d",
+      "kind": "html",
+      "en": "A typo can't quietly paper over a gap either. A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding.",
+      "tr": "拼写错误也无法悄悄掩盖遗漏。首字母大写的分支头是<strong>对变体的引用</strong>，而不是新的绑定。"
+    },
+    {
+      "id": "h-81a2cb84",
+      "kind": "html",
+      "en": "status.glyph: a misspelled arm is a gap, not a catch-all",
+      "tr": "status.glyph：拼错的分支是一处遗漏，而不是兜底分支"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-1111b2dc",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what older Glyph did with the typo</span>",
+      "tr": "历史 <span class=\"hint\">旧版 Glyph 如何处理这个拼写错误</span>"
+    },
+    {
+      "id": "h-35c640dd",
+      "kind": "html",
+      "en": "A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding, so if you misspell <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a catch-all that bound every value and made the match look total. Now the head has to name a real variant of the union you're matching. When it doesn't, the build stops with <code>E0220</code> and points at the nearest real name, and the variant you actually skipped still shows up as <code>E0200</code> right next to it.",
+      "tr": "首字母大写的分支头是<strong>对变体的引用</strong>，而不是新的绑定。所以如果你把 <code>Loading</code> 拼成 <code>Loadign</code>，旧版 Glyph 会把这个错误拼写当作绑定所有值的兜底分支，让这个 match 看起来是完整的。现在分支头必须是被匹配的联合类型中真实存在的变体。不是的话，构建会以 <code>E0220</code> 停止并指出最接近的真实名字，而你真正漏掉的变体仍然会以 <code>E0200</code> 出现在旁边。"
+    },
+    {
+      "id": "h-e45746f9",
+      "kind": "html",
+      "en": "Variants inside a payload",
+      "tr": "负载中的变体"
+    },
+    {
+      "id": "h-4e9c7c14",
+      "kind": "html",
+      "en": "That reading holds one level down, where the variant is the payload of another one. The arm now dispatches on the payload's own tag, whatever the outer variant is.",
+      "tr": "往下一层也是同样的理解，即变体是另一个变体的负载时。无论外层变体是什么，分支现在都按负载自身的标签分派。"
+    },
+    {
+      "id": "h-5f78059f",
+      "kind": "html",
+      "en": "repl.glyph: the inner arm tests the payload, it doesn't bind it",
+      "tr": "repl.glyph：内层分支检测负载，而不是绑定它"
+    },
+    {
+      "id": "h-e29806a9",
+      "kind": "html",
+      "en": "E0305 duplicate case label",
+      "tr": "E0305 重复的 case 标签"
+    },
+    {
+      "id": "h-a9f4ca6a",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the dead arm before 0.1.93, and the E0305 guard</span>",
+      "tr": "历史 <span class=\"hint\">0.1.93 之前的死分支，以及 E0305 防护</span>"
+    },
+    {
+      "id": "h-6b579450",
+      "kind": "html",
+      "en": "<code>Err(Blank)</code> beside <code>Err(e)</code> reads as \"ignore a blank line, print every other parse error\", and until 0.1.93 it compiled to two <code>case \"Err\":</code> labels on the outer tag whose first bound the whole payload under the name <code>Blank</code>. Every error took the first arm, the second was dead code, and nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> accepts a duplicate case label. The arm now dispatches on the payload's own tag, whatever the outer variant is, and the compiler reads the name the way the typechecker does: the payload union's own variant list decides, and only when that list is out of reach does the name's shape decide. For a union declared in the same file the capitalization no longer matters. For one imported from another module the variant list is out of reach today, so a capitalized variant dispatches and a lowercase one stops the build.",
+      "tr": "<code>Err(Blank)</code> 写在 <code>Err(e)</code> 旁边，读起来是&ldquo;忽略空行，打印其他所有解析错误&rdquo;。直到 0.1.93，它会被编译成外层标签上的两个 <code>case \"Err\":</code> 标签，第一个把整个负载绑定到名字 <code>Blank</code> 上。所有错误都走第一个分支，第二个成了死代码，而且没有任何提示：Glyph 不报任何诊断，<code>tsc --strict</code> 也接受重复的 case 标签。现在无论外层变体是什么，分支都按负载自身的标签分派，编译器理解这个名字的方式也与类型检查器相同：由负载联合类型自己的变体列表决定，只有拿不到这个列表时才由名字的形式决定。对同一文件中声明的联合类型，大小写已经无关紧要。对从其他模块导入的联合类型，目前拿不到变体列表，所以首字母大写的变体会分派，小写的则让构建停止。"
+    },
+    {
+      "id": "h-2bcf741d",
+      "kind": "html",
+      "en": "It stops because the switch is guarded now. Two arms that would write the same <code>case</code> label are <code>E0305</code>, not a switch whose second label can never run. That is what makes the class loud instead of silent: a lowering that reaches for the same tag twice fails the build rather than picking the wrong arm at run time.",
+      "tr": "构建之所以停止，是因为 switch 现在有了防护。两个会写出相同 <code>case</code> 标签的分支是 <code>E0305</code>，而不是一个第二个标签永远不会执行的 switch。这让这类问题从悄无声息变成大声报错：一次两次用到同一标签的代码降级会让构建失败，而不是在运行时选错分支。"
+    },
+    {
+      "id": "h-5ae4d2b0",
+      "kind": "html",
+      "en": "Import spelling never turns the check off",
+      "tr": "导入的写法永远不会关闭检查"
+    },
+    {
+      "id": "h-cf742b0d",
+      "kind": "html",
+      "en": "How the union got into scope doesn't change any of this. Glyph lets you write a variant arm two ways, and both are checked the same: <code>import model { Cond, Yes, No }</code> with bare arms, or <code>import model</code> (or <code>import model as m</code>) with <code>model.Yes(_)</code>.",
+      "tr": "联合类型是怎么进入作用域的，不会改变上面任何一点。Glyph 允许用两种方式写变体分支，两者的检查完全相同：<code>import model { Cond, Yes, No }</code> 配合不带前缀的分支，或者 <code>import model</code>（或 <code>import model as m</code>）配合 <code>model.Yes(_)</code>。"
+    },
+    {
+      "id": "h-a5be5f60",
+      "kind": "html",
+      "en": "interp.glyph: the import list came out, the match is still checked",
+      "tr": "interp.glyph：导入列表删掉了，match 仍然受检"
+    },
+    {
+      "id": "h-1efde9fe",
+      "kind": "html",
+      "en": "glyph build, after deleting the last arm",
+      "tr": "glyph build，删掉最后一个分支之后"
+    },
+    {
+      "id": "h-f2895549",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">standard library unions, string enums, and why the list existed</span>",
+      "tr": "详情 <span class=\"hint\">标准库的联合类型、字符串枚举，以及那个列表为什么存在</span>"
+    },
+    {
+      "id": "h-d10dc4ff",
+      "kind": "html",
+      "en": "That holds for the standard library's unions too, so <code>match o { option.Some(s) =&gt; … }</code> on an <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling is. Until 0.1.56 the qualified spelling skipped the check entirely and the build reported no diagnostics on a match that threw at run time.",
+      "tr": "标准库的联合类型也是如此，所以对 <code>option.Option&lt;string&gt;</code> 写 <code>match o { option.Some(s) =&gt; … }</code>，会因为缺少 <code>None</code> 而得到 <code>E0200</code>，与不带前缀的 <code>Some</code>/<code>None</code> 写法完全一样。直到 0.1.56，带限定的写法会完全跳过检查，构建对一个运行时会抛异常的 match 不报任何诊断。"
+    },
+    {
+      "id": "h-947faa47",
+      "kind": "html",
+      "en": "A string enum crosses the boundary too. <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> declared in <code>catalog.glyph</code> and imported into another module keeps its four values, so a match covering all four compiles with no <code>else</code>, and dropping one is <code>E0200</code> naming the value you dropped. Until 0.1.57 it was <code>E0218</code>, with help text telling you to add an <code>else</code> arm. That help was wrong about the code in front of it, and taking it turned a compile error into a runtime fallthrough. All three import spellings work: <code>import catalog { ColType }</code>, <code>import catalog</code> with <code>catalog.ColType</code>, and <code>import catalog as c</code> with <code>c.ColType</code>.",
+      "tr": "字符串枚举同样能跨越边界。在 <code>catalog.glyph</code> 中声明并导入到另一个模块的 <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> 保留它的四个值，所以覆盖全部四个值的 match 无需 <code>else</code> 就能编译，漏掉一个则是 <code>E0200</code>，并指出漏掉的值。直到 0.1.57 它还是 <code>E0218</code>，帮助文本让你加一个 <code>else</code> 分支。那条帮助对眼前的代码判断有误，照做会把编译错误变成运行时的落空。三种导入写法都有效：<code>import catalog { ColType }</code>，<code>import catalog</code> 配合 <code>catalog.ColType</code>，以及 <code>import catalog as c</code> 配合 <code>c.ColType</code>。"
+    },
+    {
+      "id": "h-1a86b4ae",
+      "kind": "html",
+      "en": "That import list is where this came from. It was written by hand in every module of a statechart engine, with a comment above it saying a union's constructors don't arrive with its type. The comment was right about the syntax and wrong about the reason: the list was there because the shorter spelling turned the check off, and nobody had noticed, because turning it off is silent. Which form you pick is now a real choice rather than a trap. The named one puts every variant you handle in the import list, which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one says at each arm which module the variant came from. Neither costs you the check.",
+      "tr": "这个问题正是从那个导入列表发现的。一个状态图引擎的每个模块里都手写了这个列表，上面还有一条注释，说联合类型的构造器不会随类型一起导入。这条注释对语法的描述是对的，对原因的解释是错的：之所以需要这个列表，是因为更短的写法会关闭检查，而没有人注意到，因为关闭检查是悄无声息的。现在选哪种写法是一个实际的选择，而不是一个陷阱。具名写法把你处理的每个变体都放在导入列表里，<code>grep</code> 搜 <code>Equals</code> 时能找到它。限定写法在每个分支上标明变体来自哪个模块。两种都不会让你失去检查。"
+    },
+    {
+      "id": "h-5d24c15d",
+      "kind": "html",
+      "en": "Imported records keep their fields",
+      "tr": "导入的记录保留它的字段"
+    },
+    {
+      "id": "h-22710d78",
+      "kind": "html",
+      "en": "Records cross now too, and until 0.1.58 they did not. A record therefore keeps its field set, and a bad field is <code>E0210</code> naming the record rather than a <code>tsc</code> error about an anonymous shape.",
+      "tr": "记录现在也能跨越边界，而在 0.1.58 之前不行。因此记录保留它的字段集合，错误的字段是指出该记录的 <code>E0210</code>，而不是一条关于匿名形状的 <code>tsc</code> 错误。"
+    },
+    {
+      "id": "h-7282177b",
+      "kind": "html",
+      "en": "glyph build, on a typo'd field of an imported record",
+      "tr": "glyph build，针对导入记录上拼错的字段"
+    },
+    {
+      "id": "h-e3755b2b",
+      "kind": "html",
+      "en": "table.glyph: the hoists and the comment explaining them are gone",
+      "tr": "table.glyph：提升的 let 以及解释它们的注释都删掉了"
+    },
+    {
+      "id": "h-7255646a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the line 11 bug, what tsc misses, how identity crosses</span>",
+      "tr": "详情 <span class=\"hint\">line 11 的 bug、tsc 漏掉了什么、标识如何跨越边界</span>"
+    },
+    {
+      "id": "h-14cf6d10",
+      "kind": "html",
+      "en": "A type declared in one file and used in another arrived with nothing known about it, which cost two separate checks. A misspelled field on it drew no Glyph error at all, so <code>sheet.rowz</code> fell through to <code>tsc</code> and came back as a TypeScript message about a shape you never wrote. And <code>for i, r in sheet.rows</code> could not tell that <code>rows</code> was an array, so it emitted <code>Object.entries(sheet.rows)</code> rather than <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string <code>\"0\"</code>. <code>i + 1</code> then concatenates instead of adding, and a row that should be reported as <code>line 2</code> reports as <code>line 11</code>.",
+      "tr": "在一个文件中声明、在另一个文件中使用的类型，到达时没有任何已知信息，这导致两项检查失效。它上面拼错的字段不会引发任何 Glyph 错误，所以 <code>sheet.rowz</code> 落到 <code>tsc</code>，返回的是一条关于你从没写过的形状的 TypeScript 信息。而 <code>for i, r in sheet.rows</code> 无法判断 <code>rows</code> 是数组，于是生成 <code>Object.entries(sheet.rows)</code> 而不是 <code>sheet.rows.entries()</code>。这会把 <code>i</code> 绑定为字符串 <code>\"0\"</code>。接着 <code>i + 1</code> 变成拼接而不是相加，本应报告为 <code>line 2</code> 的行被报告为 <code>line 11</code>。"
+    },
+    {
+      "id": "h-9abff4c5",
+      "kind": "html",
+      "en": "The part worth knowing is which half <code>tsc</code> catches. Arithmetic on that index it does catch, though it reports the error against generated TypeScript for a variable Glyph bound on your behalf. What it cannot catch is every place a string is accepted where a number was meant: string interpolation, concatenation, a <code>record.get</code> key. Those compile clean under both checkers and print the wrong number. That is the shape of bug this project exists to remove, so a module boundary that reintroduces it is not a boundary Glyph can leave alone.",
+      "tr": "值得了解的是 <code>tsc</code> 能发现其中哪一半。对这个索引做算术运算它能发现，不过报告的错误针对的是生成的 TypeScript，涉及的是 Glyph 替你绑定的一个变量。它发现不了的是所有本该用数字却接受了字符串的地方：字符串插值、拼接、<code>record.get</code> 的键。这些在两个检查器下都能干净地编译通过，却打印出错误的数字。这正是本项目要消除的那类 bug，所以一个重新引入它的模块边界，Glyph 不能置之不理。"
+    },
+    {
+      "id": "h-458dd926",
+      "kind": "html",
+      "en": "An imported type now carries an identity across the boundary, keyed on the module that declares it and the name it declares, so all three import spellings resolve to the same type. The declaration itself is fetched on demand and lowered on the declaring module's side, which is the half a consumer cannot do: resolution runs over spans, and an imported declaration's spans belong to another file.",
+      "tr": "导入的类型现在会带着一个标识跨越边界，以声明它的模块和它声明的名字为键，所以三种导入写法都解析到同一个类型。声明本身按需获取，并在声明模块那一侧完成降级，这一半是使用方做不了的：解析是基于源码区间进行的，而导入声明的区间属于另一个文件。"
+    },
+    {
+      "id": "h-056c35df",
+      "kind": "html",
+      "en": "The query engine in <code>examples/apps/csvql</code> is where this surfaced. It carried three <code>let</code> hoists whose only job was to restate an imported field's type for the emitter, under a four-line comment explaining that without them the row and column numbers in an error message come out wrong. All three are deleted and the app prints byte-identical output for all twelve queries.",
+      "tr": "这个问题是在 <code>examples/apps/csvql</code> 的查询引擎中发现的。它带着三个提升出来的 <code>let</code>，唯一作用是为代码生成器重新声明一个导入字段的类型，上面还有四行注释，解释没有它们的话错误信息里的行号和列号会出错。这三个都删掉了，应用对全部十二个查询的输出逐字节相同。"
+    },
+    {
+      "id": "h-16e56e8c",
+      "kind": "html",
+      "en": "One thing still stops at the boundary. Passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is E0211 naming both types, but an <code>interface</code>'s member list does not cross, so a record passed where an imported interface is expected is compared against nothing. Giving it the treatment a record's field set gets would quietly change what structural satisfaction means, which is a language decision rather than a fix.",
+      "tr": "仍有一样东西停在边界上。在需要 <code>table.Row</code> 的地方传入 <code>catalog.Sheet</code> 是同时指出两个类型的 E0211，但 <code>interface</code> 的成员列表不会跨越边界，所以在需要导入接口的地方传入的记录，没有可比较的对象。给它与记录字段集合相同的处理，会悄悄改变结构满足的含义，这是一个语言设计决定，而不是一个修复。"
+    },
+    {
+      "id": "h-6834f6ea",
+      "kind": "html",
+      "en": "PII masking lives on the type",
+      "tr": "PII 脱敏定义在类型上"
+    },
+    {
+      "id": "h-e74ab1dc",
+      "kind": "html",
+      "en": "The same \"make it type-level, not convention\" instinct covers PII. Put <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a <code>redact()</code> on its descriptor that masks those fields, so <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "同样是&ldquo;让它成为类型层面的东西，而不是约定&rdquo;的思路，也用在了 PII 上。在类型上写 <code>@redact fields: [ssn, dob]</code>，编译器会在它的描述符上生成一个屏蔽这些字段的 <code>redact()</code>，所以 <code>json.stringify(User.redact(u))</code> 不会泄露它们。"
+    },
+    {
+      "id": "h-13194d57",
+      "kind": "html",
+      "en": "E0219 unknown field in @redact",
+      "tr": "E0219 @redact 中的未知字段"
+    },
+    {
+      "id": "h-a3dc9bf7",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently does nothing.",
+      "tr": "写了一个类型中没有的字段就是编译错误（<code>E0219</code>），而不是一个悄悄什么都不做的脱敏。"
+    },
+    {
+      "id": "h-f83eef70",
+      "kind": "html",
+      "en": "Refinements are checked all the way down",
+      "tr": "精化类型会一路检查到底"
+    },
+    {
+      "id": "h-4f2c9d8a",
+      "kind": "html",
+      "en": "A descriptor is only worth anything if it's the check the type declares, all the way down. A <code>where</code> refinement runs its predicate wherever the type appears, not just at a direct <code>Instant.parse</code>: as a record field, as an <code>Array</code> element, as an <code>Option</code> payload, inside a union variant, and through <code>json.parse&lt;T&gt;</code>.",
+      "tr": "描述符只有在一路到底都执行类型所声明的检查时才有价值。<code>where</code> 精化会在类型出现的任何地方运行它的谓词，而不只是在直接调用 <code>Instant.parse</code> 时：作为记录字段、作为 <code>Array</code> 元素、作为 <code>Option</code> 负载、在联合类型的变体中，以及通过 <code>json.parse&lt;T&gt;</code>。"
+    },
+    {
+      "id": "a-9d24b993",
+      "kind": "attr:aria-label",
+      "en": "Where the predicate runs",
+      "tr": "谓词在哪里运行"
+    },
+    {
+      "id": "h-cc2d34d0",
+      "kind": "html",
+      "en": "<span>Calendar</span>",
+      "tr": "<span>Calendar</span>"
+    },
+    {
+      "id": "h-ff1a5c12",
+      "kind": "html",
+      "en": "<span>busy</span>",
+      "tr": "<span>busy</span>"
+    },
+    {
+      "id": "h-6f5019a2",
+      "kind": "html",
+      "en": "<span>start</span>",
+      "tr": "<span>start</span>"
+    },
+    {
+      "id": "h-b466db9f",
+      "kind": "html",
+      "en": "<span>The fix is four levels down from the boundary: <code>Calendar</code> to <code>Array&lt;WireParticipant&gt;</code> to <code>busy</code> to <code>start</code> to the predicate.</span>",
+      "tr": "<span>修复位于边界往下四层：<code>Calendar</code> 到 <code>Array&lt;WireParticipant&gt;</code> 到 <code>busy</code> 到 <code>start</code>，再到谓词。</span>"
+    },
+    {
+      "id": "h-b717ddb6",
+      "kind": "html",
+      "en": "schedule.glyph: the predicate follows the type into the field",
+      "tr": "schedule.glyph：谓词跟着类型进入字段"
+    },
+    {
+      "id": "h-db3eb4df",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the confident wrong schedule before 0.1.41</span>",
+      "tr": "历史 <span class=\"hint\">0.1.41 之前那份信心十足的错误日程</span>"
+    },
+    {
+      "id": "h-26ea0f9a",
+      "kind": "html",
+      "en": "The same goes for a record imported from another module. Until 0.1.41 both of those fell back to checking that the key was present, which is not a check of anything.",
+      "tr": "从另一个模块导入的记录也是如此。直到 0.1.41，这两种情况都退化为只检查键是否存在，这实际上什么也没检查。"
+    },
+    {
+      "id": "h-32933c95",
+      "kind": "html",
+      "en": "The scheduling app below is where this surfaced. It reads calendars from a JSON file and needs every timestamp to be a real ISO-8601 instant. Before, the refinement stopped at the top level, so a hand-edited file with <code>\"start\": \"no\"</code> parsed fine, the instant read as 0, and the app printed a confident schedule and exited 0.",
+      "tr": "这个问题是在下面的排程应用中发现的。它从 JSON 文件读取日历，要求每个时间戳都是合法的 ISO-8601 时刻。以前精化只在顶层生效，所以一个手动编辑过、写着 <code>\"start\": \"no\"</code> 的文件能顺利解析，时刻被读成 0，应用信心十足地打印出一份日程，并以 0 退出。"
+    },
+    {
+      "id": "h-e0b0c6e0",
+      "kind": "html",
+      "en": "Tests run as part of the build",
+      "tr": "测试作为构建的一部分运行"
+    },
+    {
+      "id": "h-8f68e695",
+      "kind": "html",
+      "en": "Tests live next to the code and run as part of compiling it. An <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.",
+      "tr": "测试就在代码旁边，并作为编译的一部分运行。函数上方的 <code>@example</code>，或者 <code>@doc</code> 中的 <code>```glyph @run```</code> 代码块，都由 <code>glyph build</code> 执行，不需要记住任何 flag。"
+    },
+    {
+      "id": "h-a935d52f",
+      "kind": "html",
+      "en": "bracket.glyph: break the seeding and the build stops",
+      "tr": "bracket.glyph：改坏种子排序，构建就会停止"
+    },
+    {
+      "id": "h-9fb096f6",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why it can't be skipped quietly, and the JSON channel</span>",
+      "tr": "详情 <span class=\"hint\">为什么不能悄悄跳过，以及 JSON 通道</span>"
+    },
+    {
+      "id": "h-8d480a9c",
+      "kind": "html",
+      "en": "A false one fails the build the same way a type error does, which is the point: an agent rewriting a function body cannot pass the build by leaving the assertion behind. <code>--no-test</code> opts out and prints how many tests it skipped, so the bypass is visible in the log.",
+      "tr": "一个不成立的断言会像类型错误一样让构建失败，这正是目的所在：重写函数体的智能体不可能通过丢下断言来通过构建。<code>--no-test</code> 可以选择跳过，并打印跳过了多少个测试，所以绕过行为会在日志中留下痕迹。"
+    },
+    {
+      "id": "h-0c14dec1",
+      "kind": "html",
+      "en": "The JSON output agents read reports the same verdict. <code>glyph build --json</code> carries an <code>examples</code> object next to the diagnostics, and a failing example makes <code>ok</code> false and the exit code non-zero. Until 0.1.43 the examples ran only under <code>--test</code>, and the JSON path returned before they ran at all, so the one channel an agent can read printed <code>\"ok\": true</code> on a project whose own assertion was false. If <code>tsx</code> isn't on <code>PATH</code> the build fails instead of reporting a pass it never checked.",
+      "tr": "智能体读取的 JSON 输出报告同样的结论。<code>glyph build --json</code> 在诊断旁边带有一个 <code>examples</code> 对象，失败的示例会让 <code>ok</code> 为 false，退出码非零。直到 0.1.43，示例只在 <code>--test</code> 下运行，JSON 路径在它们运行之前就返回了，所以智能体唯一能读的通道，对一个自身断言不成立的项目打印出 <code>\"ok\": true</code>。如果 <code>PATH</code> 上没有 <code>tsx</code>，构建会失败，而不是报告一个它从未检查过的通过。"
+    },
+    {
+      "id": "h-39aaaa02",
+      "kind": "html",
+      "en": "The bracket app below carries 23 of these. <code>seed_order</code> builds standard bracket order by doubling, which is the kind of function that is easy to get subtly wrong and easy to describe exactly. Change the doubling rule and the build stops, without a test file, a runner, or a flag.",
+      "tr": "下面的 bracket 应用带有 23 个这样的测试。<code>seed_order</code> 通过倍增构建标准的对阵顺序，这类函数很容易写出细微的错误，又很容易精确描述。改动倍增规则，构建就会停止，不需要测试文件、测试运行器或 flag。"
+    },
+    {
+      "id": "h-03f15931",
+      "kind": "html",
+      "en": "Found by building with it",
+      "tr": "实际构建中发现的"
+    },
+    {
+      "id": "h-698c73d4",
+      "kind": "html",
+      "en": "Four more, found by building with it",
+      "tr": "实际构建中发现的另外四个"
+    },
+    {
+      "id": "h-113db4ca",
+      "kind": "html",
+      "en": "Each of these compiled clean and passed <code>tsc --strict</code>, and each was found by writing an application rather than by reading the compiler. They are the same failure in three places: the types said one thing and the program did another.",
+      "tr": "下面每一个都能干净地编译并通过 <code>tsc --strict</code>，每一个都是通过编写应用发现的，而不是通过阅读编译器。它们是同一种失败出现在三个地方：类型说的是一回事，程序做的是另一回事。"
+    },
+    {
+      "id": "h-a616a906",
+      "kind": "html",
+      "en": "Reading a key that may not be there",
+      "tr": "读取可能不存在的键"
+    },
+    {
+      "id": "h-52489cbb",
+      "kind": "html",
+      "en": "reading a key that may not be there: now E0224",
+      "tr": "读取可能不存在的键：现在是 E0224"
+    },
+    {
+      "id": "h-f531f861",
+      "kind": "html",
+      "en": "It is now a compile error pointing at <code>record.get</code>, which returns <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.",
+      "tr": "现在它是一个指向 <code>record.get</code> 的编译错误，该函数返回 <code>Option&lt;V&gt;</code>，让不存在的情况有处可去。"
+    },
+    {
+      "id": "h-e54e941e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why a map read is different from array indexing</span>",
+      "tr": "详情 <span class=\"hint\">为什么读取 map 与数组索引不同</span>"
+    },
+    {
+      "id": "h-c9bcefe0",
+      "kind": "html",
+      "en": "A map's keys are arbitrary, so the compiler cannot know the key is there. Typing the read as <code>string</code> stated something it had not checked, and the value printed as the text \"undefined\". Writing a key is untouched, and so is array indexing: a bound is a value a program can check, a map key is not.",
+      "tr": "map 的键是任意的，所以编译器无法知道键是否存在。把读取的类型定为 <code>string</code>，等于断言了一件没有检查过的事，而这个值被打印成文本 \"undefined\"。写入键不受影响，数组索引也不受影响：边界是程序可以检查的值，map 的键则不是。"
+    },
+    {
+      "id": "h-7affa1da",
+      "kind": "html",
+      "en": "<code>==</code> is value equality everywhere",
+      "tr": "<code>==</code> 在任何地方都是值相等"
+    },
+    {
+      "id": "h-4243938e",
+      "kind": "html",
+      "en": "a test that passed while the code failed",
+      "tr": "代码失败时测试却通过了"
+    },
+    {
+      "id": "h-310e559c",
+      "kind": "html",
+      "en": "<code>==</code> is now value equality everywhere; primitives still compile to <code>===</code>, so ordinary comparisons are unchanged.",
+      "tr": "<code>==</code> 现在在任何地方都是值相等；基本类型仍然编译为 <code>===</code>，所以普通的比较不受影响。"
+    },
+    {
+      "id": "h-ce8c5b9d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how a test could pass on broken code</span>",
+      "tr": "历史 <span class=\"hint\">测试是怎么在有问题的代码上通过的</span>"
+    },
+    {
+      "id": "h-493aa455",
+      "kind": "html",
+      "en": "<code>==</code> was documented as value equality and lowered to <code>===</code>, which is <em>reference</em> equality the moment either side is a record, a tagged union, or an array. The same expression compared structurally in a test and by identity in the program beside it, so a test could report success on code that did not work.",
+      "tr": "<code>==</code> 在文档中写的是值相等，却被降级为 <code>===</code>，而只要任何一边是记录、标签联合或数组，这就是<em>引用</em>相等。同一个表达式在测试中按结构比较，在旁边的程序中却按标识比较，所以测试可能在不能工作的代码上报告成功。"
+    },
+    {
+      "id": "h-5f4e8e26",
+      "kind": "html",
+      "en": "A loop binding keeps its element type",
+      "tr": "循环绑定保留其元素类型"
+    },
+    {
+      "id": "h-8a885009",
+      "kind": "html",
+      "en": "exhaustiveness that evaporated inside a loop",
+      "tr": "在循环中消失的穷尽检查"
+    },
+    {
+      "id": "h-6c2e2fbd",
+      "kind": "html",
+      "en": "It now names the variant you have not handled, which is advice to satisfy the check rather than to switch it off.",
+      "tr": "现在它会指出你没有处理的变体，这是让你满足检查的建议，而不是让你关掉检查。"
+    },
+    {
+      "id": "h-811ca57d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the catch-all advice it used to give</span>",
+      "tr": "历史 <span class=\"hint\">它以前给出的兜底分支建议</span>"
+    },
+    {
+      "id": "h-1933d79f",
+      "kind": "html",
+      "en": "The loop binding carried no element type, so a <code>match</code> over a string-literal union degraded to a match over <code>string</code> and the compiler advised adding a catch-all.",
+      "tr": "循环绑定不带元素类型，所以对字符串字面量联合类型的 <code>match</code> 退化成了对 <code>string</code> 的 match，编译器还建议加一个兜底分支。"
+    },
+    {
+      "id": "h-c324ad5a",
+      "kind": "html",
+      "en": "Imported generic unions are checked",
+      "tr": "导入的泛型联合类型受检"
+    },
+    {
+      "id": "h-c5058636",
+      "kind": "html",
+      "en": "a variant left out of a match on an imported generic union",
+      "tr": "对导入的泛型联合类型做 match 时漏掉的变体"
+    },
+    {
+      "id": "h-e2d737fb",
+      "kind": "html",
+      "en": "It is <code>E0200</code> either way now, at both import spellings and at an open parameter or a concrete instantiation alike.",
+      "tr": "现在无论哪种情况都是 <code>E0200</code>，两种导入写法都一样，无论是开放的类型参数还是具体的实例化。"
+    },
+    {
+      "id": "h-16f631f3",
+      "kind": "html",
+      "en": "History <span class=\"hint\">why the check never started</span>",
+      "tr": "历史 <span class=\"hint\">检查为什么从未启动</span>"
+    },
+    {
+      "id": "h-b1b9589f",
+      "kind": "html",
+      "en": "A union your own module declares is checked whether or not it takes type parameters. One imported from a sibling module was checked only when it took none. <code>Tree&lt;string&gt;</code> reaches the cross-module coverage path as an application of an imported union rather than as one, and the gate that starts the check was looking for the second, so the <code>match</code> was never counted at all: <code>tsc --strict</code> passed and a <code>Leaf</code> threw. Delete <code>&lt;K&gt;</code> from both files and the same program was <code>E0200</code>.",
+      "tr": "你自己模块声明的联合类型，无论是否带类型参数都会受检。从相邻模块导入的，只有不带类型参数时才受检。<code>Tree&lt;string&gt;</code> 进入跨模块覆盖检查路径时，是作为导入联合类型的一个应用，而不是联合类型本身，而启动检查的入口找的是后者，所以这个 <code>match</code> 根本没被计入：<code>tsc --strict</code> 通过，一个 <code>Leaf</code> 抛出了异常。把两个文件中的 <code>&lt;K&gt;</code> 删掉，同一个程序就是 <code>E0200</code>。"
+    },
+    {
+      "id": "h-215b69fb",
+      "kind": "html",
+      "en": "A <code>parse</code> can't claim a check it didn't do",
+      "tr": "<code>parse</code> 不能声称做了它没做的检查"
+    },
+    {
+      "id": "h-ed18ae93",
+      "kind": "html",
+      "en": "a <code>parse</code> that reported success without checking: now E0304",
+      "tr": "未经检查就报告成功的 <code>parse</code>：现在是 E0304"
+    },
+    {
+      "id": "h-39872533",
+      "kind": "html",
+      "en": "Holding a socket in a record is ordinary and still compiles. Validating one is now refused where it is written and in every module that imports the record, naming the field and its type, and the refusal follows the shape: through a nested record, an <code>Array</code>, an <code>Option</code>.",
+      "tr": "在记录中持有 socket 是正常的，仍然可以编译。现在在写出校验的地方，以及每个导入该记录的模块中，校验它都会被拒绝，并指出字段及其类型，而且拒绝会沿着形状传递：穿过嵌套记录、<code>Array</code>、<code>Option</code>。"
+    },
+    {
+      "id": "h-a05fe05e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why presence is not a check, and the fix it asks for</span>",
+      "tr": "详情 <span class=\"hint\">为什么检查存在与否不算检查，以及它要求的修复</span>"
+    },
+    {
+      "id": "h-9c3b562f",
+      "kind": "html",
+      "en": "Every record type carries a runtime descriptor. For a field whose type the compiler cannot see into, a socket or anything reached through <code>extern_ts</code>, the generated check was \"is it present\" while the reported message read <code>field `sock` must be Socket</code>. A boolean that is always true is useless. One that is always true under a message naming a type nothing checked is worse, because <code>parse</code> is the thing a boundary is told to trust.",
+      "tr": "每个记录类型都带有运行时描述符。对于编译器无法看清其类型的字段，比如 socket 或任何通过 <code>extern_ts</code> 得到的东西，生成的检查只是&ldquo;它是否存在&rdquo;，报告的信息却写着 <code>field `sock` must be Socket</code>。一个总是为真的布尔值没有用。一个总是为真、信息却声称检查了某个类型的布尔值更糟，因为 <code>parse</code> 正是边界被告知要信任的东西。"
+    },
+    {
+      "id": "h-f64526be",
+      "kind": "html",
+      "en": "The fix it asks for is the split you would have written anyway, a wire type whose fields are all checkable, then a domain record you build from it. <code>unknown</code> is not caught by this, because it claims nothing and presence really is the whole check.",
+      "tr": "它要求的修复，就是你本来也会写的拆分：一个所有字段都可检查的线上类型，再由它构建一个领域记录。<code>unknown</code> 不会被这条规则拦下，因为它什么也不声称，检查是否存在确实就是全部检查。"
+    },
+    {
+      "id": "h-ffa8c81e",
+      "kind": "html",
+      "en": "A signature change, invisible at the call site: closed in 0.1.116",
+      "tr": "在调用处看不见的签名变化：已在 0.1.116 修复"
+    },
+    {
+      "id": "h-6db7877f",
+      "kind": "html",
+      "en": "Change a function to take a payload instead of a raw string and every call still passing the old shape built clean.",
+      "tr": "把一个函数改为接收负载而不是原始字符串，每一处仍在传旧形状的调用都照样构建通过。"
+    },
+    {
+      "id": "h-9ee21e49",
+      "kind": "html",
+      "en": "billing.glyph: a union crosses a `string` parameter unnoticed",
+      "tr": "billing.glyph：联合类型悄悄穿过一个 `string` 参数"
+    },
+    {
+      "id": "h-a20d51b6",
+      "kind": "html",
+      "en": "glyph build, now",
+      "tr": "glyph build，现在"
+    },
+    {
+      "id": "h-dac7e473",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the check fires, and where it stays quiet</span>",
+      "tr": "详情 <span class=\"hint\">检查在哪里触发，在哪里保持沉默</span>"
+    },
+    {
+      "id": "h-17c058ca",
+      "kind": "html",
+      "en": "A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to accept a value of a declared union or record with no complaint at all, even though the identical call with a mismatched <code>bool</code> argument was already <code>E0211</code>.",
+      "tr": "类型为 <code>string</code>、<code>number</code> 或 <code>bool</code> 的参数，以前会毫无异议地接受一个已声明的联合类型或记录的值，而同样的调用如果传入不匹配的 <code>bool</code> 参数，早就是 <code>E0211</code> 了。"
+    },
+    {
+      "id": "h-da7fe218",
+      "kind": "html",
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "这项检查读取声明，所以只在答案确定的地方触发。基本类型的别名、字符串字面量联合类型（D30）、<code>extern_ts</code> 或 <code>typeof</code> 主体，以及 <code>interface</code>，都仍然不报，因为它们都不能像标签联合或记录那样被证明不是 <code>string</code>；<code>void</code> 也被排除。它同样覆盖参数、<code>return</code> 和 <code>let</code> 标注，因为三者共用同一个关系。"
+    },
+    {
+      "id": "h-77fa2d03",
+      "kind": "html",
+      "en": "An annotated <code>const</code> is typed",
+      "tr": "带标注的 <code>const</code> 有类型"
+    },
+    {
+      "id": "h-18946092",
+      "kind": "html",
+      "en": "A <code>const</code> had the matching gap on the receiving side.",
+      "tr": "<code>const</code> 在接收一侧有对应的漏洞。"
+    },
+    {
+      "id": "h-275d90ea",
+      "kind": "html",
+      "en": "catalog.glyph: an annotated const, and the field it does not have",
+      "tr": "catalog.glyph：带标注的 const，以及它没有的字段"
+    },
+    {
+      "id": "h-ace01ce9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">unannotated consts, and why both fixes are breaking</span>",
+      "tr": "详情 <span class=\"hint\">不带标注的 const，以及为什么两个修复都是 Breaking</span>"
+    },
+    {
+      "id": "h-7e1d4db5",
+      "kind": "html",
+      "en": "A module-level <code>const</code> carrying a type annotation lowered to <code>Ty::Unknown</code> no matter what the annotation said, so a field typo on it was invisible exactly where the identical annotated <code>let</code> inside a function already reported it.",
+      "tr": "带类型标注的模块级 <code>const</code>，无论标注写的是什么，都会降级为 <code>Ty::Unknown</code>，所以它上面的字段拼写错误不可见，而函数内部同样带标注的 <code>let</code> 早就能报告这个错误。"
+    },
+    {
+      "id": "h-4319dca8",
+      "kind": "html",
+      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "不带标注的 <code>const</code> 什么也不声称，有意保持为 <code>Unknown</code>：从初始化表达式推断它的类型是另一个问题，误报的范围也不同。在 <code>glyph check --no-tsc</code>、语言服务器和 playground 下，两个修复都是 Breaking，因为每个都开始拒绝上一个版本接受的程序；而完整的 <code>glyph build</code> 在两种情况下早已通过 <code>tsc</code> 报错。"
+    },
+    {
+      "id": "h-cbab1648",
+      "kind": "html",
+      "en": "An extra field is still <code>tsc</code>'s to catch",
+      "tr": "多余的字段仍由 <code>tsc</code> 发现"
+    },
+    {
+      "id": "h-ac6a4587",
+      "kind": "html",
+      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
+      "tr": "有一项记录字面量检查仍归 <code>tsc</code> 而不归 Glyph。<code>glyph build</code> 会因它停止；<code>glyph check --no-tsc</code>、语言服务器和 playground 则不报（G273）。"
+    },
+    {
+      "id": "h-b4f5f44a",
+      "kind": "html",
+      "en": "point.glyph: an extra field, left to tsc",
+      "tr": "point.glyph：多余的字段，留给 tsc"
+    },
+    {
+      "id": "h-500a7735",
+      "kind": "html",
+      "en": "TS2353 from tsc",
+      "tr": "来自 tsc 的 TS2353"
+    },
+    {
+      "id": "h-420c0512",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how tsc reports it</span>",
+      "tr": "详情 <span class=\"hint\">tsc 如何报告它</span>"
+    },
+    {
+      "id": "h-ef7526a6",
+      "kind": "html",
+      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
+      "tr": "带有声明的记录中没有的字段的字面量能通过 Glyph 的检查器，而 <code>tsc</code> 会在生成的 TypeScript 上以 <code>TS2353</code> 拒绝它，并映射回该字面量。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-d58144f7",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">18</span>",
+      "tr": "现已提供 <span class=\"count\">18</span>"
+    },
+    {
+      "id": "h-f9b8704d",
+      "kind": "html",
+      "en": "Matching",
+      "tr": "匹配"
+    },
+    {
+      "id": "h-1822a7e3",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over sealed unions: yours or a sibling module's, generic or not, and the standard library's, such as <code>fs.ErrorKind</code>",
+      "tr": "对封闭联合类型的穷尽 <code>match</code>：你自己的或相邻模块的，泛型或非泛型，以及标准库的，比如 <code>fs.ErrorKind</code>"
+    },
+    {
+      "id": "h-1dc7d0ec",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over <code>number</code>/<code>string</code>",
+      "tr": "对 <code>number</code>/<code>string</code> 的穷尽 <code>match</code>"
+    },
+    {
+      "id": "h-d12411b5",
+      "kind": "html",
+      "en": "A typo'd variant arm caught as a compile error with a nearest-variant suggestion instead of a silent catch-all",
+      "tr": "拼错的变体分支会被当作编译错误发现，并给出最接近的变体建议，而不是成为悄无声息的兜底分支"
+    },
+    {
+      "id": "h-b2819e07",
+      "kind": "html",
+      "en": "A variant in payload position dispatching on the payload's own tag rather than binding it",
+      "tr": "负载位置上的变体按负载自身的标签分派，而不是绑定它"
+    },
+    {
+      "id": "h-12d7966b",
+      "kind": "html",
+      "en": "Two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning",
+      "tr": "两个会对应同一标签的分支以 <code>E0305</code> 被拒绝，而不是让其中一个悄悄胜出"
+    },
+    {
+      "id": "h-42315da3",
+      "kind": "html",
+      "en": "A <code>for</code> binding that keeps its element type",
+      "tr": "保留元素类型的 <code>for</code> 绑定"
+    },
+    {
+      "id": "h-d7829106",
+      "kind": "html",
+      "en": "Errors and tests",
+      "tr": "错误与测试"
+    },
+    {
+      "id": "h-71ede7c9",
+      "kind": "html",
+      "en": "<code>Result</code> + the <code>?</code> operator with error-type checking",
+      "tr": "<code>Result</code> 加上带错误类型检查的 <code>?</code> 运算符"
+    },
+    {
+      "id": "h-77e204a0",
+      "kind": "html",
+      "en": "A warning when a <code>Result</code> is discarded",
+      "tr": "丢弃 <code>Result</code> 时发出警告"
+    },
+    {
+      "id": "h-c7fdeb1c",
+      "kind": "html",
+      "en": "<code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included",
+      "tr": "在每次构建时运行的 <code>@example</code> / <code>@doc @run</code> 测试，包括 <code>--json</code>"
+    },
+    {
+      "id": "h-5f5f223f",
+      "kind": "html",
+      "en": "Types, records and literals",
+      "tr": "类型、记录与字面量"
+    },
+    {
+      "id": "h-538cd6bb",
+      "kind": "html",
+      "en": "A declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected",
+      "tr": "在需要 <code>string</code>/<code>number</code>/<code>bool</code> 的地方传入已声明的联合类型或记录"
+    },
+    {
+      "id": "h-1d1dcc32",
+      "kind": "html",
+      "en": "A field typo on an annotated module-level <code>const</code>",
+      "tr": "带标注的模块级 <code>const</code> 上的字段拼写错误"
+    },
+    {
+      "id": "h-10b714c5",
+      "kind": "html",
+      "en": "<code>==</code> as value equality on every type",
+      "tr": "<code>==</code> 在所有类型上都是值相等"
+    },
+    {
+      "id": "h-65a54713",
+      "kind": "html",
+      "en": "Reading a key out of a map rejected",
+      "tr": "从 map 中读取键会被拒绝"
+    },
+    {
+      "id": "h-0fdc9dd8",
+      "kind": "html",
+      "en": "Object literals and JSX attributes checked against the declared type",
+      "tr": "对象字面量和 JSX 属性按声明的类型检查"
+    },
+    {
+      "id": "h-194b7ac0",
+      "kind": "html",
+      "en": "since 0.1.124",
+      "tr": "自 0.1.124 起"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
+    },
+    {
+      "id": "h-16b87510",
+      "kind": "html",
+      "en": "Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant=\"nope\" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames.",
+      "tr": "从 0.1.124 起，对象字面量具有其字段所构成的记录类型，所以 <code>let g: string = { x: 1 }</code>、缺少声明的记录所要求的字段的字面量，以及传到不匹配位置的字面量，都会是 E0204 或 E0211 并指出声明的类型，无论在 <code>let</code>、<code>const</code>、<code>return</code> 还是调用参数中；JSX 属性会按组件的 props 记录检查，所以 <code>&lt;Button variant=\"nope\" /&gt;</code> 会引发 E0211 并列出可接受的值，记录中未声明的属性会引发 E0210，<code>glyph fix</code> 可以把它改名。"
+    },
+    {
+      "id": "h-cafb3664",
+      "kind": "html",
+      "en": "A missing required field or prop is named",
+      "tr": "缺少的必填字段或 prop 会被指出"
+    },
+    {
+      "id": "h-90bb1a2a",
+      "kind": "html",
+      "en": "since 0.1.125",
+      "tr": "自 0.1.125 起"
+    },
+    {
+      "id": "h-2bed57b7",
+      "kind": "html",
+      "en": "Since 0.1.125 a record literal or a component element that leaves out a required field names it, in the message and in <code>missing_fields</code> on <code>--json</code>, and an element missing a required prop is E0211 even when it writes no attributes at all; a component whose one parameter is not a record is E0229.",
+      "tr": "从 0.1.125 起，漏掉必填字段的记录字面量或组件元素会指出该字段，在信息中以及 <code>--json</code> 的 <code>missing_fields</code> 中都有；缺少必填 prop 的元素即使一个属性都没写，也是 E0211；唯一参数不是记录的组件是 E0229。"
+    },
+    {
+      "id": "h-d16cf25f",
+      "kind": "html",
+      "en": "Every field of a record compared by the same rule as the record",
+      "tr": "记录的每个字段都按与记录相同的规则比较"
+    },
+    {
+      "id": "h-5e7cd30b",
+      "kind": "html",
+      "en": "since 0.1.127",
+      "tr": "自 0.1.127 起"
+    },
+    {
+      "id": "h-7f53d708",
+      "kind": "html",
+      "en": "Since 0.1.127 every field of a record is compared by the same rule as the record, so a nested record, a declared type or a string-literal union inside one is refused where <code>tsc</code> refuses it, and so are an optional field where a required one is declared, a function whose return does not fit and a local interface's members. A record whose fields are all optional refuses a value that shares none of them, as TS2559 does. A function's parameters are still not compared.",
+      "tr": "从 0.1.127 起，记录的每个字段都按与记录相同的规则比较，所以其中嵌套的记录、声明的类型或字符串字面量联合类型，会在 <code>tsc</code> 拒绝的地方被拒绝；声明为必填却给了可选字段、返回值不匹配的函数，以及本地接口的成员也是如此。所有字段都可选的记录，会拒绝一个与它没有任何共同字段的值，与 TS2559 一样。函数的参数目前还不做比较。"
+    },
+    {
+      "id": "h-ea0eaaf6",
+      "kind": "html",
+      "en": "Data boundaries",
+      "tr": "数据边界"
+    },
+    {
+      "id": "h-256d43ee",
+      "kind": "html",
+      "en": "Runtime type descriptors",
+      "tr": "运行时类型描述符"
+    },
+    {
+      "id": "h-32584cfc",
+      "kind": "html",
+      "en": "<code>@redact</code> PII masking on the type descriptor",
+      "tr": "类型描述符上的 <code>@redact</code> PII 脱敏"
+    },
+    {
+      "id": "h-f094b384",
+      "kind": "html",
+      "en": "Getting sharper <span class=\"count\">13</span>",
+      "tr": "正在加强 <span class=\"count\">13</span>"
+    },
+    {
+      "id": "h-832f8a5e",
+      "kind": "html",
+      "en": "Coverage of an imported union doesn't look inside a variant's payload yet",
+      "tr": "对导入联合类型的覆盖检查还不会深入变体的负载"
+    },
+    {
+      "id": "h-951e9ba7",
+      "kind": "html",
+      "en": "next to deepen",
+      "tr": "下一步要加深"
+    },
+    {
+      "id": "h-1398e498",
+      "kind": "html",
+      "en": "A type parameter used to switch the check off: through 0.1.90 a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit a variant, build clean, pass <code>tsc --strict</code>, and throw at run time, where the same match on <code>Tree</code> was <code>E0200</code>. That is closed for a union your own module declares and, as of 0.1.95, for one an import away. What is still shallower on the imported path is the depth rather than the gate: the check that runs for an imported union never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> rather than reporting the missing <code>Y</code>, and no type parameter is involved. That is the next thing to deepen.",
+      "tr": "类型参数曾经会关闭检查：直到 0.1.90，对 <code>Tree&lt;K&gt;</code> 的 <code>match</code> 可以漏掉一个变体，构建通过，通过 <code>tsc --strict</code>，然后在运行时抛出异常，而同样的 match 作用在 <code>Tree</code> 上则是 <code>E0200</code>。对你自己模块声明的联合类型，这已经修复；从 0.1.95 起，对跨一次导入的联合类型也已修复。导入路径上仍然较浅的是深度而不是入口：为导入联合类型运行的检查从不深入变体的负载，所以当导入联合类型的负载本身也是联合类型时，<code>B(X)</code> 会匹配所有 <code>B</code>，而不是报告缺少的 <code>Y</code>，这与类型参数无关。这是下一步要加深的地方。"
+    },
+    {
+      "id": "h-8efe9560",
+      "kind": "html",
+      "en": "A lowercase payload variant of an imported union stops the build",
+      "tr": "导入联合类型的小写负载变体会让构建停止"
+    },
+    {
+      "id": "h-5584b05d",
+      "kind": "html",
+      "en": "A variant in payload position is read off the payload union's variant list now, so the capitalization of the name stops mattering for a union your module declares. For one imported from another module there is no list to read and the shape of the name still answers, which means <code>Err(Blank)</code> dispatches and <code>Err(blank)</code> stops the build at <code>E0305</code>: a loud failure on a valid program, and it needs the same imported-union registry the shallow coverage check above needs.",
+      "tr": "负载位置上的变体现在按负载联合类型的变体列表来读，所以对你模块中声明的联合类型，名字的大小写不再重要。对从其他模块导入的联合类型，没有可读的列表，仍然由名字的形式决定，这意味着 <code>Err(Blank)</code> 会分派，而 <code>Err(blank)</code> 会让构建在 <code>E0305</code> 停止：对一个合法程序大声失败，修复它需要与上面浅层覆盖检查相同的导入联合类型注册表。"
+    },
+    {
+      "id": "h-bc939020",
+      "kind": "html",
+      "en": "A constructor pattern over a record payload (<code>Ok(Point)</code>) fails in <code>tsc</code>, not Glyph",
+      "tr": "对记录负载的构造器模式（<code>Ok(Point)</code>）在 <code>tsc</code> 而不是 Glyph 中失败"
+    },
+    {
+      "id": "h-0de1643c",
+      "kind": "html",
+      "en": "A constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic naming the type and the pattern.",
+      "tr": "对一个记录而非联合类型的负载使用构造器模式（<code>Ok(Point)</code>），会通过 <code>tsc</code> 失败，并提到一个你从没写过的 <code>.tag</code>，而它本应是一条指出类型和模式的 Glyph 诊断。"
+    },
+    {
+      "id": "h-f3636a71",
+      "kind": "html",
+      "en": "A misspelled bare arm reports two lines for the same name",
+      "tr": "拼错的不带参数分支对同一个名字报告两行"
+    },
+    {
+      "id": "h-578afec8",
+      "kind": "html",
+      "en": "The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike, constructor-shaped or bare: through 0.1.115 a bare misspelled head over an imported union (<code>Loadign</code>, no arguments) was credited as covering a variant and said nothing, where the same typo on a local union already reported <code>E0220</code>; both spellings report it now. A misspelled bare arm also trips <code>E0103</code>, one stage earlier, so you get both lines for the same name.",
+      "tr": "拼写检查（<code>E0220</code>）现在同样覆盖模块中声明的联合类型和通过命名空间导入得到的联合类型（<code>model.Nooo(_)</code>），无论是构造器形式还是不带参数的形式：直到 0.1.115，导入联合类型上拼错的不带参数分支头（<code>Loadign</code>，没有参数）会被当作覆盖了某个变体而不报任何东西，而本地联合类型上同样的拼写错误早已报告 <code>E0220</code>；现在两种写法都会报告。拼错的不带参数分支还会提前一个阶段触发 <code>E0103</code>，所以同一个名字你会得到两行。"
+    },
+    {
+      "id": "h-5ab756fd",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted",
+      "tr": "包含展开的字面量没有类型，多余的字段仍被接受"
+    },
+    {
+      "id": "h-3a8ce517",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
+      "tr": "包含展开的字面量没有类型，多余的字段仍被接受，而 <code>tsc</code> 会在新建的字面量上以 TS2353 拒绝它（G273）。"
+    },
+    {
+      "id": "h-cf31f508",
+      "kind": "html",
+      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
+      "tr": "导入的 <code>interface</code> 的成员和导入的 <code>const</code> 的类型还不能跨越边界"
+    },
+    {
+      "id": "h-182d14d1",
+      "kind": "html",
+      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
+      "tr": "类型现在能完整地跨越模块边界：联合类型保留它们的穷尽性，标签联合和字符串字面量联合都是如此；记录保留它的字段集合，所以导入记录上拼错的字段是指出该记录自身类型的 <code>E0210</code>，对它的某个数组字段做 <code>for i, x</code> 无需标注，绑定的就是数字。还不能跨越的是 <code>interface</code> 的成员列表，所以在需要导入接口的地方传入的记录，没有可比较的对象；导入的 <code>const</code> 是同样的问题换了个位置：它仍然是 <code>Ty::Unknown</code>，所以无论源模块是否给它加了标注，通过具名导入或命名空间导入访问时字段拼写错误都不会被报告。"
+    },
+    {
+      "id": "h-b6b84555",
+      "kind": "html",
+      "en": "Deeper flow-narrowing is on the roadmap",
+      "tr": "更深入的流敏感类型收窄已在路线图上"
+    },
+    {
+      "id": "h-fd47e980",
+      "kind": "html",
+      "en": "Maps from another module or the standard library are read unchecked",
+      "tr": "来自其他模块或标准库的 map 读取不受检"
+    },
+    {
+      "id": "h-0edf415f",
+      "kind": "html",
+      "en": "A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types.",
+      "tr": "来自其他模块或标准库的 map 读取仍然不受检，所以 E0224 还不覆盖 <code>sqlite.Row</code>，双绑定的 <code>for i, x in xs</code> 仍然会丢失类型。"
+    },
+    {
+      "id": "h-15d1a62f",
+      "kind": "html",
+      "en": "A type from a plain <code>.d.ts</code> has no descriptor; materialize it with <code>glyph gen dts</code>",
+      "tr": "来自普通 <code>.d.ts</code> 的类型没有描述符；用 <code>glyph gen dts</code> 把它物化"
+    },
+    {
+      "id": "h-5b74c17a",
+      "kind": "html",
+      "en": "A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates.",
+      "tr": "从另一个 Glyph 模块导入的类型现在通过它自己的描述符校验，字段位置上的 <code>where</code> 精化也是如此；从普通 <code>.d.ts</code> 导入的类型没有可用于校验的描述符，现在对包含这类类型的记录调用 <code>parse</code> 会被拒绝（<code>E0304</code>），而不是报告一个它并未检查的成功；用 <code>glyph gen dts</code> 把它物化，就能得到一个可校验的类型。"
+    },
+    {
+      "id": "h-b99fb20b",
+      "kind": "html",
+      "en": "Tooling and the standard library",
+      "tr": "工具与标准库"
+    },
+    {
+      "id": "h-3aeea93f",
+      "kind": "html",
+      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
+      "tr": "九个 <code>std/string</code> 和 <code>std/array</code> 函数仍然返回无类型的值"
+    },
+    {
+      "id": "h-b4a6a924",
+      "kind": "html",
+      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
+      "tr": "检查器建模的标准库返回类型覆盖了 <code>std/string</code> 和 <code>std/array</code> 中固定参数个数的那一半；带有可选尾部参数的六个函数（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）以及 <code>array.map</code>/<code>flat_map</code>/<code>zip</code> 仍然没有类型，所以直接从这些函数得到的值，在用索引遍历之前需要加标注。"
+    },
+    {
+      "id": "h-201d023a",
+      "kind": "html",
+      "en": "Member access on primitives and arrays has no diagnostic where <code>tsc</code> doesn't run",
+      "tr": "在不运行 <code>tsc</code> 的地方，对基本类型和数组的成员访问没有诊断"
+    },
+    {
+      "id": "h-4ea82084",
+      "kind": "html",
+      "en": "Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground.",
+      "tr": "对 <code>string</code>、<code>number</code>、<code>bool</code> 和 <code>Array&lt;T&gt;</code> 的成员访问和调用，按设计交给 <code>tsc</code>，而不是遗漏；Glyph 在这些地方允许原生 JS 成员，所以 <code>s.length</code> 和 <code>xs.length</code> 能编译并通过 <code>tsc --strict</code>，仍然缺少的是在四个从不运行 <code>tsc</code> 的场景中的诊断：<code>glyph check --no-tsc</code>、语言服务器、MCP 服务器和 playground。"
+    },
+    {
+      "id": "h-92f64275",
+      "kind": "html",
+      "en": "An offline build with examples needs <code>tsx</code> or <code>--no-test</code>",
+      "tr": "离线构建带示例的项目需要 <code>tsx</code> 或 <code>--no-test</code>"
+    },
+    {
+      "id": "h-be29560d",
+      "kind": "html",
+      "en": "The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>.",
+      "tr": "示例运行器会调用 <code>tsx</code>，所以一个有示例而 <code>PATH</code> 上没有 <code>tsx</code> 的项目会构建失败，而不是悄悄跳过；这是有意的，但意味着离线构建需要安装 <code>tsx</code> 或使用 <code>--no-test</code>。"
+    },
+    {
+      "id": "h-b5f0eada",
+      "kind": "html",
+      "en": "An <code>await</code> in a plain <code>fn</code> is caught against your own source",
+      "tr": "普通 <code>fn</code> 中的 <code>await</code> 会针对你自己的源码报告"
+    },
+    {
+      "id": "h-d7c47327",
+      "kind": "html",
+      "en": "Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href=\"/answers/early-errors/\">caught earlier</a>.",
+      "tr": "异步上下文曾经是 Glyph 唯一交给 <code>tsc</code> 的规则；现在普通 <code>fn</code> 中的 <code>await</code> 是针对你自己源码的 <code>E0222</code>，顶层 <code>const</code> 初始化表达式是唯一仍然允许的情况。这条规则以及另外两条提前了一个阶段的规则，见<a href=\"/answers/early-errors/\">更早发现的错误</a>。"
+    },
+    {
+      "id": "h-9517f6f5",
+      "kind": "html",
+      "en": "Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the <a href=\"/pillars/verifiability/\">verifiability pillar page</a>.",
+      "tr": "为什么这是 Glyph 四大支柱中的第一个，以及它的保证止于何处，见<a href=\"/pillars/verifiability/\">可验证性支柱页面</a>。"
+    }
+  ]
+}

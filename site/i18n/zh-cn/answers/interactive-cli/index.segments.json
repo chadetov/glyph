@@ -1,0 +1,164 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/interactive-cli/index.html",
+  "locale": "zh-cn",
+  "source_hash": "a2332eec4a663662",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I write a program someone types into? · Glyph",
+      "tr": "能写一个让人输入命令的程序吗？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "io.read_line returns as soon as a line arrives instead of waiting for stdin to close, so a REPL, a game loop or a chat client answers while you type.",
+      "tr": "io.read_line 在一行到达时就返回，而不是等 stdin 关闭，所以 REPL、游戏循环或聊天客户端会在你输入的同时作出回应。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "能提供网页，还是只能做 JSON API？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "能写服务器吗，还是进程直接就退出了？"
+    },
+    {
+      "id": "h-130f3b5f",
+      "kind": "html",
+      "en": "18 &middot; Programs you type into",
+      "tr": "18 &middot; 交互式程序"
+    },
+    {
+      "id": "h-e3bd5d73",
+      "kind": "html",
+      "en": "Can I write a program someone types into?",
+      "tr": "能写一个让人输入命令的程序吗？"
+    },
+    {
+      "id": "h-3c9a580a",
+      "kind": "html",
+      "en": "Yes. <code>io.read_line</code> returns <strong>as soon as a full line arrives</strong> and does not wait for stdin to close, so a REPL, a game loop, or a chat client answers each line before it reads the next one. Until 0.1.62 it did wait, and that is worth saying out loud, because it made every interactive program impossible.",
+      "tr": "能。<code>io.read_line</code> <strong>在完整的一行到达时就返回</strong>，不会等 stdin 关闭，所以 REPL、游戏循环或聊天客户端会先回应每一行，再读取下一行。在 0.1.62 之前它确实会等，这一点值得明说，因为它让所有交互式程序都无法实现。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么这很重要"
+    },
+    {
+      "id": "h-4473016d",
+      "kind": "html",
+      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name. Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
+      "tr": "只在输入结束时才返回的行读取器，其实是顶着行读取器名字的文件读取器。用管道传入一个文件时它工作得很好，所以一直没人发现：仓库里每个读取 stdin 的应用读的都是管道。后来有人写了一个聊天客户端，它在用户输入时毫无反应，直到按下 Ctrl-D 才一次性打印所有回复。"
+    },
+    {
+      "id": "h-02cdf3c6",
+      "kind": "html",
+      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
+      "tr": "那个应用最终是以回放录制好的 JSON 文件的会话回放器形式发布的，源码里有一条注释说明原因。另外三个应用也围绕同一个问题调整了形态，只是没人点明：扫雷无法在两步之间重绘，文字冒险游戏无法回应 <code>look</code>，REPL 在你挂断之前什么都不求值。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-b3adfa1a",
+      "kind": "html",
+      "en": "The whole live-session loop of the chat app. Read, apply, print, repeat:",
+      "tr": "聊天应用的整个实时会话循环。读取、应用、打印、重复："
+    },
+    {
+      "id": "h-3e921737",
+      "kind": "html",
+      "en": "Driven at a real terminal, with each line typed about 0.6 seconds apart and stdin left open. The left column is milliseconds since the process started:",
+      "tr": "在真实终端上驱动，每行输入间隔约 0.6 秒，stdin 保持打开。左列是进程启动以来的毫秒数："
+    },
+    {
+      "id": "h-cb315554",
+      "kind": "html",
+      "en": "glyph run examples/apps/chat/main.glyph --stdin",
+      "tr": "glyph run examples/apps/chat/main.glyph --stdin"
+    },
+    {
+      "id": "h-c4443d66",
+      "kind": "html",
+      "en": "One to two milliseconds from typed line to answer. Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
+      "tr": "从输入一行到得到回应只需一到两毫秒。修复之前，直到 6460ms 才有输出，也就是 stdin 关闭的时刻。完整运行时第一个回应大约出现在 1.6 秒处，那是 <code>tsx</code> 启动的时间，而不是读取延迟。"
+    },
+    {
+      "id": "h-a2b1ea84",
+      "kind": "html",
+      "en": "The parts that bite in practice",
+      "tr": "实际使用中容易踩坑的地方"
+    },
+    {
+      "id": "h-92f12884",
+      "kind": "html",
+      "en": "A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input. Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped. Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
+      "tr": "末尾的 <code>\\r</code> 会被去掉，所以 CRLF 文件和 LF 文件得到相同的行，你不用在 Windows 输入上调试一个看不见的字符。没有以换行结尾的输入，仍会在返回 <code>None</code> 之前把最后一行交还一次，所以没有结尾换行的文件的最后一行不会被悄悄丢掉。跨读取边界被拆开的多字节 UTF-8 会被暂存并补全，而不是变成替换字符。"
+    },
+    {
+      "id": "h-734ae2bb",
+      "kind": "html",
+      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin. 200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
+      "tr": "<code>read_to_string</code> 读取的是同一个缓冲区，所以两者可以组合：先用 <code>read_line</code> 读标题行，再用 <code>read_to_string</code> 读正文，得到的是剩下的内容，而不是第二份副本，也不是空字符串。如果先调用它，它仍然返回整个 stdin。通过管道传入 200,000 行，计数大约需要 20ms，所以逐行读取不需要牺牲吞吐量。"
+    },
+    {
+      "id": "h-dbb27136",
+      "kind": "html",
+      "en": "A header line, then the body",
+      "tr": "先读一行标题，再读正文"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-d2b638c8",
+      "kind": "html",
+      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike. CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer. A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too. <code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
+      "tr": "<code>io.read_line</code> 在一行到达时返回，而不是在流关闭时返回，所以“提示/读取/回应”循环在终端上和通过管道时都能工作。CRLF 会被规范化，没有终止符的最后一行会交付一次，多字节字符能跨越分块边界保持完整，<code>read_to_string</code> 读取同一缓冲区中剩下的内容。有一个回归测试会保持 stdin 打开并要求得到回显，因为用管道传入文件的测试在有问题的实现上也能通过。<code>io.print</code> 和 <code>io.eprint</code> 输出时不带换行，所以 REPL 的 <code>&gt; </code> 提示符和用户输入的答案在同一行；<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> 告诉程序它面对的是人还是管道，所以像聊天应用的 <code>--stdin</code> 这样的 flag 不再是唯一的判断方式。"
+    },
+    {
+      "id": "h-43278834",
+      "kind": "html",
+      "en": "Still rough",
+      "tr": "仍不完善"
+    },
+    {
+      "id": "h-ec1da8e1",
+      "kind": "html",
+      "en": "A program that wants to redraw a screen has no cursor control: <code>std/io</code> has no cursor or screen functions and no other stdlib module adds them, so a full-screen terminal UI still means writing the escape codes yourself.",
+      "tr": "想要重绘屏幕的程序没有光标控制：<code>std/io</code> 没有光标或屏幕函数，也没有其他标准库模块提供，所以全屏终端界面仍然需要自己写转义序列。"
+    }
+  ]
+}

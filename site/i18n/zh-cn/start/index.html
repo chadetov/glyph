@@ -1,0 +1,154 @@
+---
+title: 从这里开始 · 10 分钟写出第一个 Glyph 程序 · Glyph
+description: 用 npx 创建一个 Glyph 项目并运行它，再故意把它改错，读懂编译器报错并修好。只要十分钟，不需要全局安装任何东西。
+source_hash: 0967efaee1e51c6b
+prev: / | &larr; 首页 | 智能体没法悄悄改坏的 TypeScript
+next: /answers/verifiability/ | 下一篇 &rarr; | 什么能防止智能体悄悄改坏我的代码？
+next_steps: |
+  接下来
+  下一步 &middot; 无需安装 | /playground/ | playground | Playground | 在浏览器里试用 Glyph，无需安装。 | 打开 Playground
+  https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md | spec | 五分钟速览 | 快速过一遍整门语言。
+  /answers/ | answers | 问答 | 关于 React、类型化 API、npm 和配齐工具的 TypeScript 的详细解答。
+---
+      <p class="q-eyebrow">从这里开始 &middot; 约 10 分钟</p>
+      <h1 class="q-title">你的第一个 Glyph 程序</h1>
+
+      <p class="short-answer">
+        创建一个项目并运行，然后<strong>故意把它改错</strong>，读一读编译器给出的报错。不需要任何 Glyph 基础。只要写过一点 TypeScript，每一行你都能看懂。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; 创建项目</h2>
+        <p>
+          Glyph 以预编译二进制的形式发布在 npm 上，支持 macOS 和 Linux（x64 和 ARM）以及 Windows（x64），需要 Node 18 或更高版本。这种方式不会全局安装任何东西：<code>npx</code> 临时获取编译器来创建项目，项目自己固定一份编译器副本，以及 Glyph 用来运行和类型检查的 <code>tsx</code> 和 <code>typescript</code>。
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">终端</span>
+<pre>npx -y @glyphlang/glyph init hello
+cd hello
+npm install</pre>
+      </div>
+      <div class="detail">
+        <p>
+          如果你更想让 <code>glyph</code> 出现在 PATH 里，可以把它和它依赖的两个工具一起全局安装，然后去掉本页命令里的 <code>npx</code>：
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">终端，全局安装的方式</span>
+<pre>npm install -g @glyphlang/glyph tsx typescript
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span>
+glyph init hello
+cd hello</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">2 &middot; 看看它生成了什么</h2>
+        <p><code>glyph init</code> 会创建一个可以直接运行的起始项目：<code>src/main.glyph</code>；<code>src/.types/README.md</code>，说明带类型的 npm 包在这里什么都不需要，这个目录是给不带类型的包用的；一个 <code>package.json</code>；一个 <code>.gitignore</code>；以及两个编码智能体会自己读取的文件：<code>AGENTS.md</code>，它指向 <code>glyph llms</code> 以获取完整的语言参考，和 <code>.mcp.json</code>，它注册了 <code>glyph mcp</code>，让智能体可以直接向编译器查询类型和引用，而不用自己去搜索。在已有的项目里，<code>glyph agents</code> 会写入这两个文件。<code>package.json</code> 在 <code>devDependencies</code> 中固定了编译器、<code>typescript</code> 和 <code>tsx</code> 的版本，所以任何人克隆项目后，只需 <code>npm install</code> 就能构建，不需要全局安装。</p>
+        <p>打开 <code>src/main.glyph</code>。这是一个 hello-world：</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+import std/io
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  io.println("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          有两点值得注意：程序运行的是它的 <code>main(argv)</code>，而 <code>main</code> 返回一个 <code>number</code>，也就是进程的退出码。返回只是设置退出码，并不会强制进程停止，所以启动了服务器的程序会继续提供服务。
+        </p>
+
+        <h2 class="block-label">3 &middot; 运行</h2>
+      </div>
+      <div class="code">
+        <span class="cap">终端</span>
+<pre>npx glyph run
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph run</code> 对它做了类型检查，编译成 TypeScript，然后执行。本页接下来就是重复这个循环。
+        </p>
+
+        <h2 class="block-label">4 &middot; 加点真东西</h2>
+        <p>
+          现在把函数体换成一小段逻辑：一个任务状态，以及一个给它打标签的函数。这里引入了两个你会经常用到的东西：<em>标签联合</em>（<code>type Status = ...</code>）和 <code>match</code>，后者是 Glyph 唯一的条件分支结构。
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">终端</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">5 &middot; 故意改错</h2>
+        <p>
+          这一部分会告诉你 Glyph 是<em>用来做什么的</em>。从 <code>match</code> 中删掉 <code>Done</code> 分支（智能体在某处新增了一种情况却忘了处理时，做的就是这种事），然后再运行一次。
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph（删掉了 Done 分支）</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          它没有运行。在 TypeScript 中，写明了返回类型的同一个函数也会被拒绝（TS2366）。但只记日志或更新状态、或者带有 <code>default:</code> 的 <code>switch</code> 能顺利编译，并悄悄跳过新增的情况。在这里，每个不穷尽的 match 都是编译错误，带有稳定的错误码（<code>E0200</code>）、准确的位置和一行修复建议。想看详细说明时，随时运行 <code>glyph --explain E0200</code>。
+        </p>
+
+        <h2 class="block-label">6 &middot; 修好它</h2>
+        <p>把分支加回去（或者加一个 <code>else</code>），它就又能运行了。</p>
+      </div>
+      <div class="code">
+        <span class="cap">终端</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          这就是核心循环：写代码、运行，出问题时编译器会在代码上线之前，而不是之后，准确告诉你哪里错了、该怎么改。
+        </p>
+      </div>

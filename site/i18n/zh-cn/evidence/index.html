@@ -1,0 +1,137 @@
+---
+title: 证据 · 本站的每条说法是怎样验证的 · Glyph
+description: 本站的每条说法是怎样验证的：catches 中的测试用例及其背后的 CI 检查，用来对比的 TypeScript 配置，以及如何复现一个案例。
+source_hash: 22fcc8a3d8e611cf
+next_steps: |
+  其余记录
+  推荐 | /catches/ | catches | 案例 | 每个案例：TypeScript 版、Glyph 版、报错，以及配齐工具的 TypeScript 能否发现。 | 查看所有案例
+  /hardening/ | hardening | 加固 | 扮演多疑工程师的智能体如何攻击编译器，以及由此发现的 bug。
+  /benchmarks/ | benchmarks | 基准测试 | 测量了什么（token 密度、grep、diff），以及尚未完成的可靠性研究。
+  /versions/ | versions | 版本 | 每个版本、它改了什么，以及哪些是 Breaking。
+---
+      <p class="q-eyebrow">证据</p>
+      <h1 class="q-title">本站的每条说法是怎样验证的</h1>
+
+      <p class="short-answer">
+        “Glyph 能发现某个问题”这样的说法，对应仓库中的一对程序，一个用 TypeScript 写，一个用 Glyph 写，每次改动 CI 检查都会运行这两个程序。如果 TypeScript 版不再能编译，或者 Glyph 版不再被拒绝，构建就会失败。你可以用两条命令自己运行任何一个案例。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">测试用例</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 下的每个目录都包含 <code>ts.ts</code>、<code>glyph.glyph</code>，以及一个说明两者各自行为的 <code>case.toml</code>。<code>scripts/check_catches.py</code> 在 CI 中运行。它要求每个 <code>ts.ts</code> 都能通过 <code>tsc --strict</code>，因为不能编译的 TypeScript 程序什么也证明不了；然后按案例的类型检查 Glyph 那一半。{{catches:breakdown}} 按检查的类型划分：
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>类型</th><th>案例数</th><th>检查对 Glyph 版的要求</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Kind"><code>refused</code></td><td data-label="Cases">{{catches:refused-all}}</td><td data-label="What the gate requires of the Glyph">构建失败，并报出 <code>case.toml</code> 中的错误码</td></tr>
+            <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">{{catches:warned-all}}</td><td data-label="What the gate requires of the Glyph">构建通过，并把该错误码作为警告报告</td></tr>
+            <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">{{catches:boundary-all}}</td><td data-label="What the gate requires of the Glyph">程序能运行，边界处的检查把错误数据变成 <code>Err</code></td></tr>
+            <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">{{catches:runtime-all}}</td><td data-label="What the gate requires of the Glyph">程序能构建，运行时停下，并给出指定的输出</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">{{catches:gap-cases}}</td><td data-label="What the gate requires of the Glyph">Glyph 接受这个程序，而它的行为是错的。漏洞堵上时，检查会失败并提示把案例移走</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          不再能演示的案例会被删除，而不是被弱化，<a href="https://github.com/chadetov/glyph/blob/main/catches/README.md">catches README</a> 列出了被删除的六个案例及原因。其中一个后来发现 <code>tsc</code> 也能发现；另一个之所以成立，只是因为它的 TypeScript 版把某个值当作了 <code>any</code>。
+        </p>
+
+        <h2 class="block-label">用来对比的 TypeScript</h2>
+        <p>
+          每个案例还会说明一个配置拉满的 TypeScript 项目能否发现这个错误，“TypeScript 能否发现”这个标签就来自这里。“配置拉满”指 <code>tsc --strict</code>，加上所有能让它更严格的选项，再运行一次 typescript-eslint。检查每次运行都会重新安装这些包（TypeScript 6、eslint 9、typescript-eslint 8、tsx 4 和最新的 <code>@types/node</code>），没有网络时会失败，而不是跳过。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">在 strict 之上额外打开的 tsconfig 选项</span>
+<pre>noUncheckedIndexedAccess: true
+noFallthroughCasesInSwitch: true
+noUnusedLocals: true
+noUnusedParameters: true
+noImplicitReturns: true
+noImplicitOverride: true
+allowUnreachableCode: false
+allowUnusedLabels: false
+exactOptionalPropertyTypes: true
+noPropertyAccessFromIndexSignature: true</pre>
+        </div>
+        <div class="code">
+          <span class="cap">eslint.config.mjs</span>
+<pre>export default tseslint.config(
+  js.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  { rules: {
+    "@typescript-eslint/switch-exhaustiveness-check": "error",
+    "@typescript-eslint/strict-boolean-expressions": "error",
+    "@typescript-eslint/require-array-sort-compare": "error",
+    "require-atomic-updates": "error",
+  } },
+);</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          案例的标签是 <code>none</code>、<code>flag:</code> 加上能报出它的那个选项，或者 <code>lint:</code> 加上对应的规则。如果改正后的程序也因为无关的原因触发了某条规则，案例会带一个 <code>ts_ok.ts</code>，标签只统计因这个错误而触发的部分。例如，<code>non-exhaustive-match</code> 是 <code>lint:switch-exhaustiveness-check</code>：只要打开这条规则，typescript-eslint 就能发现它，页面上也是这么写的。
+        </p>
+
+        <h2 class="block-label">复现一个案例</h2>
+        <p>
+          在仓库的克隆中对单个案例运行检查，或者手动运行。下面是 <code>non-exhaustive-match</code> 的两半，就是为本页运行时的结果：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">检查，单个案例</span>
+<pre>$ python3 scripts/check_catches.py non-exhaustive-match
+catches: 1/1 cases hold every claim they make.
+TypeScript checked with tsc --strict and the full flag set (typescript 6.0.3),
+typescript-eslint 8.73.0 strictTypeChecked on eslint 9.39.5, run with
+tsx 4.23.15, and @types/node 26.6.6.</pre>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript 那一半，手动运行</span>
+<pre>$ npm i -D typescript@6 tsx@4
+$ npx tsc --strict --noEmit ts.ts
+$ echo $?
+0
+$ npx tsx ts.ts
+finished
+archived logged nothing</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph 那一半，手动运行</span>
+<pre>$ glyph check --no-tsc catches/non-exhaustive-match
+<span class="del">[E0200] Error: typecheck: non-exhaustive match
+  on `"todo" | "doing" | "done" | "archived"`:
+  missing variants "archived"</span>
+glyph check: 1 error(s) across 1 module(s)</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">本站的代码片段都能编译</h2>
+        <p>
+          <code>scripts/check_docs_compile.py</code> 在 CI 中运行，编译本站上每个独立的 Glyph 代码片段（以 <code>module</code> 开头并声明了内容的片段），以及文档和 <code>llms.txt</code> 中的片段。本来就应该失败的片段必须注明它触发的错误，而且必须恰好触发那一个错误。需要 React 或某个 npm 包的片段会对照这些包的真实类型编译。不完整的片段会被计数并跳过，计数会打印出来，让跳过的比例一直可见。
+        </p>
+
+        <h2 class="block-label">它还发现不了的问题</h2>
+        <p>
+          {{catches:gap-cases}} 个 <code>gap</code> 案例在<a href="/catches/#not-yet">案例页面</a>上，每个都带有 gap 编号。用 Glyph 构建应用时发现的每个漏洞都记录在清单 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> 中，其中方括号标记是唯一有效的状态（<code>[FIXED]</code>、<code>[HALF FIXED]</code>，没有标记表示未解决）；如果某个未解决条目的最近一次复现已经是五个版本以前，<code>scripts/check_gaps.py</code> 会让 CI 失败。
+        </p>
+
+        <h2 class="block-label">版本如何被标记为 Breaking</h2>
+        <p>
+          如果一个版本拒绝了上一版本接受的程序，它就会被标记为 Breaking。判断方法是写出受影响的最小程序，分别用已发布的上一版本和新的二进制文件运行，然后比较退出码。不是根据说明的措辞推断出来的。0.1.99 之前的版本从未这样测试过，所以没有标记的旧版本只是未经测试，并不代表安全。记录见<a href="/versions/">版本页面</a>。
+        </p>
+      </div>

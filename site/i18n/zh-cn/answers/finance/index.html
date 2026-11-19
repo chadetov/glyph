@@ -1,0 +1,112 @@
+---
+title: 涉及金额和不可信输入时，能信任它吗？ · Glyph
+description: 金额计算是精确的（小数，以及超过 2^53 的整数），不变式是由边界强制检查的类型，不可信输入未经清洗无法到达 SQL 或 shell 汇点。
+source_hash: 890e758a8ba38ece
+prev: /answers/language/ | &larr; 上一篇 | 这是一门真正的语言，还是一个有很多缺口的玩具？
+next: /answers/web-serving/ | 下一篇 &rarr; | 能提供网页，还是只能做 JSON API？
+---
+      <p class="q-eyebrow">16 &middot; 金额 &amp; 安全</p>
+      <h1 class="q-title">涉及金额、以及我无法控制的输入时，能信任它吗？</h1>
+
+      <p class="short-answer">
+        能。金额计算是<strong>精确的</strong>，像“非负”这样的不变式是<strong>由边界强制检查的类型</strong>，不可信输入未经清洗<strong>无法到达 SQL 或 shell 汇点</strong>。其中任何一项写错，都会是编译错误或解析错误，而不是一条需要有人在三个函数之外记住的约定。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">金额不是浮点数</h2>
+        <p>
+          基于 IEEE-754 <code>number</code> 的金融系统，是一个迟早会被报告的 bug：<code>0.1 + 0.2</code> 不等于 <code>0.3</code>，超过 2<sup>53</sup> 的值会悄悄丢失精度。<code>std/decimal</code> 是基于 BigInt 的精确十进制定点数。加、减、乘都是精确的；除法需要显式指定小数位数，并按四舍五入（远离零）舍入；格式错误的金额会解析为 <code>Err</code>，绝不会悄悄变成 <code>NaN</code>。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from zero</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">它消除的 bug</span>
+<pre>// JS number, the default everywhere:
+0.1 + 0.2            // 0.30000000000000004
+1_000_000_000_000.10 * 1.07   // rounding drift
+9007199254740993     // === 9007199254740992
+
+// None of these are your money anymore.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">id 和计数器在超过 2<sup>53</sup> 后仍然精确</h2>
+        <p>
+          账户 id 或账本计数器超出浮点数范围后被舍入，是另一种灾难。<code>bigint</code> 是精确的任意精度整数，字面量写作 <code>123n</code>，类型为 <code>bigint</code> 的记录字段会在边界上校验 <code>typeof === "bigint"</code>，所以以 JSON <code>number</code> 到达的 id 会被拒绝，而不是被悄悄截断。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">不变式是类型，不是注释</h2>
+        <p>
+          “金额非负”和“评分在 1 到 5 之间”是那种写过一次就被遗忘的检查。<code>where</code> 精化把不变式放进类型，描述符在边界上强制检查它。不满足谓词的值从一开始就不会成为 <code>Amount</code>。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">refinements.glyph</span>
+<pre>type Amount = int where value &gt;= 0
+type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+
+Amount.parse(-1)   <span class="cm"># Err  (not just "is a number")</span>
+Rating.parse(6)    <span class="cm"># Err</span>
+Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">注入是编译错误</h2>
+        <p>
+          典型的远程代码执行路径，是不可信输入到达 SQL 查询、shell 命令或 HTML 模板。<code>std/taint</code> 把这变成了类型错误。来自外部的值是 <code>Tainted</code>；你想保护的汇点接受 <code>Trusted</code>。两者在结构上不同，所以从一个变成另一个的唯一途径是显式的 <code>sanitize</code>。直接把被污染的值交给汇点，<code>tsc</code> 会拒绝编译。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">安全的路径能编译</span>
+<pre>fn run_query(sql: Trusted&lt;string&gt;) -&gt; void { ... }
+
+let input: Tainted&lt;string&gt; = taint(req.body)
+run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">注入的路径不能</span>
+<pre data-check="expect-error TS2345">module query
+
+import std/taint { Tainted, Trusted, taint, expose }
+
+fn run_query(sql: Trusted&lt;string&gt;) -&gt; string {
+  return expose(sql)
+}
+
+pub fn handle(body: string) -&gt; string {
+  let input: Tainted&lt;string&gt; = taint(body)
+  return run_query(input)
+}
+
+// [TS2345] Argument of type 'Tainted&lt;string&gt;'
+//   is not assignable to parameter of type
+//   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
+        </div>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>用于精确金额的 <code>std/decimal</code>，用于精确大整数的 <code>bigint</code>，让不变式在边界上被校验的 <code>where</code> 精化，以及让不可信输入在没有显式 <code>sanitize</code> 的情况下无法到达受保护汇点的 <code>std/taint</code>。每一项都会被检查：错误的金额或 id 会在 <code>parse</code> 时失败，违反不变式会在 <code>parse</code> 时失败，未经清洗的值会在 <code>tsc</code> 时失败。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">边界在哪里</h3>
+          <p>目前 <code>where</code> 精化只覆盖原始基础类型；记录级和跨字段的不变式（<code>where value.paid &lt;= value.total</code>）是计划中的扩展。污点检查是一种你通过把汇点类型声明为 <code>Trusted</code> 而主动采用的约束，而不是自动的数据流分析：编译器强制执行你声明的边界，但不会替你在整个程序中推断污点。</p>
+        </div>
+      </div>

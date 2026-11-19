@@ -1,0 +1,230 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/generated-docs/index.html",
+  "locale": "zh-cn",
+  "source_hash": "31b76a81a51f0211",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Is the documentation my agent reads generated? · Glyph",
+      "tr": "智能体读的文档是生成的吗？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph llms --json emits the diagnostics, the prelude, the stdlib signatures and the language decisions from the compiler's own tables, so they cannot drift.",
+      "tr": "glyph llms --json 从编译器自己的表中输出诊断、prelude、标准库签名和语言决策，所以它们不会与编译器产生偏差。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "构建失败时，编译器会告诉智能体怎么修吗？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "编辑器、调试和报错的体验如何？"
+    },
+    {
+      "id": "h-594c6826",
+      "kind": "html",
+      "en": "24 &middot; Docs that can't drift",
+      "tr": "24 &middot; 不会过时的文档"
+    },
+    {
+      "id": "h-bbccff1f",
+      "kind": "html",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "智能体读的文档是生成的，还是手写的、已经过时的？"
+    },
+    {
+      "id": "h-c50aeece",
+      "kind": "html",
+      "en": "Generated. <code>glyph llms --json</code> emits the diagnostic catalogue, the prelude, the stdlib signatures, the language decisions and the tool manual out of the compiler's own tables, and a gate fails the build when a hand-written copy disagrees. Every Glyph example in the document an agent bootstraps from is compiled, including the wrong ones.",
+      "tr": "是生成的。<code>glyph llms --json</code> 从编译器自己的表中输出诊断目录、prelude、标准库签名、语言决策和工具手册，手写的副本与之不一致时，有一项检查会让构建失败。智能体用来起步的那份文档中，每个 Glyph 示例都经过编译，包括那些错误示例。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么重要"
+    },
+    {
+      "id": "h-c74ff5a4",
+      "kind": "html",
+      "en": "The question is not rhetorical, because the honest answer used to be \"written by hand, and yes.\" The agent bootstrap said the MCP server \"exposes five tools\" and listed five. The server served seven. The two the server's own instructions tell an agent to reach for first appeared in it zero times. The 58 error codes lived in three hand-maintained copies, checked only for whether the code string was present. Of 19 Glyph examples in that document, 2 were compiled and 17 were skipped as fragments.",
+      "tr": "这个问题并非只是设问，因为以前如实的回答是“手写的，而且确实过时了”。智能体引导文档说 MCP 服务器“提供五个工具”，并列出了五个，而服务器实际提供七个。服务器自己的说明里让智能体首先使用的那两个工具，在文档中一次都没有出现。58 个错误码分散在三份手工维护的副本中，检查只看错误码字符串是否存在。那份文档里的 19 个 Glyph 示例，只有 2 个经过编译，另外 17 个被当作片段跳过。"
+    },
+    {
+      "id": "h-b65fc913",
+      "kind": "html",
+      "en": "Every one of those is the same defect. A document about a compiler, maintained beside the compiler, by people who meant well. An agent that reads it cannot tell which sentences are still true, and neither could we.",
+      "tr": "这些问题都是同一个缺陷：一份关于编译器的文档，在编译器旁边由好心的人维护。读它的智能体分不清哪些句子仍然成立，我们自己也分不清。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-b81e3a56",
+      "kind": "html",
+      "en": "Seven sections, each read off a table the compiler already has. A diagnostic entry carries the catalogue sentence, the one-line fix, the long explanation, and the help and note taken from a diagnostic the compiler drew. 51 of the 77 codes also carry a wrong program that draws the code, compiled at the moment you ask; the other 26 say the corpus has no case for it.",
+      "tr": "七个部分，每个都读取自编译器已有的一张表。一个诊断条目包含目录中的说明句、一行修复提示、详细解释，以及从编译器实际给出的诊断中取得的 help 和 note。77 个错误码中有 51 个还带有一个触发该错误码的错误程序，在你询问时现场编译；另外 26 个会说明语料库中没有它的案例。"
+    },
+    {
+      "id": "h-25ad2c9c",
+      "kind": "html",
+      "en": "glyph llms --json, the E0200 entry (trimmed)",
+      "tr": "glyph llms --json 中的 E0200 条目（有删减）"
+    },
+    {
+      "id": "h-3b207613",
+      "kind": "html",
+      "en": "77 codes come out of one table in the compiler, and <code>docs/error-codes.md</code> and the catalogue table in the agent bootstrap are written from it by a script that fails on drift. Merging the three copies that used to exist turned up a code with an explanation and no place in the list, and a row whose escaped pipe had quietly broken the table it sat in.",
+      "tr": "77 个错误码都来自编译器中的一张表，<code>docs/error-codes.md</code> 和智能体引导文档中的目录表，都由一个脚本根据这张表写出，出现偏差时脚本会失败。合并原来那三份副本时，发现了一个有解释却不在列表中的错误码，还有一行因为转义的竖线悄悄破坏了它所在的表格。"
+    },
+    {
+      "id": "h-7e62b4b3",
+      "kind": "html",
+      "en": "The prelude, the stdlib, and the decisions",
+      "tr": "prelude、标准库和语言决策"
+    },
+    {
+      "id": "h-527db667",
+      "kind": "html",
+      "en": "The prelude is the 24 names the resolver resolves against, with what each one is. The stdlib is 40 modules and 340 exports, and each signature is read out of the checker's own tables and printed by the same type printer a diagnostic uses, so the signature in the document is the signature the checker will hold you to. The exports split three ways and never two: 129 signatures are modeled in every position, 46 carry a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code> with a line saying how many positions are left, and 165 have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is never published as a complete signature.",
+      "tr": "prelude 是解析器用来解析名字的 24 个名字，并说明每个是什么。标准库有 40 个模块、340 个导出，每个签名都从检查器自己的表中读取，并由诊断所用的同一个类型打印器打印，所以文档中的签名就是检查器会用来约束你的签名。这些导出分为三类，而不是两类：129 个签名在每个位置都有建模；46 个在参数类型的位置带有 <code>?</code>，计为 <code>partially_modeled</code>，并附一行说明还剩多少个位置；165 个完全没有签名。<code>?</code> 是 <code>unknown</code> 的显示形式，所以它永远不会作为完整签名发布。"
+    },
+    {
+      "id": "h-1016682f",
+      "kind": "html",
+      "en": "\"stdlib\"",
+      "tr": "\"stdlib\""
+    },
+    {
+      "id": "h-7b998f67",
+      "kind": "html",
+      "en": "\"prelude\" and \"decisions\"",
+      "tr": "\"prelude\" 和 \"decisions\""
+    },
+    {
+      "id": "h-d02a769f",
+      "kind": "html",
+      "en": "<code>duplicate_numbers</code> is there because the generator reads the spec's own list, and the first time it ran it found two different decisions both numbered D43 and printed <code>\"duplicate_numbers\": [43]</code>. It reports a collision rather than deduplicating it, which is how anyone found out. Nothing in the compiler keys on a D number, so no program was affected; a reader following a citation was. That one is fixed: D43 is the <code>mut</code>-across-<code>await</code> rule and <code>never</code> is D47, so the list comes back empty. There are 49 decisions today, D1 to D49.",
+      "tr": "之所以有 <code>duplicate_numbers</code>，是因为生成器读取的是规范自己的列表，它第一次运行时就发现两个不同的决策都编号为 D43，并打印出 <code>\"duplicate_numbers\": [43]</code>。它报告冲突而不是自动去重，大家也正是这样才发现了问题。编译器中没有任何东西以 D 编号为键，所以没有程序受到影响，受影响的是顺着引用查找的读者。这个问题已经修复：D43 是跨 <code>await</code> 的 <code>mut</code> 规则，<code>never</code> 是 D47，所以这个列表现在是空的。目前共有 49 项决策，从 D1 到 D49。"
+    },
+    {
+      "id": "h-8539cac7",
+      "kind": "html",
+      "en": "The wrong programs are readable too",
+      "tr": "错误程序也可以读取"
+    },
+    {
+      "id": "h-b2d0bb7d",
+      "kind": "html",
+      "en": "The compiler's negative corpus is a set of programs that must fail, with the code each one must draw. It used to be visible only to <code>cargo test</code>. An agent learning what a rule refuses is exactly the reader it was written for, so it answers now, and each case is compiled when you ask so the diagnostic beside it is this compiler's.",
+      "tr": "编译器的反例语料库是一组必须失败的程序，并注明每个程序必须触发的错误码。以前只有 <code>cargo test</code> 能看到它。而一个想了解某条规则会拒绝什么的智能体，正是这份语料库所针对的读者，所以它现在可以直接回答，每个案例都在你询问时现场编译，旁边的诊断就是本编译器给出的。"
+    },
+    {
+      "id": "h-eb5a2b6c",
+      "kind": "html",
+      "en": "glyph llms --negative E0008",
+      "tr": "glyph llms --negative E0008"
+    },
+    {
+      "id": "h-0eeb8564",
+      "kind": "html",
+      "en": "With no code it lists 117 cases over 53 of the 77 codes in 0.1.149, and names the 24 that have none rather than leaving you to infer coverage from what came back. A second corpus, <code>catches/</code>, pairs a program <code>tsc --strict</code> accepts with the Glyph that refuses it, and those come back on the same answer where they exist. Both are embedded from the directories themselves, so a case added to either is in the answer with no second edit to remember.",
+      "tr": "不指定错误码时，0.1.149 列出覆盖 77 个错误码中 53 个的 117 个案例，并列出没有案例的 24 个，而不是让你从返回结果中推断覆盖范围。另一个语料库 <code>catches/</code> 把一个被 <code>tsc --strict</code> 接受的程序和拒绝它的 Glyph 程序配成一对，有对应案例时也会在同一个答案中返回。两个语料库都直接从目录嵌入，所以在任一个中新增的案例都会出现在答案中，不需要记得再改第二处。"
+    },
+    {
+      "id": "h-94746f75",
+      "kind": "html",
+      "en": "Every example compiles, including the wrong ones",
+      "tr": "每个示例都能编译，包括错误示例"
+    },
+    {
+      "id": "h-31753a2c",
+      "kind": "html",
+      "en": "Generating the reference is half of it. The other half is the prose an agent bootstraps from, where the examples are the part it copies. Every Glyph fence in that document is either a complete program that compiles, or is marked as a fragment of a named complete example whose lines it has to appear in. It was 19 fences with 2 compiled; it is 24 with 20 compiled and 4 marked, and none skipped. The stdlib reference went from 4 of 8 to 8 of 8.",
+      "tr": "生成参考资料只是一半，另一半是智能体用来起步的那些文字，其中的示例正是它会照抄的部分。那份文档中的每个 Glyph 代码块，要么是一个能编译的完整程序，要么被标记为某个具名完整示例的片段，而且它的各行必须出现在那个示例中。以前是 19 个代码块，2 个经过编译；现在是 24 个，20 个经过编译，4 个被标记，没有一个被跳过。标准库参考从 8 个中有 4 个变成了 8 个全部经过编译。"
+    },
+    {
+      "id": "h-d4615d6d",
+      "kind": "html",
+      "en": "A fence can also be marked as a program that must fail, naming the code it draws, which is how the document carries the five wrong forms it warns you about: the one that draws <code>E0228</code>, the one that draws <code>E0008</code>, and three more. A warning paired with the diagnostic is checkable. A warning written in prose is a promise.",
+      "tr": "代码块也可以被标记为必须失败的程序，并注明它触发的错误码，文档正是这样给出它提醒你避免的五种错误写法：触发 <code>E0228</code> 的那一种，触发 <code>E0008</code> 的那一种，以及另外三种。和诊断配对的警告是可以检查的，用文字写出的警告只是一个承诺。"
+    },
+    {
+      "id": "h-10fd6248",
+      "kind": "html",
+      "en": "Compiling the documents found two things reading them was never going to find. An inline triple backtick had read as a fence opener, so 250 lines counted as one snippet and nothing inside them was checked. And a worked server in the stdlib reference called <code>http.serve</code>, which <code>std/http</code> does not export. The function is <code>listen</code>.",
+      "tr": "编译这些文档发现了两个光靠阅读永远发现不了的问题。一个行内的三个反引号被当成了代码块的开头，于是 250 行被算作一个片段，里面的内容都没有被检查。另外，标准库参考中一个完整的服务器示例调用了 <code>http.serve</code>，而 <code>std/http</code> 并没有导出它，那个函数叫 <code>listen</code>。"
+    },
+    {
+      "id": "h-f2abc397",
+      "kind": "html",
+      "en": "What it costs to hand over, and what it stopped costing",
+      "tr": "交付它的成本，以及省下的成本"
+    },
+    {
+      "id": "h-2dc5770c",
+      "kind": "html",
+      "en": "The eleven MCP tools used to carry their whole manual in the <code>tools/list</code> reply, which every session pays for on connect: 31,446 bytes of description in a 45,509-byte reply. The same eleven tools carry 8,627 in a 20,386-byte reply now. Nothing was deleted. The previous text is held verbatim, keyed by tool name, and published inside <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away instead of in every session's first reply. A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a count that disagrees with the list, fails the build. That is the check \"exposes five tools\" needed.",
+      "tr": "十一个 MCP 工具以前把整份手册都放在 <code>tools/list</code> 回复中，而每个会话在连接时都要为它付出代价：45,509 字节的回复中有 31,446 字节是描述。现在同样十一个工具，20,386 字节的回复中描述占 8,627 字节。什么都没有删。以前的文字原样保留，按工具名索引，发布在 <code>glyph llms --json</code> 中，所以调用时需要的约定在描述里，其余部分只需一条命令就能拿到，而不是出现在每个会话的第一个回复中。有一个测试会同时读取工具列表和文档，所以如果文档提到了服务器不提供的工具，或者数量与列表不一致，构建就会失败。“提供五个工具”那句话需要的正是这项检查。"
+    },
+    {
+      "id": "h-ebc0730a",
+      "kind": "html",
+      "en": "All of this is offline and local. <code>glyph llms</code> prints the prose, <code>glyph llms --json</code> the data, <code>glyph llms --negative</code> the wrong programs. The same prose is served at <a href=\"/llms.txt\">llms.txt</a> for an agent with a network and no binary. What an agent asks about <em>your</em> code, rather than about the language, is the <a href=\"/answers/ask-the-compiler/\">query tools</a>.",
+      "tr": "这一切都离线在本地完成。<code>glyph llms</code> 打印文字说明，<code>glyph llms --json</code> 打印数据，<code>glyph llms --negative</code> 打印错误程序。同样的文字说明也发布在 <a href=\"/llms.txt\">llms.txt</a>，供能联网但没有可执行文件的智能体使用。智能体针对<em>你的</em>代码而不是针对语言本身提出的问题，由<a href=\"/answers/ask-the-compiler/\">查询工具</a>回答。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-ef7b0c9f",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler: 77 diagnostic codes, 51 of them with a compiled counter-example, the 32 reserved words, the 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.",
+      "tr": "<code>glyph llms --json</code> 从编译器中输出七个部分：77 个诊断错误码，其中 51 个带有现场编译的反例；32 个保留字；24 个 prelude 名字；40 个标准库模块及其 340 个导出；从规范中解析出的 49 项语言决策；以及十一个工具及其 <code>glyph query</code> 子命令和完整手册。<code>docs/error-codes.md</code> 和引导文档中的诊断表由一个脚本根据编译器自己的错误码表写出，出现偏差时脚本会失败，并同步重新生成 <code>llms.txt</code>。有一个测试保证工具目录与服务器实际提供的一致。引导文档和标准库参考中的每个 Glyph 代码块都能编译，或者是某个能编译的程序中被标记的片段，五种错误写法都是与各自触发的错误码配对的程序。<code>glyph llms --negative</code> 的回答来自 <code>cargo test</code> 运行的同一批语料库。"
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "它的边界"
+    },
+    {
+      "id": "h-5c7219d3",
+      "kind": "html",
+      "en": "Two counts of the wrong programs appear in this document and they count different things: 51 of the 77 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 117 cases over 53 codes in 0.1.149 because it reads the refusals in <code>catches/</code> as well; the next release adds the 22 refusals added to <code>catches/</code> since, for 139 cases over 55 codes. In 0.1.149, 24 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 165 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 175 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.",
+      "tr": "本页中出现了两个错误程序的数量，它们统计的东西不同：77 个错误码中有 51 个带有来自 <code>tests/negative/</code> 的反例，而 0.1.149 中 <code>glyph llms --negative</code> 列出覆盖 53 个错误码的 117 个案例，因为它还会读取 <code>catches/</code> 中被拒绝的程序；下一个版本会加入此后新增到 <code>catches/</code> 的 22 个被拒绝程序，共计覆盖 55 个错误码的 139 个案例。在 0.1.149 中，有 24 个错误码在两个语料库中都没有错误程序，答案会列出它们，而不是编造一个。340 个标准库导出中有 165 个没有签名：它们的实现是由 <code>tsc</code> 检查的 TypeScript，编译器自己的表没有为它们建模任何东西，所以对 <code>std/result::all</code> 或 <code>std/io::println</code> 调用 <code>glyph_symbol</code> 会报告 <code>kind: null</code> 并附上这个原因。在有签名的 175 个中，仍有 46 个在参数类型的位置带有 <code>?</code>。另外，这份文档是你获取的一个快照，而不是一项服务：它没有检索层，没有向量嵌入，也没有基于它的对话界面。"
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/react/index.html",
+  "locale": "zh-cn",
+  "source_hash": "7cfdf0dbb16b7eaf",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Does it work with React, hooks and Context? · Glyph",
+      "tr": "能和 React 一起用吗：组件、hooks 和 Context？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "React is built in: a component compiles to a function component, JSX lowers to createElement, and a reducer's actions are matched exhaustively.",
+      "tr": "React 是内置支持的：component 编译成函数组件，JSX 转换为 createElement，reducer 的 action 会被穷尽匹配。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "能根据 API 规范生成类型化的客户端和服务端吗？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "How do I share mutable state between functions?",
+      "tr": "怎样在函数之间共享可变状态？"
+    },
+    {
+      "id": "h-cbc71a81",
+      "kind": "html",
+      "en": "13 &middot; Frontend",
+      "tr": "13 &middot; 前端"
+    },
+    {
+      "id": "h-03457be7",
+      "kind": "html",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "能和 React 一起用吗：组件、hooks 和 Context？"
+    },
+    {
+      "id": "h-cf0fbc83",
+      "kind": "html",
+      "en": "Yes. A <code>component</code> compiles to a React function component, JSX lowers to <code>createElement</code>, React's own hooks are imported by name and their pairs destructured, and reducer state gets exhaustiveness plain TypeScript does not have. The page itself (its title, the mount point, saved state) is reached through <code>std/dom</code> and <code>std/storage</code>. The gap worth knowing first: Glyph's own checker does not type what a hook returns, so <code>tsc</code> checks those values.",
+      "tr": "能。<code>component</code> 编译成 React 函数组件，JSX 转换为 <code>createElement</code>，React 自己的 hooks 按名字导入并解构它们返回的二元组，reducer 的状态还能得到普通 TypeScript 没有的穷尽性检查。页面本身（标题、挂载点、保存的状态）通过 <code>std/dom</code> 和 <code>std/storage</code> 访问。首先值得了解的 gap：Glyph 自己的检查器不会推断 hook 返回值的类型，这些值由 <code>tsc</code> 检查。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么这很重要"
+    },
+    {
+      "id": "h-7d3b54fa",
+      "kind": "html",
+      "en": "A lot of the code agents write is React. Glyph treats it as a first-class target, not a bolt-on: <code>component</code> is its own keyword (so <code>grep \"^component \"</code> audits your whole UI). React's hooks are imported from <code>react</code> and called with their real names and types, checked by <code>tsc</code> against React's own declarations.",
+      "tr": "智能体写的代码有很大一部分是 React。Glyph 把它当作一等目标，而不是外挂：<code>component</code> 是独立的关键字（所以 <code>grep \"^component \"</code> 就能审查整个 UI）。React 的 hooks 从 <code>react</code> 导入，用它们真实的名字和类型调用，由 <code>tsc</code> 对照 React 自己的类型声明检查。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-2f961bce",
+      "kind": "html",
+      "en": "React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it:",
+      "tr": "使用 React 真正的 <code>useReducer</code>，reducer 处理一个标签联合。每个 action 都必须处理，编译器会检查："
+    },
+    {
+      "id": "h-a1d8437d",
+      "kind": "html",
+      "en": "counter.glyph, against react@18 and its types",
+      "tr": "counter.glyph，基于 react@18 及其类型"
+    },
+    {
+      "id": "h-158cdb40",
+      "kind": "html",
+      "en": "Add a <code>Double</code> action and the reducer stops compiling with <code>E0200</code> naming it, which a plain TypeScript <code>switch</code> would let ship. The pair is destructured with <code>let [count, dispatch]</code>, and the emitted TypeScript adds <code>satisfies readonly [unknown, unknown]</code>, so <code>tsc</code> proves the hook returned a pair and still infers each element's type. Glyph's own checker does not type values that come from React, so a wrong argument to <code>dispatch</code> or a state setter is reported by <code>tsc</code> in the build, not by the editor or <code>--no-tsc</code>. React <strong>Context</strong> works today through <code>createContext</code> / <code>useContext</code>, and member-expression element names (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.",
+      "tr": "加一个 <code>Double</code> action，reducer 就会编译失败，报 <code>E0200</code> 并指出它的名字，而普通 TypeScript 的 <code>switch</code> 会让它直接上线。二元组用 <code>let [count, dispatch]</code> 解构，生成的 TypeScript 会加上 <code>satisfies readonly [unknown, unknown]</code>，所以 <code>tsc</code> 会证明 hook 返回的是二元组，同时仍然推断每个元素的类型。Glyph 自己的检查器不推断来自 React 的值的类型，所以传给 <code>dispatch</code> 或状态 setter 的错误参数，是在构建时由 <code>tsc</code> 报告的，而不是在编辑器里或 <code>--no-tsc</code> 时报告。React <strong>Context</strong> 现在可以通过 <code>createContext</code> / <code>useContext</code> 使用，成员表达式形式的元素名（<code>&lt;ThemeContext.Provider&gt;</code>）也可以直接使用，不需要变通。"
+    },
+    {
+      "id": "h-642c2c83",
+      "kind": "html",
+      "en": "JSX prop spreading works too: <code>&lt;input {...register(\"email\")} /&gt;</code> lowers to an object spread in the props, so the react-hook-form idiom needs no adapter. Zod's value-derived types are first-class: <code>type FormData = z.infer&lt;typeof schema&gt;</code> works directly, no escape hatch. The one thing that differs: a component takes a single props record, not multiple positional params. See <a href=\"/answers/imports/\">using your libraries</a> and the <a href=\"/hardening/\">hardening page</a> for exactly where that boundary is.",
+      "tr": "JSX 属性展开同样可用：<code>&lt;input {...register(\"email\")} /&gt;</code> 会转换为 props 中的对象展开，所以 react-hook-form 的惯用写法不需要适配层。Zod 的值派生类型是一等支持的：<code>type FormData = z.infer&lt;typeof schema&gt;</code> 可以直接使用，不需要逃生口。唯一的区别是：组件只接受一个 props 记录，而不是多个位置参数。这条边界具体在哪里，见<a href=\"/answers/imports/\">使用你的库</a>和<a href=\"/hardening/\">加固页面</a>。"
+    },
+    {
+      "id": "h-4eb7b3bf",
+      "kind": "html",
+      "en": "Are props checked before tsc?",
+      "tr": "props 会在 tsc 之前检查吗？"
+    },
+    {
+      "id": "h-e92662c3",
+      "kind": "html",
+      "en": "Yes. Glyph compares each element with its component's props record itself, so a wrong value, a misspelled prop and a missing required one are Glyph errors that name the prop. You see them in the editor and over MCP, not only in a full build. It works the same whether the component was imported by name or through its module:",
+      "tr": "会。Glyph 自己把每个元素与其组件的 props 记录进行比对，所以错误的值、拼错的 prop 和缺少的必需 prop 都是指出该 prop 的 Glyph 错误。你在编辑器里和通过 MCP 都能看到它们，而不只是在完整构建中。无论组件是按名字导入还是通过模块导入，效果都一样："
+    },
+    {
+      "id": "h-54e2228f",
+      "kind": "html",
+      "en": "main.glyph, with <code>Card</code> declared in <code>ui.glyph</code>",
+      "tr": "main.glyph，<code>Card</code> 声明在 <code>ui.glyph</code> 中"
+    },
+    {
+      "id": "h-195deeff",
+      "kind": "html",
+      "en": "<code>--json</code> carries the missing names as a <code>missing_fields</code> list, so an agent can add the props without parsing the message. A component also has to take its props as one record: <code>component Greeting(name: string)</code> is E0229 at the parameter, because React only ever passes the props object and that element could never type-check. If you call it as a function rather than render it, declare it with <code>fn</code>.",
+      "tr": "<code>--json</code> 会把缺少的名字放在 <code>missing_fields</code> 列表里，所以智能体不用解析信息就能补上 props。组件还必须以一个记录接收 props：<code>component Greeting(name: string)</code> 会在参数处报 E0229，因为 React 只会传入 props 对象，这样的元素永远无法通过类型检查。如果你是把它当函数调用而不是渲染它，就用 <code>fn</code> 声明。"
+    },
+    {
+      "id": "h-75e005c0",
+      "kind": "html",
+      "en": "Is a &lt;match&gt; in JSX checked like a match?",
+      "tr": "JSX 中的 &lt;match&gt; 会像 match 一样被检查吗？"
+    },
+    {
+      "id": "h-8df891da",
+      "kind": "html",
+      "en": "It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code> arm takes, and the compiler runs it through the code it uses for the arm. The names a case binds have the payload's types, a field the payload record doesn't have is E0210, and a missing variant is E0200. A case that tests a value only covers part of its variant, so it needs a sibling case or an <code>&lt;case else&gt;</code> to take the rest:",
+      "tr": "它们就是同一个东西。每个 <code>&lt;case&gt;</code> 接受与 <code>match</code> 分支相同的模式，编译器用处理分支的同一套代码来处理它。case 绑定的名字具有负载的类型，访问负载记录中不存在的字段是 E0210，缺少变体是 E0200。对值做判断的 case 只覆盖其变体的一部分，所以需要一个同级 case 或 <code>&lt;case else&gt;</code> 来处理其余情况："
+    },
+    {
+      "id": "h-843c4890",
+      "kind": "html",
+      "en": "How does a page start it?",
+      "tr": "页面怎么启动它？"
+    },
+    {
+      "id": "h-52a6173d",
+      "kind": "html",
+      "en": "Glyph has no top-level statements, so the page calls an exported <code>main</code> itself. The app is two modules: one holding the components, and one that mounts them on <code>#root</code> through <code>std/dom</code> and react-dom's <code>createRoot</code>. Event attributes are snake case (<code>on_change</code> emits React's <code>onChange</code>), a handler is a lambda, and an input's text is <code>e.currentTarget.value</code>.",
+      "tr": "Glyph 没有顶层语句，所以由页面自己调用导出的 <code>main</code>。应用由两个模块组成：一个放组件，另一个通过 <code>std/dom</code> 和 react-dom 的 <code>createRoot</code> 把组件挂载到 <code>#root</code> 上。事件属性使用蛇形命名（<code>on_change</code> 生成 React 的 <code>onChange</code>），处理函数是一个 lambda，输入框的文本是 <code>e.currentTarget.value</code>。"
+    },
+    {
+      "id": "h-290d764b",
+      "kind": "html",
+      "en": "index.html, next to the two modules",
+      "tr": "index.html，与两个模块放在一起"
+    },
+    {
+      "id": "h-23c5e497",
+      "kind": "html",
+      "en": "<code>npx glyph build . --out dist/gen</code> checks the modules, runs <code>tsc --strict</code> against React's declarations and writes TypeScript to <code>dist/gen</code>. <code>npx vite build --outDir dist/web</code> then reads <code>index.html</code>, follows the import and bundles it with React. This <code>main</code> takes nothing and returns nothing, because the script calls it with no arguments; the <code>main(argv) -&gt; number</code> that <code>glyph init</code> writes is the one <code>glyph run</code> calls under node. The full walkthrough, with the <code>package.json</code> and the install line, is <a href=\"https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page\">running Glyph in a browser page</a> in the reference <code>glyph llms</code> prints. CI builds <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> the same way and renders it in headless Chromium.",
+      "tr": "<code>npx glyph build . --out dist/gen</code> 检查模块，对照 React 的类型声明运行 <code>tsc --strict</code>，并把 TypeScript 写到 <code>dist/gen</code>。然后 <code>npx vite build --outDir dist/web</code> 读取 <code>index.html</code>，跟随导入，把它和 React 打包在一起。这个 <code>main</code> 不接受参数也不返回值，因为脚本调用它时不传参数；<code>glyph init</code> 生成的 <code>main(argv) -&gt; number</code> 是 <code>glyph run</code> 在 node 下调用的那个。完整的演练（包括 <code>package.json</code> 和安装命令）见 <code>glyph llms</code> 打印的参考文档中的<a href=\"https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page\">在浏览器页面中运行 Glyph</a>。CI 以同样的方式构建 <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a>，并在无头 Chromium 中渲染它。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-0bd5fa48",
+      "kind": "html",
+      "en": "Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> with exhaustive tagged-union actions, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns, Context via <code>createContext</code>/<code>useContext</code>, and the page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>. JSX text is read as TSX reads it, so <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> is plain text; <code>}</code>, <code>&gt;</code>, <code>//</code> and an HTML entity such as <code>&amp;amp;</code> are refused in text (E0012), with the spelling to use instead. A member read on an array is checked, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> is E0210. <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> is a whole app on React 18 that bundles with Vite and renders in a browser.",
+      "tr": "组件、JSX、片段（<code>&lt;&gt;...&lt;/&gt;</code>）、成员表达式形式的元素名（<code>&lt;Ctx.Provider&gt;</code>）、JSX 属性展开（<code>{...register()}</code>）、在任何导入写法下都会在 <code>tsc</code> 之前对照组件检查的 props、按名字导入的 React 自己的 hooks（<code>useState</code>、<code>useReducer</code>、<code>useEffect</code>），由 tsc 检查类型并解构二元组（<code>let [count, set_count] = useState(0)</code>）、带有穷尽标签联合 action 的 <code>useReducer</code>、作为 <code>match</code> 检查和转换并使用分支模式的 <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>、通过 <code>createContext</code>/<code>useContext</code> 使用的 Context，以及通过 <code>std/dom</code>（标题、挂载点、地址）、<code>std/storage</code> 和 <code>std/console</code> 访问的页面。JSX 文本按 TSX 的方式读取，所以 <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> 是普通文本；文本中的 <code>}</code>、<code>&gt;</code>、<code>//</code> 以及 <code>&amp;amp;</code> 这样的 HTML 实体会被拒绝（E0012），并给出应该使用的写法。数组上的成员读取会被检查，所以对 <code>Array&lt;string&gt;</code> 写 <code>{items.foo}</code> 是 E0210。<a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> 是一个基于 React 18 的完整应用，用 Vite 打包并在浏览器中渲染。"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "正在进行"
+    },
+    {
+      "id": "h-bf75ccec",
+      "kind": "html",
+      "en": "Glyph's checker does not type a hook's result, so <code>set_count(\"x\")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor. <code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners. An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">the deployment guide</a>.",
+      "tr": "Glyph 的检查器不推断 hook 结果的类型，所以对数字状态调用 <code>set_count(\"x\")</code> 是构建中的 <code>tsc</code> 错误，而不是编辑器里的 Glyph 错误。<code>std/dom</code> 只能读取页面和设置标题：React 掌管它渲染的 DOM，所以没有元素 setter，也没有事件监听器。effect 必须写成 <code>fn() -&gt; void { ... }</code>，因为 lambda 会返回它的最后一个表达式，React 会把它当作清理函数调用。内联写的 props 类型在这些信息中仍然显示为 <code>record</code>；具名的类型会显示它的名字。把 Glyph 的输出嵌入现有的 Vite 应用、UI 用 TypeScript 编写的做法，见<a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">部署指南</a>。"
+    }
+  ]
+}

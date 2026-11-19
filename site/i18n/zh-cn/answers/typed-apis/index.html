@@ -1,0 +1,545 @@
+---
+title: 每个 API 都要手写校验器吗？ · Glyph
+description: 不用。在 Glyph 中，类型本身就是它的运行时校验器，所以请求体和响应体无需编写校验器就会被检查，而且类型可以来自 OpenAPI 规范或 .d.ts 文件。
+source_hash: e5583b6a5d857445
+prev: /answers/embedding/ | &larr; 上一篇 | 能在现有应用里引入 Glyph 吗，还是必须全部改写？
+next: /answers/codegen/ | 下一篇 &rarr; | 能根据 API 规范生成类型化的客户端和服务端吗？
+---
+      <p class="q-eyebrow">11 &middot; 数据边界</p>
+      <h1 class="q-title">每个 API 都要手写校验器吗？</h1>
+
+      <p class="short-answer">
+        不用。在 Glyph 中，<strong>类型本身就是它的校验器</strong>。声明一个 <code>type</code>，编译器会在旁边生成一个运行时描述符，所以不可信的请求体或响应体一次调用就能校验，不需要另外编写并同步维护一份 <code>zod</code> schema。
+      </p>
+
+      <figure class="ak-hero" id="the-boundary">
+        <div class="ak-flow">
+          <div class="ak-node in"><span class="k">不可信的请求体</span><span class="v">req.body</span><span class="n">unknown，例如 {"title": 123}</span></div>
+          <div class="ak-arrow" aria-hidden="true"><svg viewBox="0 0 40 16" preserveAspectRatio="none"><path d="M3 8h32M30 3.5l5 4.5-5 4.5"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-node gate"><span class="k">描述符</span><span class="v">NewTask.parse</span><span class="n">由 <code>type NewTask</code> 生成</span></div>
+          <div class="ak-arrow fork" aria-hidden="true"><svg viewBox="0 0 44 100" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M0 50H16M16 24V76M16 24H42M16 76H42"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-outs">
+            <div class="ak-node ok"><span class="k">Ok</span><span class="v">NewTask</span><span class="n">一个有类型的值，每个字段都经过检查</span></div>
+            <div class="ak-node err"><span class="k">Err</span><span class="v">Array&lt;Issue&gt;</span><span class="n">错误的请求体在这里被拦下</span></div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>一个声明，一次检查。描述符由类型生成，所以两者不会不一致，而得到 <code>NewTask</code> 的唯一途径就是经过它。</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#see-it">看看实际效果</a></li>
+          <li><a href="#the-parse-result-is-an-ordinary-result">普通的 Result</a></li>
+          <li><a href="#composing-your-own-the-output-type-is-derived-not-trusted">组合子</a></li>
+          <li><a href="#if-i-parse-a-date-do-i-get-a-real-date">日期</a></li>
+          <li><a href="#you-don-t-even-have-to-write-the-types">生成的类型</a></li>
+          <li><a href="#the-database-is-a-boundary-too">数据库</a></li>
+          <li><a href="#a-signed-webhook-is-a-boundary-too">Webhook</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">为什么重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        在大多数 TypeScript 技术栈中，每个负载都要描述<em>两次</em>：一次是给编译器看的 <code>type</code>，另一次是手写的校验器，确保这个值在运行时真的是这个形状。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>两者会逐渐偏离，而偏离之处正是坏数据溜进来的地方。Glyph 把它们合并成一个声明：类型<em>产生</em>校验器，所以两者不可能不一致。</p></div>
+
+      <h2 class="ak-h" id="see-it">看看实际效果<a class="ak-anchor" href="#see-it" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        DTO 只需声明一次。它的描述符提供 <code>.parse</code>（把不可信的值校验为该类型）和 <code>.is</code>（类型守卫），不需要再写别的：
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">api.glyph</span>
+<pre>type NewTask = {
+  title: string,
+  done: bool,
+}
+
+fn create(req: Request)
+  -&gt; Result&lt;Response, string&gt; {
+  return match NewTask.parse(req.body) {
+    Ok(task) =&gt; Ok(json(201, task)),
+    Err(issues) =&gt; Ok(json(400, {
+      error: "invalid task",
+    })),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">你<em>没有</em>写的东西</span>
+<pre>// No zod schema:
+const NewTask = z.object({
+  title: z.string(),
+  done: z.boolean(),
+});
+// No drift between the type and
+// the validator, because there is
+// only one declaration.
+
+// A bad body, {"title": 123},
+// takes the Err arm. Only a
+// well-formed body reaches Ok.</pre>
+        </div>
+      </div>
+
+      <h3 class="ak-h3" id="typed-value">在 <code>match</code> 之后保留有类型的值<a class="ak-anchor" href="#typed-value" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        你也可以把值取出来，而不是在分支里完成所有工作。
+      </p>
+      <div class="code">
+        <span class="cap">api.glyph：值离开 match 时仍带着类型</span>
+<pre>let task = match NewTask.parse(req.body) {
+  Ok(t) =&gt; t,
+  Err(issues) =&gt; { return bad_request(issues) },
+}
+task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; did you mean `title`?</span></pre>
+      </div>
+      <div class="ak-chips"><span class="chip since">自 0.1.45 起</span><span class="chip">泛型类型：尚未支持</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">类型如何传递，以及泛型的例外</span></summary><div class="body">
+        <p>
+          <code>T.parse</code> 的类型是 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>，而各分支类型一致的 <code>match</code> 会带着这个类型，所以 <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> 在函数的剩余部分给你一个 <code>NewTask</code>，字段名由 Glyph 检查，而不是由 <code>tsc</code> 在生成的 TypeScript 上检查。这在 0.1.45 中落地；在此之前，值一离开 <code>match</code> 就没有类型了。泛型类型的 <code>parse</code> 仍然做不到，因为它的描述符需要为每个类型参数传入一个运行时检查器。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-parse-result-is-an-ordinary-result">解析结果是普通的 <code>Result</code><a class="ak-anchor" href="#the-parse-result-is-an-ordinary-result" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        在 Glyph 中，<code>T.parse</code> 返回的 <code>Result</code> 和语言中每个可能失败的函数返回的一样，所以你可以直接把它返回，用 <code>map_err</code> 把校验问题转成你自己的错误类型，或者用 <code>?</code> 向上传递。
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">boundary.glyph</span>
+<pre>// Hand it straight back.
+fn read_task(body: unknown)
+  -&gt; Result&lt;NewTask, Array&lt;Issue&gt;&gt; {
+  return NewTask.parse(body)
+}
+
+// Or restate the failure in your own terms.
+fn read_checked(body: unknown)
+  -&gt; Result&lt;NewTask, string&gt; {
+  return NewTask.parse(body).map_err(
+    fn(issues: Array&lt;Issue&gt;) -&gt; string {
+      return "invalid task: ${issue_text(issues)}"
+    },
+  )
+}
+
+// Or propagate it and get on with the work.
+fn create(body: unknown) -&gt; Result&lt;Response, string&gt; {
+  let task = read_checked(body)?
+  return Ok(json(201, save(task)))
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">它替代了什么</span>
+<pre>// Until 0.1.52 the generated descriptor
+// returned a bare { tag, value } object,
+// so both of the first two shapes were
+// tsc errors (TS2322 and TS2339) even
+// though Glyph's own checker reported
+// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround
+// was an identity re-wrap:
+
+match NewTask.parse(body) {
+  Ok(t)  =&gt; Ok(t),          // does nothing
+  Err(e) =&gt; Err(reword(e)),
+}
+
+// Four lines to say map_err. bracket.glyph
+// carried this twice until the fix landed.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">在这里使用 Result 的运行时开销</span></summary><div class="body">
+        <p>
+          一个以自己私有形状返回值的校验器只有一半用处，因为你其余的错误处理碰不到它。解析结果没有任何特殊之处。
+        </p>
+        <p>
+          它曾经不是这样的原因：描述符生成在你的 <code>type</code> 旁边，输出一个裸对象可以让声明类型的模块在运行时不依赖 <code>std/result</code>。现在这个取舍反了过来。含有 <code>pub type</code> 的模块无论是否写过 <code>Result</code>，都会带上对 <code>std/result</code> 的导入，而一次 <code>parse</code> 调用会分配任何 <code>Ok(...)</code> 都会分配的组合子闭包。换来的是：经过校验的边界和其余的错误处理使用同一套 API。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="composing-your-own-the-output-type-is-derived-not-trusted">自己组合：输出类型是推导出来的，而不是被信任的<a class="ak-anchor" href="#composing-your-own-the-output-type-is-derived-not-trusted" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph 的 <code>infer_output&lt;Shape&gt;</code> 从形状<strong>推导</strong>出输出类型，并由 <code>tsc</code> 检查你的标注是否与之相符。如果形状漏掉了你声称的类型中的某个字段，就无法编译：
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">schema.glyph</span>
+<pre>fn object_schema&lt;Shape: Record&lt;string, Schema&lt;unknown&gt;&gt;&gt;(
+  shape: Shape,
+) -&gt; Schema&lt;infer_output&lt;Shape&gt;&gt; { ... }
+
+type User = { name: string, age: number }
+
+// The shape must produce a User, or this
+// line does not compile:
+const user_schema: Schema&lt;User&gt; =
+  object_schema({
+    name: string_schema(),
+    age: number_schema(),
+  })</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph 消除的偏离</span>
+<pre>// TS/zod: shape and output type are two
+// separate things you keep in sync by hand.
+const s = z.object({ name: z.string() });
+type User = { name: string; age: number };
+// `s` is inferred { name }, but nothing
+// checks it against User. The `age` you
+// forgot is caught at runtime, if ever.
+
+// Glyph: drop `age` from the shape and
+// `Schema&lt;User&gt;` fails to compile. The
+// shape is the single source of truth.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">TypeScript 的陷阱，以及自 0.1.92 起跟随 return 的类型断言</span></summary><div class="body">
+        <p>
+          有时你需要 <code>zod</code> 风格的组合子：把较小的校验器组合成一个校验器。TypeScript 中的陷阱是，组合子的<em>输出类型</em>和你传给它的<em>形状</em>会逐渐偏离。你写好形状，再在第二个类型参数里重复一遍，而没有任何东西检查两者是否一致。
+        </p>
+        <p>
+          无论组合子以什么方式返回，推导出的类型都成立。<code>infer_output</code> 需要在函数边界处做一次类型断言，因为函数体构造的值无法被类型系统证明带有由形状推导出的类型，这个类型断言由编译器替你写。在 0.1.91 及之前，它只附加在普通的 <code>return &lt;value&gt;</code> 上。如果在 <code>return</code> 和值之间放一个 <code>match</code>，或者让函数体以 <code>r?</code> 结尾，同一个函数就无法编译了：针对生成的 TypeScript 报出 <code>TS2322</code>，而对应的 Glyph 编译器早已接受。从 0.1.92 起，类型断言跟随的是 return 本身而不是它的写法，所以 <code>return match strict { ... }</code> 和同一函数体用单个 <code>return</code> 写出来的版本类型检查结果相同。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-rest-of-the-boundary">不可信边界的其余部分<a class="ak-anchor" href="#the-rest-of-the-boundary" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        让 <code>json.parse&lt;T&gt;</code> 变得安全的也是同一个描述符：给它一个 JSON 字符串，它会一步完成解析<em>和</em>校验。
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>输入</th><th>调用</th><th>返回</th></tr></thead>
+          <tbody>
+            <tr><td>JSON 字符串</td><td><code>json.parse&lt;T&gt;(text)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>已解码的请求体</td><td><code>T.parse(value)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>请求头</td><td><code>header(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+            <tr><td>查询参数</td><td><code>query_param(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">请求体、请求头和查询参数</span></summary><div class="body">
+        <p>
+          请求体到达时已经解码为 <code>unknown</code>，所以这时你要用 <code>T.parse(value)</code>：同样的保证，不需要类型断言。
+        </p>
+        <p>
+          不可信边界的其余部分也以同样方式定型：<code>header(req, name)</code> 和 <code>query_param(req, name)</code> 返回 <code>Option&lt;string&gt;</code>，所以缺失的请求头或查询参数是 <code>None</code>，而 <code>match</code> <em>强制</em>你处理它。省略 <code>None</code> 分支就无法编译。不存在的输入不可能被当作存在来读取。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="does-a-map-keyed-by-an-enum-check-its-keys">以枚举为键的映射会检查它的键吗？<a class="ak-anchor" href="#does-a-map-keyed-by-an-enum-check-its-keys" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        会，自 0.1.148 起。对于 <code>type Tier = "free" | "pro"</code>，<code>Record&lt;Tier, int&gt;</code> 只会解析键恰好为 <code>free</code> 和 <code>pro</code> 的对象：多出一个键或缺少一个键都是 <code>Err</code>，这和 <code>tsc</code> 对同一个对象写成字面量时的判断一致。
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>键类型</th><th><code>parse</code> 对每个键检查什么</th></tr></thead>
+          <tbody>
+            <tr><td>字符串字面量联合类型</td><td>恰好是列出的键，不缺也不多</td></tr>
+            <tr><td>用 <code>where</code> 细化的类型</td><td>谓词</td></tr>
+            <tr><td><code>int</code></td><td>整数的普通写法；<code>"01"</code> 和 <code>"1.5"</code> 不通过</td></tr>
+            <tr><td><code>string</code></td><td>没有新变化</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">细化类型和 int 类型的键，以及仍然交给 tsc 的部分</span></summary><div class="body">
+        <p>
+          用 <code>where</code> 细化的键类型会对每个键运行谓词，<code>int</code> 键必须是整数的普通写法，所以 <code>"01"</code> 和 <code>"1.5"</code> 被拒绝。<code>Record&lt;string, V&gt;</code> 的检查方式和以前完全一样。对于你在代码中写出的值，Glyph 自己的检查器仍然把键交给 <code>tsc</code> 检查；以自身类型参数为键的泛型记录会被拒绝，除非该参数是 <code>string</code>。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="if-i-parse-a-date-do-i-get-a-real-date">解析一个日期，得到的是真正的日期吗？<a class="ak-anchor" href="#if-i-parse-a-date-do-i-get-a-real-date" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        是的，更值得一看的是，对于不是日期的输入你会得到什么。<code>time.parse_iso</code> 返回 <code>Option&lt;number&gt;</code>，对任何不是 ISO-8601 的内容都返回 <code>None</code>。
+      </p>
+      <div class="two-up fit">
+        <div class="code">
+          <span class="cap">接受</span>
+<pre>"2026-01-03"              // UTC midnight
+"2026-07-25T18:33:08.000Z"
+"2026-03-15T09:30:00-05:00"
+"2028-02-29"              // a real leap day</pre>
+        </div>
+        <div class="code">
+          <span class="cap">全部返回 None</span>
+<pre>"January 5 2026"   // not ISO
+"2026-1-3"         // not padded
+"2026-13-01"       // no month 13
+"2026-02-31"       // no such day
+"2026-02-29"       // not a leap year
+"2026-01-03T10:00" // no offset</pre>
+        </div>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>最后一个最让人意外，而它正是重点所在。按照 ECMAScript 语法，没有 <code>Z</code> 也没有 <code>+HH:MM</code> 偏移的日期时间是本地时间，所以接受它就意味着同一个字符串会因运行程序的机器不同而指向不同的日历日。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">Date.parse 会怎么做，以及为什么用 UTC</span></summary><div class="body">
+        <p>
+          这比 JavaScript 的 <code>Date.parse</code> 要严格。后者接受自由格式的文本（<code>"January 5 2026"</code>），按进程碰巧所在的时区读取没有补零的日期，比如 <code>"2026-1-3"</code>，并且把不可能存在的日期向后滚动后当作成功：<code>"2026-02-31"</code> 变成 3 月 3 日，你拿到一个数字，没有任何迹象表明发生了什么。
+        </p>
+        <p>
+          Glyph 的日历访问函数（<code>time.year</code>、<code>time.month</code>、<code>time.day</code>）使用 UTC，并且明确说明这一点，而一个悄悄引入宿主时区的校验器会让它们给出错误结果。所以这样的字符串会被拒绝，由你来决定它的含义。
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="the-guard-moved">守卫移进了基础函数<a class="ak-anchor" href="#the-guard-moved" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        当应用在标准库的基础函数外面包一层正确性守卫时，这个守卫应该放进基础函数本身。下面是应用删掉的代码：
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">之前：应用为标准库加守卫</span>
+<pre>const ISO_DATE = "^\\d{4}-\\d{2}-\\d{2}$"
+
+fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match regex.matches(ISO_DATE, value) {
+    false =&gt; Err(BadDate({ line: line, value: value })),
+    true =&gt; match time.parse_iso(value) {
+      Some(ms) =&gt; match string.starts_with(
+        time.format_iso(ms), value
+      ) {
+        true =&gt; Ok(ms),
+        false =&gt; Err(BadDate({ line: line, value: value })),
+      },
+      None =&gt; Err(BadDate({ line: line, value: value })),
+    },
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">之后：由基础函数把关</span>
+<pre>fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match time.parse_iso(value) {
+    Some(ms) =&gt; Ok(ms),
+    None =&gt; Err(BadDate({ line: line, value: value })),
+  }
+}</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        <code>import std/regex</code> 也一起删掉了。同样的账本，同样被拒绝的行，报告逐字节相同。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">这个改动来自的报销应用</span></summary><div class="body">
+        <p>
+          这个改动来自用 Glyph 编写的一个<a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph">报销单命令行工具</a>。每一行账目都带有日期，而把一行记到错误的月份是真正要紧的 bug，所以这个应用不信任旧的 <code>parse_iso</code>：它先用正则表达式检查格式，再把时间戳转回文本，以发现被滚动过的日期。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="you-don-t-even-have-to-write-the-types">连类型都不用自己写<a class="ak-anchor" href="#you-don-t-even-have-to-write-the-types" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        如果形状已经存在于 OpenAPI 规范或 TypeScript 声明文件中，就从中生成 Glyph 类型：真实的、提交到仓库的、可以 grep 的 <code>type</code> 声明，每个都带有描述符，而不是推断出来的虚影：
+      </p>
+      <div class="two-up fit">
+        <div class="code term">
+          <span class="cap">从 OpenAPI / JSON Schema 规范生成</span>
+<pre>glyph gen openapi petstore.yaml \
+  --out src/</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">按名字从已安装的包生成</span>
+<pre>glyph gen dts api-types \
+  --out src/types</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        线上传输的类型变成经过校验的边界，不需要任何手写代码：
+      </p>
+      <div class="code">
+        <span class="cap">webhook.glyph</span>
+<pre>import types/api_types { Customer }
+
+match Customer.parse(webhook_body) {
+  Ok(c) =&gt; handle(c),
+  Err(issues) =&gt; reject(issues),
+}</pre>
+      </div>
+      <p class="ak-lede">生成过程<strong>忠实于线上格式</strong>：规范对一个值的描述，就是 <code>parse</code> 检查的内容。</p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>在规范或 <code>.d.ts</code> 中</th><th>生成的 Glyph</th></tr></thead>
+          <tbody>
+            <tr><td>字符串枚举</td><td>字符串字面量联合类型；<code>parse</code> 检查取值是否在其中</td></tr>
+            <tr><td><code>integer</code> 字段</td><td><code>int</code>；线上的 <code>3.5</code> 不通过</td></tr>
+            <tr><td>对象 schema</td><td>标记为 <code>@open</code> 的记录；有 <code>additionalProperties: false</code> 时为严格模式</td></tr>
+            <tr><td><code>interface Page&lt;T&gt;</code></td><td><code>type Page&lt;T&gt;</code>，每一项都按 <code>T</code> 检查</td></tr>
+            <tr><td>无判别字段的联合类型</td><td>收窄，并打印一条说明</td></tr>
+            <tr><td>同一个名字出现在两个可达文件中</td><td>标记并附说明，不做绑定</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">目前能生成什么、重新生成、泛型类型</span></summary><div class="body">
+        <p>
+          把 <code>glyph gen dts</code> 指向一个 <code>.d.ts</code> 文件，或者像上面那样按名字指向一个已安装的 npm 包：它会从 <code>node_modules</code> 中解析出该包自己的声明入口，并写出供你导入的、提交到仓库的类型。
+        </p>
+        <p>
+          目前能生成的内容：<code>gen dts</code> 读取包导出的 <code>interface</code> 和 <code>type</code> 声明，包括 <code>declare namespace</code> 树中的声明（裸的交叉引用会通过作用域解析），以及 <code>index</code> 汇总文件重新导出的同级文件中的声明（会遍历入口 <code>.d.ts</code> 及其通过相对路径导入的每个 <code>.d.ts</code>）。泛型保持一等地位：<code>interface Page&lt;T&gt;</code> 生成为 <code>type Page&lt;T&gt;</code>，并得到一个按类型参数校验每一项的描述符，而不只是检查是否存在。带别名的重新导出和 <code>export * as</code> 重新导出通过每个文件的绑定映射解析。唯一无法保证安全的情况，即一个类型名在两个可达文件中冲突，它会<em>标记并附上说明</em>，而不是悄悄绑定到错误的形状。对于生成器处理不到的内容，就手写你在边界上用到的形状，或者使用 <code>extern_ts</code> 逃生口。
+        </p>
+        <p>
+          重新生成是幂等的，所以规范的改动会是一个干净、可审查的 diff。生成过程<strong>忠实于线上格式</strong>：字符串枚举生成为字符串字面量联合类型（<code>"free" | "pro"</code>），所以 <code>parse</code> 检查的是取值是否在其中，而不只是检查它是否为字符串，对它的 <code>match</code> 不需要 <code>else</code> 就是穷尽的。<code>integer</code> 字段变成 <code>int</code>，所以线上的 <code>3.5</code> 会让 <code>parse</code> 失败，而普通的 number 则会通过。如果某个结构没有完全对应的 Glyph 形式（比如无判别字段的联合类型），它会收窄并<em>打印一条说明</em>，而不是生成一个会拒绝真实数据的校验器。生成的记录还带有 <code>@open</code>，所以 <code>parse</code> 能容忍 API 以后新增的字段，同时仍然校验它声明的每个字段；设置了 <code>additionalProperties: false</code> 的 schema 保持严格。Glyph 中的记录默认是严格的，而这和手写记录使用的是同一个可以 grep 的声明处标记，所以记录的含义没有任何变化。
+        </p>
+        <p>
+          泛型类型同样会被校验。<code>Paginated&lt;T&gt;</code> 得到的描述符，其 <code>parse</code> 接受类型参数：<code>Paginated.parse&lt;User&gt;(body)</code> 会把 <code>items</code> 的每一项<em>按 <code>User</code></em> 检查，而不只是检查是否存在，<code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> 也以同样方式收窄。这一点跨模块边界同样成立：在一个文件中定义 <code>Paginated&lt;T&gt;</code>，在另一个文件中 <code>import</code> 它，那里的 <code>Paginated.parse&lt;User&gt;(body)</code> 和 <code>is Paginated&lt;User&gt;</code> 仍然会把每个元素按 <code>User</code> 检查。编译器在调用处根据类型参数构造逐元素检查，所以泛型类型位于哪个文件，不影响校验的内容。
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+          它的边界：描述符覆盖了大多数负载所由构成的形状：对象、基本类型、数组、引用、可选和可空字段，以及现在在具体实例化下的泛型类型。不是由 Glyph 生成的类型（你只是导入的外部包或 <code>.d.ts</code>）会被类型检查，但在你把它生成出来之前没有描述符，而现在这只需要对已安装的包运行一条命令（<code>glyph gen dts &lt;package&gt;</code>，针对它导出的顶层 interface 和类型别名）。这个边界是有意的：一个不是 Glyph 生成的类型无法承诺运行时校验，所以你按包逐个选择加入，结果被提交到仓库且可以 grep，而不是每次构建时凭空变出来。</p></div>
+
+      <h2 class="ak-h" id="the-database-is-a-boundary-too">数据库也是边界<a class="ak-anchor" href="#the-database-is-a-boundary-too" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        从数据库读出的一行，和请求体一样不可信。你在请求体上用的 <code>.parse</code> 同样可以校验一行数据。
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>type Task    = { id: int, title: string, done: bool }
+type TaskRow = { id: int, title: string, done: int }
+
+fn row_to_task(r: TaskRow) -&gt; Task {
+  return { id: r.id, title: r.title,
+           done: r.done != 0 }
+}
+
+// A row is validated, then mapped. No cast.
+match TaskRow.parse(row) {
+  Ok(r)  =&gt; Ok(row_to_task(r)),
+  Err(_) =&gt; Err("row failed validation"),
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">它消除的 bug</span>
+<pre>// TS, better-sqlite3 / node:sqlite:
+const row = stmt.get(id) as Task;
+// `row.done` is really 0 or 1, a number.
+// Nothing complains. Then:
+if (row.done === true) { ... }   // never runs
+
+// The row was `unknown`; the cast invented
+// a type. Glyph makes you validate the row
+// into TaskRow, and the int-to-bool step is
+// a line of code, not a silent lie.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">std/sqlite，以及值为 0 或 1 的布尔</span></summary><div class="body">
+        <p>
+          从数据库读出的一行，和请求体一样不可信：数据库 schema 和你的代码对这一行的理解可能不一致，而类型断言（<code>row as Task</code>）会把这种不一致掩盖掉。<code>std/sqlite</code> 是基于 Node 内置 SQLite 的数据库模块，它正是按这个思路设计的。查询返回 <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>，所以不先校验就没有办法把一行当作 <code>Task</code> 使用。
+        </p>
+        <p>
+          这能抓住一个人们经常上线的 bug。SQLite 没有布尔类型，所以 <code>done</code> 列返回的是整数 <code>0</code> 或 <code>1</code>。把这一行断言成带 <code>bool</code> 字段的记录，<code>task.done === true</code> 就悄无声息地永远不成立。在 Glyph 中，存储形状和领域形状是两个不同的类型，两者之间的映射是你能直接看到的一行代码：
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="3.8" rx="5" ry="1.9"/><path d="M3 3.8v8.4c0 1 2.2 1.9 5 1.9s5-.9 5-1.9V3.8M3 8c0 1 2.2 1.9 5 1.9s5-.9 5-1.9"/></svg><p>
+          完整的可运行示例：<a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph"><code>examples/apps/tasks/main.glyph</code></a> 是一个持久化的任务 API，用 <code>std/sqlite</code> 存储，用 <code>std/http</code> 定义路由，数据在重启后依然存在，线上传输和数据库两侧都有校验。整个示例中没有任何手写的校验器。</p></div>
+
+      <h2 class="ak-h" id="a-signed-webhook-is-a-boundary-too">带签名的 webhook 也是边界<a class="ak-anchor" href="#a-signed-webhook-is-a-boundary-too" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        校验 webhook 签名需要发送方签名时的原始字节，而不是重新序列化的副本（把解析后的请求体重新转成字符串会改变空白和键的顺序，HMAC 就永远对不上）。<code>http.raw(req)</code> 把这些字节交给你，所以校验可以留在 Glyph 中完成：
+      </p>
+<pre>fn handle(req: Request) -&gt; Result&lt;Response, string&gt; {
+  let expected = crypto.hmac_sha256(secret, raw(req))
+  return match header(req, "x-hook-signature") {
+    Some(sig) =&gt; match sig == expected {
+      true  =&gt; accept(req),          // then validate req.body with T.parse
+      false =&gt; Ok(text(401, "bad signature")),
+    },
+    None =&gt; Ok(text(401, "missing signature")),
+  }
+}</pre>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">签名用原始字节，形状用解析后的请求体</span></summary><div class="body">
+        <p>
+          <code>req.body</code> 仍然是用于形状检查的解析值；<code>raw</code> 是计算签名所依据的未经改动的负载。一个既校验签名又校验请求体的接收端不需要任何手写的 TypeScript。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-type-can-validate-its-invariants-not-just-its-shape">类型不仅能校验形状，还能校验不变式<a class="ak-anchor" href="#a-type-can-validate-its-invariants-not-just-its-shape" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        形状检查告诉你某个字段是数字，但不会告诉你金额非负，或者评分在 1 到 5 之间。<code>where</code> 细化把这个不变式放进类型，由描述符在边界处强制执行：
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">refinements.glyph</span>
+<pre>type Amount   = int where value &gt;= 0
+type Rating   = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+type NonEmpty = string where value.length &gt; 0
+
+// Amount.parse(-1)  -&gt; Err   (not just "is a number")
+// Rating.parse(6)   -&gt; Err
+// Amount.parse(3.5) -&gt; Err   (int check too)
+
+type Line = { amount: Amount, }
+// Line.parse({ amount: -1 }) -&gt; Err too:
+// the predicate follows the type into
+// the field, and across modules.</pre>
+        </div>
+        <div class="code">
+          <span class="cap">你不用写的东西</span>
+<pre>// The check that usually lives three
+// functions away from the boundary,
+// if someone remembers it:
+if (amount &lt; 0) throw new Error(...);
+
+// In Glyph it's the type. A value that
+// fails the predicate never becomes an
+// Amount in the first place.</pre>
+        </div>
+      </div>
+
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供 <span class="count">10</span></h3>
+
+          <p class="ak-st-group">描述符</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">每个声明的记录和标签联合都带有运行时描述符（<code>.parse</code>、<code>.is</code>、<code>.schema</code>），泛型记录也包括在内</span><span class="chip">泛型标签联合没有</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>.parse</code> 返回语言其余部分使用的同一个 <code>Result</code>，所以它能与 <code>map_err</code>、<code>?</code> 以及任何返回 Result 的函数组合</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>where</code> 细化（<code>int where value &gt;= 0</code>）在边界处校验不变式，而不只是形状</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>json.parse&lt;T&gt;</code> 校验 JSON</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>infer_output&lt;Shape&gt;</code> 从组合子的形状推导其输出类型，所以两者不会偏离</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">生成</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code> / <code>glyph gen dts</code> 从规范、<code>.d.ts</code> 或按名字指定的已安装包生成提交到仓库、带描述符的类型</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">边界</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/sqlite</code> 以 <code>unknown</code> 返回各行，所以数据库和其他边界一样是经过校验的边界</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">带签名的 webhook 接收端完全用 Glyph 编写</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p><code>http.raw(req)</code> 暴露未解析的请求体，所以 webhook 签名是在原始字节上校验的，带签名的 webhook 接收端完全用 Glyph 编写。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">不可信输入不经过 <code>sanitize</code> 就无法到达 SQL 或 shell</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p><code>std/taint</code> 的 <code>Tainted</code>/<code>Trusted</code> 类型阻止不可信输入在没有显式 <code>sanitize</code> 的情况下到达 SQL 或 shell，所以 <code>tsc</code> 会在编译期拒绝注入路径。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>time.parse_iso</code> 只接受 ISO-8601</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>较小的边界基础函数也守着同样的底线：<code>time.parse_iso</code> 只接受 ISO-8601，对自由格式文本、不可能存在的日期，以及原本会按宿主本地时区读取的无偏移日期时间，都返回 <code>None</code>。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在进行 <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">可辨识联合可以从规范和 <code>.d.ts</code> 生成；接下来是枚举和映射类型的覆盖</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>可辨识联合现在既可以从 OpenAPI 的 <code>discriminator</code> 生成，也可以从 TypeScript <code>.d.ts</code> 中的联合类型生成（一个 <code>parse_&lt;Name&gt;</code> 分派函数读取标签并校验为对应的变体）。下一步：更完整的枚举和映射类型覆盖。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">根据规范生成类型化的客户端和服务端代码，现已提供</span> <a class="chip" href="/answers/codegen/">查看客户端与服务端</a></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">时间戳和时长都是 <code>number</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>在日期方面，严格性就是这个功能的全部，并且只到解析为止：<code>parse_iso</code> 返回纪元毫秒数，所以时间戳和时长都是 <code>number</code>，没有什么能阻止你把两者相加。独立的日期类型是以后的决定，而且不是一个小决定。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>

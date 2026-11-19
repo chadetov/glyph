@@ -1,0 +1,83 @@
+---
+title: 怎样在函数之间共享可变状态？ · Glyph
+description: Glyph 没有可变的全局变量。共享状态放在 std/store 中：一个模块级的 const，它的 get、set 和 update 是唯一的写入方式，一次搜索就能全部找到。
+source_hash: 59f9695c32448ee8
+prev: /answers/react/ | &larr; 上一篇 | 能和 React 一起用吗：组件、hooks 和 Context？
+next: /answers/language/ | 下一篇 &rarr; | 这是一门真正的语言，还是一个有很多缺口的玩具？
+---
+      <p class="q-eyebrow">14 &middot; 共享状态</p>
+      <h1 class="q-title">怎样在函数之间共享可变状态？</h1>
+
+      <p class="short-answer">
+        用 <strong>store</strong>。Glyph 没有可变的全局变量，模块绑定都是 <code>const</code>。共享状态放在 <code>std/store</code> 中：一个模块级的 <code>const</code>，持有一个值，用 <code>get()</code> 读取，用 <code>set()</code>/<code>update()</code> 修改。绑定本身永远不变，变的只有它里面的值，而且只能通过方法调用，所以每一次写入都是一个可以 grep 到的 <code>.set(</code> 或 <code>.update(</code>。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">看看实际效果</h2>
+        <p>
+          在模块作用域声明一次 store，模块中的每个函数都共享它。不需要在 <code>main</code> 里层层传递 <code>let</code>，也不需要捕获变量的闭包：
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>import std/store { create }
+import std/array
+
+type Task = {
+  id: number,
+  title: string,
+}
+
+const tasks = create&lt;Array&lt;Task&gt;&gt;([])
+const next_id = create(0)
+
+fn add(title: string) -&gt; Task {
+  next_id.update(fn(n: number) -&gt; number {
+    return n + 1
+  })
+  let task = { id: next_id.get(), title: title }
+  tasks.update(fn(cur: Array&lt;Task&gt;) -&gt; Array&lt;Task&gt; {
+    return array.push(cur, task)
+  })
+  return task
+}
+
+fn all() -&gt; Array&lt;Task&gt; {
+  return tasks.get()
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">全部写入点，一次 grep 就能找到</span>
+<pre>$ grep -rn 'tasks\.\(set\|update\)' src/
+src/tasks.glyph:16:  tasks.update(fn(cur...
+
+# every place the task list can change,
+# enumerated. nothing hides in an
+# ordinary `x = ...` assignment
+# somewhere else in the file.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">为什么用 store，而不用可变的全局变量</h2>
+        <p>
+          这是有意的设计选择。Glyph 把 <code>mut</code> 限制在局部赋值上，并让模块绑定保持 <code>const</code>，因为散落各处的可写全局变量正是让状态难以推理、难以<em>找到</em>的原因。store 不需要放宽其中任何一条规则：<code>const s</code> 绑定是不可变的，里面的值只能通过 <code>set</code>/<code>update</code> 改变。所以共享状态是以<strong>库而不是新语法</strong>的形式提供的（没有线性类型，也没有放宽修改规则），修改集中在一个经过审查的地方，而不是分散在整个程序中。
+        </p>
+        <p>
+          有一个和 TypeScript 相同的坑：空集合无法推断元素类型，所以要用显式的类型参数来初始化：<code>create&lt;Array&lt;Task&gt;&gt;([])</code>。标量 store（<code>create(0)</code>）可以正常推断。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p><code>std/store</code>，提供 <code>create</code>、<code>get</code>、<code>set</code> 和 <code>update</code>：共享可变状态唯一的、可以 grep 的归属地。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">正在进行</h3>
+          <p>基于同一个基础构件的便利功能（派生/计算 store、订阅），叠加在上层，不改变语言本身。</p>
+        </div>
+      </div>

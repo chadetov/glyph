@@ -1,0 +1,284 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/index.html",
+  "locale": "zh-cn",
+  "source_hash": "28891a173ca9e4a0",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Design · the four pillars and the decisions · Glyph",
+      "tr": "设计 · 四大支柱与各项决策 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "The design argument for Glyph: four pillars every decision is tested against, the numbered decisions in the spec, and what the language leaves out on purpose.",
+      "tr": "Glyph 的设计思路：每项决策都要经受检验的四大支柱，规范中带编号的决策，以及语言有意没有做的部分。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "接下来去哪里"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "推荐"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/language/spec.md.title",
+      "kind": "ns.title",
+      "en": "Read the spec",
+      "tr": "阅读规范"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/language/spec.md.desc",
+      "kind": "ns.desc",
+      "en": "Every numbered decision, each ending with the pillar it serves.",
+      "tr": "每项带编号的决策，结尾都写明它服务于哪个支柱。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open the spec",
+      "tr": "打开规范"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "Glyph 拒绝什么"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "每个案例都分别在 <code>tsc --strict</code> 和 Glyph 下检查过。"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "写第一个程序"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "安装、创建项目、运行、故意改错、读报错。大约十分钟。"
+    },
+    {
+      "id": "h-0072e6b9",
+      "kind": "html",
+      "en": "Design",
+      "tr": "设计"
+    },
+    {
+      "id": "h-32e01c38",
+      "kind": "html",
+      "en": "Four pillars, and a decision record for every rule",
+      "tr": "四大支柱，每条规则都有决策记录"
+    },
+    {
+      "id": "h-00bba438",
+      "kind": "html",
+      "en": "Every rule in Glyph is tested against four properties, and each rule is a numbered decision in the spec with the pillar it serves. The pillars are properties of the language rather than of a project's configuration, so an agent opening an unfamiliar Glyph codebase can rely on them without first finding out which settings it chose.",
+      "tr": "Glyph 的每条规则都要用四项特性来检验，每条规则都是规范中一项带编号的决策，并注明它服务于哪个支柱。这些支柱是语言本身的特性，而不是某个项目的配置，所以智能体打开一个陌生的 Glyph 代码库时，不必先弄清它选了哪些设置，就可以依赖它们。"
+    },
+    {
+      "id": "h-9336e2ad",
+      "kind": "html",
+      "en": "The pillars",
+      "tr": "支柱"
+    },
+    {
+      "id": "h-2b73560f",
+      "kind": "html",
+      "en": "In order of what matters most. The first two are the wedge, the problems you feel every day. The last two are the polish that makes it pleasant. When they conflict, the wedge wins.",
+      "tr": "按重要程度排序。前两个是切入点，解决你每天都能感受到的问题。后两个是打磨，让它用起来更舒服。两者冲突时，切入点优先。"
+    },
+    {
+      "id": "h-5cbfc52e",
+      "kind": "html",
+      "en": "Pillar 01",
+      "tr": "支柱 01"
+    },
+    {
+      "id": "h-a33b81eb",
+      "kind": "html",
+      "en": "Verifiability",
+      "tr": "可验证性"
+    },
+    {
+      "id": "h-833bdc5b",
+      "kind": "html",
+      "en": "No <code>any</code> and no <code>as</code> you can write; <code>match</code> must cover every case; and your record and union types generate strict runtime validators, so a boundary value is checked, not assumed. A strict layer over <code>tsc</code> that can't be switched off. Many mistakes <code>tsc --strict</code> accepts don't compile here; the ones that still do are listed under <a href=\"/catches/#not-yet\">not caught yet</a>.",
+      "tr": "没有可以写的 <code>any</code> 和 <code>as</code>；<code>match</code> 必须覆盖每种情况；你的记录类型和联合类型会生成严格的运行时校验器，所以边界上的值是经过检查的，而不是假定的。这是 <code>tsc</code> 之上一层关不掉的严格检查。许多 <code>tsc --strict</code> 接受的错误在这里无法编译；仍然能编译的那些列在<a href=\"/catches/#not-yet\">尚未覆盖的问题</a>中。"
+    },
+    {
+      "id": "h-340b6574",
+      "kind": "html",
+      "en": "Pillar 02",
+      "tr": "支柱 02"
+    },
+    {
+      "id": "h-6b14954f",
+      "kind": "html",
+      "en": "Greppability",
+      "tr": "可检索性"
+    },
+    {
+      "id": "h-13800ac1",
+      "kind": "html",
+      "en": "One name, one place. Every symbol has exactly one syntactic form at its declaration, with no overloads, decorators, implicit <code>this</code>, or namespace merging. <code>grep \"fn parseUser\"</code> finds the definition.",
+      "tr": "一个名字，一个位置。每个符号在声明处都只有一种语法形式，没有重载、装饰器、隐式 <code>this</code> 或命名空间合并。<code>grep \"fn parseUser\"</code> 就能找到定义。"
+    },
+    {
+      "id": "h-7eb86103",
+      "kind": "html",
+      "en": "Pillar 03",
+      "tr": "支柱 03"
+    },
+    {
+      "id": "h-93a58670",
+      "kind": "html",
+      "en": "Diff stability",
+      "tr": "稳定的 diff"
+    },
+    {
+      "id": "h-0a940571",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
+      "tr": "改一行就是一行 diff。只有一种标准排版：列表放得下时写在一行，放不下时每个元素一行，从不重新打包，使用尾随逗号，没有 barrel 文件，也没有选项，所以同样的代码在每个项目里打印出来都一样。审查者看到的是改动本身，而不是无关的变动。"
+    },
+    {
+      "id": "h-80299b6d",
+      "kind": "html",
+      "en": "Pillar 04",
+      "tr": "支柱 04"
+    },
+    {
+      "id": "h-6e4fdd69",
+      "kind": "html",
+      "en": "Abstraction",
+      "tr": "抽象"
+    },
+    {
+      "id": "h-f3e218e0",
+      "kind": "html",
+      "en": "Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.",
+      "tr": "表达你的本意：用模式匹配代替一长串 switch，用 <code>Result</code> 代替抛出异常，用具名记录代替元组，建立在一个小而正交的核心之上，而不是 TypeScript 那样层层堆积的特性。"
+    },
+    {
+      "id": "h-8bfd62a3",
+      "kind": "html",
+      "en": "The spec is a list of decisions",
+      "tr": "规范是一份决策清单"
+    },
+    {
+      "id": "h-74c34d82",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/language/spec.md\">docs/language/spec.md</a> holds 49 numbered decisions, D1 to D49, each ending with the pillar it serves. The grammar follows the spec: an ambiguity is resolved there first, then encoded in the parser. <code>glyph llms --json</code> parses the list out of the spec, so an agent reads the same decisions you do. One of them, shortened:",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/language/spec.md\">docs/language/spec.md</a> 包含 49 项带编号的决策，从 D1 到 D49，每项结尾都写明它服务于哪个支柱。语法遵循规范：有歧义时先在规范中解决，再写进解析器。<code>glyph llms --json</code> 从规范中解析出这份清单，所以智能体读到的决策和你读到的是同一份。其中一项（有删节）："
+    },
+    {
+      "id": "h-943e1539",
+      "kind": "html",
+      "en": "D9, from docs/language/spec.md (shortened)",
+      "tr": "D9，摘自 docs/language/spec.md（有删节）"
+    },
+    {
+      "id": "h-269321eb",
+      "kind": "html",
+      "en": "What it deliberately leaves out",
+      "tr": "有意没有做的部分"
+    },
+    {
+      "id": "h-256e589c",
+      "kind": "html",
+      "en": "The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/manifesto.md\">manifesto</a> states the stance, and the short version is that each restriction earns its place against a pillar. Glyph has no <code>if</code>/<code>else</code> (<code>match</code> is the only conditional), no classes, no overloads or decorators, no casts, no <code>any</code>, no relative imports and no formatter options. It is also not configurable: one formatter, one module resolution, one strictness level. Annoying restrictions get documentation, not a looser rule.",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/manifesto.md\">宣言</a>阐述了基本立场，简单说就是每项限制都要对照某个支柱证明自己的价值。Glyph 没有 <code>if</code>/<code>else</code>（<code>match</code> 是唯一的条件结构），没有类，没有重载和装饰器，没有类型断言，没有 <code>any</code>，没有相对导入，也没有格式化选项。它也不可配置：一种格式化方式，一种模块解析方式，一个严格级别。对于让人不舒服的限制，我们补充文档，而不是放宽规则。"
+    },
+    {
+      "id": "h-3f7ad4a6",
+      "kind": "html",
+      "en": "Comparisons",
+      "tr": "比较"
+    },
+    {
+      "id": "h-e86ec61c",
+      "kind": "html",
+      "en": "Glyph is close to several existing things, and each comparison below names what the other option does better.",
+      "tr": "Glyph 和好几个现有方案都很接近，下面的每项比较都会说明另一方在哪些方面做得更好。"
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "为什么是 TypeScript，而不是 Go 或者一门全新的语言？"
+    },
+    {
+      "id": "h-8999c8e3",
+      "kind": "html",
+      "en": "Why the target is TypeScript, and what that makes possible: adoption one file at a time.",
+      "tr": "为什么目标是 TypeScript，以及这带来了什么：可以一个文件一个文件地引入。"
+    },
+    {
+      "id": "h-d07c7b07",
+      "kind": "html",
+      "en": "Why not strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "为什么不用严格模式的 TypeScript + zod + eslint + ts-pattern？"
+    },
+    {
+      "id": "h-dd5c3905",
+      "kind": "html",
+      "en": "The same checks as configuration versus as language, and where tooled TypeScript is still ahead.",
+      "tr": "同样的检查，作为配置和作为语言有什么区别，以及配齐工具的 TypeScript 仍然领先的地方。"
+    },
+    {
+      "id": "h-f04f0272",
+      "kind": "html",
+      "en": "How does it compare with Effect?",
+      "tr": "和 Effect 比起来怎么样？"
+    },
+    {
+      "id": "h-6fe0c507",
+      "kind": "html",
+      "en": "A TypeScript library with typed errors and a large ecosystem, against a language that removes the escape hatches.",
+      "tr": "一个带类型化错误和庞大生态的 TypeScript 库，对比一门去掉了逃生口的语言。"
+    },
+    {
+      "id": "h-389767f5",
+      "kind": "html",
+      "en": "Why not ReScript, Gleam or Elm?",
+      "tr": "为什么不用 ReScript、Gleam 或 Elm？"
+    },
+    {
+      "id": "h-d8c3b4ac",
+      "kind": "html",
+      "en": "Three older typed languages that compile to JavaScript, where each is ahead, and what Glyph does differently.",
+      "tr": "三门更早的、编译到 JavaScript 的类型化语言，各自领先在哪里，以及 Glyph 有什么不同。"
+    },
+    {
+      "id": "h-49ee7f98",
+      "kind": "html",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "这是一门真正的语言，还是一个有很多缺口的玩具？"
+    },
+    {
+      "id": "h-30b39c82",
+      "kind": "html",
+      "en": "Module visibility, interfaces, defer, the standard library, and the edges it still has.",
+      "tr": "模块可见性、接口、defer、标准库，以及它仍然存在的边界。"
+    },
+    {
+      "id": "h-c0af297f",
+      "kind": "html",
+      "en": "The hypothesis behind all of it, which is not a result yet: an agent given the same task produces correct code more reliably in Glyph than in TypeScript, and the reviewer spends less time confirming it. That study has not been run, so this site puts no number on it. <a href=\"/benchmarks/\">Benchmarks</a> says what is measured so far.",
+      "tr": "这一切背后的假设（目前还不是结论）：面对同样的任务，智能体用 Glyph 写出正确代码比用 TypeScript 更可靠，审查者确认它所花的时间也更少。这项研究还没有做，所以本站没有给出任何数字。<a href=\"/benchmarks/\">基准测试</a>说明了目前测量了什么。"
+    }
+  ]
+}

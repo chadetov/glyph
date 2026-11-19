@@ -1872,6 +1872,11 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
   move it above ...`, and exits 1. `glyph check` reports the same thing as
   warning E0500. Move the comment where the message says and run it again.
 - **No `node:` import prefix.** Import Node builtins by bare name (`import http`).
+- **One statement per line in a block.** There is no `;`. A statement that
+  begins on the line where the previous one ended is E0013: `let a = 1 let b =
+  2`, `let s = "a" "b"` (join with `+`), `return x as User` (there is no cast;
+  use `User.parse(x)`). A one-line body such as `fn f() -> int { return 1 }` or
+  `for x in xs { f(x) }` holds one statement and is fine.
 
 ### Reserved words
 
@@ -1897,7 +1902,7 @@ beside it is the one this compiler raises. They are compiled on every build of
 this document, so the pairing cannot go stale.
 
 Constructing a record by naming its type. Glyph has no `TypeName { ... }` form,
-and a `{` on the line where a statement ended does not begin a new statement
+and a statement cannot begin on the line where the one before it ended
 (the name alone, `return Order`, is E0228):
 
 ```glyph expect-error E0013
@@ -1983,7 +1988,7 @@ written. The full catalogue:
 | E0010 | A union variant given more than one positional payload field, in a declaration (`Node(Color, Tree, int)`) or in a match arm's pattern (`Node(c, k)`); a variant carries one payload, and a multi-field payload is a record (D8) | One record payload: `Node({ left: A, right: B })` |
 | E0011 | A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything. A level is one construct the parser descends into, counted once however it is spelled: parentheses around an operand are that operand's level, not a second one, so `-(x)` nests as deep as `-x` | Pull the inner levels into `let` bindings |
 | E0012 | What JSX text cannot hold: `}` or `>`, which would close an `{expression}` or a tag that is not open; `//`, which Glyph reads as a comment elsewhere and TSX reads as text; or an HTML entity (`&amp;`, `&#38;`, any `&` name or number `;`), which TSX decodes and Glyph does not (D6). Any other character between a tag and the next `{` or `<` is text, a lone `&` included | A string child (`{"}"}`, `{">"}`, `{"see http://x"}`, `{"\u{A0}"}`), the character itself for an entity, or a comment-only child for a comment |
-| E0013 | A `{` that would begin a statement on the line where the statement before it ended (`return h() { k: 2 }`, `let o = Order { id: "a" }`). Inside a block a statement ends where its expression stops (D1), so the braces would be a separate statement and not part of the value. Glyph has no `TypeName { ... }` construction form | Write the literal alone and put the type on the annotation (`let o: Order = { id: "a" }`); braces meant as their own statement start a new line |
+| E0013 | A statement that begins on the line where the statement before it ended, inside a block (`let a = 1 let b = 2`, `let s = "a" "b"`, `return x as User`, `return h() { k: 2 }`). Glyph has no `;`, and a statement ends where its expression stops (D1), so what follows on the line would be a separate statement and not part of the value. There is no `as` cast, and no `TypeName { ... }` construction form | Start each statement on its own line. If the rest was meant as part of the value, join it with an operator (`"a" + "b"`), validate instead of casting (`User.parse(x)`), or write the literal alone with the type on the annotation (`let o: Order = { id: "a" }`) |
 | E0100 | Duplicate top-level name | Rename one; names are unique |
 | E0101 | Relative import (`./`, `../`; D15). A module is named from the source root, with no package prefix: `std/io` for the stdlib, `helper` for a sibling file, `queries/report` for a file in a subdirectory. Two stages raise it: the parser, at a leading `./` or `../`, under the `parse` stage tag, and the resolver, at a `.` or `..` segment deeper in a path, under `collect`. Both carry the same help | Use an absolute module path (`std/io`, `myapp/x`) |
 | E0102 | Barrel file: only imports, no declarations (D15) | Add a declaration or remove the file |

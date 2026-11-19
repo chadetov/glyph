@@ -196,6 +196,9 @@
     --h2: 1.5rem;
     --h3: 1.125rem;
     --fs-lede: 1.125rem;
+    /* the secondary size carries card text, notes and list items; 14px is
+       small to read at arm's length */
+    --fs-sm: 0.9375rem;
   }
 }
 

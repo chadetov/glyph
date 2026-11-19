@@ -78,6 +78,11 @@ LOCALES: dict[str, tuple[str, str, str]] = {
 }
 TRANSLATED = [loc for loc in LOCALES if loc != "en"]
 
+# Open Graph wants language_TERRITORY. The territory is the usual one for each
+# language; og:locale only tells a preview which language the text is in.
+OG_LOCALES = {"en": "en_US", "pt-br": "pt_BR", "es": "es_ES", "ja": "ja_JP", "tr": "tr_TR",
+              "zh-cn": "zh_CN", "ko": "ko_KR", "de": "de_DE", "ru": "ru_RU", "th": "th_TH"}
+
 # Script fonts, loaded only on pages of their locale. IBM Plex Sans covers
 # Latin, Latin Extended and Cyrillic, so pt-br, es, tr, de and ru need none.
 FONTS = {
@@ -259,6 +264,12 @@ class Ctx:
     @property
     def here(self) -> str:
         return url_for(self.loc, self.url)
+
+
+def og_locale_alternates(ctx: Ctx) -> str:
+    """og:locale:alternate lines for the other languages this page is in."""
+    return "".join(f'    <meta property="og:locale:alternate" content="{OG_LOCALES[loc]}" />\n'
+                   for loc in ctx.available if loc != ctx.loc)
 
 
 def head_extra(ctx: Ctx) -> str:

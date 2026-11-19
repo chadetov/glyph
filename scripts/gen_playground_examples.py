@@ -10,9 +10,14 @@ drift. `playground/build.sh` runs this before building the wasm, and the output,
 Which cases go in is decided by a rule rather than a list. The playground runs
 Glyph's own checker on one module and never runs `tsc`, so a case is shown when
 
+  - it is a refusal: its `kind` is missing or `refused` (a warning, a boundary
+    check, a run-time stop or a known gap is not something the page can show
+    being refused), and the same rule `glyph-cli/build.rs` applies,
   - its `case.toml` names an `E....` code (a `TS....` code is a refusal from the
     `tsc` pass `glyph build` runs, which this page does not have), and
   - its directory holds exactly one `.glyph` file (the page compiles one module).
+
+An unknown `kind` is an error, as it is in the compiler build.
 
 A case the rule leaves out is still listed, by title and code, so the page can
 say which refusals need `glyph build` to see. Whether each included case really
@@ -54,8 +59,18 @@ PROGRAMS = {
 }
 
 
+KINDS = ("refused", "warned", "boundary", "runtime", "gap")
+
+
 def playground_case(d: pathlib.Path, meta: dict) -> bool:
-    return meta.get("code", "").startswith("E") and len(list(d.glob("*.glyph"))) == 1
+    kind = meta.get("kind", "refused")
+    if kind not in KINDS:
+        raise SystemExit(f"catches/{d.name}/case.toml: unknown kind {kind!r}; it is one of {', '.join(KINDS)}")
+    return (
+        kind == "refused"
+        and meta.get("code", "").startswith("E")
+        and len(list(d.glob("*.glyph"))) == 1
+    )
 
 
 def build() -> str:

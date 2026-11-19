@@ -899,6 +899,65 @@ const ERR_CTOR: &str = "__glyph_err";
 /// [`ERR_CTOR`] is: it must never collide with a user import of `Ok`.
 const OK_CTOR: &str = "__glyph_ok";
 
+/// The deepest a value may nest, in objects and arrays, for a generated check
+/// to accept it (D50). The emitted code names `std/schema`'s `MAX_DEPTH`,
+/// never this number; the emitter reads it only to leave out a comparison
+/// that cannot fail, and a test holds it equal to the runtime's.
+const MAX_DEPTH: u32 = 1000;
+
+/// The prefix of the local names a module binds `std/schema`'s depth-limit
+/// exports to (D50): `MAX_DEPTH` is `__glyph_MAX_DEPTH`, `too_deep` is
+/// `__glyph_too_deep`. Aliased so no binding of the author's can capture them.
+const DEPTH_ALIAS_PREFIX: &str = "__glyph_";
+
+/// The parameter a descriptor's internal check (`__is`, `__parse`) takes the
+/// depth of its value in (D50).
+const DEPTH_PARAM: &str = "__d";
+
+/// The parameter a synthesized checker (a generic descriptor's per-argument
+/// `(v, depth) => boolean`) takes the depth of its value in.
+const CHECKER_DEPTH_PARAM: &str = "__cd";
+
+/// The depth (D50) of a value a check is built for: `base + offset`, where
+/// `base` is a depth parameter in scope (`__d`, `__cd`), or a literal
+/// `offset` when `base` is empty (the root of an `is` pattern is `1`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Depth {
+    base: &'static str,
+    offset: u32,
+}
+
+impl Depth {
+    /// The root of a check: the value an `is` pattern or a `parse` is handed.
+    fn root() -> Self {
+        Depth { base: "", offset: 1 }
+    }
+
+    /// The depth held in the parameter `base`.
+    fn param(base: &'static str) -> Self {
+        Depth { base, offset: 0 }
+    }
+
+    /// One level deeper: a part of a container at this depth.
+    fn deeper(&self) -> Self {
+        Depth { base: self.base, offset: self.offset + 1 }
+    }
+
+    /// Whether this is the root, where a descriptor's public entry applies.
+    fn is_root(&self) -> bool {
+        self.base.is_empty() && self.offset == 1
+    }
+
+    /// The expression for this depth.
+    fn render(&self) -> String {
+        match (self.base, self.offset) {
+            ("", n) => n.to_string(),
+            (b, 0) => b.to_string(),
+            (b, n) => format!("{b} + {n}"),
+        }
+    }
+}
+
 /// The local name the injected `std/result` import binds the prelude `Result`
 /// *type* to, used to annotate a descriptor's `parse` return
 /// (`__GlyphResult<User, Issue[]>`). Aliased like the constructors so a user
@@ -1723,6 +1782,9 @@ impl<'a> Emitter<'a> {
             used_react: Rc::new(Cell::new(false)),
             shadowed_globals: shadowed,
             desc_param_guards: RefCell::new(Vec::new()),
+            check_depth: RefCell::new(Depth::root()),
+            depth_throws: Cell::new(false),
+            used_depth_names: Rc::new(RefCell::new(BTreeSet::new())),
             assign_target: RefCell::new(None),
             return_cast: None,
             emit_export: "export ",
@@ -1962,6 +2024,19 @@ struct Emitter<'a> {
     /// threaded checker instead of a presence check. Empty for non-generic
     /// descriptors (the common case), so their emission is unchanged.
     desc_param_guards: RefCell<Vec<(String, String)>>,
+    /// The depth (D50) of the value at the access whose check is being built:
+    /// the root of an `is` pattern or `json.parse` document is depth 1, a
+    /// descriptor's own value is its `__d` parameter, a checker's value its
+    /// `__cd`. A container's parts are built one deeper.
+    check_depth: RefCell<Depth>,
+    /// Set when a check built since the last reset can throw the depth
+    /// sentinel (it enters a container at a depth not known statically, or
+    /// calls a descriptor's internal check or a threaded checker), so the
+    /// public site holding it must catch the sentinel.
+    depth_throws: Cell<bool>,
+    /// The depth-limit names of `std/schema` (D50) this module's output calls,
+    /// imported under their `__glyph_` aliases. Shared with sub-emitters.
+    used_depth_names: Rc<RefCell<BTreeSet<&'static str>>>,
     /// The binding a value-position `match` lowered as a statement `switch`
     /// assigns to (`ArmTerm::Assign`). Set only while such a `switch` is emitted
     /// (save/restore around it), so its value arms assign the binding and its
@@ -2115,6 +2190,9 @@ impl<'a> Emitter<'a> {
             // Descriptor field checks are generated on the main emitter, never a
             // sub-emitter (lambda/IIFE) body, so a sub starts with no guards.
             desc_param_guards: RefCell::new(Vec::new()),
+            check_depth: RefCell::new(Depth::root()),
+            depth_throws: Cell::new(false),
+            used_depth_names: Rc::clone(&self.used_depth_names),
             assign_target: RefCell::new(None),
             // A sub-emitter (lambda body, value-position match IIFE) does not
             // inherit the function's return cast; its returns are not the
@@ -2265,13 +2343,22 @@ impl<'a> Emitter<'a> {
                 &format!("import {{ parse_with as {JSON_PARSE_WITH} }} from \"{spec}\";\n\n"),
             );
         }
-        if self.used_schema.get() {
+        let depth_names = self.used_depth_names.borrow();
+        if self.used_schema.get() || !depth_names.is_empty() {
             let spec = runtime_specifier(self.ctx.module_path, "std/schema");
+            let mut names: Vec<String> = Vec::new();
+            if self.used_schema.get() {
+                names.push(format!("schema as {SCHEMA_FACTORY}"));
+            }
+            for name in depth_names.iter() {
+                names.push(format!("{name} as {DEPTH_ALIAS_PREFIX}{name}"));
+            }
             self.out.insert_str(
                 0,
-                &format!("import {{ schema as {SCHEMA_FACTORY} }} from \"{spec}\";\n\n"),
+                &format!("import {{ {} }} from \"{spec}\";\n\n", names.join(", ")),
             );
         }
+        drop(depth_names);
         // One `std/result` import covers both consumers: `?` needs `Err` to
         // re-wrap a propagated failure, and a descriptor's `parse` needs
         // `Ok`/`Err` plus the `Result` type to return. They share `__glyph_err`,
@@ -2605,7 +2692,12 @@ impl<'a> Emitter<'a> {
         base: &TypeExpr,
         predicate: &Expr,
     ) -> Result<(), EmitError> {
-        let base_check = self.field_value_check(base, "value");
+        // The value is at the depth the caller hands `__is`/`__parse` (D50);
+        // a base that is a container (`Array<int> where ...`) enters it there.
+        self.depth_throws.set(false);
+        let base_check =
+            self.at_depth(Depth::param(DEPTH_PARAM), || self.field_value_check(base, "value"));
+        let base_throws = self.depth_throws.replace(false);
         let pred = self.expr(predicate)?;
         // The predicate is quoted inside a message string, so it is quoted
         // without its source-map markers.
@@ -2616,20 +2708,32 @@ impl<'a> Emitter<'a> {
         );
         self.line(&format!("{}const {name} = {{", self.emit_export));
         self.indent += 1;
-        self.line(&format!("is(value: unknown): value is {name} {{"));
+        self.emit_public_is(name.as_ref(), "", "", "", "");
+        self.line(&format!(
+            "__is(value: unknown, {DEPTH_PARAM}: number): value is {name} {{"
+        ));
         self.indent += 1;
         self.line(&format!("return {base_check} && {pred};"));
         self.indent -= 1;
         self.line("},");
         self.used_result.set(true);
+        self.emit_public_parse(name.as_ref(), "", "", &format!("{name}"), "", "");
         self.line(&format!(
-            "parse(value: unknown): {RESULT_TY}<{name}, Issue[]> {{"
+            "__parse(value: unknown, {DEPTH_PARAM}: number): {RESULT_TY}<{name}, Issue[]> {{"
         ));
         self.indent += 1;
         // A value of the wrong base type and a base-typed value that fails the
         // predicate are different failures, so they get different messages. The
         // base check runs first and reports the base type alone; only a value
         // that *is* a `string` can meaningfully be told it failed a `where`.
+        //
+        // A base that can be too deep is checked inside a `try` that catches
+        // only the depth sentinel, so the base check still narrows `value`
+        // for the predicate after it.
+        if base_throws {
+            self.line("try {");
+            self.indent += 1;
+        }
         self.line(&format!("if (!({base_check})) {{"));
         self.indent += 1;
         self.line(&format!(
@@ -2646,15 +2750,87 @@ impl<'a> Emitter<'a> {
             escape_double_quoted(&format!("expected {name} ({constraint})"))
         ));
         self.indent -= 1;
+        if base_throws {
+            self.indent -= 1;
+            self.line("} catch (__caught) {");
+            self.indent += 1;
+            // Rethrows anything but the depth sentinel.
+            self.line(&format!("{}(__caught);", self.depth_name("depth_refused")));
+            self.line(&format!(
+                "return {ERR_CTOR}([{}([])]);",
+                self.depth_name("depth_issue")
+            ));
+            self.indent -= 1;
+            self.line("}");
+        }
         self.indent -= 1;
         self.line("},");
-        self.used_schema.set(true);
-        self.line(&format!(
-            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v), (v: unknown): {RESULT_TY}<{name}, Issue[]> => {name}.parse(v)),"
-        ));
+        self.emit_schema_member(name.as_ref());
         self.indent -= 1;
         self.line("};");
         Ok(())
+    }
+
+    /// A descriptor's public `is` (D50): its internal `__is` at depth 1, with
+    /// the depth sentinel answered `false` and anything else rethrown.
+    /// `decl_generics` and `type_args` are rendered (`<T extends B>`, `<T>`);
+    /// `checker_params` and `checker_args` are comma-prefixed.
+    fn emit_public_is(
+        &mut self,
+        name: &str,
+        decl_generics: &str,
+        type_args: &str,
+        checker_params: &str,
+        checker_args: &str,
+    ) {
+        self.line(&format!(
+            "is{decl_generics}(value: unknown{checker_params}): value is {name}{type_args} {{"
+        ));
+        self.indent += 1;
+        self.line("try {");
+        self.indent += 1;
+        self.line(&format!("return {name}.__is{type_args}(value, 1{checker_args});"));
+        self.indent -= 1;
+        self.line("} catch (__caught) {");
+        self.indent += 1;
+        self.line(&format!("return {}(__caught);", self.depth_name("depth_refused")));
+        self.indent -= 1;
+        self.line("}");
+        self.indent -= 1;
+        self.line("},");
+    }
+
+    /// A descriptor's public `parse`: its internal `__parse` at depth 1,
+    /// which reports a value nested too deep as its one issue (D50).
+    fn emit_public_parse(
+        &mut self,
+        name: &str,
+        decl_generics: &str,
+        type_args: &str,
+        self_ty: &str,
+        checker_params: &str,
+        checker_args: &str,
+    ) {
+        self.line(&format!(
+            "parse{decl_generics}(value: unknown{checker_params}): {RESULT_TY}<{self_ty}, Issue[]> {{"
+        ));
+        self.indent += 1;
+        self.line(&format!("return {name}.__parse{type_args}(value, 1{checker_args});"));
+        self.indent -= 1;
+        self.line("},");
+    }
+
+    /// Q8/Q40 `T.schema`: a `Schema<T>` built by the prelude factory (which
+    /// carries the recursive `array()`) from the descriptor's internal
+    /// checks, so an array of `T` counts its elements one level under it
+    /// (D50). The checks reference the descriptor by name in lazy closures:
+    /// `this` is not the descriptor object inside this object literal, but
+    /// the closures only run once the `const` is initialized.
+    fn emit_schema_member(&mut self, name: &str) {
+        self.used_schema.set(true);
+        self.line(&format!(
+            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v: unknown, d: number): v is {name} => {name}.__is(v, d), (v: unknown, d: number): {RESULT_TY}<{name}, Issue[]> => {name}.__parse(v, d)),"
+        ));
     }
 
     fn emit_record_descriptor(
@@ -2683,21 +2859,27 @@ impl<'a> Emitter<'a> {
         };
         let self_ty = format!("{name}{type_args}");
         // One `__is_T: (v) => boolean` parameter per type parameter, after `value`.
-        let checker_params: Vec<String> = generics
+        // Each checker is handed the depth of the value it checks (D50); a
+        // host-written `(v) => boolean` ignores it and still fits the type.
+        let checker_params: String = generics
             .iter()
-            .map(|g| format!("{}: (v: unknown) => boolean", Self::guard_param_name(g.name.as_ref())))
+            .map(|g| format!(", {}: (v: unknown, depth: number) => boolean", Self::guard_param_name(g.name.as_ref())))
             .collect();
-        let entry_params = std::iter::once("value: unknown".to_string())
-            .chain(checker_params.iter().cloned())
-            .collect::<Vec<_>>()
-            .join(", ");
+        let checker_args: String = generics
+            .iter()
+            .map(|g| format!(", {}", Self::guard_param_name(g.name.as_ref())))
+            .collect();
+        let entry_params = format!("value: unknown, {DEPTH_PARAM}: number{checker_params}");
         // Bind the guards so `field_value_check` validates a `T`-typed field with
         // its threaded checker while the field checks are generated, then clear.
         *self.desc_param_guards.borrow_mut() = generics
             .iter()
             .map(|g| (g.name.to_string(), Self::guard_param_name(g.name.as_ref())))
             .collect();
-        let field_checks: Vec<String> = fields.iter().map(|f| self.record_field_check(f)).collect();
+        // The record is at `__d`; its fields are one level under it.
+        let field_checks: Vec<String> = self.at_depth(Depth::param(DEPTH_PARAM).deeper(), || {
+            fields.iter().map(|f| self.record_field_check(f)).collect()
+        });
         self.desc_param_guards.borrow_mut().clear();
         // Strict-by-default: reject a value carrying keys the type doesn't
         // declare (mass-assignment / leaked-field protection). `@open` opts out.
@@ -2728,35 +2910,32 @@ impl<'a> Emitter<'a> {
                 ));
             }
         }
+        // The record itself is a level (D50): once it is known to be an
+        // object, a record at a depth past the limit is refused.
+        if let Some(guard) = self.at_depth(Depth::param(DEPTH_PARAM), || self.depth_guard()) {
+            checks.insert(0, guard);
+        }
         self.line(&format!("{}const {name} = {{", self.emit_export));
         self.indent += 1;
-        self.line(&format!("is{decl_generics}({entry_params}): value is {self_ty} {{"));
+        self.emit_public_is(name.as_ref(), &decl_generics, &type_args, &checker_params, &checker_args);
+        self.line(&format!("__is{decl_generics}({entry_params}): value is {self_ty} {{"));
         self.indent += 1;
         // An array is an object to `typeof`, so it has to be excluded explicitly:
         // without this an `Array` satisfies every check of a record with no
         // required fields, and `Empty.is([])` (and `Empty.parse([])`) answered
         // true for a value that is not a record at all.
-        if checks.is_empty() {
-            self.line(
-                &format!(
-                    "return typeof value === \"object\" && value !== null && !{}.isArray(value);",
-                    self.g("Array")
-                ),
-            );
-        } else {
-            self.line(
-                &format!(
-                    "return typeof value === \"object\" && value !== null && !{}.isArray(value)",
-                    self.g("Array")
-                ),
-            );
-            self.indent += 1;
-            for (i, c) in checks.iter().enumerate() {
-                let term = if i + 1 == checks.len() { ";" } else { "" };
-                self.line(&format!("&& {c}{term}"));
-            }
-            self.indent -= 1;
+        self.line(
+            &format!(
+                "return typeof value === \"object\" && value !== null && !{}.isArray(value)",
+                self.g("Array")
+            ),
+        );
+        self.indent += 1;
+        for (i, c) in checks.iter().enumerate() {
+            let term = if i + 1 == checks.len() { ";" } else { "" };
+            self.line(&format!("&& {c}{term}"));
         }
+        self.indent -= 1;
         self.indent -= 1;
         self.line("},");
         // `parse` validates field by field and returns `Result<T, Issue[]>`: each
@@ -2777,8 +2956,9 @@ impl<'a> Emitter<'a> {
         // unconstrained type parameters, and imported `.d.ts` types have no
         // descriptor to delegate to and keep the flat `field_value_check`.
         self.used_result.set(true);
+        self.emit_public_parse(name.as_ref(), &decl_generics, &type_args, &self_ty, &checker_params, &checker_args);
         self.line(&format!(
-            "parse{decl_generics}({entry_params}): {RESULT_TY}<{self_ty}, Issue[]> {{"
+            "__parse{decl_generics}({entry_params}): {RESULT_TY}<{self_ty}, Issue[]> {{"
         ));
         self.indent += 1;
         self.line(&format!("if ({}.isArray(value)) {{", self.g("Array")));
@@ -2795,6 +2975,13 @@ impl<'a> Emitter<'a> {
         ));
         self.indent -= 1;
         self.line("}");
+        // A record past the depth limit is refused as a whole, with nothing
+        // beside it (D50).
+        self.line(&format!("if ({DEPTH_PARAM} > {}) {{", self.depth_name("MAX_DEPTH")));
+        self.indent += 1;
+        self.line(&format!("return {ERR_CTOR}([{}([])]);", self.depth_name("depth_issue")));
+        self.indent -= 1;
+        self.line("}");
         self.line("const __issues: Issue[] = [];");
         // The type-parameter guards are needed again here: a field typed `T`
         // still validates through its threaded checker inside `parse`.
@@ -2802,9 +2989,11 @@ impl<'a> Emitter<'a> {
             .iter()
             .map(|g| (g.name.to_string(), Self::guard_param_name(g.name.as_ref())))
             .collect();
+        let outer_depth = self.check_depth.replace(Depth::param(DEPTH_PARAM).deeper());
         for (i, f) in fields.iter().enumerate() {
             self.emit_field_parse_check(i, f);
         }
+        self.check_depth.replace(outer_depth);
         self.desc_param_guards.borrow_mut().clear();
         if let Some(allowed) = &allowed_keys {
             let cond = if allowed.is_empty() { "false" } else { allowed.as_str() };
@@ -2828,10 +3017,7 @@ impl<'a> Emitter<'a> {
         // only runs once the `const` is initialized. A generic descriptor omits
         // `schema` (the factory would need the per-parameter checker too).
         if !is_generic {
-            self.used_schema.set(true);
-            self.line(&format!(
-                "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v), (v: unknown): {RESULT_TY}<{name}, Issue[]> => {name}.parse(v)),"
-            ));
+            self.emit_schema_member(name.as_ref());
         }
         // D24 `@redact`: a `redact(value)` that returns a serialization-safe copy
         // with the named PII fields replaced by a sentinel. Emitted only when the
@@ -2887,12 +3073,19 @@ impl<'a> Emitter<'a> {
             Some(desc) => {
                 let res = format!("__r{index}");
                 let issue = format!("__i{index}");
+                // The field's descriptor is handed the field's depth (D50); a
+                // depth refusal from it is this record's only issue.
+                let depth = self.depth().render();
+                let depth_issue = self.depth_name("depth_issue");
                 let splice = |this: &mut Self| {
-                    this.line(&format!("const {res} = {desc}.parse({access});"));
+                    this.line(&format!("const {res} = {desc}.__parse({access}, {depth});"));
                     this.line(&format!("if ({res}.tag === \"Err\") {{"));
                     this.indent += 1;
                     this.line(&format!("for (const {issue} of {res}.value) {{"));
                     this.indent += 1;
+                    this.line(&format!(
+                        "if ({issue}.code === \"depth\") return {ERR_CTOR}([{depth_issue}([\"{fname}\", ...{issue}.path])]);"
+                    ));
                     this.line(&format!(
                         "__issues.push({{ path: [\"{fname}\", ...{issue}.path], message: {issue}.message, code: {issue}.code }});"
                     ));
@@ -2930,7 +3123,9 @@ impl<'a> Emitter<'a> {
                     self.field_check(&field.ty, &access),
                     FieldCheck::PresenceOnly | FieldCheck::Unverifiable(_)
                 );
+                self.depth_throws.set(false);
                 let check = self.field_value_check(&field.ty, &access);
+                let throws = self.depth_throws.replace(false);
                 let type_issue = format!(
                     "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"type\" }});",
                     escape_double_quoted(&format!(
@@ -2938,7 +3133,40 @@ impl<'a> Emitter<'a> {
                         type_label(&field.ty)
                     ))
                 );
-                if field.optional {
+                if throws {
+                    // The check can be refused for depth (D50): run it where
+                    // the sentinel is caught, and report the refusal at this
+                    // field's path as the record's only issue.
+                    let ok = format!("__c{index}");
+                    let run = |this: &mut Self| {
+                        this.line(&format!(
+                            "const {ok} = {}(() => {check});",
+                            this.depth_name("depth_checked")
+                        ));
+                        this.line(&format!(
+                            "if ({ok} === undefined) return {ERR_CTOR}([{}([\"{fname}\"])]);",
+                            this.depth_name("depth_issue")
+                        ));
+                        this.line(&format!("if (!{ok}) {{"));
+                        this.indent += 1;
+                        this.line(&type_issue);
+                        this.indent -= 1;
+                        this.line("}");
+                    };
+                    if field.optional {
+                        self.line(&format!("if ({present}) {{"));
+                    } else {
+                        self.line(&format!("if ({access} === undefined) {{"));
+                        self.indent += 1;
+                        self.line(&missing_issue);
+                        self.indent -= 1;
+                        self.line("} else {");
+                    }
+                    self.indent += 1;
+                    run(self);
+                    self.indent -= 1;
+                    self.line("}");
+                } else if field.optional {
                     // An optional field with nothing to check needs no branch
                     // at all: absent is fine and present is unconstrained.
                     if !presence_only {
@@ -3156,19 +3384,30 @@ impl<'a> Emitter<'a> {
     fn emit_union_descriptor(&mut self, name: &str, variants: &[UnionVariant]) {
         self.line(&format!("{}const {name} = {{", self.emit_export));
         self.indent += 1;
-        self.line(&format!("is(value: unknown): value is {name} {{"));
+        self.emit_public_is(name, "", "", "", "");
+        self.line(&format!(
+            "__is(value: unknown, {DEPTH_PARAM}: number): value is {name} {{"
+        ));
         self.indent += 1;
         self.line("if (typeof value !== \"object\" || value === null) {");
         self.indent += 1;
         self.line("return false;");
         self.indent -= 1;
         self.line("}");
+        // The `{ tag, ... }` object is a level (D50), and its payload one
+        // under it.
+        self.line(&format!(
+            "if ({DEPTH_PARAM} > {}) {}();",
+            self.depth_name("MAX_DEPTH"),
+            self.depth_name("too_deep")
+        ));
         self.line(&format!(
             "switch ((value as {{ {TAG}?: unknown }}).{TAG}) {{"
         ));
         self.indent += 1;
         for v in variants {
-            let check = self.union_variant_check(v);
+            let check =
+                self.at_depth(Depth::param(DEPTH_PARAM).deeper(), || self.union_variant_check(v));
             self.line(&format!("case \"{}\": return {check};", v.name));
         }
         self.line("default: return false;");
@@ -3178,26 +3417,31 @@ impl<'a> Emitter<'a> {
         self.line("},");
         // parse(): reuse the guard, wrap the narrowed value with the prelude
         // constructors so the return is a real `Result`, exactly like the record
-        // one.
+        // one. A depth refusal is reported as such, not as `expected Shape`.
         self.used_result.set(true);
+        self.emit_public_parse(name, "", "", name, "", "");
         self.line(&format!(
-            "parse(value: unknown): {RESULT_TY}<{name}, Issue[]> {{"
+            "__parse(value: unknown, {DEPTH_PARAM}: number): {RESULT_TY}<{name}, Issue[]> {{"
         ));
         self.indent += 1;
-        self.line("return this.is(value)");
+        self.line(&format!(
+            "const __ok = {}(() => {name}.__is(value, {DEPTH_PARAM}));",
+            self.depth_name("depth_checked")
+        ));
+        self.line(&format!(
+            "if (__ok === undefined) return {ERR_CTOR}([{}([])]);",
+            self.depth_name("depth_issue")
+        ));
+        self.line("return __ok");
         self.indent += 1;
-        self.line(&format!("? {OK_CTOR}(value)"));
+        self.line(&format!("? {OK_CTOR}(value as {name})"));
         self.line(&format!(
             ": {ERR_CTOR}([{{ path: [], message: \"expected {name}\" }}]);"
         ));
         self.indent -= 1;
         self.indent -= 1;
         self.line("},");
-        // Q8/Q40 `T.schema`: a `Schema<T>` built from the `is` guard.
-        self.used_schema.set(true);
-        self.line(&format!(
-            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v), (v: unknown): {RESULT_TY}<{name}, Issue[]> => {name}.parse(v)),"
-        ));
+        self.emit_schema_member(name);
         self.indent -= 1;
         self.line("};");
     }
@@ -5475,7 +5719,7 @@ impl<'a> Emitter<'a> {
                 if let TypeShape::Typeof(jt) = shape {
                     Some(format!("typeof {m} === \"{jt}\""))
                 } else if self.has_descriptor(segments[0].as_ref()) {
-                    Some(format!("{}.is({m})", segments[0]))
+                    Some(self.descriptor_check_call(segments[0].as_ref(), "", m, ""))
                 } else {
                     None
                 }
@@ -5518,9 +5762,11 @@ impl<'a> Emitter<'a> {
                             .map(|a| self.checker_lambda(a))
                             .collect::<Vec<_>>()
                             .join(", ");
-                        Some(format!(
-                            "{gname}.is<{}>({m}, {checkers})",
-                            targ_strs.join(", ")
+                        Some(self.descriptor_check_call(
+                            gname,
+                            &format!("<{}>", targ_strs.join(", ")),
+                            m,
+                            &format!(", {checkers}"),
                         ))
                     }
                     _ => None,
@@ -5551,22 +5797,58 @@ impl<'a> Emitter<'a> {
         let TypeExpr::Generic { args, .. } = ty else {
             return None;
         };
+        // The pattern itself is a public entry (D50): a part checked by a
+        // descriptor's internal check can throw the depth sentinel, and the
+        // pattern answers `false` for it. A container nested in another is
+        // not an entry; the outermost one catches for it.
+        let root = self.depth().is_root();
+        let outer_throws = self.depth_throws.replace(false);
+        let parts = self.is_container_check_parts(ty, args, m);
+        let inner_throws = self.depth_throws.get();
+        self.depth_throws.set(outer_throws || (inner_throws && !root));
+        let (head, walk, tail) = parts?;
+        match walk.strip_prefix(" && ") {
+            Some(rest) if root && inner_throws => Some(format!(
+                "{head} && {}(() => {rest}){tail}",
+                self.depth_name("within")
+            )),
+            _ => Some(format!("{head}{walk}{tail}")),
+        }
+    }
+
+    /// The three pieces of [`Self::is_container_check`]'s check: the test of
+    /// the container's own shape, the walk over its parts (` && `-prefixed,
+    /// or empty), and what closes the shape test (the `Record` check is a
+    /// type-predicate IIFE, applied to `m`).
+    fn is_container_check_parts(
+        &self,
+        ty: &TypeExpr,
+        args: &[TypeExpr],
+        m: &str,
+    ) -> Option<(String, String, String)> {
         let arr = self.g("Array");
-        match (self.type_shape(ty, Origin::Local), args.as_slice()) {
-            (TypeShape::Array, [elem]) => Some(match self.is_part_check(elem, "__e")? {
-                None => format!("{arr}.isArray({m})"),
-                Some(c) => format!(
-                    "{arr}.isArray({m}) && ({m} as ReadonlyArray<unknown>).every((__e: unknown) => {c})"
-                ),
-            }),
-            (TypeShape::Array, _) => Some(format!("{arr}.isArray({m})")),
+        match (self.type_shape(ty, Origin::Local), args) {
+            (TypeShape::Array, [elem]) => {
+                let walk = match self.one_deeper(|| self.is_part_check(elem, "__e"))? {
+                    None => String::new(),
+                    Some(c) => format!(" && ({m} as ReadonlyArray<unknown>).every((__e: unknown) => {c})"),
+                };
+                Some((format!("{arr}.isArray({m}){}", self.depth_conjunct()), walk, String::new()))
+            }
+            (TypeShape::Array, _) => Some((
+                format!("{arr}.isArray({m}){}", self.depth_conjunct()),
+                String::new(),
+                String::new(),
+            )),
             (TypeShape::Record, args) => {
                 let rec = self.ty(ty).ok()?;
                 let (values, keys) = match args {
-                    [key, value] => (
-                        self.is_part_check(value, "__v")?,
-                        self.record_key_check(ty, key, "__x", Origin::Local).ok()?,
-                    ),
+                    [key, value] => self.one_deeper(|| {
+                        Some((
+                            self.is_part_check(value, "__v")?,
+                            self.record_key_check(ty, key, "__x", Origin::Local).ok()?,
+                        ))
+                    })?,
                     _ => (None, None),
                 };
                 let every = values.map_or_else(String::new, |c| {
@@ -5576,8 +5858,13 @@ impl<'a> Emitter<'a> {
                     )
                 });
                 let keys = keys.map_or_else(String::new, |c| format!(" && {c}"));
-                Some(format!(
-                    "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !{arr}.isArray(__x){every}{keys})({m})"
+                let guard = self.depth_conjunct();
+                Some((
+                    format!(
+                        "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !{arr}.isArray(__x){guard}"
+                    ),
+                    format!("{every}{keys}"),
+                    format!(")({m})"),
                 ))
             }
             _ => None,
@@ -5747,7 +6034,7 @@ impl<'a> Emitter<'a> {
     fn sibling_name_check(&self, module: &str, name: &str, access: &str) -> FieldCheck {
         let key = (module.to_string(), name.to_string());
         if self.ctx.plain_descriptors.contains(&key) {
-            let check = format!("{}.is({access})", self.sibling_ref(module, name));
+            let check = self.descriptor_check_call(&self.sibling_ref(module, name), "", access, "");
             self.note_delegation(Some(key.clone()));
             self.note_key_leaf(access, &check, KeyLeaf::Descriptor(Some(key)));
             return FieldCheck::Deep(check);
@@ -6290,17 +6577,25 @@ impl<'a> Emitter<'a> {
         }
         let mut checkers = Vec::with_capacity(args.len());
         for a in args {
-            let check = match self.field_check_in(a, "__cv", Origin::Sibling(module)) {
+            let mut cause = None;
+            let checker = self.checker_lambda_of(|| match self.field_check_in(a, "__cv", Origin::Sibling(module)) {
                 FieldCheck::Deep(c) => c,
                 FieldCheck::PresenceOnly => "__cv !== undefined".to_string(),
-                FieldCheck::Unverifiable(cause) => return FieldCheck::Unverifiable(cause),
-            };
-            checkers.push(format!("(__cv: unknown) => {check}"));
+                FieldCheck::Unverifiable(c) => {
+                    cause = Some(c);
+                    String::new()
+                }
+            });
+            if let Some(cause) = cause {
+                return FieldCheck::Unverifiable(cause);
+            }
+            checkers.push(checker);
         }
-        FieldCheck::Deep(format!(
-            "{}.is({access}, {})",
-            self.sibling_ref(&home, &gname),
-            checkers.join(", ")
+        FieldCheck::Deep(self.descriptor_check_call(
+            &self.sibling_ref(&home, &gname),
+            "",
+            access,
+            &format!(", {}", checkers.join(", ")),
         ))
     }
 
@@ -6719,13 +7014,94 @@ impl<'a> Emitter<'a> {
             .map(|(_, g)| g.clone())
     }
 
-    /// A runtime checker `(v) => boolean` validating a value against `ty`, for
-    /// passing as a generic descriptor's per-parameter checker argument. Reuses
-    /// `field_value_check`, so a concrete type argument (`User`, `number`,
-    /// `Array<User>`, a nested generic) is validated as deeply as a field of that
-    /// type would be; an opaque argument falls back to the presence floor.
+    /// A runtime checker `(v, depth) => boolean` validating a value against
+    /// `ty`, for passing as a generic descriptor's per-parameter checker
+    /// argument. Reuses `field_value_check`, so a concrete type argument
+    /// (`User`, `number`, `Array<User>`, a nested generic) is validated as
+    /// deeply as a field of that type would be; an opaque argument falls back
+    /// to the presence floor.
+    ///
+    /// The descriptor calls it with the depth of the value it hands over
+    /// (D50), and the checker counts on from there. Whatever it throws is
+    /// thrown inside the descriptor's check, whose public entry catches the
+    /// sentinel, so building one does not make the site holding it throw.
     fn checker_lambda(&self, ty: &TypeExpr) -> String {
-        format!("(__cv: unknown) => {}", self.field_value_check(ty, "__cv"))
+        self.checker_lambda_of(|| self.field_value_check(ty, "__cv"))
+    }
+
+    /// A checker `(__cv, __cd) => <check>`, with `check` built for the value
+    /// `__cv` at the depth `__cd` (see [`Self::checker_lambda`]).
+    fn checker_lambda_of(&self, check: impl FnOnce() -> String) -> String {
+        let throws = self.depth_throws.get();
+        let check = self.at_depth(Depth::param(CHECKER_DEPTH_PARAM), check);
+        self.depth_throws.set(throws);
+        format!("(__cv: unknown, {CHECKER_DEPTH_PARAM}: number) => {check}")
+    }
+
+    /// The depth (D50) of the value at the access whose check is being built.
+    fn depth(&self) -> Depth {
+        self.check_depth.borrow().clone()
+    }
+
+    /// Run `f` with the value being checked at depth `d`.
+    fn at_depth<T>(&self, d: Depth, f: impl FnOnce() -> T) -> T {
+        let outer = self.check_depth.replace(d);
+        let out = f();
+        self.check_depth.replace(outer);
+        out
+    }
+
+    /// Run `f` with the value being checked one level deeper: a part of the
+    /// container whose check is being built.
+    fn one_deeper<T>(&self, f: impl FnOnce() -> T) -> T {
+        self.at_depth(self.depth().deeper(), f)
+    }
+
+    /// The aliased name of `std/schema`'s depth-limit export `name`, recorded
+    /// so the module imports it.
+    fn depth_name(&self, name: &'static str) -> String {
+        self.used_depth_names.borrow_mut().insert(name);
+        format!("{DEPTH_ALIAS_PREFIX}{name}")
+    }
+
+    /// The conjunct a check adds once it knows its value is an object or an
+    /// array, which is entering one at the current depth (D50): the value is
+    /// refused, by the sentinel, past `MAX_DEPTH`. `None` at a depth known to
+    /// be within the limit, which is every depth an `is` pattern or a
+    /// document writes out before any descriptor is entered.
+    fn depth_guard(&self) -> Option<String> {
+        let d = self.depth();
+        if d.base.is_empty() && d.offset <= MAX_DEPTH {
+            return None;
+        }
+        self.depth_throws.set(true);
+        Some(format!(
+            "({} <= {} || {}())",
+            d.render(),
+            self.depth_name("MAX_DEPTH"),
+            self.depth_name("too_deep")
+        ))
+    }
+
+    /// `depth_guard` as a ` && `-prefixed conjunct, or nothing.
+    fn depth_conjunct(&self) -> String {
+        self.depth_guard().map_or_else(String::new, |g| format!(" && {g}"))
+    }
+
+    /// The check of the descriptor `recv` (with the type arguments `targs`,
+    /// rendered, and the checkers `checkers`, each comma-prefixed) on the
+    /// value at `access`, at the current depth. At the root that is the
+    /// descriptor's public `is`, which catches the depth sentinel itself;
+    /// anywhere deeper it is the internal `__is`, handed the depth, whose
+    /// sentinel the enclosing public entry catches.
+    fn descriptor_check_call(&self, recv: &str, targs: &str, access: &str, checkers: &str) -> String {
+        let d = self.depth();
+        if d.is_root() {
+            format!("{recv}.is{targs}({access}{checkers})")
+        } else {
+            self.depth_throws.set(true);
+            format!("{recv}.__is{targs}({access}, {}{checkers})", d.render())
+        }
     }
 
     /// The guard-parameter name a generic descriptor threads for type parameter
@@ -7134,8 +7510,10 @@ impl<'a> Emitter<'a> {
                 if let Some(guard) = self.param_guard(name) {
                     // A field typed as one of the enclosing generic descriptor's
                     // parameters: validate it with the checker threaded in at the
-                    // call site, not a presence check.
-                    let check = format!("{guard}({access})");
+                    // call site, not a presence check. The checker is handed
+                    // the field's depth (D50), and may throw the sentinel.
+                    self.depth_throws.set(true);
+                    let check = format!("{guard}({access}, {})", self.depth().render());
                     self.note_key_leaf(access, &check, KeyLeaf::Param(name.to_string()));
                     FieldCheck::Deep(check)
                 } else if self.is_judged_generic_param(self.ctx.module_path, name) {
@@ -7146,7 +7524,7 @@ impl<'a> Emitter<'a> {
                 } else if self.has_descriptor(name) {
                     let target = self.descriptor_target(name);
                     self.note_delegation(target.clone());
-                    let check = format!("{name}.is({access})");
+                    let check = self.descriptor_check_call(name, "", access, "");
                     self.note_key_leaf(access, &check, KeyLeaf::Descriptor(target));
                     FieldCheck::Deep(check)
                 } else if let Some(leaf) = self.alias_leaf(name) {
@@ -7195,7 +7573,7 @@ impl<'a> Emitter<'a> {
                 if self.has_namespaced_descriptor(ns, name) {
                     let target = self.namespace_module_path(ns).map(|m| (m, name.to_string()));
                     self.note_delegation(target.clone());
-                    let check = format!("{ns}.{name}.is({access})");
+                    let check = self.descriptor_check_call(&format!("{ns}.{name}"), "", access, "");
                     self.note_key_leaf(access, &check, KeyLeaf::Descriptor(target));
                     FieldCheck::Deep(check)
                 } else if let Some(module) = self.namespace_module_path(ns) {
@@ -7223,13 +7601,14 @@ impl<'a> Emitter<'a> {
                 // rendering that descriptor call.
                 match (shape, base_name, args.as_slice()) {
                     (TypeShape::Array, _, [elem]) => {
-                        let elem_check = match self.part_check(elem, "__e", origin) {
+                        let elem_check = match self.one_deeper(|| self.part_check(elem, "__e", origin)) {
                             Ok(c) => c,
                             Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
                         FieldCheck::Deep(format!(
-                            "{}.isArray({access}) && ({access} as ReadonlyArray<unknown>).every((__e: unknown) => {elem_check})",
-                            self.g("Array")
+                            "{}.isArray({access}){} && ({access} as ReadonlyArray<unknown>).every((__e: unknown) => {elem_check})",
+                            self.g("Array"),
+                            self.depth_conjunct()
                         ))
                     }
                     // `Nullable<T>` (D45): `null` or a `T`. The inner check is
@@ -7252,12 +7631,15 @@ impl<'a> Emitter<'a> {
                     (TypeShape::Option, _, [inner]) => {
                         let tag = format!("(({access}) as {{ tag?: unknown }}).tag");
                         let value = format!("(({access}) as {{ value?: unknown }}).value");
-                        let inner_check = match self.part_check(inner, &value, origin) {
+                        // The `{ tag, value }` object is one level (D50), and
+                        // the payload one under it.
+                        let inner_check = match self.one_deeper(|| self.part_check(inner, &value, origin)) {
                             Ok(c) => c,
                             Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
+                        let guard = self.depth_conjunct();
                         FieldCheck::Deep(format!(
-                            "(typeof {access} === \"object\" && {access} !== null && ({tag} === \"None\" || ({tag} === \"Some\" && {inner_check})))"
+                            "(typeof {access} === \"object\" && {access} !== null{guard} && ({tag} === \"None\" || ({tag} === \"Some\" && {inner_check})))"
                         ))
                     }
                     // `Record<K, V>` is a structural object map: reject non-objects
@@ -7267,18 +7649,19 @@ impl<'a> Emitter<'a> {
                     // and check every key against `K` (G367), which for
                     // `string` adds nothing.
                     (TypeShape::Record, _, [key, value]) => {
-                        let value_check = match self.part_check(value, "__v", origin) {
+                        let value_check = match self.one_deeper(|| self.part_check(value, "__v", origin)) {
                             Ok(c) => c,
                             Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
-                        let keys = match self.record_key_check(ty, key, access, origin) {
+                        let keys = match self.one_deeper(|| self.record_key_check(ty, key, access, origin)) {
                             Ok(keys) => keys.map_or_else(String::new, |c| format!(" && {c}")),
                             Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
                         FieldCheck::Deep(format!(
-                            "(typeof {access} === \"object\" && {access} !== null && !{arr}.isArray({access}) && {obj}.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}){keys})",
+                            "(typeof {access} === \"object\" && {access} !== null && !{arr}.isArray({access}){guard} && {obj}.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}){keys})",
                             arr = self.g("Array"),
-                            obj = self.g("Object")
+                            obj = self.g("Object"),
+                            guard = self.depth_conjunct()
                         ))
                     }
                     // A field typed as a generic record (`Paginated<User>`): call
@@ -7327,7 +7710,7 @@ impl<'a> Emitter<'a> {
                             None,
                             self.key_args(args, Origin::Local),
                         );
-                        FieldCheck::Deep(format!("{gname}.is({access}, {checkers})"))
+                        FieldCheck::Deep(self.descriptor_check_call(gname, "", access, &format!(", {checkers}")))
                     }
                     // A sibling's application is read in the sibling's scope,
                     // and checked by the generic record of the module that
@@ -7354,9 +7737,10 @@ impl<'a> Emitter<'a> {
                     format!("typeof {access} === \"object\""),
                     format!("{access} !== null"),
                 ];
+                checks.extend(self.depth_guard());
                 for f in fields {
                     let sub = format!("({access} as Record<string, unknown>).{}", f.name);
-                    let c = match self.part_check(&f.ty, &sub, origin) {
+                    let c = match self.one_deeper(|| self.part_check(&f.ty, &sub, origin)) {
                         Ok(c) => c,
                         Err(cause) => return FieldCheck::Unverifiable(cause),
                     };
@@ -8028,7 +8412,12 @@ impl<'a> Emitter<'a> {
             }
             return Ok(Some(schema));
         }
-        let (check, called) = self.field_check_delegations(type_arg);
+        // The factory hands the check the document's depth (D50): 1 for the
+        // document, one more per level an array schema adds.
+        let throws = self.depth_throws.get();
+        let (check, called) =
+            self.at_depth(Depth::param(DEPTH_PARAM), || self.field_check_delegations(type_arg));
+        self.depth_throws.set(throws);
         let check = match check {
             FieldCheck::Deep(check) => check,
             FieldCheck::PresenceOnly => return Ok(None),
@@ -8049,7 +8438,7 @@ impl<'a> Emitter<'a> {
         let ts = self.ty(type_arg)?;
         let label = escape_double_quoted(&type_label(type_arg));
         Ok(Some(format!(
-            "{SCHEMA_FACTORY}<{ts}>({label}, (__x: unknown): __x is {ts} => {check})"
+            "{SCHEMA_FACTORY}<{ts}>({label}, (__x: unknown, {DEPTH_PARAM}: number): __x is {ts} => {check})"
         )))
     }
 

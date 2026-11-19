@@ -250,6 +250,37 @@ def check_descriptions():
             warnings.append(f"{f}: meta description is {len(m.group(1))} characters (aim for 120 to 160)")
 
 
+def check_css_balanced():
+    """Every stylesheet the site serves has balanced braces outside comments
+    and strings. An unclosed @media block once swallowed every rule after it,
+    so the desktop lost its styles while phones looked fine."""
+    root = os.path.dirname(WEB) if os.path.basename(WEB) == "web" else "."
+    sources = []
+    for base in ("site", WEB):
+        d = os.path.join(root, base) if not os.path.isabs(base) else base
+        for dirpath, _, files in os.walk(d):
+            sources += [os.path.join(dirpath, f) for f in files if f.endswith(".css")]
+    for path in sorted(set(sources)):
+        text = open(path, encoding="utf-8").read()
+        text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+        text = re.sub(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'', '""', text)
+        depth, line, opened = 0, 1, []
+        for ch in text:
+            if ch == "\n":
+                line += 1
+            elif ch == "{":
+                depth += 1
+                opened.append(line)
+            elif ch == "}":
+                depth -= 1
+                if depth < 0:
+                    errors.append(f"{path}: a closing brace at line {line} has no opening brace")
+                    break
+                opened.pop()
+        if depth > 0:
+            errors.append(f"{path}: {depth} unclosed brace(s); the outermost opened near line {opened[0]}")
+
+
 def main():
     if not os.path.isdir(WEB):
         print(f"no {WEB}/ directory; run from the repo root", file=sys.stderr)
@@ -259,6 +290,7 @@ def main():
     check_sitemap()
     check_structured_data()
     check_descriptions()
+    check_css_balanced()
     for w in warnings:
         print(f"warning: {w}")
     if errors:
@@ -266,7 +298,7 @@ def main():
         for e in errors:
             print(f"  - {e}")
         return 1
-    print("site check OK (links resolve, HTML well-formed, sub-nav and sitemap complete, JSON-LD resolves)")
+    print("site check OK (links resolve, HTML well-formed, sub-nav and sitemap complete, JSON-LD resolves, CSS balanced)")
     return 0
 
 

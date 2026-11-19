@@ -573,6 +573,7 @@ buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
           <h3 class="h">Getting sharper</h3>
           <p>There is no integer codec yet, so reading a big-endian <code>u32</code> out of a header is arithmetic you write: past 32 bits a shift is the wrong tool anyway, so it divides. Hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read. <code>std/websocket</code> still decodes a binary frame as UTF-8 text; the type it needed now exists, and the frames are next. And <code>std/encoding</code>'s six older string-to-string functions are still silent on malformed input, so use the <code>std/bytes</code> codecs for anything that has to be right. The codecs are written in TypeScript rather than delegating to node's <code>Buffer</code>, which is what lets them run in a Web Worker, and they are between 1x and 35x slower than the platform's on a megabyte. Encoding a key or a token costs nothing you can measure either way; the performance guide has the table if you are moving tens of megabytes.</p>
         </div>
+        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/long-running/">

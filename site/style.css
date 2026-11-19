@@ -3286,4 +3286,14 @@ h4 code,
   .i18n-note a {
     padding-block: 13px;
   }
+
+/* ============ page stamp ============ */
+.page-stamp {
+  grid-column: 1 / -1;
+  margin: var(--s4) 0 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.status-row .page-stamp {
+  margin: 0;
 }

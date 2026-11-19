@@ -1,0 +1,20 @@
+---
+version: 0.1.140
+month: 2026-11
+---
+            <p><code>json.parse&lt;Rows&gt;</code> now works when <code>Rows</code> comes from another module and names a type that module imports. Earlier releases refused this with E0304:</p>
+
+            <div class="code">
+              <span class="cap">rows.glyph</span>
+<pre data-check="needs-deps">module rows
+
+import user { User }
+
+pub type Rows = Array&lt;User&gt;</pre>
+            </div>
+
+            <p>The check follows <code>User</code> into the module that declares it, by name or through a namespace, through as many modules as it takes, and a generic such as <code>Page&lt;User&gt;</code> is checked the same way. Names are always read where they were written. If the file calling <code>json.parse</code> has its own <code>User</code> with different fields, the document is checked against <code>rows</code>'s <code>User</code>, and one shaped like yours comes back <code>Err</code>.</p>
+
+            <p>A generic reached this way is checked field by field first. If one of its own fields has a type nothing can check at run time, such as an <code>extern_ts</code> type, it is still E0304, and the message now names that field. The same generic parsed directly, imported by name, or used as a record field still gets only a presence check on that field. So does a union whose variant carries such a field (<code>A({ h: H })</code>), on every path, now including one reached through another module. The next release closes both, and will be breaking.</p>
+
+            <p>This release is not breaking: nothing accepted before is refused now. We ran the published 0.1.137 and this build on every <code>.glyph</code> file in the repository and on all 32 example apps, and the only differences are the ones 0.1.138 and 0.1.139 already list.</p>

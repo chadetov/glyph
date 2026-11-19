@@ -1,0 +1,41 @@
+---
+version: 0.1.94
+month: 2026-08
+---
+            <h3>A red-black tree, written in Glyph</h3>
+            <p>There is no compiler change in this release. What it carries is an application, <code>examples/apps/leaderboard/main.glyph</code>, and the reason to cut a version for it is that the application compiles. Three of the last four releases each fixed a piece of one shape: a match arm that nests a constructor pattern inside another constructor pattern&rsquo;s field, over a union that names itself in its own payload and carries type parameters while doing it. That shape is Okasaki&rsquo;s <code>balance</code>, the four rotation cases of a red-black tree. Here it is, written out and running.</p>
+            <p>The app is a speedrun leaderboard over an append-only JSON log. Every command re-reads the log and folds it into the tree, then answers by walking down it: a player&rsquo;s rank, the top N, how many submissions fall inside a score range. Each node carries its subtree size, which is what makes those O(log n) instead of a pass over every entry, and a submitted score is refined at the point it leaves plain text, so <code>-3</code> is rejected as <code>expected Score (int where value &gt;= 0)</code> and <code>2.5</code> as <code>expected Score (int)</code>.</p>
+            <div class="code">
+              <span class="cap">tree.glyph</span>
+<pre>module tree
+
+pub type Color =
+  | Red
+  | Black
+
+<span class="add">pub type Tree&lt;K, V&gt; =
+  | Leaf
+  | Node({ color: Color, left: Tree&lt;K, V&gt;, key: K, value: V, right: Tree&lt;K, V&gt; })</span>
+
+// The left-left rotation: a Black node whose Red child has a Red child.
+pub fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
+  return match t {
+    <span class="add">Node({ color: Black, left: Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b }), key: yk, value: yv, right: c }), key: zk, value: zv, right: d })</span> =&gt; Node(
+      {
+        color: Red,
+        left: Node({ color: Black, left: a, key: xk, value: xv, right: b }),
+        key: yk,
+        value: yv,
+        right: Node({ color: Black, left: c, key: zk, value: zv, right: d }),
+      },
+    ),
+    other =&gt; other,
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <strong><code>leaderboard</code>, an order-statistics red-black tree with a CLI on it.</strong> A persistent tree keyed by score, augmented with subtree sizes, answering rank, top-N and range-count queries over a log it never rewrites. It is the eleventh single-file app in <code>examples/</code>.</li>
+              <li><span class="tag changed">Changed</span> <strong>Nothing in the compiler.</strong> No Rust source moved between 0.1.93 and this release, so the binary behaves identically. If you are already on 0.1.93 there is nothing here to upgrade for.</li>
+              <li><span class="tag known">Known</span> <strong>The union has to be declared in the module that matches on it.</strong> Import it from a sibling and spell the import as a namespace (<code>import tree</code>, then <code>tree.Node({ left: tree.Node({ key: k }) })</code>) and the arm is <code>E0300</code>, where the named-import spelling of the same program compiles. A <code>match</code> on an imported generic union is also not checked for missing variants, so it can omit one, build clean, pass <code>tsc --strict</code>, and throw. The missing-variant check is fixed in 0.1.95; the namespace spelling is still open.</li>
+              <li><span class="tag known">Known</span> <strong>An imported payload union still goes by the name&rsquo;s shape.</strong> Unchanged from 0.1.93: a capitalized variant in payload position dispatches, a lowercase one stops the build at <code>E0305</code>, and <code>Ok(Point)</code> over a record fails through <code>tsc</code> naming a <code>.tag</code> you never wrote.</li>
+            </ul>

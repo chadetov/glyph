@@ -1,0 +1,9 @@
+---
+version: 0.1.32
+month: 2026-07
+---
+            <h3>Fluent await and discriminated unions from a .d.ts</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>await</code> on a fluent chain awaits the async terminal: <code>await cursor.find({}).to_array()</code> awaits <code>to_array</code>, so the mongodb cursor pattern no longer needs a split line.</li>
+              <li><span class="tag added">Added</span> A TypeScript <code>.d.ts</code> union of variants that share a string-literal tag materializes as a Glyph tagged union plus a <code>parse_&lt;Name&gt;</code> dispatcher that reads the tag and validates into the right variant.</li>
+            </ul>

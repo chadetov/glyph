@@ -1,0 +1,11 @@
+---
+version: 0.1.147
+month: 2026-11
+tags: breaking
+---
+            <p>A check that names a type parameter is now E0304, because a type parameter has no runtime check. This covers <code>is T</code>, <code>is Array&lt;T&gt;</code>, <code>json.parse&lt;T&gt;</code>, <code>Box.parse&lt;T&gt;(v)</code>, and <code>T.parse(v)</code> or <code>T.is(v)</code> where <code>T</code> is the parameter.</p>
+
+            <p>Before, inside <code>fn h&lt;Doc&gt;</code> in a module that also declares a <code>type Doc</code>, these quietly ran the record's check while the code treated the result as the type parameter. Some passed <code>glyph check</code> and <code>tsc</code> outright and checked values against the wrong type; others crashed at run time. The parameter is now found by scope, so a module-level type with the same name never stands in for it.</p>
+
+            <h3>Breaking</h3>
+            <p>We ran 0.1.146 and this build on each shape: those that exited 0 before now exit 1, with and without <code>tsc</code>. On every <code>.glyph</code> file in the repository and all 32 example apps, nothing changes. To validate a value whose type is a parameter, take a <code>Schema&lt;T&gt;</code> argument and use <code>json.parse_with</code>.</p>

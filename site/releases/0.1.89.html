@@ -1,0 +1,26 @@
+---
+version: 0.1.89
+month: 2026-08
+---
+            <h3>A bool binding you can match on</h3>
+            <p>A binding in Glyph has one type for the whole of its life. TypeScript narrows a binding to whatever it last saw assigned, and its <code>boolean</code> is the union <code>true | false</code>, so <code>let done = false</code> arrived at <code>tsc</code> typed <code>false</code>. Matching on it built clean in Glyph and then failed with <code>Type 'true' is not comparable to type 'false'</code>: an error about a <code>switch</code> you never wrote, on a program the Glyph checker found nothing wrong with. A string-literal union type failed the same way, and so did <code>==</code>.</p>
+            <div class="code">
+              <span class="cap">This builds now, and used to fail the tsc pass</span>
+<pre>module status
+
+fn classify() -&gt; int {
+  let done = false
+  match done {
+    true =&gt; { return 1 },
+    false =&gt; { return 0 },
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>Matching a <code>bool</code> or a string-literal union binding works.</strong> The <code>match</code> scrutinee is pinned to the type the checker gave it before the emitted <code>switch</code> sees it, so the arms have something to match. It covers a <code>let</code>, a <code>mut</code>, and a type alias of either declared in the same module.</li>
+              <li><span class="tag fixed">Fixed</span> <strong><code>==</code> and <code>!=</code> over those bindings work too.</strong> They failed as <code>TS2367</code>, "this comparison appears unintentional", which is a different message for the same cause. Each operand is pinned from its own type and ignores what sits next to it, so <code>done == failed</code> between two <code>bool</code> bindings is covered the same way <code>done == true</code> is.</li>
+              <li><span class="tag changed">Changed</span> <strong>A literal outside the union still fails, and now names the type.</strong> <code>m == "nope"</code> where <code>m</code> is a <code>Mode</code> is still rejected; the message says <code>Mode</code> rather than the one member <code>m</code> happened to hold. Fixing this at the assignment instead would have been less code and would have swallowed that check, because <code>"nope" as Mode</code> type-checks where <code>let m: Mode = "nope"</code> does not.</li>
+              <li><span class="tag added">Added</span> <strong>An uptime monitor in the examples.</strong> <code>pulse</code> resolves each target with <code>std/dns</code>, dials a certificate-verified <code>std/tls</code> connection, writes an HTTP/1.1 request by hand and reads the status line back off the socket's callbacks. Every check lands as one JSON line in a history file. It is the app that found the bug above, while turning a timer callback into a value an <code>async fn</code> can await.</li>
+              <li><span class="tag known">Known</span> <strong>A <code>bool</code> alias read through another module is not covered.</strong> <code>pub type Ready = bool</code> in one module, then <code>let r: catalog.Ready = false</code> and a <code>match</code>, still fails: the emitter follows an alias only inside the module it is emitting. String-literal unions are covered across modules in all three import spellings, because the checker hands those over as a set of literals.</li>
+              <li><span class="tag known">Known</span> <strong><code>Full(Black)</code> still miscompiles.</strong> A variant whose payload is a union rather than a record emits two <code>case "Full":</code> blocks, the first of which binds the payload instead of testing it. That is G130, and it moves to 0.1.90.</li>
+            </ul>

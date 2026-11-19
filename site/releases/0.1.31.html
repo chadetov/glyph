@@ -1,0 +1,8 @@
+---
+version: 0.1.31
+month: 2026-07
+---
+            <h3>Taint tracking</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/taint</code>: <code>Tainted&lt;T&gt;</code> and <code>Trusted&lt;T&gt;</code> are structurally distinct, so a sink typed <code>Trusted&lt;string&gt;</code> (a SQL runner, a shell command) cannot receive a <code>Tainted&lt;string&gt;</code> without going through <code>sanitize</code> first. A SQL injection path becomes a compile error.</li>
+            </ul>

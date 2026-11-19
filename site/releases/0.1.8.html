@@ -1,0 +1,8 @@
+---
+version: 0.1.8
+month: 2026-07
+---
+            <h3>Install fix</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> The published compiler binary is now executable on install: a packaging step dropped the Unix execute bit, so <code>npx @glyphlang/glyph</code> failed with <code>EACCES</code>. The launcher now also restores it defensively.</li>
+            </ul>

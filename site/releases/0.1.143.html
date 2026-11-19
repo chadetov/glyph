@@ -1,0 +1,13 @@
+---
+version: 0.1.143
+month: 2026-11
+tags: breaking
+---
+            <p>An <code>is</code> pattern is now checked the same way <code>T.is(v)</code> is. Before, <code>match v { is Doc =&gt; … }</code> compiled even when <code>Doc</code> had a field nothing could check at run time, such as an <code>extern_ts</code> type, and the arm then matched any value with that key present. <code>Doc.is(v)</code> refused the same type. Now both are E0304 with the same message, naming the field. This covers records, unions, nested records, generics like <code>is Page&lt;User&gt;</code>, and <code>&lt;case is T&gt;</code> in JSX.</p>
+
+            <p>One spelling ran the wrong check entirely: in a module that declares its own <code>Box</code>, a pattern <code>is w.Box&lt;int&gt;</code> naming the imported one was compiled as a check against the local <code>Box</code>. It is now refused (E0300), as a namespaced pattern without a type argument already was.</p>
+
+            <h3>Breaking</h3>
+            <p>We ran the published 0.1.142 and this build on each refused shape: every one exited 0 before and exits 1 now, with and without <code>tsc</code>, and <code>tsc</code> accepts all of them. On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> gives the same result apart from the reworded E0304 note on one file that already failed, and the emitted TypeScript is identical.</p>
+
+            <p>Still open: <code>is Record&lt;string, int&gt;</code> and <code>is Array&lt;X&gt;</code> check only that the value is an object or an array, not what it holds; that is 0.1.145. A namespaced pattern like <code>is w.P</code> has no lowering yet, so import the type by name to match on it.</p>

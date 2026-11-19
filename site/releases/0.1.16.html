@@ -1,0 +1,9 @@
+---
+version: 0.1.16
+month: 2026-07
+---
+            <h3>Language-design completeness</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> Structural <code>interface</code>s and generic bounds (<code>fn f&lt;T: Named&gt;(x: T)</code>); module visibility (private by default, <code>pub</code> to export, so the public API is <code>grep '^pub'</code>); digit separators in numeric literals; and <code>defer</code> for deterministic cleanup on every exit path.</li>
+              <li><span class="tag added">Added</span> <code>std/task</code>: <code>all</code> (concurrent join, fail-fast), <code>race</code>, and <code>all_settled</code> over the promise model.</li>
+            </ul>

@@ -1,0 +1,8 @@
+---
+version: 0.1.28
+month: 2026-07
+---
+            <h3>Exact money math</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/decimal</code>, exact base-10 fixed-point over BigInt: <code>0.1 + 0.2</code> is exactly <code>0.3</code>, with no precision loss past 2^53. Construction validates and returns a <code>Result</code>; operations are methods (<code>price.add(tax)</code>). Money is never a float.</li>
+            </ul>

@@ -1,0 +1,11 @@
+---
+version: 0.1.149
+month: 2026-11
+tags: breaking
+---
+            <p>A statement can no longer start on the line where the one before it ended. <code>let s = "a" "b"</code> used to bind <code>"a"</code> and drop <code>"b"</code>, <code>let x = h() g</code> bound <code>h()</code>, and <code>return x as User</code> was three statements, since Glyph has no cast. All of them compiled, and <code>tsc</code> accepted them.</p>
+
+            <p>Each is now E0013, with help that fits what came second: Glyph has no <code>as</code>, adjacent strings are not joined (write <code>"a" + "b"</code>), or the statement needs its own line. 0.1.146 did this for <code>{</code>; this release does it for everything else. One-line bodies like <code>fn f() -&gt; int { return 1 }</code> and <code>for x in xs { f(x) }</code> are unaffected.</p>
+
+            <h3>Breaking</h3>
+            <p>Programs with two statements on one line inside a block no longer compile. On every <code>.glyph</code> file in the repository and all 32 example apps, the only changes are three files that were already refused (two test fixtures and a benchmark that demonstrates a refusal, which still passes), and the emitted TypeScript is identical.</p>

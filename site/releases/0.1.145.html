@@ -1,0 +1,13 @@
+---
+version: 0.1.145
+month: 2026-11
+tags: breaking
+---
+            <p><code>is Record&lt;K, V&gt;</code> and <code>is Array&lt;X&gt;</code> now check what the container holds. Before, <code>match v { is Record&lt;string, int&gt; =&gt; … }</code> took the arm for any object, including <code>{"a": "x"}</code>, and <code>is Array&lt;int&gt;</code> took it for any array. Now every value or element is checked against <code>V</code> or <code>X</code>, at any depth. A pattern whose part type has no runtime check, such as <code>is Array&lt;H&gt;</code> with <code>H</code> an <code>extern_ts</code> type, is E0304. <code>is Record&lt;string, unknown&gt;</code> and <code>is Array&lt;unknown&gt;</code> work as before.</p>
+
+            <p>While doing this we found that a generic named through an import alias, like <code>w.Box&lt;int&gt;</code>, was checked against a different <code>Box</code> when the module declared its own. <code>json.parse&lt;w.Box&lt;int&gt;&gt;</code> compiled, rejected a real <code>w.Box</code> value and accepted a local one. That is now E0304. When the bare name refers to the same generic (<code>m.Page&lt;m.User&gt;</code> beside <code>import model { Page, User }</code>), it is still checked as before.</p>
+
+            <h3>Breaking</h3>
+            <p>We ran 0.1.144 and this build on each affected shape. Patterns over a part with no runtime check, and the mislabelled namespaced generics, went from exit 0 to 1, with and without <code>tsc</code>. Some programs still compile but now behave differently at run time: a value that does not match the declared element or value type falls through to the next arm instead of taking this one. On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> and the emitted TypeScript are identical to 0.1.144.</p>
+
+            <p>A record's keys are not checked yet, here or by <code>json.parse</code>: <code>Record&lt;Tier, int&gt;</code> accepts a key outside <code>Tier</code>. That is 0.1.148.</p>

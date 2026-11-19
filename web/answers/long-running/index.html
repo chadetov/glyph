@@ -595,6 +595,7 @@ pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</p
           <h3 class="h">Getting sharper</h3>
           <p>A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.</p>
         </div>
+        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/interactive-cli/">

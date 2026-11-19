@@ -643,6 +643,32 @@ def stylesheet_bundle(sheets: list[str]) -> str:
     return "\n".join(parts)
 
 
+def human_date(date: str) -> str:
+    y, m, d = date.split("-")
+    return f"{int(d)} {site_versions.MONTH_NAMES[int(m) - 1][:3]} {y}"
+
+
+def stamp_answer(body: str, version: str, date: str) -> str:
+    """The line that says how current an answer is, as the last item of its
+    "Where it stands" row (or at the end, before the next steps, on a page
+    without one). The code on every answer page is compiled by
+    scripts/check_docs_compile.py on every build, so the version is the one
+    the build checked it against; the date is the page's from
+    site/lastmod.json, the last time its content changed."""
+    when = f'<time datetime="{date}">{human_date(date)}</time>'
+    text = (f"Code examples on this page are checked against Glyph {version} on every build. "
+            f"Last changed {when}." if "<pre" in body else f"Last changed {when}.")
+    line = f'        <p class="page-stamp">{text}</p>\n'
+    m = re.search(r'<div class="status-row">', body)
+    if m:
+        end = _div_end(body, m.start())
+        close = body.rindex("</div>", m.start(), end)
+        return body[:close] + "  " + line.lstrip() + "      " + body[close:]
+    i = body.find('      <section class="next-steps">')
+    i = len(body) if i < 0 else i
+    return body[:i] + line.replace("        ", "      ", 1) + body[i:]
+
+
 def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str,
            ctx: site_i18n.Ctx, lastmod: LastMod, titles: dict[str, str]) -> tuple[str, str]:
     """One page, and the date its content last changed. `url` is the page's
@@ -670,6 +696,8 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
     else:
         date = lastmod.date(ctx.here, f'{fm["title"]}\n{fm["description"]}\n{body}')
     body = body.replace("{{version}}", version)
+    if url.startswith("/answers/") and url != "/answers/" and not fm.get("noindex"):
+        body = stamp_answer(body, version, date)
     head_values = {
         "title": fm["title"],
         "description": fm["description"],

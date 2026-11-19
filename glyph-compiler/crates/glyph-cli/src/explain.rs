@@ -202,7 +202,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `h()`; `return h() as R` was three statements, since Glyph has no \
             `as` cast; `return h() { k: 2 }` returned `h()` and the braces \
             never ran. `{` has been refused since 0.1.146 and every other \
-            token since 0.1.149.\n\n\
+            token since 0.1.149. Where another error says more about the \
+            line, that error is reported instead: `if` is E0006, `const y = \
+            1` in a block is E0008 (write `let`), and a bare `throw`, \
+            `typeof` or `delete` is E0103.\n\n\
             Before:  let a = 1 let b = 2\n\
             After:   let a = 1\n         let b = 2\n\n\
             Before:  let s = \"a\" \"b\"\n\
@@ -210,6 +213,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Before:  return input as User\n\
             After:   return User.parse(input)   // in a function returning \
             Result<User, Array<Issue>>\n\n\
+            Glyph has no `cond ? a : b`. A `?` after an expression \
+            propagates an error, so `a > 0 ? 1 : 2` ends at the `?`:\n\n\
+            Before:  let x = a > 0 ? 1 : 2\n\
+            After:   let x = match a > 0 { true => 1, false => 2, }\n\n\
             The usual way to reach it with a `{` is the TypeScript-adjacent \
             `TypeName { ... }`. Glyph has no such form: the value is the \
             literal on its own, and the annotation on the `let`, the \

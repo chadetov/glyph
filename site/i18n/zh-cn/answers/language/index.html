@@ -1,7 +1,7 @@
 ---
 title: 这是一门真正的语言，还是一个有很多缺口的玩具？ · Glyph
 description: 模块可见性、用于泛型约束的结构化接口、defer、结构化并发、可以当作值使用的 match，以及它从 JavaScript 继承的语义。
-source_hash: 5ef4512407bef58a
+source_hash: 9a4735d3e9bad608
 prev: /answers/state/ | &larr; 上一篇 | 怎样在函数之间共享可变状态？
 next: /answers/finance/ | 下一篇 &rarr; | 涉及金额、以及我无法控制的输入时，能信任它吗？
 ---
@@ -63,7 +63,7 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
 
       <div class="detail">
         <p>
-          需要说明的是：Glyph 编译成 TypeScript，运行在 JavaScript 引擎上，所以求值顺序、值与引用、相等性（<code>==</code> 就是 <code>===</code>，没有重载）以及单线程、带垃圾回收的模型，都是继承来的，而不是新发明的。规范现在把它们作为保证写明，而不是留给你自己去发现。手动内存管理和非 GC 模型不在路线图上；它们超出了一门转译到 TypeScript 的语言的范围。
+          Glyph 编译为 TypeScript 并运行在 JavaScript 引擎上，因此继承了求值顺序、可变操作的引用语义，以及单线程、带垃圾回收的模型。不同之处在于相等性：<code>==</code> 比较的是值，record 逐字段比较；而 JavaScript 的 <code>===</code> 比较的是引用。规范把这些写成保证，而不是让你事后才发现。手动内存管理和无 GC 的模型不在路线图上，它们超出了一门编译为 TypeScript 的语言的范围。
         </p>
       </div>
 

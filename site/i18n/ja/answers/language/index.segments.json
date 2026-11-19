@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/language/index.html",
   "locale": "ja",
-  "source_hash": "5ef4512407bef58a",
+  "source_hash": "9a4735d3e9bad608",
   "segments": [
     {
       "id": "title",
@@ -113,10 +113,10 @@
       "tr": "defer と構造化並行性"
     },
     {
-      "id": "h-21d0fec4",
+      "id": "h-d460c21d",
       "kind": "html",
-      "en": "The honest part: Glyph compiles to TypeScript and runs on a JavaScript engine, so evaluation order, value-versus-reference, equality (<code>==</code> is <code>===</code>, no overloading), and the single-threaded garbage-collected model are inherited, not invented. The spec now states them as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
-      "tr": "正直に言っておくと、Glyph は TypeScript にコンパイルされ JavaScript エンジンで動くので、評価順序、値渡しと参照渡し、等価性（<code>==</code> は <code>===</code> で、オーバーロードはありません）、シングルスレッドでガベージコレクションのあるモデルは、新たに作ったものではなく受け継いだものです。仕様書は今これらを、自分で調べて気づくものではなく保証として明記しています。手動のメモリ管理や GC のないモデルはロードマップにありません。それは TypeScript にトランスパイルする言語の範囲外です。"
+      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references. The spec states these as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "Glyph は TypeScript にコンパイルされ JavaScript エンジンで動くため、評価順序、ミューテーションにおける参照のセマンティクス、シングルスレッドでガベージコレクションのあるモデルを引き継ぎます。違うのは等価性です。<code>==</code> は値を比較し、レコードはフィールドごとに比べます。一方 JavaScript の <code>===</code> は参照を比較します。仕様はこれらを、あとで気づくものではなく保証として明記しています。手動メモリ管理や GC のないモデルはロードマップにありません。TypeScript にトランスパイルする言語の範囲外です。"
     },
     {
       "id": "h-173a357c",

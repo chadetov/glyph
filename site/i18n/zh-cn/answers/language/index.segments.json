@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/language/index.html",
   "locale": "zh-cn",
-  "source_hash": "5ef4512407bef58a",
+  "source_hash": "9a4735d3e9bad608",
   "segments": [
     {
       "id": "title",
@@ -113,10 +113,10 @@
       "tr": "defer + 结构化并发"
     },
     {
-      "id": "h-21d0fec4",
+      "id": "h-d460c21d",
       "kind": "html",
-      "en": "The honest part: Glyph compiles to TypeScript and runs on a JavaScript engine, so evaluation order, value-versus-reference, equality (<code>==</code> is <code>===</code>, no overloading), and the single-threaded garbage-collected model are inherited, not invented. The spec now states them as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
-      "tr": "需要说明的是：Glyph 编译成 TypeScript，运行在 JavaScript 引擎上，所以求值顺序、值与引用、相等性（<code>==</code> 就是 <code>===</code>，没有重载）以及单线程、带垃圾回收的模型，都是继承来的，而不是新发明的。规范现在把它们作为保证写明，而不是留给你自己去发现。手动内存管理和非 GC 模型不在路线图上；它们超出了一门转译到 TypeScript 的语言的范围。"
+      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references. The spec states these as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "Glyph 编译为 TypeScript 并运行在 JavaScript 引擎上，因此继承了求值顺序、可变操作的引用语义，以及单线程、带垃圾回收的模型。不同之处在于相等性：<code>==</code> 比较的是值，record 逐字段比较；而 JavaScript 的 <code>===</code> 比较的是引用。规范把这些写成保证，而不是让你事后才发现。手动内存管理和无 GC 的模型不在路线图上，它们超出了一门编译为 TypeScript 的语言的范围。"
     },
     {
       "id": "h-173a357c",

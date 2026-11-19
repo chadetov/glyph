@@ -1,7 +1,7 @@
 ---
 title: นี่เป็นภาษาจริง หรือของเล่นที่มีช่องโหว่? · Glyph
 description: การมองเห็นของ module, interface เชิงโครงสร้างสำหรับข้อจำกัดของ generic, defer, structured concurrency และ match ที่เป็นค่า พร้อม semantics ของ JavaScript ที่มันสืบทอดมา
-source_hash: 5ef4512407bef58a
+source_hash: 9a4735d3e9bad608
 prev: /answers/state/ | &larr; ก่อนหน้า | จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?
 next: /answers/finance/ | ถัดไป &rarr; | ไว้ใจมันกับเรื่องเงิน และกับ input ที่ควบคุมไม่ได้ได้ไหม?
 ---
@@ -63,7 +63,7 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
 
       <div class="detail">
         <p>
-          ส่วนที่ต้องพูดตรงๆ: Glyph คอมไพล์เป็น TypeScript และรันบน JavaScript engine ลำดับการประเมินค่า value กับ reference ความเท่ากัน (<code>==</code> คือ <code>===</code> ไม่มี overloading) และ model แบบ single-thread ที่มี garbage collector จึงสืบทอดมา ไม่ได้คิดขึ้นใหม่ ตอนนี้สเปกระบุสิ่งเหล่านี้เป็นการรับประกัน แทนที่จะปล่อยให้คุณไปรู้เอง การจัดการหน่วยความจำเองและ model ที่ไม่มี GC ไม่อยู่ใน roadmap มันอยู่นอกขอบเขตของภาษาที่ transpile เป็น TypeScript
+          Glyph คอมไพล์เป็น TypeScript และรันบนเอนจิน JavaScript จึงรับลำดับการประเมินผล ความหมายแบบ reference เมื่อมีการแก้ไขค่า และโมเดลเธรดเดียวที่มี garbage collection มาด้วย จุดที่ต่างคือการเปรียบเทียบความเท่ากัน: <code>==</code> เปรียบเทียบค่า โดย record จะเทียบทีละฟิลด์ ส่วน <code>===</code> ของ JavaScript เปรียบเทียบ reference สเปกระบุเรื่องเหล่านี้เป็นการรับประกัน แทนที่จะปล่อยให้คุณค้นพบเอง การจัดการหน่วยความจำเองและโมเดลที่ไม่มี GC ไม่อยู่ในโรดแมป เพราะอยู่นอกขอบเขตของภาษาที่ทรานสไพล์เป็น TypeScript
         </p>
       </div>
 

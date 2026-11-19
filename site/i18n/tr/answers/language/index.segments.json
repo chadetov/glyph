@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/language/index.html",
   "locale": "tr",
-  "source_hash": "5ef4512407bef58a",
+  "source_hash": "9a4735d3e9bad608",
   "segments": [
     {
       "id": "title",
@@ -113,10 +113,10 @@
       "tr": "defer + yapılandırılmış eşzamanlılık"
     },
     {
-      "id": "h-21d0fec4",
+      "id": "h-d460c21d",
       "kind": "html",
-      "en": "The honest part: Glyph compiles to TypeScript and runs on a JavaScript engine, so evaluation order, value-versus-reference, equality (<code>==</code> is <code>===</code>, no overloading), and the single-threaded garbage-collected model are inherited, not invented. The spec now states them as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
-      "tr": "Dürüst olmak gerekirse: Glyph TypeScript'e derlenir ve bir JavaScript motorunda çalışır; bu yüzden değerlendirme sırası, değer ile referans ayrımı, eşitlik (<code>==</code>, <code>===</code> demektir, overloading yok) ve tek thread'li, garbage collection'lı model icat edilmemiş, devralınmıştır. Spec artık bunları keşfetmeyi size bırakmak yerine garanti olarak yazıyor. Manuel bellek yönetimi ve GC'siz bir model yol haritasında yok; bunlar TypeScript'e derlenen bir dilin kapsamı dışında."
+      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references. The spec states these as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "Glyph TypeScript'e derlenir ve bir JavaScript motorunda çalışır; bu yüzden değerlendirme sırasını, değişiklik için referans semantiğini ve tek iş parçacıklı, çöp toplayıcılı modeli devralır. Farklı olduğu yer eşitliktir: <code>==</code> değerleri karşılaştırır, record'ları alan alan; JavaScript'in <code>===</code> operatörü ise referansları karşılaştırır. Spesifikasyon bunları sonradan keşfetmenize bırakmak yerine garanti olarak yazar. Elle bellek yönetimi ve çöp toplayıcısız bir model yol haritasında yok; TypeScript'e derlenen bir dilin kapsamı dışındalar."
     },
     {
       "id": "h-173a357c",

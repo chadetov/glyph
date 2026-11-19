@@ -83,13 +83,14 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
 
       <div class="detail">
         <p>
-          The honest part: Glyph compiles to TypeScript and runs on a JavaScript
-          engine, so evaluation order, value-versus-reference, equality
-          (<code>==</code> is <code>===</code>, no overloading), and the
-          single-threaded garbage-collected model are inherited, not invented.
-          The spec now states them as guarantees rather than leaving you to find
-          out. Manual memory and a non-GC model aren't on a roadmap; they're
-          outside what a transpile-to-TypeScript language is.
+          Glyph compiles to TypeScript and runs on a JavaScript engine, so it
+          inherits evaluation order, reference semantics for mutation, and the
+          single-threaded garbage-collected model. Equality is where it differs:
+          <code>==</code> compares values, records field by field, where
+          JavaScript's <code>===</code> compares references. The spec states
+          these as guarantees rather than leaving you to find out. Manual memory
+          and a non-GC model aren't on a roadmap; they're outside what a
+          transpile-to-TypeScript language is.
         </p>
       </div>
 

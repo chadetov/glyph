@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/language/index.html",
   "locale": "de",
-  "source_hash": "5ef4512407bef58a",
+  "source_hash": "9a4735d3e9bad608",
   "segments": [
     {
       "id": "title",
@@ -113,10 +113,10 @@
       "tr": "defer + strukturierte Nebenläufigkeit"
     },
     {
-      "id": "h-21d0fec4",
+      "id": "h-d460c21d",
       "kind": "html",
-      "en": "The honest part: Glyph compiles to TypeScript and runs on a JavaScript engine, so evaluation order, value-versus-reference, equality (<code>==</code> is <code>===</code>, no overloading), and the single-threaded garbage-collected model are inherited, not invented. The spec now states them as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
-      "tr": "Der ehrliche Teil: Glyph kompiliert zu TypeScript und läuft auf einer JavaScript-Engine, also sind Auswertungsreihenfolge, Wert- gegenüber Referenzsemantik, Gleichheit (<code>==</code> ist <code>===</code>, kein Überladen) und das single-threaded Modell mit Garbage Collection geerbt, nicht erfunden. Die Spezifikation nennt sie jetzt als Garantien, statt dich das selbst herausfinden zu lassen. Manuelle Speicherverwaltung und ein Modell ohne GC stehen auf keiner Roadmap; sie liegen außerhalb dessen, was eine Sprache ist, die zu TypeScript transpiliert."
+      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references. The spec states these as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "Glyph kompiliert zu TypeScript und läuft auf einer JavaScript-Engine, übernimmt also die Auswertungsreihenfolge, die Referenzsemantik bei Mutation und das Single-Thread-Modell mit Garbage Collection. Bei der Gleichheit weicht es ab: <code>==</code> vergleicht Werte, Records Feld für Feld, während das <code>===</code> von JavaScript Referenzen vergleicht. Die Spezifikation nennt das als Garantien, statt dich es selbst herausfinden zu lassen. Manuelle Speicherverwaltung und ein Modell ohne GC stehen auf keiner Roadmap; sie liegen außerhalb dessen, was eine Sprache ist, die nach TypeScript transpiliert."
     },
     {
       "id": "h-173a357c",

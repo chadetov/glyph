@@ -1,7 +1,7 @@
 ---
 title: Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı? · Glyph
 description: Modül görünürlüğü, generic sınırları için yapısal interface'ler, defer, yapılandırılmış eşzamanlılık, bir değer olarak match ve JavaScript'ten devraldığı semantik.
-source_hash: 5ef4512407bef58a
+source_hash: 9a4735d3e9bad608
 prev: /answers/state/ | &larr; Önceki | Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım?
 next: /answers/finance/ | Sonraki &rarr; | Ona parayla ve kontrol etmediğim girdilerle güvenebilir miyim?
 ---
@@ -63,7 +63,7 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
 
       <div class="detail">
         <p>
-          Dürüst olmak gerekirse: Glyph TypeScript'e derlenir ve bir JavaScript motorunda çalışır; bu yüzden değerlendirme sırası, değer ile referans ayrımı, eşitlik (<code>==</code>, <code>===</code> demektir, overloading yok) ve tek thread'li, garbage collection'lı model icat edilmemiş, devralınmıştır. Spec artık bunları keşfetmeyi size bırakmak yerine garanti olarak yazıyor. Manuel bellek yönetimi ve GC'siz bir model yol haritasında yok; bunlar TypeScript'e derlenen bir dilin kapsamı dışında.
+          Glyph TypeScript'e derlenir ve bir JavaScript motorunda çalışır; bu yüzden değerlendirme sırasını, değişiklik için referans semantiğini ve tek iş parçacıklı, çöp toplayıcılı modeli devralır. Farklı olduğu yer eşitliktir: <code>==</code> değerleri karşılaştırır, record'ları alan alan; JavaScript'in <code>===</code> operatörü ise referansları karşılaştırır. Spesifikasyon bunları sonradan keşfetmenize bırakmak yerine garanti olarak yazar. Elle bellek yönetimi ve çöp toplayıcısız bir model yol haritasında yok; TypeScript'e derlenen bir dilin kapsamı dışındalar.
         </p>
       </div>
 

@@ -104,7 +104,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           <h3><a class="c-anchor" href="#non-exhaustive-match">A case nobody handled</a></h3>
           <div class="c-scores"><span class="c-score likely" title="Likely: 5 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 of 5</span></span><span class="c-score severe" title="Severity: 4 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span></div>
         </div>
-        <p class="c-why">An agent adds a <code>"team"</code> plan. The code that sets each plan's limit was written before it existed.</p>
+        <p class="c-why">An agent adds an <code>"archived"</code> status. The handler that announces each status was written before it existed.</p>
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles</span></div>
@@ -120,7 +120,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
     <span class="k">break</span>;
 }</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">finished</span>
 <span class="e">archived logged nothing</span></pre></div>
-            <p class="c-result"><b>A team gets a limit of 0.</b> Nothing says the switch is out of date.</p>
+            <p class="c-result"><b>Archiving an item logs nothing.</b> Nothing says the <code>switch</code> is out of date.</p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>switch-exhaustiveness-check</code></p>
           </div>
           <div class="c-side gl">
@@ -134,7 +134,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
             <p class="c-result"><b>The build stops and names the case.</b></p>
           </div>
         </div>
-        <p class="c-note">TypeScript checks that a <code>switch</code> covers every case only when the function returns from every branch, or with the <code>assertNever</code> idiom. In Glyph every <code>match</code> must cover every case, so adding a variant lists each place that has to change.</p>
+        <p class="c-note">TypeScript checks that a <code>switch</code> covers every case only when the function returns a value from every branch, or with the <code>assertNever</code> idiom. A handler that returns nothing gets neither. In Glyph every <code>match</code> must cover every case, so adding a variant lists each place that has to change.</p>
         <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">Copy link</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">Reproduce</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">Disagree with this score?</a></p>
       </article>
       <article class="catch" id="trusting-find-with-bang" data-ts="lint" data-glyph="build">
@@ -354,22 +354,24 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           <h3><a class="c-anchor" href="#split-into-a-pair">Destructuring a <code>split</code></a></h3>
           <div class="c-scores"><span class="c-score likely" title="Likely: 5 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 of 5</span></span><span class="c-score severe" title="Severity: 3 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span></div>
         </div>
-        <p class="c-why">Taking the domain out of an email address.</p>
+        <p class="c-why">Splitting an address into a user and a host.</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, crashes</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> [user, host] = s.split(<span class="s">"@"</span>);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">nobody at undefined</span></pre></div>
-            <p class="c-result"><b>TypeScript assumes the second part exists.</b></p>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong text</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> [user, host] = s.split(<span class="s">"@"</span>);
+<span class="k">return</span> <span class="s">`${user} at ${host}`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">nobody at undefined</span></pre></div>
+            <p class="c-result"><b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads "nobody at undefined".</p>
             <p class="c-cfg lint"><b>Lint only</b>caught by the lint rule <code>restrict-template-expressions</code></p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> [user, host] = string.split(s, <span class="s">"@"</span>)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0230] Error: typecheck: the length of `Array&lt;string&gt;` is not known, so a name in the pattern could hold `undefined`</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> [user, host] = string.split(s, <span class="s">"@"</span>)
+<span class="k">return</span> <span class="s">"${user} at ${host}"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0230] Error: typecheck: the length of `Array&lt;string&gt;` is not known, so a name in the pattern could hold `undefined`</span>
 <span class="h">Help: Its length is known only at run time, so match on it with a fallback arm: `match xs { [a, b] =&gt; ..., else =&gt; ... }`.</span></pre></div>
             <p class="c-result"><b>The missing part has to be handled.</b></p>
           </div>
         </div>
-        <p class="c-note"><code>split</code> can return one piece. TypeScript types <code>domain</code> as <code>string</code> anyway.</p>
+        <p class="c-note"><code>split</code> can return one piece. TypeScript types <code>host</code> as <code>string</code> anyway.</p>
         <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">Copy link</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">Reproduce</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">Disagree with this score?</a></p>
       </article>
       <article class="catch" id="value-outside-the-list" data-ts="none" data-glyph="data">
@@ -511,7 +513,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
             <p class="c-result"><b>There is no <code>any</code>.</b> Data nobody has checked is <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gives it a type.</p>
           </div>
         </div>
-        <p class="c-note"><code>any</code> switches type checking off for everything it touches, and it spreads: <code>data.usr</code> is <code>any</code> too. Glyph has no <code>any</code>.</p>
+        <p class="c-note"><code>any</code> switches type checking off for everything it touches, and it spreads: <code>data.usr</code> is <code>any</code> too. Glyph has no <code>any</code>. The refusal here comes from the <code>tsc</code> step that <code>glyph check</code> and <code>glyph build</code> run; Glyph's own checker does not see it yet (G381).</p>
         <p class="c-links"><a class="c-copy" href="#typo-nobody-sees" data-slug="typo-nobody-sees">Copy link</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-nobody-sees">Reproduce</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-nobody-sees&amp;title=Score%3A+A+typo+nobody+sees">Disagree with this score?</a></p>
       </article>
       <article class="catch" id="absent-map-key" data-ts="flag" data-glyph="build">
@@ -520,22 +522,26 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           <h3><a class="c-anchor" href="#absent-map-key">A key that may not be there</a></h3>
           <div class="c-scores"><span class="c-score likely" title="Likely: 4 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span><span class="c-score severe" title="Severity: 3 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span></div>
         </div>
-        <p class="c-why">Looking a price up by name.</p>
+        <p class="c-why">Reading a field from a row of strings, with the name misspelled.</p>
         <div class="c-pair">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, runs</span></div>
-            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> row.naem;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
-            <p class="c-result"><b>Any key reads as a number,</b> even one that is not there.</p>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> nameOf(row: <span class="t">Record</span>&lt;string, string&gt;): string {
+  <span class="k">return</span> row.naem;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
+            <p class="c-result"><b>Any key reads as a <code>string</code>,</b> even one that is not there, so the misspelled field prints <code>undefined</code>.</p>
             <p class="c-cfg flag"><b>Off by default</b>caught by the compiler flag <code>noUncheckedIndexedAccess</code></p>
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> row.naem</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0224] Error: typecheck: `Record&lt;string, string&gt;` is a map, so `naem` may not be there</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">pub</span> <span class="k">fn</span> name_of(row: <span class="t">Record</span>&lt;string, string&gt;) -&gt; string {
+  <span class="k">return</span> row.naem
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0224] Error: typecheck: `Record&lt;string, string&gt;` is a map, so `naem` may not be there</span>
 <span class="h">Help: Use `record.get(map, "key")`, which returns `Option&lt;V&gt;` so the absent case has somewhere to go. `record.has` tests for the key alone.</span></pre></div>
             <p class="c-result"><b>A map read says it might be empty,</b> so the code has to say what happens then.</p>
           </div>
         </div>
-        <p class="c-note">TypeScript's <code>Record&lt;string, number&gt;</code> claims every possible key has a number. Glyph treats it as a map, where a lookup can find nothing.</p>
+        <p class="c-note">TypeScript's <code>Record&lt;string, string&gt;</code> claims every possible key has a string. Glyph treats it as a map, where a lookup can find nothing, so it refuses the correctly spelled <code>row.name</code> too.</p>
         <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">Copy link</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">Reproduce</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">Disagree with this score?</a></p>
       </article>
       <article class="catch" id="typo-in-an-options-object" data-ts="none" data-glyph="build">
@@ -826,7 +832,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, wrong answer</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sorted[sorted.length / 2];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
-            <p class="c-result"><b>Reading index 1.5 gives <code>undefined</code>.</b></p>
+            <p class="c-result"><b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.</p>
             <p class="c-cfg none"><b>Nothing catches it</b>not even with every compiler flag and typescript-eslint strict on</p>
           </div>
           <div class="c-side gl">
@@ -1073,7 +1079,9 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           </div>
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
-            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="s">"paid"</span> =&gt; <span class="k">false</span>,</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0305] Error: emit: this match arm can never run: an earlier arm already matches `"paid"`</span>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="s">"paid"</span> =&gt; <span class="k">true</span>,
+<span class="s">"shipped"</span> =&gt; <span class="k">true</span>,
+<span class="s">"paid"</span> =&gt; <span class="k">false</span>,</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0305] Error: emit: this match arm can never run: an earlier arm already matches `"paid"`</span>
 <span class="h">Help: Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.</span></pre></div>
             <p class="c-result"><b>An arm that can never run is an error.</b></p>
           </div>
@@ -1086,9 +1094,9 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       <section class="c-section" id="traps">
         <h2 class="group-head">JavaScript traps that do not exist in Glyph</h2>
         <p class="group-sub">
-          Older traps that agents still hit now and then. Glyph does not catch
-          them. It leaves out the feature behind each one, and the replacement
-          is named.
+          Older traps that agents still hit now and then. Glyph refuses each
+          program, but not by spotting the mistake: the feature behind it is not
+          in the language, and the replacement is named.
         </p>
       <ul class="c-traps">
         <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> is <code>[10, NaN, NaN]</code>, because <code>map</code> passes the index as the number base. Glyph has <code>number.parse</code>, which returns a <code>Result</code>.</li>
@@ -1109,11 +1117,11 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           entry cannot outlive the hole.
         </p>
       <ul class="c-gaps">
-        <li><code>requested || 3</code> turns a real <code>0</code> into <code>3</code>; <code>!</code> accepts numbers and strings. <span>G386</span></li>
-        <li><code>"Hi ${user}"</code> with a record prints <code>[object Object]</code>. <span>G385</span></li>
-        <li>An <code>async</code> call whose result is dropped, including <code>forEach(async ...)</code>, passes silently. <span>G384</span></li>
+        <li><code>requested || 3</code> turns a real <code>0</code> into <code>3</code>. <span>G386</span></li>
+        <li><code>"Welcome back, ${user}!"</code> with a record prints <code>[object Object]</code>. <span>G385</span></li>
+        <li><code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns. <span>G384</span></li>
         <li>A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind. <span>G391</span></li>
-        <li><code>xs.push(4)</code> and <code>xs.sort()</code> change an array without <code>mut</code>. <span>G380</span></li>
+        <li><code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it. <span>G380</span></li>
         <li><code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>. <span>G388</span></li>
         <li>A SQL query built with <code>${name}</code> is accepted by <code>std/sqlite</code>. <span>G387</span></li>
         <li>A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused. <span>G390</span></li>

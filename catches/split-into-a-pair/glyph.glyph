@@ -5,6 +5,6 @@ import std/string
 pub fn describe(s: string) -> string {
   // show
   let [user, host] = string.split(s, "@")
-  // end show
   return "${user} at ${host}"
+  // end show
 }

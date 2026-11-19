@@ -8,4 +8,4 @@ fullconfig = "lint:restrict-template-expressions"
 section = "gap"
 slug = "gap-g385-record-in-template"
 order = 2
-summary = "<code>\"Hi ${user}\"</code> with a record prints <code>[object Object]</code>."
+summary = "<code>\"Welcome back, ${user}!\"</code> with a record prints <code>[object Object]</code>."

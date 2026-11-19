@@ -8,4 +8,4 @@ fullconfig = "lint:no-misused-promises"
 section = "gap"
 slug = "gap-g384-dropped-async-call"
 order = 3
-summary = "An <code>async</code> call whose result is dropped, including <code>forEach(async ...)</code>, passes silently."
+summary = "<code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns."

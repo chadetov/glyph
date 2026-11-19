@@ -3,10 +3,10 @@
 // prints "undefined". The typo makes it obvious; the correctly spelled
 // `row.name` has the same hole when the row has no name.
 // `noUncheckedIndexedAccess` would catch it, but `--strict` does not turn it on.
+// show
 export function nameOf(row: Record<string, string>): string {
-  // show
   return row.naem;
-  // end show
 }
+// end show
 
 console.log(nameOf({ name: "ada" }));

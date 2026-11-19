@@ -1,7 +1,7 @@
 module m
 
+// show
 pub fn name_of(row: Record<string, string>) -> string {
-  // show
   return row.naem
-  // end show
 }
+// end show

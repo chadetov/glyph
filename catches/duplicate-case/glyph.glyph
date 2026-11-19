@@ -2,9 +2,9 @@ module main
 
 fn refundable(status: "paid" | "shipped" | "delivered") -> bool {
   return match status {
+    // show
     "paid" => true,
     "shipped" => true,
-    // show
     "paid" => false,
     // end show
     "delivered" => false,

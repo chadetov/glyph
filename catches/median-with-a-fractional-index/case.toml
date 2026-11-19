@@ -13,6 +13,6 @@ likelihood = 3
 severity = 3
 ts_verdict = "compiles, wrong answer"
 glyph_verdict = "stopped when it runs"
-ts_result = "<b>Reading index 1.5 gives <code>undefined</code>.</b>"
+ts_result = "<b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>."
 glyph_result = "<b>A bad index stops the program</b> instead of spreading <code>NaN</code>."
 page_note = "Glyph checks every array index when the code runs. This one is not caught at build time."

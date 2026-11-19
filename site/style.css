@@ -109,10 +109,9 @@
   /* every card: a boxed, self-contained block (link cards, status cards,
      stat cards, callout boxes); code blocks keep --r */
   --r-card: 14px;
-  /* One column for article pages: 912px of content inside the gutters holds
-     two code panels side by side. Every block in the article shares its
-     edges. */
-  --w-read: 960px;
+  /* The one content width: the header's container. Every page's column,
+     article or landing, has its left edge at the logo and its right edge at
+     the header's last control. */
   --w-wide: 1080px;
   --gutter: 24px;
   --shadow: 0 1px 2px rgba(20, 26, 38, 0.05), 0 8px 24px -12px rgba(20, 26, 38, 0.18);
@@ -955,7 +954,7 @@ kbd {
   border-bottom: 1px solid var(--line);
 }
 .subnav-wrap .subnav {
-  max-width: var(--w-read);
+  max-width: var(--w-wide);
   margin: 0 auto;
   padding: 0 var(--gutter);
   display: flex;
@@ -1011,7 +1010,7 @@ kbd {
   border-bottom: 1px solid var(--line);
 }
 .ans-bar-in {
-  max-width: var(--w-read);
+  max-width: var(--w-wide);
   min-height: 52px;
   margin: 0 auto;
   padding: var(--s2) var(--gutter);
@@ -1237,7 +1236,7 @@ kbd {
     position: fixed;
     z-index: 70;
     top: var(--ans-top, 120px);
-    right: max(var(--gutter), calc(50% - 480px + var(--gutter)));
+    right: max(var(--gutter), calc(50% - var(--w-wide) / 2 + var(--gutter)));
     width: 380px;
     max-height: calc(100vh - var(--ans-top, 120px) - var(--s4));
     overflow-y: auto;
@@ -1303,7 +1302,7 @@ kbd {
   padding: 0 var(--gutter) var(--s7);
 }
 .answer-page {
-  max-width: var(--w-read);
+  max-width: var(--w-wide);
   margin: 0 auto;
   padding: 0 var(--gutter);
 }

@@ -73,6 +73,8 @@
     "The design": "Tasarım",
     "The four pillars and what was left out on purpose": "Dört temel ilke ve bilerek dışarıda bırakılanlar",
     "Glyph vs Effect": "Glyph ve Effect",
+    "Why not ReScript, Gleam or Elm?": "Neden ReScript, Gleam ya da Elm değil?",
+    "Three typed languages that compile to JavaScript": "JavaScript'e derlenen üç tipli dil",
     "A language and a library, compared": "Bir dil ile bir kütüphanenin karşılaştırması",
     "Glyph vs tooled TypeScript": "Glyph ve araçlarla donatılmış TypeScript",
     "What strict tsc, zod and eslint still let through": "Strict tsc, zod ve eslint'in hâlâ gözden kaçırdıkları",

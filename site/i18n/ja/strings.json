@@ -73,6 +73,8 @@
     "The design": "設計",
     "The four pillars and what was left out on purpose": "4 つの柱と、意図的に入れなかったもの",
     "Glyph vs Effect": "Glyph と Effect の比較",
+    "Why not ReScript, Gleam or Elm?": "ReScript、Gleam、Elm ではなぜ駄目なのか",
+    "Three typed languages that compile to JavaScript": "JavaScript にコンパイルされる 3 つの型付き言語",
     "A language and a library, compared": "言語とライブラリの比較",
     "Glyph vs tooled TypeScript": "Glyph とツールを揃えた TypeScript の比較",
     "What strict tsc, zod and eslint still let through": "strict な tsc、zod、eslint でも通ってしまうもの",

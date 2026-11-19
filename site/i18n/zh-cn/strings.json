@@ -73,6 +73,8 @@
     "The design": "设计",
     "The four pillars and what was left out on purpose": "四大支柱，以及有意没有做的部分",
     "Glyph vs Effect": "Glyph 与 Effect 对比",
+    "Why not ReScript, Gleam or Elm?": "为什么不用 ReScript、Gleam 或 Elm？",
+    "Three typed languages that compile to JavaScript": "三种编译为 JavaScript 的类型化语言",
     "A language and a library, compared": "一门语言和一个库的比较",
     "Glyph vs tooled TypeScript": "Glyph 与配齐工具链的 TypeScript 对比",
     "What strict tsc, zod and eslint still let through": "严格模式的 tsc、zod 和 eslint 仍会放过的问题",

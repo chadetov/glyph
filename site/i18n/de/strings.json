@@ -73,6 +73,8 @@
     "The design": "Das Design",
     "The four pillars and what was left out on purpose": "Die vier Säulen und was bewusst weggelassen wurde",
     "Glyph vs Effect": "Glyph im Vergleich zu Effect",
+    "Why not ReScript, Gleam or Elm?": "Warum nicht ReScript, Gleam oder Elm?",
+    "Three typed languages that compile to JavaScript": "Drei typisierte Sprachen, die zu JavaScript kompilieren",
     "A language and a library, compared": "Eine Sprache und eine Bibliothek im Vergleich",
     "Glyph vs tooled TypeScript": "Glyph im Vergleich zu TypeScript mit vollem Tooling",
     "What strict tsc, zod and eslint still let through": "Was striktes tsc, zod und eslint trotzdem durchlassen",

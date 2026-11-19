@@ -58,6 +58,12 @@
               "desc": "A language and a library, compared"
             },
             {
+              "label": "Why not ReScript, Gleam or Elm?",
+              "href": "/design/vs-rescript-gleam-elm/",
+              "icon": "compare",
+              "desc": "Three typed languages that compile to JavaScript"
+            },
+            {
               "label": "Glyph vs tooled TypeScript",
               "href": "/answers/vs-tooled-ts/",
               "icon": "compare",

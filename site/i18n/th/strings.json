@@ -73,6 +73,8 @@
     "The design": "การออกแบบ",
     "The four pillars and what was left out on purpose": "หลักสี่ข้อ และสิ่งที่ตั้งใจตัดออกไป",
     "Glyph vs Effect": "Glyph เทียบกับ Effect",
+    "Why not ReScript, Gleam or Elm?": "ทำไมไม่ใช้ ReScript, Gleam หรือ Elm?",
+    "Three typed languages that compile to JavaScript": "ภาษาที่มีชนิดข้อมูลสามภาษาที่คอมไพล์เป็น JavaScript",
     "A language and a library, compared": "เปรียบเทียบภาษากับไลบรารี",
     "Glyph vs tooled TypeScript": "Glyph เทียบกับ TypeScript ที่ใส่เครื่องมือครบ",
     "What strict tsc, zod and eslint still let through": "สิ่งที่ tsc แบบ strict, zod และ eslint ยังปล่อยผ่าน",

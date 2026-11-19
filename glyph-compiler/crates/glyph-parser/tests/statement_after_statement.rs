@@ -226,3 +226,104 @@ fn a_token_that_cannot_begin_a_statement_keeps_its_own_error() {
     let e = parse(&src).expect_err("parsed");
     assert_ne!(e.code(), "E0013", "{e:?}");
 }
+
+// ----- record 117: where an older error says more, it stands -----
+
+/// Parse `body` after the shared head and expect `code` with its span on
+/// `token`.
+fn refused_with(body: &str, code: &str, token: &str) -> ParseError {
+    let src = format!("{HEAD}{body}");
+    match parse(&src) {
+        Ok(_) => panic!("parsed, expected {code}:\n{src}"),
+        Err(e) => {
+            assert_eq!(e.code(), code, "{e:?}\n{src}");
+            let span = e.span();
+            assert_eq!(&src[span.start as usize..span.end as usize], token, "{e:?}");
+            e
+        }
+    }
+}
+
+#[test]
+fn const_and_var_in_a_body_keep_the_missing_mut_error() {
+    // B1: E0008's help names `let`. E0013 would have split `const` from
+    // `y = 1`.
+    for kw in ["const", "var"] {
+        let e = refused_with(
+            &format!("fn f() -> int {{\n  {kw} y = 1\n  return y\n}}\n"),
+            "E0008",
+            "y =",
+        );
+        let help = help(&e);
+        assert!(help.contains("`let x = ...`"), "{help}");
+    }
+}
+
+#[test]
+fn an_annotated_const_in_a_body_keeps_its_old_error() {
+    refused_with("fn f() -> int {\n  const y: int = 1\n  return y\n}\n", "E0003", ":");
+}
+
+#[test]
+fn a_bare_ts_statement_word_parses_and_is_left_to_the_resolver() {
+    // B1: `throw`, `typeof`, `delete`, `yield` were E0103 in 0.1.148. None
+    // of them can be bound (E0109), so the resolver still refuses the line.
+    for line in ["throw new Error(\"x\")", "typeof x", "delete x", "yield x"] {
+        accepted(&format!("fn f(x: int) -> void {{\n  {line}\n}}\n"));
+    }
+}
+
+#[test]
+fn a_brace_after_a_bare_ts_statement_word_is_still_refused() {
+    // G351 refused `try { ... }` in 0.1.146; standing aside for the word
+    // does not reach the brace.
+    refused("fn f() -> void {\n  try { g() }\n}\n", "{");
+    refused("fn f() -> void {\n  function k() { }\n}\n", "{");
+}
+
+#[test]
+fn a_bare_name_that_is_not_a_ts_word_is_still_refused() {
+    refused("fn f(a: int) -> void {\n  a g()\n}\n", "g");
+}
+
+#[test]
+fn a_ternary_gets_the_match_help() {
+    // B2: `?` took the condition as error propagation.
+    for (body, token) in [
+        ("let x = a > 0 ? 1 : 2", "1"),
+        ("let x = a > 0 ? \"p\" : \"n\"", "\"p\""),
+        ("let x = a > 0 ? a : g()", "a"),
+        ("let x = a > 0 ? { k: 1 } : { k: 2 }", "{"),
+    ] {
+        let e = refused(&format!("fn f(a: int) -> void {{\n  {body}\n}}\n"), token);
+        let help = help(&e);
+        assert!(help.contains("no `cond ? a : b`"), "{help}");
+        assert!(help.contains("`match cond { true => a, false => b, }`"), "{help}");
+    }
+}
+
+#[test]
+fn a_same_line_if_keeps_e0006() {
+    // N1: one repair step, not two.
+    let e = refused_with(
+        "fn f(a: int) -> void {\n  g() if a > 0 { g() }\n}\n",
+        "E0006",
+        "if",
+    );
+    assert_eq!(e.to_string(), "Glyph has no `if`");
+}
+
+#[test]
+fn a_same_line_const_destructure_keeps_its_error() {
+    let src = format!("{HEAD}fn f(xs: Array<int>) -> void {{\n  g() const [a, b] = xs\n}}\n");
+    let e = parse(&src).expect_err("parsed");
+    assert_eq!(e.code(), "E0230", "{e:?}");
+}
+
+#[test]
+fn at_dollar_and_a_label_keep_e0003() {
+    // N2: none of them can begin a statement.
+    for (line, token) in [("let x = a @foo", "@"), ("let x = a $a", "$"), ("let x = a outer: loop { break }", ":")] {
+        refused_with(&format!("fn f(a: int) -> void {{\n  {line}\n}}\n"), "E0003", token);
+    }
+}

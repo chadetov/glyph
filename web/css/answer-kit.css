@@ -397,10 +397,9 @@
   /* every card: a boxed, self-contained block (link cards, status cards,
      stat cards, callout boxes); code blocks keep --r */
   --r-card: 14px;
-  /* One column for article pages: 912px of content inside the gutters holds
-     two code panels side by side. Every block in the article shares its
-     edges. */
-  --w-read: 960px;
+  /* The one content width: the header's container. Every page's column,
+     article or landing, has its left edge at the logo and its right edge at
+     the header's last control. */
   --w-wide: 1080px;
   --gutter: 24px;
   --shadow: 0 1px 2px rgba(20, 26, 38, 0.05), 0 8px 24px -12px rgba(20, 26, 38, 0.18);
@@ -484,6 +483,9 @@
     --h2: 1.5rem;
     --h3: 1.125rem;
     --fs-lede: 1.125rem;
+    /* the secondary size carries card text, notes and list items; 14px is
+       small to read at arm's length */
+    --fs-sm: 0.9375rem;
   }
 }
 
@@ -1041,11 +1043,12 @@ kbd {
     margin-left: auto;
   }
   .js .nav-burger {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     flex: none;
     color: var(--on-band);
     background: transparent;
@@ -1239,7 +1242,7 @@ kbd {
   border-bottom: 1px solid var(--line);
 }
 .subnav-wrap .subnav {
-  max-width: var(--w-read);
+  max-width: var(--w-wide);
   margin: 0 auto;
   padding: 0 var(--gutter);
   display: flex;
@@ -1295,7 +1298,7 @@ kbd {
   border-bottom: 1px solid var(--line);
 }
 .ans-bar-in {
-  max-width: var(--w-read);
+  max-width: var(--w-wide);
   min-height: 52px;
   margin: 0 auto;
   padding: var(--s2) var(--gutter);
@@ -1521,7 +1524,7 @@ kbd {
     position: fixed;
     z-index: 70;
     top: var(--ans-top, 120px);
-    right: max(var(--gutter), calc(50% - 480px + var(--gutter)));
+    right: max(var(--gutter), calc(50% - var(--w-wide) / 2 + var(--gutter)));
     width: 380px;
     max-height: calc(100vh - var(--ans-top, 120px) - var(--s4));
     overflow-y: auto;
@@ -1587,7 +1590,7 @@ kbd {
   padding: 0 var(--gutter) var(--s7);
 }
 .answer-page {
-  max-width: var(--w-read);
+  max-width: var(--w-wide);
   margin: 0 auto;
   padding: 0 var(--gutter);
 }
@@ -1923,6 +1926,50 @@ pre .c {
 }
 .code :focus-visible {
   outline-color: var(--cyan);
+}
+
+/* On a phone. Tool output wraps (pre.wraps from scripts/build_site.py, a
+   catches case's c-out, a terminal): the end of the message is what a reader
+   needs, and its line breaks carry no meaning. Source keeps its lines at a
+   size where a 44-character line fits a 390px screen, and scrolls. */
+@media (max-width: 640px) {
+  pre,
+  .code {
+    font-size: 0.78125rem;
+  }
+  pre,
+  .code pre {
+    padding: 12px;
+  }
+  .code .cap {
+    padding: 8px 12px;
+  }
+  pre.wraps,
+  .code.term pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+/* A block that scrolls sideways fades at the edge it can still scroll
+   toward. The header script sets .scrolls, .at-start and .at-end. A bare
+   pre carries its own background, which a mask would fade too, so it gets an
+   edge glow instead. */
+@media (max-width: 860px) {
+  .code pre.scrolls {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 40px), transparent);
+  }
+  .code pre.scrolls.at-start {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  }
+  .code pre.scrolls.at-end {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
+    mask-image: linear-gradient(to right, transparent, #000 28px);
+  }
+  pre.scrolls:not(.code pre):not(.at-end) {
+    box-shadow: inset -30px 0 22px -22px rgba(155, 132, 255, 0.75);
+  }
 }
 
 /* side-by-side comparisons, at the column's width like every other block */
@@ -2405,6 +2452,30 @@ div.card {
 }
 .catches-table td:first-child {
   white-space: nowrap;
+}
+/* On a phone three columns leave the file path a letter wide. Each row
+   becomes the code beside the case, with the path on its own line under
+   them; the header names what the code and the path already say. */
+@media (max-width: 640px) {
+  .catches-table thead {
+    display: none;
+  }
+  .catches-table tr {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: var(--s3);
+    row-gap: var(--s1);
+    padding: var(--s3) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .catches-table td {
+    padding: 0;
+    border: 0;
+  }
+  .catches-table td:nth-child(3) {
+    grid-column: 1 / -1;
+    overflow-wrap: anywhere;
+  }
 }
 @media (max-width: 820px) {
   .fixgrid {
@@ -3427,6 +3498,84 @@ h4 code,
   }
 }
 
+/* ============ touch targets on a phone ============ */
+/* Every control a thumb uses gets a hit area at least 44px on each side
+   (WCAG 2.5.5). Where the visible shape should stay as drawn, a transparent
+   ::after carries the extra area; elsewhere the control itself grows. The
+   header's three buttons stay 36px to the eye so the bar still fits one row
+   at 360px with the longest language label.
+   Links inside running text are exempt and keep the line's height. */
+@media (max-width: 860px) {
+  .brand {
+    min-height: 44px;
+  }
+  .nav-version,
+  .theme-toggle,
+  .home .pill,
+  .home .copy {
+    position: relative;
+  }
+  .nav-version::after,
+  .theme-toggle::after,
+  .js .nav-burger::after,
+  .home .pill::after,
+  .home .copy::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+  }
+  .nav-version::after {
+    inset: -12px -4px;
+  }
+  .home .pill::after {
+    inset: -7px 0;
+  }
+  .home .copy::after {
+    inset: -10px -6px;
+  }
+  .theme-toggle {
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+  }
+  .foot-col a {
+    padding: 11px 0;
+  }
+  .ans-step,
+  .ans-all,
+  .ans-all-link {
+    height: 44px;
+  }
+  /* the number and the title are inline spans; a flex box would drop the
+     space between them, so the hit area grows by padding the line instead */
+  .ans-crumb a.cur {
+    display: inline-block;
+    padding-block: 13px;
+    margin-block: -13px;
+  }
+  .backlink,
+  .card-more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  a.chip {
+    position: relative;
+  }
+  a.chip::after {
+    content: "";
+    position: absolute;
+    inset: -12px -2px;
+  }
+  /* a link that is a line of text, not a control: vertical padding on an
+     inline box widens what a tap hits without moving the line */
+  td a,
+  .i18n-note a {
+    padding-block: 13px;
+  }
+}
+
 /* site/i18n.css */
 /* Languages: the header's language menu, the notices on translated pages,
    and the type settings for scripts other than Latin and Cyrillic. Loaded on
@@ -3609,8 +3758,15 @@ h4 code,
     margin-left: 0;
   }
   .lang-btn {
-    height: 34px;
-    padding: 0 9px;
+    position: relative;
+    height: 36px;
+    padding: 0 10px;
+  }
+  /* the hit area reaches 44px without a bigger pill (style.css, touch targets) */
+  .lang-btn::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
   }
   .lang-drop {
     position: fixed;
@@ -4441,7 +4597,8 @@ details.more > .body .code {
 .code.term .cap {
   flex-wrap: nowrap;
 }
-/* a long one-line message can wrap; box-drawing output must not */
+/* a long one-line message can wrap; box-drawing output keeps its lines
+   where there is room for them (a phone wraps every terminal, style.css) */
 .code.term.wraps pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -4451,4 +4608,18 @@ details.more > .body .code {
 }
 .answer-page.ak .two-up.fit pre {
   padding: 12px 14px;
+}
+
+/* ============ touch targets on a phone ============ */
+@media (max-width: 860px) {
+  details.more > summary {
+    min-height: 44px;
+  }
+  .ak-list details.more.mini > summary {
+    min-height: 44px;
+    padding: 0;
+  }
+  .ak-toc a {
+    padding: 10px 14px;
+  }
 }

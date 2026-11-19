@@ -1,6 +1,6 @@
 ---
 title: Why does Glyph catch what tsc catches, but earlier? · Glyph
-description: Glyph reports await outside an async fn, a match arm that produces no value, and an assignment missing mut against your source, with the rule and the fix. It also stops reporting the wrong cause: a shadowed Issue and an unresolved import now name themselves instead of surfacing as a tsc error or a bogus non-exhaustive match. And where the program was right and the translation lost a type, a bool or string-literal binding now reaches tsc as the type Glyph gave it.
+description: Glyph reports await outside an async fn, a match arm that produces no value and a missing mut against your source, with the rule and the fix, before tsc.
 layout: article
 nav: answers
 subnav: answers

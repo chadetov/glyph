@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-377 entries, 301 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-57 are open. G144, the D28 boundary cast that never reached the returns a
+377 entries, 302 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+56 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13011,7 +13011,7 @@ and is the owner's to confirm.
 
   Planned for 0.1.150 (record 111).
 
-- **G370. Two statements on one line with nothing between them parse silently,
+- **G370. [FIXED] Two statements on one line with nothing between them parse silently,
   and a value can be dropped.** `let x = h() g` binds `h()` and leaves `g` a
   dead statement, `let s = "a" "b"` binds `"a"` and drops `"b"`, and `let a =
   1 let b = 2` puts a declaration mid-line; all exit 0 under `check`, with
@@ -13025,6 +13025,17 @@ and is the owner's to confirm.
   112's probes `q/d_two` and `a_type` (`/private/tmp/claude-501/linus112/`).*
 
   Planned for 0.1.149 (record 112).
+
+  Fixed in 0.1.149 (record 112). Inside a block, a statement that begins on
+  the line where the previous statement ended is E0013 at parse whatever its
+  first token, generalizing G351. The message quotes that statement; the help
+  keeps G217's guidance for `{`, says Glyph has no cast for `as`, says
+  adjacent values are not joined for a literal, and otherwise asks for its
+  own line. `let x = h() g`, `let s = "a" "b"`, `let a = 1 let b = 2`, and a
+  statement after a one-line `for`, `match`, `loop`, lambda or JSX element go
+  from exit 0 to 1; `return h() as R` goes from E0103 and E0228 to E0013
+  alone. A token that cannot begin a statement keeps its old error.
+  Top-level declarations on one line still parse.
 
 - **G371. An expression statement with no effect is silent.** `let o = h()`
   followed by `{ k: 2 }` on the next line, or `{ k: 2 }`, `"dead"` and `42` as

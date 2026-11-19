@@ -101,6 +101,12 @@
               "count": "answers"
             },
             {
+              "label": "Language reference",
+              "href": "https://github.com/chadetov/glyph/blob/main/docs/language/spec.md",
+              "icon": "spec",
+              "desc": "The full spec, on GitHub"
+            },
+            {
               "label": "Contribute",
               "href": "/contribute/",
               "icon": "contribute",
@@ -128,17 +134,6 @@
               "href": "/llms.txt",
               "icon": "file",
               "desc": "The language in one file an agent can read"
-            }
-          ]
-        },
-        {
-          "title": "Reference",
-          "items": [
-            {
-              "label": "Language reference",
-              "href": "https://github.com/chadetov/glyph/blob/main/docs/language/spec.md",
-              "icon": "spec",
-              "desc": "The full spec, on GitHub"
             }
           ]
         }

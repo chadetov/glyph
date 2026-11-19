@@ -1,0 +1,142 @@
+---
+title: Glyph：一门编译到 TypeScript 的类型化语言，为 AI 智能体设计
+description: Glyph 是一门编译到 TypeScript 的静态类型语言，目的是让 AI 智能体写出的代码可以被阅读、检查和修改，不用靠猜。它看起来和 TypeScript 非常接近。
+source_hash: 520cddaf09df5f1b
+head: |
+  <meta name="keywords" content="glyph, glyph language, glyphlang, 编程语言, typescript, 转译器, AI 智能体, llm" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Glyph" />
+  <meta property="og:locale" content="zh_CN" />
+  <meta property="og:url" content="https://glyphlang.io/zh-cn/" />
+  <meta property="og:title" content="Glyph：一门编译到 TypeScript 的类型化语言，为 AI 智能体设计" />
+  <meta
+    property="og:description"
+    content="一门编译到 TypeScript 的静态类型语言，目的是让 AI 智能体写出的代码可以被阅读、检查和修改，不用靠猜。它看起来和 TypeScript 非常接近。"
+  />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Glyph：一门编译到 TypeScript 的类型化语言，为 AI 智能体设计" />
+  <meta
+    name="twitter:description"
+    content="一门编译到 TypeScript 的静态类型语言，目的是让 AI 智能体写出的代码可以被阅读、检查和修改，不用靠猜。"
+  />
+  <link rel="stylesheet" href="/catches.css" />
+  <link rel="stylesheet" href="/home.css" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Glyph",
+      "url": "https://glyphlang.io/zh-cn/",
+      "inLanguage": "zh-Hans",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform",
+      "description": "一门编译到 TypeScript 的静态类型语言，目的是让 AI 智能体写出的代码可以被阅读、检查和修改，不用靠猜。它看起来和 TypeScript 非常接近。",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+  </script>
+---
+    <div class="wrap">
+      <header class="hero">
+        <div>
+          <a class="pill" href="/versions/" title="查看更新内容"><span class="dot"></span>v{{version}} · 早期预览版 →</a>
+          <h1>AI 智能体写的代码，<span class="accent">上线前先过检查。</span></h1>
+          <p class="sub">
+            Glyph 是一门类型化语言，读起来像 TypeScript，编译出来的也是可读的
+            TypeScript。node、npm 和你现有的代码都照常使用，而编译器会拒绝
+            <code>tsc --strict</code> 放过的代码。
+          </p>
+          <div class="install" title="需要 Node.js 18 或更高版本">
+            <span class="prompt">$</span>
+            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <button class="copy" onclick="copyInstall()">复制</button>
+          </div>
+          <div class="cta">
+            <a class="btn primary" href="/catches/">看看它能发现什么 →</a>
+            <a class="btn" href="/start/">10 分钟上手 →</a>
+          </div>
+        </div>
+{{catches:hero}}
+      </header>
+    </div>
+
+    <section class="h-routes">
+      <div class="wrap">
+        <h2 class="section-head">接下来看什么</h2>
+        <div class="h-tiles">
+          <a class="h-tile" href="/from-typescript/"><b>我写 TypeScript</b><span>哪些变了，哪些不变，npm 包怎么继续用。</span></a>
+          <a class="h-tile" href="/teams/"><b>我在为团队做技术选型</b><span>它保证什么，不保证什么，以及弃用它的成本。</span></a>
+          <a class="h-tile" href="/agents/"><b>我在做智能体和工具</b><span>MCP 服务器、它能回答的查询，以及诊断信息的格式。</span></a>
+          <a class="h-tile" href="/evidence/"><b>给我看证据</b><span>每条说法是怎么验证的，以及如何复现。</span></a>
+          <a class="h-tile" href="/design/"><b>为什么要一门新语言？</b><span>设计上的理由，以及有意没有做的部分。</span></a>
+          <div class="h-tile h-tile-try"><b>直接让我试试</b><span><a href="/start/">10 分钟上手</a>，或者打开 <a href="/playground/">Playground</a>。</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">TypeScript 工具链发现不了的案例</h2>
+        <p class="friction-intro">
+          排名最靠前的三个案例。它们能通过打开了所有额外 flag 的
+          <code>tsc --strict</code> 和 strict 模式的 typescript-eslint，排名依据是智能体写出它们的频率，以及上线后的危害程度。下面的案例保留英文，与仓库中的原文一致。
+        </p>
+{{catches:top}}
+        <p class="h-more"><a class="card-more" href="/catches/">查看全部 {{catches:count}} 个 &rarr;</a></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="h-measured">
+          <p class="h-big">{{catches:count}} 个中有 <span>{{catches:none}}</span> 个</p>
+          <p>列表中所有 TypeScript 示例都能零错误通过 <code>tsc --strict</code>。每个示例还会在一个配置拉满的项目里再检查一遍：比 <code>--strict</code> 更严格的所有编译器 flag，再加上 typescript-eslint 的 <code>strictTypeChecked</code>。在 {{catches:count}} 个案例中，有 {{catches:none}} 个是这套配置里没有任何一项能发现的。有 {{catches:flag}} 个能被默认关闭的编译器 flag 发现，{{catches:lint}} 个能被某条 lint 规则发现。这些都需要项目自己去打开，而智能体也可以再把它们关掉。在 Glyph 里，这些都不是配置项。</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">在真实应用里做一次改动</h2>
+        <p class="friction-intro">
+          <code>examples/apps/csvql</code> 是本仓库里的一个 CSV 查询引擎，核心是一个
+          <code>Value</code> 联合类型。给它加一个新 case 之前，先问编译器这会影响到哪些地方。
+        </p>
+        <div class="code">
+          <span class="cap">glyph_variants { name: "Value" }</span>
+<pre>10 match sites across 4 files
+ <span class="del">8 will fail compilation</span>
+ <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
+          <span class="cap">然后加上这个 case，运行 glyph check</span>
+<pre>8 errors, E0200 non-exhaustive match. The same eight.
+The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+        </div>
+        <p class="friction-intro h-after">
+          预测的八处全部命中。另外两处，<code>exec::total</code> 和
+          <code>render::literal_text</code>，仍然能编译通过，并把新的 case 交给各自的
+          catch-all 分支处理。一个修完这八个错误就停手的智能体，会得到一个通过的构建和两个仍然存在的 bug，而指出这两处的正是那次查询。
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="h-notyet">
+          Glyph 目前还不能发现所有问题。已知的 {{catches:gap-count}} 个漏洞都有复现示例和
+          gap 编号，而逻辑错误在 Glyph 里和在 TypeScript 里一样会被放过。
+          <a href="/catches/#not-yet">它目前还发现不了的问题 &rarr;</a>
+        </p>
+      </div>
+    </section>
+
+    <script>
+      function copyInstall() {
+        var text = document.getElementById("install-cmd").textContent;
+        navigator.clipboard && navigator.clipboard.writeText(text);
+        var btn = document.querySelector(".copy");
+        var prev = btn.textContent;
+        btn.textContent = "已复制";
+        setTimeout(function () {
+          btn.textContent = prev;
+        }, 1400);
+      }
+    </script>

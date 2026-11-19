@@ -11,7 +11,7 @@ web/ stays committed and is still what the Pages workflow deploys. This script
 owns every .html file in web/ (one per page under site/pages/, and a page
 whose source is gone is deleted), every stylesheet in site/ (site/style.css
 for every page, and the per-page ones such as site/catches.css, which a page
-links from its `head`), web/sitemap.xml (generated from the page list), and
+links from its `head`; see stylesheet_bundle()), web/sitemap.xml (generated from the page list), and
 every file under site/static/, copied to the same path under web/ byte for
 byte (the preview image, the raster icons; scripts/site_images.py draws them).
 Everything else in web/ (llms.txt, robots.txt, favicon.svg) is left alone,
@@ -602,6 +602,47 @@ class LastMod:
         return "{\n" + ",\n".join(lines) + "\n}\n"
 
 
+# Every page loads one stylesheet: the fonts, site/style.css and
+# site/i18n.css, then the sheets its `head` front matter links, in that order.
+BASE_SHEETS = ["fonts.css", "style.css", "i18n.css"]
+SHEET_LINK = re.compile(r'<link rel="stylesheet" href="/([a-z0-9-]+\.css)" />')
+
+
+def page_sheets(head: str, where: str) -> tuple[str, list[str]]:
+    """A page's `head` front matter without its stylesheet links, and the
+    site stylesheets those links named."""
+    sheets, keep = [], []
+    for line in head.split("\n"):
+        m = SHEET_LINK.fullmatch(line.strip())
+        if m:
+            if not (SITE / m.group(1)).is_file():
+                raise SiteError(f"{where}: head links /{m.group(1)}, and site/{m.group(1)} does not exist")
+            sheets.append(m.group(1))
+        else:
+            keep.append(line)
+    return "\n".join(keep).strip("\n"), sheets
+
+
+# The bundles the pages rendered so far link: {path under web/: page sheets}.
+BUNDLES: dict[str, list[str]] = {}
+
+
+def bundle_name(sheets: list[str]) -> str:
+    """css/site.css for the base sheets alone, else css/<page sheets>.css,
+    and the bundle recorded for build() to write."""
+    name = "css/" + ("_".join(s.removesuffix(".css") for s in sheets) or "site") + ".css"
+    if BUNDLES.setdefault(name, sheets) != sheets:
+        raise SiteError(f"two different sets of stylesheets would both be {name}")
+    return name
+
+
+def stylesheet_bundle(sheets: list[str]) -> str:
+    """The fonts, the base sheets and a page's own sheets as one file, so a
+    page waits on one stylesheet request rather than three or four."""
+    parts = [f"/* site/{name} */\n{(SITE / name).read_text()}" for name in BASE_SHEETS + sheets]
+    return "\n".join(parts)
+
+
 def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str,
            ctx: site_i18n.Ctx, lastmod: LastMod, titles: dict[str, str]) -> tuple[str, str]:
     """One page, and the date its content last changed. `url` is the page's
@@ -645,10 +686,12 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
             languages=[site_i18n.LOCALES[loc][0] for loc in site_i18n.LOCALES],
             answers=[href for _, href, _ in subnav_entries("answers", where)]),
     }
+    extra_head, sheets = page_sheets(fm.get("head", ""), where)
+    head_values["stylesheet"] = "/" + bundle_name(sheets)
     head = fill(site_i18n.apply_strings(partial("head.html"), t), head_values, where)
     head += site_i18n.head_extra(ctx)
-    if fm.get("head"):
-        head += "".join(f"    {line}\n" if line else "\n" for line in fm["head"].split("\n"))
+    if extra_head:
+        head += "".join(f"    {line}\n" if line else "\n" for line in extra_head.split("\n"))
     actions = site["actions"]
     header = fill(site_i18n.apply_strings(partial("header.html"), t), {
         "nav_links": nav_links(site, fm.get("nav"), url, where, t),
@@ -742,6 +785,7 @@ def build() -> dict[str, str | bytes]:
     Text files are str; the files copied from site/static/ are bytes. The
     dates for site/lastmod.json are left in LASTMOD_TEXT."""
     global LASTMOD_TEXT
+    BUNDLES.clear()
     site = json.loads((SITE / "site.json").read_text())
     version = workspace_version()
     lastmod = LastMod.load()
@@ -796,8 +840,15 @@ def build() -> dict[str, str | bytes]:
     entries += site.get("extra_sitemap", [])
     files["sitemap.xml"] = sitemap(entries)
     LASTMOD_TEXT = lastmod.text()
+    # The bundles the pages link, one per combination of page sheets.
+    for name, sheets in sorted(BUNDLES.items()):
+        files[name] = stylesheet_bundle(sheets)
+    # The single sheets too, for anything that still links one by name (a
+    # page cached from before the bundles, for one). fonts.css lives only in
+    # the bundles: its font URLs are absolute, but on its own it is useless.
     for css in sorted(SITE.glob("*.css")):
-        files[css.name] = css.read_text()
+        if css.name not in BASE_SHEETS[:1]:
+            files[css.name] = css.read_text()
     # Language flags for the header's language menu, with their licence.
     for flag in sorted((SITE / "flags").glob("*")):
         files[f"flags/{flag.name}"] = flag.read_text()

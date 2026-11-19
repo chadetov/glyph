@@ -83,8 +83,9 @@ TRANSLATED = [loc for loc in LOCALES if loc != "en"]
 OG_LOCALES = {"en": "en_US", "pt-br": "pt_BR", "es": "es_ES", "ja": "ja_JP", "tr": "tr_TR",
               "zh-cn": "zh_CN", "ko": "ko_KR", "de": "de_DE", "ru": "ru_RU", "th": "th_TH"}
 
-# Script fonts, loaded only on pages of their locale. IBM Plex Sans covers
-# Latin, Latin Extended and Cyrillic, so pt-br, es, tr, de and ru need none.
+# Script fonts, loaded from Google Fonts only on pages of their locale. IBM
+# Plex Sans and Mono are served from /fonts/ (site/fonts.css) and cover Latin,
+# Latin Extended and Cyrillic, so pt-br, es, tr, de and ru need none.
 FONTS = {
     "ja": ("IBM Plex Sans JP", "IBM+Plex+Sans+JP:wght@400;500;600;700"),
     "ko": ("IBM Plex Sans KR", "IBM+Plex+Sans+KR:wght@400;500;600;700"),
@@ -279,6 +280,7 @@ def head_extra(ctx: Ctx) -> str:
             out.append(f'    <link rel="alternate" hreflang="{LOCALES[loc][0]}" href="{ORIGIN}{url_for(loc, ctx.url)}" />')
         out.append(f'    <link rel="alternate" hreflang="x-default" href="{ORIGIN}{ctx.url}" />')
     if ctx.loc in FONTS:
+        out.append('    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />')
         out.append('    <link href="https://fonts.googleapis.com/css2?family='
                    f'{FONTS[ctx.loc][1]}&display=swap" rel="stylesheet" />')
     if ctx.loc == "en" and len(ctx.available) > 1:

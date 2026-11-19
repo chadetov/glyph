@@ -189,17 +189,28 @@ pub fn explain(code: &str) -> Option<&'static str> {
             A `{}` with \
             nothing inside is still refused (E0003), and `{/* note */}` is a \
             lex error (E0001), since Glyph has no block comments (D14).",
-        "E0013" => "E0013: a `{` on the line where a statement ended\n\n\
-            Statements end at newlines only outside brackets (D1), so inside \
-            a block the parser ends a statement where its expression stops. \
-            `return h() { k: 2 }` stops at `h()`, and the braces after it \
-            would be a second statement: an object literal that never runs, \
-            and not part of the value. Before 0.1.146 that compiled, and the \
-            function returned `h()`: after `return` with an unreachable-code \
-            warning, and after `let`, `?`, `defer` or a bare call with no \
-            diagnostic at all. A `{` that would begin a statement on the line where the \
-            previous one ended is refused instead.\n\n\
-            The usual way to get here is the TypeScript-adjacent \
+        "E0013" => "E0013: a statement on the line where another ended\n\n\
+            Glyph has no `;`. Statements end at newlines only outside \
+            brackets (D1), so inside a block the parser ends a statement \
+            where its expression stops, and whatever comes next on that line \
+            would be a second statement. A statement that begins on the line \
+            where the previous one ended is refused: each statement in a \
+            block starts its own line.\n\n\
+            Without the rule, a value the author wrote was dropped and the \
+            program compiled. `let s = \"a\" \"b\"` bound `\"a\"` and \
+            `\"b\"` was a statement that did nothing; `let x = h() g` bound \
+            `h()`; `return h() as R` was three statements, since Glyph has no \
+            `as` cast; `return h() { k: 2 }` returned `h()` and the braces \
+            never ran. `{` has been refused since 0.1.146 and every other \
+            token since 0.1.149.\n\n\
+            Before:  let a = 1 let b = 2\n\
+            After:   let a = 1\n         let b = 2\n\n\
+            Before:  let s = \"a\" \"b\"\n\
+            After:   let s = \"a\" + \"b\"\n\n\
+            Before:  return input as User\n\
+            After:   return User.parse(input)   // in a function returning \
+            Result<User, Array<Issue>>\n\n\
+            The usual way to reach it with a `{` is the TypeScript-adjacent \
             `TypeName { ... }`. Glyph has no such form: the value is the \
             literal on its own, and the annotation on the `let`, the \
             parameter or the return type says what type it is.\n\n\
@@ -207,10 +218,13 @@ pub fn explain(code: &str) -> Option<&'static str> {
             After:   return { id: \"a\", total: 1 }\n\n\
             Before:  let o = Order { id: \"a\", total: 1 }\n\
             After:   let o: Order = { id: \"a\", total: 1 }\n\n\
-            Braces meant as a statement of their own go on their own line. \
-            Nothing else changes: `let o = { k: 1 }` and `return { k: 1 }` \
-            are one statement, and the `{` after `match x`, `for x in xs`, \
-            `loop` or a function's signature opens that construct's body.",
+            One line can still hold one statement and the constructs inside \
+            it: `let t = match x { A => 1, B => 2 }`, `fn f() -> int { return \
+            1 }`, `for x in xs { f(x) }` and a lambda written on one line are \
+            each one statement, and the `{` after `match x`, `for x in xs`, \
+            `loop` or a function's signature opens that construct's body. A \
+            `//` comment after a statement ends its line. Top-level \
+            declarations are not covered by this rule.",
         // ----- resolver (E01xx) -----
         "E0100" => "E0100: duplicate name\n\n\
             Two top-level declarations share a name. Glyph requires one \
@@ -1784,8 +1798,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0013",
         phase: "parser",
-        meaning: "A `{` that would begin a statement on the line where the statement before it ended (`return h() { k: 2 }`, `let o = Order { id: \"a\" }`). Inside a block a statement ends where its expression stops (D1), so the braces would be a separate statement and not part of the value. Glyph has no `TypeName { ... }` construction form",
-        fix: "Write the literal alone and put the type on the annotation (`let o: Order = { id: \"a\" }`); braces meant as their own statement start a new line",
+        meaning: "A statement that begins on the line where the statement before it ended, inside a block (`let a = 1 let b = 2`, `let s = \"a\" \"b\"`, `return x as User`, `return h() { k: 2 }`). Glyph has no `;`, and a statement ends where its expression stops (D1), so what follows on the line would be a separate statement and not part of the value. There is no `as` cast, and no `TypeName { ... }` construction form",
+        fix: "Start each statement on its own line. If the rest was meant as part of the value, join it with an operator (`\"a\" + \"b\"`), validate instead of casting (`User.parse(x)`), or write the literal alone with the type on the annotation (`let o: Order = { id: \"a\" }`)",
     },
     // ----- resolver (E01xx) -----
     CodeEntry {

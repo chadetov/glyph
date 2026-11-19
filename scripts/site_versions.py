@@ -441,7 +441,8 @@ def pages(fm: dict, body: str, where: str) -> list[tuple[str, dict, str]]:
             span = shown[0].version if len(shown) == 1 else f"{shown[-1].version} to {shown[0].version}"
             page_fm["title"] = f"{month_name(month)} releases · Glyph"
             page_fm["description"] = (f"What changed in each Glyph release of {month_name(month)}: "
-                                      f"{span}, {count_label(len(shown), b).replace(' · ', ', ')}.")
+                                      f"{span}, {count_label(len(shown), b).replace(' · ', ', ')}. "
+                                      "Each one with its ship date and its notes.")
             if month == newest:
                 page_fm["canonical"] = ORIGIN + "/versions/"
         # A page of releases last changed when its newest release shipped.

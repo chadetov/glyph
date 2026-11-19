@@ -173,6 +173,10 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--s4);
 }
+/* scripts/build_site.py marks a pair whose code would scroll side by side */
+.c-pair.stack {
+  grid-template-columns: minmax(0, 1fr);
+}
 .c-tags {
   display: flex;
   align-items: center;

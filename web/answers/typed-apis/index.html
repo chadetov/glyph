@@ -503,7 +503,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
         <code>map_err</code> to turn validation issues into your own error type, or
         propagate it with <code>?</code>.
       </p>
-      <div class="two-up">
+      <div class="two-up stack">
         <div class="code">
           <span class="cap">boundary.glyph</span>
 <pre>// Hand it straight back.
@@ -572,7 +572,7 @@ match NewTask.parse(body) {
         and <code>tsc</code> checks your annotation against it. A shape that omits a field of the
         type you claim doesn't compile:
       </p>
-      <div class="two-up">
+      <div class="two-up stack">
         <div class="code">
           <span class="cap">schema.glyph</span>
 <pre>fn object_schema&lt;Shape: Record&lt;string, Schema&lt;unknown&gt;&gt;&gt;(
@@ -737,7 +737,7 @@ type User = { name: string; age: number };
         correctness guard around a standard-library primitive, the guard belongs in the
         primitive. Here is what the app deleted:
       </p>
-      <div class="two-up">
+      <div class="two-up stack">
         <div class="code">
           <span class="cap">before: the app guards the stdlib</span>
 <pre>const ISO_DATE = "^\\d{4}-\\d{2}-\\d{2}$"
@@ -892,7 +892,7 @@ match Customer.parse(webhook_body) {
         A row read out of a database is untrusted in exactly the way a request body is. The same
         <code>.parse</code> you use on a request body validates a row.
       </p>
-      <div class="two-up">
+      <div class="two-up stack">
         <div class="code">
           <span class="cap">tasks.glyph</span>
 <pre>type Task    = { id: int, title: string, done: bool }
@@ -978,7 +978,7 @@ if (row.done === true) { ... }   // never runs
         <code>where</code> refinement puts that invariant in the type, and the
         descriptor enforces it at the boundary:
       </p>
-      <div class="two-up">
+      <div class="two-up stack">
         <div class="code">
           <span class="cap">refinements.glyph</span>
 <pre>type Amount   = int where value &gt;= 0

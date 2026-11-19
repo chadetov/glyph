@@ -9212,11 +9212,11 @@ the same change, recorded here so they are not rediscovered.
 - **Yarn PnP keeps the platform packages zipped.** None sets
   `preferUnplugged: true`, so under Yarn Berry the resolved binary path points
   inside a zip that cannot be spawned.
-- **Nothing gates the release notes or the roadmap status flip.** The ceremony
-  writes an entry in `web/versions/index.html`, moves the `Latest` badge, and
-  flips this file's entry from *Landed on main* to *Shipped*. No check reads any
-  of that, so a release can publish with its own notes missing. The homepage
-  version pill is hard-coded and has gone stale before.
+- **Nothing gates the roadmap status flip.** The release notes are gated now:
+  each release is `site/releases/0.1.N.html`, `scripts/check_releases.py` fails
+  when a released version has no notes, and the site generator computes the
+  `Latest` badge and fills the version pill from the Cargo version. The flip of
+  this file's entry from *Landed on main* to *Shipped* is still unchecked.
 - **The site deploys on merge, not on publish.** The Pages workflow fires on
   push to `main` under `web/**`, which the release PR merge matches, so the site
   can announce a version for the window between the merge and the tag.

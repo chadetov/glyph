@@ -1,0 +1,43 @@
+name: Disagree with a score
+description: The likelihood or severity of a mistake on glyphlang.io/catches/ looks wrong to you
+title: "Score: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The scores on the catches page are our judgement, drawn from published
+        studies of agent-written code and from our own agent runs. If you have
+        seen a mistake more or less often than its score says, or seen it do
+        more or less damage, tell us what you saw. A link to a study, an
+        incident write-up or a transcript helps most.
+  - type: input
+    id: case
+    attributes:
+      label: Case
+      description: The case's directory under catches/, which is also its anchor on the page.
+      placeholder: "error-the-signature-hides"
+    validations:
+      required: true
+  - type: dropdown
+    id: likelihood
+    attributes:
+      label: Likelihood you would give it
+      description: How often an AI agent writes this mistake, 1 (rarely) to 5 (constantly).
+      options: ["1", "2", "3", "4", "5"]
+    validations:
+      required: false
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity you would give it
+      description: How bad it is when it ships, 1 (cosmetic) to 5 (data loss, money, security).
+      options: ["1", "2", "3", "4", "5"]
+    validations:
+      required: false
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What you have seen, and where. Links welcome.
+    validations:
+      required: true

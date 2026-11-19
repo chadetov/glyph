@@ -7,6 +7,12 @@ by hand is the step most likely to go wrong when nobody is watching: a missed
 to the previous release. `check_versions.py` catches that afterwards; this
 does it correctly in the first place.
 
+The site shows the version too (the badge beside the logo on every page, and
+the home page's hero pill), and scripts/build_site.py renders both from
+Cargo.toml. So after the edits below, web/ is re-rendered rather than edited:
+a string edit would have to find every page, and check_site_built.py would
+fail on any it missed.
+
 It deliberately edits only the files below. A version number in prose, a
 roadmap entry, a release note, or a benchmark README is a historical fact about
 which release something shipped in, and rewriting those would turn the record
@@ -19,6 +25,8 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+import build_site  # noqa: E402
 
 # (path, how many occurrences of the old version we require on the lines we touch)
 TARGETS = [
@@ -31,7 +39,6 @@ TARGETS = [
     ("npm/platform/win32-x64/package.json", 1),
     ("README.md", 2),                        # one Socket badge, url twice
     ("npm/glyph/README.md", 2),
-    ("web/index.html", 1),                  # hero pill; build_site.py renders it from Cargo.toml, so the two agree
     (".github/ISSUE_TEMPLATE/bug_report.yml", 1),   # the version placeholder in the bug form
 ]
 
@@ -72,7 +79,13 @@ def main() -> int:
             print(f"  {line}")
         return 1
 
-    print(f"bumped {old} -> {new}: {edited} strings across {len(TARGETS)} files.")
+    try:
+        build_site.write(ROOT / "web", build_site.build())
+    except build_site.SiteError as e:
+        print(f"bumped {old} -> {new}, but re-rendering web/ failed: {e}")
+        return 1
+
+    print(f"bumped {old} -> {new}: {edited} strings across {len(TARGETS)} files, and re-rendered web/.")
     print("next: refresh Cargo.lock, rebuild, and confirm `glyph --version`.")
     return 0
 

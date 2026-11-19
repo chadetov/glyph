@@ -1,0 +1,11 @@
+pillar = "verifiability"
+title = "A record interpolated into a string"
+kind = "gap"
+gap_id = "G385"
+ts_output = "Welcome back, [object Object]!"
+glyph_output = "Welcome back, [object Object]!"
+fullconfig = "lint:restrict-template-expressions"
+section = "gap"
+slug = "gap-g385-record-in-template"
+order = 2
+summary = "<code>\"Hi ${user}\"</code> with a record prints <code>[object Object]</code>."

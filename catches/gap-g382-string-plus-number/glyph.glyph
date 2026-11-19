@@ -1,0 +1,14 @@
+module main
+
+// show
+fn with_tax(input: string) -> number {
+  return input + 1
+}
+
+// end show
+
+fn main(argv: Array<string>) -> number {
+  let t = with_tax("5")
+  print("${t}")
+  return 0
+}

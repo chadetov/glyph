@@ -1,0 +1,19 @@
+module main
+
+type User = { name: string }
+
+fn save(user: User) -> Result<number, string> {
+  return Err("disk full")
+}
+
+fn submit(user: User) -> string {
+  // show
+  save(user)
+  return "done"
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  print(submit({ name: "ada" }))
+  return 0
+}

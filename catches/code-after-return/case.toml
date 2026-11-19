@@ -1,0 +1,18 @@
+code = "E0108"
+pillar = "verifiability"
+title = "Code after return"
+kind = "warned"
+ts_output = "30"
+fullconfig = "flag:allowUnreachableCode=false"
+section = "mistake"
+slug = "code-after-return"
+order = 29
+page_title = "Code after <code>return</code>"
+why = "Adding tax after the function already returned."
+likelihood = 3
+severity = 3
+ts_verdict = "compiles"
+glyph_verdict = "warned"
+ts_result = "<b>The tax line never runs.</b>"
+glyph_result = "<b>Glyph points at the dead line.</b>"
+page_note = "TypeScript only shows unreachable code as a faded hint in the editor by default."

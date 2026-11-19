@@ -1,0 +1,20 @@
+module main
+
+import std/timers
+
+async fn save(id: string) -> void {
+  await timers.sleep(10)
+  print("saved ${id}")
+}
+
+fn save_all(ids: Array<string>) -> void {
+  // show
+  ids.forEach(async fn(id: string) -> void { await save(id) })
+  // end show
+  print("done")
+}
+
+fn main(argv: Array<string>) -> number {
+  save_all(["a", "b"])
+  return 0
+}

@@ -11,10 +11,11 @@ The cases are also the source for the "mistakes TypeScript lets through" page.
 A case with a `section` is on that page, so the page cannot claim something the
 compiler stopped doing.
 
-There are five cases, and all five are refusals that are evidence for
-verifiability. None is evidence for greppability, abstraction or diff
-stability, and the check prints those zeros rather than leaving them off. It
-prints the count by pillar and by kind on every run.
+There are 30 cases. By pillar, 27 are evidence for verifiability, 1 for
+greppability and 2 for abstraction. None is evidence for diff stability, and the
+check prints that zero rather than leaving it off. By kind, 5 are refused, 3
+warned, 9 checked at the boundary, 2 stopped at run time, and 11 are gaps Glyph
+does not catch yet. The check prints these counts on every run.
 
 A case that stops being demonstrable gets deleted, not softened. Six have been.
 An `await` in a synchronous function looked like a good case until it turned
@@ -145,6 +146,51 @@ In `unvalidated-boundary-read`, `json.parse` returns a
 `Result<unknown, Array<Issue>>`, and Glyph's checker refuses it where a `User`
 is declared, so `glyph check --no-tsc` fails on it as well as `glyph build`.
 In TypeScript `JSON.parse` returns `any`, and no setting changes that.
+
+The page's entries that Glyph does not settle by refusing a program. Each row
+is the case, what Glyph does, and what a fully configured TypeScript project
+says.
+
+| # | Case | Glyph | Fully configured TypeScript |
+|---|---|---|---|
+| 1 | `data-from-outside-the-program` | `Err` at the boundary | nothing |
+| 5 | `error-nobody-looked-at` | warned, `E0217` | nothing |
+| 7 | `type-guard-that-checks-less` | `User.is` is false | nothing |
+| 11 | `value-outside-the-list` | `Err` at the boundary | nothing |
+| 12 | `config-with-a-setting-missing` | `Err` at the boundary | nothing |
+| 18 | `invalid-date` | `None` from `time.parse_iso` | nothing |
+| 19 | `computed-value-never-used` | warned, `E0107` | flag `noUnusedLocals` |
+| 22 | `comparing-records-with-triple-equals` | `==` compares the data | nothing |
+| 24 | `negative-age` | `Err` at the boundary | nothing |
+| 26 | `switch-fallthrough` | a `match` arm never falls through | flag `noFallthroughCasesInSwitch` |
+| 27 | `median-with-a-fractional-index` | `RangeError` when it runs | nothing |
+| 28 | `one-step-past-the-end` | `RangeError` when it runs | nothing |
+| 29 | `code-after-return` | warned, `E0108` | flag `allowUnreachableCode: false` |
+| 34 | `quantity-of-one-and-a-half` | `Err` at the boundary | nothing |
+
+`type-guard-that-checks-less` takes `x: unknown` where the page shows `x: any`.
+With `any`, the only thing the lint run reports is `no-explicit-any`, which is
+about the parameter rather than the guard; with `unknown`, nothing reports the
+guard claiming `User` after checking one field. `median-with-a-fractional-index`
+and `one-step-past-the-end` carry a `ts_ok.ts`, because
+`noUncheckedIndexedAccess` fires on the corrected index too.
+
+What Glyph does not catch yet. Each is a `gap` case, and each fails the check
+the day its gap closes:
+
+| Gap | Case | What Glyph accepts | Fully configured TypeScript |
+|---|---|---|---|
+| G380 | `gap-g380-mutation-without-mut` | `xs.sort(f)` with no `mut` reorders the caller's array | nothing |
+| G381 | `gap-g381-member-read-on-unknown` | a field read on `unknown`, refused only by the `tsc` pass (`TS18046`) | lint `no-unsafe-member-access` |
+| G382 | `gap-g382-string-plus-number` | `input + 1` on a string returned as a number, refused only by the `tsc` pass (`TS2322`) | lint `restrict-plus-operands` |
+| G384 | `gap-g384-dropped-async-call` | `forEach(async ...)`, so `done` prints before anything is saved | lint `no-misused-promises` |
+| G385 | `gap-g385-record-in-template` | a record in `${}`, printing `[object Object]` | lint `restrict-template-expressions` |
+| G386 | `gap-g386-or-on-a-number` | `requested \|\| 3`, turning a real `0` into `3` | nothing |
+| G387 | `gap-g387-sql-by-interpolation` | a SQL query built with `${name}`, returning every row | nothing |
+| G388 | `gap-g388-sort-as-text` | `.sort()` on numbers, giving `100,25,9` | lint `require-array-sort-compare` |
+| G390 | `gap-g390-index-update-across-await` | a lost update on `c[0]` across `await` | lint `require-atomic-updates` |
+| G391 | `gap-g391-null-in-optional-field` | a JSON `null` kept in an optional field, so a spread erases the default | nothing |
+| G392 | `gap-g392-find-method-option` | `users.find(...).name`, refused only by the `tsc` pass (`TS2532`) | lint `no-non-null-assertion` |
 
 ## Adding one
 

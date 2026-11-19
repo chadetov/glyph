@@ -1,0 +1,11 @@
+pillar = "verifiability"
+title = "A lost update across await on an array element"
+kind = "gap"
+gap_id = "G390"
+ts_output = "balance 90"
+glyph_output = "balance 90"
+fullconfig = "lint:require-atomic-updates"
+section = "gap"
+slug = "gap-g390-index-update-across-await"
+order = 8
+summary = "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused."

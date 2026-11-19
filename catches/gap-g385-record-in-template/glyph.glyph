@@ -1,0 +1,11 @@
+module main
+
+type User = { id: number, name: string }
+
+fn main(argv: Array<string>) -> number {
+  let user: User = { id: 1, name: "Ada" }
+  // show
+  print("Welcome back, ${user}!")
+  // end show
+  return 0
+}

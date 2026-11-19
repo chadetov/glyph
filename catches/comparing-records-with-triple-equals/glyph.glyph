@@ -1,0 +1,14 @@
+module main
+
+type Point = { x: number, y: number }
+
+fn main(argv: Array<string>) -> number {
+  // show
+  let before: Point = { x: 1, y: 2 }
+  let after: Point = { x: 1, y: 2 }
+
+  let same = before == after
+  // end show
+  print("same ${same}")
+  return 0
+}

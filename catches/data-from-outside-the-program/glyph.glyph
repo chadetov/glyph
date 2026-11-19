@@ -1,0 +1,21 @@
+module main
+
+import std/json
+
+type User = { name: string, plan: "free" | "pro" }
+
+fn send_invoice(plan: "free" | "pro") -> string {
+  return "invoice for the ${plan} plan"
+}
+
+fn main(argv: Array<string>) -> number {
+  let body = """{"name":"ana"}"""
+  // show
+  let out = match json.parse<User>(body) {
+    Ok(user) => send_invoice(user.plan),
+    Err(issues) => "rejected: ${json.stringify(issues)}",
+  }
+  // end show
+  print(out)
+  return 0
+}

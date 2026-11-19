@@ -1,0 +1,17 @@
+module main
+
+fn total(prices: Array<number>, tax_rate: number) -> number {
+  let sum = 0
+  for p in prices {
+    mut sum = sum + p
+  }
+  // show
+  return sum
+  mut sum = sum * (1 + tax_rate)
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  print("${total([10, 20], 0.2)}")
+  return 0
+}

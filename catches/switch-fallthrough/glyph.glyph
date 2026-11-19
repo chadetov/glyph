@@ -1,0 +1,17 @@
+module main
+
+fn discount(plan: "free" | "pro" | "team") -> number {
+  // show
+  return match plan {
+    "pro" => 10,
+    "team" => 20,
+    "free" => 0,
+  }
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  let d = discount("pro")
+  print("pro discount ${d}")
+  return 0
+}

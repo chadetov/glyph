@@ -1,0 +1,11 @@
+code = "TS2322"
+pillar = "verifiability"
+title = "A string plus a number, typed as a number"
+kind = "gap"
+gap_id = "G382"
+ts_output = "51"
+fullconfig = "lint:restrict-plus-operands"
+section = "gap"
+slug = "gap-g382-string-plus-number"
+order = 9
+summary = "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them."

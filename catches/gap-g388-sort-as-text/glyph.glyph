@@ -1,0 +1,12 @@
+module main
+
+import std/string
+
+fn main(argv: Array<string>) -> number {
+  let scores = [100, 25, 9]
+  // show
+  mut scores.sort()
+  // end show
+  print(string.join(scores.map(fn(n: number) -> string { "${n}" }), ","))
+  return 0
+}

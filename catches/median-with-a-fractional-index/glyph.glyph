@@ -1,0 +1,12 @@
+module main
+
+fn median(sorted: Array<number>) -> number {
+  // show
+  return sorted[sorted.length / 2]
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  print("${median([1, 2, 3]) * 2}")
+  return 0
+}

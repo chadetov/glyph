@@ -1,0 +1,11 @@
+pillar = "verifiability"
+title = "A JSON null kept in an optional field"
+kind = "gap"
+gap_id = "G391"
+ts_output = "timeout x2 = 0"
+glyph_output = "timeout x2 = 0"
+fullconfig = "none"
+section = "gap"
+slug = "gap-g391-null-in-optional-field"
+order = 4
+summary = "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind."

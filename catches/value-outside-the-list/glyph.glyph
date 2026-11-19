@@ -1,0 +1,20 @@
+module main
+
+import std/json
+
+// show
+type Account = { status: "active" | "banned" }
+
+// end show
+
+fn main(argv: Array<string>) -> number {
+  let body = """{"status":"deleted"}"""
+  // show
+  let out = match json.parse<Account>(body) {
+    Ok(acc) => "status ${acc.status}",
+    Err(issues) => "rejected: ${json.stringify(issues)}",
+  }
+  // end show
+  print(out)
+  return 0
+}

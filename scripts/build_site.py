@@ -110,6 +110,7 @@ import sys
 
 import site_catches
 import site_i18n
+import site_jsonld
 import site_versions
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -602,7 +603,7 @@ class LastMod:
 
 
 def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str,
-           ctx: site_i18n.Ctx, lastmod: LastMod) -> tuple[str, str]:
+           ctx: site_i18n.Ctx, lastmod: LastMod, titles: dict[str, str]) -> tuple[str, str]:
     """One page, and the date its content last changed. `url` is the page's
     English URL; `ctx` says which language this rendering is in and which
     others the page has."""
@@ -638,6 +639,11 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
         "og_description": attr(fm["description"]),
         "og_locale": site_i18n.OG_LOCALES[ctx.loc],
         "og_locale_alternates": site_i18n.og_locale_alternates(ctx),
+        "jsonld": "" if fm.get("noindex") else site_jsonld.graph(
+            url=url, here=ctx.here, lang=ctx.lang, title=short_title(fm["title"]),
+            description=fm["description"], date=date, version=version, titles=titles,
+            languages=[site_i18n.LOCALES[loc][0] for loc in site_i18n.LOCALES],
+            answers=[href for _, href, _ in subnav_entries("answers", where)]),
     }
     head = fill(site_i18n.apply_strings(partial("head.html"), t), head_values, where)
     head += site_i18n.head_extra(ctx)
@@ -750,8 +756,11 @@ def build() -> dict[str, str | bytes]:
     for eng, by_loc in translations.items():
         for loc in by_loc:
             translated_urls.setdefault(loc, set()).add(page_url(eng))
-    for path in page_files():
-        for url, fm, body in expand_pages(path):
+    pages = [(path, expand_pages(path)) for path in page_files()]
+    # Every English page's title, for breadcrumbs and the answers list.
+    titles = {url: short_title(fm["title"]) for _, expanded in pages for url, fm, _ in expanded}
+    for path, expanded in pages:
+        for url, fm, body in expanded:
             by_loc = translations.get(path, {})
             available = ["en"] + [loc for loc in site_i18n.TRANSLATED if loc in by_loc]
             versions = [("en", fm, body, path, None)]
@@ -764,7 +773,7 @@ def build() -> dict[str, str | bytes]:
                     ctx = site_i18n.Ctx(loc, url, available, tr, translated_urls)
                     here = ctx.here
                     rel = here.strip("/") + "/index.html" if here != "/" else "index.html"
-                    date, files[rel] = render(src, site, version, vfm, vbody, url, ctx, lastmod)
+                    date, files[rel] = render(src, site, version, vfm, vbody, url, ctx, lastmod, titles)
                 except site_i18n.I18nError as e:
                     raise SiteError(str(e)) from None
                 # Only a page that is its own canonical belongs in the sitemap.
@@ -776,7 +785,8 @@ def build() -> dict[str, str | bytes]:
     fm["noindex"] = "yes"
     try:
         _, files["404.html"] = render(NOT_FOUND, site, version, fm, body, "/404.html",
-                                      site_i18n.Ctx("en", "/404.html", ["en"], None, translated_urls), lastmod)
+                                      site_i18n.Ctx("en", "/404.html", ["en"], None, translated_urls), lastmod,
+                                      titles)
     except site_i18n.I18nError as e:
         raise SiteError(str(e)) from None
     try:

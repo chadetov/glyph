@@ -9,10 +9,14 @@ Fails (exit 1) on:
   - a self-canonical, indexable page that sitemap.xml does not list, a
     sitemap entry for a page that is not one (or no longer exists), or a
     canonical pointing at a page the sitemap does not list
+  - JSON-LD that does not parse, an @id reference that resolves to no node on
+    the page or on the home page, or a page (other than a home page and the
+    404) without a BreadcrumbList
 
 External links (http/https/mailto) and in-page fragments (#...) are not checked.
 Run from the repo root: python3 scripts/check_site.py
 """
+import json
 import os
 import re
 import sys
@@ -181,6 +185,53 @@ def check_sitemap():
         errors.append(f"sitemap.xml: entry for {path}, which serves no page")
 
 
+LD_BLOCK = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.S)
+HOMES = {"/"} | {f"/{loc}/" for loc in ("pt-br", "es", "ja", "tr", "zh-cn", "ko", "de", "ru", "th")}
+
+
+def ld_nodes(value, defined, refs):
+    """Walk JSON-LD: a dict with @type and @id defines that id; a dict that
+    holds nothing but @id refers to one."""
+    if isinstance(value, dict):
+        if set(value) == {"@id"}:
+            refs.add(value["@id"])
+        elif "@id" in value and "@type" in value:
+            defined.add(value["@id"])
+        for v in value.values():
+            ld_nodes(v, defined, refs)
+    elif isinstance(value, list):
+        for v in value:
+            ld_nodes(v, defined, refs)
+
+
+def check_structured_data():
+    """Every JSON-LD block parses, every @id it refers to is defined on the
+    same page or on the home page (which defines the site, the project, the
+    software and its source; see scripts/site_jsonld.py), and every page but
+    a home page and the 404 carries a BreadcrumbList."""
+    pages = {}
+    for f in sorted(html_files()):
+        rel = os.path.relpath(f, WEB)
+        url = "/" + rel.removesuffix("index.html") if rel.endswith("index.html") else "/" + rel
+        defined, refs, types = set(), set(), set()
+        for block in LD_BLOCK.findall(open(f).read()):
+            try:
+                data = json.loads(block)
+            except json.JSONDecodeError as e:
+                errors.append(f"{f}: JSON-LD does not parse: {e}")
+                continue
+            ld_nodes(data, defined, refs)
+            for node in data.get("@graph", [data]):
+                types.add(node.get("@type"))
+        pages[url] = (f, defined, refs, types)
+    home = pages.get("/", (None, set(), set(), set()))[1]
+    for url, (f, defined, refs, types) in sorted(pages.items()):
+        for ref in sorted(refs - defined - home):
+            errors.append(f"{f}: JSON-LD refers to {ref}, which neither this page nor / defines")
+        if url not in HOMES and url != "/404.html" and "BreadcrumbList" not in types:
+            errors.append(f"{f}: no BreadcrumbList in its JSON-LD")
+
+
 def main():
     if not os.path.isdir(WEB):
         print(f"no {WEB}/ directory; run from the repo root", file=sys.stderr)
@@ -188,12 +239,13 @@ def main():
     check_links_and_wellformed()
     check_answers_subnav()
     check_sitemap()
+    check_structured_data()
     if errors:
         print("site check FAILED:")
         for e in errors:
             print(f"  - {e}")
         return 1
-    print("site check OK (links resolve, HTML well-formed, sub-nav and sitemap complete)")
+    print("site check OK (links resolve, HTML well-formed, sub-nav and sitemap complete, JSON-LD resolves)")
     return 0
 
 

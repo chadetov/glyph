@@ -15,6 +15,7 @@ on:
       - "scripts/check_site_built.py"
       - "scripts/site_versions.py"
       - "scripts/site_i18n.py"
+      - "scripts/site_jsonld.py"
       - "scripts/check_i18n.py"
       - "scripts/check_releases.py"
       - "glyph-compiler/Cargo.toml"

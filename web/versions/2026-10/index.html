@@ -381,13 +381,12 @@
         <h1>October 2026 releases</h1>
         <p class="lede">
           Glyph is an early preview and moves fast. Every release is here with what it fixed and
-          added, so you can see exactly what's in the version you're running, and what's
-          waiting for you in the next one.
+          added, so you can see what is in the version you're running and what changed since.
         </p>
         <p class="lede">
           <strong>Stability, pre-1.0:</strong> the language can still change between 0.1.x releases.
           We hold two lines: your code stays runnable (it always compiles to plain TypeScript
-          you own, a permanent escape hatch), and when syntax changes we aim to make
+          you own and can keep if you stop using Glyph), and when syntax changes we aim to make
           <code>glyph fmt</code> migrate it for you. The full policy is in
           <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a>.
         </p>
@@ -399,7 +398,7 @@
         the point of the language, but it can turn a green build red on an upgrade. Read that
         release's note before taking it.
         <br><br>
-        The marker is applied only where both versions were actually run and the older one
+        The marker is applied only where both versions were run and the older one
         accepted the program. It is not inferred from how a note is worded, and an unmarked
         release older than 0.1.99 has not been tested rather than been found safe. Every
         release from here on states which it is.

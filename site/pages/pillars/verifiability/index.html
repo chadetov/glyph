@@ -85,7 +85,7 @@ next: /pillars/greppability/ | Next pillar &rarr; | Greppability: one name, one 
       </div>
 
       <div class="code">
-        <span class="cap">the type you write, and the descriptor you get for free</span>
+        <span class="cap">the type you write, and the descriptor generated from it</span>
 <pre>type User = {
   id: number,
   name: string,
@@ -245,7 +245,7 @@ type Patient = {
 
         <h2 class="block-label">The benchmark: coming</h2>
         <p>
-          This claim is empirical, so we intend to measure it honestly: take a corpus of real
+          This claim is empirical, so we intend to measure it: take a corpus of real
           agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and
           count what each one actually catches. Glyph isn't in real-world use yet, so there are no
           numbers to report. The chart below is a placeholder, and it fills in with real data

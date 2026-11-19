@@ -4,7 +4,7 @@
 
 # What's the editor, debugging, and error experience?
 
-A real **language server**: `glyph lsp` speaks the Language Server Protocol over stdio, so **any editor** lights up: highlighting, diagnostics, hover types, go-to-definition, completion, format-on-save. A VS Code extension ships ready-made. Errors are held to an **Elm-quality bar**: a stable code, the fix, and the reason.
+`glyph lsp` speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. A VS Code extension is in the repository; it is not on the Marketplace yet, so you build it from source. Every error carries a stable code, the fix, and the reason.
 
 ## Why it matters
 

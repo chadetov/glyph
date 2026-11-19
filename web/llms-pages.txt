@@ -12,7 +12,7 @@
 
 ## Answers
 
-- [Can an AI write a language it has barely seen?](https://glyphlang.io/answers/ai-authoring/index.md): Glyph is a disciplined subset of TypeScript with an ML core. Most of what you know about TS carries over, and the compiler tells you where it does not.
+- [Can an AI write a language it has barely seen?](https://glyphlang.io/answers/ai-authoring/index.md): Glyph reads like TypeScript but is not a subset of it. Most of what a model knows about TypeScript carries over, and the compiler names the places it does not.
 - [Can my agent ask the compiler about a symbol first?](https://glyphlang.io/answers/ask-the-compiler/index.md): glyph_symbol answers in one call: a union's variants, a record's fields, a function's signature, and whether a match over it must be exhaustive.
 - [Can I handle binary data, or is everything a string?](https://glyphlang.io/answers/binary/index.md): std/bytes gives Glyph an immutable byte sequence, with hex, base64 and base32 codecs that refuse malformed input, plus file I/O and HMACs over bytes.
 - [Can I generate a typed client from my API spec?](https://glyphlang.io/answers/codegen/index.md): Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.
@@ -35,7 +35,7 @@
 - [Does the compiler tell my agent how to fix it?](https://glyphlang.io/answers/repair-protocol/index.md): Each diagnostic carries the types, the symbol at fault and the legal alternatives, and glyph fix writes the repairs the compiler can settle on its own.
 - [How do I share mutable state between functions?](https://glyphlang.io/answers/state/index.md): Glyph has no mutable globals. Shared state lives in a std/store: a module-level const whose get, set and update are the only writes, found in one search.
 - [What's the editor, debugging, and error experience?](https://glyphlang.io/answers/tooling/index.md): A language server for any editor, a VS Code extension, error messages with stable codes and glyph --explain. You debug the readable TypeScript it emits.
-- [Do I have to hand-write a validator for every API?](https://glyphlang.io/answers/typed-apis/index.md): No. In Glyph a type is its own runtime validator, so request and response bodies are checked for free, and the types can come from an OpenAPI spec or a .d.ts.
+- [Do I have to hand-write a validator for every API?](https://glyphlang.io/answers/typed-apis/index.md): No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts.
 - [Will a new Glyph release break my build?](https://glyphlang.io/answers/upgrades/index.md): A Glyph project pins its compiler exactly, so a release never reaches you by accident. glyph doctor tells you one exists and glyph upgrade moves you to it.
 - [What stops an agent from silently breaking my code?](https://glyphlang.io/answers/verifiability/index.md): Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.
 - [Why not tooled TypeScript: tsc, zod, eslint?](https://glyphlang.io/answers/vs-tooled-ts/index.md): Tooled TypeScript gets far, but each guarantee is opt-in and an agent can route around it. In Glyph the strictness is the language, not a config file.

@@ -11,8 +11,13 @@ A statically typed, transpile-to-TypeScript language built so code an AI agent w
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/chadetov/glyph/badge)](https://scorecard.dev/viewer/?uri=github.com/chadetov/glyph)
 
 ```sh
-npm install -g @glyphlang/glyph
+npx -y @glyphlang/glyph init hello && cd hello && npm install && npx glyph run
 ```
+
+That needs Node 18 or later and installs nothing globally: the project pins the
+compiler, `typescript` and `tsx` in `devDependencies`. To have `glyph` on your
+PATH instead, `npm install -g @glyphlang/glyph tsx typescript`. Prebuilt binaries cover macOS
+and Linux on x64 and ARM, and Windows on x64.
 
 **[glyphlang.io](https://glyphlang.io)** · **[playground](https://glyphlang.io/playground/)** · **[AGENTS.md](AGENTS.md)** if you are pointing an agent at this
 
@@ -49,7 +54,7 @@ correct when something other than its author changes it.
 ## What the compiler catches
 
 Add a variant to a union and every `match` over it stops compiling until you
-handle the new case. This is the whole idea in one error:
+handle the new case:
 
 ```glyph
 type PaymentStatus =
@@ -67,8 +72,11 @@ type PaymentStatus =
 ```
 
 An agent adding a payment state cannot quietly leave a branch unhandled, because
-the build stops. In TypeScript the same change compiles and fails later, at a
-customer.
+the build stops. In TypeScript, `tsc --strict` catches the same change only in a
+`switch` that returns a value from every branch under a declared return type
+(TS2366). A `switch` that only logs or updates state, or one with a `default:`,
+compiles and skips the new case unless the project turns on typescript-eslint's
+`switch-exhaustiveness-check`.
 
 ## Why not just TypeScript
 
@@ -84,30 +92,33 @@ ecosystem and changes the layer above it. What changes, and why:
 | formatting is a matter of taste | formatting is fixed | a one-line change makes a one-line diff |
 | types are erased before runtime | types carry a runtime descriptor | untrusted input is validated at the boundary, not cast |
 
-Every one of those is a property an agent depends on and a human merely
-appreciates. That asymmetry is the bet.
+The checks are the same whoever wrote the code. They matter most when an agent
+is editing, because none of them is a setting the agent can turn off to get a
+build green.
 
 ## The four pillars
 
 Every design decision is tested against these. If a feature improves one without
 harming the others, it ships.
 
-1. **Verifiability.** Anything the type system claims is true at runtime. No
-   `any`, no casts, and a value crossing a boundary is checked against its type
-   on the way in: `json.parse<User>(body)` is `Ok` only if the body really is a
-   `User`, and a type Glyph cannot check at runtime is refused rather than
-   trusted.
+1. **Verifiability.** In code written in Glyph, a typed value has been checked.
+   There is no `any` and no cast, and a value crossing a boundary is checked
+   against its type on the way in: `json.parse<User>(body)` is `Ok` only if the
+   body is a `User`, and a type Glyph cannot check at runtime is refused rather
+   than trusted. The known exceptions are listed at
+   [glyphlang.io/catches/#not-yet](https://glyphlang.io/catches/#not-yet), and a
+   type imported from an npm package's `.d.ts` has no runtime check.
 2. **Greppability.** Every symbol has one syntactic form at its declaration
    site: no overloads, no renaming decorators, no implicit `this`, no
    declaration merging. `grep` finds the definition.
-3. **Abstraction.** Express intent at the level the writer is thinking: pattern
-   matching over `if`/`else` ladders, `Result` over thrown exceptions, named
-   records over positional tuples.
-4. **Diff stability.** A one-line change produces a one-line diff. `glyph fmt`
+3. **Diff stability.** A one-line change produces a one-line diff. `glyph fmt`
    has one layout and no options, and the layout depends only on the code, not
    on how the input happened to be wrapped.
+4. **Abstraction.** Express intent at the level the writer is thinking: pattern
+   matching over `if`/`else` ladders, `Result` over thrown exceptions, named
+   records over positional tuples.
 
-Verifiability and greppability are the wedge. Abstraction and diff stability are
+Verifiability and greppability are the wedge. Diff stability and abstraction are
 the polish.
 
 These are properties of the language rather than of a project's settings.
@@ -121,7 +132,7 @@ objection.
 
 Pre-1.0 and moving. The compiler, standard library, formatter, LSP and MCP
 server are usable now: the applications under [`examples/apps/`](examples/apps/)
-are real programs written in Glyph with no TypeScript in them, and each carries
+are programs written in Glyph with no TypeScript in them, and each carries
 a README saying what writing it found in the compiler.
 
 What that means for you: the language works, and 0.1.x releases can still reject
@@ -152,14 +163,14 @@ completion, find-references and rename.
 | Install Glyph and run your first program | [`docs/guide/getting-started.md`](docs/guide/getting-started.md) |
 | Map your TypeScript knowledge onto Glyph | [`docs/guide/for-typescript-developers.md`](docs/guide/for-typescript-developers.md) |
 | Build something real (a todo CLI) | [`docs/guide/tutorial.md`](docs/guide/tutorial.md) |
-| Talk to a real database (SQLite, Postgres, Mongo, Redis, MySQL) | [`docs/guide/databases.md`](docs/guide/databases.md) |
+| Talk to a database (SQLite, Postgres, Mongo, Redis, MySQL) | [`docs/guide/databases.md`](docs/guide/databases.md) |
 | Understand the project's thesis | [`docs/manifesto.md`](docs/manifesto.md) |
 | See concrete Glyph programs | [`examples/`](examples/) |
 | Read the language specification | [`docs/language/spec.md`](docs/language/spec.md) |
 | See the roadmap | [`docs/roadmap/overview.md`](docs/roadmap/overview.md) |
 | See the full implementation plan | [`docs/implementation-plan.md`](docs/implementation-plan.md) |
 | Compare Glyph against TS, Python, Rust | [`benchmarks/`](benchmarks/) |
-| See what the benchmarks show (honestly) | [`benchmarks/FINDINGS.md`](benchmarks/FINDINGS.md) |
+| See what the benchmarks show and what they don't | [`benchmarks/FINDINGS.md`](benchmarks/FINDINGS.md) |
 | See bugs Glyph catches that `tsc --strict` lets through | [`catches/`](catches/) |
 
 ## Building

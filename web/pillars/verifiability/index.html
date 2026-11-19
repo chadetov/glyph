@@ -460,7 +460,7 @@
       </div>
 
       <div class="code">
-        <span class="cap">the type you write, and the descriptor you get for free</span>
+        <span class="cap">the type you write, and the descriptor generated from it</span>
 <pre><span class="k">type</span> <span class="t">User</span> = {
   id: <span class="t">number</span>,
   name: <span class="t">string</span>,
@@ -620,7 +620,7 @@
 
         <h2 class="block-label" id="the-benchmark-coming">The benchmark: coming<a class="h-anchor" href="#the-benchmark-coming" aria-label="Link to this section">#</a></h2>
         <p>
-          This claim is empirical, so we intend to measure it honestly: take a corpus of real
+          This claim is empirical, so we intend to measure it: take a corpus of real
           agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and
           count what each one actually catches. Glyph isn't in real-world use yet, so there are no
           numbers to report. The chart below is a placeholder, and it fills in with real data

@@ -1,12 +1,12 @@
 <!-- Markdown copy of https://glyphlang.io/answers/vs-tooled-ts/, generated from the same source as the page. Last changed 2026-11-19. -->
 
-05 · The real comparison
+05 · The comparison
 
 # Why not just strict TypeScript + zod + eslint + ts-pattern?
 
 Because every one of those guarantees is **opt-in**, and an agent can route around each of them in one line. Glyph's strictness isn't a config file the agent can edit. It's the language. The enforcement point moves from "did we remember to lint this file" to "does it compile."
 
-## First, a concession
+## What tooled TypeScript already covers
 
 A well-configured TypeScript setup gets you a long way, and if your team runs all of it in CI you've already closed most of the gaps Glyph targets. It's the alternative worth taking seriously, so here's the mapping:
 
@@ -21,7 +21,7 @@ must-handle errors  → an eslint rule
 deterministic diffs → Biome / Prettier
 ```
 
-If you have all that wired up and enforced, you're most of the way there. So the question isn't "does TypeScript lack these ideas": it's "what does bundling them into a language, non-optionally, actually buy." Three things.
+If you have all that wired up and enforced, you're most of the way there. TypeScript has these ideas. What a language adds by making them non-optional comes down to three things.
 
 ## 01 Non-optional beats opt-in
 
@@ -56,7 +56,7 @@ zod inverts your source of truth: you write the *schema*, derive the type from i
 
 ## 03 Greppable mutation
 
-In TypeScript a state change can hide behind `=`, `.push()`, `Object.assign`, a setter, or a spread. There's no single token to search for, and no lint rule fully fixes it. In Glyph shared state lives in a store and every change is a literal `.set(`/`.update(`; `grep 'mut '` finds every local mutation. That's a property you can't buy for stock TypeScript at any price.
+In TypeScript a state change can hide behind `=`, `.push()`, `Object.assign`, a setter, or a spread. There's no single token to search for, and no lint rule fully fixes it. In Glyph shared state lives in a store and every change is a literal `.set(`/`.update(`; `grep 'mut '` finds every local mutation. Stock TypeScript has no equivalent.
 
 ## The failure-mode diff
 
@@ -84,12 +84,12 @@ Glyph
 
 ## Where tooled TypeScript is still ahead
 
-This cuts both ways, and pretending otherwise would be exactly the dishonesty this page is trying to avoid:
+Four places where it is ahead of Glyph today:
 
 - **Richer validation.** Glyph descriptors are strict by default (they reject undeclared keys), and a `where` refinement puts a predicate on a primitive (`type Email = string where value.includes("@")`), which the descriptor runs at every boundary the type reaches. zod is still ahead in two ways: it ships ready-made checks such as `.email()` and `.url()` that you write yourself in Glyph, and it refines whole objects, while a `where` on a record (`lo <= hi` across two fields) is `E0300` today.
 - **Deeper matching.** ts-pattern's guards and deep structural patterns go beyond what Glyph's `match` expresses.
 - **"Provable absence" stops at the `.ts` boundary.** Glyph's guarantees hold for code Glyph authored; a thrown exception from an npm dependency still bypasses `Result`, and an imported `.d.ts` type carries no runtime descriptor.
-- **Ecosystem and hiring.** The TypeScript tooling, community, and hiring pool are enormous and battle-tested. Glyph is an early preview.
+- **Ecosystem and hiring.** The TypeScript tooling, community, and hiring pool are far larger, with years of production use behind them. Glyph is an early preview.
 
 If you've fully wired tooled TypeScript and your agents stay inside it, you've got most of this. Glyph's argument is that "stay inside it" is the load-bearing phrase, and it's the phrase an agent breaks. Non-optionality, one-artifact validation, and greppable mutation are the parts you cannot get by adding more opt-in tools.
 

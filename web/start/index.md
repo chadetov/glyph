@@ -138,4 +138,4 @@ That's the core loop: write, run, and when something's wrong the compiler tells 
 
 - [Next · no install The playground Try Glyph in your browser, no install. Open the playground](https://glyphlang.io/playground/)
 - [The five-minute tour The whole language, quickly.](https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md)
-- [The answers Straight replies to the questions engineers actually ask (React, typed APIs, why not tooled TS).](https://glyphlang.io/answers/)
+- [The answers Worked answers about React, typed APIs, npm and tooled TypeScript.](https://glyphlang.io/answers/)

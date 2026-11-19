@@ -444,8 +444,8 @@ def pages(fm: dict, body: str, where: str) -> list[tuple[str, dict, str]]:
                                       f"{span}, {count_label(len(shown), b).replace(' · ', ', ')}.")
             if month == newest:
                 page_fm["canonical"] = ORIGIN + "/versions/"
-            current = month == newest
-            page_fm["sitemap"] = f"- {'weekly' if current else 'monthly'} 0.4"
+        # A page of releases last changed when its newest release shipped.
+        page_fm["lastmod"] = max(r.day for r in shown)
         out.append((url, page_fm, page_body))
     return out
 

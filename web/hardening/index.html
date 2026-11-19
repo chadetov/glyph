@@ -56,36 +56,52 @@
         </p>
       </header>
 
-      <!-- ============ THE FIVE CASES ============ -->
+      <!-- ============ THE REFUSED CASES ============ -->
       <section>
-        <h2 class="group-head">Five bugs that pass <code>tsc --strict</code></h2>
+        <h2 class="group-head">Mistakes that pass <code>tsc --strict</code> and do not compile in Glyph</h2>
         <p class="group-sub">
           Each is two files: a <code>.ts</code> that type-checks clean under
           <code>tsc --strict</code>, and the same program in Glyph that does not
-          compile. A build gate re-runs all five and fails if either half stops
-          behaving, so a guarantee that quietly disappears takes the build with it.
+          compile. A build gate, <code>scripts/check_catches.py</code>, re-runs
+          every one and fails if either half stops behaving, so a guarantee that
+          quietly disappears takes the build with it. 23 of the
+          37 mistakes on <a href="/catches/">the catches page</a>
+          are refused this way; the page has the rest, which Glyph checks when the
+          data arrives, warns about, or stops at run time.
         </p>
-        <div class="code" style="margin-bottom:28px">
-          <span class="cap">python3 scripts/check_catches.py</span>
-<pre>catches: 5/5 verified both ways (verifiability: 5, greppability: 0, abstraction: 0, diff stability: 0).
-TypeScript checked with tsc --strict and @types/node 26.6.6.</pre>
-        </div>
         <table class="catches-table">
           <thead><tr><th>Glyph says</th><th>What TypeScript let through</th><th>Files</th></tr></thead>
           <tbody>
-            <tr><td><code>E0200</code></td><td>A case added to a union, and one handler that forgot it</td><td><code>catches/non-exhaustive-match/</code></td></tr>
-            <tr><td><code>E0224</code></td><td>A read from a map, typed as if the key were always there</td><td><code>catches/absent-map-key/</code></td></tr>
-            <tr><td><code>E0230</code></td><td>A string split into two names, when it may have no separator</td><td><code>catches/split-into-a-pair/</code></td></tr>
-            <tr><td><code>E0304</code></td><td>A validator that reports success for a socket it never checked</td><td><code>catches/unverifiable-parse/</code></td></tr>
-            <tr><td><code>E0204</code></td><td>A parsed body assigned to a typed name without being checked</td><td><code>catches/unvalidated-boundary-read/</code></td></tr>
+            <tr><td><code>E0200</code></td><td><a href="/catches/#non-exhaustive-match">A case nobody handled</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match"><code>catches/non-exhaustive-match/</code></a></td></tr>
+            <tr><td><code>E0210</code></td><td><a href="/catches/#trusting-find-with-bang">Trusting <code>find</code> with <code>!</code></a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang"><code>catches/trusting-find-with-bang/</code></a></td></tr>
+            <tr><td><code>E0204</code></td><td><a href="/catches/#error-the-signature-hides">An error the signature hides</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides"><code>catches/error-the-signature-hides/</code></a></td></tr>
+            <tr><td><code>E0211</code></td><td><a href="/catches/#filter-that-keeps-everyone">A filter that keeps everyone</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone"><code>catches/filter-that-keeps-everyone/</code></a></td></tr>
+            <tr><td><code>E0013</code></td><td><a href="/catches/#as-unknown-as"><code>as unknown as T</code></a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as"><code>catches/as-unknown-as/</code></a></td></tr>
+            <tr><td><code>E0204</code></td><td><a href="/catches/#unvalidated-boundary-read">A parsed body given a type without a check</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read"><code>catches/unvalidated-boundary-read/</code></a></td></tr>
+            <tr><td><code>E0225</code></td><td><a href="/catches/#lost-update-across-await">A lost update across <code>await</code></a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await"><code>catches/lost-update-across-await/</code></a></td></tr>
+            <tr><td><code>E0230</code></td><td><a href="/catches/#split-into-a-pair">Destructuring a <code>split</code></a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair"><code>catches/split-into-a-pair/</code></a></td></tr>
+            <tr><td><code>E0211</code></td><td><a href="/catches/#number-accepted-as-enum">A number accepted as an enum</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum"><code>catches/number-accepted-as-enum/</code></a></td></tr>
+            <tr><td><code>E0206</code></td><td><a href="/catches/#connection-left-open">A connection left open</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open"><code>catches/connection-left-open/</code></a></td></tr>
+            <tr><td><code>TS18046</code> <span class="muted">(tsc pass)</span></td><td><a href="/catches/#typo-nobody-sees">A typo nobody sees</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-nobody-sees"><code>catches/typo-nobody-sees/</code></a></td></tr>
+            <tr><td><code>E0224</code></td><td><a href="/catches/#absent-map-key">A key that may not be there</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key"><code>catches/absent-map-key/</code></a></td></tr>
+            <tr><td><code>E0211</code></td><td><a href="/catches/#typo-in-an-options-object">A typo in an options object</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object"><code>catches/typo-in-an-options-object/</code></a></td></tr>
+            <tr><td><code>E0235</code></td><td><a href="/catches/#template-prints-undefined">A template that prints "undefined"</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined"><code>catches/template-prints-undefined/</code></a></td></tr>
+            <tr><td><code>E0204</code></td><td><a href="/catches/#number-that-is-not-a-number">A number that is not a number</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number"><code>catches/number-that-is-not-a-number/</code></a></td></tr>
+            <tr><td><code>E0008</code></td><td><a href="/catches/#change-hidden-in-a-helper">A change hidden in a helper</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper"><code>catches/change-hidden-in-a-helper/</code></a></td></tr>
+            <tr><td><code>E0002</code></td><td><a href="/catches/#one-function-many-names">One function, many names</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/one-function-many-names"><code>catches/one-function-many-names/</code></a></td></tr>
+            <tr><td><code>E0003</code></td><td><a href="/catches/#arrow-function-returns-nothing">An arrow function that returns nothing</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing"><code>catches/arrow-function-returns-nothing/</code></a></td></tr>
+            <tr><td><code>E0211</code></td><td><a href="/catches/#array-covariance">Array covariance</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance"><code>catches/array-covariance/</code></a></td></tr>
+            <tr><td><code>E0211</code></td><td><a href="/catches/#two-types-same-shape">Two types with the same shape</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape"><code>catches/two-types-same-shape/</code></a></td></tr>
+            <tr><td><code>E0304</code></td><td><a href="/catches/#unverifiable-parse">A validator that cannot check what it claims</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse"><code>catches/unverifiable-parse/</code></a></td></tr>
+            <tr><td><code>E0234</code></td><td><a href="/catches/#method-forgets-its-object">A method that forgets its object</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object"><code>catches/method-forgets-its-object/</code></a></td></tr>
+            <tr><td><code>E0305</code></td><td><a href="/catches/#duplicate-case">A duplicate case</a></td><td><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case"><code>catches/duplicate-case/</code></a></td></tr>
           </tbody>
         </table>
+
         <p class="group-sub" style="margin-top:24px">
-          All five are verifiability. None of them is evidence for greppability,
-          abstraction or diff stability, and the gate prints those zeros. Four
-          earlier cases were dropped before the launch because TypeScript catches
-          them too, or because the two halves were not the same program;
-          <code>catches/README.md</code> says which and why.
+          Cases that turned out to be caught by TypeScript too, or whose two
+          halves were not the same program, were deleted rather than softened;
+          <code>catches/README.md</code> lists each one and why.
         </p>
         <p class="group-sub">
           The map read is refused even when the key is spelled right, because a
@@ -97,7 +113,7 @@ TypeScript checked with tsc --strict and @types/node 26.6.6.</pre>
           default, if the project adopts them. In Glyph neither check is optional.
         </p>
         <p class="group-sub">
-          In the last one, Glyph's <code>json.parse</code> returns a
+          In the parsed-body case, Glyph's <code>json.parse</code> returns a
           <code>Result</code>, not a <code>User</code>, so the assignment is a
           type mismatch until the body is checked. TypeScript's
           <code>JSON.parse</code> returns <code>any</code>, and the annotation on

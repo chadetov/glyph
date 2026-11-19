@@ -17,36 +17,24 @@ sitemap: 2026-08-09 weekly 0.7
         </p>
       </header>
 
-      <!-- ============ THE FIVE CASES ============ -->
+      <!-- ============ THE REFUSED CASES ============ -->
       <section>
-        <h2 class="group-head">Five bugs that pass <code>tsc --strict</code></h2>
+        <h2 class="group-head">Mistakes that pass <code>tsc --strict</code> and do not compile in Glyph</h2>
         <p class="group-sub">
           Each is two files: a <code>.ts</code> that type-checks clean under
           <code>tsc --strict</code>, and the same program in Glyph that does not
-          compile. A build gate re-runs all five and fails if either half stops
-          behaving, so a guarantee that quietly disappears takes the build with it.
+          compile. A build gate, <code>scripts/check_catches.py</code>, re-runs
+          every one and fails if either half stops behaving, so a guarantee that
+          quietly disappears takes the build with it. {{catches:refused}} of the
+          {{catches:count}} mistakes on <a href="/catches/">the catches page</a>
+          are refused this way; the page has the rest, which Glyph checks when the
+          data arrives, warns about, or stops at run time.
         </p>
-        <div class="code" style="margin-bottom:28px">
-          <span class="cap">python3 scripts/check_catches.py</span>
-<pre>catches: 5/5 verified both ways (verifiability: 5, greppability: 0, abstraction: 0, diff stability: 0).
-TypeScript checked with tsc --strict and @types/node 26.6.6.</pre>
-        </div>
-        <table class="catches-table">
-          <thead><tr><th>Glyph says</th><th>What TypeScript let through</th><th>Files</th></tr></thead>
-          <tbody>
-            <tr><td><code>E0200</code></td><td>A case added to a union, and one handler that forgot it</td><td><code>catches/non-exhaustive-match/</code></td></tr>
-            <tr><td><code>E0224</code></td><td>A read from a map, typed as if the key were always there</td><td><code>catches/absent-map-key/</code></td></tr>
-            <tr><td><code>E0230</code></td><td>A string split into two names, when it may have no separator</td><td><code>catches/split-into-a-pair/</code></td></tr>
-            <tr><td><code>E0304</code></td><td>A validator that reports success for a socket it never checked</td><td><code>catches/unverifiable-parse/</code></td></tr>
-            <tr><td><code>E0204</code></td><td>A parsed body assigned to a typed name without being checked</td><td><code>catches/unvalidated-boundary-read/</code></td></tr>
-          </tbody>
-        </table>
+{{catches:refused-table}}
         <p class="group-sub" style="margin-top:24px">
-          All five are verifiability. None of them is evidence for greppability,
-          abstraction or diff stability, and the gate prints those zeros. Four
-          earlier cases were dropped before the launch because TypeScript catches
-          them too, or because the two halves were not the same program;
-          <code>catches/README.md</code> says which and why.
+          Cases that turned out to be caught by TypeScript too, or whose two
+          halves were not the same program, were deleted rather than softened;
+          <code>catches/README.md</code> lists each one and why.
         </p>
         <p class="group-sub">
           The map read is refused even when the key is spelled right, because a
@@ -58,7 +46,7 @@ TypeScript checked with tsc --strict and @types/node 26.6.6.</pre>
           default, if the project adopts them. In Glyph neither check is optional.
         </p>
         <p class="group-sub">
-          In the last one, Glyph's <code>json.parse</code> returns a
+          In the parsed-body case, Glyph's <code>json.parse</code> returns a
           <code>Result</code>, not a <code>User</code>, so the assignment is a
           type mismatch until the body is checked. TypeScript's
           <code>JSON.parse</code> returns <code>any</code>, and the annotation on

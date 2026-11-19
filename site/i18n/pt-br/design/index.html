@@ -1,0 +1,76 @@
+---
+title: Design · os quatro pilares e as decisões · Glyph
+description: O raciocínio por trás do design do Glyph: quatro pilares contra os quais toda decisão é testada, as decisões numeradas da especificação e o que a linguagem deixa de fora de propósito.
+source_hash: 28891a173ca9e4a0
+next_steps: |
+  Por onde seguir
+  Recomendado | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | Leia a especificação | Cada decisão numerada, cada uma terminando com o pilar a que serve. | Abrir a especificação
+  /catches/ | catches | O que o Glyph recusa | Cada caso, verificado com <code>tsc --strict</code> e com o Glyph.
+  /start/ | start | Escreva seu primeiro programa | Instale, crie o projeto, rode, quebre de propósito, leia o erro. Uns dez minutos.
+---
+      <p class="q-eyebrow">Design</p>
+      <h1 class="q-title">Quatro pilares, e um registro de decisão para cada regra</h1>
+
+      <p class="short-answer">
+        Toda regra do Glyph é testada contra quatro propriedades, e cada regra é uma decisão numerada na especificação, com o pilar a que serve. Os pilares são propriedades da linguagem, não da configuração de um projeto, então um agente que abre uma base de código Glyph desconhecida pode contar com eles sem antes descobrir quais configurações ela escolheu.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Os pilares</h2>
+        <p>
+          Em ordem de importância. Os dois primeiros são a cunha, os problemas que você sente todo dia. Os dois últimos são o acabamento que deixa tudo agradável. Quando entram em conflito, a cunha vence.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/pillars/verifiability/"><span class="n">Pilar 01</span><span class="q">Verificabilidade</span><p>Não existe <code>any</code> nem <code>as</code> que você possa escrever; <code>match</code> precisa cobrir todos os casos; e seus tipos record e union geram validadores estritos em tempo de execução, então um valor de fronteira é verificado, não presumido. Uma camada estrita sobre o <code>tsc</code> que não pode ser desligada. Muitos erros que o <code>tsc --strict</code> aceita não compilam aqui; os que ainda compilam estão listados em <a href="/catches/#not-yet">ainda não detectados</a>.</p></a>
+        <a class="a-card" href="/pillars/greppability/"><span class="n">Pilar 02</span><span class="q">Buscabilidade</span><p>Um nome, um lugar. Todo símbolo tem exatamente uma forma sintática na sua declaração, sem overloads, decorators, <code>this</code> implícito nem merge de namespaces. <code>grep "fn parseUser"</code> encontra a definição.</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">Pilar 03</span><span class="q">Estabilidade dos diffs</span><p>Uma mudança de uma linha é um diff de uma linha. Um layout canônico: uma lista fica numa linha enquanto couber e com um elemento por linha quando não couber, nunca reagrupada, com vírgulas finais, sem barrel files e sem opções, então o mesmo código é impresso do mesmo jeito em todo projeto. Quem revisa lê a mudança, não o ruído.</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">Pilar 04</span><span class="q">Abstração</span><p>Diga o que você quer dizer: pattern matching em vez de escadas de switch, <code>Result</code> em vez de exceções lançadas, records nomeados em vez de tuplas, a partir de um núcleo pequeno e ortogonal em vez das camadas acumuladas do TypeScript.</p></a>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">A especificação é uma lista de decisões</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">docs/language/spec.md</a> reúne 49 decisões numeradas, de D1 a D49, cada uma terminando com o pilar a que serve. A gramática segue a especificação: uma ambiguidade é resolvida lá primeiro e depois codificada no parser. <code>glyph llms --json</code> extrai a lista da especificação, então um agente lê as mesmas decisões que você. Uma delas, resumida:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">D9, de docs/language/spec.md (resumida)</span>
+<pre>D9. `else` is a catch-all arm; `_` is a position-level wildcard;
+a PascalCase arm head is a variant reference, not a binding.
+
+... a PascalCase head that names no variant of that union is a
+compile error (E0220, with a nearest-variant suggestion), never a
+silent catch-all that would mask a missing variant (E0200) and
+misroute values at runtime. ...
+
+*[verifiability, abstraction]*</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">O que fica de fora de propósito</h2>
+        <p>
+          O <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">manifesto</a> expõe a posição, e a versão curta é que cada restrição justifica seu lugar diante de um pilar. O Glyph não tem <code>if</code>/<code>else</code> (<code>match</code> é a única condicional), nem classes, nem overloads ou decorators, nem casts, nem <code>any</code>, nem imports relativos, nem opções de formatação. Também não é configurável: um formatador, uma resolução de módulos, um nível de rigor. Restrições incômodas ganham documentação, não uma regra mais frouxa.
+        </p>
+
+        <h2 class="block-label">Comparações</h2>
+        <p>
+          O Glyph se parece com várias coisas que já existem, e cada comparação abaixo diz o que a outra opção faz melhor.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">Por que TypeScript, e não Go ou uma linguagem nova?</span><p>Por que o alvo é TypeScript e o que isso possibilita: adoção um arquivo por vez.</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">Por que não TypeScript estrito + zod + eslint + ts-pattern?</span><p>As mesmas verificações como configuração versus como linguagem, e onde o TypeScript com ferramentas ainda está à frente.</p></a>
+        <a class="a-card" href="/design/vs-effect/"><span class="q">Como ele se compara ao Effect?</span><p>Uma biblioteca TypeScript com erros tipados e um ecossistema grande, contra uma linguagem que remove as válvulas de escape.</p></a>
+        <a class="a-card" href="/design/vs-rescript-gleam-elm/"><span class="q">Por que não ReScript, Gleam ou Elm?</span><p>Três linguagens tipadas mais antigas que compilam para JavaScript, onde cada uma está à frente e o que o Glyph faz de diferente.</p></a>
+        <a class="a-card" href="/answers/language/"><span class="q">É uma linguagem de verdade, ou um brinquedo cheio de buracos?</span><p>Visibilidade de módulos, interfaces, defer, a biblioteca padrão e os limites que ainda existem.</p></a>
+      </div>
+
+      <div class="detail">
+        <p>
+          A hipótese por trás de tudo isso, que ainda não é um resultado: um agente com a mesma tarefa produz código correto com mais confiabilidade em Glyph do que em TypeScript, e quem revisa gasta menos tempo para confirmar. Esse estudo ainda não foi feito, então este site não coloca número nisso. <a href="/benchmarks/">Benchmarks</a> diz o que já foi medido.
+        </p>
+      </div>

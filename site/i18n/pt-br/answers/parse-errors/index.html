@@ -1,0 +1,105 @@
+---
+title: Quando um parse falha, eu descubro o motivo? · Glyph
+description: Um parse que falha aponta o campo, diz qual regra o valor violou, cita o predicado where desrespeitado e marca o problema com um código que você pode usar para ramificar.
+source_hash: 7f1a8b2bd45c7f9e
+prev: /answers/early-errors/ | &larr; Anterior | Por que o Glyph detecta o que o tsc detecta, só que antes?
+next: /answers/debugging/ | Próxima &rarr; | Quando quebra em produção às 3 da manhã, o que o plantão vê?
+---
+      <p class="q-eyebrow">27 &middot; Falhas de parse</p>
+      <h1 class="q-title">Quando um parse falha, eu descubro o motivo?</h1>
+
+      <p class="short-answer">
+        Sim. Cada issue aponta o campo, diz <strong>qual regra o valor violou</strong> e carrega um <code>code</code> que você pode usar para ramificar. Um campo restrito por um predicado <code>where</code> informa o próprio predicado, então a rejeição leva por grep à linha que impôs a regra.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por que isso importa</h2>
+        <p>
+          Um validador que diz "este payload está errado" fez metade do trabalho. O handler ainda precisa decidir: é um cliente que esqueceu um campo ou um cliente que mandou uma senha de quatro caracteres? Um caso é 400, o outro é 422, e se o validador não diz, você acaba fazendo o parse do mesmo body duas vezes, com dois tipos diferentes, para recuperar uma informação que o validador já tinha.
+        </p>
+        <p>
+          Foi exatamente isso que aconteceu ao construir uma API de autenticação em Glyph. Um cadastro sem a chave <code>password</code> voltava como <code>weak_password</code>, porque ausente e curta demais produziam a mesma string.
+        </p>
+
+        <h2 class="block-label">Veja na prática</h2>
+        <p>Um tipo, uma restrição:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">signup.glyph</span>
+<pre>pub type Password = string where value.length &gt;= 8
+
+pub type Signup = {
+  email: string,
+  password: Password,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Quatro payloads ruins, quatro respostas diferentes. Cada um é um <code>Issue</code>, mostrado como <code>code | path | message</code>:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Signup.parse(...)</span>
+<pre><span class="cm">// { "email": "user@example.com" }</span>
+missing     ["password"]  field `password` is required
+
+<span class="cm">// { "email": "user@example.com", "password": "short" }</span>
+refinement  ["password"]  expected Password (string where value.length &gt;= 8)
+
+<span class="cm">// { "email": 42, "password": "longenough" }</span>
+type        ["email"]     field `email` must be string
+
+<span class="cm">// [1, 2, 3]</span>
+type        []            expected Signup (an object), got an array</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          O segundo é o ponto. <code>value.length &gt;= 8</code> é escrito uma vez, no tipo, e a rejeição o cita literalmente. Cole essa string, tirada do body de um HTTP 422, no <code>grep</code> e você cai na declaração que a produziu. Ninguém precisa manter uma cópia da regra na camada de mensagens de erro, que é como as duas acabam divergindo.
+        </p>
+        <p>
+          O quarto já foi pior do que uma mensagem ruim. Para o <code>typeof</code>, um array é um objeto, então um record sem campos obrigatórios aceitava um array direto, e um <code>[1, 2, 3]</code> enviado voltava como um issue confuso por campo declarado, sem nenhum mencionar que você tinha mandado uma lista.
+        </p>
+
+        <h2 class="block-label">Tipos aninhados respondem por si mesmos</h2>
+        <p>
+          Um campo cujo tipo tem seu próprio descritor é validado pelo <code>parse</code> desse tipo, e os issues voltam com o nome do campo na frente do path. Assim, um <code>Password</code> aninhado dois níveis abaixo informa <code>["body", "password"]</code> e ainda carrega a própria mensagem. Você recebe o local e o motivo no mesmo issue, sem rodar nada de novo.
+        </p>
+
+        <h2 class="block-label">O código, não a string</h2>
+        <p>
+          <code>Issue</code> carrega um <code>code</code> opcional: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code> ou <code>"unexpected"</code>. Ramifique por ele. Comparar texto de mensagem é a fragilidade que o Glyph existe para eliminar, e a mensagem é para a pessoa que lê o body da resposta.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Uma separação entre 400 e 422 que não lê a mensagem</span>
+<pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
+  let first = issues[0]
+  return match first.code == "refinement" {
+    true =&gt; 422,
+    false =&gt; 400,
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>code</code> é opcional, então um <code>Issue</code> que você monta à mão, e todo consumidor escrito antes de ele existir, continuam compilando sem mudança.
+        </p>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p>Records e tipos <code>where</code> informam a regra que falhou, não só o campo: <code>"missing"</code> para um campo obrigatório ausente, <code>"type"</code> para o formato errado (incluindo um não objeto ou um array), <code>"refinement"</code> para um valor que passou no tipo base e falhou no predicado, e <code>"unexpected"</code> para uma chave que o tipo não declara. Um refinement cita seu predicado. Um campo cujo tipo tem descritor delega a ele, então os issues aninhados chegam com o path completo. Campos opcionais (<code>f?: T</code>) nunca são informados como ausentes.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Ficando mais preciso</h3>
+          <p>Dois limites. Um campo tipado por algo sem descritor próprio, um parâmetro de tipo sem restrição ou um tipo importado de um <code>.d.ts</code> escrito à mão, ainda recebe a verificação rasa e um issue <code>"type"</code>; o compilador não sintetiza um descritor para esses casos, e rodar <code>glyph gen dts</code> sobre a declaração é o que dá um descritor a eles. Um módulo que declarava seu próprio tipo chamado <code>Issue</code> sombreava o do prelude dentro do arquivo emitido e quebrava todos os descritores daquele módulo; desde a 0.1.60 essa declaração é <code>E0110</code> na linha que nomeia o tipo, então você descobre onde está o problema em vez de ler um erro do <code>tsc</code> sobre código gerado.</p>
+        </div>
+      </div>

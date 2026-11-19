@@ -1,0 +1,144 @@
+---
+title: Abstração · um núcleo pequeno e ortogonal · Glyph
+description: O quarto pilar do Glyph: um jeito por conceito. Pattern matching em vez de escadas de switch, Result em vez de exceções, records em vez de tuplas, e match como a condicional.
+source_hash: e8827b54becde411
+prev: /pillars/diff-stability/ | &larr; Pilar anterior | Estabilidade dos diffs: uma mudança de uma linha é um diff de uma linha
+next: /pillars/verifiability/ | Voltar ao começo &rarr; | Verificabilidade: vale em runtime
+---
+      <p class="q-eyebrow">Pilar 04 &middot; <span class="polish">O acabamento</span></p>
+      <h1 class="q-title">Abstração</h1>
+
+      <p class="short-answer">
+        Diga o que você quer dizer com um <strong>núcleo pequeno e ortogonal</strong>: pattern matching em vez de escadas de switch, <code>Result</code> em vez de exceções lançadas, records com nomes em vez de tuplas. Um jeito bom por conceito, não as camadas que o TypeScript foi acumulando.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Jeitos demais de dizer a mesma coisa</h2>
+        <p class="lede">
+          O TypeScript cresceu por acúmulo e manteve todas as camadas. Você pode modelar um conjunto fixo de casos como um <code>enum</code>, uma union de literais de string ou um objeto <code>const</code>. Pode descrever um formato com uma <code>interface</code>, um <code>type</code> ou uma <code>class</code>. Há <code>namespace</code>s e módulos, decorators e funções de ordem superior, cinco idiomas para quase tudo, cada um com seus casos de borda.
+        </p>
+        <p class="lede">
+          Para uma pessoa, isso é flexibilidade. Para um <strong>agente</strong>, é um campo minado: mais jeitos de expressar uma coisa significam mais chances de escolher o que tem a armadilha, e mais idiomas para manter em mente enquanto faz isso. O pilar de abstração do Glyph é uma subtração deliberada: uma ferramenta afiada por tarefa, escolhida para que o jeito óbvio também seja o seguro.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> <code>match</code> é a única condicional</h2>
+        <p>
+          Não existe instrução <code>if</code>/<code>else</code>. Ramificar é <code>match</code>, em todo lugar, e <code>match</code> é uma expressão: produz um valor. Uma construção cobre um teste booleano, um despacho sobre uma union e uma tabela de valores, então não há decisão a tomar sobre <em>qual</em> forma de ramificação usar.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: instrução, não valor</span>
+          <span class="cap">grade.ts</span>
+<pre>let label: string;
+if (score &gt; 90) label = "A";
+else if (score &gt; 80) label = "B";
+else label = "C";</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: uma expressão</span>
+          <span class="cap">grade.glyph</span>
+<pre>let label = match score &gt; 90 {
+  true =&gt; "A",
+  false =&gt; match score &gt; 80 {
+    true =&gt; "B",
+    else =&gt; "C",
+  },
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">02</span> Unions etiquetadas e pattern matching</h2>
+        <p>
+          O jeito de modelar "um destes formatos" é uma union etiquetada, e o jeito de desmontá-la é <code>match</code>, que desestrutura o conteúdo no mesmo passo em que escolhe o caso. Nenhum campo discriminante para manter à mão, nenhuma escada de <code>switch</code> sobre uma tag em string, nenhum cast dentro de cada ramo para recuperar o formato.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">feed.glyph</span>
+<pre>type Feed =
+  | Loading
+  | Loaded(Array&lt;Post&gt;)
+  | Failed(string)
+
+fn view(feed: Feed) -&gt; string {
+  return match feed {
+    Loading =&gt; "...",
+    Loaded(posts) =&gt; render(posts),   <span class="cm">// posts is Array&lt;Post&gt; here</span>
+    Failed(msg) =&gt; msg,               <span class="cm">// msg is string here</span>
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">03</span> <code>Result</code> em vez de exceções</h2>
+        <p>
+          Falha é um valor, não um salto escondido no fluxo de controle. Uma função que pode falhar diz isso no tipo de retorno (<code>Result&lt;T, E&gt;</code>), e você compõe falhas com o operador <code>?</code> em vez de envolver as chamadas em <code>try</code>/<code>catch</code> e torcer para que a coisa certa lance a classe certa. O caminho de erro fica tão visível quanto o caminho feliz.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> Records com nomes em vez de tuplas posicionais</h2>
+        <p>
+          Dados são descritos com campos nomeados, sempre. Não há atalho de object literal nem tupla anônima cujos <code>[0]</code> e <code>[1]</code> você precisa lembrar. O formato se lê igual na definição, na construção e no uso.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: o que são [0] e [1]?</span>
+          <span class="cap">point.ts</span>
+<pre>function origin(): [number, number] {
+  return [0, 0];
+}
+const p = origin();
+p[0]; p[1];  <span class="cm">// x? y? row? col?</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: os nomes viajam com o valor</span>
+          <span class="cap">point.glyph</span>
+<pre>type Point = { x: number, y: number }
+
+fn origin() -&gt; Point {
+  return { x: 0, y: 0 }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> Uma primitiva por tarefa</h2>
+        <p>
+          Quando um conceito precisa de uma ferramenta própria, o Glyph dá exatamente uma. Estado mutável compartilhado fica num <code>std/store</code>. Um handle de arquivo ou socket que precisa ser fechado uma vez é um recurso <code>owned</code>. Iteração é <code>for x in xs</code>. Cada um é uma primitiva única, com nome e feita para aquilo, não um padrão que você reconstrói a partir de um saco de peças genéricas e erra em algum detalhe.
+        </p>
+
+        <p class="pull-quote">
+          Abstração aqui significa <strong>menos ferramentas, e mais afiadas</strong>, não mais ferramentas. Todo conceito tem uma forma óbvia, e a forma óbvia é a que você deve usar.
+        </p>
+
+        <h2 class="block-label">O benchmark: em breve</h2>
+        <p>
+          O jeito de medir isso é a área de superfície: quantos conceitos distintos um leitor precisa ter em mente para entender um programa, e quanto código é preciso para expressar uma tarefa comum de forma limpa. O Glyph ainda não está em uso no mundo real, então o gráfico abaixo é um marcador de lugar que será preenchido com medições reais quando houver um conjunto de programas reais para comparar.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Conceitos distintos para ler um módulo típico &middot; quanto menor, melhor</span>
+        <h3>TypeScript vs Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 30%;">pendente</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 62%;">pendente</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Ainda não medido</span> Vamos publicar aqui comparações de contagem de conceitos e de linhas para expressar X, a partir de programas reais, assim que houver programas suficientes para medir.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Um núcleo menor é mais fácil para uma pessoa aprender uma vez e mais fácil para um modelo acertar toda vez. Essa é a camada de acabamento numa frase: tire as escolhas que só acrescentavam risco, e o que sobra é uma linguagem que diz o que quer dizer.
+        </p>
+      </div>

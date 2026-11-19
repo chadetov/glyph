@@ -1,0 +1,72 @@
+---
+title: Um agente (ou eu) consegue achar onde qualquer coisa está definida? · Glyph
+description: Cada construção em Glyph tem uma única forma a ser buscada, então o grep (ou a busca de um agente) cai na única definição, e não em cinquenta quase acertos.
+source_hash: cb5e3e02dc597369
+prev: /answers/diff-stability/ | &larr; Anterior | As edições do agente vão ficar limpas, ou reformatar o arquivo inteiro?
+next: /answers/why-typescript/ | Próxima &rarr; | Por que TypeScript, e não Go ou uma linguagem nova?
+---
+      <p class="q-eyebrow">03 &middot; Navegação por busca</p>
+      <h1 class="q-title">Um agente (ou eu) consegue achar onde qualquer coisa está definida?</h1>
+
+      <p class="short-answer">
+        Cada construção tem <strong>exatamente uma forma</strong> a ser buscada. Um <code>grep</code> simples (o jeito como agentes navegam de fato) cai na única definição, <strong>e não em cinquenta quase acertos</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por que isso importa</h2>
+        <p>
+          Um agente não guarda o repositório inteiro na cabeça; ele <strong>busca</strong>. Se um conceito pode ser escrito de cinco jeitos, a busca deixa casos de fora, e um agente confiante que não acha a definição existente inventa uma segunda. Uma forma por conceito significa que a busca é completa, então o agente edita o que já existe em vez de duplicar.
+        </p>
+
+        <h2 class="block-label">Veja na prática</h2>
+        <p>O Glyph restringe a mutação a duas formas (<code>mut x = &hellip;</code> e <code>mut x.method(&hellip;)</code>), então <em>todo</em> lugar onde o estado muda responde a uma única busca:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">grep -rn "mut " src/ (todas as mutações do código)</span>
+<pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
+<span class="dim">src/cart.glyph:22:</span>   mut total = total + price
+<span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Três mutações, todas elas, numa só busca. Em TypeScript uma mutação pode se esconder atrás de <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, um setter ou um spread. Não existe um token único para dar grep, então &ldquo;alguma coisa muda isto?&rdquo; não tem resposta confiável. A mesma regra de uma forma só torna categorias inteiras auditáveis:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">uma busca = uma resposta completa</span>
+<pre><span class="cm"># every UI component</span>
+grep -rn <span class="add">"^component "</span> src/
+
+<span class="cm"># every function</span>
+grep -rn <span class="add">"^fn "</span> src/
+
+<span class="cm"># the entire resource-ownership surface</span>
+grep -rn <span class="add">"owned"</span> src/</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Não há shorthand de objeto literal, nem um segundo jeito de declarar um componente, nem sintaxe sobrecarregada para desambiguar. Menos jeitos de escrever uma coisa é uma restrição de verdade, e é esse o objetivo: é o que torna confiável a busca de um agente, e a sua.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          As construções que o Glyph deixa de fora para que a busca seja confiável, e por que uma regra de lint não é a mesma garantia, estão na <a href="/pillars/greppability/">página do pilar de buscabilidade</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p>Uma forma canônica por construção, mutação restrita a duas formas que dá para buscar com grep (<code>mut</code>) e auditorias com uma única palavra-chave (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Por cima disso</h3>
+          <p>O language server adiciona go-to-definition e find-references em todo o workspace: a mesma garantia, agora interativa no seu editor.</p>
+        </div>
+      </div>

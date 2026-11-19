@@ -1,0 +1,137 @@
+---
+title: Evidências · como cada afirmação deste site é verificada · Glyph
+description: Como cada afirmação deste site é verificada: as fixtures de casos e o gate de CI por trás delas, a configuração de TypeScript com que são comparadas e como reproduzir uma.
+source_hash: 22fcc8a3d8e611cf
+next_steps: |
+  O resto do registro
+  Recomendado | /catches/ | catches | O que detecta | Cada caso: o TypeScript, o Glyph, o erro e se o TypeScript com ferramentas o detectaria. | Ver todos os casos
+  /hardening/ | hardening | Hardening | Como agentes no papel de engenheiros céticos atacam o compilador, e os bugs que isso encontrou.
+  /benchmarks/ | benchmarks | Benchmarks | O que é medido (densidade de tokens, grep, diffs) e o estudo de confiabilidade que ainda não foi feito.
+  /versions/ | versions | Versões | Cada release, o que mudou e quais são Breaking.
+---
+      <p class="q-eyebrow">Evidências</p>
+      <h1 class="q-title">Como cada afirmação deste site é verificada</h1>
+
+      <p class="short-answer">
+        Uma afirmação de que o Glyph detecta algo é um par de programas no repositório, um em TypeScript e um em Glyph, e um gate de CI roda os dois a cada mudança. Se o TypeScript para de compilar ou o Glyph deixa de ser recusado, o build falha. Você pode rodar qualquer caso por conta própria com dois comandos.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">As fixtures</h2>
+        <p>
+          Cada diretório em <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> contém <code>ts.ts</code>, <code>glyph.glyph</code> e um <code>case.toml</code> dizendo o que cada um faz. <code>scripts/check_catches.py</code> roda na CI. Ele exige que todo <code>ts.ts</code> passe no <code>tsc --strict</code>, já que um programa TypeScript que não compila não prova nada, e verifica a metade Glyph de acordo com o tipo do caso. {{catches:breakdown}} Pelo tipo que o gate verifica:
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Tipo</th><th>Casos</th><th>O que o gate exige do Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Kind"><code>refused</code></td><td data-label="Cases">{{catches:refused-all}}</td><td data-label="What the gate requires of the Glyph">O build falha com o código que está em <code>case.toml</code></td></tr>
+            <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">{{catches:warned-all}}</td><td data-label="What the gate requires of the Glyph">O build passa e reporta esse código como aviso</td></tr>
+            <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">{{catches:boundary-all}}</td><td data-label="What the gate requires of the Glyph">O programa roda, e a checagem na fronteira transforma o dado ruim em um <code>Err</code></td></tr>
+            <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">{{catches:runtime-all}}</td><td data-label="What the gate requires of the Glyph">O programa builda e depois para quando roda, com a saída indicada</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">{{catches:gap-cases}}</td><td data-label="What the gate requires of the Glyph">O Glyph aceita o programa e ele faz a coisa errada. Quando a brecha fecha, o gate falha e diz para mover o caso</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          Um caso que deixa de ser demonstrável é apagado, não amenizado, e o <a href="https://github.com/chadetov/glyph/blob/main/catches/README.md">README dos casos</a> lista os seis que foram apagados e por quê. Descobriu-se que um deles também era detectado pelo <code>tsc</code>; outro só funcionava porque o TypeScript dele recebia um valor como <code>any</code>.
+        </p>
+
+        <h2 class="block-label">O TypeScript com que é comparado</h2>
+        <p>
+          Cada caso também diz se um projeto TypeScript configurado por completo teria detectado o erro, e é daí que vem a etiqueta "o TypeScript detectaria?". "Configurado por completo" é <code>tsc --strict</code> mais todas as opções que o deixam mais rígido, e uma execução do typescript-eslint. O gate instala os pacotes do zero a cada execução (TypeScript 6, eslint 9, typescript-eslint 8, tsx 4 e o <code>@types/node</code> mais recente) e, sem rede, falha em vez de pular.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">opções do tsconfig além do strict</span>
+<pre>noUncheckedIndexedAccess: true
+noFallthroughCasesInSwitch: true
+noUnusedLocals: true
+noUnusedParameters: true
+noImplicitReturns: true
+noImplicitOverride: true
+allowUnreachableCode: false
+allowUnusedLabels: false
+exactOptionalPropertyTypes: true
+noPropertyAccessFromIndexSignature: true</pre>
+        </div>
+        <div class="code">
+          <span class="cap">eslint.config.mjs</span>
+<pre>export default tseslint.config(
+  js.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  { rules: {
+    "@typescript-eslint/switch-exhaustiveness-check": "error",
+    "@typescript-eslint/strict-boolean-expressions": "error",
+    "@typescript-eslint/require-array-sort-compare": "error",
+    "require-atomic-updates": "error",
+  } },
+);</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          A etiqueta de um caso é <code>none</code>, <code>flag:</code> mais a única opção que o reporta, ou <code>lint:</code> mais a regra. Quando o programa corrigido também dispara uma regra por um motivo não relacionado, o caso traz um <code>ts_ok.ts</code> e a etiqueta só conta o que dispara no erro. Por exemplo, <code>non-exhaustive-match</code> é <code>lint:switch-exhaustiveness-check</code>: o typescript-eslint detecta se você ativar essa regra, e a página diz isso.
+        </p>
+
+        <h2 class="block-label">Reproduza um caso</h2>
+        <p>
+          Rode o gate em um único caso a partir de um clone do repositório, ou faça à mão. As duas metades de <code>non-exhaustive-match</code>, como rodaram para esta página:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">o gate, um caso</span>
+<pre>$ python3 scripts/check_catches.py non-exhaustive-match
+catches: 1/1 cases hold every claim they make.
+TypeScript checked with tsc --strict and the full flag set (typescript 6.0.3),
+typescript-eslint 8.73.0 strictTypeChecked on eslint 9.39.5, run with
+tsx 4.23.15, and @types/node 26.6.6.</pre>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">a metade TypeScript, à mão</span>
+<pre>$ npm i -D typescript@6 tsx@4
+$ npx tsc --strict --noEmit ts.ts
+$ echo $?
+0
+$ npx tsx ts.ts
+finished
+archived logged nothing</pre>
+        </div>
+        <div class="code">
+          <span class="cap">a metade Glyph, à mão</span>
+<pre>$ glyph check --no-tsc catches/non-exhaustive-match
+<span class="del">[E0200] Error: typecheck: non-exhaustive match
+  on `"todo" | "doing" | "done" | "archived"`:
+  missing variants "archived"</span>
+glyph check: 1 error(s) across 1 module(s)</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Os trechos de código deste site compilam</h2>
+        <p>
+          <code>scripts/check_docs_compile.py</code> roda na CI e compila todo trecho Glyph do site que se sustenta sozinho (começa com <code>module</code> e declara algo), mais os da documentação e do <code>llms.txt</code>. Um trecho que deve falhar precisa nomear o erro que provoca, e precisa provocar exatamente esse. Trechos que precisam de React ou de um pacote npm são compilados contra os tipos reais desses pacotes. Fragmentos são contados e pulados, e a contagem é impressa para que a parcela pulada continue visível.
+        </p>
+
+        <h2 class="block-label">O que ele ainda não detecta</h2>
+        <p>
+          Os {{catches:gap-cases}} casos <code>gap</code> estão na <a href="/catches/#not-yet">página de casos</a>, cada um com seu número de gap. Todo gap encontrado construindo apps em Glyph está no registro, <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>, onde um marcador entre colchetes é o único status vivo (<code>[FIXED]</code>, <code>[HALF FIXED]</code>, ou nenhum para os abertos) e <code>scripts/check_gaps.py</code> falha a CI quando uma entrada aberta foi reproduzida pela última vez há mais de cinco releases.
+        </p>
+
+        <h2 class="block-label">Como uma release é marcada como Breaking</h2>
+        <p>
+          Uma release é marcada como Breaking quando recusa um programa que a versão anterior aceitava. Isso é decidido escrevendo o menor programa afetado e rodando-o com a release anterior publicada e com o binário novo, e depois comparando os códigos de saída. Não é deduzido do texto das notas. As releases anteriores à 0.1.99 nunca foram testadas assim, então uma sem marca não foi testada, o que não quer dizer que seja segura. O registro está na <a href="/versions/">página de versões</a>.
+        </p>
+      </div>

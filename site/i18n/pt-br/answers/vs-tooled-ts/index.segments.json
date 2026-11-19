@@ -1,0 +1,242 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/vs-tooled-ts/index.html",
+  "locale": "pt-br",
+  "source_hash": "d0694478c32b0491",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why not tooled TypeScript: tsc, zod, eslint? · Glyph",
+      "tr": "Por que não TypeScript com ferramentas: tsc, zod, eslint? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Tooled TypeScript gets far, but each guarantee is opt-in and an agent can route around it. In Glyph the strictness is the language, not a config file.",
+      "tr": "TypeScript com ferramentas vai longe, mas cada garantia é opcional e um agente pode contorná-la. No Glyph o rigor é a linguagem, não um arquivo de configuração."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "Por que TypeScript, e não Go ou uma linguagem nova?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Próxima &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Is Glyph worth it if I'm not using AI?",
+      "tr": "O Glyph vale a pena se eu não uso IA?"
+    },
+    {
+      "id": "h-e96c7147",
+      "kind": "html",
+      "en": "05 &middot; The comparison",
+      "tr": "05 &middot; A comparação"
+    },
+    {
+      "id": "h-32fb06b2",
+      "kind": "html",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "Por que não só TypeScript strict + zod + eslint + ts-pattern?"
+    },
+    {
+      "id": "h-a48626e3",
+      "kind": "html",
+      "en": "Because every one of those guarantees is <strong>opt-in</strong>, and an agent can route around each of them in one line. Glyph's strictness isn't a config file the agent can edit. It's the language. The enforcement point moves from \"did we remember to lint this file\" to \"does it compile.\"",
+      "tr": "Porque cada uma dessas garantias é <strong>opcional</strong>, e um agente pode contornar cada uma delas com uma linha. O rigor do Glyph não é um arquivo de configuração que o agente pode editar. É a linguagem. O ponto de controle deixa de ser \"lembramos de rodar o lint neste arquivo?\" e passa a ser \"compila?\"."
+    },
+    {
+      "id": "h-6fe61e8e",
+      "kind": "html",
+      "en": "What tooled TypeScript already covers",
+      "tr": "O que o TypeScript com ferramentas já cobre"
+    },
+    {
+      "id": "h-81a5cd3d",
+      "kind": "html",
+      "en": "A well-configured TypeScript setup gets you a long way, and if your team runs all of it in CI you've already closed most of the gaps Glyph targets. It's the alternative worth taking seriously, so here's the mapping:",
+      "tr": "Uma configuração de TypeScript bem feita leva você longe, e se o seu time roda tudo isso na CI, você já fechou a maioria das brechas que o Glyph mira. É a alternativa que vale levar a sério, então aqui está o mapeamento:"
+    },
+    {
+      "id": "h-cd6bb9cc",
+      "kind": "html",
+      "en": "what tooled TypeScript already gives you",
+      "tr": "o que o TypeScript com ferramentas já te dá"
+    },
+    {
+      "id": "h-97277570",
+      "kind": "html",
+      "en": "If you have all that wired up and enforced, you're most of the way there. TypeScript has these ideas. What a language adds by making them non-optional comes down to three things.",
+      "tr": "Se você tem tudo isso ligado e obrigatório, já percorreu a maior parte do caminho. O TypeScript tem essas ideias. O que uma linguagem acrescenta ao torná-las obrigatórias se resume a três coisas."
+    },
+    {
+      "id": "h-f41467bd",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> Non-optional beats opt-in",
+      "tr": "<span class=\"ex-label\">01</span> Obrigatório ganha de opcional"
+    },
+    {
+      "id": "h-4b85313e",
+      "kind": "html",
+      "en": "Your eslint config only protects code the agent routes <em>through</em> it, and the agent can write <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, or simply forget the <code>.exhaustive()</code>, and it still compiles and merges. Every one of those escape hatches is a config the agent can edit. Glyph has no such hatch to reach for: there is no <code>as</code>, no ignore pragma, no way to get a typed value out of <code>unknown</code> without a check the compiler can see.",
+      "tr": "Sua config do eslint só protege o código que o agente faz passar <em>por</em> ela, e o agente pode escrever <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, ou simplesmente esquecer o <code>.exhaustive()</code>, e ainda assim compila e é mergeado. Cada uma dessas válvulas de escape é uma config que o agente pode editar. O Glyph não tem nenhuma válvula dessas: não existe <code>as</code>, nem pragma de ignore, nem como tirar um valor tipado de um <code>unknown</code> sem uma checagem que o compilador consiga ver."
+    },
+    {
+      "id": "h-c68c151a",
+      "kind": "html",
+      "en": "TypeScript: the hatches exist",
+      "tr": "TypeScript: as válvulas existem"
+    },
+    {
+      "id": "h-15cd1cbb",
+      "kind": "html",
+      "en": "Glyph: nothing to disable",
+      "tr": "Glyph: nada para desligar"
+    },
+    {
+      "id": "h-dab47249",
+      "kind": "html",
+      "en": "Strictness the agent <strong>cannot config-disable</strong> sits at a different enforcement point than strictness it can. Glyph is built on that difference.",
+      "tr": "Um rigor que o agente <strong>não consegue desligar na config</strong> fica num ponto de controle diferente de um rigor que ele consegue. O Glyph é construído sobre essa diferença."
+    },
+    {
+      "id": "h-351a8ad8",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">02</span> The type is the validator: no second artifact",
+      "tr": "<span class=\"ex-label\">02</span> O tipo é o validador: sem segundo artefato"
+    },
+    {
+      "id": "h-4895997c",
+      "kind": "html",
+      "en": "zod inverts your source of truth: you write the <em>schema</em>, derive the type from it, and then keep the type, the schema, and any serializer in sync by hand. Keeping those aligned is exactly where an agent introduces drift: it renames a field in the type and not the schema, and both still compile. In Glyph the type <em>is</em> the validator: declaring <code>type User = {...}</code> generates <code>User.parse</code> alongside it. One artifact, nothing to keep in sync, nothing to forget.",
+      "tr": "O zod inverte a sua fonte da verdade: você escreve o <em>schema</em>, deriva o tipo dele e depois mantém o tipo, o schema e qualquer serializador sincronizados à mão. Manter isso alinhado é justamente onde um agente introduz divergência: ele renomeia um campo no tipo e não no schema, e os dois continuam compilando. No Glyph o tipo <em>é</em> o validador: declarar <code>type User = {...}</code> gera <code>User.parse</code> junto. Um artefato, nada para sincronizar, nada para esquecer."
+    },
+    {
+      "id": "h-e7c43b4b",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">03</span> Greppable mutation",
+      "tr": "<span class=\"ex-label\">03</span> Mutação buscável"
+    },
+    {
+      "id": "h-84ccbe2f",
+      "kind": "html",
+      "en": "In TypeScript a state change can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to search for, and no lint rule fully fixes it. In Glyph shared state lives in a store and every change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> finds every local mutation. Stock TypeScript has no equivalent.",
+      "tr": "No TypeScript, uma mudança de estado pode se esconder atrás de <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, um setter ou um spread. Não existe um token único para buscar, e nenhuma regra de lint resolve isso por completo. No Glyph, estado compartilhado vive num store e toda mudança é um <code>.set(</code>/<code>.update(</code> literal; <code>grep 'mut '</code> encontra toda mutação local. O TypeScript padrão não tem equivalente."
+    },
+    {
+      "id": "h-c48915e0",
+      "kind": "html",
+      "en": "The failure-mode diff",
+      "tr": "O diff do modo de falha"
+    },
+    {
+      "id": "h-c70d6127",
+      "kind": "html",
+      "en": "Same task, an agent adds a variant to a union and forgets to handle it in one of three places:",
+      "tr": "Mesma tarefa: um agente adiciona uma variante a uma union e esquece de tratá-la em um de três lugares:"
+    },
+    {
+      "id": "h-e82e7273",
+      "kind": "html",
+      "en": "tooled TS",
+      "tr": "TS com ferramentas"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-0f3526ff",
+      "kind": "html",
+      "en": "Where tooled TypeScript is still ahead",
+      "tr": "Onde o TypeScript com ferramentas ainda está na frente"
+    },
+    {
+      "id": "h-ea207e48",
+      "kind": "html",
+      "en": "Four places where it is ahead of Glyph today:",
+      "tr": "Quatro pontos em que ele está à frente do Glyph hoje:"
+    },
+    {
+      "id": "h-18d16c34",
+      "kind": "html",
+      "en": "<strong>Richer validation.</strong> Glyph descriptors are strict by default (they reject undeclared keys), and a <code>where</code> refinement puts a predicate on a primitive (<code>type Email = string where value.includes(\"@\")</code>), which the descriptor runs at every boundary the type reaches. zod is still ahead in two ways: it ships ready-made checks such as <code>.email()</code> and <code>.url()</code> that you write yourself in Glyph, and it refines whole objects, while a <code>where</code> on a record (<code>lo &lt;= hi</code> across two fields) is <code>E0300</code> today.",
+      "tr": "<strong>Validação mais rica.</strong> Os descritores do Glyph são strict por padrão (recusam chaves não declaradas), e um refinamento <code>where</code> coloca um predicado sobre um primitivo (<code>type Email = string where value.includes(\"@\")</code>), que o descritor roda em toda fronteira que o tipo alcança. O zod ainda está na frente de dois jeitos: traz checagens prontas como <code>.email()</code> e <code>.url()</code>, que no Glyph você escreve por conta própria, e refina objetos inteiros, enquanto um <code>where</code> num record (<code>lo &lt;= hi</code> entre dois campos) é <code>E0300</code> hoje."
+    },
+    {
+      "id": "h-39dcdf91",
+      "kind": "html",
+      "en": "<strong>Deeper matching.</strong> ts-pattern's guards and deep structural patterns go beyond what Glyph's <code>match</code> expresses.",
+      "tr": "<strong>Matching mais profundo.</strong> Os guards e os padrões estruturais profundos do ts-pattern vão além do que o <code>match</code> do Glyph expressa."
+    },
+    {
+      "id": "h-5f78ed48",
+      "kind": "html",
+      "en": "<strong>\"Provable absence\" stops at the <code>.ts</code> boundary.</strong> Glyph's guarantees hold for code Glyph authored; a thrown exception from an npm dependency still bypasses <code>Result</code>, and an imported <code>.d.ts</code> type carries no runtime descriptor.",
+      "tr": "<strong>A \"ausência comprovável\" para na fronteira do <code>.ts</code>.</strong> As garantias do Glyph valem para código escrito em Glyph; uma exceção lançada por uma dependência do npm ainda passa por fora do <code>Result</code>, e um tipo importado de um <code>.d.ts</code> não tem descritor em runtime."
+    },
+    {
+      "id": "h-e663b903",
+      "kind": "html",
+      "en": "<strong>Ecosystem and hiring.</strong> The TypeScript tooling, community, and hiring pool are far larger, with years of production use behind them. Glyph is an early preview.",
+      "tr": "<strong>Ecossistema e contratação.</strong> O ferramental, a comunidade e o mercado de profissionais de TypeScript são muito maiores, com anos de uso em produção. O Glyph é uma versão preliminar."
+    },
+    {
+      "id": "h-fe2104b6",
+      "kind": "html",
+      "en": "If you've fully wired tooled TypeScript and your agents stay inside it, you've got most of this. Glyph's argument is that \"stay inside it\" is the load-bearing phrase, and it's the phrase an agent breaks. Non-optionality, one-artifact validation, and greppable mutation are the parts you cannot get by adding more opt-in tools.",
+      "tr": "Se você ligou por completo o TypeScript com ferramentas e seus agentes ficam dentro dele, você já tem a maior parte disso. O argumento do Glyph é que \"ficam dentro dele\" é a parte que sustenta tudo, e é justamente a parte que um agente quebra. Obrigatoriedade, validação com um artefato só e mutação buscável são o que você não consegue acrescentando mais ferramentas opcionais."
+    },
+    {
+      "id": "h-39372df5",
+      "kind": "html",
+      "en": "If you are open to leaving TypeScript for an older typed language that compiles to JavaScript, <a href=\"/design/vs-rescript-gleam-elm/\">Why not ReScript, Gleam or Elm?</a> compares Glyph with those.",
+      "tr": "Se você topa sair do TypeScript para uma linguagem tipada mais antiga que compila para JavaScript, <a href=\"/design/vs-rescript-gleam-elm/\">Por que não ReScript, Gleam ou Elm?</a> compara o Glyph com elas."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Situação atual"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponível hoje"
+    },
+    {
+      "id": "h-a2418e07",
+      "kind": "html",
+      "en": "No <code>any</code>/<code>as</code>, exhaustive <code>match</code> (<code>E0200</code>/<code>E0218</code>), discarded-<code>Result</code> warning (<code>E0217</code>), type-generated validators, and greppable mutation: all non-optional, none an eslint rule you can disable.",
+      "tr": "Sem <code>any</code>/<code>as</code>, <code>match</code> exaustivo (<code>E0200</code>/<code>E0218</code>), aviso de <code>Result</code> descartado (<code>E0217</code>), validadores gerados a partir do tipo e mutação buscável: tudo obrigatório, nada que seja uma regra de eslint que dá para desligar."
+    },
+    {
+      "id": "h-0abde815",
+      "kind": "html",
+      "en": "Being measured",
+      "tr": "Em medição"
+    },
+    {
+      "id": "h-d0254fa5",
+      "kind": "html",
+      "en": "The claim that agents produce fewer escaped defects in Glyph than in <em>well-configured</em> strict TS is the benchmark we're building, against tooled TS, not naive TS. See the <a href=\"/benchmarks/\">benchmarks</a>.",
+      "tr": "A afirmação de que agentes deixam escapar menos defeitos em Glyph do que em TS strict <em>bem configurado</em> é o benchmark que estamos construindo, contra TS com ferramentas, não TS ingênuo. Veja os <a href=\"/benchmarks/\">benchmarks</a>."
+    }
+  ]
+}

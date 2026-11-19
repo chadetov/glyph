@@ -1,0 +1,176 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/parse-errors/index.html",
+  "locale": "pt-br",
+  "source_hash": "7f1a8b2bd45c7f9e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "When a parse fails, do I find out why? · Glyph",
+      "tr": "Quando um parse falha, eu descubro o motivo? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A failing parse names the field, says which rule the value broke, quotes the where predicate it violated, and tags the issue with a code you can branch on.",
+      "tr": "Um parse que falha aponta o campo, diz qual regra o valor violou, cita o predicado where desrespeitado e marca o problema com um código que você pode usar para ramificar."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "Por que o Glyph detecta o que o tsc detecta, só que antes?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Próxima &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "Quando quebra em produção às 3 da manhã, o que o plantão vê?"
+    },
+    {
+      "id": "h-24923701",
+      "kind": "html",
+      "en": "27 &middot; Parse failures",
+      "tr": "27 &middot; Falhas de parse"
+    },
+    {
+      "id": "h-f32168df",
+      "kind": "html",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "Quando um parse falha, eu descubro o motivo?"
+    },
+    {
+      "id": "h-dc11cff3",
+      "kind": "html",
+      "en": "Yes. Every issue names the field, says <strong>which rule the value broke</strong>, and carries a <code>code</code> you can branch on. A field constrained by a <code>where</code> predicate reports the predicate itself, so the rejection greps back to the line that imposed it.",
+      "tr": "Sim. Cada issue aponta o campo, diz <strong>qual regra o valor violou</strong> e carrega um <code>code</code> que você pode usar para ramificar. Um campo restrito por um predicado <code>where</code> informa o próprio predicado, então a rejeição leva por grep à linha que impôs a regra."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por que isso importa"
+    },
+    {
+      "id": "h-2b8c51b7",
+      "kind": "html",
+      "en": "A validator that says \"this payload is bad\" has done half the job. The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
+      "tr": "Um validador que diz \"este payload está errado\" fez metade do trabalho. O handler ainda precisa decidir: é um cliente que esqueceu um campo ou um cliente que mandou uma senha de quatro caracteres? Um caso é 400, o outro é 422, e se o validador não diz, você acaba fazendo o parse do mesmo body duas vezes, com dois tipos diferentes, para recuperar uma informação que o validador já tinha."
+    },
+    {
+      "id": "h-333aed3e",
+      "kind": "html",
+      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
+      "tr": "Foi exatamente isso que aconteceu ao construir uma API de autenticação em Glyph. Um cadastro sem a chave <code>password</code> voltava como <code>weak_password</code>, porque ausente e curta demais produziam a mesma string."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Veja na prática"
+    },
+    {
+      "id": "h-bddd14ad",
+      "kind": "html",
+      "en": "One type, one constraint:",
+      "tr": "Um tipo, uma restrição:"
+    },
+    {
+      "id": "h-66999642",
+      "kind": "html",
+      "en": "Four bad payloads, four different answers. Each is one <code>Issue</code>, shown as <code>code | path | message</code>:",
+      "tr": "Quatro payloads ruins, quatro respostas diferentes. Cada um é um <code>Issue</code>, mostrado como <code>code | path | message</code>:"
+    },
+    {
+      "id": "h-cb372fc2",
+      "kind": "html",
+      "en": "The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim. Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
+      "tr": "O segundo é o ponto. <code>value.length &gt;= 8</code> é escrito uma vez, no tipo, e a rejeição o cita literalmente. Cole essa string, tirada do body de um HTTP 422, no <code>grep</code> e você cai na declaração que a produziu. Ninguém precisa manter uma cópia da regra na camada de mensagens de erro, que é como as duas acabam divergindo."
+    },
+    {
+      "id": "h-c1b3d39f",
+      "kind": "html",
+      "en": "The fourth one used to be worse than a bad message. An array is an object to <code>typeof</code>, so a record with no required fields accepted one outright, and a posted <code>[1, 2, 3]</code> came back as one confusing issue per declared field, none of them mentioning that you had sent a list.",
+      "tr": "O quarto já foi pior do que uma mensagem ruim. Para o <code>typeof</code>, um array é um objeto, então um record sem campos obrigatórios aceitava um array direto, e um <code>[1, 2, 3]</code> enviado voltava como um issue confuso por campo declarado, sem nenhum mencionar que você tinha mandado uma lista."
+    },
+    {
+      "id": "h-f15fe14d",
+      "kind": "html",
+      "en": "Nested types answer for themselves",
+      "tr": "Tipos aninhados respondem por si mesmos"
+    },
+    {
+      "id": "h-1c1f349a",
+      "kind": "html",
+      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message. You get the location and the reason from the same issue, without re-running anything.",
+      "tr": "Um campo cujo tipo tem seu próprio descritor é validado pelo <code>parse</code> desse tipo, e os issues voltam com o nome do campo na frente do path. Assim, um <code>Password</code> aninhado dois níveis abaixo informa <code>[\"body\", \"password\"]</code> e ainda carrega a própria mensagem. Você recebe o local e o motivo no mesmo issue, sem rodar nada de novo."
+    },
+    {
+      "id": "h-f4063e91",
+      "kind": "html",
+      "en": "The code, not the string",
+      "tr": "O código, não a string"
+    },
+    {
+      "id": "h-0696faed",
+      "kind": "html",
+      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, or <code>\"unexpected\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
+      "tr": "<code>Issue</code> carrega um <code>code</code> opcional: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code> ou <code>\"unexpected\"</code>. Ramifique por ele. Comparar texto de mensagem é a fragilidade que o Glyph existe para eliminar, e a mensagem é para a pessoa que lê o body da resposta."
+    },
+    {
+      "id": "h-d38a3f61",
+      "kind": "html",
+      "en": "A 400/422 split that does not read the message",
+      "tr": "Uma separação entre 400 e 422 que não lê a mensagem"
+    },
+    {
+      "id": "h-4e6a1d50",
+      "kind": "html",
+      "en": "<code>code</code> is optional, so an <code>Issue</code> you build by hand, and every consumer written before it existed, still compiles unchanged.",
+      "tr": "<code>code</code> é opcional, então um <code>Issue</code> que você monta à mão, e todo consumidor escrito antes de ele existir, continuam compilando sem mudança."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Situação atual"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponível hoje"
+    },
+    {
+      "id": "h-7654d152",
+      "kind": "html",
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, and <code>\"unexpected\"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.",
+      "tr": "Records e tipos <code>where</code> informam a regra que falhou, não só o campo: <code>\"missing\"</code> para um campo obrigatório ausente, <code>\"type\"</code> para o formato errado (incluindo um não objeto ou um array), <code>\"refinement\"</code> para um valor que passou no tipo base e falhou no predicado, e <code>\"unexpected\"</code> para uma chave que o tipo não declara. Um refinement cita seu predicado. Um campo cujo tipo tem descritor delega a ele, então os issues aninhados chegam com o path completo. Campos opcionais (<code>f?: T</code>) nunca são informados como ausentes."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "Ficando mais preciso"
+    },
+    {
+      "id": "h-7339349c",
+      "kind": "html",
+      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
+      "tr": "Dois limites. Um campo tipado por algo sem descritor próprio, um parâmetro de tipo sem restrição ou um tipo importado de um <code>.d.ts</code> escrito à mão, ainda recebe a verificação rasa e um issue <code>\"type\"</code>; o compilador não sintetiza um descritor para esses casos, e rodar <code>glyph gen dts</code> sobre a declaração é o que dá um descritor a eles. Um módulo que declarava seu próprio tipo chamado <code>Issue</code> sombreava o do prelude dentro do arquivo emitido e quebrava todos os descritores daquele módulo; desde a 0.1.60 essa declaração é <code>E0110</code> na linha que nomeia o tipo, então você descobre onde está o problema em vez de ler um erro do <code>tsc</code> sobre código gerado."
+    }
+  ]
+}

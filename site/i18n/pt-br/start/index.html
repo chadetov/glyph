@@ -1,0 +1,154 @@
+---
+title: Comece aqui · seu primeiro programa em Glyph em 10 minutos · Glyph
+description: Crie um projeto Glyph com npx, rode, quebre de propósito, leia o erro do compilador e corrija. Dez minutos, sem instalar nada globalmente.
+source_hash: 0967efaee1e51c6b
+prev: / | &larr; Início | TypeScript que seus agentes não conseguem quebrar sem você perceber
+next: /answers/verifiability/ | Próxima &rarr; | O que impede um agente de quebrar meu código sem ninguém perceber?
+next_steps: |
+  Daqui em diante
+  Próximo &middot; sem instalar nada | /playground/ | playground | O playground | Experimente o Glyph no navegador, sem instalar nada. | Abrir o playground
+  https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md | spec | O tour de cinco minutos | A linguagem inteira, rapidamente.
+  /answers/ | answers | As respostas | Respostas com exemplos sobre React, APIs tipadas, npm e TypeScript com ferramentas.
+---
+      <p class="q-eyebrow">Comece aqui &middot; ~10 minutos</p>
+      <h1 class="q-title">Seu primeiro programa em Glyph</h1>
+
+      <p class="short-answer">
+        Crie um projeto, rode, depois <strong>quebre de propósito</strong> e leia o erro que o compilador mostra. Não é preciso conhecer Glyph. Se você já escreveu um pouco de TypeScript, vai acompanhar cada linha.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; Crie um projeto</h2>
+        <p>
+          O Glyph é distribuído no npm como binário pré-compilado para macOS e Linux (x64 e ARM) e Windows (x64), e precisa do Node 18 ou mais recente. Este caminho não instala nada globalmente: o <code>npx</code> baixa o compilador para criar o projeto, e o projeto fixa sua própria cópia junto com <code>tsx</code> e <code>typescript</code>, que o Glyph usa para rodar e checar tipos.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx -y @glyphlang/glyph init hello
+cd hello
+npm install</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Se preferir ter o <code>glyph</code> no PATH, instale-o globalmente junto com as duas ferramentas que ele usa, e tire o <code>npx</code> dos comandos desta página:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal, a alternativa global</span>
+<pre>npm install -g @glyphlang/glyph tsx typescript
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span>
+glyph init hello
+cd hello</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">2 &middot; Veja o que foi criado</h2>
+        <p>O <code>glyph init</code> cria um projeto inicial que já roda: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explicando que um pacote npm tipado não precisa de nada ali e que o diretório é para um pacote que não traz tipos, um <code>package.json</code>, um <code>.gitignore</code> e dois arquivos que agentes de código leem sozinhos: <code>AGENTS.md</code>, que aponta para <code>glyph llms</code> com a referência completa da linguagem, e <code>.mcp.json</code>, que registra <code>glyph mcp</code> para que um agente possa perguntar tipos e referências ao compilador em vez de procurá-los. Num projeto que você já tem, <code>glyph agents</code> escreve esses dois. O <code>package.json</code> fixa o compilador, <code>typescript</code> e <code>tsx</code> em <code>devDependencies</code>, então qualquer pessoa que clonar o projeto consegue fazer o build com <code>npm install</code>, sem instalação global.</p>
+        <p>Abra <code>src/main.glyph</code>. É um hello-world:</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+import std/io
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  io.println("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Repare em duas coisas: um programa roda a sua <code>main(argv)</code>, e <code>main</code> retorna um <code>number</code>, o código de saída do processo. Retornar define esse código sem forçar o processo a parar, então um programa que sobe um servidor continua servindo.
+        </p>
+
+        <h2 class="block-label">3 &middot; Rode</h2>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx glyph run
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          O <code>glyph run</code> checou os tipos, compilou para TypeScript e executou. Esse é o ciclo que você repete no resto desta página.
+        </p>
+
+        <h2 class="block-label">4 &middot; Adicione algo de verdade</h2>
+        <p>
+          Agora troque o corpo por um pouco de lógica: um status de tarefa e uma função que dá um rótulo a ele. Isso apresenta as duas coisas que você vai usar o tempo todo: uma <em>union etiquetada</em> (<code>type Status = ...</code>) e <code>match</code>, que é a única condicional do Glyph.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">5 &middot; Quebre de propósito</h2>
+        <p>
+          Esta é a parte que mostra <em>para que</em> serve o Glyph. Apague o braço <code>Done</code> do <code>match</code> (o tipo de coisa que um agente faz quando adiciona um caso em algum lugar e esquece de tratá-lo) e rode de novo.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph (com o braço Done apagado)</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Não rodou. Em TypeScript, essa mesma função, com o tipo de retorno escrito, também é recusada (TS2366). Um <code>switch</code> que só registra log ou atualiza estado, ou um com <code>default:</code>, compila sem erro e pula o caso novo em silêncio. Aqui todo match não exaustivo é um erro de compilação com um código estável (<code>E0200</code>), o ponto exato e uma correção de uma linha. Rode <code>glyph --explain E0200</code> quando quiser a versão longa.
+        </p>
+
+        <h2 class="block-label">6 &middot; Corrija</h2>
+        <p>Coloque o braço de volta (ou adicione um <code>else</code>) e ele roda de novo.</p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Esse é o ciclo principal: escrever, rodar e, quando algo está errado, o compilador diz exatamente o quê e como, antes de o código ir para produção, não depois.
+        </p>
+      </div>

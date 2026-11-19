@@ -1,0 +1,112 @@
+---
+title: Posso confiar nele com dinheiro e com entrada não confiável? · Glyph
+description: Dinheiro é exato (decimais e inteiros além de 2^53), invariantes são tipos que a fronteira garante, e entrada não confiável não chega a um sink de SQL ou de shell sem ser sanitizada.
+source_hash: 890e758a8ba38ece
+prev: /answers/language/ | &larr; Anterior | É uma linguagem de verdade, ou um brinquedo cheio de buracos?
+next: /answers/web-serving/ | Próxima &rarr; | Posso servir uma página web, ou só uma API JSON?
+---
+      <p class="q-eyebrow">16 &middot; Dinheiro e segurança</p>
+      <h1 class="q-title">Posso confiar nele com dinheiro, e com entrada que eu não controlo?</h1>
+
+      <p class="short-answer">
+        Pode. Dinheiro é <strong>exato</strong>, um invariante como não negativo é um <strong>tipo que a fronteira garante</strong>, e entrada não confiável <strong>não chega a um sink de SQL ou de shell</strong> sem ser sanitizada. Se você errar em qualquer um desses pontos, o resultado é um erro de compilação ou de parse, e não uma convenção que alguém precisa lembrar três funções depois.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Dinheiro não é float</h2>
+        <p>
+          Um sistema financeiro sobre <code>number</code> IEEE-754 é um bug esperando para ser reportado: <code>0.1 + 0.2</code> não é <code>0.3</code>, e valores além de 2<sup>53</sup> perdem precisão sem aviso. <code>std/decimal</code> é ponto fixo decimal exato sobre BigInt. Soma, subtração e multiplicação são exatas; a divisão recebe uma escala explícita e arredonda metade para longe do zero; um valor malformado vira um <code>Err</code> no parse, nunca um <code>NaN</code> silencioso.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from zero</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">o bug que ele elimina</span>
+<pre>// JS number, the default everywhere:
+0.1 + 0.2            // 0.30000000000000004
+1_000_000_000_000.10 * 1.07   // rounding drift
+9007199254740993     // === 9007199254740992
+
+// None of these are your money anymore.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Ids e contadores continuam exatos além de 2<sup>53</sup></h2>
+        <p>
+          Um id de conta ou um contador de razão contábil que estoura a faixa do float e é arredondado é outro tipo de catástrofe. <code>bigint</code> é um inteiro exato de precisão arbitrária com literais <code>123n</code>, e um campo de record do tipo <code>bigint</code> valida <code>typeof === "bigint"</code> na fronteira, então um id que chega como <code>number</code> no JSON é rejeitado em vez de truncado sem aviso.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Um invariante é um tipo, não um comentário</h2>
+        <p>
+          "O valor não é negativo" e "a nota vai de 1 a 5" são as verificações que se escrevem uma vez e se esquecem depois. Um refinamento <code>where</code> coloca o invariante no tipo, e o descritor o garante na fronteira. Um valor que não satisfaz o predicado nunca chega a virar um <code>Amount</code>.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">refinements.glyph</span>
+<pre>type Amount = int where value &gt;= 0
+type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+
+Amount.parse(-1)   <span class="cm"># Err  (not just "is a number")</span>
+Rating.parse(6)    <span class="cm"># Err</span>
+Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Injeção é erro de compilação</h2>
+        <p>
+          O caminho clássico para execução remota de código é entrada não confiável chegando a uma query SQL, a um comando de shell ou a um template HTML. <code>std/taint</code> transforma isso em erro de tipo. Um valor vindo de fora é <code>Tainted</code>; um sink que você quer proteger recebe <code>Trusted</code>. Os dois são estruturalmente distintos, então o único caminho de um para o outro é um <code>sanitize</code> explícito. Passe o valor tainted direto para um sink e o <code>tsc</code> se recusa a compilar.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">o caminho seguro compila</span>
+<pre>fn run_query(sql: Trusted&lt;string&gt;) -&gt; void { ... }
+
+let input: Tainted&lt;string&gt; = taint(req.body)
+run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">o caminho da injeção não compila</span>
+<pre data-check="expect-error TS2345">module query
+
+import std/taint { Tainted, Trusted, taint, expose }
+
+fn run_query(sql: Trusted&lt;string&gt;) -&gt; string {
+  return expose(sql)
+}
+
+pub fn handle(body: string) -&gt; string {
+  let input: Tainted&lt;string&gt; = taint(body)
+  return run_query(input)
+}
+
+// [TS2345] Argument of type 'Tainted&lt;string&gt;'
+//   is not assignable to parameter of type
+//   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
+        </div>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponível hoje</h3>
+          <p><code>std/decimal</code> para dinheiro exato, <code>bigint</code> para inteiros grandes exatos, refinamentos <code>where</code> para que um invariante seja validado na fronteira, e <code>std/taint</code> para que entrada não confiável não chegue a um sink protegido sem um <code>sanitize</code> explícito. Tudo isso é verificado: um valor ou id inválido falha no <code>parse</code>, um invariante violado falha no <code>parse</code>, e um valor não sanitizado falha no <code>tsc</code>.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Onde para</h3>
+          <p>Hoje um refinamento <code>where</code> cobre tipos base primitivos; invariantes de record e entre campos (<code>where value.paid &lt;= value.total</code>) são uma extensão planejada. Taint é uma disciplina que você adota ao tipar um sink como <code>Trusted</code>, não uma análise de fluxo automática: o compilador garante a fronteira que você declara, ele não infere taint pelo programa inteiro para você.</p>
+        </div>
+      </div>

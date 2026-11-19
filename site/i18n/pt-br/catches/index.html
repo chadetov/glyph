@@ -1,0 +1,43 @@
+---
+title: O que o TypeScript deixa passar e o Glyph detecta · Glyph
+description: Código escrito por agentes de IA que passa no tsc --strict, cada um ao lado do mesmo programa em Glyph com a saída real do compilador. Um gate do build roda cada caso de novo.
+source_hash: 09d8897c06eb2254
+---
+      <header class="page-hero">
+        <p class="eyebrow">Casos que o TypeScript deixa passar</p>
+        <h1>Detectado antes de ir para produção</h1>
+        <p class="lede">{{catches:breakdown}}</p>
+        <p class="lede">{{catches:measured}}</p>
+        <p class="lede">
+          Cada entrada são dois programas em <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>, e a saída embaixo de cada um é o que as ferramentas imprimiram. Um gate do build, <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>, roda cada caso de novo e falha se qualquer uma das metades deixar de fazer o que a página diz. A configuração completa de TypeScript usada na comparação está nesse script.
+        </p>
+      </header>
+
+      <section class="c-cases" id="cases">
+        <h2 class="group-head">{{catches:count}} erros de TypeScript</h2>
+{{catches:legend}}
+{{catches:filters}}
+{{catches:mistakes}}
+      </section>
+      <section class="c-section" id="traps">
+        <h2 class="group-head">{{catches:trap-count}} armadilhas de JavaScript que não existem em Glyph</h2>
+        <p class="group-sub">
+          Armadilhas mais antigas em que os agentes ainda caem de vez em quando. O Glyph recusa cada um desses programas, mas não porque encontra o erro: o recurso por trás dele não existe na linguagem, e o substituto é indicado.
+        </p>
+{{catches:traps}}
+      </section>
+
+      <section class="c-section" id="not-yet">
+        <h2 class="group-head">O que o Glyph ainda não detecta</h2>
+        <p class="group-sub">
+          {{catches:gap-cases}} falhas que o Glyph ainda não fecha. Cada uma compila em Glyph hoje e faz a mesma coisa errada que em TypeScript. Todas têm uma reprodução em <code>catches/</code> e um número de gap aberto, e o gate falha quando uma correção entra, para que a entrada não sobreviva à falha.
+        </p>
+{{catches:gaps}}
+        <p class="group-sub c-after">
+          Erros de lógica são a maior categoria em todo estudo sobre código escrito por agentes, e nenhum verificador de tipos os enxerga: uma fórmula errada, ou uma tarefa mal entendida, compila em Glyph assim como compila em TypeScript.
+        </p>
+        <p class="group-sub">
+          O Glyph tem uma única válvula de escape, <code>extern_ts</code>, para o TypeScript que ele não consegue expressar. É uma palavra-chave fixa, então <code>grep extern_ts</code> lista todos os lugares onde as regras ficam suspensas.
+        </p>
+      </section>
+{{catches:script}}

@@ -1,0 +1,1226 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/verifiability/index.html",
+  "locale": "pt-br",
+  "source_hash": "debac5501878fd3d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What stops an agent from silently breaking my code? · Glyph",
+      "tr": "O que impede um agente de quebrar meu código em silêncio? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.",
+      "tr": "Mudanças que compilam e depois quebram em TypeScript, como um caso esquecido, um erro não tratado ou um campo renomeado, são erros de compilação em Glyph que o agente precisa corrigir."
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Próxima &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "As edições do agente vão ficar limpas, ou reformatar o arquivo inteiro?"
+    },
+    {
+      "id": "h-817ec091",
+      "kind": "html",
+      "en": "01 &middot; The core promise",
+      "tr": "01 &middot; A promessa central"
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "O que impede um agente de quebrar meu código sem ninguém perceber?"
+    },
+    {
+      "id": "h-8860267a",
+      "kind": "html",
+      "en": "A whole class of change that <strong>quietly compiles</strong> in TypeScript (a missing case, an unhandled error, a renamed field) becomes a <strong>compile error the agent has to fix before it can ship</strong>.",
+      "tr": "Uma categoria inteira de mudança que <strong>compila sem alarde</strong> em TypeScript (um caso esquecido, um erro não tratado, um campo renomeado) vira um <strong>erro de compilação que o agente precisa corrigir antes de ir para produção</strong>."
+    },
+    {
+      "id": "h-0dca38d0",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.ts</span> one new state, no other edit",
+      "tr": "<span class=\"ak-lang\">status.ts</span> um estado novo, nenhuma outra edição"
+    },
+    {
+      "id": "h-a7fd8366",
+      "kind": "html",
+      "en": "tsc --strict: passes, prints undefined",
+      "tr": "tsc --strict: passa, imprime undefined"
+    },
+    {
+      "id": "h-df578f1c",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.glyph</span> one new variant, and the compiler finds every gap",
+      "tr": "<span class=\"ak-lang\">status.glyph</span> uma variante nova, e o compilador encontra cada brecha"
+    },
+    {
+      "id": "h-f12dfbd8",
+      "kind": "html",
+      "en": "refused: E0200",
+      "tr": "recusado: E0200"
+    },
+    {
+      "id": "h-dddaf308",
+      "kind": "html",
+      "en": "glyph check --no-tsc, 0.1.149 (excerpt)",
+      "tr": "glyph check --no-tsc, 0.1.149 (trecho)"
+    },
+    {
+      "id": "h-b4036960",
+      "kind": "html",
+      "en": "<span>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update. The equivalent TypeScript <code>switch</code> compiles clean and returns <code>undefined</code> at runtime.</span>",
+      "tr": "<span>Adicione um estado a uma union, e cada lugar que tratava o conjunto antigo para de compilar, apontando o ponto exato a atualizar. O <code>switch</code> equivalente em TypeScript compila sem erros e retorna <code>undefined</code> em runtime.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Nesta página"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Nesta página"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Por que isso importa</a>"
+    },
+    {
+      "id": "h-493ba471",
+      "kind": "html",
+      "en": "<a href=\"#errors\">Errors</a>",
+      "tr": "<a href=\"#errors\">Erros</a>"
+    },
+    {
+      "id": "h-299aad85",
+      "kind": "html",
+      "en": "<a href=\"#typos\">Typos in arms</a>",
+      "tr": "<a href=\"#typos\">Erros de digitação nos braços</a>"
+    },
+    {
+      "id": "h-f1f1c9bc",
+      "kind": "html",
+      "en": "<a href=\"#imports\">Across modules</a>",
+      "tr": "<a href=\"#imports\">Entre módulos</a>"
+    },
+    {
+      "id": "h-ef1ba415",
+      "kind": "html",
+      "en": "<a href=\"#refinements\">Refinements</a>",
+      "tr": "<a href=\"#refinements\">Refinamentos</a>"
+    },
+    {
+      "id": "h-736c66f8",
+      "kind": "html",
+      "en": "<a href=\"#examples\">Tests in the build</a>",
+      "tr": "<a href=\"#examples\">Testes no build</a>"
+    },
+    {
+      "id": "h-1af522cc",
+      "kind": "html",
+      "en": "<a href=\"#four-more-found-by-building-with-it\">Found by building</a>",
+      "tr": "<a href=\"#four-more-found-by-building-with-it\">Encontrados construindo</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Situação atual</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por que isso importa"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link para esta seção"
+    },
+    {
+      "id": "h-32dffb36",
+      "kind": "html",
+      "en": "Agents don't usually break code loudly. They break it <strong>confidently</strong>: they add a state, drop a branch, or rename a field, everything still type-checks, and the bug surfaces in production.",
+      "tr": "Agentes normalmente não quebram o código de forma barulhenta. Eles quebram com <strong>confiança</strong>: adicionam um estado, deixam um branch de fora ou renomeiam um campo, tudo continua passando na verificação de tipos, e o bug aparece em produção."
+    },
+    {
+      "id": "h-593cf2d6",
+      "kind": "html",
+      "en": "The expensive failures are the ones that <em>compiled and were wrong</em>. Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into &ldquo;the compiler proved you did.&rdquo;",
+      "tr": "As falhas caras são as que <em>compilaram e estavam erradas</em>. O Glyph fecha essa brecha transformando &ldquo;você provavelmente tratou isso&rdquo; em &ldquo;o compilador provou que você tratou&rdquo;."
+    },
+    {
+      "id": "h-7c47ac02",
+      "kind": "html",
+      "en": "<b>Sealed unions</b>Tagged unions are <strong>sealed</strong>, so <code>match</code> must cover every case.",
+      "tr": "<b>Unions seladas</b>As unions etiquetadas são <strong>seladas</strong>, então o <code>match</code> precisa cobrir todos os casos."
+    },
+    {
+      "id": "h-a732dd83",
+      "kind": "html",
+      "en": "<b>Errors as values</b>Errors are <strong>values</strong> you have to unwrap, not exceptions that vanish.",
+      "tr": "<b>Erros como valores</b>Erros são <strong>valores</strong> que você precisa desembrulhar, não exceções que somem."
+    },
+    {
+      "id": "h-7cc9aefc",
+      "kind": "html",
+      "en": "<b>Checked boundaries</b>And every type carries a runtime descriptor, so data crossing a boundary is checked against its shape.",
+      "tr": "<b>Fronteiras verificadas</b>E todo tipo carrega um descritor de runtime, então os dados que cruzam uma fronteira são verificados contra o formato deles."
+    },
+    {
+      "id": "h-9e145fb3",
+      "kind": "html",
+      "en": "A dropped error is a warning",
+      "tr": "Um erro descartado gera um aviso"
+    },
+    {
+      "id": "h-a0f7e838",
+      "kind": "html",
+      "en": "Same for errors: a function that returns <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or propagated with <code>?</code> (and the compiler checks the error type lines up). And if you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure.",
+      "tr": "O mesmo vale para erros: uma função que retorna <code>Result&lt;T, E&gt;</code> deve ser tratada com <code>match</code> ou propagada com <code>?</code> (e o compilador confere se o tipo de erro bate). E se você <em>larga</em> um <code>Result</code> no chão (chama como uma instrução e ignora o que ela retornou), o Glyph avisa (<code>E0217</code>), porque um erro descartado é uma falha engolida."
+    },
+    {
+      "id": "h-3c7c9444",
+      "kind": "html",
+      "en": "You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "Você silencia o aviso de propósito com <code>let _ = ...</code>, nunca por acidente."
+    },
+    {
+      "id": "h-4faa036c",
+      "kind": "html",
+      "en": "The standard library's unions are sealed too",
+      "tr": "As unions da biblioteca padrão também são seladas"
+    },
+    {
+      "id": "h-ac5ad03f",
+      "kind": "html",
+      "en": "The bar is the same for a union the standard library owns. <code>fs.ErrorKind</code> is a closed set of six kinds, and the checker knows its shape, so <code>match e.kind</code> on a filesystem error needs no <code>else</code> arm and fails with <code>E0200</code> when you leave a kind out.",
+      "tr": "A exigência é a mesma para uma union que pertence à biblioteca padrão. <code>fs.ErrorKind</code> é um conjunto fechado de seis tipos, e o verificador conhece o formato dele, então <code>match e.kind</code> sobre um erro do sistema de arquivos não precisa de braço <code>else</code> e falha com <code>E0200</code> quando você deixa um tipo de fora."
+    },
+    {
+      "id": "h-d6bf3201",
+      "kind": "html",
+      "en": "E0200 missing kind",
+      "tr": "E0200 tipo faltando"
+    },
+    {
+      "id": "h-82c9da4e",
+      "kind": "html",
+      "en": "E0210 unknown field",
+      "tr": "E0210 campo desconhecido"
+    },
+    {
+      "id": "h-b365b66a",
+      "kind": "html",
+      "en": "E0218 needs else",
+      "tr": "E0218 precisa de else"
+    },
+    {
+      "id": "h-68b00f6d",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">field typos, return types, number and string matches</span>",
+      "tr": "Detalhes <span class=\"hint\">erros de digitação em campos, tipos de retorno, match em números e strings</span>"
+    },
+    {
+      "id": "h-0469c431",
+      "kind": "html",
+      "en": "<code>e.mesage</code> is <code>E0210</code> rather than something <code>tsc</code> catches downstream. Return types travel too: <code>string.split(text, \",\")</code> is an <code>Array&lt;string&gt;</code>, so <code>for i, part in string.split(text, \",\")</code> binds <code>i</code> as a number instead of the string key you'd get from an untyped iterand.",
+      "tr": "<code>e.mesage</code> é <code>E0210</code>, e não algo que o <code>tsc</code> pega mais adiante. Os tipos de retorno também acompanham: <code>string.split(text, \",\")</code> é um <code>Array&lt;string&gt;</code>, então <code>for i, part in string.split(text, \",\")</code> liga <code>i</code> como um número, e não como a chave string que você teria com um iterando sem tipo."
+    },
+    {
+      "id": "h-50f9d186",
+      "kind": "html",
+      "en": "Exhaustiveness isn't just for unions. A <code>match</code> on a <code>number</code> or <code>string</code> with only literal arms can't cover an unbounded domain, so Glyph requires an <code>else</code> (<code>E0218</code>) rather than letting the uncovered value fall through to a runtime throw.",
+      "tr": "A exaustividade não vale só para unions. Um <code>match</code> sobre um <code>number</code> ou <code>string</code> só com braços literais não tem como cobrir um domínio ilimitado, então o Glyph exige um <code>else</code> (<code>E0218</code>) em vez de deixar o valor não coberto cair num throw em runtime."
+    },
+    {
+      "id": "h-bf2adc90",
+      "kind": "html",
+      "en": "The rule is the same everywhere: a <code>match</code> that doesn't account for a case doesn't compile.",
+      "tr": "A regra é a mesma em todo lugar: um <code>match</code> que não dá conta de um caso não compila."
+    },
+    {
+      "id": "h-94ceef2f",
+      "kind": "html",
+      "en": "A misspelled arm is a gap, not a catch-all",
+      "tr": "Um braço com erro de digitação é uma brecha, não um catch-all"
+    },
+    {
+      "id": "h-325a109d",
+      "kind": "html",
+      "en": "A typo can't quietly paper over a gap either. A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding.",
+      "tr": "Um erro de digitação também não consegue esconder uma brecha sem ninguém ver. A cabeça de um braço com letra maiúscula é uma <strong>referência a uma variante</strong>, não uma ligação nova."
+    },
+    {
+      "id": "h-81a2cb84",
+      "kind": "html",
+      "en": "status.glyph: a misspelled arm is a gap, not a catch-all",
+      "tr": "status.glyph: um braço com erro de digitação é uma brecha, não um catch-all"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-1111b2dc",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what older Glyph did with the typo</span>",
+      "tr": "Histórico <span class=\"hint\">o que versões antigas do Glyph faziam com o erro de digitação</span>"
+    },
+    {
+      "id": "h-35c640dd",
+      "kind": "html",
+      "en": "A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding, so if you misspell <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a catch-all that bound every value and made the match look total. Now the head has to name a real variant of the union you're matching. When it doesn't, the build stops with <code>E0220</code> and points at the nearest real name, and the variant you actually skipped still shows up as <code>E0200</code> right next to it.",
+      "tr": "A cabeça de um braço com letra maiúscula é uma <strong>referência a uma variante</strong>, não uma ligação nova, então se você escrevia <code>Loading</code> errado como <code>Loadign</code>, versões antigas do Glyph liam o erro como um catch-all que ligava qualquer valor e fazia o match parecer completo. Agora a cabeça precisa nomear uma variante real da union sobre a qual você faz o match. Quando não nomeia, o build para com <code>E0220</code> e aponta o nome real mais próximo, e a variante que você de fato pulou continua aparecendo como <code>E0200</code> logo ao lado."
+    },
+    {
+      "id": "h-e45746f9",
+      "kind": "html",
+      "en": "Variants inside a payload",
+      "tr": "Variantes dentro de um payload"
+    },
+    {
+      "id": "h-4e9c7c14",
+      "kind": "html",
+      "en": "That reading holds one level down, where the variant is the payload of another one. The arm now dispatches on the payload's own tag, whatever the outer variant is.",
+      "tr": "Essa leitura vale um nível abaixo, onde a variante é o payload de outra. O braço agora despacha pela tag do próprio payload, seja qual for a variante externa."
+    },
+    {
+      "id": "h-5f78059f",
+      "kind": "html",
+      "en": "repl.glyph: the inner arm tests the payload, it doesn't bind it",
+      "tr": "repl.glyph: o braço interno testa o payload, não o liga"
+    },
+    {
+      "id": "h-e29806a9",
+      "kind": "html",
+      "en": "E0305 duplicate case label",
+      "tr": "E0305 rótulo de case duplicado"
+    },
+    {
+      "id": "h-a9f4ca6a",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the dead arm before 0.1.93, and the E0305 guard</span>",
+      "tr": "Histórico <span class=\"hint\">o braço morto antes da 0.1.93, e a proteção do E0305</span>"
+    },
+    {
+      "id": "h-6b579450",
+      "kind": "html",
+      "en": "<code>Err(Blank)</code> beside <code>Err(e)</code> reads as \"ignore a blank line, print every other parse error\", and until 0.1.93 it compiled to two <code>case \"Err\":</code> labels on the outer tag whose first bound the whole payload under the name <code>Blank</code>. Every error took the first arm, the second was dead code, and nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> accepts a duplicate case label. The arm now dispatches on the payload's own tag, whatever the outer variant is, and the compiler reads the name the way the typechecker does: the payload union's own variant list decides, and only when that list is out of reach does the name's shape decide. For a union declared in the same file the capitalization no longer matters. For one imported from another module the variant list is out of reach today, so a capitalized variant dispatches and a lowercase one stops the build.",
+      "tr": "<code>Err(Blank)</code> ao lado de <code>Err(e)</code> se lê como \"ignore uma linha em branco, imprima todos os outros erros de parse\", e até a 0.1.93 isso compilava para dois rótulos <code>case \"Err\":</code> na tag externa, e o primeiro ligava o payload inteiro com o nome <code>Blank</code>. Todo erro caía no primeiro braço, o segundo era código morto, e nada avisava: o Glyph não reportava nenhum diagnóstico e o <code>tsc --strict</code> aceita um rótulo de case duplicado. O braço agora despacha pela tag do próprio payload, seja qual for a variante externa, e o compilador lê o nome do mesmo jeito que o verificador de tipos: quem decide é a lista de variantes da própria union do payload, e só quando essa lista está fora de alcance é que o formato do nome decide. Para uma union declarada no mesmo arquivo, a capitalização não importa mais. Para uma importada de outro módulo, a lista de variantes hoje está fora de alcance, então uma variante com maiúscula despacha e uma com minúscula para o build."
+    },
+    {
+      "id": "h-2bcf741d",
+      "kind": "html",
+      "en": "It stops because the switch is guarded now. Two arms that would write the same <code>case</code> label are <code>E0305</code>, not a switch whose second label can never run. That is what makes the class loud instead of silent: a lowering that reaches for the same tag twice fails the build rather than picking the wrong arm at run time.",
+      "tr": "Ele para porque agora o switch tem uma proteção. Dois braços que escreveriam o mesmo rótulo <code>case</code> são <code>E0305</code>, e não um switch cujo segundo rótulo nunca roda. É isso que torna essa categoria barulhenta em vez de silenciosa: uma tradução para TypeScript que usa a mesma tag duas vezes falha o build, em vez de escolher o braço errado em tempo de execução."
+    },
+    {
+      "id": "h-5ae4d2b0",
+      "kind": "html",
+      "en": "Import spelling never turns the check off",
+      "tr": "A forma do import nunca desliga a verificação"
+    },
+    {
+      "id": "h-cf742b0d",
+      "kind": "html",
+      "en": "How the union got into scope doesn't change any of this. Glyph lets you write a variant arm two ways, and both are checked the same: <code>import model { Cond, Yes, No }</code> with bare arms, or <code>import model</code> (or <code>import model as m</code>) with <code>model.Yes(_)</code>.",
+      "tr": "O jeito como a union entrou no escopo não muda nada disso. O Glyph deixa você escrever um braço de variante de duas formas, e as duas são verificadas igual: <code>import model { Cond, Yes, No }</code> com braços sem prefixo, ou <code>import model</code> (ou <code>import model as m</code>) com <code>model.Yes(_)</code>."
+    },
+    {
+      "id": "h-a5be5f60",
+      "kind": "html",
+      "en": "interp.glyph: the import list came out, the match is still checked",
+      "tr": "interp.glyph: a lista de import saiu, o match continua verificado"
+    },
+    {
+      "id": "h-1efde9fe",
+      "kind": "html",
+      "en": "glyph build, after deleting the last arm",
+      "tr": "glyph build, depois de apagar o último braço"
+    },
+    {
+      "id": "h-f2895549",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">standard library unions, string enums, and why the list existed</span>",
+      "tr": "Detalhes <span class=\"hint\">unions da biblioteca padrão, enums de string e por que a lista existia</span>"
+    },
+    {
+      "id": "h-d10dc4ff",
+      "kind": "html",
+      "en": "That holds for the standard library's unions too, so <code>match o { option.Some(s) =&gt; … }</code> on an <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling is. Until 0.1.56 the qualified spelling skipped the check entirely and the build reported no diagnostics on a match that threw at run time.",
+      "tr": "Isso vale também para as unions da biblioteca padrão, então <code>match o { option.Some(s) =&gt; … }</code> sobre um <code>option.Option&lt;string&gt;</code> é <code>E0200</code> pelo <code>None</code> que falta, exatamente como na forma sem prefixo <code>Some</code>/<code>None</code>. Até a 0.1.56, a forma qualificada pulava a verificação por completo e o build não reportava nenhum diagnóstico num match que lançava erro em tempo de execução."
+    },
+    {
+      "id": "h-947faa47",
+      "kind": "html",
+      "en": "A string enum crosses the boundary too. <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> declared in <code>catalog.glyph</code> and imported into another module keeps its four values, so a match covering all four compiles with no <code>else</code>, and dropping one is <code>E0200</code> naming the value you dropped. Until 0.1.57 it was <code>E0218</code>, with help text telling you to add an <code>else</code> arm. That help was wrong about the code in front of it, and taking it turned a compile error into a runtime fallthrough. All three import spellings work: <code>import catalog { ColType }</code>, <code>import catalog</code> with <code>catalog.ColType</code>, and <code>import catalog as c</code> with <code>c.ColType</code>.",
+      "tr": "Um enum de string também cruza a fronteira. <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> declarado em <code>catalog.glyph</code> e importado em outro módulo mantém os seus quatro valores, então um match que cobre os quatro compila sem <code>else</code>, e deixar um de fora é <code>E0200</code> nomeando o valor que faltou. Até a 0.1.57 isso era <code>E0218</code>, com um texto de ajuda dizendo para adicionar um braço <code>else</code>. Essa ajuda estava errada sobre o código em questão, e segui-la transformava um erro de compilação numa queda silenciosa em runtime. As três formas de import funcionam: <code>import catalog { ColType }</code>, <code>import catalog</code> com <code>catalog.ColType</code> e <code>import catalog as c</code> com <code>c.ColType</code>."
+    },
+    {
+      "id": "h-1a86b4ae",
+      "kind": "html",
+      "en": "That import list is where this came from. It was written by hand in every module of a statechart engine, with a comment above it saying a union's constructors don't arrive with its type. The comment was right about the syntax and wrong about the reason: the list was there because the shorter spelling turned the check off, and nobody had noticed, because turning it off is silent. Which form you pick is now a real choice rather than a trap. The named one puts every variant you handle in the import list, which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one says at each arm which module the variant came from. Neither costs you the check.",
+      "tr": "Foi dessa lista de import que tudo isso surgiu. Ela era escrita à mão em cada módulo de um motor de statecharts, com um comentário acima dizendo que os construtores de uma union não chegam junto com o tipo dela. O comentário estava certo sobre a sintaxe e errado sobre o motivo: a lista estava lá porque a forma mais curta desligava a verificação, e ninguém tinha percebido, porque desligar é silencioso. Qual forma você escolhe agora é uma escolha de verdade, e não uma armadilha. A forma nomeada coloca na lista de import cada variante que você trata, que é o que um <code>grep</code> por <code>Equals</code> encontra. A forma qualificada diz, em cada braço, de qual módulo a variante veio. Nenhuma das duas custa a verificação."
+    },
+    {
+      "id": "h-5d24c15d",
+      "kind": "html",
+      "en": "Imported records keep their fields",
+      "tr": "Records importados mantêm seus campos"
+    },
+    {
+      "id": "h-22710d78",
+      "kind": "html",
+      "en": "Records cross now too, and until 0.1.58 they did not. A record therefore keeps its field set, and a bad field is <code>E0210</code> naming the record rather than a <code>tsc</code> error about an anonymous shape.",
+      "tr": "Records também cruzam agora, e até a 0.1.58 não cruzavam. Por isso um record mantém o seu conjunto de campos, e um campo errado é <code>E0210</code> nomeando o record, e não um erro do <code>tsc</code> sobre um formato anônimo."
+    },
+    {
+      "id": "h-7282177b",
+      "kind": "html",
+      "en": "glyph build, on a typo'd field of an imported record",
+      "tr": "glyph build, num campo digitado errado de um record importado"
+    },
+    {
+      "id": "h-e3755b2b",
+      "kind": "html",
+      "en": "table.glyph: the hoists and the comment explaining them are gone",
+      "tr": "table.glyph: os hoists e o comentário que os explicava foram embora"
+    },
+    {
+      "id": "h-7255646a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the line 11 bug, what tsc misses, how identity crosses</span>",
+      "tr": "Detalhes <span class=\"hint\">o bug da linha 11, o que o tsc deixa passar, como a identidade cruza</span>"
+    },
+    {
+      "id": "h-14cf6d10",
+      "kind": "html",
+      "en": "A type declared in one file and used in another arrived with nothing known about it, which cost two separate checks. A misspelled field on it drew no Glyph error at all, so <code>sheet.rowz</code> fell through to <code>tsc</code> and came back as a TypeScript message about a shape you never wrote. And <code>for i, r in sheet.rows</code> could not tell that <code>rows</code> was an array, so it emitted <code>Object.entries(sheet.rows)</code> rather than <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string <code>\"0\"</code>. <code>i + 1</code> then concatenates instead of adding, and a row that should be reported as <code>line 2</code> reports as <code>line 11</code>.",
+      "tr": "Um tipo declarado num arquivo e usado em outro chegava sem nada conhecido sobre ele, e isso custava duas verificações diferentes. Um campo digitado errado nele não gerava nenhum erro do Glyph, então <code>sheet.rowz</code> caía no <code>tsc</code> e voltava como uma mensagem de TypeScript sobre um formato que você nunca escreveu. E <code>for i, r in sheet.rows</code> não conseguia saber que <code>rows</code> era um array, então emitia <code>Object.entries(sheet.rows)</code> em vez de <code>sheet.rows.entries()</code>. Isso liga <code>i</code> à string <code>\"0\"</code>. <code>i + 1</code> então concatena em vez de somar, e uma linha que deveria ser reportada como <code>line 2</code> aparece como <code>line 11</code>."
+    },
+    {
+      "id": "h-9abff4c5",
+      "kind": "html",
+      "en": "The part worth knowing is which half <code>tsc</code> catches. Arithmetic on that index it does catch, though it reports the error against generated TypeScript for a variable Glyph bound on your behalf. What it cannot catch is every place a string is accepted where a number was meant: string interpolation, concatenation, a <code>record.get</code> key. Those compile clean under both checkers and print the wrong number. That is the shape of bug this project exists to remove, so a module boundary that reintroduces it is not a boundary Glyph can leave alone.",
+      "tr": "O que vale saber é qual metade o <code>tsc</code> pega. A aritmética sobre esse índice ele pega, embora reporte o erro contra o TypeScript gerado, numa variável que o Glyph ligou por você. O que ele não consegue pegar é cada lugar onde uma string é aceita onde se queria um número: interpolação de string, concatenação, uma chave de <code>record.get</code>. Esses compilam sem erros nos dois verificadores e imprimem o número errado. É exatamente o tipo de bug que este projeto existe para eliminar, então uma fronteira de módulo que o traz de volta não é uma fronteira que o Glyph possa deixar como está."
+    },
+    {
+      "id": "h-458dd926",
+      "kind": "html",
+      "en": "An imported type now carries an identity across the boundary, keyed on the module that declares it and the name it declares, so all three import spellings resolve to the same type. The declaration itself is fetched on demand and lowered on the declaring module's side, which is the half a consumer cannot do: resolution runs over spans, and an imported declaration's spans belong to another file.",
+      "tr": "Um tipo importado agora carrega uma identidade através da fronteira, indexada pelo módulo que o declara e pelo nome declarado, então as três formas de import resolvem para o mesmo tipo. A própria declaração é buscada sob demanda e processada do lado do módulo que a declara, que é a metade que um consumidor não consegue fazer: a resolução trabalha sobre spans, e os spans de uma declaração importada pertencem a outro arquivo."
+    },
+    {
+      "id": "h-056c35df",
+      "kind": "html",
+      "en": "The query engine in <code>examples/apps/csvql</code> is where this surfaced. It carried three <code>let</code> hoists whose only job was to restate an imported field's type for the emitter, under a four-line comment explaining that without them the row and column numbers in an error message come out wrong. All three are deleted and the app prints byte-identical output for all twelve queries.",
+      "tr": "Foi no motor de consultas em <code>examples/apps/csvql</code> que isso apareceu. Ele tinha três hoists de <code>let</code> cuja única função era repetir o tipo de um campo importado para o emissor, sob um comentário de quatro linhas explicando que, sem eles, os números de linha e coluna numa mensagem de erro saem errados. Os três foram apagados e o app imprime uma saída idêntica byte a byte nas doze consultas."
+    },
+    {
+      "id": "h-16e56e8c",
+      "kind": "html",
+      "en": "One thing still stops at the boundary. Passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is E0211 naming both types, but an <code>interface</code>'s member list does not cross, so a record passed where an imported interface is expected is compared against nothing. Giving it the treatment a record's field set gets would quietly change what structural satisfaction means, which is a language decision rather than a fix.",
+      "tr": "Uma coisa ainda para na fronteira. Passar um <code>catalog.Sheet</code> onde se espera um <code>table.Row</code> é E0211 nomeando os dois tipos, mas a lista de membros de uma <code>interface</code> não cruza, então um record passado onde se espera uma interface importada é comparado com nada. Dar a ela o mesmo tratamento que o conjunto de campos de um record recebe mudaria sem alarde o que satisfação estrutural significa, e isso é uma decisão de linguagem, não uma correção."
+    },
+    {
+      "id": "h-6834f6ea",
+      "kind": "html",
+      "en": "PII masking lives on the type",
+      "tr": "O mascaramento de dados pessoais fica no tipo"
+    },
+    {
+      "id": "h-e74ab1dc",
+      "kind": "html",
+      "en": "The same \"make it type-level, not convention\" instinct covers PII. Put <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a <code>redact()</code> on its descriptor that masks those fields, so <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "O mesmo instinto de \"colocar no tipo, não em convenção\" cobre dados pessoais (PII). Coloque <code>@redact fields: [ssn, dob]</code> num tipo e o compilador gera um <code>redact()</code> no descritor dele que mascara esses campos, então <code>json.stringify(User.redact(u))</code> não tem como vazá-los."
+    },
+    {
+      "id": "h-13194d57",
+      "kind": "html",
+      "en": "E0219 unknown field in @redact",
+      "tr": "E0219 campo desconhecido em @redact"
+    },
+    {
+      "id": "h-a3dc9bf7",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently does nothing.",
+      "tr": "Nomeie um campo que o tipo não tem e é um erro de compilação (<code>E0219</code>), e não uma redação que em silêncio não faz nada."
+    },
+    {
+      "id": "h-f83eef70",
+      "kind": "html",
+      "en": "Refinements are checked all the way down",
+      "tr": "Refinamentos são verificados até o fundo"
+    },
+    {
+      "id": "h-4f2c9d8a",
+      "kind": "html",
+      "en": "A descriptor is only worth anything if it's the check the type declares, all the way down. A <code>where</code> refinement runs its predicate wherever the type appears, not just at a direct <code>Instant.parse</code>: as a record field, as an <code>Array</code> element, as an <code>Option</code> payload, inside a union variant, and through <code>json.parse&lt;T&gt;</code>.",
+      "tr": "Um descritor só vale alguma coisa se for a verificação que o tipo declara, até o fundo. Um refinamento <code>where</code> roda o seu predicado em qualquer lugar onde o tipo aparece, e não só num <code>Instant.parse</code> direto: como campo de um record, como elemento de um <code>Array</code>, como payload de um <code>Option</code>, dentro de uma variante de union e através de <code>json.parse&lt;T&gt;</code>."
+    },
+    {
+      "id": "a-9d24b993",
+      "kind": "attr:aria-label",
+      "en": "Where the predicate runs",
+      "tr": "Onde o predicado roda"
+    },
+    {
+      "id": "h-cc2d34d0",
+      "kind": "html",
+      "en": "<span>Calendar</span>",
+      "tr": "<span>Calendar</span>"
+    },
+    {
+      "id": "h-ff1a5c12",
+      "kind": "html",
+      "en": "<span>busy</span>",
+      "tr": "<span>busy</span>"
+    },
+    {
+      "id": "h-6f5019a2",
+      "kind": "html",
+      "en": "<span>start</span>",
+      "tr": "<span>start</span>"
+    },
+    {
+      "id": "h-b466db9f",
+      "kind": "html",
+      "en": "<span>The fix is four levels down from the boundary: <code>Calendar</code> to <code>Array&lt;WireParticipant&gt;</code> to <code>busy</code> to <code>start</code> to the predicate.</span>",
+      "tr": "<span>A correção fica quatro níveis abaixo da fronteira: de <code>Calendar</code> para <code>Array&lt;WireParticipant&gt;</code>, para <code>busy</code>, para <code>start</code>, até o predicado.</span>"
+    },
+    {
+      "id": "h-b717ddb6",
+      "kind": "html",
+      "en": "schedule.glyph: the predicate follows the type into the field",
+      "tr": "schedule.glyph: o predicado acompanha o tipo até dentro do campo"
+    },
+    {
+      "id": "h-db3eb4df",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the confident wrong schedule before 0.1.41</span>",
+      "tr": "Histórico <span class=\"hint\">a agenda errada e cheia de confiança antes da 0.1.41</span>"
+    },
+    {
+      "id": "h-26ea0f9a",
+      "kind": "html",
+      "en": "The same goes for a record imported from another module. Until 0.1.41 both of those fell back to checking that the key was present, which is not a check of anything.",
+      "tr": "O mesmo vale para um record importado de outro módulo. Até a 0.1.41, os dois casos voltavam a só verificar se a chave estava presente, o que não verifica coisa nenhuma."
+    },
+    {
+      "id": "h-32933c95",
+      "kind": "html",
+      "en": "The scheduling app below is where this surfaced. It reads calendars from a JSON file and needs every timestamp to be a real ISO-8601 instant. Before, the refinement stopped at the top level, so a hand-edited file with <code>\"start\": \"no\"</code> parsed fine, the instant read as 0, and the app printed a confident schedule and exited 0.",
+      "tr": "Foi no app de agendamento abaixo que isso apareceu. Ele lê calendários de um arquivo JSON e precisa que cada timestamp seja um instante ISO-8601 de verdade. Antes, o refinamento parava no nível de cima, então um arquivo editado à mão com <code>\"start\": \"no\"</code> passava no parse sem problema, o instante era lido como 0, e o app imprimia uma agenda cheia de confiança e saía com código 0."
+    },
+    {
+      "id": "h-e0b0c6e0",
+      "kind": "html",
+      "en": "Tests run as part of the build",
+      "tr": "Os testes rodam como parte do build"
+    },
+    {
+      "id": "h-8f68e695",
+      "kind": "html",
+      "en": "Tests live next to the code and run as part of compiling it. An <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.",
+      "tr": "Os testes ficam ao lado do código e rodam como parte da compilação. Um <code>@example</code> acima de uma função, ou um bloco <code>```glyph @run```</code> dentro de um <code>@doc</code>, é executado pelo <code>glyph build</code> sem nenhuma flag para lembrar."
+    },
+    {
+      "id": "h-a935d52f",
+      "kind": "html",
+      "en": "bracket.glyph: break the seeding and the build stops",
+      "tr": "bracket.glyph: quebre a distribuição das sementes e o build para"
+    },
+    {
+      "id": "h-9fb096f6",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why it can't be skipped quietly, and the JSON channel</span>",
+      "tr": "Detalhes <span class=\"hint\">por que não dá para pular em silêncio, e o canal JSON</span>"
+    },
+    {
+      "id": "h-8d480a9c",
+      "kind": "html",
+      "en": "A false one fails the build the same way a type error does, which is the point: an agent rewriting a function body cannot pass the build by leaving the assertion behind. <code>--no-test</code> opts out and prints how many tests it skipped, so the bypass is visible in the log.",
+      "tr": "Um exemplo falso falha o build do mesmo jeito que um erro de tipo, e é essa a ideia: um agente que reescreve o corpo de uma função não consegue passar no build deixando a asserção para trás. <code>--no-test</code> desliga e imprime quantos testes pulou, então o desvio fica visível no log."
+    },
+    {
+      "id": "h-0c14dec1",
+      "kind": "html",
+      "en": "The JSON output agents read reports the same verdict. <code>glyph build --json</code> carries an <code>examples</code> object next to the diagnostics, and a failing example makes <code>ok</code> false and the exit code non-zero. Until 0.1.43 the examples ran only under <code>--test</code>, and the JSON path returned before they ran at all, so the one channel an agent can read printed <code>\"ok\": true</code> on a project whose own assertion was false. If <code>tsx</code> isn't on <code>PATH</code> the build fails instead of reporting a pass it never checked.",
+      "tr": "A saída JSON que os agentes leem reporta o mesmo veredito. <code>glyph build --json</code> traz um objeto <code>examples</code> ao lado dos diagnósticos, e um exemplo que falha deixa <code>ok</code> falso e o código de saída diferente de zero. Até a 0.1.43, os exemplos só rodavam com <code>--test</code>, e o caminho JSON retornava antes de eles rodarem, então o único canal que um agente consegue ler imprimia <code>\"ok\": true</code> num projeto cuja própria asserção era falsa. Se o <code>tsx</code> não estiver no <code>PATH</code>, o build falha em vez de reportar uma aprovação que nunca verificou."
+    },
+    {
+      "id": "h-39aaaa02",
+      "kind": "html",
+      "en": "The bracket app below carries 23 of these. <code>seed_order</code> builds standard bracket order by doubling, which is the kind of function that is easy to get subtly wrong and easy to describe exactly. Change the doubling rule and the build stops, without a test file, a runner, or a flag.",
+      "tr": "O app de chaveamento abaixo tem 23 desses. <code>seed_order</code> monta a ordem padrão do chaveamento por duplicação, que é o tipo de função fácil de errar de um jeito sutil e fácil de descrever com exatidão. Mude a regra de duplicação e o build para, sem arquivo de teste, sem runner, sem flag."
+    },
+    {
+      "id": "h-03f15931",
+      "kind": "html",
+      "en": "Found by building with it",
+      "tr": "Encontrados construindo com ele"
+    },
+    {
+      "id": "h-698c73d4",
+      "kind": "html",
+      "en": "Four more, found by building with it",
+      "tr": "Mais quatro, encontrados construindo com ele"
+    },
+    {
+      "id": "h-113db4ca",
+      "kind": "html",
+      "en": "Each of these compiled clean and passed <code>tsc --strict</code>, and each was found by writing an application rather than by reading the compiler. They are the same failure in three places: the types said one thing and the program did another.",
+      "tr": "Cada um destes compilava sem erros e passava no <code>tsc --strict</code>, e cada um foi encontrado escrevendo uma aplicação, e não lendo o compilador. São a mesma falha em três lugares: os tipos diziam uma coisa e o programa fazia outra."
+    },
+    {
+      "id": "h-a616a906",
+      "kind": "html",
+      "en": "Reading a key that may not be there",
+      "tr": "Ler uma chave que pode não existir"
+    },
+    {
+      "id": "h-52489cbb",
+      "kind": "html",
+      "en": "reading a key that may not be there: now E0224",
+      "tr": "ler uma chave que pode não existir: agora E0224"
+    },
+    {
+      "id": "h-f531f861",
+      "kind": "html",
+      "en": "It is now a compile error pointing at <code>record.get</code>, which returns <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.",
+      "tr": "Agora é um erro de compilação que aponta para <code>record.get</code>, que retorna <code>Option&lt;V&gt;</code> para que o caso ausente tenha para onde ir."
+    },
+    {
+      "id": "h-e54e941e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why a map read is different from array indexing</span>",
+      "tr": "Detalhes <span class=\"hint\">por que ler um mapa é diferente de indexar um array</span>"
+    },
+    {
+      "id": "h-c9bcefe0",
+      "kind": "html",
+      "en": "A map's keys are arbitrary, so the compiler cannot know the key is there. Typing the read as <code>string</code> stated something it had not checked, and the value printed as the text \"undefined\". Writing a key is untouched, and so is array indexing: a bound is a value a program can check, a map key is not.",
+      "tr": "As chaves de um mapa são arbitrárias, então o compilador não tem como saber que a chave está lá. Tipar a leitura como <code>string</code> afirmava algo que ele não tinha verificado, e o valor era impresso como o texto \"undefined\". Escrever uma chave não mudou, e indexar um array também não: um limite é um valor que o programa pode verificar, uma chave de mapa não."
+    },
+    {
+      "id": "h-7affa1da",
+      "kind": "html",
+      "en": "<code>==</code> is value equality everywhere",
+      "tr": "<code>==</code> é igualdade de valor em todo lugar"
+    },
+    {
+      "id": "h-4243938e",
+      "kind": "html",
+      "en": "a test that passed while the code failed",
+      "tr": "um teste que passava enquanto o código falhava"
+    },
+    {
+      "id": "h-310e559c",
+      "kind": "html",
+      "en": "<code>==</code> is now value equality everywhere; primitives still compile to <code>===</code>, so ordinary comparisons are unchanged.",
+      "tr": "<code>==</code> agora é igualdade de valor em todo lugar; primitivos continuam compilando para <code>===</code>, então as comparações comuns não mudam."
+    },
+    {
+      "id": "h-ce8c5b9d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how a test could pass on broken code</span>",
+      "tr": "Histórico <span class=\"hint\">como um teste podia passar com código quebrado</span>"
+    },
+    {
+      "id": "h-493aa455",
+      "kind": "html",
+      "en": "<code>==</code> was documented as value equality and lowered to <code>===</code>, which is <em>reference</em> equality the moment either side is a record, a tagged union, or an array. The same expression compared structurally in a test and by identity in the program beside it, so a test could report success on code that did not work.",
+      "tr": "<code>==</code> estava documentado como igualdade de valor e virava <code>===</code>, que é igualdade de <em>referência</em> assim que um dos lados é um record, uma union etiquetada ou um array. A mesma expressão comparava estruturalmente num teste e por identidade no programa ao lado, então um teste podia reportar sucesso num código que não funcionava."
+    },
+    {
+      "id": "h-5f4e8e26",
+      "kind": "html",
+      "en": "A loop binding keeps its element type",
+      "tr": "A variável de um loop mantém o tipo do elemento"
+    },
+    {
+      "id": "h-8a885009",
+      "kind": "html",
+      "en": "exhaustiveness that evaporated inside a loop",
+      "tr": "exaustividade que evaporava dentro de um loop"
+    },
+    {
+      "id": "h-6c2e2fbd",
+      "kind": "html",
+      "en": "It now names the variant you have not handled, which is advice to satisfy the check rather than to switch it off.",
+      "tr": "Agora ele nomeia a variante que você não tratou, que é um conselho para satisfazer a verificação, e não para desligá-la."
+    },
+    {
+      "id": "h-811ca57d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the catch-all advice it used to give</span>",
+      "tr": "Histórico <span class=\"hint\">o conselho de catch-all que ele dava</span>"
+    },
+    {
+      "id": "h-1933d79f",
+      "kind": "html",
+      "en": "The loop binding carried no element type, so a <code>match</code> over a string-literal union degraded to a match over <code>string</code> and the compiler advised adding a catch-all.",
+      "tr": "A variável do loop não carregava o tipo do elemento, então um <code>match</code> sobre uma union de literais de string virava um match sobre <code>string</code> e o compilador sugeria adicionar um catch-all."
+    },
+    {
+      "id": "h-c324ad5a",
+      "kind": "html",
+      "en": "Imported generic unions are checked",
+      "tr": "Unions genéricas importadas são verificadas"
+    },
+    {
+      "id": "h-c5058636",
+      "kind": "html",
+      "en": "a variant left out of a match on an imported generic union",
+      "tr": "uma variante deixada de fora num match sobre uma union genérica importada"
+    },
+    {
+      "id": "h-e2d737fb",
+      "kind": "html",
+      "en": "It is <code>E0200</code> either way now, at both import spellings and at an open parameter or a concrete instantiation alike.",
+      "tr": "Agora é <code>E0200</code> em qualquer caso, nas duas formas de import, tanto com um parâmetro aberto quanto com uma instanciação concreta."
+    },
+    {
+      "id": "h-16f631f3",
+      "kind": "html",
+      "en": "History <span class=\"hint\">why the check never started</span>",
+      "tr": "Histórico <span class=\"hint\">por que a verificação nunca começava</span>"
+    },
+    {
+      "id": "h-b1b9589f",
+      "kind": "html",
+      "en": "A union your own module declares is checked whether or not it takes type parameters. One imported from a sibling module was checked only when it took none. <code>Tree&lt;string&gt;</code> reaches the cross-module coverage path as an application of an imported union rather than as one, and the gate that starts the check was looking for the second, so the <code>match</code> was never counted at all: <code>tsc --strict</code> passed and a <code>Leaf</code> threw. Delete <code>&lt;K&gt;</code> from both files and the same program was <code>E0200</code>.",
+      "tr": "Uma union que o seu próprio módulo declara é verificada, receba ela parâmetros de tipo ou não. Uma importada de um módulo vizinho só era verificada quando não recebia nenhum. <code>Tree&lt;string&gt;</code> chega ao caminho de cobertura entre módulos como uma aplicação de uma union importada, e não como a union em si, e o gate que inicia a verificação procurava a segunda forma, então o <code>match</code> nunca era contado: o <code>tsc --strict</code> passava e um <code>Leaf</code> lançava erro. Apague <code>&lt;K&gt;</code> dos dois arquivos e o mesmo programa era <code>E0200</code>."
+    },
+    {
+      "id": "h-215b69fb",
+      "kind": "html",
+      "en": "A <code>parse</code> can't claim a check it didn't do",
+      "tr": "Um <code>parse</code> não pode afirmar uma verificação que não fez"
+    },
+    {
+      "id": "h-ed18ae93",
+      "kind": "html",
+      "en": "a <code>parse</code> that reported success without checking: now E0304",
+      "tr": "um <code>parse</code> que reportava sucesso sem verificar: agora E0304"
+    },
+    {
+      "id": "h-39872533",
+      "kind": "html",
+      "en": "Holding a socket in a record is ordinary and still compiles. Validating one is now refused where it is written and in every module that imports the record, naming the field and its type, and the refusal follows the shape: through a nested record, an <code>Array</code>, an <code>Option</code>.",
+      "tr": "Guardar um socket num record é algo comum e continua compilando. Validar um agora é recusado onde está escrito e em cada módulo que importa o record, nomeando o campo e o tipo dele, e a recusa acompanha o formato: através de um record aninhado, de um <code>Array</code>, de um <code>Option</code>."
+    },
+    {
+      "id": "h-a05fe05e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why presence is not a check, and the fix it asks for</span>",
+      "tr": "Detalhes <span class=\"hint\">por que presença não é verificação, e a correção que ele pede</span>"
+    },
+    {
+      "id": "h-9c3b562f",
+      "kind": "html",
+      "en": "Every record type carries a runtime descriptor. For a field whose type the compiler cannot see into, a socket or anything reached through <code>extern_ts</code>, the generated check was \"is it present\" while the reported message read <code>field `sock` must be Socket</code>. A boolean that is always true is useless. One that is always true under a message naming a type nothing checked is worse, because <code>parse</code> is the thing a boundary is told to trust.",
+      "tr": "Todo tipo record carrega um descritor de runtime. Para um campo cujo tipo o compilador não consegue enxergar por dentro, um socket ou qualquer coisa vinda de <code>extern_ts</code>, a verificação gerada era \"está presente\", enquanto a mensagem reportada dizia <code>field `sock` must be Socket</code>. Um booleano que é sempre verdadeiro é inútil. Um que é sempre verdadeiro sob uma mensagem que nomeia um tipo que nada verificou é pior, porque o <code>parse</code> é justamente aquilo em que uma fronteira é orientada a confiar."
+    },
+    {
+      "id": "h-f64526be",
+      "kind": "html",
+      "en": "The fix it asks for is the split you would have written anyway, a wire type whose fields are all checkable, then a domain record you build from it. <code>unknown</code> is not caught by this, because it claims nothing and presence really is the whole check.",
+      "tr": "A correção que ele pede é a separação que você escreveria de qualquer jeito: um tipo de transporte com todos os campos verificáveis, e depois um record de domínio que você monta a partir dele. <code>unknown</code> não é pego por isso, porque não afirma nada, e a presença é de fato a verificação inteira."
+    },
+    {
+      "id": "h-ffa8c81e",
+      "kind": "html",
+      "en": "A signature change, invisible at the call site: closed in 0.1.116",
+      "tr": "Uma mudança de assinatura invisível no ponto de chamada: resolvido na 0.1.116"
+    },
+    {
+      "id": "h-6db7877f",
+      "kind": "html",
+      "en": "Change a function to take a payload instead of a raw string and every call still passing the old shape built clean.",
+      "tr": "Mude uma função para receber um payload em vez de uma string crua, e todas as chamadas que ainda passavam o formato antigo compilavam sem erros."
+    },
+    {
+      "id": "h-9ee21e49",
+      "kind": "html",
+      "en": "billing.glyph: a union crosses a `string` parameter unnoticed",
+      "tr": "billing.glyph: uma union passa por um parâmetro `string` sem ninguém notar"
+    },
+    {
+      "id": "h-a20d51b6",
+      "kind": "html",
+      "en": "glyph build, now",
+      "tr": "glyph build, agora"
+    },
+    {
+      "id": "h-dac7e473",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the check fires, and where it stays quiet</span>",
+      "tr": "Detalhes <span class=\"hint\">onde a verificação dispara, e onde fica quieta</span>"
+    },
+    {
+      "id": "h-17c058ca",
+      "kind": "html",
+      "en": "A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to accept a value of a declared union or record with no complaint at all, even though the identical call with a mismatched <code>bool</code> argument was already <code>E0211</code>.",
+      "tr": "Um parâmetro tipado como <code>string</code>, <code>number</code> ou <code>bool</code> aceitava um valor de uma union ou record declarado sem reclamar de nada, embora a mesma chamada com um argumento <code>bool</code> incompatível já fosse <code>E0211</code>."
+    },
+    {
+      "id": "h-da7fe218",
+      "kind": "html",
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "A verificação lê a declaração, então só dispara onde a resposta é certa. Um alias de primitivo, uma union de literais de string (D30), um corpo <code>extern_ts</code> ou <code>typeof</code> e uma <code>interface</code> continuam sem dizer nada, porque nenhum deles é comprovadamente diferente de <code>string</code> do jeito que uma union etiquetada ou um record é; <code>void</code> também fica de fora. Ela vale para um argumento, um <code>return</code> e uma anotação de <code>let</code> do mesmo jeito, já que os três compartilham uma única relação."
+    },
+    {
+      "id": "h-77fa2d03",
+      "kind": "html",
+      "en": "An annotated <code>const</code> is typed",
+      "tr": "Um <code>const</code> anotado tem tipo"
+    },
+    {
+      "id": "h-18946092",
+      "kind": "html",
+      "en": "A <code>const</code> had the matching gap on the receiving side.",
+      "tr": "Um <code>const</code> tinha a brecha correspondente do lado de quem recebe."
+    },
+    {
+      "id": "h-275d90ea",
+      "kind": "html",
+      "en": "catalog.glyph: an annotated const, and the field it does not have",
+      "tr": "catalog.glyph: um const anotado, e o campo que ele não tem"
+    },
+    {
+      "id": "h-ace01ce9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">unannotated consts, and why both fixes are breaking</span>",
+      "tr": "Detalhes <span class=\"hint\">consts sem anotação, e por que as duas correções quebram compatibilidade</span>"
+    },
+    {
+      "id": "h-7e1d4db5",
+      "kind": "html",
+      "en": "A module-level <code>const</code> carrying a type annotation lowered to <code>Ty::Unknown</code> no matter what the annotation said, so a field typo on it was invisible exactly where the identical annotated <code>let</code> inside a function already reported it.",
+      "tr": "Um <code>const</code> no nível do módulo com uma anotação de tipo virava <code>Ty::Unknown</code> independentemente do que a anotação dizia, então um erro de digitação num campo dele ficava invisível justo onde o mesmo <code>let</code> anotado dentro de uma função já reportava o erro."
+    },
+    {
+      "id": "h-4319dca8",
+      "kind": "html",
+      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "Um <code>const</code> sem anotação não afirma nada e continua <code>Unknown</code> de propósito: inferir o tipo a partir do inicializador é outra questão, com outra superfície de falsos positivos. As duas correções quebram compatibilidade com <code>glyph check --no-tsc</code>, o language server e o playground, já que cada uma passa a pegar um programa que a release anterior aceitava; um <code>glyph build</code> completo já ficava vermelho pelo <code>tsc</code> nos dois casos."
+    },
+    {
+      "id": "h-cbab1648",
+      "kind": "html",
+      "en": "An extra field is still <code>tsc</code>'s to catch",
+      "tr": "Um campo a mais ainda fica por conta do <code>tsc</code>"
+    },
+    {
+      "id": "h-ac6a4587",
+      "kind": "html",
+      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
+      "tr": "Uma verificação de literal de record ainda é do <code>tsc</code>, e não do Glyph. O <code>glyph build</code> para nela; <code>glyph check --no-tsc</code>, o language server e o playground não dizem nada (G273)."
+    },
+    {
+      "id": "h-b4f5f44a",
+      "kind": "html",
+      "en": "point.glyph: an extra field, left to tsc",
+      "tr": "point.glyph: um campo a mais, deixado para o tsc"
+    },
+    {
+      "id": "h-500a7735",
+      "kind": "html",
+      "en": "TS2353 from tsc",
+      "tr": "TS2353 do tsc"
+    },
+    {
+      "id": "h-420c0512",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how tsc reports it</span>",
+      "tr": "Detalhes <span class=\"hint\">como o tsc reporta</span>"
+    },
+    {
+      "id": "h-ef7526a6",
+      "kind": "html",
+      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
+      "tr": "Um literal com um campo que o record declarado não tem passa no verificador do Glyph, e o <code>tsc</code> o recusa no TypeScript emitido como <code>TS2353</code>, mapeado de volta para o literal."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Situação atual"
+    },
+    {
+      "id": "h-d58144f7",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">18</span>",
+      "tr": "Disponível hoje <span class=\"count\">18</span>"
+    },
+    {
+      "id": "h-f9b8704d",
+      "kind": "html",
+      "en": "Matching",
+      "tr": "Match"
+    },
+    {
+      "id": "h-1822a7e3",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over sealed unions: yours or a sibling module's, generic or not, and the standard library's, such as <code>fs.ErrorKind</code>",
+      "tr": "<code>match</code> exaustivo sobre unions seladas: as suas ou as de um módulo vizinho, genéricas ou não, e as da biblioteca padrão, como <code>fs.ErrorKind</code>"
+    },
+    {
+      "id": "h-1dc7d0ec",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over <code>number</code>/<code>string</code>",
+      "tr": "<code>match</code> exaustivo sobre <code>number</code>/<code>string</code>"
+    },
+    {
+      "id": "h-d12411b5",
+      "kind": "html",
+      "en": "A typo'd variant arm caught as a compile error with a nearest-variant suggestion instead of a silent catch-all",
+      "tr": "Um braço de variante digitado errado vira erro de compilação com sugestão da variante mais próxima, em vez de um catch-all silencioso"
+    },
+    {
+      "id": "h-b2819e07",
+      "kind": "html",
+      "en": "A variant in payload position dispatching on the payload's own tag rather than binding it",
+      "tr": "Uma variante na posição de payload despacha pela tag do próprio payload em vez de ligá-lo"
+    },
+    {
+      "id": "h-12d7966b",
+      "kind": "html",
+      "en": "Two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning",
+      "tr": "Dois braços que responderiam à mesma tag são recusados como <code>E0305</code>, em vez de um deles vencer em silêncio"
+    },
+    {
+      "id": "h-42315da3",
+      "kind": "html",
+      "en": "A <code>for</code> binding that keeps its element type",
+      "tr": "Uma variável de <code>for</code> que mantém o tipo do elemento"
+    },
+    {
+      "id": "h-d7829106",
+      "kind": "html",
+      "en": "Errors and tests",
+      "tr": "Erros e testes"
+    },
+    {
+      "id": "h-71ede7c9",
+      "kind": "html",
+      "en": "<code>Result</code> + the <code>?</code> operator with error-type checking",
+      "tr": "<code>Result</code> + o operador <code>?</code> com verificação do tipo de erro"
+    },
+    {
+      "id": "h-77e204a0",
+      "kind": "html",
+      "en": "A warning when a <code>Result</code> is discarded",
+      "tr": "Um aviso quando um <code>Result</code> é descartado"
+    },
+    {
+      "id": "h-c7fdeb1c",
+      "kind": "html",
+      "en": "<code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included",
+      "tr": "Testes <code>@example</code> / <code>@doc @run</code> que rodam em todo build, inclusive com <code>--json</code>"
+    },
+    {
+      "id": "h-5f5f223f",
+      "kind": "html",
+      "en": "Types, records and literals",
+      "tr": "Tipos, records e literais"
+    },
+    {
+      "id": "h-538cd6bb",
+      "kind": "html",
+      "en": "A declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected",
+      "tr": "Uma union ou record declarado passado onde se espera <code>string</code>/<code>number</code>/<code>bool</code>"
+    },
+    {
+      "id": "h-1d1dcc32",
+      "kind": "html",
+      "en": "A field typo on an annotated module-level <code>const</code>",
+      "tr": "Um erro de digitação num campo de um <code>const</code> anotado no nível do módulo"
+    },
+    {
+      "id": "h-10b714c5",
+      "kind": "html",
+      "en": "<code>==</code> as value equality on every type",
+      "tr": "<code>==</code> como igualdade de valor em todos os tipos"
+    },
+    {
+      "id": "h-65a54713",
+      "kind": "html",
+      "en": "Reading a key out of a map rejected",
+      "tr": "Ler uma chave de um mapa é rejeitado"
+    },
+    {
+      "id": "h-0fdc9dd8",
+      "kind": "html",
+      "en": "Object literals and JSX attributes checked against the declared type",
+      "tr": "Literais de objeto e atributos JSX verificados contra o tipo declarado"
+    },
+    {
+      "id": "h-194b7ac0",
+      "kind": "html",
+      "en": "since 0.1.124",
+      "tr": "desde a 0.1.124"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Detalhes"
+    },
+    {
+      "id": "h-16b87510",
+      "kind": "html",
+      "en": "Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant=\"nope\" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames.",
+      "tr": "Desde a 0.1.124, um literal de objeto tem o tipo record que os seus campos formam, então <code>let g: string = { x: 1 }</code>, um literal sem um campo que o record declarado exige e um literal passado onde não cabe são E0204 ou E0211 com o tipo declarado nomeado, num <code>let</code>, num <code>const</code>, num <code>return</code> e num argumento de chamada; e um atributo JSX é verificado contra o record de props do componente, então <code>&lt;Button variant=\"nope\" /&gt;</code> gera E0211 com os valores aceitos, e um atributo que o record não declara gera E0210, que o <code>glyph fix</code> renomeia."
+    },
+    {
+      "id": "h-cafb3664",
+      "kind": "html",
+      "en": "A missing required field or prop is named",
+      "tr": "Um campo ou prop obrigatório que falta é nomeado"
+    },
+    {
+      "id": "h-90bb1a2a",
+      "kind": "html",
+      "en": "since 0.1.125",
+      "tr": "desde a 0.1.125"
+    },
+    {
+      "id": "h-2bed57b7",
+      "kind": "html",
+      "en": "Since 0.1.125 a record literal or a component element that leaves out a required field names it, in the message and in <code>missing_fields</code> on <code>--json</code>, and an element missing a required prop is E0211 even when it writes no attributes at all; a component whose one parameter is not a record is E0229.",
+      "tr": "Desde a 0.1.125, um literal de record ou um elemento de componente que deixa de fora um campo obrigatório o nomeia, na mensagem e em <code>missing_fields</code> no <code>--json</code>, e um elemento sem uma prop obrigatória é E0211 mesmo quando não escreve nenhum atributo; um componente cujo único parâmetro não é um record é E0229."
+    },
+    {
+      "id": "h-d16cf25f",
+      "kind": "html",
+      "en": "Every field of a record compared by the same rule as the record",
+      "tr": "Cada campo de um record comparado pela mesma regra que o record"
+    },
+    {
+      "id": "h-5e7cd30b",
+      "kind": "html",
+      "en": "since 0.1.127",
+      "tr": "desde a 0.1.127"
+    },
+    {
+      "id": "h-7f53d708",
+      "kind": "html",
+      "en": "Since 0.1.127 every field of a record is compared by the same rule as the record, so a nested record, a declared type or a string-literal union inside one is refused where <code>tsc</code> refuses it, and so are an optional field where a required one is declared, a function whose return does not fit and a local interface's members. A record whose fields are all optional refuses a value that shares none of them, as TS2559 does. A function's parameters are still not compared.",
+      "tr": "Desde a 0.1.127, cada campo de um record é comparado pela mesma regra que o record, então um record aninhado, um tipo declarado ou uma union de literais de string dentro de um record são recusados onde o <code>tsc</code> os recusa, assim como um campo opcional onde se declarou um obrigatório, uma função cujo retorno não cabe e os membros de uma interface local. Um record cujos campos são todos opcionais recusa um valor que não compartilha nenhum deles, como faz o TS2559. Os parâmetros de uma função ainda não são comparados."
+    },
+    {
+      "id": "h-ea0eaaf6",
+      "kind": "html",
+      "en": "Data boundaries",
+      "tr": "Fronteiras de dados"
+    },
+    {
+      "id": "h-256d43ee",
+      "kind": "html",
+      "en": "Runtime type descriptors",
+      "tr": "Descritores de tipo em runtime"
+    },
+    {
+      "id": "h-32584cfc",
+      "kind": "html",
+      "en": "<code>@redact</code> PII masking on the type descriptor",
+      "tr": "Mascaramento de dados pessoais com <code>@redact</code> no descritor do tipo"
+    },
+    {
+      "id": "h-f094b384",
+      "kind": "html",
+      "en": "Getting sharper <span class=\"count\">13</span>",
+      "tr": "Ficando mais preciso <span class=\"count\">13</span>"
+    },
+    {
+      "id": "h-832f8a5e",
+      "kind": "html",
+      "en": "Coverage of an imported union doesn't look inside a variant's payload yet",
+      "tr": "A cobertura de uma union importada ainda não olha dentro do payload de uma variante"
+    },
+    {
+      "id": "h-951e9ba7",
+      "kind": "html",
+      "en": "next to deepen",
+      "tr": "o próximo a aprofundar"
+    },
+    {
+      "id": "h-1398e498",
+      "kind": "html",
+      "en": "A type parameter used to switch the check off: through 0.1.90 a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit a variant, build clean, pass <code>tsc --strict</code>, and throw at run time, where the same match on <code>Tree</code> was <code>E0200</code>. That is closed for a union your own module declares and, as of 0.1.95, for one an import away. What is still shallower on the imported path is the depth rather than the gate: the check that runs for an imported union never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> rather than reporting the missing <code>Y</code>, and no type parameter is involved. That is the next thing to deepen.",
+      "tr": "Um parâmetro de tipo costumava desligar a verificação: até a 0.1.90, um <code>match</code> sobre <code>Tree&lt;K&gt;</code> podia omitir uma variante, compilar sem erros, passar no <code>tsc --strict</code> e lançar erro em tempo de execução, enquanto o mesmo match sobre <code>Tree</code> era <code>E0200</code>. Isso está resolvido para uma union que o seu próprio módulo declara e, desde a 0.1.95, para uma que está a um import de distância. O que ainda é mais raso no caminho importado é a profundidade, e não o gate: a verificação que roda para uma union importada nunca olha dentro do payload de uma variante, então <code>B(X)</code> sobre uma union importada cujo payload também é uma union casa com todo <code>B</code>, em vez de reportar o <code>Y</code> que falta, e nenhum parâmetro de tipo está envolvido. É a próxima coisa a aprofundar."
+    },
+    {
+      "id": "h-8efe9560",
+      "kind": "html",
+      "en": "A lowercase payload variant of an imported union stops the build",
+      "tr": "Uma variante de payload com minúscula de uma union importada para o build"
+    },
+    {
+      "id": "h-5584b05d",
+      "kind": "html",
+      "en": "A variant in payload position is read off the payload union's variant list now, so the capitalization of the name stops mattering for a union your module declares. For one imported from another module there is no list to read and the shape of the name still answers, which means <code>Err(Blank)</code> dispatches and <code>Err(blank)</code> stops the build at <code>E0305</code>: a loud failure on a valid program, and it needs the same imported-union registry the shallow coverage check above needs.",
+      "tr": "Uma variante na posição de payload agora é lida da lista de variantes da union do payload, então a capitalização do nome deixa de importar para uma union que o seu módulo declara. Para uma importada de outro módulo não há lista para ler e o formato do nome ainda decide, o que significa que <code>Err(Blank)</code> despacha e <code>Err(blank)</code> para o build com <code>E0305</code>: uma falha barulhenta num programa válido, e a correção precisa do mesmo registro de unions importadas de que a verificação de cobertura rasa acima precisa."
+    },
+    {
+      "id": "h-bc939020",
+      "kind": "html",
+      "en": "A constructor pattern over a record payload (<code>Ok(Point)</code>) fails in <code>tsc</code>, not Glyph",
+      "tr": "Um padrão de construtor sobre um payload record (<code>Ok(Point)</code>) falha no <code>tsc</code>, não no Glyph"
+    },
+    {
+      "id": "h-0de1643c",
+      "kind": "html",
+      "en": "A constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic naming the type and the pattern.",
+      "tr": "Um padrão de construtor sobre um payload que é um record, e não uma union (<code>Ok(Point)</code>), falha pelo <code>tsc</code> nomeando um <code>.tag</code> que você nunca escreveu, quando deveria ser um diagnóstico do Glyph nomeando o tipo e o padrão."
+    },
+    {
+      "id": "h-f3636a71",
+      "kind": "html",
+      "en": "A misspelled bare arm reports two lines for the same name",
+      "tr": "Um braço sem prefixo digitado errado reporta duas linhas para o mesmo nome"
+    },
+    {
+      "id": "h-578afec8",
+      "kind": "html",
+      "en": "The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike, constructor-shaped or bare: through 0.1.115 a bare misspelled head over an imported union (<code>Loadign</code>, no arguments) was credited as covering a variant and said nothing, where the same typo on a local union already reported <code>E0220</code>; both spellings report it now. A misspelled bare arm also trips <code>E0103</code>, one stage earlier, so you get both lines for the same name.",
+      "tr": "A verificação de erros de digitação (<code>E0220</code>) agora cobre do mesmo jeito uma union declarada no módulo e uma alcançada por um import de namespace (<code>model.Nooo(_)</code>), com formato de construtor ou sem prefixo: até a 0.1.115, uma cabeça sem prefixo digitada errado sobre uma union importada (<code>Loadign</code>, sem argumentos) era contada como cobrindo uma variante e não dizia nada, enquanto o mesmo erro numa union local já reportava <code>E0220</code>; as duas formas reportam agora. Um braço sem prefixo digitado errado também dispara <code>E0103</code>, uma etapa antes, então você recebe as duas linhas para o mesmo nome."
+    },
+    {
+      "id": "h-5ab756fd",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted",
+      "tr": "Um literal com spread não tem tipo, e um campo a mais ainda é aceito"
+    },
+    {
+      "id": "h-3a8ce517",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
+      "tr": "Um literal com spread não tem tipo, e um campo a mais ainda é aceito, enquanto o <code>tsc</code> recusa um campo a mais num literal novo como TS2353 (G273)."
+    },
+    {
+      "id": "h-cf31f508",
+      "kind": "html",
+      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
+      "tr": "Os membros de uma <code>interface</code> importada e o tipo de um <code>const</code> importado ainda não cruzam"
+    },
+    {
+      "id": "h-182d14d1",
+      "kind": "html",
+      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
+      "tr": "Os tipos agora cruzam uma fronteira de módulo intactos: unions mantêm a exaustividade, etiquetadas ou de literais de string, e um record mantém o seu conjunto de campos, então um campo digitado errado num record importado é <code>E0210</code> nomeando o próprio tipo desse record, e <code>for i, x</code> sobre um dos campos array dele liga um número sem anotação. O que ainda não cruza é a lista de membros de uma <code>interface</code>, então um record passado onde se espera uma interface importada é comparado com nada; um <code>const</code> importado tem o mesmo formato, um nível ao lado: ele ainda é <code>Ty::Unknown</code>, então um erro de digitação num campo através de um import nomeado ou de namespace continua silencioso, tenha o módulo de origem anotado o tipo ou não."
+    },
+    {
+      "id": "h-b6b84555",
+      "kind": "html",
+      "en": "Deeper flow-narrowing is on the roadmap",
+      "tr": "Um estreitamento de fluxo mais profundo está no roadmap"
+    },
+    {
+      "id": "h-fd47e980",
+      "kind": "html",
+      "en": "Maps from another module or the standard library are read unchecked",
+      "tr": "Mapas vindos de outro módulo ou da biblioteca padrão são lidos sem verificação"
+    },
+    {
+      "id": "h-0edf415f",
+      "kind": "html",
+      "en": "A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types.",
+      "tr": "Um mapa que chega de outro módulo ou da biblioteca padrão ainda é lido sem verificação, então o E0224 ainda não cobre um <code>sqlite.Row</code>, e o <code>for i, x in xs</code> com duas variáveis ainda perde os tipos."
+    },
+    {
+      "id": "h-15d1a62f",
+      "kind": "html",
+      "en": "A type from a plain <code>.d.ts</code> has no descriptor; materialize it with <code>glyph gen dts</code>",
+      "tr": "Um tipo vindo de um <code>.d.ts</code> comum não tem descritor; materialize-o com <code>glyph gen dts</code>"
+    },
+    {
+      "id": "h-5b74c17a",
+      "kind": "html",
+      "en": "A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates.",
+      "tr": "Um tipo importado de outro módulo Glyph agora valida pelo seu próprio descritor, assim como um refinamento <code>where</code> na posição de campo; um tipo importado de um <code>.d.ts</code> comum não tem descritor pelo qual validar, e <code>parse</code> num record que contém um deles agora é recusado (<code>E0304</code>), em vez de reportar um sucesso que não verificou; materialize-o com <code>glyph gen dts</code> para ter um tipo que valida."
+    },
+    {
+      "id": "h-b99fb20b",
+      "kind": "html",
+      "en": "Tooling and the standard library",
+      "tr": "Ferramentas e a biblioteca padrão"
+    },
+    {
+      "id": "h-3aeea93f",
+      "kind": "html",
+      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
+      "tr": "Nove funções de <code>std/string</code> e <code>std/array</code> ainda retornam valores sem tipo"
+    },
+    {
+      "id": "h-b4a6a924",
+      "kind": "html",
+      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
+      "tr": "Os tipos de retorno da stdlib que o verificador modela cobrem a metade de aridade fixa de <code>std/string</code> e <code>std/array</code>; as seis funções com um argumento final opcional (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) e <code>array.map</code>/<code>flat_map</code>/<code>zip</code> continuam sem tipo, então um valor que sai direto de uma delas precisa de uma anotação antes de você iterá-lo com índice."
+    },
+    {
+      "id": "h-201d023a",
+      "kind": "html",
+      "en": "Member access on primitives and arrays has no diagnostic where <code>tsc</code> doesn't run",
+      "tr": "Acesso a membros em primitivos e arrays não tem diagnóstico onde o <code>tsc</code> não roda"
+    },
+    {
+      "id": "h-4ea82084",
+      "kind": "html",
+      "en": "Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground.",
+      "tr": "Acesso a membros e chamadas em <code>string</code>, <code>number</code>, <code>bool</code> e <code>Array&lt;T&gt;</code> ficam por conta do <code>tsc</code> por design, e não por uma brecha; o Glyph permite membros JS crus ali, então <code>s.length</code> e <code>xs.length</code> compilam e passam no <code>tsc --strict</code>, e o que continua faltando é um diagnóstico nas quatro superfícies que nunca rodam o <code>tsc</code>: <code>glyph check --no-tsc</code>, o language server, o servidor MCP e o playground."
+    },
+    {
+      "id": "h-92f64275",
+      "kind": "html",
+      "en": "An offline build with examples needs <code>tsx</code> or <code>--no-test</code>",
+      "tr": "Um build offline com exemplos precisa do <code>tsx</code> ou de <code>--no-test</code>"
+    },
+    {
+      "id": "h-be29560d",
+      "kind": "html",
+      "en": "The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>.",
+      "tr": "O executor de exemplos chama o <code>tsx</code>, então um projeto que tem exemplos e não tem <code>tsx</code> no <code>PATH</code> falha o build em vez de pular em silêncio; isso é proposital, mas significa que um build offline precisa do <code>tsx</code> instalado ou de <code>--no-test</code>."
+    },
+    {
+      "id": "h-b5f0eada",
+      "kind": "html",
+      "en": "An <code>await</code> in a plain <code>fn</code> is caught against your own source",
+      "tr": "Um <code>await</code> num <code>fn</code> comum é pego no seu próprio código-fonte"
+    },
+    {
+      "id": "h-d7c47327",
+      "kind": "html",
+      "en": "Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href=\"/answers/early-errors/\">caught earlier</a>.",
+      "tr": "O contexto assíncrono era a única regra que o Glyph deixava para o <code>tsc</code>; um <code>await</code> num <code>fn</code> comum agora é <code>E0222</code> no seu próprio código-fonte, e o inicializador de um <code>const</code> de nível superior é o único caso ainda permitido. Essa e outras duas regras que subiram uma etapa estão em <a href=\"/answers/early-errors/\">detectado antes</a>."
+    },
+    {
+      "id": "h-9517f6f5",
+      "kind": "html",
+      "en": "Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the <a href=\"/pillars/verifiability/\">verifiability pillar page</a>.",
+      "tr": "Por que este é o primeiro dos quatro pilares do Glyph, e onde a garantia dele termina, está na <a href=\"/pillars/verifiability/\">página do pilar da verificabilidade</a>."
+    }
+  ]
+}

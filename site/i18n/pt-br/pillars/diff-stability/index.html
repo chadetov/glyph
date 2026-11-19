@@ -1,0 +1,140 @@
+---
+title: Estabilidade dos diffs · mudança de uma linha, diff de uma linha · Glyph
+description: O terceiro pilar do Glyph: um formato canônico, vírgulas finais, listas que nunca são reempacotadas, sem barrel files e codegen idempotente. O diff mostra a mudança, não ruído.
+source_hash: b485401a000696d8
+prev: /pillars/greppability/ | &larr; Pilar anterior | Buscabilidade: um nome, um lugar
+next: /pillars/abstraction/ | Próximo pilar &rarr; | Abstração: um núcleo pequeno e ortogonal
+---
+      <p class="q-eyebrow">Pilar 03 &middot; <span class="polish">O acabamento</span></p>
+      <h1 class="q-title">Estabilidade dos diffs</h1>
+
+      <p class="short-answer">
+        Uma mudança de uma linha é um <strong>diff de uma linha</strong>. Um formato canônico, vírgulas finais e listas que ficam inteiras em uma linha ou com um elemento por linha, nunca reempacotadas. Assim o review mostra a mudança que foi feita, não o ruído em volta dela.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Review é ler diffs</h2>
+        <p class="lede">
+          Quase tudo em que confiamos numa mudança (o review, o blame, o revert, o bisect) se apoia no diff. Então a relação sinal/ruído do diff é o que vale. Na maioria dos codebases ela é péssima: um formatter refaz a quebra de uma linha, um ordenador de imports embaralha um bloco, um rename mexe no espaçamento de cada chamada, e a única linha que <em>importa</em> fica enterrada entre cinquenta que não importam.
+        </p>
+        <p class="lede">
+          Agentes pioram muito isso. Diante de uma tarefa pequena, um modelo reescreve sem cerimônia uma função inteira, ou um arquivo inteiro, para mudar uma coisa, porque regenerar é mais fácil para ele do que editar com precisão. Quem revisa fica comparando uma reescrita com o original e <em>torcendo</em> para que a única mudança de verdade seja a pretendida. O Glyph é feito para que o layout não dê ao modelo nada para remexer.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> Um layout canônico, sem escolhas</h2>
+        <p>
+          <code>glyph fmt</code> reimprime cada arquivo num único layout fixo: indentação de dois espaços, vírgula final em toda lista de várias linhas, e uma lista que fica numa linha enquanto couber em 100 colunas e passa a um elemento por linha quando não cabe. É tudo ou nada. O formatter nunca reempacota seus elementos para preencher uma linha, então uma lista nunca fica metade numa linha e metade na seguinte, e adicionar um campo é uma única linha adicionada. Como existe exatamente uma forma válida, não há o que discutir nem nada para uma ferramenta "consertar" por fora.
+        </p>
+        <p>
+          O custo disso é o limite de largura. Renomeie um binding de modo que uma chamada passe de 100 colunas e a chamada se expande para um argumento por linha: uma edição de um token, um diff de quatro linhas. A contrapartida é que o layout depende só do código e da coluna em que ele começa, então dois agentes editando o mesmo arquivo chegam aos mesmos bytes.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">Estilo com reflow: uma mudança, três linhas tocadas</span>
+          <span class="cap">git diff (formatação empacotada)</span>
+<pre><span class="del">- type User = { id: number, name:</span>
+<span class="del">-   string }</span>
+<span class="add">+ type User = { id: number, name:</span>
+<span class="add">+   string, email: string }</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: uma mudança, uma linha adicionada</span>
+          <span class="cap">git diff (canônico)</span>
+<pre>  type User = {
+    id: number,
+    name: string,
+<span class="add">+   email: string,</span>
+  }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          A vírgula final faz um trabalho discreto: como o último elemento já termina em vírgula, adicionar um irmão <strong>nunca edita a linha de cima.</strong> Uma inserção, uma linha.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> A ordem é estável, então o histórico é legível</h2>
+        <p>
+          Um elemento por linha significa que reordenar, inserir ou remover um item toca só as linhas desse item, nunca as vizinhas. O <code>git blame</code> continua útil: o último commit que tocou cada linha é o commit que de fato mudou <em>aquele</em> elemento, não a passada de formatação que reempacotou a linha que ele dividia com outros.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> Sem barrel files: sem ruído nos imports</h2>
+        <p>
+          Como imports nunca reexportam e não existem camadas de agregação <code>index.ts</code> (<code>E0102</code>), adicionar ou mover um símbolo não se propaga por um barrel que todo consumidor importa. As dependências que você edita são as que você quis editar; o resto do grafo de imports não se mexe.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> A geração é idempotente, não um bloco opaco</h2>
+        <p>
+          A mesma disciplina vale para código gerado. <code>glyph gen</code> e <code>glyph regen</code> reimprimem a saída pelo formatter canônico, então regenerar depois de uma mudança na spec produz um diff <em>mínimo</em> que dá para revisar, umas poucas linhas alteradas, e não a substituição inteira de um arquivo escrito por máquina. E todo <code>.ts</code> emitido vem com source map, então até a saída compilada aponta direto para a linha que você mudou.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">um campo adicionado à spec &rarr; o diff regenerado</span>
+<pre>  type Task = {
+    id: number,
+    title: string,
+<span class="add">+   done: bool,</span>
+  }
+<span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> "TypeScript faz isso com Prettier"</h2>
+        <p>
+          Em boa parte da formatação, faz. Prettier com <code>trailingComma: "all"</code> põe vírgula no último elemento e imprime listas longas com um item por linha, e isso cobre a maior parte da seção 01. As diferenças estão em três pontos.
+        </p>
+        <p>
+          <strong>O layout depende só do código.</strong> O Prettier mantém um objeto literal expandido se o autor pôs uma quebra de linha depois do <code>{</code>, e o recolhe se não pôs, então o mesmo objeto pode sair de dois jeitos dependendo de como foi digitado da primeira vez. Dois agentes escrevendo a mesma coisa produzem dois layouts, e a próxima edição em um deles aparece como reflow. <code>glyph fmt</code> imprime <code>{ a: 1, b: 2 }</code> do mesmo jeito, não importa como a entrada estava quebrada.
+        </p>
+        <p>
+          <strong>Não há nada para configurar.</strong> A saída do Prettier é o que o arquivo de config do repositório disser, e alguns repositórios nem têm um. Um agente que passa de um projeto TypeScript para outro encontra um layout diferente em cada um. Um arquivo Glyph tem o mesmo layout em todo projeto, porque o formatter não tem opções.
+        </p>
+        <p>
+          <strong>O formatter não muda o que um arquivo diz.</strong> <code>glyph fmt</code> é testado fazendo o parse da própria saída e comparando a árvore sintática com a da entrada, em todos os exemplos do repositório e sob um fuzzer. Quando um comentário fica num lugar onde o layout não tem linha para ele, o formatter recusa o arquivo (<code>E0500</code>) em vez de mover o comentário para perto de código que ele não descreve.
+        </p>
+        <p>
+          Uma coisa da lista ainda não está pronta: <code>glyph fmt</code> não ordena imports, então dois agentes adicionando um import em lugares diferentes ainda produzem blocos de import diferentes (G358).
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          A estabilidade dos diffs é o que transforma "o agente mudou alguma coisa" em "o agente mudou <strong>exatamente isto</strong>". Quando o ruído de fundo é zero, o review é rápido e a confiança sai barata.
+        </p>
+
+        <h2 class="block-label">O benchmark: em breve</h2>
+        <p>
+          O número que mede isso é o tamanho do diff por mudança lógica: quantas linhas se mexem quando você faz uma edição pretendida, em Glyph contra uma mudança equivalente em TypeScript passada por um formatter típico. O Glyph ainda não está em uso no mundo real, então o gráfico abaixo é um placeholder que será preenchido com medições reais quando houver histórico de verdade para usar.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Linhas de diff por mudança de um campo &middot; menor é melhor</span>
+        <h3>TypeScript vs Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 22%;">pendente</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 58%;">pendente</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Ainda não medido</span> Vamos tirar os números de tamanho de diff do histórico de um repositório Glyph real e publicá-los aqui, seja qual for o resultado.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Custa um pouco de liberdade (você não pode empacotar uma linha à mão do jeito que gosta) e em troca compra muita legibilidade. Essa é a troca que todo pilar de acabamento faz: abrir mão de uma escolha que não importava para manter um sinal que importa.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Para ver o que isso significa nas edições de um agente durante o review, com um diff de antes e depois, veja <a href="/answers/diff-stability/">As edições do agente ficam limpas ou reformatam meu arquivo inteiro?</a>
+        </p>
+      </div>

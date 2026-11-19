@@ -1,0 +1,49 @@
+---
+title: O Glyph vale a pena se eu não uso IA? · Glyph
+description: Sim. Os agentes de IA são o destaque, mas cada garantia (match exaustivo, sem any, tipos verificados em runtime, código fácil de buscar, diffs estáveis) ajuda pessoas também.
+source_hash: 353b3dea2a444a3f
+prev: /answers/vs-tooled-ts/ | &larr; Anterior | Por que não só TypeScript strict + zod + eslint + ts-pattern?
+next: /answers/ai-authoring/ | Próxima &rarr; | Uma IA consegue escrever de forma confiável uma linguagem que mal viu?
+---
+      <p class="q-eyebrow">06 &middot; Para pessoas também</p>
+      <h1 class="q-title">O Glyph vale a pena se eu não uso IA?</h1>
+
+      <p class="short-answer">
+        Sim. Os agentes de IA estão em destaque porque eles quebram essas coisas o tempo todo, mas cada garantia por baixo é um <strong>ganho de engenharia comum que uma pessoa aproveita diretamente</strong>. Menos surpresas em runtime, diffs menores, código em que dá para usar grep de verdade. Nada disso exige um LLM.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">São recursos da linguagem, não recursos de IA</h2>
+        <p>
+          Tire a palavra "agente" e leia a lista: sem <code>any</code>, <code>match</code> exaustivo, erros como valores, tipos verificados em runtime, uma única forma de declaração por nome, um formato canônico com diffs estáveis. Quem já escreveu Rust, Elm ou OCaml reconhece aí o que torna um codebase agradável de manter. Eram boas ideias muito antes de a IA escrever código. O Glyph só as traz para uma linguagem com cara de TypeScript que você adota um arquivo por vez.
+        </p>
+
+        <h2 class="block-label">O que você ganha trabalhando sozinho</h2>
+        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>Menos chamados às 3 da manhã.</strong> Os dados de fronteira são validados por construção (<code>User.parse</code>), e um caso esquecido é um erro de compilação, não um <code>undefined</code> que aparece em produção.</li>
+          <li><strong>Code review mais rápido.</strong> Uma mudança de uma linha é um diff de uma linha, então quem revisa lê a mudança, e não a reformatação em volta dela.</li>
+          <li><strong>Você encontra qualquer coisa.</strong> <code>grep "fn parseUser"</code> cai direto na definição: sem overloads, barrels ou decorators espalhando o código.</li>
+          <li><strong>Onboarding mais fácil.</strong> Um núcleo pequeno com um único jeito de fazer cada coisa significa menos conhecimento tribal para a próxima pessoa aprender.</li>
+        </ul>
+
+        <h2 class="block-label">Então por que falar primeiro dos agentes?</h2>
+        <p>
+          Porque o retorno é <em>maior</em> lá. Uma pessoa acaba aprendendo a rodar o linter e tratar o caso; um agente apela para <code>any</code>, esquece o braço do match e faz o merge com o build verde, e não dá para confiar que ele vai manter ligadas as ferramentas opcionais. O valor de tornar o rigor <em>não opcional</em> se multiplica quando uma máquina escreve o código. Mas o piso (os ganhos acima) está lá, use você um agente ou não.
+        </p>
+
+        <p class="callout">
+          Pense nele como um TypeScript mais rígido que por acaso é ótimo para agentes, e não como uma ferramenta de agentes que só se justifica se você usar um.
+        </p>
+      </div>
+
+      <h2 class="block-label">Situação atual</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">O custo-benefício</h3>
+          <p>Se você está começando algo novo, ou se o seu time já valoriza a disciplina da família ML, os ganhos aparecem de imediato. Se você trabalha sozinho numa stack TS madura e bem equipada de ferramentas, a decisão é mais apertada: o Glyph é uma versão preliminar, e isso é um custo concreto a pesar.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Em qualquer caso</h3>
+          <p>A saída de emergência é permanente: ele compila para um TypeScript legível que é seu, então experimentar em um módulo é barato e reversível.</p>
+        </div>
+      </div>

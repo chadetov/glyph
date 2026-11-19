@@ -1,0 +1,254 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/diff-stability/index.html",
+  "locale": "pt-br",
+  "source_hash": "b0148f7848d7e246",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Will agent edits stay clean, or reformat my file? · Glyph",
+      "tr": "As edições do agente ficam limpas, ou reformatam meu arquivo? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph has one canonical layout and requires trailing commas, so a one-line change is a one-line diff. Agents can't bury a real change under reformatting noise.",
+      "tr": "O Glyph tem um layout canônico e exige vírgulas finais, então uma mudança de uma linha é um diff de uma linha. Agentes não conseguem esconder uma mudança real sob ruído de reformatação."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "O que impede um agente de quebrar meu código sem ninguém perceber?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Próxima &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "Um agente (ou eu) consegue achar onde qualquer coisa está definida?"
+    },
+    {
+      "id": "h-0702d1ef",
+      "kind": "html",
+      "en": "02 &middot; Reviewable change",
+      "tr": "02 &middot; Mudança revisável"
+    },
+    {
+      "id": "h-b91718bd",
+      "kind": "html",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "As edições do agente vão ficar limpas, ou reformatar o arquivo inteiro?"
+    },
+    {
+      "id": "h-7c55dd10",
+      "kind": "html",
+      "en": "A one-line change is a <strong>one-line diff</strong>, every time. Glyph has a single canonical layout, so an agent <strong>can't bury a real change under a wall of reformatting</strong>.",
+      "tr": "Uma mudança de uma linha é um <strong>diff de uma linha</strong>, sempre. O Glyph tem um único layout canônico, então um agente <strong>não consegue esconder uma mudança real sob uma parede de reformatação</strong>."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por que isso importa"
+    },
+    {
+      "id": "h-303f30da",
+      "kind": "html",
+      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through. Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
+      "tr": "Quando um agente abre um pull request, o diff <em>é</em> o review. Se uma correção legítima de uma linha chega como uma reformatação de 200 linhas, ninguém consegue ver o que mudou de fato, e é nesse ruído que um bug passa. Estabilidade dos diffs significa que o diff mostra a mudança e <strong>nada além da mudança</strong>."
+    },
+    {
+      "id": "h-0959c450",
+      "kind": "html",
+      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
+      "tr": "Duas regras fazem a maior parte do trabalho. Veja cada uma como o diff que você revisaria."
+    },
+    {
+      "id": "h-b49f3730",
+      "kind": "html",
+      "en": "Example 1: trailing commas, one item per line",
+      "tr": "Exemplo 1: vírgulas finais, um item por linha"
+    },
+    {
+      "id": "h-58d68c63",
+      "kind": "html",
+      "en": "Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change:",
+      "tr": "Adicione uma rota. No estilo comum de TypeScript, a antiga última linha precisa mudar só para ganhar uma vírgula. Duas linhas se mexem para uma mudança de um item:"
+    },
+    {
+      "id": "h-708ed18b",
+      "kind": "html",
+      "en": "TypeScript: add \"/billing\"",
+      "tr": "TypeScript: adicionar \"/billing\""
+    },
+    {
+      "id": "h-ccf2e1fa",
+      "kind": "html",
+      "en": "3 lines moved for 1 change",
+      "tr": "3 linhas mexidas para 1 mudança"
+    },
+    {
+      "id": "h-d502efb0",
+      "kind": "html",
+      "en": "Glyph: add \"/billing\"",
+      "tr": "Glyph: adicionar \"/billing\""
+    },
+    {
+      "id": "h-c600471e",
+      "kind": "html",
+      "en": "1 line added, exactly the change",
+      "tr": "1 linha adicionada, exatamente a mudança"
+    },
+    {
+      "id": "h-d8c012cf",
+      "kind": "html",
+      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors. The same holds for record fields, parameters, match arms, and imports. The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
+      "tr": "Vírgulas finais são <strong>obrigatórias</strong>, e uma lista que não cabe numa linha fica com um elemento por linha em vez de ser reempacotada, então inserir, remover ou reordenar uma entrada nunca mexe nas vizinhas. O mesmo vale para campos de record, parâmetros, braços de match e imports. O limite tem um custo: um rename que empurra uma chamada para além de 100 colunas expande a lista de argumentos inteira para um por linha."
+    },
+    {
+      "id": "h-e48b5266",
+      "kind": "html",
+      "en": "Example 2: one canonical layout",
+      "tr": "Exemplo 2: um layout canônico"
+    },
+    {
+      "id": "h-57d9d6f8",
+      "kind": "html",
+      "en": "There is exactly one correct formatting, produced by <code>glyph fmt</code>. Whitespace, wrapping, and alignment aren't choices an agent can &ldquo;tidy,&rdquo; so a semantic edit can't drag reflow along with it. Change one field's type, and that's the whole diff:",
+      "tr": "Existe exatamente uma formatação correta, produzida pelo <code>glyph fmt</code>. Espaçamento, quebras de linha e alinhamento não são escolhas que um agente possa &ldquo;arrumar&rdquo;, então uma edição semântica não arrasta reflow junto. Mude o tipo de um campo, e esse é o diff inteiro:"
+    },
+    {
+      "id": "h-bb52f920",
+      "kind": "html",
+      "en": "user.glyph: change one field, review one line",
+      "tr": "user.glyph: mude um campo, revise uma linha"
+    },
+    {
+      "id": "h-60cabdbf",
+      "kind": "html",
+      "en": "Because the layout is fixed, two different agents editing the same file produce <strong>byte-identical</strong> formatting, no reflow churn, no &ldquo;my formatter vs. yours&rdquo; noise, and a clean <code>git blame</code> that points at the commit that actually changed a line, not the one that reformatted it.",
+      "tr": "Como o layout é fixo, dois agentes diferentes editando o mesmo arquivo produzem formatação <strong>idêntica byte a byte</strong>, sem ruído de reflow, sem &ldquo;o meu formatter contra o seu&rdquo;, e um <code>git blame</code> limpo que aponta para o commit que de fato mudou uma linha, não para o que a reformatou."
+    },
+    {
+      "id": "h-fec9196e",
+      "kind": "html",
+      "en": "One canonical layout, so does the formatter move my comments?",
+      "tr": "Um layout canônico: então o formatter mexe nos meus comentários?"
+    },
+    {
+      "id": "h-84c044a6",
+      "kind": "html",
+      "en": "It used to, and that was a bug worth naming. Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
+      "tr": "Mexia, e isso era um bug que vale nomear. O Glyph não tem comentários de bloco nem sintaxe de doc-comment, então uma linha <code>//</code> é a única forma de explicar um campo de record, uma variante de union ou um braço de <code>match</code>. O formatter só despejava os comentários pendentes nas fronteiras de declarações e statements, o que fazia um comentário escrito <em>dentro</em> de uma construção descer até a próxima declaração e passar a ser lido como documentação do que estivesse ali. Foi escrevendo um Campo Minado em Glyph que isso apareceu. Estas duas declarações vêm do <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">app real</a> (comentários encurtados para caber), passadas pelo formatter antigo e pelo novo."
+    },
+    {
+      "id": "h-28875641",
+      "kind": "html",
+      "en": "0.1.37: one fmt pass",
+      "tr": "0.1.37: uma passada do fmt"
+    },
+    {
+      "id": "h-7e0eca13",
+      "kind": "html",
+      "en": "three variant comments now document a record",
+      "tr": "três comentários de variantes agora documentam um record"
+    },
+    {
+      "id": "h-79621000",
+      "kind": "html",
+      "en": "0.1.38: the same file",
+      "tr": "0.1.38: o mesmo arquivo"
+    },
+    {
+      "id": "h-b8062146",
+      "kind": "html",
+      "en": "every comment on what it describes",
+      "tr": "cada comentário no que ele descreve"
+    },
+    {
+      "id": "h-9347eb4d",
+      "kind": "html",
+      "en": "The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>. And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
+      "tr": "A regra agora: um comentário é reemitido acima do item sobre o qual foi escrito, dentro do corpo de um record, da lista de variantes de uma union, de um literal de array ou objeto, de uma lista de argumentos ou parâmetros, e de um <code>match</code>. E uma construção que contém um comentário interno sempre fica na forma de um elemento por linha, de qualquer tamanho, para que o comentário tenha um item acima do qual ficar. Então <code>type Shape = { w: int, h: int }</code> ainda vira uma linha só, e no momento em que você documenta <code>h</code> o record fica expandido."
+    },
+    {
+      "id": "h-21ca8ea0",
+      "kind": "html",
+      "en": "Why this counts as a correctness bug and not a cosmetic one: nothing failed. The build exited 0, <code>tsc</code> passed, and the mangled output was itself a fixed point, so <code>glyph fmt --check</code> in CI went green on a file whose comments now said something false. That is the same class of failure Glyph exists to remove, just in the formatter rather than the type system.",
+      "tr": "Por que isso conta como bug de correção e não cosmético: nada falhou. O build saiu com 0, o <code>tsc</code> passou, e a saída estragada era ela mesma um ponto fixo, então o <code>glyph fmt --check</code> no CI ficou verde num arquivo cujos comentários agora diziam algo falso. É a mesma classe de falha que o Glyph existe para eliminar, só que no formatter em vez do sistema de tipos."
+    },
+    {
+      "id": "h-1d7f4cb7",
+      "kind": "html",
+      "en": "Can <code>glyph fmt</code> break a program that builds?",
+      "tr": "O <code>glyph fmt</code> pode quebrar um programa que compila?"
+    },
+    {
+      "id": "h-6c81998d",
+      "kind": "html",
+      "en": "It could, and one case is still open. The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
+      "tr": "Podia, e um caso ainda está aberto. Primeiro o que foi corrigido. Um braço que significa &ldquo;o record vazio&rdquo; se escreve <code>true =&gt; ({})</code>. A posição de corpo de braço é o único lugar da gramática em que um <code>{</code> no início é ambíguo, e o parser resolve isso exigindo <code>key:</code> ou <code>...</code> logo depois da chave. Um objeto vazio não tem nenhum dos dois, então quando o formatter tirava os parênteses e reimprimia <code>true =&gt; {}</code>, o braço voltava como um <em>bloco</em> vazio e o arquivo parava de compilar: <code>E0223</code>, o braço não produz valor. Você rodava um formatter em código funcionando e recebia código que não compilava mais."
+    },
+    {
+      "id": "h-e1bb9580",
+      "kind": "html",
+      "en": "The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>). An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
+      "tr": "O printer agora põe entre parênteses um corpo de braço cujo token mais à esquerda é um <code>{</code> que seria reinterpretado como bloco, ou seja, o objeto vazio e qualquer coisa construída em cima dele (<code>({}).size</code> volta como <code>({}.size)</code>). Um corpo de braço que já é inequívoco, como <code>false =&gt; { a: \"x\" }</code>, fica sem parênteses, então não aparece pontuação nova em nenhum outro lugar. O <code>fmt</code> é ponto fixo sobre o resultado e o TypeScript emitido não muda. Um formatter ao qual o seu programa precisa sobreviver é pior do que uma feature que falta, porque estraga código que já funcionava."
+    },
+    {
+      "id": "h-8647fc74",
+      "kind": "html",
+      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted. The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
+      "tr": "Mais dois foram corrigidos na 0.1.138. Dentro de um bloco, uma linha que começa com <code>(</code> continua a linha de cima, e até a 0.1.137 o formatter imprimia <code>load()?</code> seguido de <code>.run()</code> como <code>(load()?).run()</code>, então depois de <code>let a = 1</code> o arquivo formatado significava <code>let a = 1(…).run()</code>. Agora ele mantém <code>load()?</code> com <code>.run()</code> indentado na linha seguinte, e escreve <code>e?(x)</code>, <code>e?[0]</code> e <code>e? ?</code> sem parênteses. O outro era o refinamento <code>where</code> de uma union, que o formatter descartava, transformando um programa que o <code>check</code> recusava em um que ele aceitava. O fuzzer agora faz o parse do arquivo formatado e compara a árvore com a do original, então um layout que muda o significado de um arquivo falha na primeira passada em vez de esperar alguém perceber."
+    },
+    {
+      "id": "h-a2de6c0a",
+      "kind": "html",
+      "en": "The formatting rules behind this, and the trade they make, are on the <a href=\"/pillars/diff-stability/\">diff stability pillar page</a>.",
+      "tr": "As regras de formatação por trás disso, e a troca que elas fazem, estão na <a href=\"/pillars/diff-stability/\">página do pilar de estabilidade dos diffs</a>."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Situação atual"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponível hoje"
+    },
+    {
+      "id": "h-d4cd9ceb",
+      "kind": "html",
+      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. <code>glyph fmt</code> never moves a comment to somewhere it does not belong. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
+      "tr": "Vírgulas finais obrigatórias, listas com um item por linha e o layout canônico único do <code>glyph fmt</code>, com round-trip e idempotente, com format-on-save no editor. O <code>glyph fmt</code> nunca move um comentário para um lugar onde ele não pertence. Os comentários ficam acima do item sobre o qual foram escritos, inclusive dentro de um record, de um literal, de uma lista de argumentos, de um <code>match</code>, entre os operandos de um operador e entre os passos de uma cadeia de métodos, que então fica com um passo por linha, com o ponto na frente."
+    },
+    {
+      "id": "h-6c3b3842",
+      "kind": "html",
+      "en": "The edge, and what's next",
+      "tr": "O limite, e o que vem depois"
+    },
+    {
+      "id": "h-c064e43b",
+      "kind": "html",
+      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500. A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
+      "tr": "Um comentário é sempre emitido na própria linha, então um escrito no fim de uma linha de código (<code>w: int, // width in cells</code>) vai para a linha acima do próximo item. Ele não cruza mais uma fronteira de declaração, mas se move; mantê-lo no fim da linha exige que o printer saiba com qual linha o comentário divide espaço. Um comentário onde o layout não tem onde colocá-lo, como dentro de um índice, depois dos argumentos de uma chamada no meio de uma cadeia, ou antes de um operando de <code>!</code> ou <code>await</code>, não é mais movido: o <code>glyph fmt</code> recusa o arquivo, deixa como estava e diz a linha e onde pôr o comentário, e o <code>glyph check</code> reporta a mesma coisa como warning E0500. Um comentário entre atributos JSX ou entre os campos de um object pattern também é recusado, em casos em que um layout de um por linha poderia acomodá-lo; esses layouts estão na lista. O printer também ainda não tem regra para quebrar uma cadeia longa de métodos ou de <code>+</code>, então uma cadeia comprida demais quebra a lista de argumentos mais interna, que é o lugar errado. Também estamos montando um benchmark de tamanho de diff contra as mesmas edições em TypeScript, para que este pilar seja um número que você possa conferir."
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/human-value/index.html",
+  "locale": "pt-br",
+  "source_hash": "353b3dea2a444a3f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Is Glyph worth it if I'm not using AI? · Glyph",
+      "tr": "O Glyph vale a pena se eu não uso IA? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Yes. AI agents are the headline, but every guarantee (exhaustive match, no any, runtime-checked types, greppable code, stable diffs) helps people too.",
+      "tr": "Sim. Os agentes de IA são o destaque, mas cada garantia (match exaustivo, sem any, tipos verificados em runtime, código fácil de buscar, diffs estáveis) ajuda pessoas também."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "Por que não só TypeScript strict + zod + eslint + ts-pattern?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Próxima &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "Uma IA consegue escrever de forma confiável uma linguagem que mal viu?"
+    },
+    {
+      "id": "h-2ff535ef",
+      "kind": "html",
+      "en": "06 &middot; For humans too",
+      "tr": "06 &middot; Para pessoas também"
+    },
+    {
+      "id": "h-e2f8d2d6",
+      "kind": "html",
+      "en": "Is Glyph worth it if I'm not using AI?",
+      "tr": "O Glyph vale a pena se eu não uso IA?"
+    },
+    {
+      "id": "h-2474df6a",
+      "kind": "html",
+      "en": "Yes. The AI-agent framing is the headline because agents break these things constantly, but every guarantee underneath is a <strong>plain engineering win a human gets directly</strong>. Fewer runtime surprises, smaller diffs, code you can actually grep. None of it requires an LLM.",
+      "tr": "Sim. Os agentes de IA estão em destaque porque eles quebram essas coisas o tempo todo, mas cada garantia por baixo é um <strong>ganho de engenharia comum que uma pessoa aproveita diretamente</strong>. Menos surpresas em runtime, diffs menores, código em que dá para usar grep de verdade. Nada disso exige um LLM."
+    },
+    {
+      "id": "h-883d013e",
+      "kind": "html",
+      "en": "These are language features, not AI features",
+      "tr": "São recursos da linguagem, não recursos de IA"
+    },
+    {
+      "id": "h-377ab84f",
+      "kind": "html",
+      "en": "Strip the word \"agent\" out and read the list: no <code>any</code>, exhaustive <code>match</code>, errors as values, types that are checked at runtime, one declaration form per name, a canonical diff-stable format. Anyone who's written Rust, Elm, or OCaml recognizes these as the things that make a codebase pleasant to maintain. They were good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language you can adopt one file at a time.",
+      "tr": "Tire a palavra \"agente\" e leia a lista: sem <code>any</code>, <code>match</code> exaustivo, erros como valores, tipos verificados em runtime, uma única forma de declaração por nome, um formato canônico com diffs estáveis. Quem já escreveu Rust, Elm ou OCaml reconhece aí o que torna um codebase agradável de manter. Eram boas ideias muito antes de a IA escrever código. O Glyph só as traz para uma linguagem com cara de TypeScript que você adota um arquivo por vez."
+    },
+    {
+      "id": "h-bad10559",
+      "kind": "html",
+      "en": "What you get, solo",
+      "tr": "O que você ganha trabalhando sozinho"
+    },
+    {
+      "id": "h-4f15d4ac",
+      "kind": "html",
+      "en": "<strong>Fewer 3am pages.</strong> Boundary data is validated by construction (<code>User.parse</code>), and a missing case is a compile error, not an <code>undefined</code> that surfaces in production.",
+      "tr": "<strong>Menos chamados às 3 da manhã.</strong> Os dados de fronteira são validados por construção (<code>User.parse</code>), e um caso esquecido é um erro de compilação, não um <code>undefined</code> que aparece em produção."
+    },
+    {
+      "id": "h-3212661c",
+      "kind": "html",
+      "en": "<strong>Faster review.</strong> A one-line change is a one-line diff, so a reviewer reads the change, not the reformatting churn around it.",
+      "tr": "<strong>Code review mais rápido.</strong> Uma mudança de uma linha é um diff de uma linha, então quem revisa lê a mudança, e não a reformatação em volta dela."
+    },
+    {
+      "id": "h-bde8ceea",
+      "kind": "html",
+      "en": "<strong>You can find anything.</strong> <code>grep \"fn parseUser\"</code> lands on the definition: no overloads, barrels, or decorators scattering it.",
+      "tr": "<strong>Você encontra qualquer coisa.</strong> <code>grep \"fn parseUser\"</code> cai direto na definição: sem overloads, barrels ou decorators espalhando o código."
+    },
+    {
+      "id": "h-2d7f721c",
+      "kind": "html",
+      "en": "<strong>Easier onboarding.</strong> A small core with one way to do each thing means less tribal knowledge for the next person to learn.",
+      "tr": "<strong>Onboarding mais fácil.</strong> Um núcleo pequeno com um único jeito de fazer cada coisa significa menos conhecimento tribal para a próxima pessoa aprender."
+    },
+    {
+      "id": "h-a45cacac",
+      "kind": "html",
+      "en": "So why lead with agents?",
+      "tr": "Então por que falar primeiro dos agentes?"
+    },
+    {
+      "id": "h-0cf505e4",
+      "kind": "html",
+      "en": "Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green, and it can't be trusted to keep the opt-in tooling on. The value of making the strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor (the wins above) is there whether you use an agent or not.",
+      "tr": "Porque o retorno é <em>maior</em> lá. Uma pessoa acaba aprendendo a rodar o linter e tratar o caso; um agente apela para <code>any</code>, esquece o braço do match e faz o merge com o build verde, e não dá para confiar que ele vai manter ligadas as ferramentas opcionais. O valor de tornar o rigor <em>não opcional</em> se multiplica quando uma máquina escreve o código. Mas o piso (os ganhos acima) está lá, use você um agente ou não."
+    },
+    {
+      "id": "h-f388e69f",
+      "kind": "html",
+      "en": "Think of it as a stricter TypeScript that happens to be great for agents, not an agent tool you can only justify if you use one.",
+      "tr": "Pense nele como um TypeScript mais rígido que por acaso é ótimo para agentes, e não como uma ferramenta de agentes que só se justifica se você usar um."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Situação atual"
+    },
+    {
+      "id": "h-1c38b338",
+      "kind": "html",
+      "en": "The tradeoff",
+      "tr": "O custo-benefício"
+    },
+    {
+      "id": "h-4370ff74",
+      "kind": "html",
+      "en": "If you're starting something new, or your team already values ML-family discipline, the wins land immediately. If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.",
+      "tr": "Se você está começando algo novo, ou se o seu time já valoriza a disciplina da família ML, os ganhos aparecem de imediato. Se você trabalha sozinho numa stack TS madura e bem equipada de ferramentas, a decisão é mais apertada: o Glyph é uma versão preliminar, e isso é um custo concreto a pesar."
+    },
+    {
+      "id": "h-e15e4388",
+      "kind": "html",
+      "en": "Either way",
+      "tr": "Em qualquer caso"
+    },
+    {
+      "id": "h-e75fa557",
+      "kind": "html",
+      "en": "The escape hatch is permanent: it compiles to readable TypeScript you own, so trying it on one module is cheap and reversible.",
+      "tr": "A saída de emergência é permanente: ele compila para um TypeScript legível que é seu, então experimentar em um módulo é barato e reversível."
+    }
+  ]
+}

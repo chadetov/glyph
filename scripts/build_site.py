@@ -97,7 +97,14 @@ Translations live in site/i18n/<locale>/ and render to web/<locale>/:
 scripts/site_i18n.py holds the locales, the UI strings the partials use as
 {{t:key}}, the language menu and the hreflang links, and
 scripts/check_i18n.py checks them. Every page, English or not, is rendered
-by render() with a site_i18n.Ctx saying which language it is in.
+by render() with a site_i18n.Ctx saying which language it is in. A translated
+page is written by scripts/i18n_apply.py from a segments file; the build
+reads only the page. Its section anchors are the English page's, so a link
+to a section works in every language. A translated 404 renders to
+web/<locale>/404.html, and web/404.html shows it in place for a missing
+address under that locale's prefix. Markdown copies are English only: they
+exist for agents, which read the reference text, and a translation that has
+fallen behind its English page would hand them stale facts.
 
 Python standard library only.
 """
@@ -304,6 +311,13 @@ def subnav_entries(key: str, where: str) -> list[tuple[str | None, str, str]]:
     return out
 
 
+def subnav_label(label: str, s: site_i18n.Strings) -> str:
+    """A sub-nav label in the page's language: the number stays, the text
+    after it comes from strings.json "subnav"."""
+    m = re.match(r'(<span class="n">[^<]*</span>\s*)(.*)$', label, re.S)
+    return m.group(1) + s.subnav(m.group(2)) if m else s.subnav(label)
+
+
 def subnav(key: str, url: str, where: str, s: site_i18n.Strings) -> str:
     """A numbered sub-nav row from site/partials/subnav-<key>.html, with the
     current page's link marked active."""
@@ -312,7 +326,7 @@ def subnav(key: str, url: str, where: str, s: site_i18n.Strings) -> str:
         attrs = ""
         if href == url:
             attrs, found = ' class="active" aria-current="page"', True
-        links.append(f'        <a href="{href}"{attrs}>{label}</a>')
+        links.append(f'        <a href="{href}"{attrs}>{subnav_label(label, s)}</a>')
     if not found:
         raise SiteError(f"{where}: sub-nav {key!r} has no entry for {url}")
     return (f'    <nav class="subnav-wrap" aria-label="{s("subnav.aria")}">\n'
@@ -337,7 +351,7 @@ def answers_nav(url: str, where: str, s: site_i18n.Strings) -> tuple[str, str]:
         return m.group(1) if m else ""
 
     def text(label: str) -> str:
-        return re.sub(r'<span class="n">[^<]*</span>\s*', "", label)
+        return s.subnav(re.sub(r'<span class="n">[^<]*</span>\s*', "", label))
 
     groups: list[tuple[str | None, list]] = []
     for g, href, label in entries:
@@ -351,7 +365,7 @@ def answers_nav(url: str, where: str, s: site_i18n.Strings) -> tuple[str, str]:
             '<span aria-hidden="true">&times;</span></button></p>']
     for g, items in groups:
         open_ = " open" if g == cur_group else ""
-        side.append(f'          <details class="ans-grp"{open_}><summary>{g}</summary><ol>')
+        side.append(f'          <details class="ans-grp"{open_}><summary>{s.subnav(g) if g else ""}</summary><ol>')
         for href, label in items:
             cur = ' aria-current="page"' if href == url else ""
             side.append(f'            <li><a href="{href}"{cur}><span class="n">{num(label)}</span>'
@@ -411,16 +425,34 @@ def slug(text: str) -> str:
     return s or "section"
 
 
-def section_anchors(body: str, s: site_i18n.Strings) -> str:
+BLOCK_LABEL = re.compile(r'<h2 class="block-label"([^>]*)>(.*?)</h2>')
+
+
+def section_ids(body: str) -> list[str]:
+    """The id each `<h2 class="block-label">` heading of an English body gets."""
+    ids: list[str] = []
+    section_anchors(body, site_i18n.strings("en"), record=ids)
+    return ids
+
+
+def section_anchors(body: str, s: site_i18n.Strings, ids: list[str] | None = None,
+                    record: list[str] | None = None) -> str:
     """Give every `<h2 class="block-label">` section heading an id (kept when
     the source sets one, else a slug of its text, unique on the page) and a
-    "#" link to itself, so any section can be linked to."""
+    "#" link to itself, so any section can be linked to. A translated page
+    passes `ids`, the English page's ids in order, so a section has the same
+    anchor in every language and a link to it works from any of them."""
     taken = set(re.findall(r'\bid="([^"]+)"', body))
+    count = iter(range(1 << 30))
 
     def sub(m: re.Match) -> str:
         attrs, inner = m.group(1), m.group(2)
+        i = next(count)
         if 'id="' in attrs:
             hid = re.search(r'id="([^"]+)"', attrs).group(1)
+        elif ids is not None and i < len(ids):
+            hid = ids[i]
+            attrs += f' id="{hid}"'
         else:
             base = hid = slug(re.sub(r'<span class="ex-label">.*?</span>', "", inner))
             n = 2
@@ -428,9 +460,11 @@ def section_anchors(body: str, s: site_i18n.Strings) -> str:
                 hid, n = f"{base}-{n}", n + 1
             taken.add(hid)
             attrs += f' id="{hid}"'
+        if record is not None:
+            record.append(hid)
         return (f'<h2 class="block-label"{attrs}>{inner}'
                 f'<a class="h-anchor" href="#{hid}" aria-label="{s("anchor.aria")}">#</a></h2>')
-    return re.sub(r'<h2 class="block-label"([^>]*)>(.*?)</h2>', sub, body)
+    return BLOCK_LABEL.sub(sub, body)
 
 
 def secondary_spans(n: int) -> list[int]:
@@ -650,21 +684,15 @@ def stylesheet_bundle(sheets: list[str]) -> str:
     return "\n".join(parts)
 
 
-def human_date(date: str) -> str:
-    y, m, d = date.split("-")
-    return f"{int(d)} {site_versions.MONTH_NAMES[int(m) - 1][:3]} {y}"
-
-
-def stamp_answer(body: str, version: str, date: str) -> str:
+def stamp_answer(body: str, version: str, date: str, s: site_i18n.Strings) -> str:
     """The line that says how current an answer is, as the last item of its
     "Where it stands" row (or at the end, before the next steps, on a page
     without one). The code on every answer page is compiled by
     scripts/check_docs_compile.py on every build, so the version is the one
     the build checked it against; the date is the page's from
     site/lastmod.json, the last time its content changed."""
-    when = f'<time datetime="{date}">{human_date(date)}</time>'
-    text = (f"Code examples on this page are checked against Glyph {version} on every build. "
-            f"Last changed {when}." if "<pre" in body else f"Last changed {when}.")
+    when = f'<time datetime="{date}">{s.date(date)}</time>'
+    text = s("stamp.checked", version=version, date=when) if "<pre" in body else s("stamp.changed", date=when)
     line = f'        <p class="page-stamp">{text}</p>\n'
     m = re.search(r'<div class="status-row">', body)
     if m:
@@ -676,23 +704,30 @@ def stamp_answer(body: str, version: str, date: str) -> str:
     return body[:i] + line.replace("        ", "      ", 1) + body[i:]
 
 
-def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str,
-           ctx: site_i18n.Ctx, lastmod: LastMod, titles: dict[str, str]) -> tuple[str, str, str | None]:
-    """One page, the date its content last changed, and its Markdown copy
-    when it has one. `url` is the page's English URL; `ctx` says which
-    language this rendering is in and which others the page has."""
-    where = str(path.relative_to(ROOT))
-    t = ctx.s
+def with_next_steps(site: dict, fm: dict, body: str, where: str) -> str:
     body = re.sub(r"\{\{icon:([a-z-]+)\}\}", lambda m: icon(site, m.group(1), where), body)
     if fm.get("next_steps"):
         body += next_steps(site, fm["next_steps"], where)
-    body = section_anchors(body, t)
+    return body
+
+
+def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str,
+           ctx: site_i18n.Ctx, lastmod: LastMod, titles: dict[str, str],
+           anchor_ids: list[str] | None = None) -> tuple[str, str, str | None]:
+    """One page, the date its content last changed, and its Markdown copy
+    when it has one. `url` is the page's English URL; `ctx` says which
+    language this rendering is in and which others the page has. A
+    translation passes `anchor_ids`, its English page's section ids."""
+    where = str(path.relative_to(ROOT))
+    t = ctx.s
+    body = with_next_steps(site, fm, body, where)
+    body = section_anchors(body, t, anchor_ids)
     try:
-        body = site_catches.expand(body, where)
+        body = site_catches.expand(body, where, ctx.loc)
     except site_catches.CatchesError as e:
         raise SiteError(str(e)) from None
     try:
-        body = site_versions.expand_quotes(body, where)
+        body = site_versions.expand_quotes(body, where, ctx.loc)
     except site_versions.VersionsError as e:
         raise SiteError(str(e)) from None
     body = stack_wide_pairs(body)
@@ -701,7 +736,6 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
         body = site_highlight.highlight_pres(body, where)
     except site_highlight.HighlightError as e:
         raise SiteError(str(e)) from None
-    body = site_i18n.english_island(body, ctx)
     # The content as it stands before the version is filled in, so that a
     # version bump alone does not change any page's date.
     if fm.get("lastmod"):
@@ -712,7 +746,7 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
         date = lastmod.date(ctx.here, f'{fm["title"]}\n{fm["description"]}\n{body}')
     body = body.replace("{{version}}", version)
     if url.startswith("/answers/") and url != "/answers/" and not fm.get("noindex"):
-        body = stamp_answer(body, version, date)
+        body = stamp_answer(body, version, date, t)
     markdown = None
     if ctx.loc == "en" and site_markdown.wanted(url) and not fm.get("noindex"):
         markdown = site_markdown.convert(body, url, short_title(fm["title"]), date)
@@ -732,7 +766,9 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
             url=url, here=ctx.here, lang=ctx.lang, title=short_title(fm["title"]),
             description=fm["description"], date=date, version=version, titles=titles,
             languages=[site_i18n.LOCALES[loc][0] for loc in site_i18n.LOCALES],
-            answers=[href for _, href, _ in subnav_entries("answers", where)]),
+            answers=[href for _, href, _ in subnav_entries("answers", where)],
+            localize=lambda href: (site_i18n.url_for(ctx.loc, href)
+                                   if href in ctx.translated_urls.get(ctx.loc, set()) else href)),
     }
     extra_head, sheets = page_sheets(fm.get("head", ""), where)
     head_values["stylesheet"] = "/" + bundle_name(sheets)
@@ -828,10 +864,13 @@ def page_files() -> list[pathlib.Path]:
 LASTMOD_TEXT: str | None = None
 
 
-def build() -> dict[str, str | bytes]:
+def build(locales: list[str] | None = None) -> dict[str, str | bytes]:
     """Every file the generator owns, as {path relative to web/: contents}.
     Text files are str; the files copied from site/static/ are bytes. The
-    dates for site/lastmod.json are left in LASTMOD_TEXT."""
+    dates for site/lastmod.json are left in LASTMOD_TEXT. With `locales`,
+    only those translations are read and rendered (English is always
+    rendered): scripts/check_i18n.py --locale renders one language in
+    memory this way, without reading the other languages' files."""
     global LASTMOD_TEXT
     BUNDLES.clear()
     site = json.loads((SITE / "site.json").read_text())
@@ -840,17 +879,23 @@ def build() -> dict[str, str | bytes]:
     files: dict[str, str] = {}
     entries = []
     try:
-        translations = site_i18n.discover(parse_front)
+        translations = site_i18n.discover(parse_front, locales)
         site_i18n.strings("en")
     except site_i18n.I18nError as e:
         raise SiteError(str(e)) from None
     translated_urls: dict[str, set[str]] = {}
     for eng, by_loc in translations.items():
         for loc in by_loc:
-            translated_urls.setdefault(loc, set()).add(page_url(eng))
+            translated_urls.setdefault(loc, set()).add("/404.html" if eng == NOT_FOUND else page_url(eng))
     pages = [(path, expand_pages(path)) for path in page_files()]
-    # Every English page's title, for breadcrumbs and the answers list.
+    # Every English page's title, for breadcrumbs and the answers list, and
+    # each language's titles over them where a page is translated.
     titles = {url: short_title(fm["title"]) for _, expanded in pages for url, fm, _ in expanded}
+    loc_titles: dict[str, dict[str, str]] = {}
+    for eng, by_loc in translations.items():
+        for loc, tr in by_loc.items():
+            if eng != NOT_FOUND:
+                loc_titles.setdefault(loc, dict(titles))[page_url(eng)] = short_title(tr.fm["title"])
     md_pages: list[tuple[str, str, str]] = []
     for path, expanded in pages:
         for url, fm, body in expanded:
@@ -860,13 +905,16 @@ def build() -> dict[str, str | bytes]:
             for loc in available[1:]:
                 tr = by_loc[loc]
                 versions.append((loc, site_i18n.merge_front(fm, tr), tr.body, tr.path, tr))
+            ids = section_ids(with_next_steps(site, fm, body, str(path))) if len(available) > 1 else None
             alternates = site_i18n.sitemap_alternates(url, available)
             for loc, vfm, vbody, src, tr in versions:
                 try:
                     ctx = site_i18n.Ctx(loc, url, available, tr, translated_urls)
                     here = ctx.here
                     rel = here.strip("/") + "/index.html" if here != "/" else "index.html"
-                    date, markdown, files[rel] = render(src, site, version, vfm, vbody, url, ctx, lastmod, titles)
+                    date, markdown, files[rel] = render(src, site, version, vfm, vbody, url, ctx, lastmod,
+                                                        loc_titles.get(loc, titles),
+                                                        ids if loc != "en" else None)
                     if markdown is not None:
                         files[rel.removesuffix("index.html") + "index.md"] = markdown
                         md_pages.append((url, short_title(vfm["title"]), vfm["description"]))
@@ -876,15 +924,27 @@ def build() -> dict[str, str | bytes]:
                 if vfm.get("canonical", ORIGIN + here) == ORIGIN + here:
                     entries.append({"loc": here, "lastmod": date, "alternates": alternates})
     # GitHub Pages serves web/404.html for any address with no file. It has
-    # the site's chrome, is noindex, and is not in the sitemap.
+    # the site's chrome, is noindex, and is not in the sitemap. A translated
+    # 404 renders to web/<locale>/404.html; Pages never serves it directly,
+    # so the English one shows it in place for an address under that
+    # locale's prefix (not_found_script()).
     fm, body = parse_page(NOT_FOUND)
     fm["noindex"] = "yes"
-    try:
-        _, _, files["404.html"] = render(NOT_FOUND, site, version, fm, body, "/404.html",
-                                      site_i18n.Ctx("en", "/404.html", ["en"], None, translated_urls), lastmod,
-                                      titles)
-    except site_i18n.I18nError as e:
-        raise SiteError(str(e)) from None
+    by_loc = translations.get(NOT_FOUND, {})
+    available = ["en"] + [loc for loc in site_i18n.TRANSLATED if loc in by_loc]
+    ids = section_ids(with_next_steps(site, fm, body, str(NOT_FOUND))) if len(available) > 1 else None
+    for loc in available:
+        tr = by_loc.get(loc)
+        vfm = fm if tr is None else {**site_i18n.merge_front(fm, tr), "noindex": "yes"}
+        if loc == "en" and len(available) > 1:
+            vfm = {**vfm, "head": (vfm.get("head", "") + "\n" + not_found_script(available[1:])).strip("\n")}
+        try:
+            _, _, files["404.html" if loc == "en" else f"{loc}/404.html"] = render(
+                NOT_FOUND if tr is None else tr.path, site, version, vfm, body if tr is None else tr.body,
+                "/404.html", site_i18n.Ctx(loc, "/404.html", available, tr, translated_urls), lastmod,
+                loc_titles.get(loc, titles), ids if loc != "en" else None)
+        except site_i18n.I18nError as e:
+            raise SiteError(str(e)) from None
     try:
         files["versions/feed.xml"] = site_versions.feed()
     except site_versions.VersionsError as e:
@@ -908,6 +968,28 @@ def build() -> dict[str, str | bytes]:
     for asset in sorted(p for p in STATIC.rglob("*") if p.is_file() and p.name != ".DS_Store"):
         files[asset.relative_to(STATIC).as_posix()] = asset.read_bytes()
     return files
+
+
+def not_found_script(locales: list[str]) -> str:
+    """For web/404.html: when the missing address is under a locale's prefix
+    and that locale has a translated 404, show it in place, keeping the
+    address the reader asked for."""
+    pages = {loc: f"/{loc}/404.html" for loc in locales}
+    return f"""<script>
+  (function () {{
+    var pages = {json.dumps(pages, separators=(",", ":"))};
+    var m = location.pathname.match(/^\\/([a-z]{{2}}(?:-[a-z]{{2}})?)\\//);
+    if (!m || !pages[m[1]] || !window.fetch) return;
+    fetch(pages[m[1]]).then(function (r) {{
+      return r.ok ? r.text() : null;
+    }}).then(function (t) {{
+      if (!t) return;
+      document.open();
+      document.write(t);
+      document.close();
+    }}).catch(function () {{}});
+  }})();
+</script>"""
 
 
 def stale_pages(out: pathlib.Path, files: dict[str, str]) -> list[str]:

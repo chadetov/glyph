@@ -19,14 +19,21 @@ hash stops matching and the translated page renders a notice that the English
 version has changed since, with a link to it. scripts/check_i18n.py reports
 those and fails on the things that are broken rather than out of date.
 
-UI strings live in site/i18n/<locale>/strings.json, two objects:
+UI strings live in site/i18n/<locale>/strings.json, three objects:
 
-  "ui"   keyed strings for the partials and the generator, written in a
-         partial as {{t:key}} (HTML-escaped) or {{tj:key}} (a JavaScript
-         string literal). site/i18n/en/strings.json holds the English ones.
-  "nav"  the site.json nav, gettext style: the English label, description,
-         column title or card text is the key, so site.json stays the one
-         place the nav is defined. A label with no entry shows in English.
+  "ui"     keyed strings for the partials and the generator, written in a
+           partial as {{t:key}} (HTML-escaped) or {{tj:key}} (a JavaScript
+           string literal). site/i18n/en/strings.json holds the English ones.
+  "nav"    the site.json nav, gettext style: the English label, description,
+           column title or card text is the key, so site.json stays the one
+           place the nav is defined. A label with no entry shows in English.
+  "subnav" the sub-nav labels and group names of site/partials/subnav-*.html,
+           gettext style too, keyed by the English label without its number.
+
+The texts of the cases in catches/ that the generated pages show are in
+site/i18n/<locale>/catches.json (see scripts/site_catches.py). A translated
+page is written from a segments file beside it (see scripts/i18n_extract.py
+and scripts/i18n_apply.py); the build reads only the page.
 
 A missing ui key also falls back to English, so adding an English string
 never blocks a build; check_i18n.py lists what each locale lacks.
@@ -96,7 +103,8 @@ FONTS = {
 # The front-matter keys a translation may set. The rest come from English.
 TRANSLATION_KEYS = {"title", "description", "head", "next_steps", "prev", "next", "source_hash"}
 
-# Pages that are never translated: the release notes are a changelog.
+# Pages that are never translated: the release notes are dated records, so
+# they stay as written. Their language menu says so in each language.
 UNTRANSLATED = ("versions/",)
 
 STORE = "glyph-lang"        # localStorage: the reader's chosen locale
@@ -121,8 +129,14 @@ def url_for(loc: str, url: str) -> str:
 class Strings:
     """One locale's UI strings, falling back to English key by key."""
 
-    def __init__(self, loc: str, ui: dict[str, str], nav: dict[str, str], en: dict[str, str]):
+    def __init__(self, loc: str, ui: dict[str, str], nav: dict[str, str], en: dict[str, str],
+                 subnav: dict[str, str] | None = None):
         self.loc, self.ui, self.nav_map, self.en = loc, ui, nav, en
+        self.subnav_map = subnav or {}
+
+    def has(self, key: str) -> bool:
+        """Whether this locale translates `key` (English has every key)."""
+        return key in self.ui
 
     def raw(self, key: str) -> str:
         if key in self.ui:
@@ -139,6 +153,14 @@ class Strings:
             text = text.replace("{" + name + "}", value)
         return text
 
+    def markup(self, key: str, **values: str) -> str:
+        """The string for `key` as markup (it may hold inline tags such as
+        <code>), with {name} filled from values."""
+        text = self.raw(key)
+        for name, value in values.items():
+            text = text.replace("{" + name + "}", value)
+        return text
+
     def js(self, key: str) -> str:
         return json.dumps(self.raw(key), ensure_ascii=False).replace("</", "<\\/")
 
@@ -147,21 +169,32 @@ class Strings:
         translation is used as written."""
         return self.nav_map.get(english, english)
 
+    def subnav(self, english: str) -> str:
+        """A sub-nav label or group name, as markup."""
+        return self.subnav_map.get(english, english)
+
+    def date(self, iso: str) -> str:
+        """YYYY-MM-DD in this locale's short form, from ui `date.format` and
+        `date.months` (twelve names separated by spaces)."""
+        y, m, d = iso.split("-")
+        months = self.raw("date.months").split()
+        return self.markup("date.format", day=str(int(d)), month=months[int(m) - 1], year=y)
+
 
 def read_strings(loc: str) -> dict:
     path = I18N / loc / "strings.json"
     if not path.is_file():
         if loc == "en":
             raise I18nError("site/i18n/en/strings.json is missing")
-        return {"ui": {}, "nav": {}}
+        return {"ui": {}, "nav": {}, "subnav": {}}
     try:
         data = json.loads(path.read_text())
     except json.JSONDecodeError as e:
         raise I18nError(f"{path.relative_to(ROOT)}: not valid JSON: {e}") from None
-    for part in ("ui", "nav"):
+    for part in ("ui", "nav", "subnav"):
         if not isinstance(data.get(part, {}), dict):
             raise I18nError(f"{path.relative_to(ROOT)}: {part!r} must be an object")
-    return {"ui": data.get("ui", {}), "nav": data.get("nav", {})}
+    return {"ui": data.get("ui", {}), "nav": data.get("nav", {}), "subnav": data.get("subnav", {})}
 
 
 _cache: dict[str, Strings] = {}
@@ -170,8 +203,8 @@ _cache: dict[str, Strings] = {}
 def strings(loc: str) -> Strings:
     if loc not in _cache:
         en = read_strings("en")["ui"]
-        data = read_strings(loc) if loc != "en" else {"ui": en, "nav": {}}
-        _cache[loc] = Strings(loc, data["ui"], data["nav"], en)
+        data = read_strings(loc) if loc != "en" else {"ui": en, "nav": {}, "subnav": {}}
+        _cache[loc] = Strings(loc, data["ui"], data["nav"], en, data["subnav"])
     return _cache[loc]
 
 
@@ -197,23 +230,29 @@ def english_source(loc: str, path: pathlib.Path) -> pathlib.Path:
     return PAGES / path.relative_to(I18N / loc)
 
 
-def translation_files() -> list[tuple[str, pathlib.Path]]:
+def translation_files(locales: list[str] | None = None) -> list[tuple[str, pathlib.Path]]:
+    """Every translated page, as (locale, path): index.html files, and
+    404.html, the translation of site/pages/404.html."""
     out = []
     for loc in TRANSLATED:
         base = I18N / loc
-        if base.is_dir():
+        if base.is_dir() and (locales is None or loc in locales):
             out += [(loc, p) for p in sorted(base.rglob("index.html"))]
+            if (base / "404.html").is_file():
+                out.append((loc, base / "404.html"))
     return out
 
 
-def discover(parse_front) -> dict[pathlib.Path, dict[str, Translation]]:
+def discover(parse_front, locales: list[str] | None = None) -> dict[pathlib.Path, dict[str, Translation]]:
     """{English source path: {locale: Translation}}. `parse_front(path, keys)`
-    is build_site's front-matter parser."""
+    is build_site's front-matter parser. With `locales`, only those locales'
+    translations are read, so one locale's broken file cannot stop a check
+    of another."""
     unknown = sorted(d.name for d in I18N.iterdir() if d.is_dir() and d.name not in LOCALES)
     if unknown:
         raise I18nError(f"site/i18n/: unknown locale directories {unknown}; the locales are {sorted(LOCALES)}")
     out: dict[pathlib.Path, dict[str, Translation]] = {}
-    for loc, path in translation_files():
+    for loc, path in translation_files(locales):
         where = path.relative_to(ROOT)
         eng = english_source(loc, path)
         if not eng.is_file():
@@ -275,7 +314,9 @@ def og_locale_alternates(ctx: Ctx) -> str:
 
 def head_extra(ctx: Ctx) -> str:
     out = []
-    if len(ctx.available) > 1:
+    # The 404 page is noindex and shown for addresses that do not exist, so
+    # it names no alternates and never redirects.
+    if len(ctx.available) > 1 and ctx.url != "/404.html":
         for loc in ctx.available:
             out.append(f'    <link rel="alternate" hreflang="{LOCALES[loc][0]}" href="{ORIGIN}{url_for(loc, ctx.url)}" />')
         out.append(f'    <link rel="alternate" hreflang="x-default" href="{ORIGIN}{ctx.url}" />')
@@ -283,7 +324,7 @@ def head_extra(ctx: Ctx) -> str:
         out.append('    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />')
         out.append('    <link href="https://fonts.googleapis.com/css2?family='
                    f'{FONTS[ctx.loc][1]}&display=swap" rel="stylesheet" />')
-    if ctx.loc == "en" and len(ctx.available) > 1:
+    if ctx.loc == "en" and len(ctx.available) > 1 and ctx.url != "/404.html":
         out.append(autoselect_script(ctx))
     return "\n".join(out) + ("\n" if out else "")
 
@@ -336,6 +377,7 @@ def switcher(ctx: Ctx) -> str:
     listed and marked, not linked."""
     s = ctx.s
     lang, name, short = LOCALES[ctx.loc]
+    english_only = any(ctx.url.startswith("/" + u) for u in UNTRANSLATED)
     items = []
     for loc, (tag, native, _) in LOCALES.items():
         if loc == ctx.loc:
@@ -345,6 +387,12 @@ def switcher(ctx: Ctx) -> str:
         elif loc in ctx.available:
             items.append(f'<li><a href="{url_for(loc, ctx.url)}" hreflang="{tag}" lang="{tag}" data-lang="{loc}">'
                          f'{flag(loc)}<span class="lang-name">{native}</span></a></li>')
+        elif english_only:
+            # A page that is never translated: each language says so in its
+            # own words, and nothing links to a page that does not exist.
+            note_lang = tag if strings(loc).has("lang.english_only") else "en"
+            items.append(f'<li><span class="lang-off">{flag(loc)}<span class="lang-name" lang="{tag}">{native}</span>'
+                         f'<span class="lang-note" lang="{note_lang}">{strings(loc)("lang.english_only")}</span></span></li>')
         else:
             items.append(f'<li><span class="lang-off">{flag(loc)}<span class="lang-name" lang="{tag}">{native}</span>'
                          f'<span class="lang-note">{s("lang.unavailable")}</span></span></li>')
@@ -476,19 +524,20 @@ def localize_links(markup: str, ctx: Ctx) -> str:
     return re.sub(r"<a\b[^>]*>", sub, markup)
 
 
-def english_island(markup: str, ctx: Ctx) -> str:
-    """Mark the blocks generated from catches/ as English inside a translated
-    page: the case titles and verdicts are not translated."""
-    if ctx.loc == "en":
-        return markup
-    markup = markup.replace('<figure class="c-hero">', '<figure class="c-hero" lang="en">')
-    return markup.replace('<div class="c-cards">', '<div class="c-cards" lang="en">')
+def segments_file(tr_path: pathlib.Path) -> pathlib.Path:
+    """The segments file a translated page is written from."""
+    return tr_path.with_name(tr_path.stem + ".segments.json")
 
 
 def edit_url(ctx: Ctx, english_edit: str) -> str:
+    """Where "Edit this page" goes: the English source, or for a
+    translation the segments file it is written from (the page itself when
+    it has none)."""
     if ctx.tr is None:
         return english_edit
-    return f"{REPO}/blob/main/{ctx.tr.path.relative_to(ROOT).as_posix()}"
+    seg = segments_file(ctx.tr.path)
+    target = seg if seg.is_file() else ctx.tr.path
+    return f"{REPO}/blob/main/{target.relative_to(ROOT).as_posix()}"
 
 
 def sitemap_alternates(url: str, available: list[str]) -> list[str]:

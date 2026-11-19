@@ -34,6 +34,14 @@ Placeholders:
                              the traps, the holes, and each kind across all of
                              them, so 28 refused is 23 mistakes plus 5 traps
 
+Translated pages get the same blocks in their language: the labels around a
+case are UI strings (`catches.*` in site/i18n/<locale>/strings.json) and each
+case's own texts (page_title, why, the verdicts and results, page_note,
+summary) come from site/i18n/<locale>/catches.json, where each text carries
+the English it was translated from. A text whose English has changed since,
+or that nobody translated, shows in English marked lang="en". Code, observed
+output and error codes are English everywhere.
+
 The section names are fixed here, once: "TypeScript mistakes", "JavaScript
 traps that do not exist in Glyph" and "holes Glyph does not close yet". A page
 that cites a count uses these names, so a reader adding up the numbers on two
@@ -51,6 +59,7 @@ import tomllib
 import urllib.parse
 
 import site_highlight
+import site_i18n
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CASES = ROOT / "catches"
@@ -63,6 +72,42 @@ HELP_LIMIT = 200
 
 class CatchesError(Exception):
     pass
+
+
+class Lang:
+    """One locale's view of the cases: UI strings and case texts, each
+    falling back to English."""
+
+    _cases: dict[str, dict] = {}
+
+    def __init__(self, loc: str):
+        self.loc = loc
+        self.s = site_i18n.strings(loc)
+        if loc != "en" and loc not in Lang._cases:
+            path = site_i18n.I18N / loc / "catches.json"
+            try:
+                Lang._cases[loc] = json.loads(path.read_text()).get("cases", {}) if path.is_file() else {}
+            except json.JSONDecodeError as e:
+                raise CatchesError(f"{path.relative_to(ROOT)}: not valid JSON: {e}") from None
+
+    def text(self, c: dict, field: str) -> str:
+        """A case's display text in this locale, or the English marked as such."""
+        en = c[field]
+        if self.loc == "en":
+            return en
+        entry = Lang._cases[self.loc].get(c["slug"], {}).get(field, {})
+        if isinstance(entry, dict) and entry.get("en") == en and (entry.get("tr") or "").strip():
+            return entry["tr"].strip()
+        return f'<span lang="en">{en}</span>'
+
+    def group(self, key: str) -> str:
+        return self.s(f"catches.group.{key}")
+
+    def label(self, c: dict) -> str:
+        """The Glyph-side label of a case: its group, or its own verdict for
+        a case the language simply has no spelling for."""
+        g = glyph_group(c)
+        return self.group(g) if g != "design" else self.text(c, "glyph_verdict")
 
 
 # ---------------------------------------------------------------- data
@@ -176,30 +221,34 @@ def dots(n: int) -> str:
         '<i class="on"></i>' if i < n else "<i></i>" for i in range(5)) + "</span>"
 
 
-def scores(c: dict) -> str:
+def scores(c: dict, t: Lang) -> str:
+    s = t.s
+    li, sv = str(c["likelihood"]), str(c["severity"])
     return (
         '<div class="c-scores">'
-        f'<span class="c-score likely" title="Likely: {c["likelihood"]} of 5">Likely {dots(c["likelihood"])}'
-        f'<span class="sr">{c["likelihood"]} of 5</span></span>'
-        f'<span class="c-score severe" title="Severity: {c["severity"]} of 5">Severity {dots(c["severity"])}'
-        f'<span class="sr">{c["severity"]} of 5</span></span>'
+        f'<span class="c-score likely" title="{s("catches.likely")}: {s("catches.of5", n=li)}">'
+        f'{s("catches.likely")} {dots(c["likelihood"])}'
+        f'<span class="sr">{s("catches.of5", n=li)}</span></span>'
+        f'<span class="c-score severe" title="{s("catches.severity")}: {s("catches.of5", n=sv)}">'
+        f'{s("catches.severity")} {dots(c["severity"])}'
+        f'<span class="sr">{s("catches.of5", n=sv)}</span></span>'
         "</div>"
     )
 
 
-def fullconfig_tag(c: dict) -> str:
+def fullconfig_tag(c: dict, t: Lang) -> str:
+    s = t.s
     fc = c["fullconfig"]
     if fc == "none":
-        return ('<p class="c-cfg none"><b>Nothing catches it</b>'
-                "not even with every compiler flag and typescript-eslint strict on</p>")
+        return f'<p class="c-cfg none"><b>{s("catches.cfg.none_head")}</b>{s("catches.cfg.none")}</p>'
     if fc.startswith("flag:"):
         option, _, value = fc[len("flag:"):].partition("=")
         setting = f"{option}: {value}" if value else option
-        return (f'<p class="c-cfg flag"><b>Off by default</b>'
-                f"caught by the compiler flag <code>{html.escape(setting)}</code></p>")
+        return (f'<p class="c-cfg flag"><b>{s("catches.cfg.flag_head")}</b>'
+                f'{s("catches.cfg.flag", setting=f"<code>{html.escape(setting)}</code>")}</p>')
     rule = fc[len("lint:"):]
-    return (f'<p class="c-cfg lint"><b>Lint only</b>'
-            f"caught by the lint rule <code>{html.escape(rule)}</code></p>")
+    return (f'<p class="c-cfg lint"><b>{s("catches.cfg.lint_head")}</b>'
+            f'{s("catches.cfg.lint", rule=f"<code>{html.escape(rule)}</code>")}</p>')
 
 
 def output_lines(text: str, cls: str) -> str:
@@ -251,37 +300,38 @@ def issue_link(c: dict) -> str:
 # ---------------------------------------------------------------- blocks
 
 
-def mistake_html(c: dict, n: int) -> str:
+def mistake_html(c: dict, n: int, t: Lang) -> str:
     slug = c["slug"]
+    s = t.s
     ggroup = glyph_group(c)
-    label = GLYPH_GROUPS[ggroup] if ggroup != "design" else c["glyph_verdict"]
-    verdict = c["glyph_verdict"]
-    extra = "" if verdict == label else f'<span class="c-verdict">{verdict}</span>'
+    english_label = GLYPH_GROUPS[ggroup] if ggroup != "design" else c["glyph_verdict"]
+    label = t.label(c)
+    extra = "" if c["glyph_verdict"] == english_label else f'<span class="c-verdict">{t.text(c, "glyph_verdict")}</span>'
     warn = " warn" if ggroup == "warned" else ""
     ts_cap, ts_out = ts_output(c)
     gl_cap, gl_out = glyph_output(c)
     return f"""      <article class="catch" id="{slug}" data-ts="{ts_group(c)}" data-glyph="{ggroup}">
         <div class="c-head">
           <span class="c-num">{n}</span>
-          <h3><a class="c-anchor" href="#{slug}">{c["page_title"]}</a></h3>
-          {scores(c)}
+          <h3><a class="c-anchor" href="#{slug}">{t.text(c, "page_title")}</a></h3>
+          {scores(c, t)}
         </div>
-        <p class="c-why">{c["why"]}</p>
+        <p class="c-why">{t.text(c, "why")}</p>
         <div class="c-pair">
           <div class="c-side ts">
-            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">{c["ts_verdict"]}</span></div>
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">{t.text(c, "ts_verdict")}</span></div>
             {code_box("ts.ts", c["ts_code"], "ts", ts_cap, ts_out)}
-            <p class="c-result">{c["ts_result"]}</p>
-            {fullconfig_tag(c)}
+            <p class="c-result">{t.text(c, "ts_result")}</p>
+            {fullconfig_tag(c, t)}
           </div>
           <div class="c-side gl{warn}">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">{label}</span>{extra}</div>
             {code_box("glyph.glyph", c["glyph_code"], "glyph", gl_cap, gl_out)}
-            <p class="c-result">{c["glyph_result"]}</p>
+            <p class="c-result">{t.text(c, "glyph_result")}</p>
           </div>
         </div>
-        <p class="c-note">{c["page_note"]}</p>
-        <p class="c-links"><a class="c-copy" href="#{slug}" data-slug="{slug}">Copy link</a><a href="{REPO}/tree/main/catches/{slug}">Reproduce</a><a class="c-disagree" href="{html.escape(issue_link(c))}">Disagree with this score?</a></p>
+        <p class="c-note">{t.text(c, "page_note")}</p>
+        <p class="c-links"><a class="c-copy" href="#{slug}" data-slug="{slug}">{s("catches.copy_link")}</a><a href="{REPO}/tree/main/catches/{slug}">{s("catches.reproduce")}</a><a class="c-disagree" href="{html.escape(issue_link(c))}">{s("catches.disagree")}</a></p>
       </article>
 """
 
@@ -306,45 +356,35 @@ def counts(cases: list[dict]) -> dict[str, int]:
     }
 
 
-def breakdown(cases: list[dict]) -> str:
+def breakdown(cases: list[dict], t: Lang) -> str:
     """One sentence with every denominator, in the section names every page uses."""
     k = counts(cases)
     if k["count"] + k["trap-count"] + k["gap-cases"] != k["total"]:
         raise CatchesError("a case in catches/ is in no section the breakdown names")
     if k["refused"] + k["traps-refused"] != k["refused-all"]:
         raise CatchesError("a refused case in catches/ is neither a mistake nor a trap; the breakdown would not add up")
-    return (
-        f"There are {k['total']} checked cases: {k['count']} TypeScript mistakes, "
-        f"{k['trap-count']} JavaScript traps that do not exist in Glyph, and "
-        f"{k['gap-cases']} holes Glyph does not close yet. Glyph refuses "
-        f"{k['refused-all']} of them when you build ({k['refused']} mistakes and "
-        f"{k['traps-refused']} traps)."
-    )
+    return t.s.markup("catches.breakdown", **{key.replace("-", "_"): str(v) for key, v in k.items()})
 
 
-def measured(cases: list[dict]) -> str:
+def measured(cases: list[dict], t: Lang) -> str:
     k = counts(cases)
-    return (
-        f"Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. "
-        f"Each one is also checked against a fully configured project: every compiler flag "
-        f"stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. "
-        f"For {k['none']} of the {k['count']} cases, nothing in that setup catches it. "
-        f"A compiler flag that is off by default catches {k['flag']}, and a lint rule "
-        f"catches {k['lint']}. A project has to turn each of those on, and an agent can "
-        f"turn it off again. In Glyph none of them is a setting."
-    )
+    return t.s.markup("catches.measured", none=str(k["none"]), count=str(k["count"]),
+                      flag=str(k["flag"]), lint=str(k["lint"]))
 
 
-def legend() -> str:
-    return """      <div class="c-legend">
-        <span class="c-score likely"><b>Likely</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> how often an AI agent writes it</span>
-        <span class="c-score severe"><b>Severity</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> how bad it is when it ships</span>
-        <p>The scores are our judgement, 1 to 5, drawn from published studies of agent-written code and from our own agent runs. Nobody has measured these rates directly. The list is sorted by likelihood times severity.</p>
+def legend(t: Lang) -> str:
+    s = t.s
+    three = '<span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>'
+    return f"""      <div class="c-legend">
+        <span class="c-score likely"><b>{s("catches.likely")}</b> {three} {s("catches.legend.likely")}</span>
+        <span class="c-score severe"><b>{s("catches.severity")}</b> {three} {s("catches.legend.severity")}</span>
+        <p>{s("catches.legend.text")}</p>
       </div>
 """
 
 
-def filters(cases: list[dict]) -> str:
+def filters(cases: list[dict], t: Lang) -> str:
+    s = t.s
     ms = mistakes(cases)
 
     def chip(group: str, value: str, label: str) -> str:
@@ -352,40 +392,36 @@ def filters(cases: list[dict]) -> str:
         return (f'<button type="button" class="c-chip" data-group="{group}" data-value="{value}" '
                 f'aria-pressed="false">{label} <span>{n}</span></button>')
 
-    ts_chips = "".join(chip("ts", v, l) for v, l in
-                       (("none", "Nothing"), ("flag", "A compiler flag"), ("lint", "A lint rule")))
-    gl_chips = "".join(chip("glyph", v, l) for v, l in
-                       (("build", "Refused when you build"), ("data", "Checked when the data arrives"),
-                        ("warned", "Warned"), ("run", "Stopped when it runs"),
-                        ("design", "Not in the language")))
+    ts_chips = "".join(chip("ts", v, s(f"catches.chip.{v}")) for v in ("none", "flag", "lint"))
+    gl_chips = "".join(chip("glyph", v, s(f"catches.chip.{v}")) for v in ("build", "data", "warned", "run", "design"))
     return f"""      <div class="c-filters" hidden>
-        <div class="c-fgroup" role="group" aria-label="What catches it in TypeScript"><span class="c-flabel">What catches it in TypeScript</span>{ts_chips}</div>
-        <div class="c-fgroup" role="group" aria-label="How Glyph handles it"><span class="c-flabel">How Glyph handles it</span>{gl_chips}</div>
+        <div class="c-fgroup" role="group" aria-label="{s("catches.filter.ts")}"><span class="c-flabel">{s("catches.filter.ts")}</span>{ts_chips}</div>
+        <div class="c-fgroup" role="group" aria-label="{s("catches.filter.glyph")}"><span class="c-flabel">{s("catches.filter.glyph")}</span>{gl_chips}</div>
         <p class="c-fstatus" aria-live="polite"></p>
       </div>
 """
 
 
-def mistakes_html(cases: list[dict]) -> str:
+def mistakes_html(cases: list[dict], t: Lang) -> str:
     return '      <div class="c-list">\n' + "".join(
-        mistake_html(c, i) for i, c in enumerate(mistakes(cases), 1)) + "      </div>\n"
+        mistake_html(c, i, t) for i, c in enumerate(mistakes(cases), 1)) + "      </div>\n"
 
 
-def traps_html(cases: list[dict]) -> str:
-    items = "".join(f'        <li id="{c["slug"]}">{c["summary"]}</li>\n' for c in listed(cases, "trap"))
+def traps_html(cases: list[dict], t: Lang) -> str:
+    items = "".join(f'        <li id="{c["slug"]}">{t.text(c, "summary")}</li>\n' for c in listed(cases, "trap"))
     return f'      <ul class="c-traps">\n{items}      </ul>\n'
 
 
-def gaps_html(cases: list[dict]) -> str:
+def gaps_html(cases: list[dict], t: Lang) -> str:
     groups: dict[str, list[str]] = {}
     for c in listed(cases, "gap"):
-        groups.setdefault(c["summary"], []).append(c["gap_id"])
+        groups.setdefault(t.text(c, "summary"), []).append(c["gap_id"])
     items = "".join(f'        <li>{summary} <span>{", ".join(ids)}</span></li>\n'
                     for summary, ids in groups.items())
     return f'      <ul class="c-gaps">\n{items}      </ul>\n'
 
 
-def hero(cases: list[dict]) -> str:
+def hero(cases: list[dict], t: Lang) -> str:
     """The highest-ranked mistake Glyph's own checker refuses that nothing in a
     fully configured TypeScript project catches."""
     pick = next((c for c in mistakes(cases)
@@ -396,52 +432,54 @@ def hero(cases: list[dict]) -> str:
     ts_cap, ts_out = ts_output(pick)
     gl_cap, gl_out = glyph_output(pick)
     return f"""          <figure class="c-hero">
-            <figcaption><a href="/catches/#{pick["slug"]}">{pick["page_title"]}</a>: {pick["why"]}</figcaption>
+            <figcaption><a href="/catches/#{pick["slug"]}">{t.text(pick, "page_title")}</a>{t.s("catches.colon")}{t.text(pick, "why")}</figcaption>
             <div class="c-hero-side ts">
-              <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">{pick["ts_verdict"]}</span></div>
+              <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">{t.text(pick, "ts_verdict")}</span></div>
               {code_box("ts.ts", pick["ts_code"], "ts", ts_cap, ts_out)}
             </div>
             <div class="c-hero-side gl">
-              <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
+              <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">{t.group("build")}</span></div>
               {code_box("glyph.glyph", pick["glyph_code"], "glyph", gl_cap, gl_out)}
             </div>
           </figure>
 """
 
 
-def top(cases: list[dict]) -> str:
+def top(cases: list[dict], t: Lang) -> str:
     picks = [c for c in mistakes(cases) if c["fullconfig"] == "none"][:3]
     cards = []
     for i, c in enumerate(picks, 1):
-        label = GLYPH_GROUPS[glyph_group(c)] if glyph_group(c) != "design" else c["glyph_verdict"]
         cards.append(f"""          <a class="c-card" href="/catches/#{c["slug"]}">
             <span class="c-card-n">{i}</span>
-            <h3>{c["page_title"]}</h3>
-            <p>{c["why"]}</p>
-            <p class="c-card-v"><span class="ts">TypeScript: {c["ts_verdict"]}</span><span class="gl">Glyph: {label}</span></p>
+            <h3>{t.text(c, "page_title")}</h3>
+            <p>{t.text(c, "why")}</p>
+            <p class="c-card-v"><span class="ts">TypeScript{t.s("catches.colon")}{t.text(c, "ts_verdict")}</span><span class="gl">Glyph{t.s("catches.colon")}{t.label(c)}</span></p>
           </a>
 """)
     return '        <div class="c-cards">\n' + "".join(cards) + "        </div>\n"
 
 
-def refused_table(cases: list[dict]) -> str:
+def refused_table(cases: list[dict], t: Lang) -> str:
+    s = t.s
     rows = []
     for c in mistakes(cases):
         if c["kind"] != "refused":
             continue
         code = f"<code>{c['code']}</code>"
         if c["code"].startswith("TS"):
-            code += ' <span class="muted">(tsc pass)</span>'
+            code += f' <span class="muted">{s("catches.tsc_pass")}</span>'
         rows.append(
-            f'            <tr><td>{code}</td><td><a href="/catches/#{c["slug"]}">{c["page_title"]}</a></td>'
+            f'            <tr><td>{code}</td><td><a href="/catches/#{c["slug"]}">{t.text(c, "page_title")}</a></td>'
             f'<td><a href="{REPO}/tree/main/catches/{c["slug"]}"><code>catches/{c["slug"]}/</code></a></td></tr>\n')
     return ('        <table class="catches-table">\n'
-            "          <thead><tr><th>Glyph says</th><th>What TypeScript let through</th><th>Files</th></tr></thead>\n"
+            f'          <thead><tr><th>{s("catches.table.says")}</th><th>{s("catches.table.let")}</th>'
+            f'<th>{s("catches.table.files")}</th></tr></thead>\n'
             "          <tbody>\n" + "".join(rows) + "          </tbody>\n        </table>\n")
 
 
 SCRIPT = """    <script>
       (function () {
+        var T = {"showing": %(showing)s, "copied": %(copied)s};
         var bar = document.querySelector(".c-filters");
         var items = Array.prototype.slice.call(document.querySelectorAll(".catch"));
         var status = document.querySelector(".c-fstatus");
@@ -471,7 +509,7 @@ SCRIPT = """    <script>
             c.setAttribute("aria-pressed", String(state[c.dataset.group] === c.dataset.value));
           });
           status.textContent = state.ts || state.glyph
-            ? "Showing " + shown + " of " + items.length + ". Click a selected filter again to clear it."
+            ? T.showing.replace("{shown}", shown).replace("{total}", items.length)
             : "";
         }
         if (bar) {
@@ -495,7 +533,7 @@ SCRIPT = """    <script>
             history.replaceState(null, "", "#" + a.dataset.slug);
             navigator.clipboard.writeText(url).then(function () {
               var prev = a.textContent;
-              a.textContent = "Link copied";
+              a.textContent = T.copied;
               setTimeout(function () { a.textContent = prev; }, 1400);
             });
           });
@@ -505,24 +543,30 @@ SCRIPT = """    <script>
 """
 
 
-def expand(body: str, where: str) -> str:
-    """Replace every `{{catches:...}}` placeholder in a page body."""
+def script(t: Lang) -> str:
+    return SCRIPT.replace("%(showing)s", t.s.js("catches.showing")).replace("%(copied)s", t.s.js("catches.copied"))
+
+
+def expand(body: str, where: str, loc: str = "en") -> str:
+    """Replace every `{{catches:...}}` placeholder in a page body, in the
+    language of `loc`."""
     if "{{catches:" not in body:
         return body
     cases = load()
     k = counts(cases)
+    t = Lang(loc)
     blocks = {
-        "measured": lambda: measured(cases),
-        "legend": legend,
-        "filters": lambda: filters(cases),
-        "mistakes": lambda: mistakes_html(cases),
-        "traps": lambda: traps_html(cases),
-        "gaps": lambda: gaps_html(cases),
-        "script": lambda: SCRIPT,
-        "hero": lambda: hero(cases),
-        "top": lambda: top(cases),
-        "refused-table": lambda: refused_table(cases),
-        "breakdown": lambda: breakdown(cases),
+        "measured": lambda: measured(cases, t),
+        "legend": lambda: legend(t),
+        "filters": lambda: filters(cases, t),
+        "mistakes": lambda: mistakes_html(cases, t),
+        "traps": lambda: traps_html(cases, t),
+        "gaps": lambda: gaps_html(cases, t),
+        "script": lambda: script(t),
+        "hero": lambda: hero(cases, t),
+        "top": lambda: top(cases, t),
+        "refused-table": lambda: refused_table(cases, t),
+        "breakdown": lambda: breakdown(cases, t),
         **{name: (lambda v=v: str(v)) for name, v in k.items()},
     }
 

@@ -1476,6 +1476,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       </section>
     <script>
       (function () {
+        var T = {"showing": "Showing {shown} of {total}. Click a selected filter again to clear it.", "copied": "Link copied"};
         var bar = document.querySelector(".c-filters");
         var items = Array.prototype.slice.call(document.querySelectorAll(".catch"));
         var status = document.querySelector(".c-fstatus");
@@ -1505,7 +1506,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
             c.setAttribute("aria-pressed", String(state[c.dataset.group] === c.dataset.value));
           });
           status.textContent = state.ts || state.glyph
-            ? "Showing " + shown + " of " + items.length + ". Click a selected filter again to clear it."
+            ? T.showing.replace("{shown}", shown).replace("{total}", items.length)
             : "";
         }
         if (bar) {
@@ -1529,7 +1530,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
             history.replaceState(null, "", "#" + a.dataset.slug);
             navigator.clipboard.writeText(url).then(function () {
               var prev = a.textContent;
-              a.textContent = "Link copied";
+              a.textContent = T.copied;
               setTimeout(function () { a.textContent = prev; }, 1400);
             });
           });

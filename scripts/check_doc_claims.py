@@ -33,8 +33,8 @@ Three checks:
    with one gate is a number that will disagree.
 
 Frozen history is exempt by design: archive/, the implementation plan, the open
-questions, and the per-release entries in releases.md and web/versions/ are
-records of what was true when written. Editing those to match the present is
+questions, and the per-release entries in releases.md, site/releases/ and
+every page under web/versions/ are records of what was true when written. Editing those to match the present is
 the one thing this repo treats as worse than leaving them alone.
 """
 
@@ -221,7 +221,8 @@ def density_files() -> list[pathlib.Path]:
             files.append(p)
     for p in sorted(ROOT.glob("web/**/index.html")):
         rel = p.relative_to(ROOT).as_posix()
-        # web/versions/ is the release-notes record and stays as written.
+        # web/versions/ (the newest month at /versions/, every month under
+        # /versions/YYYY-MM/) is the release-notes record and stays as written.
         if not rel.startswith("web/versions/"):
             files.append(p)
     return files

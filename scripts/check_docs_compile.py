@@ -310,28 +310,19 @@ def line_of(text: str, index: int) -> int:
     return text.count("\n", 0, index) + 1
 
 
-def latest_release_entry(page: pathlib.Path) -> pathlib.Path | None:
-    """Write the newest release entry to a temp file so it is checked like a doc.
+def latest_release_entry() -> pathlib.Path:
+    """The source file of the newest release's notes, checked like a doc.
 
-    The entry carrying the `latest` badge is the one describing the compiler in
-    this repo. Everything below it describes an older one.
+    The highest version under site/releases/ is the one describing the compiler
+    in this repo. Everything below it describes an older one. Its front matter
+    holds no <pre>, so the file is read as it is and a failure names the file
+    the author edits. A broken release file raises instead of returning
+    nothing, since skipping this entry quietly is the hole it exists to close.
     """
-    if not page.exists():
-        return None
-    text = page.read_text()
-    start = text.find('<span class="rel-tag latest">')
-    if start == -1:
-        return None
-    open_tag = text.rfind("<section>", 0, start)
-    end = text.find("</section>", start)
-    if open_tag == -1 or end == -1:
-        return None
-    # Inside the repo, because the reporting below prints paths relative to it.
-    # target/ is gitignored, so this leaves nothing behind in the tree.
-    out = ROOT / "glyph-compiler" / "target" / "glyph-latest-release-entry.html"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(text[open_tag : end + len("</section>")])
-    return out
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import site_versions
+
+    return site_versions.newest_source()
 
 
 def sources() -> list[pathlib.Path]:
@@ -347,9 +338,7 @@ def sources() -> list[pathlib.Path]:
     # shape that release had explicitly argued against. It went out because this
     # exclusion swallowed the one entry that describes the current compiler.
     out += [p for p in (ROOT / "web").rglob("*.html") if "versions" not in p.parts]
-    latest = latest_release_entry(ROOT / "web" / "versions" / "index.html")
-    if latest is not None:
-        out.append(latest)
+    out.append(latest_release_entry())
     out += [ROOT / "web" / "llms.txt"]
     return [p for p in out if p.exists()]
 

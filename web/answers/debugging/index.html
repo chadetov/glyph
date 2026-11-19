@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>When it breaks in production at 3am, what does on-call see? · Glyph</title>
-    <meta name="description" content="Glyph compiles to readable TypeScript you own, and every emitted .ts ships a v3 source map back to your .glyph. tsc errors map back to Glyph source, and glyph run reports what glyph build reports. An ops-focused answer, with its two limitations named." />
+    <title>What does on-call see when it breaks at 3am? · Glyph</title>
+    <meta name="description" content="Glyph compiles to readable TypeScript with a v3 source map back to each .glyph file, so stack traces and tsc errors point at the Glyph you wrote." />
     <link rel="canonical" href="https://glyphlang.io/answers/debugging/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/answers/debugging/" />
-    <meta property="og:title" content="When it breaks in production at 3am, what does on-call see?" />
-    <meta property="og:description" content="Glyph compiles to readable TypeScript you own, and every emitted .ts ships a v3 source map back to your .glyph. tsc errors map back to Glyph source, and glyph run reports what glyph build reports. An ops-focused answer, with its two limitations named." />
+    <meta property="og:title" content="What does on-call see when it breaks at 3am?" />
+    <meta property="og:description" content="Glyph compiles to readable TypeScript with a v3 source map back to each .glyph file, so stack traces and tsc errors point at the Glyph you wrote." />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -34,7 +34,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/debugging/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"When it breaks in production at 3am, what does on-call see?","item":"https://glyphlang.io/answers/debugging/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/debugging/#article","headline":"When it breaks in production at 3am, what does on-call see?","description":"Glyph compiles to readable TypeScript you own, and every emitted .ts ships a v3 source map back to your .glyph. tsc errors map back to Glyph source, and glyph run reports what glyph build reports. An ops-focused answer, with its two limitations named.","url":"https://glyphlang.io/answers/debugging/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/debugging/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/debugging/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"What does on-call see when it breaks at 3am?","item":"https://glyphlang.io/answers/debugging/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/debugging/#article","headline":"What does on-call see when it breaks at 3am?","description":"Glyph compiles to readable TypeScript with a v3 source map back to each .glyph file, so stack traces and tsc errors point at the Glyph you wrote.","url":"https://glyphlang.io/answers/debugging/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/debugging/#breadcrumb"}}]}</script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>

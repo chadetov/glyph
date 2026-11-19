@@ -13,6 +13,8 @@ Fails (exit 1) on:
     the page or on the home page, or a page (other than a home page and the
     404) without a BreadcrumbList
 
+Warns, without failing, on a meta description over 200 characters.
+
 External links (http/https/mailto) and in-page fragments (#...) are not checked.
 Run from the repo root: python3 scripts/check_site.py
 """
@@ -232,6 +234,22 @@ def check_structured_data():
             errors.append(f"{f}: no BreadcrumbList in its JSON-LD")
 
 
+DESCRIPTION = re.compile(r'<meta name="description" content="([^"]*)"')
+DESCRIPTION_WARN = 200
+warnings = []
+
+
+def check_descriptions():
+    """Warn, without failing, on a meta description over 200 characters.
+    Search results cut descriptions at roughly 155 to 160 and a long one is
+    likelier to be replaced with text the engine picks; 120 to 160 is the
+    target, and 200 leaves room for translations, which run longer."""
+    for f in sorted(html_files()):
+        m = DESCRIPTION.search(open(f).read())
+        if m and len(m.group(1)) > DESCRIPTION_WARN:
+            warnings.append(f"{f}: meta description is {len(m.group(1))} characters (aim for 120 to 160)")
+
+
 def main():
     if not os.path.isdir(WEB):
         print(f"no {WEB}/ directory; run from the repo root", file=sys.stderr)
@@ -240,6 +258,9 @@ def main():
     check_answers_subnav()
     check_sitemap()
     check_structured_data()
+    check_descriptions()
+    for w in warnings:
+        print(f"warning: {w}")
     if errors:
         print("site check FAILED:")
         for e in errors:

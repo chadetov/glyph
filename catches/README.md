@@ -1,15 +1,20 @@
 # What Glyph catches that `tsc --strict` does not
 
-Each directory here is one program written twice: the TypeScript a strict
-project accepts, and the Glyph that refuses it. Both halves are run by
-`scripts/check_catches.py`, so the claim is checked rather than asserted. The
-TypeScript has to keep passing `tsc --strict`, or the case proves nothing. The
-Glyph has to keep failing with the code it names, or the guarantee it documents
-is gone.
+Each directory here is one program written twice: a TypeScript program that a
+strict project accepts, and the same program in Glyph. A `case.toml` says what
+each half does, and `scripts/check_catches.py` runs both, so every claim is
+checked rather than asserted. The TypeScript has to keep passing `tsc
+--strict`, or the case proves nothing. The Glyph has to keep doing what the case
+says, or the guarantee it documents is gone.
 
-There are five cases, and all five are evidence for verifiability. None is
-evidence for greppability, abstraction or diff stability, and the check prints
-those zeros rather than leaving them off.
+The cases are also the source for the "mistakes TypeScript lets through" page.
+A case with a `section` is on that page, so the page cannot claim something the
+compiler stopped doing.
+
+There are five cases, and all five are refusals that are evidence for
+verifiability. None is evidence for greppability, abstraction or diff
+stability, and the check prints those zeros rather than leaving them off. It
+prints the count by pillar and by kind on every run.
 
 A case that stops being demonstrable gets deleted, not softened. Six have been.
 An `await` in a synchronous function looked like a good case until it turned
@@ -35,13 +40,74 @@ that was checked by running it:
 Run them:
 
 ```sh
-python3 scripts/check_catches.py
+python3 scripts/check_catches.py            # every case
+python3 scripts/check_catches.py duplicate-case invalid-date   # some of them
 ```
 
-The TypeScript is checked with the real `@types/node` installed, because one
-case imports a socket type from `net` the way a real project would. The script
-installs it on every run, so it needs npm and the network, and it fails rather
-than skips without them.
+The script installs TypeScript, eslint with typescript-eslint, `tsx` and the
+real `@types/node` on every run, because one case imports a socket type from
+`net` the way a real project would and the lint verdicts need the type
+information. It needs npm and the network, and it fails rather than skips
+without them. A run takes about half a minute after the install.
+
+## What a case says
+
+`case.toml` is TOML, read with Python's `tomllib`. Every string is a one-line
+`key = "value"`, because `glyph-cli/build.rs` reads `code`, `pillar` and
+`title`, and a `glyph-wasm` test reads `code`, with a one-line rule.
+
+The fields every case has:
+
+- `code`, `pillar`, `title`: the diagnostic, which pillar the case is evidence
+  for, and a one-line title.
+- `kind`, which decides what the Glyph half is checked for. It is `refused`
+  when left out.
+
+| Kind | What the check requires of the Glyph |
+|---|---|
+| `refused` | The build fails with `code` as an error. A `TS....` code means the refusal comes from the `tsc` pass `glyph build` runs on the emitted program, not from Glyph's own checker, and the case's entry below has to say so. |
+| `warned` | The build passes and reports `code` as a warning. |
+| `boundary` | The program builds and runs, and its output contains `glyph_output`. This is the check at the boundary turning bad data into an `Err`, or the program simply doing the right thing. |
+| `runtime` | The program builds, then stops when it runs, with output containing `glyph_output`. |
+| `gap` | A hole Glyph has today, named by `gap_id`. Glyph accepts the program and the run prints the wrong answer in `glyph_output`. With a `TS....` `code`, the hole is that Glyph's own checker (`glyph check --no-tsc`) accepts the program and only the `tsc` pass refuses it, so the editor and the agent tools miss it. When a fix closes the hole, the check fails and says to move the case to the kind it now is and close the gap. |
+
+The fields that check the TypeScript:
+
+- `ts_output`: text the TypeScript program prints or throws when `tsx` runs it.
+  A list means every item, and a `\n` inside one pins two lines together (the
+  `non-exhaustive-match` case uses that to show nothing was logged between
+  them).
+- `fullconfig`: whether a fully configured TypeScript project catches the
+  mistake. Fully configured means every strictness flag `tsc` has beyond
+  `--strict`, plus eslint's recommended rules and typescript-eslint
+  `strictTypeChecked`, with `switch-exhaustiveness-check`,
+  `strict-boolean-expressions`, `require-array-sort-compare` and
+  `require-atomic-updates` turned on.
+  - `flag:<option>` (or `flag:<option>=false`): `tsc --strict` with that one
+    option reports an error on the program.
+  - `lint:<rule>`: the lint run reports that rule.
+  - `none`: neither the full flag set nor the lint run reports anything. Where
+    something fires that has nothing to do with the mistake, the case carries
+    `ts_ok.ts`, the corrected program, and `none` means nothing fires on `ts.ts`
+    that does not also fire on `ts_ok.ts`. With a `ts_ok.ts`, a `flag:` or
+    `lint:` claim also has to stay quiet on the corrected program.
+
+The page's fields, on every case with a `section` (`mistake`, `trap` or `gap`):
+`slug` (the directory name), `order` (its position in that section), and the
+display text copied from the page, HTML included. A mistake has
+`page_title`, `why`, `likelihood` and `severity` (1 to 5), `ts_verdict`,
+`glyph_verdict`, `ts_result`, `glyph_result` and `page_note`. A trap or a gap
+has the one-line `summary` the page lists. `title` stays plain text with no
+quotes or HTML, because `glyph llms --negative` prints it as it is.
+
+The lines the page shows are marked in the sources with `// show` and
+`// end show` on lines of their own, in both `ts.ts` and `glyph.glyph`, so the
+excerpt on the page is code this check ran. The diagnostic the page shows under
+a refused case is taken from the compiler's real output when the page is
+generated, so no case stores it.
+
+Extra `*.glyph` files in the directory are built alongside, and extra `*.ts`
+files are checked and linted with `ts.ts`.
 
 ## The cases
 
@@ -73,10 +139,9 @@ In TypeScript `JSON.parse` returns `any`, and no setting changes that.
 
 ## Adding one
 
-A directory with `case.toml` (`code`, `pillar`, `title`, and an optional
-`note`), `ts.ts`, and `glyph.glyph`. Extra `*.glyph` files in the directory are
-built alongside. Then run the check: it will tell you if either half does not
-behave the way the case says.
+A directory with `case.toml`, `ts.ts` and `glyph.glyph`, and `ts_ok.ts` when
+the `fullconfig` claim needs a control. Then run the check: it tells you if any
+half does not behave the way the case says.
 
 The bar is that both programs do the same thing. If the TypeScript has to be
 bent into a different shape to compile, the case is comparing two programs

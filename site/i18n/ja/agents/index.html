@@ -1,0 +1,127 @@
+---
+title: エージェントとツールの開発者向け · Glyph
+description: エージェントが Glyph とどう連携するか。11 個のツールを持つ MCP サーバー、コマンドラインから使える同じクエリ、赤いビルドを直すための glyph check --agent。
+source_hash: 74db8e3bf226ba57
+next_steps: |
+  それぞれを詳しく
+  ここから始める | /mcp/ | agents | MCP サーバー | セットアップ、11 個のツールとその引数、<code>glyph query</code> のサブコマンド、サーバーがまだできないこと。 | サーバーをセットアップする
+  /answers/ask-the-compiler/ | lookup | シンボルが何なのか、エージェントがコンパイラに聞けるか | <code>glyph_symbol</code>：ユニオンのケースと、それぞれを構築する構文。
+  /answers/impact/ | impact | 変更が何を壊すか、コンパイラが先に教えてくれるか | 6 種類の変更、箇所ごとに 1 つの判定、そして上の csvql の実行結果の全体。
+  /answers/repair-protocol/ | repair | ビルドが失敗したとき、直し方をエージェントに教えてくれるか | <code>check --agent</code>、<code>glyph fix</code>、実際の出力を使った手順の解説。
+  /answers/generated-docs/ | docs | エージェント向けのドキュメントは生成されたものか | <code>glyph llms</code> が出力するもの、各数値の出どころ、まだ足りないもの。
+  /answers/ai-authoring/ | spark | ほとんど見たことのない言語を AI が書けるのか | TypeScript から引き継げるものと、残りをコンパイラがどう補うか。
+---
+      <p class="q-eyebrow">エージェントとツールの開発者向け</p>
+      <h1 class="q-title">エージェントのためのコンパイラのインターフェース</h1>
+
+      <p class="short-answer">
+        エージェントは Glyph のコンパイラに、シンボルが何なのか、編集が何を壊すのか、ビルドがなぜ失敗したのかを問い合わせ、JSON で答えを受け取れます。<code>glyph mcp</code> は stdio 上で 11 個のツールを提供し、どれも <code>glyph query</code> のサブコマンドとしても使えます。<code>glyph llms</code> は言語リファレンスをオフラインで出力します。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">セットアップ</h2>
+        <p>
+          <code>glyph init</code> は新しいプロジェクトにこの <code>.mcp.json</code> を書き出し、<code>glyph agents</code> は既存のプロジェクトにこれを（<code>glyph llms</code> を案内する <code>AGENTS.md</code> と一緒に）書き出します。このファイルを読む MCP クライアントなら、どれでもサーバーを起動します。ポートもデーモンもありません。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">.mcp.json（glyph init が書き出すもの）</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">1 回の呼び出しと、その実際の答え</h2>
+        <p>
+          あるファイルが、レコードに宣言されていないフィールド（<code>u.naem</code>）を読んでいます。エージェントは <code>glyph_diagnostics</code> を呼び出し、コンパイラ自身の診断を受け取ります。そこにはレコードが実際に宣言しているフィールドと、それを持つレコードが含まれます。これは 0.1.149 でのツールの出力で、印を付けた箇所だけを省略しています。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">リクエスト</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": {
+      "path": "src/user.glyph"
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">結果</span>
+<pre>{
+  "diagnostics": [ {
+    "code": "E0210",
+    "severity": "error",
+    "stage": "typecheck",
+    "message": "type `U` has no field
+      `naem`; did you mean `name`?",
+    "alternatives": ["name", "email"],
+    "alternatives_kind": "fields",
+    "cause": "user::U",
+    "entity": "user::greet",
+    "file": "user.glyph",
+    "range": {
+      "start": { "line": 9, "col": 10 },
+      "end": { "line": 9, "col": 16 } },
+    ...
+  } ],
+  "member": true,
+  "module": "user",
+  "not_run": [
+    { "what": "tsc", ... },
+    { "what": "E0104, ...", ... },
+    { "what": "E0400, ...", ... } ],
+  "path": "src/user.glyph",
+  "project_root": "src",
+  "unindexed": []
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>not_run</code> はこの検査で扱わなかった範囲を示すので、空の <code>diagnostics</code> リストを完全なビルドの結果と取り違えることはありません。MCP クライアントがなくても、<code>glyph query diagnostics --path src/user.glyph</code> で同じ JSON が出力されます。全サブコマンドを含むツールの一覧は <a href="/mcp/">MCP のページ</a>にあります。
+        </p>
+
+        <h2 class="block-label">編集の前に：何が壊れるか</h2>
+        <p>
+          <code>examples/apps/csvql</code> は 11 ファイルからなる CSV クエリエンジンで、4 つのケースを持つユニオン <code>Value</code> があります。5 つ目のケースを追加するとどうなるかを聞くと、<code>glyph_impact</code> は 4 ファイルにある 10 か所の <code>match</code> を一覧します。8 か所が <code>WILL_FAIL</code>、2 か所が <code>ABSORBS</code> で、後者は catch-all のアームが新しいケースを飲み込み、コンパイルが通り続ける箇所です。実際にケースを追加すると、ちょうどその 8 か所で 8 つの <code>E0200</code> エラーが出ます。飲み込む 2 か所は何も言わないままなので、答えにはそれらが名指しされています。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">コマンドラインで同じことを聞く</span>
+<pre>glyph query impact --path value.glyph --entity value::Value \
+  --change add_variant --variant Blob</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">赤いビルドの後で：修正が守るべきものは何か</h2>
+        <p>
+          <code>glyph check --agent</code> は <code>check --json</code> の診断を、それぞれにキーを 2 つ追加して出力します。<code>constraints</code> は修正の編集が壊してはならないものを並べます。上のタイポなら「レコードのフィールドは閉じている：<code>user::U</code> が宣言するのは <code>name</code> と <code>email</code> だけ」となります。<code>symbols</code> は診断が名指しするすべてのシンボルについて <code>glyph_symbol</code> の答えを含むので、次の編集に 2 回目の呼び出しは要りません。修正内容が完全に決まる場合は、<code>glyph fix</code> がそれを書き込みます。
+        </p>
+
+        <h2 class="block-label">オフラインで言語を読む</h2>
+        <p>
+          <code>glyph llms</code> は言語リファレンスを出力し、このサイトの <code>/llms.txt</code> は同じ文書です。<code>glyph llms --json</code> はその知識をデータとして出力するもので、コンパイラ自身のテーブルから読み出されます：診断コード 77 個、prelude の名前 24 個、エクスポート 340 個を持つ標準ライブラリのモジュール 40 個、言語の設計判断 49 個、そして 11 個のツールです。<code>glyph llms --negative</code> は 0.1.149 で 117 個（次のリリースからは 139 個）の誤ったプログラムを、それぞれが引き起こすコードと一緒に返し、要求した時点でコンパイルします。<code>scripts/check_llms_sync.py</code> は、リファレンスの診断と予約語のテーブルがコンパイラ自身のものとずれると失敗します。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">オフラインの入口</span>
+<pre>glyph llms                  <span class="cm"># the reference, as prose</span>
+glyph llms --json           <span class="cm"># the same, as data from the compiler's tables</span>
+glyph llms --negative E0200 <span class="cm"># wrong programs that draw E0200</span>
+glyph --explain E0200       <span class="cm"># the long explanation of one code</span></pre>
+      </div>

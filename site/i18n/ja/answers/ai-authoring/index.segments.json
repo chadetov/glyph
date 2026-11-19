@@ -1,0 +1,128 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/ai-authoring/index.html",
+  "locale": "ja",
+  "source_hash": "dc044819d67c5db7",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can an AI write a language it has barely seen? · Glyph",
+      "tr": "ほとんど見たことのない言語を AI は書けるのか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph reads like TypeScript but is not a subset of it. Most of what a model knows about TypeScript carries over, and the compiler names the places it does not.",
+      "tr": "Glyph は TypeScript のように読めますが、そのサブセットではありません。モデルが TypeScript について知っていることの大部分はそのまま通用し、通用しない箇所はコンパイラが指摘します。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Is Glyph worth it if I'm not using AI?",
+      "tr": "AI を使っていなくても Glyph に価値はあるか"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Will a new Glyph release break my build?",
+      "tr": "Glyph の新しいリリースでビルドが壊れることはないか？"
+    },
+    {
+      "id": "h-61b26324",
+      "kind": "html",
+      "en": "07 &middot; The premise",
+      "tr": "07 &middot; 前提"
+    },
+    {
+      "id": "h-e92baf62",
+      "kind": "html",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "ほとんど見たことのない言語を、AI は確実に書けるのか"
+    },
+    {
+      "id": "h-30b13e30",
+      "kind": "html",
+      "en": "Mostly. Glyph reads like TypeScript: the same primitive and generic types (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), most of the same expressions, and npm packages imported by name. It is not a subset of TypeScript: <code>match</code>, <code>Result</code> and <code>fn name(x: T) -&gt; R</code> are syntax TypeScript does not have, and <code>if</code>, the ternary and casts are not Glyph. Most of what a model already knows carries over, and the compiler names the places it doesn't.",
+      "tr": "おおむね書けます。Glyph は TypeScript のように読めます。プリミティブ型やジェネリック型（<code>string</code>、<code>number</code>、<code>Array&lt;T&gt;</code>）は同じで、式の大部分も同じ、npm パッケージも名前で import します。ただし TypeScript のサブセットではありません。<code>match</code>、<code>Result</code>、<code>fn name(x: T) -&gt; R</code> は TypeScript にない構文で、<code>if</code>、三項演算子、キャストは Glyph にはありません。モデルがすでに知っていることの大部分はそのまま通用し、通用しない箇所はコンパイラが指摘します。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "h-2eedace6",
+      "kind": "html",
+      "en": "It's the fair skeptic's question: an LLM predicts the next token from the huge body of existing-language code, so a language with almost no training data should be hard to write. The answer is structural: Glyph isn't alien. It looks like TypeScript, so the model already knows most of it; the differences are few, enumerable, and each one fails <em>fast</em> at compile time rather than passing silently.",
+      "tr": "これは懐疑的な人がもっともな理由で持つ疑問です。LLM は既存言語の膨大なコードから次のトークンを予測するので、学習データがほとんどない言語は書きにくいはずだ、というものです。答えは構造にあります。Glyph は異質な言語ではありません。TypeScript に似ているので、モデルはすでにその大部分を知っています。違いは少なく、列挙でき、どれも黙って通過するのではなくコンパイル時に<em>すぐ</em>失敗します。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "実例"
+    },
+    {
+      "id": "h-6a89d489",
+      "kind": "html",
+      "en": "An agent that guesses wrong doesn't ship the guess. It gets a precise, fixable error and corrects in the same loop:",
+      "tr": "推測を誤ったエージェントは、その推測を出荷しません。正確で直しやすいエラーを受け取り、同じループの中で修正します。"
+    },
+    {
+      "id": "h-ae716631",
+      "kind": "html",
+      "en": "the correction loop, in one step",
+      "tr": "1 ステップで終わる修正ループ"
+    },
+    {
+      "id": "h-b8bb97f4",
+      "kind": "html",
+      "en": "The error names the Glyph construct and shows the shape, so the fix is one edit away: no source-diving, no guessing. That tight loop is what compensates for the missing training data. One document, <a href=\"/llms.txt\">llms.txt</a>, gives an agent the program shape, the standard library and every diagnostic with its fix, and <code>glyph llms</code> prints the same reference offline.",
+      "tr": "エラーは Glyph の構文を名指しして形を示すので、修正は 1 回の編集で済みます。ソースを読み込む必要も、推測する必要もありません。この短いループが、学習データの不足を補います。<a href=\"/llms.txt\">llms.txt</a> という 1 つのドキュメントで、エージェントはプログラムの形、標準ライブラリ、そしてすべての診断とその修正方法を把握できます。<code>glyph llms</code> を使えば、同じリファレンスをオフラインで表示できます。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "提供中"
+    },
+    {
+      "id": "h-b8156a2d",
+      "kind": "html",
+      "en": "A TypeScript-shaped syntax, errors with a stable code that name the fix, and <code>llms.txt</code> / <code>glyph llms</code> as one reference document for any agent.",
+      "tr": "TypeScript に似た構文、修正方法を示す安定したコード付きのエラー、そしてどのエージェントにも使える 1 つのリファレンスとしての <code>llms.txt</code> / <code>glyph llms</code>。"
+    },
+    {
+      "id": "h-37be0e88",
+      "kind": "html",
+      "en": "Being proven",
+      "tr": "検証中"
+    },
+    {
+      "id": "h-2b5260c9",
+      "kind": "html",
+      "en": "A success-rate benchmark (tries-to-correct against TypeScript on the same task) to turn &ldquo;it held up&rdquo; into a measured number.",
+      "tr": "成功率のベンチマーク（同じタスクで、修正までの試行回数を TypeScript と比較）を作り、「うまくいった」を測定された数値にします。"
+    }
+  ]
+}

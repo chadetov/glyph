@@ -1,0 +1,266 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/vs-effect/index.html",
+  "locale": "ja",
+  "source_hash": "f62ac4a8fc9859e6",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Glyph and Effect · a library and a language compared · Glyph",
+      "tr": "Glyph と Effect · ライブラリと言語の比較 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Effect is a TypeScript library with typed errors and a large ecosystem; Glyph is a language that compiles to TypeScript. What each does better, with code.",
+      "tr": "Effect は型付きのエラーと大きなエコシステムを持つ TypeScript のライブラリで、Glyph は TypeScript にコンパイルされる言語です。それぞれが優れている点を、コードとともに示します。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "次に読むもの"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "おすすめ"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "Glyph が拒否するもの"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "各ケースを <code>tsc --strict</code> と Glyph の両方で検証しています。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "検出できるものを見る"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "Back to design",
+      "tr": "設計に戻る"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars, the spec, and the other comparisons.",
+      "tr": "4 つの柱、仕様、その他の比較。"
+    },
+    {
+      "id": "h-33d40d52",
+      "kind": "html",
+      "en": "Design &middot; Comparison",
+      "tr": "設計 &middot; 比較"
+    },
+    {
+      "id": "h-2ce1c395",
+      "kind": "html",
+      "en": "Glyph and Effect",
+      "tr": "Glyph と Effect"
+    },
+    {
+      "id": "h-d66fd4f3",
+      "kind": "html",
+      "en": "Both aim at TypeScript that people and agents can rely on. Effect is a library: you keep writing TypeScript and get typed errors, tracked dependencies and a large toolbox. Glyph is a language that compiles to TypeScript, so it can refuse what TypeScript allows, including the casts that undo a library's guarantees. Effect is far more mature.",
+      "tr": "どちらも、人とエージェントが頼れる TypeScript を目指しています。Effect はライブラリです。TypeScript を書き続けながら、型付きのエラー、追跡される依存関係、豊富な道具を手に入れられます。Glyph は TypeScript にコンパイルされる言語なので、TypeScript が許すもの、たとえばライブラリの保証を台無しにするキャストを拒否できます。成熟度では Effect のほうがはるかに上です。"
+    },
+    {
+      "id": "h-d661be43",
+      "kind": "html",
+      "en": "How Effect describes itself",
+      "tr": "Effect は自身をどう説明しているか"
+    },
+    {
+      "id": "h-32344d48",
+      "kind": "html",
+      "en": "Effect's home page leads with \"Reliable TypeScript for the AI era\" and says its \"declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code\" (<a href=\"https://effect.website\">effect.website</a>). Its docs call it \"an ecosystem of tools that help you build better applications and libraries\", built around an <code>Effect&lt;Success, Error, Requirements&gt;</code> type that records what a computation returns, how it can fail, and what it needs (<a href=\"https://effect.website/docs/getting-started/why-effect/\">Why Effect</a>). It asks for TypeScript 5.4 or newer with <code>strict</code> on (<a href=\"https://effect.website/docs/getting-started/installation/\">Installation</a>). These quotes were read on 2026-11-19.",
+      "tr": "Effect のホームページは \"Reliable TypeScript for the AI era\" を掲げ、\"declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code\" と述べています（<a href=\"https://effect.website\">effect.website</a>）。ドキュメントでは自身を \"an ecosystem of tools that help you build better applications and libraries\" と呼び、計算が何を返し、どう失敗しうるか、何を必要とするかを記録する <code>Effect&lt;Success, Error, Requirements&gt;</code> 型を中心に作られています（<a href=\"https://effect.website/docs/getting-started/why-effect/\">Why Effect</a>）。TypeScript 5.4 以降と <code>strict</code> の有効化を求めています（<a href=\"https://effect.website/docs/getting-started/installation/\">Installation</a>）。これらの引用は 2026-11-19 に確認したものです。"
+    },
+    {
+      "id": "h-e150de4d",
+      "kind": "html",
+      "en": "The difference that follows from library versus language",
+      "tr": "ライブラリと言語という違いから生じる差"
+    },
+    {
+      "id": "h-2feec0a8",
+      "kind": "html",
+      "en": "Effect's types are checked by <code>tsc</code>, so everything <code>tsc</code> allows is still allowed next to them. This compiles under <code>tsc --strict</code> with effect 4.1.4 and TypeScript 6. The cast removes <code>NotFound</code> from the error channel, and the program reports a failure from an effect typed as unable to fail.",
+      "tr": "Effect の型は <code>tsc</code> が検査するので、<code>tsc</code> が許すものはすべて、その隣でも許されたままです。次のコードは effect 4.1.4 と TypeScript 6 で、<code>tsc --strict</code> のコンパイルを通ります。キャストによってエラーチャネルから <code>NotFound</code> が消え、失敗しえないと型付けされた effect からプログラムが失敗を報告します。"
+    },
+    {
+      "id": "h-97156b3d",
+      "kind": "html",
+      "en": "eff.ts: tsc --strict exits 0; running it prints \"Failure undefined\"",
+      "tr": "eff.ts：tsc --strict は 0 で終了し、実行すると \"Failure undefined\" と出力される"
+    },
+    {
+      "id": "h-352c43b9",
+      "kind": "html",
+      "en": "The same function in Glyph returns a <code>Result</code>, and there is no cast to write. The second module is refused before any TypeScript is emitted.",
+      "tr": "Glyph で同じ関数を書くと <code>Result</code> を返し、書けるキャストはありません。2 つ目のモジュールは、TypeScript が出力される前に拒否されます。"
+    },
+    {
+      "id": "h-720a02dd",
+      "kind": "html",
+      "en": "find.glyph: builds, passes tsc --strict",
+      "tr": "find.glyph：ビルドが通り、tsc --strict も通過する"
+    },
+    {
+      "id": "h-f1ea6b0b",
+      "kind": "html",
+      "en": "adding a cast: refused",
+      "tr": "キャストを追加する：拒否"
+    },
+    {
+      "id": "h-3390a257",
+      "kind": "html",
+      "en": "<code>E0013</code>'s help reads: \"Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>.\" A team can get close to this in an Effect codebase with lint rules, and <a href=\"/answers/vs-tooled-ts/\">that comparison</a> covers why a rule someone can turn off is a different guarantee.",
+      "tr": "<code>E0013</code> のヘルプには \"Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>.\" とあります。Effect のコードベースでも lint ルールでこれに近づけることはできます。誰かが無効にできるルールがなぜ別の保証なのかは、<a href=\"/answers/vs-tooled-ts/\">その比較</a>で扱っています。"
+    },
+    {
+      "id": "h-e5e2ffaf",
+      "kind": "html",
+      "en": "What Effect does better",
+      "tr": "Effect のほうが優れている点"
+    },
+    {
+      "id": "h-024dc204",
+      "kind": "html",
+      "en": "Area",
+      "tr": "分野"
+    },
+    {
+      "id": "h-2252d5cf",
+      "kind": "html",
+      "en": "Effect",
+      "tr": "Effect"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-25e271b6",
+      "kind": "html",
+      "en": "Maturity",
+      "tr": "成熟度"
+    },
+    {
+      "id": "h-bc464212",
+      "kind": "html",
+      "en": "Used in production; its home page lists Cloudflare among the companies",
+      "tr": "本番で使われており、ホームページの導入企業一覧には Cloudflare も載っている"
+    },
+    {
+      "id": "h-2f439494",
+      "kind": "html",
+      "en": "Early preview, pre-1.0, maintained mainly by one person",
+      "tr": "アーリープレビューで 1.0 前。主に 1 人でメンテナンスしている"
+    },
+    {
+      "id": "h-e2194392",
+      "kind": "html",
+      "en": "Ecosystem",
+      "tr": "エコシステム"
+    },
+    {
+      "id": "h-cd8308af",
+      "kind": "html",
+      "en": "HTTP APIs, workflows, clustering, schema, scheduling, tracing and dependency injection, all from one project",
+      "tr": "HTTP API、ワークフロー、クラスタリング、スキーマ、スケジューリング、トレーシング、依存性注入を、すべて 1 つのプロジェクトで提供"
+    },
+    {
+      "id": "h-e955c3b4",
+      "kind": "html",
+      "en": "A standard library of 40 modules; anything else comes from npm",
+      "tr": "40 モジュールの標準ライブラリ。それ以外は npm から"
+    },
+    {
+      "id": "h-b094b436",
+      "kind": "html",
+      "en": "Dependencies in the type",
+      "tr": "型に表れる依存関係"
+    },
+    {
+      "id": "h-ac81bf68",
+      "kind": "html",
+      "en": "The <code>Requirements</code> parameter tracks what a computation needs",
+      "tr": "<code>Requirements</code> パラメータで、計算が必要とするものを追跡する"
+    },
+    {
+      "id": "h-284ebc0e",
+      "kind": "html",
+      "en": "No equivalent; a function's signature records its result and error only",
+      "tr": "相当するものはない。関数のシグネチャが記録するのは結果とエラーだけ"
+    },
+    {
+      "id": "h-9b331283",
+      "kind": "html",
+      "en": "Adoption",
+      "tr": "導入"
+    },
+    {
+      "id": "h-2b1a373b",
+      "kind": "html",
+      "en": "An npm package; you wrap existing code and refactor upward, with no new compiler",
+      "tr": "npm パッケージ。既存のコードを包んで段階的にリファクタリングでき、新しいコンパイラは不要"
+    },
+    {
+      "id": "h-68261cc3",
+      "kind": "html",
+      "en": "A second compiler in the build, adopted one module at a time",
+      "tr": "ビルドに 2 つ目のコンパイラが加わり、モジュール単位で導入する"
+    },
+    {
+      "id": "h-8708492f",
+      "kind": "html",
+      "en": "Concurrency",
+      "tr": "並行処理"
+    },
+    {
+      "id": "h-61a7c131",
+      "kind": "html",
+      "en": "Structured concurrency, retries and scheduling built in",
+      "tr": "構造化並行性、リトライ、スケジューリングが組み込み"
+    },
+    {
+      "id": "h-24628f52",
+      "kind": "html",
+      "en": "<code>par</code> and <code>std/task</code> helpers, much smaller",
+      "tr": "<code>par</code> と <code>std/task</code> のヘルパー。規模はずっと小さい"
+    },
+    {
+      "id": "h-5e1868a7",
+      "kind": "html",
+      "en": "What Glyph does that a library can't",
+      "tr": "ライブラリにはできず、Glyph にできること"
+    },
+    {
+      "id": "h-bd1481c3",
+      "kind": "html",
+      "en": "A language decides what can be written. Glyph has no <code>any</code>, no cast, no non-null assertion and no comment that silences an error, and every <code>match</code> over a union has to cover every case. Records and unions carry a runtime check generated from the declaration, so <code>json.parse&lt;User&gt;(body)</code> validates. Effect's Schema also derives a type from one description (<code>Schema.Schema.Type&lt;typeof Person&gt;</code> in <a href=\"https://effect.website/docs/schema/introduction/\">its introduction</a>), so the type and the validator don't drift there either; what differs is that nothing in TypeScript makes a codebase use it. The compiler also answers questions about a program for an agent, such as what a change will break, <a href=\"/agents/\">over MCP or the command line</a>.",
+      "tr": "何を書けるかを決めるのは言語です。Glyph には <code>any</code> も、キャストも、非 null アサーションも、エラーを黙らせるコメントもなく、ユニオンに対する <code>match</code> はすべてのケースを扱わなければなりません。レコードとユニオンは宣言から生成された実行時の検査を持つので、<code>json.parse&lt;User&gt;(body)</code> は検証を行います。Effect の Schema も 1 つの記述から型を導出するので（<a href=\"https://effect.website/docs/schema/introduction/\">その紹介ページ</a>の <code>Schema.Schema.Type&lt;typeof Person&gt;</code>）、そこでも型とバリデータがずれることはありません。違うのは、TypeScript にはコードベースにそれを使わせる仕組みが何もないことです。コンパイラはまた、変更が何を壊すかといったプログラムについての質問に、<a href=\"/agents/\">MCP やコマンドラインを通じて</a>エージェントのために答えます。"
+    },
+    {
+      "id": "h-3b2c6b8a",
+      "kind": "html",
+      "en": "This page has not tested using Effect from inside a Glyph module, so it makes no claim about combining the two.",
+      "tr": "このページでは Glyph のモジュールの中から Effect を使うことは試していないので、両者を組み合わせることについては何も主張しません。"
+    }
+  ]
+}

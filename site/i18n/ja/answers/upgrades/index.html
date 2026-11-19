@@ -1,0 +1,125 @@
+---
+title: Glyph の新しいリリースでビルドが壊れることはないか？ · Glyph
+description: Glyph のプロジェクトはコンパイラのバージョンを厳密に固定するので、リリースが勝手に届くことはありません。glyph doctor が新しいリリースの存在を知らせ、glyph upgrade でそれに移行します。
+source_hash: b4d1d08012358fef
+prev: /answers/ai-authoring/ | &larr; 前へ | ほとんど見たことのない言語を、AI は確実に書けるのか
+next: /answers/imports/ | 次へ &rarr; | 既存の TypeScript、JavaScript、npm のライブラリは使えますか。
+---
+      <p class="q-eyebrow">08 &middot; アップグレード</p>
+      <h1 class="q-title">Glyph の新しいリリースでビルドが壊れることはないか？</h1>
+
+      <p class="short-answer">
+        自分で求めない限り、壊れません。Glyph のプロジェクトはコンパイラを<strong>厳密なバージョン</strong>に固定するので、今朝公開されたリリースが今日の午後のビルドに入り込むことはありません。1.0 より前のリリースは、昨日コンパイルできたコードを拒否する診断を追加してもよいことになっていて、たいていはそれがリリースの目的です。だから取り込むかどうかはあなたが決めることで、それはコマンド 1 つで済みます。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          ほとんどのツールはキャレットで固定します。パッチリリースはバグ修正だからです。1.0 より前のコンパイラはそうではありません。Glyph の仕事はプログラムを拒否することであり、それが上達するとは新しいエラーが増えることです。import に対するより厳しい検査、以前はすり抜けていた網羅性の穴、型検査器がモデル化していなかった引数の数。こうしたリリースは良いリリースです。そして同時に、日付ライブラリを追加するために実行した <code>npm install</code> 経由で入ってきてほしくないものでもあります。
+        </p>
+        <p>
+          そのため <code>glyph init</code> は <code>^</code> を書きません。<code>0.x</code> のバージョンでもキャレットはパッチを変動させるので、そこが落とし穴です。<code>^0.1.9</code> は、それ以降のすべての 0.1.x を黙って受け入れます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">生成直後の package.json</span>
+<pre>"devDependencies": {
+  <span class="cm">// exact. no caret, no tilde.</span>
+  "@glyphlang/glyph": "0.1.72",
+  "typescript": "^6.0.0",
+  "tsx": "^4.19.0"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          隣にある <code>package-lock.json</code> もコミットすれば、新しくクローンしたリポジトリは、その後に出たものではなく、テストしたツールチェーンでビルドされます。
+        </p>
+
+        <h2 class="block-label">もう半分</h2>
+        <p>
+          固定にはわかりやすい失敗の形が 1 つあります。古いコンパイラのまま 1 年過ごし、それに気づかないことです。手元のマシンには知らせてくれるものが何もなく、覚えて見に行かなければならない Web サイトは連絡手段とは言えません。そこで、セットアップについて何かを尋ねたときに、コンパイラが知らせます：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph doctor</span>
+<pre>glyph &mdash; 0.1.72
+  [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
+             what changed: https://glyphlang.io/versions/
+
+glyph doctor &mdash; JavaScript toolchain
+  [ok]       node: v22.1.0
+  [ok]       tsx: tsx v4.19.0
+  [ok]       tsc: Version 6.0.2
+All good. `glyph run` and `glyph build --check` are ready.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          新しいリリースが見つかっても、終了コードは<em>決して</em>変わらないので、CI で実行しても安全です。公開されたリリースはツールチェーンの故障ではありませんし、誰かが 10 分前にリリースしたからといって、成功していたパイプラインが失敗に変わるべきではありません。マシンがオフラインなら、確認はそう伝えて先に進みます。<code>--offline</code> を付ければ確認自体を飛ばし、ネットワークにはまったくアクセスしません。
+        </p>
+        <p>
+          レジストリにアクセスするものは他にありません。<code>build</code>、<code>run</code>、<code>check</code> は決してアクセスしません。ビルドのたびに外部と通信するコンパイラは、別の製品です。
+        </p>
+
+        <h2 class="block-label">アップグレードを取り込む</h2>
+      </div>
+
+      <div class="code">
+        <span class="cap">変わるのは 1 行で、いつ変えるかはあなたが決める</span>
+<pre>$ glyph upgrade --dry-run
+glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
+
+$ glyph upgrade
+glyph upgrade: /app/package.json now pins 0.1.73 (was 0.1.72).
+glyph upgrade: what changed: https://glyphlang.io/versions/
+glyph upgrade: build before you commit; a new release may report diagnostics
+               this project did not have.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          1 行を書き換えて <code>npm install</code> を実行します。ソースコードには触れませんし、アップグレードが完了したふりもしません。その後にビルドすることが肝心です。取り込んだばかりのリリースは、あなたのコードがまだ出会っていない判断を下してよいことになっているからです。<code>--to &lt;version&gt;</code> で特定のバージョンを指定でき、戻したいときは古いバージョンも指定できます。<code>--no-install</code> を付ければ、インストールはあなたに任されます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">プロジェクトではなくツールを更新する</h2>
+        <p>
+          <code>upgrade</code> が動かすのは <code>package.json</code> の中の固定バージョンです。古くなっているのが <code>PATH</code> 上のコンパイラである場合、それは誤ったコマンドですが、しばらくの間 <code>doctor</code> はそれでもこのコマンドを表示し、グローバルインストールに対して、ないかもしれないマニフェストを指し示していました。もう半分を担うのが <code>glyph --update</code> です。この分担は今では偶然ではなくルールです。<code>--version</code>、<code>--help</code>、<code>--explain</code> と同じく、フラグはツールに作用し、サブコマンドはあなたのコードに作用します。<code>--update-dry-run</code> は、実行するはずだった <code>npm</code> のコマンドを表示したところで止まります。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --update</span>
+<pre>$ glyph --update
+glyph 0.1.72 is installed; 0.1.73 is published.
+Release notes: https://glyphlang.io/versions/
+A 0.1.x release may reject code that compiled before, so read the notes for anything between these two.
+
+Running: npm install -g @glyphlang/glyph@0.1.73
+<span class="cm">   ... npm output ...</span>
+
+npm finished. Confirm with:
+    glyph --version</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          更新するのは、識別できるインストールだけです。<code>npx</code> 経由で使っているコンパイラ、Glyph のソースツリーからビルドしたコンパイラ、見覚えのないパスにあるコンパイラについては、コマンドを表示するだけで何も上書きしません。推測で Homebrew のバイナリや誰かの <code>cargo build</code> の成果物を置き換えると、<code>PATH</code> が誰も選んでいないものを指すことになるからです。また、更新が成功したとまでは主張しません。npm は取得できなかった <code>optionalDependency</code> を飛ばしたまま 0 で終了することがあり、実際に Glyph のリリースがプラットフォーム用のバイナリなしで出荷されたことがありました。そのため最後の行では成功を断言せず、確認方法として <code>glyph --version</code> を示します。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>生成されたプロジェクトはバージョンを厳密に固定するので、リリースが勝手にビルドに入り込むことはありません。<code>glyph doctor</code> は使っているコンパイラをレジストリと比較して報告し、リリースノートへのリンクを示します。終了コードに影響することはなく、<code>build</code>/<code>run</code>/<code>check</code> から呼ばれることもありません。<code>glyph upgrade</code> は固定バージョンを動かしてインストールし、古いプロジェクトのキャレット指定も読み取るので、既存のプロジェクトも厳密な固定に移行できます。<code>glyph --update</code> はグローバルな npm インストールのコンパイラそのものを更新し、それ以外の方法で入ったコンパイラについては、推測せずに報告します。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">改善中</h3>
+          <p>リリースノートは 0.1 系全体で 1 ページなので、<code>glyph upgrade</code> は移行先のバージョンのエントリではなく、そのページにリンクします。新しいリリースのどの診断にあなたのコードが引っかかりそうかを教えてくれるものは、まだありません。それを知るにはビルドするしかなく、だからコマンドがそう促しています。また、複数のリリースをまたいでアップグレードしても、1 つ分と同じ 1 ステップで、その間に積み重なった変更の要約はありません。<code>glyph --update</code> は npm を呼び出してその終了コードを読むので、npm が終了したことはわかっても、<code>PATH</code> 上のバイナリが求めたバージョンであることまではわかりません。そのため、成功したと言う代わりに <code>glyph --version</code> を示します。</p>
+        </div>
+      </div>

@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/long-running/index.html",
+  "locale": "ja",
+  "source_hash": "babc2c3ac5bb52bc",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I write a server, or does the process just exit? · Glyph",
+      "tr": "サーバーは書けるのか、それともプロセスはすぐ終了するのか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A Glyph program can be a long-running server. main sets up and returns; the process stays alive while sockets and timers are pending, exactly as Node does.",
+      "tr": "Glyph のプログラムは、長時間動き続けるサーバーにできます。main は準備をして return し、ソケットやタイマーが待機中の間はプロセスが生き続けます。Node とまったく同じです。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I write a program someone types into?",
+      "tr": "人が入力するプログラムは書けるか"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "バイナリデータは扱えるのか、それとも何でも文字列なのか"
+    },
+    {
+      "id": "h-d7b98512",
+      "kind": "html",
+      "en": "19 &middot; Servers &amp; daemons",
+      "tr": "19 &middot; サーバーとデーモン"
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "サーバーは書けるのか、それともプロセスはすぐ終了するのか"
+    },
+    {
+      "id": "h-357d442e",
+      "kind": "html",
+      "en": "You can write a server. <code>main</code> sets things up and returns, and the process <strong>stays alive while sockets and timers are still pending</strong>, the same rule Node uses. Until 0.1.63 it did not: the runner tore the process down the moment <code>main</code> returned, so a server bound its port and died in the same tick.",
+      "tr": "サーバーは書けます。<code>main</code> が準備をして return し、<strong>ソケットやタイマーが待機中の間はプロセスが生き続けます</strong>。Node と同じルールです。0.1.63 より前はそうではありませんでした。<code>main</code> が return した瞬間にランナーがプロセスを終了させていたので、サーバーはポートをバインドしたその tick のうちに終了していました。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "h-802abf2b",
+      "kind": "html",
+      "en": "This is the difference between a language that can run a script and one that can run a service. A server, a file watcher, a bot holding a gateway connection, a job runner: none of them finish inside <code>main</code>. They set up handlers and hand the process over to events.",
+      "tr": "これは、スクリプトを実行できる言語とサービスを実行できる言語の違いです。サーバー、ファイルウォッチャー、ゲートウェイ接続を保持するボット、ジョブランナー。どれも <code>main</code> の中では終わりません。ハンドラを用意し、プロセスをイベントに引き渡します。"
+    },
+    {
+      "id": "h-ddc1b8fa",
+      "kind": "html",
+      "en": "The old behaviour failed in the worst possible way, which is quietly. <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line inside the <code>listen</code> callback, and exited 0. Nothing in the source looked wrong and it type-checked. An agent that hits that has no error to report and no reason to think anything failed.",
+      "tr": "以前の挙動は最悪の形で失敗していました。黙って失敗するのです。<code>glyph run app.glyph --serve 4100</code> は何も出力せず、<code>listen</code> コールバック内の行すら出さずに、終了コード 0 で終わりました。ソースにはおかしなところがなく、型検査も通りました。これに当たったエージェントには、報告すべきエラーも、何かが失敗したと考える理由もありません。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "実例"
+    },
+    {
+      "id": "h-fbc29a6a",
+      "kind": "html",
+      "en": "A TCP server in full. <code>main</code> returns immediately; the callbacks run for as long as the process lives:",
+      "tr": "TCP サーバーの全体です。<code>main</code> はすぐに return し、コールバックはプロセスが生きている間ずっと実行されます："
+    },
+    {
+      "id": "h-72b727b4",
+      "kind": "html",
+      "en": "A server, start to finish",
+      "tr": "サーバーの最初から最後まで"
+    },
+    {
+      "id": "h-4c1b7d58",
+      "kind": "html",
+      "en": "<code>net</code> is a Node builtin, so it is an ordinary import, but it is not one of the six the compiler ships ambient types for (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Either install <code>@types/node</code> and the build prefers it, or drop a declaration in <code>.types/net.d.ts</code> next to your source, which is what the chat app does so it needs no dependencies at all.",
+      "tr": "<code>net</code> は Node の組み込みモジュールなので普通に import できますが、コンパイラがアンビエント型を同梱している 6 つ（<code>fs</code>、<code>http</code>、<code>path</code>、<code>os</code>、<code>crypto</code>、<code>url</code>）には含まれません。<code>@types/node</code> をインストールすればビルドはそちらを優先します。あるいはソースの隣の <code>.types/net.d.ts</code> に宣言を置きます。チャットアプリは後者の方法で、依存関係を一切持たずに済ませています。"
+    },
+    {
+      "id": "h-4c982701",
+      "kind": "html",
+      "en": "Two things worth knowing. The <code>return 0</code> runs before the first client ever connects: it is the code the process will eventually leave with, not a statement about when it leaves. And anything that fails <em>after</em> <code>main</code> has returned has to set its own exit code, because <code>main</code>'s return value is already spent. That is what the <code>error</code> handler is for. Without it, a server that cannot bind its port drains its event loop and exits 0, reporting success.",
+      "tr": "知っておくべきことが 2 つあります。<code>return 0</code> は最初のクライアントが接続するより前に実行されます。これはプロセスが最終的に終了するときのコードであって、いつ終了するかを表すものではありません。また、<code>main</code> が return した<em>後</em>に失敗した処理は、自分で終了コードを設定しなければなりません。<code>main</code> の戻り値はもう使われてしまっているからです。<code>error</code> ハンドラはそのためにあります。これがないと、ポートをバインドできなかったサーバーはイベントループを空にして終了コード 0 で終わり、成功を報告してしまいます。"
+    },
+    {
+      "id": "h-b957e585",
+      "kind": "html",
+      "en": "A real one",
+      "tr": "実際のアプリ"
+    },
+    {
+      "id": "h-e196848d",
+      "kind": "html",
+      "en": "<code>examples/apps/chat</code> is a chat server holding several TCP clients at once. The parts that do not touch the network stay separate and testable: line reassembly, routing, and the room engine are pure functions checked by <code>@example</code>, and one file talks to sockets.",
+      "tr": "<code>examples/apps/chat</code> は、複数の TCP クライアントを同時に保持するチャットサーバーです。ネットワークに触れない部分は分離され、テスト可能になっています。行の再組み立て、ルーティング、ルームエンジンは <code>@example</code> で検査される純粋関数で、ソケットとやり取りするのは 1 つのファイルだけです。"
+    },
+    {
+      "id": "h-bfe5fdf1",
+      "kind": "html",
+      "en": "Three clients connected at once",
+      "tr": "3 つのクライアントが同時に接続した状態"
+    },
+    {
+      "id": "h-6ad09c69",
+      "kind": "html",
+      "en": "TCP does not deliver messages, it delivers bytes, so the tail of a chunk is usually half a line. That reassembly is a pure function with the awkward cases written down as examples rather than provoked over a socket:",
+      "tr": "TCP が届けるのはメッセージではなくバイトなので、チャンクの末尾はたいてい行の途中で切れています。この再組み立ては純粋関数で、扱いにくいケースはソケット越しに起こすのではなく、例として書き留めてあります："
+    },
+    {
+      "id": "h-02e0830c",
+      "kind": "html",
+      "en": "The other direction: a long-running client",
+      "tr": "逆方向：長時間動くクライアント"
+    },
+    {
+      "id": "h-468113df",
+      "kind": "html",
+      "en": "A bot is the same shape pointed outward. <code>examples/apps/discord</code> is a Discord gateway client: it connects over a WebSocket, identifies, heartbeats on the interval the server dictates, tracks a sequence number so a dropped connection resumes rather than starting over, notices when the connection is open but dead, and backs off between reconnects.",
+      "tr": "ボットは同じ形を外向きにしたものです。<code>examples/apps/discord</code> は Discord のゲートウェイクライアントです。WebSocket で接続して identify し、サーバーが指定する間隔でハートビートを送り、シーケンス番号を追跡して接続が切れても最初からではなく resume で再開し、接続が開いているのに死んでいる状態を検知し、再接続の間にバックオフします。"
+    },
+    {
+      "id": "h-39d6dc9e",
+      "kind": "html",
+      "en": "The part worth copying is where the logic lives. Deciding what to do about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token is a pure function from a session and one event to a new session and a list of actions. One module carries those actions out on a real socket. That is why the reconnect logic, which is the hard part to get right, is checked by <code>@example</code> rather than by unplugging a network cable:",
+      "tr": "真似する価値があるのは、ロジックの置き場所です。<code>RECONNECT</code>、ハートビートの欠落、拒否されたトークンにどう対処するかの判断は、セッションと 1 つのイベントから、新しいセッションとアクションのリストを返す純粋関数です。それらのアクションを実際のソケットで実行するのは 1 つのモジュールです。だからこそ、正しく書くのが難しい再接続ロジックを、ネットワークケーブルを抜くのではなく <code>@example</code> で検査できます："
+    },
+    {
+      "id": "h-eb9066f0",
+      "kind": "html",
+      "en": "Those three examples are each a bug that was in the code first. Writing a mock gateway and pointing the bot at it caught one of them. The other two were caught by a second mock written from Discord's documentation instead of from the client, which sends the things a cooperative mock never does: an unprompted heartbeat request, and a close code that means \"your token is wrong, stop asking\". A mock written by the author of the client only tests the parts of the protocol the author read.",
+      "tr": "この 3 つの例は、どれも最初はコードに存在したバグです。モックのゲートウェイを書いてボットを向けたところ、そのうち 1 つが見つかりました。残りの 2 つは、クライアントからではなく Discord のドキュメントから書いた 2 つ目のモックで見つかりました。このモックは、協力的なモックなら決して送らないものを送ります。求めていないハートビート要求や、「トークンが間違っているので、もう要求しないでください」という意味のクローズコードです。クライアントの作者が書いたモックは、作者が読んだ部分のプロトコルしかテストしません。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "提供中"
+    },
+    {
+      "id": "h-3954ea38",
+      "kind": "html",
+      "en": "Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit. <code>std/timers</code> schedules work (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) and <code>std/websocket</code> opens a connection, so neither needs a hand-written declaration.",
+      "tr": "<code>main</code> から return すると、プロセスを止めずに終了コードが設定されるので、サーバー、ウォッチャー、イベントループが動き続けます。計算するだけのプログラムは従来どおり <code>main</code> が return した瞬間に同じコードで終了するので、短いプログラムの挙動は何も変わっていません。<code>net</code> のような Node の組み込みモジュールは普通に import でき、セットアップ中に throw したプログラムは引き続き終了します。ただし今は、診断がパイプされた stderr に届いてから終了するので、終了によって途中で切れることはありません。<code>std/timers</code> は処理をスケジュールし（<code>after</code>、<code>every</code>、<code>cancel</code>、<code>unref</code>）、<code>std/websocket</code> は接続を開くので、どちらも手書きの宣言は不要です。"
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "改善中"
+    },
+    {
+      "id": "h-5f8ed8fa",
+      "kind": "html",
+      "en": "A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.",
+      "tr": "<code>main</code> が return した後にバインドに失敗したリスナーは、プログラムが何も指定しなければ終了コード 0 で終わります。<code>process.set_exit_code(1)</code> は実行中の処理を止めずに失敗を記録し、<code>process.exit(1)</code> は即座に終了します。指定し忘れたことをコンパイラが警告することはまだできません。また、関数が return しないことを書き表す方法もまだないので、サーバーの <code>main</code> には決して到達しない <code>return 0</code> が残ります。"
+    }
+  ]
+}

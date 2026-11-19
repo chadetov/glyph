@@ -1,0 +1,431 @@
+---
+title: tsc が検出するものを、なぜ Glyph はより早く検出するのか · Glyph
+description: async fn の外での await、値を生まない match アーム、mut の書き忘れを、Glyph は tsc より前に、あなたのソースに対して、ルールと修正方法付きで報告します。
+source_hash: 117852a982fffaf4
+prev: /answers/tooling/ | &larr; 前へ | エディタ、デバッグ、エラーの使い勝手はどうですか？
+next: /answers/parse-errors/ | 次へ &rarr; | パースが失敗したとき、その理由はわかるのか
+---
+      <p class="q-eyebrow">26 &middot; 早い段階で検出</p>
+      <h1 class="q-title">tsc が検出するものを、なぜ Glyph はより早く検出するのか</h1>
+
+      <p class="short-answer">
+        生成された TypeScript に対するエラーは、自分が書いていないコードについてのエラーだからです。Glyph はこうしたエラーを、破ったルールと、それを直す編集とともに、あなたのソースに対して報告します。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          Glyph は TypeScript にコンパイルし、その出力を <code>tsc --strict</code> で型検査します。そのため Glyph がモデル化していないミスも失われはしません。ただし 1 段階遅れて、出力されたファイルの言葉で戻ってきます。自分で書いた覚えのない関数の中の <code>await</code> を指す <code>TS1308</code> や、書いていない <code>switch</code> についての <code>TS2366</code> です。行番号はあなたの <code>.glyph</code> に対応付けられますが、説明はそうなりません。
+        </p>
+        <p>
+          この隔たりこそ、コンパイラが教えるのをやめてしまう場所です。そこで Glyph が自分で判定できるルールは、1 つずつ前の段階に移しています。<code>async fn</code> の外での <code>await</code>（<code>E0222</code>）、値として使われている <code>match</code> の中で、値を生まない <code>match</code> アーム（<code>E0223</code>）、<code>mut</code> なしで書かれた代入（<code>E0008</code>）です。どれもルールを名指しし、その背後にある設計判断を示し、修正前と修正後を見せます。
+        </p>
+
+        <h2 class="block-label">実例</h2>
+        <p>
+          アームのケースは、以前はまったく検出されずにすり抜けていたものです。アームの位置にある <code>{}</code> は空のレコードではなく空の<em>ブロック</em>なので、アームは実行されても何も生みませんでした。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph：値が必要な位置で、何も生まないアーム</span>
+<pre>fn label(s: Status) -&gt; string {
+  let text = match s {
+<span class="del">    Loading =&gt; {},          // an empty block: the arm produces no value</span>
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+  }
+  return text
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
+   ╰─ End the arm with an expression, or `return` from it. `X =&gt; {}` is a no-op
+      only where the `match` is a statement.
+   note: A value-position arm lowers to `case X: { break; }` when it yields
+         nothing, so the value would be `undefined` at run time.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          以前は、出力された <code>switch</code> が自分のケースを抜けてしまい、型は <code>string</code> なのに <code>text</code> には <code>undefined</code> が入っていました。<code>tsc</code> はこの形のいくつかは検出しますが、見逃すものもあります。今の Glyph は、位置から判定できるところではどこでもこれを判定します。<code>let</code>、<code>mut</code>、<code>return</code>、そして戻り値の型を宣言した関数の末尾です。文としての <code>match</code> では、<code>X =&gt; {}</code> は意図的な何もしない処理としてそのまま使えます。
+        </p>
+        <p>
+          <code>await</code> も同じ考え方です。Glyph にはユーザーから見える <code>Promise</code> がありません。<code>async fn -&gt; T</code> は await されて <code>T</code> になるので、それ以外の場所の <code>await</code> には中断すべきものがありません。以前は生成されたファイルに対する <code>tsc</code> の <code>TS1308</code> でしたが、今は <code>E0222</code> です。判定するのは最も内側の呼び出し可能なものなので、<code>async fn</code> の中にある同期ラムダはそれ自体が独立した文脈になります。TypeScript と同じルールです。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build、対象は `fn total() -&gt; number { return await fetch_count() }`</span>
+<pre><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
+   ╰─ Mark the enclosing function `async fn`, or call a non-async function here.
+
+<span class="cm">// before: no Glyph diagnostic, then</span>
+<span class="dim">dist/main.ts:14:18 - error TS1308: 'await' expressions are only allowed
+within async functions and at the top levels of modules.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          3 つ目は、初日から破られるルールについてです。Glyph はすべての変更に印を付けるので、束縛への再代入は <code>mut x = e</code>、束縛の導入は <code>let x = e</code> と書きます。素の <code>x = e</code> は以前「unexpected token: Equals」と報告されていましたが、これはルールではなく文字を名指ししています。今は <code>E0008</code> になり、<code>glyph --explain E0008</code> がこの印がある理由を説明します。値が変わる場所はすべて <code>mut</code> で始まるので、<code>grep "mut total"</code> でそのすべてが見つかる、というものです。
+        </p>
+        <p>
+          <code>?</code> 演算子も、逆の方向から同じ扱いを受けています。<code>?</code> は、束縛と、それが置かれた文の前に配置される早期 <code>return</code> に展開されるので、展開先となる文が必要です。<code>let</code>、<code>return</code>、引数の中で使え、今では <code>match</code> アームの本体でも使えます。使えない場所では、演算子が未実装だと言うのではなく、それがどの位置なのか、どう束縛して外に出せばよいかをメッセージが示します（<code>E0302</code> と <code>E0303</code>）。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">もっと悪いケース：tsc も満足しているとき</h2>
+        <p>
+          間違った場所に出る <code>tsc</code> のエラーは厄介です。しかし本当の問題は、別の意味になったプログラムがきれいにビルドできてしまうことで、Glyph にはそれが 1 つありました。宣言したトップレベルの名前は、タグ付きユニオンのバリアントのコンストラクタも含め、すべてそのまま出力モジュールに入ります。そのため <code>Error</code> という名前のバリアントは、モジュールのトップレベルに <code>export function Error(...)</code> を出力します。するとその下でコンパイラが書く <code>new Error(...)</code> が、あなたのバリアントを呼び出してしまいます。
+        </p>
+        <p>
+          <code>type Key = string | number</code> は、見た目がもう少し穏やかな同じ欠陥です。Glyph では <code>A | B</code> はタグ付きユニオンを宣言し、そのメンバーはバリアントの<em>コンストラクタ</em>です。つまりこの行は <code>string</code> と <code>number</code> という名前のバリアントを宣言します。これはコンパイルが通り、<code>tsc --strict</code> も通り、prelude の <code>number</code> 名前空間を隠す <code>export const number</code> を出力しました。後で <code>number.to_string</code> を呼び出して失敗するまで、何も失敗しませんでした。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build、対象は `Error` バリアントを持つユニオン</span>
+<pre><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
+        references the JavaScript global `Error`, and this declaration would
+        shadow it</span>
+ 5 │   | Error(string)
+   │     ──────┬─────
+   ╰─ Rename it (e.g. `Error` -&gt; `Failure`). The name is legal TypeScript, so
+      nothing downstream catches the rebinding.
+
+<span class="cm">// before: no Glyph diagnostic, then, twenty lines later</span>
+<span class="dim">dist/main.ts:31:12 - error TS2345: Argument of type 'string' is not
+assignable to parameter of type ...</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          スパンは宣言を指しています。名前を変える場所はそこだからです。保護される名前のリストは JavaScript のグローバル全般のリストからではなく、エミッタから導出されます。テストがエミッタを grep し、対応するエントリのない新しいグローバル参照が現れると失敗します。重要なのはこのテストです。<code>Number</code> は、<code>int</code> が出荷されて <code>Number.isInteger</code> を出力し始めるまでは無害でした。そもそもこの問題がリリースに入ってしまったのはそのためです。<code>Date</code>、<code>Math</code>、<code>JSON</code> は使えるままです。Glyph が出力するものの中にそれらは出てこないからです。
+        </p>
+        <p>
+          プリミティブのユニオンのケースには専用のコード <code>E0111</code> があります。説明なしに拒否しても何も伝わらないからです。メッセージは、その行が実際にどうパースされたかを示し、名前付きのバリアントを案内し、生の TypeScript のユニオンが欲しい境界では <code>extern_ts("string | number")</code> を使うよう示します。Glyph が使わせない名前はすべて <code>docs/reference/reserved-words.md</code> に表としてまとめてあります。32 個のキーワード、<code>E0109</code> の対象となる 33 個の TypeScript の予約語、そして隠蔽リストで、それぞれその名前が使えない理由が付いています。
+        </p>
+        <p>
+          これで何ができないのかも、はっきりさせておく価値があります。型やバリアントに <code>Error</code> という名前を付けることは、今もできません。この問題を見つけたスプレッドシートのアプリは、そのために <code>Cellerr</code> というバリアントを持っています。本来書きたかったプログラムは今も書けません。変わったのは、ビルドをグリーンにして別の意味にしてしまうのではなく、コンパイラが宣言の場所でそう言うようになったことです。この名前を使えるようにするには、TypeScript に渡すときに Glyph の名前を変換（マングリング）する必要があります。そうするとスタックトレース、<code>dist/</code> に対する <code>grep</code>、手書きの <code>extern/</code> シムから見えるものが変わるので、黙って入れられる修正ではありません。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">間違ったメッセージは、メッセージがないより悪い</h2>
+        <p>
+          隠蔽リストは、エミッタが<em>値</em>として書く名前から始まりました。<em>型</em>として書く名前が抜けていて、それがこの問題全体の中で最も鋭い形を生みました。すべてのディスクリプタの <code>parse</code> は <code>Result&lt;T, Issue[]&gt;</code> を返すので、出力モジュールはあなたが書いたかどうかにかかわらず <code>Issue</code> を書きます。自分のモジュールで <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> を宣言するとそちらが優先され、出力された <code>Issue</code> オブジェクトにはあなたの型が知らない <code>code</code> フィールドがあるので、ビルドは生成コードについての <code>tsc</code> のエラーで、別の場所を指すスパンとともに失敗します。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build、以前：これが 15 個、どれも原因の近くにない</span>
+<pre><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
+specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build、現在</span>
+<pre><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
+        references the Glyph prelude global `Issue`, and this declaration
+        would shadow it</span>
+   ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
+      the rebinding.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Record</code> も同時にリストに加わりました。TypeScript の組み込みなので、prelude の名前ではなく JavaScript のグローバルと一緒に登録しています。そうしないと、その名前がどこから来たかについてメッセージが間違ったことを言ってしまうからです。エミッタを grep するずれ検出のテストは今では ambient な型もカバーしていて、型の位置にある <code>Issue[]</code> を認識できるようにする必要がありました。これがリリースに入ってしまった理由はそこにあります。<code>Schema</code>、<code>Component</code>、<code>Option</code> は、<code>Date</code> を使えるままにしているのと同じルールで使えます。エミッタがそれらを書くのはあなたが注釈に書いたときだけなので、宣言しても何も隠しません。
+        </p>
+        <p>
+          この種類のもう 1 つは import でした。ローカルの import パスは、import しているファイルのディレクトリではなく、ビルドルート（<code>glyph build</code> に渡したディレクトリ）から解決されます。外側のツリーをビルドすると <code>import catalog</code> は何も見つけられず、これまでそれを伝えるものはありませんでした。型は unknown に劣化し、それに対する <code>match</code> はマッチしていたバリアントを見失い、得られるのは、すべてのケースを網羅した <code>match</code> に対する <code>E0218</code>（網羅的でない match）でした。そのメッセージの言うとおりにすると、正しいコードに死んだ <code>else</code> アームを足すことになっていました。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build examples/apps、対象は csvql/ 内の `import catalog`</span>
+<pre><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
+        root `examples/apps`. There is a `csvql/catalog.glyph` under the
+        root; a local import path is resolved from the build root, not from
+        the importing file's directory (D15)</span>
+   ╰─ Build that module's own directory as the root, or spell the import path
+      as it reads from the root.
+
+<span class="cm">// before: no import diagnostic, then</span>
+<span class="dim">[E0218] non-exhaustive match on string   // on a match over all four values</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          この種のチェックの危険は、問題のないものにまで反応することです。npm パッケージのたびに誤報を出す import チェッカーは、それが置き換えた沈黙より悪いものです。そこでビルドはまず、<code>.glyph</code> ファイルなしで解決できるモジュール名を集めます。<code>&lt;root&gt;/.types/</code> の下と同梱の Node シムにあるすべての <code>declare module "X"</code>、そしてプロジェクトの <code>node_modules</code> にあるすべてのパッケージです。このリストにある名前は、たとえローカルファイルとベース名が同じでも報告されません。プロジェクトに <code>node_modules</code> がまったくない場合、コンパイラは未インストールの依存とタイプミスを区別できないので、証明できるものだけを報告します。つまり、ルート配下のどれかの <code>.glyph</code> ファイルが該当する import です。
+        </p>
+        <p>
+          解決の仕組み自体は変わっていません。同じプログラムがビルドでき、同じプログラムが失敗します。変わったのは、失敗が 2 ファイル先の <code>match</code> を責めるのではなく、import を名指しするようになったことで、それがすべてです。間違った原因を報告するコンパイラは、それを追いかけて費やす 1 時間を奪い、その後のすべてのメッセージに対する信頼も失います。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">トークンではなくルールを名指しする</h2>
+        <p>
+          同じ問題のもっと目立たない形は、正しいのに何も伝えないエラーです。赤黒木を書いていたエージェントが、ML 系のどの言語にもある位置引数のコンストラクタを使おうとしたところ、パーサは最初のカンマで止まり、「<code>)</code> が必要」と「必要なトークンを追加してください」という助言を出しました。そこに <code>)</code> を足すと、動くプログラムではなく別のプログラムになります。Glyph のバリアントはペイロードを 1 つだけ持ち、複数のフィールドを持つペイロードはレコードです。出力のどこにも、そのどちらの文もありませんでした。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check、以前と現在</span>
+<pre><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
+   ╰─ Add the expected token.</span>
+
+<span class="del">[E0010] a union variant carries one payload, but `Node` lists 6 positional
+        fields</span>
+   ╰─ Glyph has no tuple payload. Put the fields in one record and name them:
+      `Node({ /* name */: Color, /* name */: Tree&lt;K, V&gt;, /* name */: K,
+              /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
+      and destructure it by those names in a match arm.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          それを伝えるために、パーサは拒否する前にリスト全体を読む必要がありました。そのおかげで数えることもできます。スパンはたまたま止まった区切り文字ではなく 6 つのフィールド全体に下線を引き、提案されるレコードはバリアント名とファイル中の 6 つの型から組み立てられます。そのため修正案は、誰かの例ではなくあなたのプログラムを名指しします。フィールド名だけはコンパイラが用意できないので、穴として残します。
+        </p>
+        <p>
+          このメッセージの背後にあるルールは、穴ではなく選択です。<code>Node(Black, l, x, b, h, r)</code> は引数を入れ替えても型検査が通る形で、4 番目の位置は読み手に何も伝えません。レコードの書き方ならすべてのフィールドに名前が付き、match アームは使うフィールドだけを名指しします。どちらも <code>grep</code> で見つけられます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">0.1.121 でチェッカーが引き受けたもう 2 つ</h2>
+        <p>
+          <code>Order { id: "a", total: 1 }</code> は、TypeScript から来た人がレコードを作るときに書くものですが、Glyph にはこの形がありません。値は値だけで書き、型は注釈に書きます。以前この行についてコンパイラが言っていたのは、終了コード 0 のビルドでの <code>E0108</code>（到達不能なコード）でした。名前が型に解決され、波括弧が <code>return</code> の後のブロックとしてパースされたからです。型の名前を値として書くと今は <code>E0228</code> になり、メッセージは宣言から読み取られます。レコードならフィールドを、タグ付きユニオンならバリアントとそのペイロードの形を、文字列リテラルのユニオンならそのリテラルを列挙します。<code>Order.parse(raw)</code> と <code>Order.is(v)</code> は使えるままです。型自身のディスクリプタのレシーバは、型名が置かれるべき唯一の式の位置だからです。
+        </p>
+        <p>
+          これで名前が型だったケースは直りましたが、パースはそのままだったので、<code>return h() { k: 2 }</code> は相変わらず <code>h()</code> を返し、警告を出して波括弧を捨てていました。0.1.146 からは、文が終わった行にある <code>{</code> は、その前の名前が何であれ、パース時に <code>E0013</code> になり、その help が同じ書き換えを示します。0.1.149 からは、このルールが波括弧で始まるものだけでなくすべての文に適用されます。<code>let s = "a" "b"</code> は以前 <code>"a"</code> を束縛して <code>"b"</code> を捨てていましたし、Glyph にはキャストがないので <code>return x as User</code> は 3 つの文になっていました。ブロック内の各文は、それぞれ新しい行で始まります。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check、対象は TypeScript 流に作ったレコード</span>
+<pre><span class="del">[E0013] a statement cannot begin on the line where
+        `return Order` ends</span>
+   ╰─ Glyph has no `TypeName { ... }` construction form. Write the literal
+      alone and put the type on the annotation: `let o: Order = { id: "a" }`.
+
+<span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
+<span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          もう 1 つは、prelude のコンテナをプリミティブに代入するケースです。<code>o: Option&lt;int&gt;</code> のときの <code>let x: string = o</code> に対して Glyph のチェッカーは何も言わず、<code>int</code> と宣言された引数に <code>Nullable&lt;int&gt;</code> を渡しても同じでした。今は 5 つのコンテナが両方向でカバーされています。<code>Option</code>、<code>Result</code>、<code>Array</code>、<code>Record</code>、<code>Nullable</code> は、型引数が何であれ <code>string</code>、<code>number</code>、<code>bool</code> にはなりません。スカラーに対する <code>Nullable&lt;T&gt;</code> は 1 段内側の <code>T</code> で判定するので、<code>let v: Nullable&lt;int&gt; = 3</code> は正しいままで、<code>let v: Nullable&lt;int&gt; = "three"</code> は <code>E0204</code> です。<code>Nullable</code> のケースは他よりもこのページにふさわしいものです。<code>tsc</code> には判定できないからです。出力される <code>const v: number | null = 3</code> は呼び出しが検査される前に <code>number</code> に絞り込まれるので、<code>null</code> を見えるようにするために存在する境界の型が、<code>int</code> と宣言された場所を黙って通過していました。検出できる場所は Glyph のチェッカーだけでした。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          次に、同じコンテナを宣言済みのレコードやユニオンと比べるケースに取り組みました。0.1.130 からは、<code>let user: User = json.parse(body)</code> は <code>E0204</code> になり、<code>User</code> を期待したのに <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code> が見つかったと報告します。以前は <code>tsc</code> しかそれを言わなかったので、<code>glyph check --no-tsc</code>、エディタ、Playground では、境界が正しく扱うべきまさにその 1 行で、ファイルがきれいに見えていました。
+        </p>
+        <p>
+          配列や文字列のメンバーのつづり間違いも、以前は <code>tsc</code> を待っていたケースです。<code>xs.lenght</code> は「<code>length</code> ではありませんか」付きの <code>E0210</code> になります。レコードのフィールド読み取りをそのフィールドと照合するのと同じように、TypeScript のライブラリが配列と文字列に宣言しているメンバーと照合します。<code>tsc</code> はどちらも拒否していたので、それを実行するビルドはすでに赤くなっていました。変わったのは、チェッカーと、その上に作られたすべてのものが、先にそれを検出するようになったことです。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">さらに 3 つ、0.1.133 から</h2>
+        <p>
+          <code>let up = s.toUpperCase</code> は TypeScript では型検査を通りますが、<code>up()</code> を実行すると例外を投げます。読み取った時点で、属していた文字列が失われるからです。Glyph はこれを <code>E0234</code> として拒否し、それに対する <code>.bind(s)</code> も拒否します。代わりに呼び出しをラムダで包んでください。チェッカーは今では、TypeScript 自身の宣言から生成した表をもとに、配列と文字列の各メソッドが何を返すかを知っています。
+        </p>
+        <p>
+          <code>Result</code> に対する <code>r?.label</code> は、「エラーを伝播してからフィールドを読む」と読めてしまいます。実際にはオプショナルチェーンで、<code>Result</code> は決して null にならないので、<code>Result</code> オブジェクトからフィールドを読み、何も伝播しません。CSV クエリツールを作っていたエージェントが、まさにこれを書きました。今は <code>Option</code> に対しても <code>E0236</code> になり、help が先に <code>?</code> で束縛するよう示します。
+        </p>
+        <p>
+          型引数のない <code>json.parse(body)</code> は検査されない読み取りで、<code>Result&lt;unknown, ...&gt;</code> を返します。<code>Result&lt;User, ...&gt;</code> と宣言された場所にこれを書くと、以前の <code>tsc</code> は宣言から <code>User</code> を推論し、プログラムは最初のフィールド読み取りでクラッシュしていました。今はエミッタが <code>unknown</code> を明示的に書き出すので、<code>glyph check</code> は <code>tsc</code> を通じてこれを拒否します。Glyph 自身のチェッカーは、宣言された型の内側に <code>unknown</code> が入り込むケースをまだ検出しないので、<code>--no-tsc</code> とエディタは、<code>Result&lt;User, ...&gt;</code> と宣言された場所に書かれた <code>Result&lt;unknown, ...&gt;</code> を今も見逃します。（素の <code>let user: User = json.parse(body)</code> は、外側の型がすでに違うので、Glyph 自身のチェッカーで <code>E0204</code> になります。）あらゆる深さで <code>unknown</code> を拒否するのが G325 で、0.1.158 で予定しています。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">さらに 2 つ、0.1.122 で</h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> は有限の文字列の集合を宣言しますが、Glyph のチェッカーは値をそれと何ひとつ照合していませんでした。数値、<code>bool</code>、レコード、集合外の文字列のどれもが、未使用変数の警告だけで <code>glyph check --no-tsc</code> を通過していました。一方 <code>tsc</code> は、出力された TypeScript に対してそのすべてを拒否していました。つまり完全な <code>glyph build</code> がこれについて間違うことはありませんでしたが、ループに <code>tsc</code> がない 4 つの場所は間違っていました。<code>--no-tsc</code>、言語サーバー、MCP ツール、Playground です。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc、対象は使える文字列を列挙した型</span>
+<pre>type Mode = "read" | "write"
+
+let a: Mode = 3
+let b: Mode = "rw"
+let c: Mode = takes_mode(true)
+let d: Mode = { x: 1 }
+<span class="cm">// before: four unused-variable warnings, exit 0</span>
+<span class="del">[E0204] type mismatch: expected `Mode`, found `number`
+[E0204] type mismatch: expected `Mode`, found `"rw"`
+[E0211] argument type mismatch: expected `Mode`, found `bool`
+[E0204] type mismatch: expected `Mode`, found `record`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>tsc</code> が報告していた 4 つを、同じ 4 つの文で、<code>tsc</code> を実行せずに報告しています。このルールはユニオンを実行時の姿、つまり <code>string</code> として読み、それぞれの方向で対応する <code>string</code> の問いをチェッカーに投げます。そのため、レコードやコンテナを <code>string</code> と比べて拒否する既存のルールを、形ごとに書き直すのではなくそのまま引き継ぎます。2 つのリテラル集合は集合として比較されるので、狭いユニオンは広いユニオンが宣言された場所に入れられます。エイリアスの連鎖は両側でたどられ、import したユニオンもローカルのものと同じように判定され、<code>Nullable&lt;Mode&gt;</code> はユニオンを保ったまま内側に降りて判定されます。
+        </p>
+        <p>
+          レコードのフィールドやジェネリック引数の中に入れ子になったユニオンは、0.1.122 では <code>tsc</code> に任せ、0.1.123 で判定するようにしました。下を見てください。
+        </p>
+        <p>
+          2 つ目は、<code>tsc</code> とはまったく関係のない話です。パーサは深さの上限を持たない再帰下降なので、2000 段の入れ子の式でプロセスのスタックが尽き、終了コード 134 で異常終了していました。<code>glyph check</code> でもまずいですが、ルート配下のすべてのファイルを読む <code>glyph lsp</code> と <code>glyph mcp</code> ではもっとまずく、1 つの異常なファイルがワークスペース全体のサーバーを落としていました。今は <code>E0011</code> になり、65 段目を開くはずだったトークンで報告されます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">0.1.123：値が出力される <code>string</code> ではなく、値そのもののリテラル</h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> は集合を宣言の側に置き、値の側には何も置いていなかったので、<code>"read"</code> は <code>string</code>、<code>["read", "write"]</code> は <code>Array&lt;string&gt;</code> でした。そのため 2 つのプログラムが区別できませんでした。<code>Array&lt;Mode&gt;</code> と宣言された場所での <code>return ["read", "write"]</code>（<code>tsc</code> はコンパイルします）と、<code>xs: Array&lt;string&gt;</code> に対する <code>return xs</code>（こちらは拒否します）です。0.1.122 は間違えるよりはと、この組み合わせを判定しないことにし、その結果、誤ったプログラムを諦める代わりに正しいプログラムを通していました。<code>{ mode: Mode }</code> に対する <code>{ mode: "nope" }</code> には何も報告されませんでした。
+        </p>
+        <p>
+          今では、書かれた文字列リテラルはそれが表す 1 つのリテラルの型を持ち、配列リテラルの要素型はその要素の型を合わせたものになります。書かれた配列リテラルやオブジェクトリテラルは、宣言された型と要素ごと、フィールドごとに照合されるので、診断はそのリテラルを名指しして下線を引きます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc、対象はコンテナ 1 段内側のリテラル</span>
+<pre>type Mode = "read" | "write"
+type Cfg = { mode: Mode }
+
+fn ok() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
+fn bad() -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }
+fn wrong() -&gt; Cfg { return { mode: "nope" } }
+<span class="cm">// 0.1.122: nothing, on all three</span>
+<span class="del">[E0204] type mismatch: expected `Mode`, found `"nope"`   (twice)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          リテラルは、TypeScript が広げるのと同じ場所で <code>string</code> に広がります。注釈のない <code>let</code>（出力される TypeScript の <code>let</code> も同じように広がります）と、書かれた配列に対する <code>for</code> の要素の束縛です。そのため <code>let l = "read"</code> の後の <code>takes_mode(l)</code> は、こちらでは拒否され、向こうでは <code>TS2345</code> になります。<code>const</code> は TypeScript の <code>const</code> を出力してリテラルを保つので、<code>takes_mode(CM)</code> はどちらでもコンパイルが通ります。名前を経由して届いたリテラル型は広げません。これは TypeScript 自身の freshness ルールです。これらはどの行も、推論で決めたのではなく、同等の TypeScript に <code>tsc --strict</code> を実行して確かめています。
+        </p>
+        <p>
+          1 つの組み合わせはまだ判定しません。<code>Record</code> のキー引数を別の <code>Record</code> のキー引数と比べるケースです。TypeScript は <code>Record&lt;string, V&gt;</code> を、<code>Record&lt;Mode, V&gt;</code> が宣言するすべてのキーをカバーするインデックスシグネチャとして書き、両方向で受け入れます。そのため拒否すると、コンパイルが通るプログラムを拒否することになります。チェッカーがまだ何も言わない形が、あと 2 つあります。<code>Some(...)</code> の中のリテラル（prelude のコンストラクタにはまだここで型がないため）と、注釈のない <code>let</code> に束縛されたレコードリテラル（オブジェクトリテラルに対してレコード型を合成しないため）です。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><code>std/</code> の下のモジュールが、診断なしの死んだコードになっていた</h2>
+        <p>
+          <code>std/</code> と <code>extern/</code> はコンパイラが持ち運ぶモジュールの名前で、リゾルバはそれを import 用に予約していました。しかしプロジェクトのファイルがそれを<em>宣言</em>することを止めるものはありませんでした。自分の <code>src/io.glyph</code> に <code>module std/io</code> と書くときれいにコンパイルが通り、その後 <code>import std/io { shout }</code> はスタブに解決されて、<code>shout</code> はエクスポートされていないと報告しました。あなたのファイルは一度も読まれていなかったのです。何の診断も出さず、何のコードも実行しないファイルは、コンパイラが残しうる最悪の状態です。見た目にはどこもおかしくないからです。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc、対象は `module std/io` を宣言する src/io.glyph</span>
+<pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
+
+<span class="del">[E0113] `std/io` declares a module under `std/`, a prefix reserved for the
+        modules the compiler carries (D15)</span>
+ 1 &#9474; module std/io
+   &#9474; &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+   &#9584;&#9472; Rename the module to a path of your own (`io`, `app/io`).</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          このプレフィックスは最初のセグメント全体として照合されるので、<code>standard</code>、<code>externals/io</code>、<code>app/std</code>、<code>app/extern/helper</code> は影響を受けず、どちらのプレフィックスの下からの import もこれまでどおり動きます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check、対象は `const x = ` の後に 2,000 個の入れ子の括弧</span>
+<pre><span class="cm">// before: thread 'main' has overflowed its stack
+//         fatal runtime error: stack overflow, aborting   (exit 134)</span>
+
+<span class="del">[E0011] this array literal nests deeper than the parser's limit of 64 levels</span>
+   &#9584;&#9472; Name the inner levels: pull them out into `let` bindings, or into a
+      `fn` that returns one of them, so no single expression, type or
+      pattern is more than 64 levels deep.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          上限は 64 で、適当に選んだのではなく測定して決めました。最もコストの高い構文である入れ子の配列リテラルは、1 段あたりリリースビルドで 7,792 バイト、デバッグビルドで 8,810 バイトのスタックを使います。ある深さをパースできる最小のスレッドスタックを二分探索して求めた値です。パーサが動く最も薄いスタックは生成されたスレッドの 2 MiB で、これは言語サーバーのワーカーが使うものです。64 段なら、コストの高いほうのビルドでもその 3 分の 1 未満しか使いません。このリポジトリにある 343 個の <code>.glyph</code> ファイルの中で最も深い入れ子は 16 です。上限は式、型、パターン、ブロック、JSX の子要素のすべてに適用され、兄弟関係にある 1000 個の配列は今もパースできます。深さは構文ごとの入れ子の深さであって、ファイル全体で消費される予算ではないからです。
+        </p>
+      </div>
+
+      <h2 class="block-label">どちらのコンパイラも間違っていないとき</h2>
+      <div class="detail">
+        <p>
+          3 つ目の形があり、これが一番たちの悪いものです。Glyph は何も報告せず、<code>tsc</code> は正しいことを報告し、あなたが書いたプログラムには問題がない。失敗しているのは、その間の変換です。
+        </p>
+        <p>
+          Glyph の束縛は、その生存期間を通じて 1 つの型を持ちます。TypeScript は束縛を最後に代入されたものに絞り込み、その <code>boolean</code> は <code>true | false</code> というユニオンです。そのため <code>let done = false</code> は <code>false</code> 型として <code>tsc</code> に届き、出力された <code>switch</code> の <code>true</code> アームにはマッチするものがありませんでした。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">poll.glyph と、0.1.89 より前に tsc がそれについて言っていたこと</span>
+<pre>fn classify() -&gt; int {
+  let done = false
+  match done {
+    true =&gt; { return 1 },
+    false =&gt; { return 0 },
+  }
+}
+
+<span class="cm">// no Glyph diagnostic, then</span>
+<span class="del">[TS2678] Type 'true' is not comparable to type 'false'.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          文字列リテラルの集合として宣言した型も同じように失敗し、<code>==</code> も同様で、こちらは <code>TS2367</code> として返ってきました。メッセージが 2 つ、コードが 2 つ、原因は 1 つです。これに当たったアプリは、タイマーのコールバックが設定するフラグをポーリングしていました。Glyph に手で作れる <code>Promise</code> がない間、イベントベースの API を値に変えるにはそうするしかないからです。結局コールバックは本質ではなく、コールバックのない 4 行でも再現します。
+        </p>
+        <p>
+          修正は新しい診断ではありません。診断すべきものがないからです。今はエミッタが、チェッカーがすでに決めた型を、値を判別する 2 つの場所で改めて書き出します。<code>match</code> の対象と、<code>==</code> や <code>!=</code> の両辺です。各辺は隣にあるものを無視してそれ自身の型で決まるので、2 つの束縛どうしの比較も、リテラルとの比較と同じようにカバーされます。
+        </p>
+        <p>
+          必要なチェックは今も働きます。<code>m</code> が <code>Mode</code> のときの <code>m == "nope"</code> は引き続き拒否され、今ではメッセージが、<code>m</code> がたまたま保持していた単一のメンバーではなく <code>Mode</code> を名指しします。これを代入の場所で行えばコードは少なく済みましたが、このチェックを捨てることになっていました。注釈付きの代入が受け入れられない場所でも <code>Mode</code> へのキャストは受け入れられますし、メンバーシップのチェックは Glyph が意図的に <code>tsc</code> に任せている部分だからです。
+        </p>
+        <p>
+          代償は小さいですが、明記しておく価値があります。キャストは確認だけでなく絞り込みもできるので、Glyph が <code>bool</code> と型付けした値の TypeScript の型が <code>unknown</code> になっていた場合、以前は <code>switch</code> がエラーを出していたところを今は通過します。それでも 2 つの型は比較可能でなければならないので、問題になるほどずれたモデル（<code>string</code> と <code>bool</code>）では、何も言わないのではなく <code>TS2352</code> が報告されます。
+        </p>
+      </div>
+
+      <h2 class="block-label">同じタイプミスに、2 つの答え</h2>
+      <div class="detail">
+        <p>
+          標準ライブラリの関数名のつづりを間違えると、以前は import の書き方によって違う答えが返ってきました。こういう不一致があると、どちらの答えも信用しないようになってしまいます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">名前付き import、常に E0105</span>
+<pre>import std/string { repeeat }
+<span class="del">[E0105] import: `repeeat` is not exported by `std/string`</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">名前空間からの読み取り、0.1.72 より前</span>
+<pre>import std/string
+string.repeeat(s, 2)
+<span class="del">[TS2551] Property 'repeeat' does not exist on type ... Did you mean 'repeat'?</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          1 つ目の書き方は、解決の段階でモジュールのエクスポート一覧と照合されていました。2 つ目はまったく照合されていなかったので <code>tsc</code> まで流れ、そこではそれをオブジェクトのプロパティアクセスとみなして、その言葉で答えていました。今はどちらの書き方もエクスポート一覧を通り、どちらも <code>E0105</code> で、欠けているメンバーとモジュールを名指しします。
+        </p>
+        <p>
+          これを有効にしたとたん、誰も探していなかったものが見つかりました。あるテストの fixture が、関数名は <code>write_text</code> なのに <code>fs.write</code> を呼び出していたのです。その fixture は型検査をオフにして実行されていて、コンパイラの他のどこも名前空間のメンバーを見ていなかったので、何か月も通過していました。今はエクスポート一覧が両方の書き方の基準なので、それをランタイムが実際にエクスポートしているものと一致させる別のチェックがあります。そのチェックは書いた後にわざと壊して失敗することを確かめました。そうして、最初の版が実は何もチェックしていなかったことがわかりました。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p><code>async fn</code> の外での <code>await</code> に <code>E0222</code>、値の位置にある <code>match</code> で値を生まないアームに <code>E0223</code>、<code>mut</code> のない代入に <code>E0008</code>、存在するのはレコード形式なのにバリアントに複数の位置ペイロードフィールドを渡したときに <code>E0010</code>、伝播できない位置の <code>?</code> に <code>E0302</code>/<code>E0303</code>、出力モジュールがすでに依存している名前を隠してしまう宣言に <code>E0110</code>/<code>E0111</code>、ビルドルート配下のどのモジュールも指さないローカル import に <code>E0104</code>、モジュールがエクスポートしていない名前に（名前付き import 経由でも名前空間経由でも）<code>E0105</code>、値が期待される場所に書かれた型名に <code>E0228</code>、別の文が終わった行で始まる文（以前はその後の値を捨てていました）に <code>E0013</code>、prelude のコンテナをプリミティブや宣言済みのレコード・ユニオンに代入または渡したときに <code>E0204</code>/<code>E0211</code>（<code>tsc</code> が絞り込みで消してしまう <code>Nullable&lt;T&gt;</code> のケースを含む）、配列や文字列にないメンバーに <code>E0210</code>、文字列リテラルのユニオンの宣言された集合にない値にも同じ 2 つのコード、64 段を超えて入れ子になった構文に <code>E0011</code>、相対 import パス（以前はパーサで汎用的な「expected module path segment」として止まっていました）に <code>E0101</code>、そして <code>std/</code> や <code>extern/</code> の下に宣言されたプロジェクトのモジュール（以前はきれいにコンパイルが通り、到達不能でした）に <code>E0113</code>。隠蔽リストはエミッタが自分で書く型もカバーしているので、<code>Issue</code> と <code>Record</code> は宣言の場所で検出されます。どのコードにも 1 行の修正方法、ルールを説明する注記、<code>glyph --explain</code> の詳しい本文があります。<code>docs/error-codes.md</code> がカタログを一覧にし、テストが両者を一致させています。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">改善中</h3>
+          <p><code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、今も <code>async</code> コールバックを文句なく受け取り、保留中の値の配列を返します。これは <code>[object Promise]</code> と表示されます。述語を受け取る 5 つの配列関数は、コールバックに対する <code>E0211</code> でこれを止めます。残りの 3 つを同じようにモデル化すると、<code>par.all(array.map(items, async fn ...))</code> も拒否してしまいます。これは Glyph で処理を並行に実行する方法で、保留中の値の配列は言語の中で表す書き方がないからです。これは抜けているエントリではなく型システムの判断なので、未解決のままです。モジュールレベルの <code>const</code> の初期化式には外側の呼び出し可能なものがないので、トップレベルの <code>await</code> は許可され、出力される ESM がそれを実行します。Glyph が暗黙の非同期モジュール初期化を望むかどうかは、まだ仕様上の未解決の問いです。<code>E0223</code> が末尾の <code>match</code> を判定できるのは、関数が戻り値の型を宣言している場合だけなので、注釈のないラムダの中のアームは今も <code>tsc</code> まで届きます。隠蔽の側では、2 つのことが半分しか終わっていません。<code>E0110</code> は名前を残させるのではなく変更するよう伝えるので、<code>Error</code>、<code>Number</code>、<code>Object</code>、<code>Array</code>、<code>Promise</code> は今も型やバリアントの名前に使えません。また <code>E0111</code> は、<code>type Key = string | number</code> が間違った意味になるのを止めますが、それを表す方法を与えるわけではありません。2 つのプリミティブ型のユニオンは、Glyph では <code>extern_ts</code> 以外に書き方がなく、その中身は Glyph のチェッカーからは不透明として扱われます。タグなしユニオンは網羅性、実行時のディスクリプタ、<code>is</code> に関わるので、これは型システムの判断であり、予定は立っていません。<code>E0104</code> は <code>glyph build</code> と <code>glyph check</code> には届きますが、エディタには届きません。LSP はビルドルートなしでドキュメントのテキストを解析し、ワークスペースのフォルダもビルドルートではないので、推測するとこのチェックが避けるように設計された誤検出が出てしまうからです。また、予約語のパラメータは、同じファイル内の無関係なエラーの陰に今も隠れます。collect パスで失敗すると、それを見つけたはずの resolve パスがスキップされるからです。それとは別に、<code>bool</code> や文字列リテラルのユニオンの束縛をマッチ可能に保つための読み取り箇所での型の固定は、型エイリアスを出力中のモジュール内でしかたどりません。そのため、あるモジュールの <code>pub type Ready = bool</code> と、別のモジュールの <code>let r: catalog.Ready = false</code> は、今も <code>TS2678</code> として <code>tsc</code> まで届きます。文字列リテラルのユニオンは、3 つの import の書き方のすべてでモジュールをまたいでカバーされており、0.1.123 からは、どの書き方でも診断がリテラルの集合を表示するのではなく宣言（<code>Mode</code> を期待）を名指しします。</p>
+        </div>
+      </div>

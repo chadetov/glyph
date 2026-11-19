@@ -1,0 +1,1226 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/verifiability/index.html",
+  "locale": "ja",
+  "source_hash": "debac5501878fd3d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What stops an agent from silently breaking my code? · Glyph",
+      "tr": "エージェントがコードを気づかれずに壊すのを、何が防ぐのか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.",
+      "tr": "TypeScript ではコンパイルが通ってから壊れる変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、Glyph ではエージェントが直さなければならないコンパイルエラーになります。"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "エージェントの編集は差分がきれいなままか、それともファイル全体を整形し直してしまうのか？"
+    },
+    {
+      "id": "h-817ec091",
+      "kind": "html",
+      "en": "01 &middot; The core promise",
+      "tr": "01 &middot; 中心となる約束"
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "エージェントがコードを気づかれずに壊すのを、何が防ぐのか"
+    },
+    {
+      "id": "h-8860267a",
+      "kind": "html",
+      "en": "A whole class of change that <strong>quietly compiles</strong> in TypeScript (a missing case, an unhandled error, a renamed field) becomes a <strong>compile error the agent has to fix before it can ship</strong>.",
+      "tr": "TypeScript では<strong>そのままコンパイルが通ってしまう</strong>種類の変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、<strong>出荷前にエージェントが直さなければならないコンパイルエラー</strong>になります。"
+    },
+    {
+      "id": "h-0dca38d0",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.ts</span> one new state, no other edit",
+      "tr": "<span class=\"ak-lang\">status.ts</span> 状態を 1 つ追加、ほかの編集なし"
+    },
+    {
+      "id": "h-a7fd8366",
+      "kind": "html",
+      "en": "tsc --strict: passes, prints undefined",
+      "tr": "tsc --strict：通過し、undefined を出力"
+    },
+    {
+      "id": "h-df578f1c",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.glyph</span> one new variant, and the compiler finds every gap",
+      "tr": "<span class=\"ak-lang\">status.glyph</span> バリアントを 1 つ追加すると、コンパイラが抜けている箇所をすべて見つける"
+    },
+    {
+      "id": "h-f12dfbd8",
+      "kind": "html",
+      "en": "refused: E0200",
+      "tr": "拒否：E0200"
+    },
+    {
+      "id": "h-dddaf308",
+      "kind": "html",
+      "en": "glyph check --no-tsc, 0.1.149 (excerpt)",
+      "tr": "glyph check --no-tsc、0.1.149（抜粋）"
+    },
+    {
+      "id": "h-b4036960",
+      "kind": "html",
+      "en": "<span>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update. The equivalent TypeScript <code>switch</code> compiles clean and returns <code>undefined</code> at runtime.</span>",
+      "tr": "<span>ユニオンに状態を 1 つ追加すると、古い集合を扱っていた箇所がすべてコンパイルできなくなり、更新すべき場所を正確に指し示します。同じことを TypeScript の <code>switch</code> で書くと、問題なくコンパイルされ、実行時に <code>undefined</code> を返します。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">なぜ重要か</a>"
+    },
+    {
+      "id": "h-493ba471",
+      "kind": "html",
+      "en": "<a href=\"#errors\">Errors</a>",
+      "tr": "<a href=\"#errors\">エラー</a>"
+    },
+    {
+      "id": "h-299aad85",
+      "kind": "html",
+      "en": "<a href=\"#typos\">Typos in arms</a>",
+      "tr": "<a href=\"#typos\">アームのタイプミス</a>"
+    },
+    {
+      "id": "h-f1f1c9bc",
+      "kind": "html",
+      "en": "<a href=\"#imports\">Across modules</a>",
+      "tr": "<a href=\"#imports\">モジュールをまたいで</a>"
+    },
+    {
+      "id": "h-ef1ba415",
+      "kind": "html",
+      "en": "<a href=\"#refinements\">Refinements</a>",
+      "tr": "<a href=\"#refinements\">リファインメント</a>"
+    },
+    {
+      "id": "h-736c66f8",
+      "kind": "html",
+      "en": "<a href=\"#examples\">Tests in the build</a>",
+      "tr": "<a href=\"#examples\">ビルドの中のテスト</a>"
+    },
+    {
+      "id": "h-1af522cc",
+      "kind": "html",
+      "en": "<a href=\"#four-more-found-by-building-with-it\">Found by building</a>",
+      "tr": "<a href=\"#four-more-found-by-building-with-it\">作って見つけたもの</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
+      "id": "h-32dffb36",
+      "kind": "html",
+      "en": "Agents don't usually break code loudly. They break it <strong>confidently</strong>: they add a state, drop a branch, or rename a field, everything still type-checks, and the bug surfaces in production.",
+      "tr": "エージェントがコードを壊すとき、たいていは派手には壊しません。<strong>自信満々に</strong>壊します。状態を追加し、分岐を落とし、フィールド名を変え、それでも型チェックはすべて通り、バグは本番で表に出ます。"
+    },
+    {
+      "id": "h-593cf2d6",
+      "kind": "html",
+      "en": "The expensive failures are the ones that <em>compiled and were wrong</em>. Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into &ldquo;the compiler proved you did.&rdquo;",
+      "tr": "高くつく失敗は、<em>コンパイルが通って、しかも間違っていた</em>ものです。Glyph はこの穴を、&ldquo;たぶん処理したはず&rdquo;を&ldquo;処理したことをコンパイラが証明した&rdquo;に変えることで塞ぎます。"
+    },
+    {
+      "id": "h-7c47ac02",
+      "kind": "html",
+      "en": "<b>Sealed unions</b>Tagged unions are <strong>sealed</strong>, so <code>match</code> must cover every case.",
+      "tr": "<b>封印されたユニオン</b>タグ付きユニオンは<strong>封印</strong>されているので、<code>match</code> はすべてのケースを網羅しなければなりません。"
+    },
+    {
+      "id": "h-a732dd83",
+      "kind": "html",
+      "en": "<b>Errors as values</b>Errors are <strong>values</strong> you have to unwrap, not exceptions that vanish.",
+      "tr": "<b>値としてのエラー</b>エラーは消えてしまう例外ではなく、取り出して扱わなければならない<strong>値</strong>です。"
+    },
+    {
+      "id": "h-7cc9aefc",
+      "kind": "html",
+      "en": "<b>Checked boundaries</b>And every type carries a runtime descriptor, so data crossing a boundary is checked against its shape.",
+      "tr": "<b>検査される境界</b>さらに、どの型も実行時のデスクリプタを持つので、境界を越えるデータはその形に照らして検査されます。"
+    },
+    {
+      "id": "h-9e145fb3",
+      "kind": "html",
+      "en": "A dropped error is a warning",
+      "tr": "捨てたエラーは警告になる"
+    },
+    {
+      "id": "h-a0f7e838",
+      "kind": "html",
+      "en": "Same for errors: a function that returns <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or propagated with <code>?</code> (and the compiler checks the error type lines up). And if you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure.",
+      "tr": "エラーも同じです。<code>Result&lt;T, E&gt;</code> を返す関数は、<code>match</code> で処理するか <code>?</code> で伝播させるものです（そしてコンパイラはエラー型が一致するかを検査します）。<code>Result</code> を<em>捨てる</em>と（文として呼び出して戻り値を無視すると）、Glyph は警告します（<code>E0217</code>）。捨てられたエラーは握りつぶされた失敗だからです。"
+    },
+    {
+      "id": "h-3c7c9444",
+      "kind": "html",
+      "en": "You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "黙らせるには <code>let _ = ...</code> と意図して書きます。うっかり黙ることはありません。"
+    },
+    {
+      "id": "h-4faa036c",
+      "kind": "html",
+      "en": "The standard library's unions are sealed too",
+      "tr": "標準ライブラリのユニオンも封印されている"
+    },
+    {
+      "id": "h-ac5ad03f",
+      "kind": "html",
+      "en": "The bar is the same for a union the standard library owns. <code>fs.ErrorKind</code> is a closed set of six kinds, and the checker knows its shape, so <code>match e.kind</code> on a filesystem error needs no <code>else</code> arm and fails with <code>E0200</code> when you leave a kind out.",
+      "tr": "標準ライブラリが持つユニオンでも基準は同じです。<code>fs.ErrorKind</code> は 6 種類の閉じた集合で、チェッカーはその形を知っています。そのため、ファイルシステムのエラーに対する <code>match e.kind</code> には <code>else</code> アームが要らず、種類を 1 つ書き漏らすと <code>E0200</code> で失敗します。"
+    },
+    {
+      "id": "h-d6bf3201",
+      "kind": "html",
+      "en": "E0200 missing kind",
+      "tr": "E0200 種類の抜け"
+    },
+    {
+      "id": "h-82c9da4e",
+      "kind": "html",
+      "en": "E0210 unknown field",
+      "tr": "E0210 不明なフィールド"
+    },
+    {
+      "id": "h-b365b66a",
+      "kind": "html",
+      "en": "E0218 needs else",
+      "tr": "E0218 else が必要"
+    },
+    {
+      "id": "h-68b00f6d",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">field typos, return types, number and string matches</span>",
+      "tr": "詳細 <span class=\"hint\">フィールドのタイプミス、戻り値の型、数値と文字列の match</span>"
+    },
+    {
+      "id": "h-0469c431",
+      "kind": "html",
+      "en": "<code>e.mesage</code> is <code>E0210</code> rather than something <code>tsc</code> catches downstream. Return types travel too: <code>string.split(text, \",\")</code> is an <code>Array&lt;string&gt;</code>, so <code>for i, part in string.split(text, \",\")</code> binds <code>i</code> as a number instead of the string key you'd get from an untyped iterand.",
+      "tr": "<code>e.mesage</code> は <code>E0210</code> になり、後段で <code>tsc</code> が拾うものではありません。戻り値の型も伝わります。<code>string.split(text, \",\")</code> は <code>Array&lt;string&gt;</code> なので、<code>for i, part in string.split(text, \",\")</code> では <code>i</code> が数値として束縛されます。型のない反復対象から得られる文字列のキーにはなりません。"
+    },
+    {
+      "id": "h-50f9d186",
+      "kind": "html",
+      "en": "Exhaustiveness isn't just for unions. A <code>match</code> on a <code>number</code> or <code>string</code> with only literal arms can't cover an unbounded domain, so Glyph requires an <code>else</code> (<code>E0218</code>) rather than letting the uncovered value fall through to a runtime throw.",
+      "tr": "網羅性はユニオンだけのものではありません。<code>number</code> や <code>string</code> に対する <code>match</code> がリテラルのアームしか持たない場合、上限のない値域を網羅できないので、Glyph は <code>else</code> を要求します（<code>E0218</code>）。網羅されない値が実行時の throw まで素通りすることはありません。"
+    },
+    {
+      "id": "h-bf2adc90",
+      "kind": "html",
+      "en": "The rule is the same everywhere: a <code>match</code> that doesn't account for a case doesn't compile.",
+      "tr": "規則はどこでも同じです。ケースを扱っていない <code>match</code> はコンパイルできません。"
+    },
+    {
+      "id": "h-94ceef2f",
+      "kind": "html",
+      "en": "A misspelled arm is a gap, not a catch-all",
+      "tr": "綴りを間違えたアームは catch-all ではなく抜けになる"
+    },
+    {
+      "id": "h-325a109d",
+      "kind": "html",
+      "en": "A typo can't quietly paper over a gap either. A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding.",
+      "tr": "タイプミスで抜けがこっそり覆い隠されることもありません。大文字で始まるアームの先頭は<strong>バリアントへの参照</strong>であって、新しい束縛ではありません。"
+    },
+    {
+      "id": "h-81a2cb84",
+      "kind": "html",
+      "en": "status.glyph: a misspelled arm is a gap, not a catch-all",
+      "tr": "status.glyph：綴りを間違えたアームは catch-all ではなく抜けになる"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-1111b2dc",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what older Glyph did with the typo</span>",
+      "tr": "経緯 <span class=\"hint\">以前の Glyph がタイプミスをどう扱ったか</span>"
+    },
+    {
+      "id": "h-35c640dd",
+      "kind": "html",
+      "en": "A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding, so if you misspell <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a catch-all that bound every value and made the match look total. Now the head has to name a real variant of the union you're matching. When it doesn't, the build stops with <code>E0220</code> and points at the nearest real name, and the variant you actually skipped still shows up as <code>E0200</code> right next to it.",
+      "tr": "大文字で始まるアームの先頭は<strong>バリアントへの参照</strong>であって、新しい束縛ではありません。以前の Glyph では、<code>Loading</code> を <code>Loadign</code> と綴り間違えると、その誤記をすべての値を束縛する catch-all として読み、match が網羅的に見えていました。今は、先頭は match 対象のユニオンに実在するバリアントを指していなければなりません。そうでなければビルドは <code>E0220</code> で止まり、最も近い実在の名前を示します。実際に飛ばしたバリアントも、そのすぐ隣に <code>E0200</code> として表示されます。"
+    },
+    {
+      "id": "h-e45746f9",
+      "kind": "html",
+      "en": "Variants inside a payload",
+      "tr": "ペイロードの中のバリアント"
+    },
+    {
+      "id": "h-4e9c7c14",
+      "kind": "html",
+      "en": "That reading holds one level down, where the variant is the payload of another one. The arm now dispatches on the payload's own tag, whatever the outer variant is.",
+      "tr": "この読み方は、バリアントが別のバリアントのペイロードになっている 1 段下でも同じです。外側のバリアントが何であっても、アームはペイロード自身のタグで分岐します。"
+    },
+    {
+      "id": "h-5f78059f",
+      "kind": "html",
+      "en": "repl.glyph: the inner arm tests the payload, it doesn't bind it",
+      "tr": "repl.glyph：内側のアームはペイロードを束縛せず、検査する"
+    },
+    {
+      "id": "h-e29806a9",
+      "kind": "html",
+      "en": "E0305 duplicate case label",
+      "tr": "E0305 case ラベルの重複"
+    },
+    {
+      "id": "h-a9f4ca6a",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the dead arm before 0.1.93, and the E0305 guard</span>",
+      "tr": "経緯 <span class=\"hint\">0.1.93 より前の死んだアームと、E0305 のガード</span>"
+    },
+    {
+      "id": "h-6b579450",
+      "kind": "html",
+      "en": "<code>Err(Blank)</code> beside <code>Err(e)</code> reads as \"ignore a blank line, print every other parse error\", and until 0.1.93 it compiled to two <code>case \"Err\":</code> labels on the outer tag whose first bound the whole payload under the name <code>Blank</code>. Every error took the first arm, the second was dead code, and nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> accepts a duplicate case label. The arm now dispatches on the payload's own tag, whatever the outer variant is, and the compiler reads the name the way the typechecker does: the payload union's own variant list decides, and only when that list is out of reach does the name's shape decide. For a union declared in the same file the capitalization no longer matters. For one imported from another module the variant list is out of reach today, so a capitalized variant dispatches and a lowercase one stops the build.",
+      "tr": "<code>Err(e)</code> の隣にある <code>Err(Blank)</code> は「空行は無視し、それ以外のパースエラーはすべて表示する」と読めます。しかし 0.1.93 までは、外側のタグに対する 2 つの <code>case \"Err\":</code> ラベルにコンパイルされ、最初のラベルがペイロード全体を <code>Blank</code> という名前で束縛していました。すべてのエラーが最初のアームに入り、2 つ目は死んだコードでしたが、何も指摘されませんでした。Glyph は診断を 1 つも出さず、<code>tsc --strict</code> は重複した case ラベルを受け入れます。今は、外側のバリアントが何であってもアームはペイロード自身のタグで分岐し、コンパイラは型チェッカーと同じように名前を読みます。ペイロードのユニオン自身のバリアント一覧で決め、その一覧が手の届かないときだけ名前の形で決めます。同じファイルで宣言したユニオンなら、大文字かどうかはもう関係ありません。別のモジュールからインポートしたユニオンでは、今のところバリアント一覧が手の届かないところにあるので、大文字のバリアントは分岐し、小文字のものはビルドを止めます。"
+    },
+    {
+      "id": "h-2bcf741d",
+      "kind": "html",
+      "en": "It stops because the switch is guarded now. Two arms that would write the same <code>case</code> label are <code>E0305</code>, not a switch whose second label can never run. That is what makes the class loud instead of silent: a lowering that reaches for the same tag twice fails the build rather than picking the wrong arm at run time.",
+      "tr": "止まるのは、switch にガードが入ったからです。同じ <code>case</code> ラベルを書くことになる 2 つのアームは <code>E0305</code> になり、2 つ目のラベルが決して実行されない switch にはなりません。これでこの種の問題は、黙っていたものが声を上げるようになります。同じタグを 2 回使う変換は、実行時に間違ったアームを選ぶのではなく、ビルドを失敗させます。"
+    },
+    {
+      "id": "h-5ae4d2b0",
+      "kind": "html",
+      "en": "Import spelling never turns the check off",
+      "tr": "インポートの書き方で検査が外れることはない"
+    },
+    {
+      "id": "h-cf742b0d",
+      "kind": "html",
+      "en": "How the union got into scope doesn't change any of this. Glyph lets you write a variant arm two ways, and both are checked the same: <code>import model { Cond, Yes, No }</code> with bare arms, or <code>import model</code> (or <code>import model as m</code>) with <code>model.Yes(_)</code>.",
+      "tr": "ユニオンをどうやってスコープに入れたかは、これに一切影響しません。Glyph ではバリアントのアームを 2 通りに書けて、どちらも同じように検査されます。<code>import model { Cond, Yes, No }</code> と書いて素のアームを使うか、<code>import model</code>（または <code>import model as m</code>）と書いて <code>model.Yes(_)</code> を使うかです。"
+    },
+    {
+      "id": "h-a5be5f60",
+      "kind": "html",
+      "en": "interp.glyph: the import list came out, the match is still checked",
+      "tr": "interp.glyph：インポートの一覧を消しても、match は検査される"
+    },
+    {
+      "id": "h-1efde9fe",
+      "kind": "html",
+      "en": "glyph build, after deleting the last arm",
+      "tr": "glyph build、最後のアームを削除した後"
+    },
+    {
+      "id": "h-f2895549",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">standard library unions, string enums, and why the list existed</span>",
+      "tr": "詳細 <span class=\"hint\">標準ライブラリのユニオン、文字列の列挙、一覧があった理由</span>"
+    },
+    {
+      "id": "h-d10dc4ff",
+      "kind": "html",
+      "en": "That holds for the standard library's unions too, so <code>match o { option.Some(s) =&gt; … }</code> on an <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling is. Until 0.1.56 the qualified spelling skipped the check entirely and the build reported no diagnostics on a match that threw at run time.",
+      "tr": "これは標準ライブラリのユニオンにも当てはまります。<code>option.Option&lt;string&gt;</code> に対する <code>match o { option.Some(s) =&gt; … }</code> は、素の <code>Some</code>/<code>None</code> で書いた場合とまったく同じく、<code>None</code> の抜けで <code>E0200</code> になります。0.1.56 までは修飾付きの書き方だと検査が丸ごと飛ばされ、実行時に throw する match に対してビルドは診断を 1 つも出しませんでした。"
+    },
+    {
+      "id": "h-947faa47",
+      "kind": "html",
+      "en": "A string enum crosses the boundary too. <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> declared in <code>catalog.glyph</code> and imported into another module keeps its four values, so a match covering all four compiles with no <code>else</code>, and dropping one is <code>E0200</code> naming the value you dropped. Until 0.1.57 it was <code>E0218</code>, with help text telling you to add an <code>else</code> arm. That help was wrong about the code in front of it, and taking it turned a compile error into a runtime fallthrough. All three import spellings work: <code>import catalog { ColType }</code>, <code>import catalog</code> with <code>catalog.ColType</code>, and <code>import catalog as c</code> with <code>c.ColType</code>.",
+      "tr": "文字列の列挙も境界を越えます。<code>catalog.glyph</code> で宣言され、別のモジュールにインポートされた <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> は 4 つの値を保つので、4 つすべてを網羅する match は <code>else</code> なしでコンパイルでき、1 つを落とすと落とした値を示す <code>E0200</code> になります。0.1.57 までは <code>E0218</code> で、ヘルプには <code>else</code> アームを追加するよう書かれていました。そのヘルプは目の前のコードについて間違っており、従うとコンパイルエラーが実行時の素通りに変わっていました。3 つのインポートの書き方はすべて動きます。<code>import catalog { ColType }</code>、<code>catalog.ColType</code> を使う <code>import catalog</code>、<code>c.ColType</code> を使う <code>import catalog as c</code> です。"
+    },
+    {
+      "id": "h-1a86b4ae",
+      "kind": "html",
+      "en": "That import list is where this came from. It was written by hand in every module of a statechart engine, with a comment above it saying a union's constructors don't arrive with its type. The comment was right about the syntax and wrong about the reason: the list was there because the shorter spelling turned the check off, and nobody had noticed, because turning it off is silent. Which form you pick is now a real choice rather than a trap. The named one puts every variant you handle in the import list, which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one says at each arm which module the variant came from. Neither costs you the check.",
+      "tr": "このインポート一覧が、この話の出どころです。ステートチャートエンジンのすべてのモジュールに手書きされ、その上には「ユニオンのコンストラクタは型と一緒には入ってこない」というコメントが付いていました。そのコメントは構文については正しく、理由については間違っていました。一覧があったのは、短い書き方だと検査が外れてしまうからで、それに誰も気づいていませんでした。検査が外れても何も言われないからです。今は、どちらの形を選ぶかは罠ではなく、本当の選択です。名前付きの形では、扱うバリアントがすべてインポート一覧に並ぶので、<code>Equals</code> を <code>grep</code> すれば見つかります。修飾付きの形では、各アームでそのバリアントがどのモジュールから来たかがわかります。どちらを選んでも検査は失われません。"
+    },
+    {
+      "id": "h-5d24c15d",
+      "kind": "html",
+      "en": "Imported records keep their fields",
+      "tr": "インポートしたレコードはフィールドを保つ"
+    },
+    {
+      "id": "h-22710d78",
+      "kind": "html",
+      "en": "Records cross now too, and until 0.1.58 they did not. A record therefore keeps its field set, and a bad field is <code>E0210</code> naming the record rather than a <code>tsc</code> error about an anonymous shape.",
+      "tr": "今はレコードも境界を越えますが、0.1.58 まではそうではありませんでした。そのためレコードはフィールドの集合を保ち、間違ったフィールドは匿名の形についての <code>tsc</code> のエラーではなく、レコード名を示す <code>E0210</code> になります。"
+    },
+    {
+      "id": "h-7282177b",
+      "kind": "html",
+      "en": "glyph build, on a typo'd field of an imported record",
+      "tr": "glyph build、インポートしたレコードのフィールドにタイプミスがある場合"
+    },
+    {
+      "id": "h-e3755b2b",
+      "kind": "html",
+      "en": "table.glyph: the hoists and the comment explaining them are gone",
+      "tr": "table.glyph：let の巻き上げと、それを説明するコメントがなくなった"
+    },
+    {
+      "id": "h-7255646a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the line 11 bug, what tsc misses, how identity crosses</span>",
+      "tr": "詳細 <span class=\"hint\">line 11 のバグ、tsc が見逃すもの、同一性の伝わり方</span>"
+    },
+    {
+      "id": "h-14cf6d10",
+      "kind": "html",
+      "en": "A type declared in one file and used in another arrived with nothing known about it, which cost two separate checks. A misspelled field on it drew no Glyph error at all, so <code>sheet.rowz</code> fell through to <code>tsc</code> and came back as a TypeScript message about a shape you never wrote. And <code>for i, r in sheet.rows</code> could not tell that <code>rows</code> was an array, so it emitted <code>Object.entries(sheet.rows)</code> rather than <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string <code>\"0\"</code>. <code>i + 1</code> then concatenates instead of adding, and a row that should be reported as <code>line 2</code> reports as <code>line 11</code>.",
+      "tr": "あるファイルで宣言され、別のファイルで使われる型は、何もわからない状態で届いていました。そのせいで 2 つの検査が失われていました。その型のフィールドの綴りを間違えても Glyph のエラーはまったく出ず、<code>sheet.rowz</code> は <code>tsc</code> まで素通りして、自分では書いていない形についての TypeScript のメッセージとして返ってきました。また <code>for i, r in sheet.rows</code> は <code>rows</code> が配列だとわからず、<code>sheet.rows.entries()</code> ではなく <code>Object.entries(sheet.rows)</code> を出力していました。これでは <code>i</code> が文字列 <code>\"0\"</code> に束縛されます。すると <code>i + 1</code> は加算ではなく連結になり、<code>line 2</code> と報告されるべき行が <code>line 11</code> と報告されます。"
+    },
+    {
+      "id": "h-9abff4c5",
+      "kind": "html",
+      "en": "The part worth knowing is which half <code>tsc</code> catches. Arithmetic on that index it does catch, though it reports the error against generated TypeScript for a variable Glyph bound on your behalf. What it cannot catch is every place a string is accepted where a number was meant: string interpolation, concatenation, a <code>record.get</code> key. Those compile clean under both checkers and print the wrong number. That is the shape of bug this project exists to remove, so a module boundary that reintroduces it is not a boundary Glyph can leave alone.",
+      "tr": "知っておく価値があるのは、<code>tsc</code> がどちらの半分を捕まえるかです。そのインデックスに対する算術は捕まえますが、エラーは Glyph が代わりに束縛した変数について、生成された TypeScript に対して報告されます。捕まえられないのは、数値のつもりの場所で文字列が受け入れられるすべての箇所です。文字列補間、連結、<code>record.get</code> のキーなどです。これらはどちらのチェッカーでも問題なくコンパイルされ、間違った数値を出力します。これはまさにこのプロジェクトがなくそうとしている種類のバグなので、それを再び持ち込むモジュール境界を Glyph は放っておけません。"
+    },
+    {
+      "id": "h-458dd926",
+      "kind": "html",
+      "en": "An imported type now carries an identity across the boundary, keyed on the module that declares it and the name it declares, so all three import spellings resolve to the same type. The declaration itself is fetched on demand and lowered on the declaring module's side, which is the half a consumer cannot do: resolution runs over spans, and an imported declaration's spans belong to another file.",
+      "tr": "インポートした型は今、宣言しているモジュールと宣言された名前をキーとする同一性を持って境界を越えるので、3 つのインポートの書き方はすべて同じ型に解決されます。宣言そのものは必要なときに取得され、宣言側のモジュールで変換されます。これは利用側にはできない部分です。名前解決はスパンに対して行われ、インポートした宣言のスパンは別のファイルに属しているからです。"
+    },
+    {
+      "id": "h-056c35df",
+      "kind": "html",
+      "en": "The query engine in <code>examples/apps/csvql</code> is where this surfaced. It carried three <code>let</code> hoists whose only job was to restate an imported field's type for the emitter, under a four-line comment explaining that without them the row and column numbers in an error message come out wrong. All three are deleted and the app prints byte-identical output for all twelve queries.",
+      "tr": "これが表に出たのは <code>examples/apps/csvql</code> のクエリエンジンでした。そこには、インポートしたフィールドの型をエミッタのために書き直すだけの <code>let</code> の巻き上げが 3 つあり、その上の 4 行のコメントには、これがないとエラーメッセージの行番号と列番号が間違って出ると書かれていました。3 つとも削除し、アプリは 12 個のクエリすべてでバイト単位で同一の出力を返します。"
+    },
+    {
+      "id": "h-16e56e8c",
+      "kind": "html",
+      "en": "One thing still stops at the boundary. Passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is E0211 naming both types, but an <code>interface</code>'s member list does not cross, so a record passed where an imported interface is expected is compared against nothing. Giving it the treatment a record's field set gets would quietly change what structural satisfaction means, which is a language decision rather than a fix.",
+      "tr": "境界で止まるものがまだ 1 つあります。<code>table.Row</code> が期待される場所に <code>catalog.Sheet</code> を渡すと両方の型を示す E0211 になりますが、<code>interface</code> のメンバー一覧は境界を越えないので、インポートした interface が期待される場所に渡したレコードは何とも比較されません。レコードのフィールド集合と同じ扱いをすると、構造的な適合の意味が黙って変わってしまいます。これは修正ではなく、言語の設計判断です。"
+    },
+    {
+      "id": "h-6834f6ea",
+      "kind": "html",
+      "en": "PII masking lives on the type",
+      "tr": "PII のマスキングは型に置く"
+    },
+    {
+      "id": "h-e74ab1dc",
+      "kind": "html",
+      "en": "The same \"make it type-level, not convention\" instinct covers PII. Put <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a <code>redact()</code> on its descriptor that masks those fields, so <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "「慣習ではなく型のレベルにする」という同じ考え方が PII にも及びます。型に <code>@redact fields: [ssn, dob]</code> を付けると、コンパイラはそのデスクリプタにそれらのフィールドをマスクする <code>redact()</code> を生成するので、<code>json.stringify(User.redact(u))</code> がそれらを漏らすことはありません。"
+    },
+    {
+      "id": "h-13194d57",
+      "kind": "html",
+      "en": "E0219 unknown field in @redact",
+      "tr": "E0219 @redact に不明なフィールド"
+    },
+    {
+      "id": "h-a3dc9bf7",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently does nothing.",
+      "tr": "型にないフィールドを指定するとコンパイルエラー（<code>E0219</code>）になり、黙って何もしないマスキングにはなりません。"
+    },
+    {
+      "id": "h-f83eef70",
+      "kind": "html",
+      "en": "Refinements are checked all the way down",
+      "tr": "リファインメントは最後まで検査される"
+    },
+    {
+      "id": "h-4f2c9d8a",
+      "kind": "html",
+      "en": "A descriptor is only worth anything if it's the check the type declares, all the way down. A <code>where</code> refinement runs its predicate wherever the type appears, not just at a direct <code>Instant.parse</code>: as a record field, as an <code>Array</code> element, as an <code>Option</code> payload, inside a union variant, and through <code>json.parse&lt;T&gt;</code>.",
+      "tr": "デスクリプタに価値があるのは、それが型の宣言する検査を最後まで行う場合だけです。<code>where</code> リファインメントは、直接の <code>Instant.parse</code> だけでなく、その型が現れるすべての場所で述語を実行します。レコードのフィールドとして、<code>Array</code> の要素として、<code>Option</code> のペイロードとして、ユニオンのバリアントの中で、そして <code>json.parse&lt;T&gt;</code> を通してです。"
+    },
+    {
+      "id": "a-9d24b993",
+      "kind": "attr:aria-label",
+      "en": "Where the predicate runs",
+      "tr": "述語が実行される場所"
+    },
+    {
+      "id": "h-cc2d34d0",
+      "kind": "html",
+      "en": "<span>Calendar</span>",
+      "tr": "<span>Calendar</span>"
+    },
+    {
+      "id": "h-ff1a5c12",
+      "kind": "html",
+      "en": "<span>busy</span>",
+      "tr": "<span>busy</span>"
+    },
+    {
+      "id": "h-6f5019a2",
+      "kind": "html",
+      "en": "<span>start</span>",
+      "tr": "<span>start</span>"
+    },
+    {
+      "id": "h-b466db9f",
+      "kind": "html",
+      "en": "<span>The fix is four levels down from the boundary: <code>Calendar</code> to <code>Array&lt;WireParticipant&gt;</code> to <code>busy</code> to <code>start</code> to the predicate.</span>",
+      "tr": "<span>修正箇所は境界から 4 段下にあります：<code>Calendar</code> から <code>Array&lt;WireParticipant&gt;</code>、<code>busy</code>、<code>start</code>、そして述語へ。</span>"
+    },
+    {
+      "id": "h-b717ddb6",
+      "kind": "html",
+      "en": "schedule.glyph: the predicate follows the type into the field",
+      "tr": "schedule.glyph：述語は型を追ってフィールドの中まで入る"
+    },
+    {
+      "id": "h-db3eb4df",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the confident wrong schedule before 0.1.41</span>",
+      "tr": "経緯 <span class=\"hint\">0.1.41 より前の、自信満々の間違ったスケジュール</span>"
+    },
+    {
+      "id": "h-26ea0f9a",
+      "kind": "html",
+      "en": "The same goes for a record imported from another module. Until 0.1.41 both of those fell back to checking that the key was present, which is not a check of anything.",
+      "tr": "別のモジュールからインポートしたレコードも同じです。0.1.41 までは、どちらもキーが存在するかどうかの検査に退化していて、それは何の検査にもなっていませんでした。"
+    },
+    {
+      "id": "h-32933c95",
+      "kind": "html",
+      "en": "The scheduling app below is where this surfaced. It reads calendars from a JSON file and needs every timestamp to be a real ISO-8601 instant. Before, the refinement stopped at the top level, so a hand-edited file with <code>\"start\": \"no\"</code> parsed fine, the instant read as 0, and the app printed a confident schedule and exited 0.",
+      "tr": "これが表に出たのは、下のスケジューリングアプリでした。このアプリは JSON ファイルからカレンダーを読み込み、すべてのタイムスタンプが正しい ISO-8601 の時刻であることを必要とします。以前はリファインメントが最上位で止まっていたので、手で編集されて <code>\"start\": \"no\"</code> になったファイルも問題なくパースされ、時刻は 0 として読まれ、アプリは自信満々にスケジュールを出力して終了コード 0 で終わっていました。"
+    },
+    {
+      "id": "h-e0b0c6e0",
+      "kind": "html",
+      "en": "Tests run as part of the build",
+      "tr": "テストはビルドの一部として実行される"
+    },
+    {
+      "id": "h-8f68e695",
+      "kind": "html",
+      "en": "Tests live next to the code and run as part of compiling it. An <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.",
+      "tr": "テストはコードの隣に置かれ、コンパイルの一部として実行されます。関数の上の <code>@example</code> や、<code>@doc</code> の中の <code>```glyph @run```</code> ブロックは、覚えておくべきフラグなしで <code>glyph build</code> が実行します。"
+    },
+    {
+      "id": "h-a935d52f",
+      "kind": "html",
+      "en": "bracket.glyph: break the seeding and the build stops",
+      "tr": "bracket.glyph：シード処理を壊すとビルドが止まる"
+    },
+    {
+      "id": "h-9fb096f6",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why it can't be skipped quietly, and the JSON channel</span>",
+      "tr": "詳細 <span class=\"hint\">黙って飛ばせない理由と、JSON のチャネル</span>"
+    },
+    {
+      "id": "h-8d480a9c",
+      "kind": "html",
+      "en": "A false one fails the build the same way a type error does, which is the point: an agent rewriting a function body cannot pass the build by leaving the assertion behind. <code>--no-test</code> opts out and prints how many tests it skipped, so the bypass is visible in the log.",
+      "tr": "偽になったものは、型エラーと同じようにビルドを失敗させます。それが狙いです。関数の本体を書き直すエージェントは、アサーションを置き去りにしてビルドを通すことはできません。<code>--no-test</code> で除外できますが、飛ばしたテストの数が表示されるので、迂回したことはログに残ります。"
+    },
+    {
+      "id": "h-0c14dec1",
+      "kind": "html",
+      "en": "The JSON output agents read reports the same verdict. <code>glyph build --json</code> carries an <code>examples</code> object next to the diagnostics, and a failing example makes <code>ok</code> false and the exit code non-zero. Until 0.1.43 the examples ran only under <code>--test</code>, and the JSON path returned before they ran at all, so the one channel an agent can read printed <code>\"ok\": true</code> on a project whose own assertion was false. If <code>tsx</code> isn't on <code>PATH</code> the build fails instead of reporting a pass it never checked.",
+      "tr": "エージェントが読む JSON 出力も同じ判定を報告します。<code>glyph build --json</code> は診断の隣に <code>examples</code> オブジェクトを持ち、失敗した例があると <code>ok</code> が false になり、終了コードは 0 以外になります。0.1.43 までは、例は <code>--test</code> のときだけ実行され、JSON の経路は例を実行する前に返っていました。そのため、エージェントが読める唯一のチャネルが、自分自身のアサーションが偽であるプロジェクトに対して <code>\"ok\": true</code> を出力していました。<code>tsx</code> が <code>PATH</code> にない場合、検査していない合格を報告するのではなく、ビルドが失敗します。"
+    },
+    {
+      "id": "h-39aaaa02",
+      "kind": "html",
+      "en": "The bracket app below carries 23 of these. <code>seed_order</code> builds standard bracket order by doubling, which is the kind of function that is easy to get subtly wrong and easy to describe exactly. Change the doubling rule and the build stops, without a test file, a runner, or a flag.",
+      "tr": "下のトーナメント表アプリにはこれが 23 個あります。<code>seed_order</code> は倍々にしていく方法で標準的なトーナメントの順序を作ります。微妙に間違えやすく、それでいて正確に説明しやすい種類の関数です。倍にする規則を変えるとビルドが止まります。テストファイルもランナーもフラグも要りません。"
+    },
+    {
+      "id": "h-03f15931",
+      "kind": "html",
+      "en": "Found by building with it",
+      "tr": "作って見つけたもの"
+    },
+    {
+      "id": "h-698c73d4",
+      "kind": "html",
+      "en": "Four more, found by building with it",
+      "tr": "作って見つけた、さらに 4 つ"
+    },
+    {
+      "id": "h-113db4ca",
+      "kind": "html",
+      "en": "Each of these compiled clean and passed <code>tsc --strict</code>, and each was found by writing an application rather than by reading the compiler. They are the same failure in three places: the types said one thing and the program did another.",
+      "tr": "これらはどれも問題なくコンパイルされ、<code>tsc --strict</code> も通過しました。そして、どれもコンパイラを読んでではなく、アプリケーションを書いていて見つかりました。3 か所に現れた同じ失敗です。型はあることを言い、プログラムは別のことをしていました。"
+    },
+    {
+      "id": "h-a616a906",
+      "kind": "html",
+      "en": "Reading a key that may not be there",
+      "tr": "存在しないかもしれないキーを読む"
+    },
+    {
+      "id": "h-52489cbb",
+      "kind": "html",
+      "en": "reading a key that may not be there: now E0224",
+      "tr": "存在しないかもしれないキーを読む：今は E0224"
+    },
+    {
+      "id": "h-f531f861",
+      "kind": "html",
+      "en": "It is now a compile error pointing at <code>record.get</code>, which returns <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.",
+      "tr": "今は <code>record.get</code> を指すコンパイルエラーになります。これは <code>Option&lt;V&gt;</code> を返すので、キーがない場合の行き先があります。"
+    },
+    {
+      "id": "h-e54e941e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why a map read is different from array indexing</span>",
+      "tr": "詳細 <span class=\"hint\">map の読み取りが配列のインデックスと違う理由</span>"
+    },
+    {
+      "id": "h-c9bcefe0",
+      "kind": "html",
+      "en": "A map's keys are arbitrary, so the compiler cannot know the key is there. Typing the read as <code>string</code> stated something it had not checked, and the value printed as the text \"undefined\". Writing a key is untouched, and so is array indexing: a bound is a value a program can check, a map key is not.",
+      "tr": "map のキーは任意なので、コンパイラはキーが存在するかを知ることができません。読み取りを <code>string</code> と型付けするのは、検査していないことを述べることであり、値は \"undefined\" という文字列として出力されていました。キーへの書き込みは変わりませんし、配列のインデックスも変わりません。範囲はプログラムが検査できる値ですが、map のキーはそうではありません。"
+    },
+    {
+      "id": "h-7affa1da",
+      "kind": "html",
+      "en": "<code>==</code> is value equality everywhere",
+      "tr": "<code>==</code> はどこでも値の等価性"
+    },
+    {
+      "id": "h-4243938e",
+      "kind": "html",
+      "en": "a test that passed while the code failed",
+      "tr": "コードは失敗しているのにテストは通った"
+    },
+    {
+      "id": "h-310e559c",
+      "kind": "html",
+      "en": "<code>==</code> is now value equality everywhere; primitives still compile to <code>===</code>, so ordinary comparisons are unchanged.",
+      "tr": "<code>==</code> は今、どこでも値の等価性です。プリミティブは引き続き <code>===</code> にコンパイルされるので、普通の比較は変わりません。"
+    },
+    {
+      "id": "h-ce8c5b9d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how a test could pass on broken code</span>",
+      "tr": "経緯 <span class=\"hint\">壊れたコードでテストが通ってしまった仕組み</span>"
+    },
+    {
+      "id": "h-493aa455",
+      "kind": "html",
+      "en": "<code>==</code> was documented as value equality and lowered to <code>===</code>, which is <em>reference</em> equality the moment either side is a record, a tagged union, or an array. The same expression compared structurally in a test and by identity in the program beside it, so a test could report success on code that did not work.",
+      "tr": "<code>==</code> は値の等価性だと文書化されていましたが、<code>===</code> に変換されていました。これは、どちらかの辺がレコード、タグ付きユニオン、配列になった時点で<em>参照</em>の等価性です。同じ式が、テストでは構造で比較され、隣のプログラムでは同一性で比較されていたので、動かないコードに対してテストが成功を報告することがありました。"
+    },
+    {
+      "id": "h-5f4e8e26",
+      "kind": "html",
+      "en": "A loop binding keeps its element type",
+      "tr": "ループの束縛は要素の型を保つ"
+    },
+    {
+      "id": "h-8a885009",
+      "kind": "html",
+      "en": "exhaustiveness that evaporated inside a loop",
+      "tr": "ループの中で消えていた網羅性"
+    },
+    {
+      "id": "h-6c2e2fbd",
+      "kind": "html",
+      "en": "It now names the variant you have not handled, which is advice to satisfy the check rather than to switch it off.",
+      "tr": "今は扱っていないバリアントの名前を示します。検査を外すのではなく満たすための助言です。"
+    },
+    {
+      "id": "h-811ca57d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the catch-all advice it used to give</span>",
+      "tr": "経緯 <span class=\"hint\">以前出していた catch-all の助言</span>"
+    },
+    {
+      "id": "h-1933d79f",
+      "kind": "html",
+      "en": "The loop binding carried no element type, so a <code>match</code> over a string-literal union degraded to a match over <code>string</code> and the compiler advised adding a catch-all.",
+      "tr": "ループの束縛は要素の型を持っていなかったので、文字列リテラルのユニオンに対する <code>match</code> が <code>string</code> に対する match に格下げされ、コンパイラは catch-all を追加するよう助言していました。"
+    },
+    {
+      "id": "h-c324ad5a",
+      "kind": "html",
+      "en": "Imported generic unions are checked",
+      "tr": "インポートしたジェネリックなユニオンも検査される"
+    },
+    {
+      "id": "h-c5058636",
+      "kind": "html",
+      "en": "a variant left out of a match on an imported generic union",
+      "tr": "インポートしたジェネリックなユニオンに対する match で、バリアントが 1 つ抜けている"
+    },
+    {
+      "id": "h-e2d737fb",
+      "kind": "html",
+      "en": "It is <code>E0200</code> either way now, at both import spellings and at an open parameter or a concrete instantiation alike.",
+      "tr": "今はどちらの場合も <code>E0200</code> になります。2 つのインポートの書き方のどちらでも、型パラメータが開いたままでも具体的な型で具体化されていても同じです。"
+    },
+    {
+      "id": "h-16f631f3",
+      "kind": "html",
+      "en": "History <span class=\"hint\">why the check never started</span>",
+      "tr": "経緯 <span class=\"hint\">検査が始まらなかった理由</span>"
+    },
+    {
+      "id": "h-b1b9589f",
+      "kind": "html",
+      "en": "A union your own module declares is checked whether or not it takes type parameters. One imported from a sibling module was checked only when it took none. <code>Tree&lt;string&gt;</code> reaches the cross-module coverage path as an application of an imported union rather than as one, and the gate that starts the check was looking for the second, so the <code>match</code> was never counted at all: <code>tsc --strict</code> passed and a <code>Leaf</code> threw. Delete <code>&lt;K&gt;</code> from both files and the same program was <code>E0200</code>.",
+      "tr": "自分のモジュールで宣言したユニオンは、型パラメータを取るかどうかにかかわらず検査されます。兄弟モジュールからインポートしたものは、型パラメータを取らない場合にだけ検査されていました。<code>Tree&lt;string&gt;</code> は、インポートしたユニオンそのものではなく、その適用としてモジュール横断の網羅性チェックの経路に届きます。そして検査を開始する入口は後者ではなく前者を探していたので、<code>match</code> はまったく数えられていませんでした。<code>tsc --strict</code> は通過し、<code>Leaf</code> で throw していました。両方のファイルから <code>&lt;K&gt;</code> を削除すると、同じプログラムが <code>E0200</code> になりました。"
+    },
+    {
+      "id": "h-215b69fb",
+      "kind": "html",
+      "en": "A <code>parse</code> can't claim a check it didn't do",
+      "tr": "<code>parse</code> はしていない検査をしたとは言えない"
+    },
+    {
+      "id": "h-ed18ae93",
+      "kind": "html",
+      "en": "a <code>parse</code> that reported success without checking: now E0304",
+      "tr": "検査せずに成功を報告していた <code>parse</code>：今は E0304"
+    },
+    {
+      "id": "h-39872533",
+      "kind": "html",
+      "en": "Holding a socket in a record is ordinary and still compiles. Validating one is now refused where it is written and in every module that imports the record, naming the field and its type, and the refusal follows the shape: through a nested record, an <code>Array</code>, an <code>Option</code>.",
+      "tr": "レコードにソケットを持たせるのは普通のことで、今もコンパイルできます。そのレコードを検証することは、書いた場所でも、そのレコードをインポートするすべてのモジュールでも拒否されるようになり、フィールド名とその型が示されます。拒否は形をたどって伝わります。入れ子のレコード、<code>Array</code>、<code>Option</code> を通してです。"
+    },
+    {
+      "id": "h-a05fe05e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why presence is not a check, and the fix it asks for</span>",
+      "tr": "詳細 <span class=\"hint\">存在することが検査にならない理由と、求められる修正</span>"
+    },
+    {
+      "id": "h-9c3b562f",
+      "kind": "html",
+      "en": "Every record type carries a runtime descriptor. For a field whose type the compiler cannot see into, a socket or anything reached through <code>extern_ts</code>, the generated check was \"is it present\" while the reported message read <code>field `sock` must be Socket</code>. A boolean that is always true is useless. One that is always true under a message naming a type nothing checked is worse, because <code>parse</code> is the thing a boundary is told to trust.",
+      "tr": "どのレコード型も実行時のデスクリプタを持ちます。ソケットや、<code>extern_ts</code> を通して届くものなど、コンパイラが中を見られない型のフィールドについては、生成される検査は「存在するか」だけで、報告されるメッセージは <code>field `sock` must be Socket</code> でした。常に真になる真偽値は役に立ちません。何も検査していない型を名指しするメッセージの下で常に真になるのは、もっと悪いことです。<code>parse</code> こそ、境界が信頼するよう言われているものだからです。"
+    },
+    {
+      "id": "h-f64526be",
+      "kind": "html",
+      "en": "The fix it asks for is the split you would have written anyway, a wire type whose fields are all checkable, then a domain record you build from it. <code>unknown</code> is not caught by this, because it claims nothing and presence really is the whole check.",
+      "tr": "求められる修正は、どのみち書いていたはずの分割です。すべてのフィールドが検査可能なワイヤ型を作り、そこからドメインのレコードを組み立てます。<code>unknown</code> はこれに引っかかりません。何も主張しておらず、存在することがまさに検査のすべてだからです。"
+    },
+    {
+      "id": "h-ffa8c81e",
+      "kind": "html",
+      "en": "A signature change, invisible at the call site: closed in 0.1.116",
+      "tr": "呼び出し側から見えないシグネチャの変更：0.1.116 で解消"
+    },
+    {
+      "id": "h-6db7877f",
+      "kind": "html",
+      "en": "Change a function to take a payload instead of a raw string and every call still passing the old shape built clean.",
+      "tr": "関数を、生の文字列ではなくペイロードを受け取るように変更しても、古い形のまま渡している呼び出しはすべて問題なくビルドされていました。"
+    },
+    {
+      "id": "h-9ee21e49",
+      "kind": "html",
+      "en": "billing.glyph: a union crosses a `string` parameter unnoticed",
+      "tr": "billing.glyph：ユニオンが `string` パラメータを気づかれずに通過する"
+    },
+    {
+      "id": "h-a20d51b6",
+      "kind": "html",
+      "en": "glyph build, now",
+      "tr": "glyph build、現在"
+    },
+    {
+      "id": "h-dac7e473",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the check fires, and where it stays quiet</span>",
+      "tr": "詳細 <span class=\"hint\">検査が働く場所と、黙っている場所</span>"
+    },
+    {
+      "id": "h-17c058ca",
+      "kind": "html",
+      "en": "A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to accept a value of a declared union or record with no complaint at all, even though the identical call with a mismatched <code>bool</code> argument was already <code>E0211</code>.",
+      "tr": "<code>string</code>、<code>number</code>、<code>bool</code> と型付けされたパラメータは、宣言されたユニオンやレコードの値を何の文句もなく受け入れていました。同じ呼び出しで <code>bool</code> の引数が合わない場合は、すでに <code>E0211</code> だったにもかかわらずです。"
+    },
+    {
+      "id": "h-da7fe218",
+      "kind": "html",
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "この検査は宣言を読むので、答えが確実な場所でだけ働きます。プリミティブの別名、文字列リテラルのユニオン（D30）、<code>extern_ts</code> や <code>typeof</code> の本体、<code>interface</code> では、今も何も言いません。どれも、タグ付きユニオンやレコードのように <code>string</code> ではないと証明できるものではないからです。<code>void</code> も対象外です。引数、<code>return</code>、<code>let</code> の型注釈のどれにも同じように働きます。3 つとも 1 つの関係を共有しているからです。"
+    },
+    {
+      "id": "h-77fa2d03",
+      "kind": "html",
+      "en": "An annotated <code>const</code> is typed",
+      "tr": "型注釈付きの <code>const</code> は型を持つ"
+    },
+    {
+      "id": "h-18946092",
+      "kind": "html",
+      "en": "A <code>const</code> had the matching gap on the receiving side.",
+      "tr": "<code>const</code> には、受け取る側に対応する穴がありました。"
+    },
+    {
+      "id": "h-275d90ea",
+      "kind": "html",
+      "en": "catalog.glyph: an annotated const, and the field it does not have",
+      "tr": "catalog.glyph：型注釈付きの const と、それが持たないフィールド"
+    },
+    {
+      "id": "h-ace01ce9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">unannotated consts, and why both fixes are breaking</span>",
+      "tr": "詳細 <span class=\"hint\">型注釈のない const と、どちらの修正も破壊的な理由</span>"
+    },
+    {
+      "id": "h-7e1d4db5",
+      "kind": "html",
+      "en": "A module-level <code>const</code> carrying a type annotation lowered to <code>Ty::Unknown</code> no matter what the annotation said, so a field typo on it was invisible exactly where the identical annotated <code>let</code> inside a function already reported it.",
+      "tr": "型注釈の付いたモジュールレベルの <code>const</code> は、注釈の内容にかかわらず <code>Ty::Unknown</code> に変換されていました。そのため、関数の中の同じ注釈付き <code>let</code> ならすでに報告されていたフィールドのタイプミスが、ちょうどそこで見えなくなっていました。"
+    },
+    {
+      "id": "h-4319dca8",
+      "kind": "html",
+      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "型注釈のない <code>const</code> は何も主張せず、意図して <code>Unknown</code> のままにしています。初期化式から推論するのは別の問題で、誤検出の範囲も異なります。どちらの修正も <code>glyph check --no-tsc</code>、言語サーバー、Playground では破壊的です。どちらも前のリリースが受け入れていたプログラムを検出し始めるからです。完全な <code>glyph build</code> は、どちらの場合もすでに <code>tsc</code> によって赤になっていました。"
+    },
+    {
+      "id": "h-cbab1648",
+      "kind": "html",
+      "en": "An extra field is still <code>tsc</code>'s to catch",
+      "tr": "余分なフィールドは、今も <code>tsc</code> が捕まえる"
+    },
+    {
+      "id": "h-ac6a4587",
+      "kind": "html",
+      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
+      "tr": "レコードリテラルの検査のうち 1 つは、今も Glyph ではなく <code>tsc</code> の担当です。<code>glyph build</code> はそこで止まりますが、<code>glyph check --no-tsc</code>、言語サーバー、Playground は何も言いません（G273）。"
+    },
+    {
+      "id": "h-b4f5f44a",
+      "kind": "html",
+      "en": "point.glyph: an extra field, left to tsc",
+      "tr": "point.glyph：余分なフィールド、tsc に任せている"
+    },
+    {
+      "id": "h-500a7735",
+      "kind": "html",
+      "en": "TS2353 from tsc",
+      "tr": "tsc の TS2353"
+    },
+    {
+      "id": "h-420c0512",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how tsc reports it</span>",
+      "tr": "詳細 <span class=\"hint\">tsc がどう報告するか</span>"
+    },
+    {
+      "id": "h-ef7526a6",
+      "kind": "html",
+      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
+      "tr": "宣言されたレコードにないフィールドを持つリテラルは Glyph のチェッカーを通過し、<code>tsc</code> が出力された TypeScript に対して <code>TS2353</code> として拒否します。エラーはリテラルの位置に対応付けられます。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-d58144f7",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">18</span>",
+      "tr": "提供中 <span class=\"count\">18</span>"
+    },
+    {
+      "id": "h-f9b8704d",
+      "kind": "html",
+      "en": "Matching",
+      "tr": "マッチ"
+    },
+    {
+      "id": "h-1822a7e3",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over sealed unions: yours or a sibling module's, generic or not, and the standard library's, such as <code>fs.ErrorKind</code>",
+      "tr": "封印されたユニオンに対する網羅的な <code>match</code>：自分のモジュールのものでも兄弟モジュールのものでも、ジェネリックでもそうでなくても、<code>fs.ErrorKind</code> のような標準ライブラリのものでも"
+    },
+    {
+      "id": "h-1dc7d0ec",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over <code>number</code>/<code>string</code>",
+      "tr": "<code>number</code>/<code>string</code> に対する網羅的な <code>match</code>"
+    },
+    {
+      "id": "h-d12411b5",
+      "kind": "html",
+      "en": "A typo'd variant arm caught as a compile error with a nearest-variant suggestion instead of a silent catch-all",
+      "tr": "バリアントのアームのタイプミスを、黙った catch-all ではなく、最も近いバリアントを提案するコンパイルエラーとして検出"
+    },
+    {
+      "id": "h-b2819e07",
+      "kind": "html",
+      "en": "A variant in payload position dispatching on the payload's own tag rather than binding it",
+      "tr": "ペイロードの位置にあるバリアントは、ペイロードを束縛するのではなく、ペイロード自身のタグで分岐"
+    },
+    {
+      "id": "h-12d7966b",
+      "kind": "html",
+      "en": "Two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning",
+      "tr": "同じタグに応える 2 つのアームは、一方が黙って勝つのではなく <code>E0305</code> として拒否"
+    },
+    {
+      "id": "h-42315da3",
+      "kind": "html",
+      "en": "A <code>for</code> binding that keeps its element type",
+      "tr": "要素の型を保つ <code>for</code> の束縛"
+    },
+    {
+      "id": "h-d7829106",
+      "kind": "html",
+      "en": "Errors and tests",
+      "tr": "エラーとテスト"
+    },
+    {
+      "id": "h-71ede7c9",
+      "kind": "html",
+      "en": "<code>Result</code> + the <code>?</code> operator with error-type checking",
+      "tr": "<code>Result</code> と <code>?</code> 演算子、エラー型の検査付き"
+    },
+    {
+      "id": "h-77e204a0",
+      "kind": "html",
+      "en": "A warning when a <code>Result</code> is discarded",
+      "tr": "<code>Result</code> を捨てたときの警告"
+    },
+    {
+      "id": "h-c7fdeb1c",
+      "kind": "html",
+      "en": "<code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included",
+      "tr": "ビルドのたびに実行される <code>@example</code> / <code>@doc @run</code> テスト（<code>--json</code> を含む）"
+    },
+    {
+      "id": "h-5f5f223f",
+      "kind": "html",
+      "en": "Types, records and literals",
+      "tr": "型、レコード、リテラル"
+    },
+    {
+      "id": "h-538cd6bb",
+      "kind": "html",
+      "en": "A declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected",
+      "tr": "<code>string</code>/<code>number</code>/<code>bool</code> が期待される場所に渡された、宣言済みのユニオンやレコード"
+    },
+    {
+      "id": "h-1d1dcc32",
+      "kind": "html",
+      "en": "A field typo on an annotated module-level <code>const</code>",
+      "tr": "型注釈付きのモジュールレベルの <code>const</code> でのフィールドのタイプミス"
+    },
+    {
+      "id": "h-10b714c5",
+      "kind": "html",
+      "en": "<code>==</code> as value equality on every type",
+      "tr": "すべての型で値の等価性になる <code>==</code>"
+    },
+    {
+      "id": "h-65a54713",
+      "kind": "html",
+      "en": "Reading a key out of a map rejected",
+      "tr": "map からのキーの読み取りを拒否"
+    },
+    {
+      "id": "h-0fdc9dd8",
+      "kind": "html",
+      "en": "Object literals and JSX attributes checked against the declared type",
+      "tr": "宣言された型に照らして検査されるオブジェクトリテラルと JSX 属性"
+    },
+    {
+      "id": "h-194b7ac0",
+      "kind": "html",
+      "en": "since 0.1.124",
+      "tr": "0.1.124 から"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
+    },
+    {
+      "id": "h-16b87510",
+      "kind": "html",
+      "en": "Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant=\"nope\" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames.",
+      "tr": "0.1.124 から、オブジェクトリテラルはそのフィールドが表すレコード型を持ちます。そのため <code>let g: string = { x: 1 }</code>、宣言されたレコードが必須とするフィールドを欠いたリテラル、合わない場所に渡されたリテラルは、<code>let</code>、<code>const</code>、<code>return</code>、呼び出しの引数のどこでも、宣言された型を示す E0204 または E0211 になります。また JSX 属性はコンポーネントの props レコードに照らして検査されるので、<code>&lt;Button variant=\"nope\" /&gt;</code> は受け付ける値を示す E0211 になり、レコードが宣言していない属性は E0210 になります。E0210 は <code>glyph fix</code> で名前を直せます。"
+    },
+    {
+      "id": "h-cafb3664",
+      "kind": "html",
+      "en": "A missing required field or prop is named",
+      "tr": "必須のフィールドや prop の抜けは名前が示される"
+    },
+    {
+      "id": "h-90bb1a2a",
+      "kind": "html",
+      "en": "since 0.1.125",
+      "tr": "0.1.125 から"
+    },
+    {
+      "id": "h-2bed57b7",
+      "kind": "html",
+      "en": "Since 0.1.125 a record literal or a component element that leaves out a required field names it, in the message and in <code>missing_fields</code> on <code>--json</code>, and an element missing a required prop is E0211 even when it writes no attributes at all; a component whose one parameter is not a record is E0229.",
+      "tr": "0.1.125 から、必須のフィールドを書き漏らしたレコードリテラルやコンポーネント要素は、メッセージと <code>--json</code> の <code>missing_fields</code> の両方でそのフィールドを示します。必須の prop が抜けた要素は、属性を 1 つも書いていなくても E0211 になります。1 つだけのパラメータがレコードでないコンポーネントは E0229 です。"
+    },
+    {
+      "id": "h-d16cf25f",
+      "kind": "html",
+      "en": "Every field of a record compared by the same rule as the record",
+      "tr": "レコードのすべてのフィールドを、レコードと同じ規則で比較"
+    },
+    {
+      "id": "h-5e7cd30b",
+      "kind": "html",
+      "en": "since 0.1.127",
+      "tr": "0.1.127 から"
+    },
+    {
+      "id": "h-7f53d708",
+      "kind": "html",
+      "en": "Since 0.1.127 every field of a record is compared by the same rule as the record, so a nested record, a declared type or a string-literal union inside one is refused where <code>tsc</code> refuses it, and so are an optional field where a required one is declared, a function whose return does not fit and a local interface's members. A record whose fields are all optional refuses a value that shares none of them, as TS2559 does. A function's parameters are still not compared.",
+      "tr": "0.1.127 から、レコードのすべてのフィールドはレコードと同じ規則で比較されます。そのため、その中にある入れ子のレコード、宣言済みの型、文字列リテラルのユニオンは、<code>tsc</code> が拒否する場所で拒否されます。必須として宣言された場所にあるオプションのフィールド、戻り値が合わない関数、ローカルの interface のメンバーも同様です。すべてのフィールドがオプションのレコードは、そのどれも共有しない値を拒否します。TS2559 と同じです。関数のパラメータはまだ比較されません。"
+    },
+    {
+      "id": "h-ea0eaaf6",
+      "kind": "html",
+      "en": "Data boundaries",
+      "tr": "データの境界"
+    },
+    {
+      "id": "h-256d43ee",
+      "kind": "html",
+      "en": "Runtime type descriptors",
+      "tr": "実行時の型デスクリプタ"
+    },
+    {
+      "id": "h-32584cfc",
+      "kind": "html",
+      "en": "<code>@redact</code> PII masking on the type descriptor",
+      "tr": "型デスクリプタ上の <code>@redact</code> による PII のマスキング"
+    },
+    {
+      "id": "h-f094b384",
+      "kind": "html",
+      "en": "Getting sharper <span class=\"count\">13</span>",
+      "tr": "改善中 <span class=\"count\">13</span>"
+    },
+    {
+      "id": "h-832f8a5e",
+      "kind": "html",
+      "en": "Coverage of an imported union doesn't look inside a variant's payload yet",
+      "tr": "インポートしたユニオンの網羅性チェックは、まだバリアントのペイロードの中を見ない"
+    },
+    {
+      "id": "h-951e9ba7",
+      "kind": "html",
+      "en": "next to deepen",
+      "tr": "次に深める"
+    },
+    {
+      "id": "h-1398e498",
+      "kind": "html",
+      "en": "A type parameter used to switch the check off: through 0.1.90 a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit a variant, build clean, pass <code>tsc --strict</code>, and throw at run time, where the same match on <code>Tree</code> was <code>E0200</code>. That is closed for a union your own module declares and, as of 0.1.95, for one an import away. What is still shallower on the imported path is the depth rather than the gate: the check that runs for an imported union never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> rather than reporting the missing <code>Y</code>, and no type parameter is involved. That is the next thing to deepen.",
+      "tr": "以前は型パラメータがあると検査が外れていました。0.1.90 までは、<code>Tree&lt;K&gt;</code> に対する <code>match</code> がバリアントを 1 つ書き漏らしても問題なくビルドされ、<code>tsc --strict</code> を通過し、実行時に throw していました。同じ match を <code>Tree</code> に対して書けば <code>E0200</code> だったのにです。これは自分のモジュールで宣言したユニオンについては解消され、0.1.95 からはインポートしたユニオンについても解消されています。インポートの経路でまだ浅いのは、入口ではなく深さです。インポートしたユニオンに対して実行される検査はバリアントのペイロードの中を見ないので、ペイロード自体がユニオンであるインポートしたユニオンに対する <code>B(X)</code> は、抜けている <code>Y</code> を報告せずにすべての <code>B</code> にマッチします。型パラメータは関係ありません。これが次に深める部分です。"
+    },
+    {
+      "id": "h-8efe9560",
+      "kind": "html",
+      "en": "A lowercase payload variant of an imported union stops the build",
+      "tr": "インポートしたユニオンの小文字のペイロードバリアントはビルドを止める"
+    },
+    {
+      "id": "h-5584b05d",
+      "kind": "html",
+      "en": "A variant in payload position is read off the payload union's variant list now, so the capitalization of the name stops mattering for a union your module declares. For one imported from another module there is no list to read and the shape of the name still answers, which means <code>Err(Blank)</code> dispatches and <code>Err(blank)</code> stops the build at <code>E0305</code>: a loud failure on a valid program, and it needs the same imported-union registry the shallow coverage check above needs.",
+      "tr": "ペイロードの位置にあるバリアントは今、ペイロードのユニオンのバリアント一覧から読まれるので、自分のモジュールで宣言したユニオンでは名前の大文字小文字は関係なくなりました。別のモジュールからインポートしたユニオンでは読むべき一覧がなく、今も名前の形で決まります。つまり <code>Err(Blank)</code> は分岐し、<code>Err(blank)</code> は <code>E0305</code> でビルドを止めます。正しいプログラムに対する派手な失敗です。これには、上の浅い網羅性チェックと同じ、インポートしたユニオンのレジストリが必要です。"
+    },
+    {
+      "id": "h-bc939020",
+      "kind": "html",
+      "en": "A constructor pattern over a record payload (<code>Ok(Point)</code>) fails in <code>tsc</code>, not Glyph",
+      "tr": "レコードのペイロードに対するコンストラクタパターン（<code>Ok(Point)</code>）は、Glyph ではなく <code>tsc</code> で失敗する"
+    },
+    {
+      "id": "h-0de1643c",
+      "kind": "html",
+      "en": "A constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic naming the type and the pattern.",
+      "tr": "ユニオンではなくレコードであるペイロードに対するコンストラクタパターン（<code>Ok(Point)</code>）は、自分では書いていない <code>.tag</code> を示して <code>tsc</code> で失敗します。本来は型とパターンを示す Glyph の診断であるべきです。"
+    },
+    {
+      "id": "h-f3636a71",
+      "kind": "html",
+      "en": "A misspelled bare arm reports two lines for the same name",
+      "tr": "綴りを間違えた素のアームは、同じ名前について 2 行報告する"
+    },
+    {
+      "id": "h-578afec8",
+      "kind": "html",
+      "en": "The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike, constructor-shaped or bare: through 0.1.115 a bare misspelled head over an imported union (<code>Loadign</code>, no arguments) was credited as covering a variant and said nothing, where the same typo on a local union already reported <code>E0220</code>; both spellings report it now. A misspelled bare arm also trips <code>E0103</code>, one stage earlier, so you get both lines for the same name.",
+      "tr": "タイプミスの検査（<code>E0220</code>）は今、モジュール内で宣言したユニオンにも、名前空間インポート経由で届くユニオン（<code>model.Nooo(_)</code>）にも、コンストラクタの形でも素の形でも同じように働きます。0.1.115 までは、インポートしたユニオンに対する綴り間違いの素の先頭（引数のない <code>Loadign</code>）はバリアントを網羅したものとみなされ、何も言われませんでした。ローカルのユニオンなら同じタイプミスがすでに <code>E0220</code> を報告していたのにです。今はどちらの書き方でも報告されます。綴りを間違えた素のアームは 1 段前で <code>E0103</code> にも引っかかるので、同じ名前について両方の行が出ます。"
+    },
+    {
+      "id": "h-5ab756fd",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted",
+      "tr": "スプレッドを含むリテラルは型を持たず、余分なフィールドが今も受け入れられる"
+    },
+    {
+      "id": "h-3a8ce517",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
+      "tr": "スプレッドを含むリテラルは型を持たず、余分なフィールドが今も受け入れられます。<code>tsc</code> は新しいリテラルでは TS2353 として拒否します（G273）。"
+    },
+    {
+      "id": "h-cf31f508",
+      "kind": "html",
+      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
+      "tr": "インポートした <code>interface</code> のメンバーと、インポートした <code>const</code> の型は、まだ境界を越えない"
+    },
+    {
+      "id": "h-182d14d1",
+      "kind": "html",
+      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
+      "tr": "型は今、モジュール境界を損なわずに越えます。ユニオンはタグ付きでも文字列リテラルでも網羅性を保ち、レコードはフィールド集合を保ちます。そのため、インポートしたレコードのフィールドのタイプミスはそのレコード自身の型を示す <code>E0210</code> になり、その配列フィールドに対する <code>for i, x</code> は型注釈なしで数値を束縛します。まだ越えないのは <code>interface</code> のメンバー一覧で、インポートした interface が期待される場所に渡したレコードは何とも比較されません。インポートした <code>const</code> も 1 つ隣の同じ形の問題です。今も <code>Ty::Unknown</code> なので、名前付きインポートでも名前空間インポートでも、元のモジュールが型注釈を付けていてもいなくても、フィールドのタイプミスは黙ったままです。"
+    },
+    {
+      "id": "h-b6b84555",
+      "kind": "html",
+      "en": "Deeper flow-narrowing is on the roadmap",
+      "tr": "より深いフローによる絞り込みはロードマップにある"
+    },
+    {
+      "id": "h-fd47e980",
+      "kind": "html",
+      "en": "Maps from another module or the standard library are read unchecked",
+      "tr": "別のモジュールや標準ライブラリから来た map は検査されずに読まれる"
+    },
+    {
+      "id": "h-0edf415f",
+      "kind": "html",
+      "en": "A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types.",
+      "tr": "別のモジュールや標準ライブラリから届く map は今も検査されずに読まれるので、E0224 はまだ <code>sqlite.Row</code> を対象にしていません。また 2 つの束縛を持つ <code>for i, x in xs</code> は今も型を失います。"
+    },
+    {
+      "id": "h-15d1a62f",
+      "kind": "html",
+      "en": "A type from a plain <code>.d.ts</code> has no descriptor; materialize it with <code>glyph gen dts</code>",
+      "tr": "素の <code>.d.ts</code> から来た型はデスクリプタを持たない。<code>glyph gen dts</code> で実体化する"
+    },
+    {
+      "id": "h-5b74c17a",
+      "kind": "html",
+      "en": "A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates.",
+      "tr": "別の Glyph モジュールからインポートした型は、今は自身のデスクリプタで検証されます。フィールドの位置にある <code>where</code> リファインメントも同様です。素の <code>.d.ts</code> からインポートした型には検証に使うデスクリプタがなく、それを持つレコードに対する <code>parse</code> は、検査していない成功を報告するのではなく拒否されるようになりました（<code>E0304</code>）。<code>glyph gen dts</code> で実体化すれば、検証できる型が得られます。"
+    },
+    {
+      "id": "h-b99fb20b",
+      "kind": "html",
+      "en": "Tooling and the standard library",
+      "tr": "ツールと標準ライブラリ"
+    },
+    {
+      "id": "h-3aeea93f",
+      "kind": "html",
+      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
+      "tr": "<code>std/string</code> と <code>std/array</code> の 9 つの関数は、今も型のない値を返す"
+    },
+    {
+      "id": "h-b4a6a924",
+      "kind": "html",
+      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
+      "tr": "チェッカーがモデル化している標準ライブラリの戻り値の型は、<code>std/string</code> と <code>std/array</code> のうち引数の数が固定された半分をカバーしています。省略可能な末尾引数を持つ 6 つの関数（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）と <code>array.map</code>/<code>flat_map</code>/<code>zip</code> はまだ型がないので、それらから直接得た値をインデックス付きで反復するには型注釈が必要です。"
+    },
+    {
+      "id": "h-201d023a",
+      "kind": "html",
+      "en": "Member access on primitives and arrays has no diagnostic where <code>tsc</code> doesn't run",
+      "tr": "プリミティブと配列のメンバーアクセスは、<code>tsc</code> が実行されない場所では診断がない"
+    },
+    {
+      "id": "h-4ea82084",
+      "kind": "html",
+      "en": "Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground.",
+      "tr": "<code>string</code>、<code>number</code>、<code>bool</code>、<code>Array&lt;T&gt;</code> に対するメンバーアクセスと呼び出しは、穴ではなく設計として <code>tsc</code> に任せています。Glyph はそこで JS の生のメンバーを許すので、<code>s.length</code> や <code>xs.length</code> はコンパイルでき、<code>tsc --strict</code> も通過します。欠けているのは、<code>tsc</code> を一切実行しない 4 つの場所での診断です。<code>glyph check --no-tsc</code>、言語サーバー、MCP サーバー、Playground です。"
+    },
+    {
+      "id": "h-92f64275",
+      "kind": "html",
+      "en": "An offline build with examples needs <code>tsx</code> or <code>--no-test</code>",
+      "tr": "例を含むオフラインのビルドには <code>tsx</code> か <code>--no-test</code> が必要"
+    },
+    {
+      "id": "h-be29560d",
+      "kind": "html",
+      "en": "The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>.",
+      "tr": "例のランナーは <code>tsx</code> を呼び出すので、例があって <code>PATH</code> に <code>tsx</code> がないプロジェクトは、黙って飛ばすのではなくビルドが失敗します。これは意図したものですが、オフラインでビルドするには <code>tsx</code> をインストールするか <code>--no-test</code> を付ける必要があります。"
+    },
+    {
+      "id": "h-b5f0eada",
+      "kind": "html",
+      "en": "An <code>await</code> in a plain <code>fn</code> is caught against your own source",
+      "tr": "普通の <code>fn</code> の中の <code>await</code> は、自分のソースに対して検出される"
+    },
+    {
+      "id": "h-d7c47327",
+      "kind": "html",
+      "en": "Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href=\"/answers/early-errors/\">caught earlier</a>.",
+      "tr": "async の文脈は、Glyph が <code>tsc</code> に任せていた唯一の規則でした。今は普通の <code>fn</code> の中の <code>await</code> は自分のソースに対する <code>E0222</code> になり、トップレベルの <code>const</code> の初期化式だけが今も許される例外です。これと、1 段前に移ったほかの 2 つの規則は <a href=\"/answers/early-errors/\">早い段階で検出</a>にあります。"
+    },
+    {
+      "id": "h-9517f6f5",
+      "kind": "html",
+      "en": "Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the <a href=\"/pillars/verifiability/\">verifiability pillar page</a>.",
+      "tr": "これが Glyph の 4 つの柱の 1 つ目である理由と、その保証がどこで止まるかは、<a href=\"/pillars/verifiability/\">検証可能性の柱のページ</a>にあります。"
+    }
+  ]
+}

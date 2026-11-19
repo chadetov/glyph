@@ -1,0 +1,80 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "catches/index.html",
+  "locale": "ja",
+  "source_hash": "09d8897c06eb2254",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What TypeScript lets through and Glyph catches · Glyph",
+      "tr": "TypeScript が通してしまい、Glyph が検出するもの · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Code AI agents write that passes tsc --strict, each shown beside the same program in Glyph with the real compiler output. A build gate re-runs every case.",
+      "tr": "AI エージェントが書く、tsc --strict を通過してしまうコード。それぞれを Glyph で書いた同じプログラムと並べ、実際のコンパイラ出力とともに示します。ビルドのゲートがすべてのケースを再実行します。"
+    },
+    {
+      "id": "h-62a67cf6",
+      "kind": "html",
+      "en": "Cases TypeScript lets through",
+      "tr": "TypeScript が通してしまうケース"
+    },
+    {
+      "id": "h-e64296aa",
+      "kind": "html",
+      "en": "Caught before it ships",
+      "tr": "出荷する前に検出する"
+    },
+    {
+      "id": "h-2b7258ab",
+      "kind": "html",
+      "en": "Each entry is two programs in <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a>, and the output under each one is what the tools printed. A build gate, <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a>, re-runs every case and fails if either half stops doing what the page says. The full TypeScript configuration it checks against is in that script.",
+      "tr": "各項目は <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> にある 2 つのプログラムで、その下の出力はツールが実際に表示したものです。ビルドのゲートである <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a> がすべてのケースを再実行し、どちらかがこのページの記述どおりに動かなくなると失敗します。検証に使う TypeScript の設定の全体は、このスクリプトにあります。"
+    },
+    {
+      "id": "h-edf64e1e",
+      "kind": "html",
+      "en": "{{catches:count}} TypeScript mistakes",
+      "tr": "TypeScript のミス {{catches:count}} 件"
+    },
+    {
+      "id": "h-792e25f6",
+      "kind": "html",
+      "en": "{{catches:trap-count}} JavaScript traps that do not exist in Glyph",
+      "tr": "Glyph には存在しない JavaScript の落とし穴 {{catches:trap-count}} 件"
+    },
+    {
+      "id": "h-b2b3836d",
+      "kind": "html",
+      "en": "Older traps that agents still hit now and then. Glyph refuses each program, but not by spotting the mistake: the feature behind it is not in the language, and the replacement is named.",
+      "tr": "昔からある落とし穴ですが、エージェントは今でもときどきはまります。Glyph はどのプログラムも拒否しますが、ミスを見つけるからではありません。その原因となる機能が言語になく、代わりに使うものが示されるからです。"
+    },
+    {
+      "id": "h-2db8dfc2",
+      "kind": "html",
+      "en": "What Glyph does not catch yet",
+      "tr": "Glyph がまだ検出できないもの"
+    },
+    {
+      "id": "h-e0a2f441",
+      "kind": "html",
+      "en": "{{catches:gap-cases}} holes Glyph does not close yet. Each of these compiles in Glyph today and does the same wrong thing as in TypeScript. Every one has a reproduction in <code>catches/</code> and an open gap number, and the gate fails when a fix lands so the entry cannot outlive the hole.",
+      "tr": "Glyph がまだ塞いでいない穴 {{catches:gap-cases}} 件。どれも現在の Glyph でコンパイルが通り、TypeScript と同じ誤った動作をします。それぞれに <code>catches/</code> の再現コードと未解決の gap 番号があり、修正が入るとゲートが失敗するので、穴が塞がった後に項目が残ることはありません。"
+    },
+    {
+      "id": "h-e0eee93e",
+      "kind": "html",
+      "en": "Logic errors are the largest class in every study of agent-written code, and no type checker sees them: a wrong formula, or a task that was misread, compiles in Glyph as it does in TypeScript.",
+      "tr": "エージェントが書いたコードに関するどの研究でも、最大の分類はロジックの誤りで、型検査器にはそれが見えません。式の誤りやタスクの読み違いは、TypeScript と同じく Glyph でもコンパイルが通ります。"
+    },
+    {
+      "id": "h-2343e2b3",
+      "kind": "html",
+      "en": "Glyph has one escape hatch, <code>extern_ts</code>, for TypeScript it cannot express. It is a fixed keyword, so <code>grep extern_ts</code> lists every place the rules are suspended.",
+      "tr": "Glyph には、TypeScript で書くしかないもののための抜け道が 1 つだけあります。<code>extern_ts</code> です。固定のキーワードなので、<code>grep extern_ts</code> でルールが停止している場所をすべて一覧できます。"
+    }
+  ]
+}

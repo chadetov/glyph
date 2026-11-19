@@ -1,0 +1,326 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/vs-rescript-gleam-elm/index.html",
+  "locale": "ja",
+  "source_hash": "c1473253c170e78d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why not ReScript, Gleam or Elm? · Glyph",
+      "tr": "ReScript、Gleam、Elm ではなぜ駄目なのか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Three typed languages that compile to JavaScript and are older and more proven than Glyph. Where each is ahead, and the four things Glyph does differently.",
+      "tr": "JavaScript にコンパイルされる、Glyph より歴史が長く実績のある 3 つの型付き言語。それぞれが優れている点と、Glyph が違うやり方をしている 4 つの点。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "次に読むもの"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "おすすめ"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "Glyph が拒否するもの"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "各ケースを <code>tsc --strict</code> と Glyph の両方で検証しています。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "検出できるものを見る"
+    },
+    {
+      "id": "ns./design/vs-effect/.title",
+      "kind": "ns.title",
+      "en": "Glyph and Effect",
+      "tr": "Glyph と Effect"
+    },
+    {
+      "id": "ns./design/vs-effect/.desc",
+      "kind": "ns.desc",
+      "en": "A TypeScript library compared with a language.",
+      "tr": "TypeScript のライブラリと言語の比較。"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "Back to design",
+      "tr": "設計に戻る"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars, the spec, and the other comparisons.",
+      "tr": "4 つの柱、仕様、その他の比較。"
+    },
+    {
+      "id": "h-33d40d52",
+      "kind": "html",
+      "en": "Design &middot; Comparison",
+      "tr": "設計 &middot; 比較"
+    },
+    {
+      "id": "h-389767f5",
+      "kind": "html",
+      "en": "Why not ReScript, Gleam or Elm?",
+      "tr": "ReScript、Gleam、Elm ではなぜ駄目なのか"
+    },
+    {
+      "id": "h-af688b28",
+      "kind": "html",
+      "en": "All three are typed languages that compile to JavaScript, and all three are older, more widely used and more settled than Glyph. If you are choosing a language for a new codebase and don't need to stay close to TypeScript, they deserve a look first. Glyph's differences are narrower: it emits TypeScript source rather than JavaScript, it imports npm packages typed from their own <code>.d.ts</code>, it generates runtime validators from your types, and its compiler answers impact queries for an agent.",
+      "tr": "3 つとも JavaScript にコンパイルされる型付き言語で、どれも Glyph より歴史が長く、広く使われ、安定しています。新しいコードベースのために言語を選んでいて、TypeScript に近い位置にとどまる必要がないなら、まずこれらを検討する価値があります。Glyph の違いはもっと限られたものです。JavaScript ではなく TypeScript のソースを出力すること、npm パッケージをそれ自身の <code>.d.ts</code> の型付きで import すること、型から実行時バリデータを生成すること、そしてコンパイラがエージェントのために影響範囲のクエリに答えることです。"
+    },
+    {
+      "id": "h-9db697b1",
+      "kind": "html",
+      "en": "How each describes itself",
+      "tr": "それぞれが自身をどう説明しているか"
+    },
+    {
+      "id": "h-50946247",
+      "kind": "html",
+      "en": "ReScript's home page leads with \"JavaScript Made Simple for Humans and AI\" and \"Types &gt; Vibes\", and says it \"compiles to clean, efficient JavaScript\" with \"No <code>any</code>, no magic types, no surprise <code>undefined</code>.\" It offers to \"automatically generate TypeScript types\" (<a href=\"https://rescript-lang.org/\">rescript-lang.org</a>).",
+      "tr": "ReScript のホームページは \"JavaScript Made Simple for Humans and AI\" と \"Types &gt; Vibes\" を掲げ、\"compiles to clean, efficient JavaScript\" で \"No <code>any</code>, no magic types, no surprise <code>undefined</code>.\" だと述べています。また \"automatically generate TypeScript types\" できるとしています（<a href=\"https://rescript-lang.org/\">rescript-lang.org</a>）。"
+    },
+    {
+      "id": "h-07f5d70c",
+      "kind": "html",
+      "en": "Gleam's home page calls it \"a friendly language for building type-safe systems that scale\" with \"No null values, no exceptions, clear error messages\". It runs on the Erlang VM and \"can additionally compile to JavaScript\", and \"also generates TypeScript definitions\" (<a href=\"https://gleam.run/\">gleam.run</a>).",
+      "tr": "Gleam のホームページは自身を \"a friendly language for building type-safe systems that scale\" と呼び、\"No null values, no exceptions, clear error messages\" を挙げています。Erlang VM 上で動き、\"can additionally compile to JavaScript\"、さらに \"also generates TypeScript definitions\" とあります（<a href=\"https://gleam.run/\">gleam.run</a>）。"
+    },
+    {
+      "id": "h-2b945603",
+      "kind": "html",
+      "en": "Elm's home page describes \"A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions\", for \"reliable web applications\", and says Elm \"detects all API changes automatically\" to \"guarantee that every single Elm package follows semantic versioning\" (<a href=\"https://elm-lang.org/\">elm-lang.org</a>).",
+      "tr": "Elm のホームページは \"A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions\" を \"reliable web applications\" のための言語として紹介し、Elm は \"detects all API changes automatically\" ことで \"guarantee that every single Elm package follows semantic versioning\" と述べています（<a href=\"https://elm-lang.org/\">elm-lang.org</a>）。"
+    },
+    {
+      "id": "h-01ac98c4",
+      "kind": "html",
+      "en": "These quotes were read on 2026-11-19.",
+      "tr": "これらの引用は 2026-11-19 に確認したものです。"
+    },
+    {
+      "id": "h-cb1468cf",
+      "kind": "html",
+      "en": "Where they are ahead",
+      "tr": "相手のほうが優れている点"
+    },
+    {
+      "id": "h-024dc204",
+      "kind": "html",
+      "en": "Area",
+      "tr": "分野"
+    },
+    {
+      "id": "h-13abaeff",
+      "kind": "html",
+      "en": "ReScript, Gleam, Elm",
+      "tr": "ReScript、Gleam、Elm"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-25e271b6",
+      "kind": "html",
+      "en": "Maturity",
+      "tr": "成熟度"
+    },
+    {
+      "id": "h-1114b65a",
+      "kind": "html",
+      "en": "Years of production use. ReScript's home page shows a wall of company logos; Elm's cites NoRedInk with 300k+ lines and no confusing runtime exception in production",
+      "tr": "何年もの本番運用の実績。ReScript のホームページには企業ロゴが並び、Elm のホームページは 30 万行以上のコードを持ちながら本番で不可解な実行時例外が出ていない NoRedInk を挙げている"
+    },
+    {
+      "id": "h-d39753e9",
+      "kind": "html",
+      "en": "Early preview, pre-1.0, maintained mainly by one person, and many releases are Breaking",
+      "tr": "アーリープレビューで 1.0 前。主に 1 人でメンテナンスしており、多くのリリースが Breaking"
+    },
+    {
+      "id": "h-5ca778bb",
+      "kind": "html",
+      "en": "Guarantees",
+      "tr": "保証"
+    },
+    {
+      "id": "h-37779cbd",
+      "kind": "html",
+      "en": "Elm claims no runtime exceptions; Gleam no null values and no exceptions; ReScript no <code>any</code> and no surprise <code>undefined</code>",
+      "tr": "Elm は実行時例外なし、Gleam は null 値も例外もなし、ReScript は <code>any</code> も予期しない <code>undefined</code> もなしと主張している"
+    },
+    {
+      "id": "h-85bd0f64",
+      "kind": "html",
+      "en": "No <code>any</code> and no cast, but {{catches:gap-cases}} known holes are <a href=\"/catches/#not-yet\">listed</a>, and an exception thrown inside an npm package still bypasses <code>Result</code>",
+      "tr": "<code>any</code> もキャストもないが、既知の穴 {{catches:gap-cases}} 件を<a href=\"/catches/#not-yet\">公開しており</a>、npm パッケージの中で throw された例外は今も <code>Result</code> をすり抜ける"
+    },
+    {
+      "id": "h-40429184",
+      "kind": "html",
+      "en": "Error messages",
+      "tr": "エラーメッセージ"
+    },
+    {
+      "id": "h-c755cb73",
+      "kind": "html",
+      "en": "Elm's home page leads with \"friendly error messages\" and Gleam's promises \"clear error messages\", both with years of users behind them",
+      "tr": "Elm のホームページは \"friendly error messages\" を掲げ、Gleam は \"clear error messages\" を約束している。どちらも長年の利用者に支えられている"
+    },
+    {
+      "id": "h-1d2e725c",
+      "kind": "html",
+      "en": "Every error has a stable code and a help line, but they have had far less use",
+      "tr": "すべてのエラーに固定のコードとヘルプ行があるが、使われてきた量ははるかに少ない"
+    },
+    {
+      "id": "h-e0472088",
+      "kind": "html",
+      "en": "Tooling and ecosystem",
+      "tr": "ツールとエコシステム"
+    },
+    {
+      "id": "h-c2efa572",
+      "kind": "html",
+      "en": "Gleam ships \"compiler, build tool, formatter, editor integrations, and package manager all built in\"; Elm enforces semantic versioning on its packages",
+      "tr": "Gleam は \"compiler, build tool, formatter, editor integrations, and package manager all built in\" で提供され、Elm はパッケージにセマンティックバージョニングを強制する"
+    },
+    {
+      "id": "h-dd64be5b",
+      "kind": "html",
+      "en": "npm for packages; the VS Code extension is built from source",
+      "tr": "パッケージは npm。VS Code 拡張機能はソースからビルドする"
+    },
+    {
+      "id": "h-27445f6a",
+      "kind": "html",
+      "en": "Targets",
+      "tr": "出力先"
+    },
+    {
+      "id": "h-449df469",
+      "kind": "html",
+      "en": "Gleam also runs on the Erlang VM",
+      "tr": "Gleam は Erlang VM 上でも動く"
+    },
+    {
+      "id": "h-216bd394",
+      "kind": "html",
+      "en": "TypeScript only, for Node and the browser",
+      "tr": "TypeScript のみ。Node とブラウザ向け"
+    },
+    {
+      "id": "h-939c7737",
+      "kind": "html",
+      "en": "What Glyph does differently",
+      "tr": "Glyph が違うやり方をしている点"
+    },
+    {
+      "id": "h-3e2381c1",
+      "kind": "html",
+      "en": "Each of these was run on Glyph 0.1.149 for this page.",
+      "tr": "以下はどれも、このページのために Glyph 0.1.149 で実行したものです。"
+    },
+    {
+      "id": "h-d2f85608",
+      "kind": "html",
+      "en": "It emits TypeScript source",
+      "tr": "TypeScript のソースを出力する"
+    },
+    {
+      "id": "h-a5acbd44",
+      "kind": "html",
+      "en": "<code>glyph build</code> writes one <code>.ts</code> file per module, which <code>tsc --strict</code> then checks, and which you keep if you stop using Glyph. ReScript and Gleam emit JavaScript and generate type definitions next to it. The <a href=\"/from-typescript/#what-the-emitted-typescript-looks-like\">emitted TypeScript</a> is shown on the TypeScript page.",
+      "tr": "<code>glyph build</code> はモジュールごとに 1 つの <code>.ts</code> ファイルを書き出し、それを <code>tsc --strict</code> が検査します。Glyph をやめても、このファイルは手元に残ります。ReScript と Gleam は JavaScript を出力し、その隣に型定義を生成します。<a href=\"/from-typescript/#what-the-emitted-typescript-looks-like\">出力される TypeScript</a> は TypeScript のページで紹介しています。"
+    },
+    {
+      "id": "h-7f79a4f0",
+      "kind": "html",
+      "en": "It imports npm packages typed from their own declarations",
+      "tr": "npm パッケージをそれ自身の型宣言の型付きで import する"
+    },
+    {
+      "id": "h-0c3ce6cd",
+      "kind": "html",
+      "en": "A module imports a package by name, and the package's <code>.d.ts</code> types every use. There is no binding to write first. In ReScript, \"<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values\" (<a href=\"https://rescript-lang.org/docs/manual/external\">external</a>), with the types declared on the ReScript side. Gleam's externals need type annotations, and the compiler \"cannot verify that the function implemented in the other language returns the specified types\" (<a href=\"https://gleam.run/documentation/externals/\">externals</a>). Elm talks to JavaScript through flags, ports and custom elements (<a href=\"https://guide.elm-lang.org/interop/\">interop</a>). With <code>pg</code> and <code>@types/pg</code> installed, this is refused:",
+      "tr": "モジュールはパッケージを名前で import し、パッケージの <code>.d.ts</code> がすべての使用箇所に型を付けます。先に書いておくバインディングはありません。ReScript では \"<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values\"（<a href=\"https://rescript-lang.org/docs/manual/external\">external</a>）で、型は ReScript 側で宣言します。Gleam の external には型注釈が必要で、コンパイラは \"cannot verify that the function implemented in the other language returns the specified types\"（<a href=\"https://gleam.run/documentation/externals/\">externals</a>）とされています。Elm は flags、ports、カスタム要素を通じて JavaScript とやり取りします（<a href=\"https://guide.elm-lang.org/interop/\">interop</a>）。<code>pg</code> と <code>@types/pg</code> をインストールした状態で、次のコードは拒否されます。"
+    },
+    {
+      "id": "h-8d75025c",
+      "kind": "html",
+      "en": "The code is <code>TS2322</code> because <code>tsc</code> is what checks a library's values, mapped back onto the Glyph line. Glyph's own checker does not see them, so <code>glyph check --no-tsc</code>, the editor and the MCP tools miss this error (G257). A type imported from a <code>.d.ts</code> also has no runtime check.",
+      "tr": "コードが <code>TS2322</code> なのは、ライブラリの値を検査するのが <code>tsc</code> で、その結果が Glyph の行に対応付けられているからです。Glyph 自身の型検査はそれらを見ないので、<code>glyph check --no-tsc</code>、エディタ、MCP のツールはこのエラーを見逃します（G257）。また、<code>.d.ts</code> から import した型には実行時の検査がありません。"
+    },
+    {
+      "id": "h-7d263a14",
+      "kind": "html",
+      "en": "It generates the validator from the type",
+      "tr": "型からバリデータを生成する"
+    },
+    {
+      "id": "h-af555a20",
+      "kind": "html",
+      "en": "Every record and union carries a runtime check generated from its declaration, so <code>json.parse&lt;User&gt;</code> returns <code>Err</code> when the data does not match. In Elm you write a decoder for each shape, and its guide notes that \"the decoders people write end up working as a validation phase\" (<a href=\"https://guide.elm-lang.org/effects/json.html\">JSON</a>).",
+      "tr": "すべてのレコードとユニオンは宣言から生成された実行時の検査を持つので、データが合わないとき <code>json.parse&lt;User&gt;</code> は <code>Err</code> を返します。Elm では形ごとにデコーダを書き、ガイドには \"the decoders people write end up working as a validation phase\" とあります（<a href=\"https://guide.elm-lang.org/effects/json.html\">JSON</a>）。"
+    },
+    {
+      "id": "h-e12a02b6",
+      "kind": "html",
+      "en": "main.glyph: prints \"refused\", because the JSON has no email",
+      "tr": "main.glyph：JSON に email がないので \"refused\" と出力する"
+    },
+    {
+      "id": "h-0b211920",
+      "kind": "html",
+      "en": "Its compiler answers what a change will break",
+      "tr": "変更が何を壊すかにコンパイラが答える"
+    },
+    {
+      "id": "h-e65ec874",
+      "kind": "html",
+      "en": "Before an edit, an agent can ask which places a change reaches, over MCP (<code>glyph_impact</code>) or with <code>glyph query impact</code>. On a union <code>Plan = Free | Pro | Team</code> with one exhaustive <code>match</code> and one that ends in <code>else</code>, asking about a new variant answers per site:",
+      "tr": "編集の前に、エージェントは変更がどの箇所に及ぶかを、MCP（<code>glyph_impact</code>）や <code>glyph query impact</code> で問い合わせられます。網羅的な <code>match</code> が 1 つと <code>else</code> で終わる match が 1 つあるユニオン <code>Plan = Free | Pro | Team</code> で新しいバリアントについて聞くと、箇所ごとに答えが返ります。"
+    },
+    {
+      "id": "h-4227f025",
+      "kind": "html",
+      "en": "The second site would fail to compile after the change, which any of these compilers would also tell you once the change is made. The first would keep compiling and send the new case to its <code>else</code>, and the query is what names it. <a href=\"/agents/\">For agent builders</a> lists the other tools.",
+      "tr": "2 つ目の箇所は変更後にコンパイルが通らなくなります。これは変更を加えれば、どのコンパイラでも教えてくれることです。1 つ目の箇所はコンパイルが通り続け、新しいケースを <code>else</code> に送ります。それを名指しするのがこのクエリです。その他のツールは<a href=\"/agents/\">エージェント開発者向け</a>のページにあります。"
+    },
+    {
+      "id": "h-738097d0",
+      "kind": "html",
+      "en": "What this page does not claim",
+      "tr": "このページが主張しないこと"
+    },
+    {
+      "id": "h-9acaa78c",
+      "kind": "html",
+      "en": "It has not compared error messages, compile speed or runtime performance, and it has not tried calling any of the three from Glyph or the other way round. The quotes describe each project in its own words; how well each lives up to them is for you to check, as it is for Glyph's own claims on <a href=\"/evidence/\">the evidence page</a>.",
+      "tr": "エラーメッセージ、コンパイル速度、実行時の性能は比較していません。また、3 つのどれかを Glyph から呼び出すことも、その逆も試していません。引用は各プロジェクトが自分の言葉で述べたもので、それがどれだけ実態に合っているかは、Glyph 自身の主張と同じく、<a href=\"/evidence/\">根拠のページ</a>を見てご自身で確かめてください。"
+    }
+  ]
+}

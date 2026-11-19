@@ -1,0 +1,140 @@
+---
+title: 差分の安定性 · 1 行の変更は 1 行の差分 · Glyph
+description: Glyph の第 3 の柱：唯一の正規フォーマット、末尾カンマ、詰め直されないリスト、バレルファイルなし、冪等なコード生成。差分には変更そのものが表れ、無関係な書き換えは出ません。
+source_hash: b485401a000696d8
+prev: /pillars/greppability/ | &larr; 前の柱 | grep しやすさ：1 つの名前、1 つの場所
+next: /pillars/abstraction/ | 次の柱 &rarr; | 抽象化：小さく直交したコア
+---
+      <p class="q-eyebrow">柱 03 &middot; <span class="polish">仕上げ</span></p>
+      <h1 class="q-title">差分の安定性</h1>
+
+      <p class="short-answer">
+        1 行の変更は <strong>1 行の差分</strong>になります。唯一の正規フォーマット、末尾カンマ、そして全体が 1 行に収まるか、1 行に 1 要素ずつ並ぶかのどちらかで、決して詰め直されないリスト。そのためレビューには、周りの書き換えではなく、実際に行われた変更が表れます。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">レビューとは差分を読むこと</h2>
+        <p class="lede">
+          変更について私たちが信頼しているもの（レビュー、blame、revert、bisect）のほとんどは差分の上に成り立っています。だから差分の S/N 比がそのまま価値になります。多くのコードベースではそれがひどいものです。フォーマッタが折り返した行を組み直し、インポートの並べ替えツールがブロックを入れ替え、リネームがすべての呼び出し箇所の空白に触れ、<em>重要な</em> 1 行が関係のない 50 行に埋もれます。
+        </p>
+        <p class="lede">
+          エージェントはこれを大幅に悪化させます。小さなタスクを与えられても、モデルは 1 つのことを変えるために関数全体やファイル全体を平気で書き直します。ピンポイントで編集するより作り直すほうが楽だからです。レビューする人は、書き直されたものを元のものと比べて、本当の変更が意図したものだけであることを<em>祈る</em>しかありません。Glyph は、レイアウトにモデルが書き換える余地がないように作られています。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> 唯一の正規レイアウト、選択肢なし</h2>
+        <p>
+          <code>glyph fmt</code> はすべてのファイルを 1 つの決まったレイアウトで出力し直します。インデントはスペース 2 つ、複数行のリストには必ず末尾カンマ、リストは 100 桁に収まる間は 1 行のままで、収まらなければ 1 行に 1 要素になります。選択は全部か無しかです。フォーマッタは行を埋めるために要素を詰め直すことがないので、リストが一部だけ 1 行目に、一部だけ次の行にあることはなく、フィールドの追加は 1 行の追加になります。合法な形がちょうど 1 つしかないので、議論することも、ツールが横から「直す」こともありません。
+        </p>
+        <p>
+          代償は幅のしきい値です。束縛の名前を変えて呼び出しが 100 桁を超えると、呼び出しは引数ごとに 1 行に展開されます。1 トークンの編集が 4 行の差分になります。その代わり、レイアウトはコードと開始桁だけで決まり、ほかの何にも左右されないので、同じファイルを編集する 2 つのエージェントは同じバイト列にたどり着きます。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">組み直すスタイル：1 つの変更で 3 行に触れる</span>
+          <span class="cap">git diff（詰めたフォーマット）</span>
+<pre><span class="del">- type User = { id: number, name:</span>
+<span class="del">-   string }</span>
+<span class="add">+ type User = { id: number, name:</span>
+<span class="add">+   string, email: string }</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph：1 つの変更で 1 行の追加</span>
+          <span class="cap">git diff（正規フォーマット）</span>
+<pre>  type User = {
+    id: number,
+    name: string,
+<span class="add">+   email: string,</span>
+  }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          末尾カンマは目立たない仕事をしています。最後の要素がすでにカンマで終わっているので、兄弟要素を追加しても<strong>上の行が編集されることは決してありません。</strong>1 つの挿入は 1 行です。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> 順序が安定しているので、履歴が読める</h2>
+        <p>
+          1 行に 1 要素なので、要素の並べ替え、挿入、削除はその要素の行にしか触れず、隣の行には触れません。<code>git blame</code> は意味を保ちます。各行の最後のコミットは、たまたま同じ行を詰め直したフォーマットのコミットではなく、<em>その</em>要素を実際に変更したコミットです。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> バレルファイルなし：インポートの書き換えなし</h2>
+        <p>
+          インポートは再エクスポートをせず、<code>index.ts</code> による集約の層もない（<code>E0102</code>）ので、シンボルを追加したり移動したりしても、すべての利用者がインポートするバレルファイルを通じて影響が広がることはありません。編集する依存関係は意図したものだけで、インポートグラフの残りは動きません。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> 生成は冪等で、塊ではない</h2>
+        <p>
+          同じ規律は生成コードにも及びます。<code>glyph gen</code> と <code>glyph regen</code> は出力を正規フォーマッタで出力し直すので、仕様の変更後に再生成すると、機械が書いたファイルを丸ごと置き換えるのではなく、数行が変わるだけの、実際にレビューできる<em>最小限の</em>差分になります。また、出力されるすべての <code>.ts</code> にはソースマップが付くので、コンパイル後の出力からも、変更した行まできれいにたどれます。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">仕様にフィールドを追加 &rarr; 再生成された差分</span>
+<pre>  type Task = {
+    id: number,
+    title: string,
+<span class="add">+   done: bool,</span>
+  }
+<span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> 「TypeScript なら Prettier でできる」</h2>
+        <p>
+          フォーマットの多くについては、できます。<code>trailingComma: "all"</code> を設定した Prettier は最後の要素にカンマを付け、長いリストを 1 行に 1 要素で出力するので、セクション 01 の大部分は実現できます。違いは 3 か所にあります。
+        </p>
+        <p>
+          <strong>レイアウトはコードだけで決まります。</strong>Prettier は、書いた人が <code>{</code> の後で改行していればオブジェクトリテラルを展開したままにし、していなければ折りたたみます。そのため同じオブジェクトが、最初にどう入力されたかによって 2 通りに出力されえます。同じものを書く 2 つのエージェントは 2 つのレイアウトを生み、どちらかを次に編集すると組み直しとして差分に表れます。<code>glyph fmt</code> は、入力がどう折り返されていても <code>{ a: 1, b: 2 }</code> を同じように出力します。
+        </p>
+        <p>
+          <strong>設定するものがありません。</strong>Prettier の出力はリポジトリの設定ファイル次第で、設定ファイルがないリポジトリもあります。TypeScript のプロジェクトを渡り歩くエージェントは、プロジェクトごとに違うレイアウトに出会います。Glyph のファイルはどのプロジェクトでも同じレイアウトです。フォーマッタにオプションがないからです。
+        </p>
+        <p>
+          <strong>フォーマッタはファイルの内容を変えられません。</strong><code>glyph fmt</code> は、自分の出力をパースして構文木を入力のものと比較する方法で、リポジトリのすべての例とファザーのもとでテストされています。レイアウト上に置き場所のない位置にコメントがある場合、そのコメントを関係のないコードの隣に動かすのではなく、ファイルを拒否します（<code>E0500</code>）。
+        </p>
+        <p>
+          このリストのうち 1 つはまだできていません。<code>glyph fmt</code> はインポートを並べ替えないので、2 つのエージェントが別々の場所にインポートを追加すると、インポートのブロックが異なるものになります（G358）。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          差分の安定性があるから、「エージェントが何かを変えた」が「エージェントが<strong>まさにこれ</strong>を変えた」になります。ノイズがゼロなら、レビューは速く、信頼は安く済みます。
+        </p>
+
+        <h2 class="block-label">ベンチマーク：準備中</h2>
+        <p>
+          これを表す数値は、論理的な変更 1 つあたりの差分の大きさです。意図した編集を 1 つしたときに何行が動くかを、Glyph と、一般的なフォーマッタにかけた同等の TypeScript の変更とで比べます。Glyph はまだ実運用で使われていないので、下のグラフはプレースホルダで、もとにできる実際の履歴ができたら実測値で埋まります。
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">フィールド 1 つの変更あたりの差分行数 &middot; 少ないほど良い</span>
+        <h3>TypeScript と Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 22%;">未測定</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 58%;">未測定</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">まだ測定していません</span> 実際の Glyph のリポジトリの履歴から差分の大きさを集計し、結果がどうであれここに公開します。
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          代わりに少し自由がなくなります（好きなように行を手で詰めることはできません）が、その見返りに読みやすさが大きく得られます。これは仕上げの柱すべてに共通する取引です。どうでもよかった選択肢を手放して、大事な信号を守ります。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          これがレビューでのエージェントの編集にとって何を意味するかは、変更前後の差分とともに <a href="/answers/diff-stability/">エージェントの編集はきれいなままか、ファイル全体を整形し直してしまうのか</a> で説明しています。
+        </p>
+      </div>

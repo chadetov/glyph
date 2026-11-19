@@ -1,0 +1,128 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/state/index.html",
+  "locale": "ja",
+  "source_hash": "59f9695c32448ee8",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "How do I share mutable state between functions? · Glyph",
+      "tr": "関数の間で可変の状態をどう共有するか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph has no mutable globals. Shared state lives in a std/store: a module-level const whose get, set and update are the only writes, found in one search.",
+      "tr": "Glyph には可変のグローバル変数がありません。共有状態は std/store に置きます。モジュールレベルの const で、書き込みは get、set、update だけなので、1 回の検索で見つかります。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "React で使えるか。コンポーネント、フック、Context は？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "これは本物の言語ですか。それとも穴だらけのおもちゃですか。"
+    },
+    {
+      "id": "h-3cfc3cc8",
+      "kind": "html",
+      "en": "14 &middot; Shared state",
+      "tr": "14 &middot; 共有状態"
+    },
+    {
+      "id": "h-d14ef0f9",
+      "kind": "html",
+      "en": "How do I share mutable state between functions?",
+      "tr": "関数の間で可変の状態をどう共有するか"
+    },
+    {
+      "id": "h-ed0c2fbf",
+      "kind": "html",
+      "en": "With a <strong>store</strong>. Glyph has no mutable global variables. Module bindings are <code>const</code>. Shared state lives in a <code>std/store</code>: a module-level <code>const</code> holding a value you read with <code>get()</code> and change with <code>set()</code>/<code>update()</code>. The binding never moves; only the value inside it does, through a method call, so every write is a literal <code>.set(</code> or <code>.update(</code> you can grep for.",
+      "tr": "<strong>ストア</strong>を使います。Glyph には可変のグローバル変数がありません。モジュールの束縛は <code>const</code> です。共有状態は <code>std/store</code> に置きます。モジュールレベルの <code>const</code> が値を保持し、<code>get()</code> で読み、<code>set()</code>/<code>update()</code> で変更します。束縛そのものは動かず、メソッド呼び出しを通じて中の値だけが変わります。そのため、すべての書き込みは grep できる <code>.set(</code> か <code>.update(</code> という文字列になります。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "実例"
+    },
+    {
+      "id": "h-3ba2ac81",
+      "kind": "html",
+      "en": "Declare the store once at module scope. Every function in the module shares it. No <code>let</code> threaded through <code>main</code>, no capturing closures:",
+      "tr": "ストアはモジュールスコープで一度だけ宣言します。モジュール内のすべての関数がそれを共有します。<code>main</code> から <code>let</code> を引き回す必要も、クロージャで捕捉する必要もありません。"
+    },
+    {
+      "id": "h-333b6247",
+      "kind": "html",
+      "en": "the whole write-surface, in one grep",
+      "tr": "書き込み箇所のすべてを、1 回の grep で"
+    },
+    {
+      "id": "h-d1af17c7",
+      "kind": "html",
+      "en": "Why a store, and not a mutable global",
+      "tr": "なぜ可変のグローバルではなくストアなのか"
+    },
+    {
+      "id": "h-3b512acb",
+      "kind": "html",
+      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>. A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>. So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
+      "tr": "これは意図的な設計です。Glyph は <code>mut</code> をローカルの代入に限定し、モジュールの束縛を <code>const</code> にしています。書き込み可能なグローバルがあちこちにあることこそ、状態を推論しにくく、<em>見つけ</em>にくくする原因だからです。ストアはどちらのルールも緩めません。<code>const s</code> の束縛は不変で、中の値は <code>set</code>/<code>update</code> を通じてしか変わりません。つまり共有状態は<strong>新しい構文ではなくライブラリ</strong>として提供されます（線形型もなく、変更のルールも弱めていません）。変更はプログラム全体に散らばらず、監査済みの 1 か所に収まります。"
+    },
+    {
+      "id": "h-90f9eefd",
+      "kind": "html",
+      "en": "One sharp edge, shared with TypeScript: an empty collection can't infer its element type, so seed it with an explicit type argument: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. A scalar store (<code>create(0)</code>) infers fine.",
+      "tr": "TypeScript と共通の注意点が 1 つあります。空のコレクションは要素の型を推論できないので、明示的な型引数を渡してください：<code>create&lt;Array&lt;Task&gt;&gt;([])</code>。スカラーのストア（<code>create(0)</code>）は問題なく推論されます。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "提供中"
+    },
+    {
+      "id": "h-fe78aabc",
+      "kind": "html",
+      "en": "<code>std/store</code> with <code>create</code>, <code>get</code>, <code>set</code>, and <code>update</code>: the single, greppable home for shared mutable state.",
+      "tr": "<code>create</code>、<code>get</code>、<code>set</code>、<code>update</code> を備えた <code>std/store</code>。共有される可変状態を置く、grep で見つけられる唯一の場所です。"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "予定"
+    },
+    {
+      "id": "h-e4b5e189",
+      "kind": "html",
+      "en": "Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.",
+      "tr": "同じプリミティブの上に便利な機能（派生ストア・計算ストア、購読）を、言語を変えずに重ねていきます。"
+    }
+  ]
+}

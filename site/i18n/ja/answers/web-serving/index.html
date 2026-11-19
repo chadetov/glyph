@@ -1,0 +1,85 @@
+---
+title: Web ページを配信できるのか、それとも JSON API だけなのか · Glyph
+description: std/http は JSON だけでなく、HTML ページ、リダイレクト、独自のレスポンスヘッダ、フォームの POST も扱えます。レスポンスヘッダは型検査の対象としてモデル化されています。
+source_hash: 3919e268d4a46ec8
+prev: /answers/finance/ | &larr; 前へ | お金や、自分で制御できない入力を任せられるか
+next: /answers/interactive-cli/ | 次へ &rarr; | 人が入力するプログラムは書けるか
+---
+      <p class="q-eyebrow">17 &middot; Web の配信</p>
+      <h1 class="q-title">Web ページを配信できるのか、それとも JSON API だけなのか</h1>
+
+      <p class="short-answer">
+        Web ページを配信できます。<code>std/http</code> はレスポンスヘッダを設定できるので、<code>text/html</code> のページ、302 リダイレクト、キャッシュのヘッダ、HTML フォームの POST は、どれも普通の Glyph で書けます。Express も手書きの TypeScript の補助コードも要りません。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          0.1.46 まで、レスポンスは <code>{ status, body }</code> で、サーバーはボディの形からコンテンツタイプを決めていました。文字列なら <code>text/plain</code>、それ以外は JSON です。API ならそれで十分ですが、ブラウザが描画するものには役に立ちません。抜け出す方法は、手書きの <code>.ts</code> ファイルで <code>node:http</code> の上に自前のサーバーを書くことで、そうするとリクエストの経路全体が型検査の外に出てしまいます。コンストラクタが 2 つ足りないだけで、アプリケーションの境界がまるごと失われていました。
+        </p>
+
+        <h2 class="block-label">実例</h2>
+        <p>
+          これはリポジトリに同梱されている URL 短縮サービス <code>examples/apps/shortlink/main.glyph</code> のルーターです。HTML フォームでコードを作り、POST にはリダイレクトで応答するのでブラウザを再読み込みしても再送信されず、コードをたどるとターゲットへの 302 になります：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">shortlink.glyph：HTML ページ、フォームの POST、そして 302</span>
+<pre>fn handle_home(req: Request) -&gt; Response {
+  return match req.method {
+    "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
+    "POST" =&gt; {
+      let fields = form(req)
+      match create_link(form_field(fields, "url"), form_field(fields, "alias")) {
+        Ok(link) =&gt; redirect(303, "/${link.code}+"),
+        Err(message) =&gt; redirect(303, "/?error=${url_encode(message)}"),
+      }
+    },
+    else =&gt; html(405, page("405", "&lt;h1&gt;405&lt;/h1&gt;")),
+  }
+}
+
+fn route(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match segments(req) {
+    [] =&gt; Ok(handle_home(req)),
+    [one] =&gt; match stats_code(percent_decode(one)) {
+      Some(code) =&gt; Ok(handle_stats(code)),
+      None =&gt; Ok(handle_code(percent_decode(one))),
+    },
+    else =&gt; Ok(html(404, not_found_page(path(req)))),
+  }
+}
+
+async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let outcome = await serve(8138, route)
+  return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          1 つ前のリリースでは、同じアプリが 615 行でリポジトリにありました。そのうち 121 行は、隣に置いた <code>.ts</code> ファイルの中の手書きの <code>node:http</code> サーバーでした。<code>Location</code> と <code>text/html</code> のボディを書き表す方法がなかったからです。今は 494 行で、<code>std</code> の外からは何も import していません。ハンドラは <code>Result&lt;Response, string&gt;</code> を返すので、404 は普通の <code>Ok</code> で、<code>Err</code> はアプリが答えられないもののために取っておかれ、サーバーがそれを 500 に変えます。<code>serve</code> は listen している間は待機中のままなので、手でプロセスを生かしておく必要はなく、バインドの失敗は値として返ってきます。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Response</code> は必須の <code>headers: Record&lt;string, string&gt;</code> を持ちます。省略可能ではなく必須です。どのコンストラクタもこれを埋めるので、<code>resp.headers</code> を読むときに存在チェックは要らず、このチャネルを忘れることもありません。<code>with_header(resp, "cache-control", "no-store")</code> はレスポンスを変更するのではなく新しいレスポンスを返します。Glyph にはレコードのフィールドを変更する手段がないからです。型検査は 3 つのコンストラクタがどれも <code>Response</code> を返すことを知っているので、宣言した戻り値の型が <code>Result&lt;Response, string&gt;</code> のハンドラは、生成された出力に対する <code>tsc</code> ではなく Glyph の中で検査されます。
+        </p>
+        <p>
+          手で書くと間違えがちな細部が 2 つあります。Node がヘッダに書き込むのを拒否する文字は、出力時に値から取り除かれます。そのためクエリパラメータから組み立てた <code>location</code> が 2 つ目のヘッダや 2 つ目のレスポンスを注入することはできず、短縮 URL に含まれる絵文字でサーバーが落ちることもありません。また <code>form(req)</code> は、パーセントエスケープと一緒に <code>+</code> を空白としてデコードします。手作りのフォームのパースがよく見落とす組み合わせです。生のボディを読むので、自分でパースするハンドラのための <code>req.body</code> はそのまま残ります。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p><code>html</code>、<code>redirect</code>、<code>with_header</code>、<code>json</code>、<code>text</code>、<code>form</code>。レスポンスヘッダは実際に送信され、コンテンツタイプは自分で設定しなかったときだけ推論されます。受信側では、リクエストヘッダ、クエリパラメータ、パスのセグメント、生のボディを扱えます。クライアントは受け取ったレスポンスヘッダを報告します。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">予定</h3>
+          <p>上のコードが示している穴はパーセントエンコーディングです。<code>form</code> はフォームのボディをデコードしますが、URL を組み立てるための <code>encode_component</code> がないので、短縮サービスは自前で書いています。クライアント側には、タイムアウト、リダイレクトのポリシー、<code>head</code>、リダイレクト後の最終的な URL もありません。静的ファイルのサーバーやテンプレートエンジンはなく、どちらも予定はありません。</p>
+        </div>
+      </div>

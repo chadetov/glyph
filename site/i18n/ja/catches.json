@@ -1,0 +1,1212 @@
+{
+  "_about": "The texts of each case in catches/ as the generated pages show them. Translate each \"tr\" from its \"en\"; keep tags, <code> content and placeholders. A case whose English changes shows in English until its \"tr\" is redone. See site/i18n/README.md.",
+  "locale": "ja",
+  "cases": {
+    "absent-map-key": {
+      "page_title": {
+        "en": "A key that may not be there",
+        "tr": "存在しないかもしれないキー"
+      },
+      "why": {
+        "en": "Reading a field from a row of strings, with the name misspelled.",
+        "tr": "文字列の行からフィールドを読むとき、名前を綴り間違える。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints undefined",
+        "tr": "コンパイルは通り、undefined を出力する"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>Any key reads as a <code>string</code>,</b> even one that is not there, so the misspelled field prints <code>undefined</code>.",
+        "tr": "<b>どのキーも <code>string</code> として読まれます。</b>存在しないキーでも同じなので、綴りを間違えたフィールドは <code>undefined</code> を出力します。"
+      },
+      "glyph_result": {
+        "en": "<b>A map read says it might be empty,</b> so the code has to say what happens then.",
+        "tr": "<b>マップの読み取りは空かもしれないと示すので、</b>そのときどうするかをコードに書く必要があります。"
+      },
+      "page_note": {
+        "en": "TypeScript's <code>Record&lt;string, string&gt;</code> claims every possible key has a string. Glyph treats it as a map, where a lookup can find nothing, so it refuses the correctly spelled <code>row.name</code> too.",
+        "tr": "TypeScript の <code>Record&lt;string, string&gt;</code> は、あらゆるキーに文字列があると主張します。Glyph はこれをマップとして扱い、検索が何も見つけない場合があるとみなすので、正しく綴った <code>row.name</code> も拒否します。"
+      }
+    },
+    "array-covariance": {
+      "page_title": {
+        "en": "Array covariance",
+        "tr": "配列の共変性"
+      },
+      "why": {
+        "en": "Passing a list of dogs where a list of animals is expected.",
+        "tr": "動物のリストを期待する場所に犬のリストを渡す。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "コンパイルは通り、実行時にクラッシュする"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>A cat ends up in the list of dogs.</b>",
+        "tr": "<b>犬のリストに猫が入ってしまいます。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A list of dogs is not a writable list of animals.</b>",
+        "tr": "<b>犬のリストは、書き込み可能な動物のリストではありません。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript lets <code>Dog[]</code> stand in for <code>Animal[]</code> even when the function adds to it.",
+        "tr": "TypeScript では、関数がその配列に要素を追加する場合でも、<code>Dog[]</code> を <code>Animal[]</code> の代わりに渡せます。"
+      }
+    },
+    "arrow-function-returns-nothing": {
+      "page_title": {
+        "en": "An arrow function that returns nothing",
+        "tr": "何も返さないアロー関数"
+      },
+      "why": {
+        "en": "Mapping users to rows.",
+        "tr": "ユーザーを行に変換する。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "コンパイルは通り、誤った結果を返す"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "書くことができない"
+      },
+      "ts_result": {
+        "en": "<b>The braces are a function body,</b> and <code>label:</code> is a statement label.",
+        "tr": "<b>波括弧は関数本体として扱われ、</b><code>label:</code> は文のラベルになります。"
+      },
+      "glyph_result": {
+        "en": "<b>The ambiguous form is not valid Glyph.</b>",
+        "tr": "<b>この曖昧な書き方は Glyph では無効です。</b>"
+      },
+      "page_note": {
+        "en": "To return an object from a TypeScript arrow function, the braces need parentheses: <code>u =&gt; ({ ... })</code>.",
+        "tr": "TypeScript のアロー関数でオブジェクトを返すには、波括弧を丸括弧で囲む必要があります：<code>u =&gt; ({ ... })</code>。"
+      }
+    },
+    "as-unknown-as": {
+      "page_title": {
+        "en": "<code>as unknown as T</code>",
+        "tr": "<code>as unknown as T</code>"
+      },
+      "why": {
+        "en": "Forcing a value into the type you want.",
+        "tr": "値を望みの型に無理やり変える。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "コンパイルは通り、実行時にクラッシュする"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "書くことができない"
+      },
+      "ts_result": {
+        "en": "<b>A double cast switches checking off.</b>",
+        "tr": "<b>二重のキャストで型検査が無効になります。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>There is no cast to write.</b> The help says what to do instead.",
+        "tr": "<b>書けるキャストがありません。</b>代わりにどうすればよいかはヘルプに表示されます。"
+      },
+      "page_note": {
+        "en": "<code>as unknown as T</code> is how agents silence a type error they can't fix.",
+        "tr": "<code>as unknown as T</code> は、エージェントが直せない型エラーを黙らせるときに使う手です。"
+      }
+    },
+    "change-hidden-in-a-helper": {
+      "page_title": {
+        "en": "A change hidden in a helper",
+        "tr": "ヘルパーに隠れた変更"
+      },
+      "why": {
+        "en": "A function that edits the object it was given.",
+        "tr": "受け取ったオブジェクトを書き換える関数。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "警告なしでコンパイルが通る"
+      },
+      "glyph_verdict": {
+        "en": "refused until it is marked",
+        "tr": "明示するまで拒否"
+      },
+      "ts_result": {
+        "en": "<b>The caller's user is renamed.</b> Nothing at the call site says so.",
+        "tr": "<b>呼び出し元のユーザーの名前が変わります。</b>呼び出し箇所にはそれを示すものが何もありません。"
+      },
+      "glyph_result": {
+        "en": "<b>Changing a field takes <code>mut</code>.</b>",
+        "tr": "<b>フィールドを変更するには <code>mut</code> が必要です。</b>"
+      },
+      "page_note": {
+        "en": "Glyph does not forbid the change. It makes it visible: searching for <code>mut</code> lists every field a function writes.",
+        "tr": "Glyph は変更そのものを禁止しません。変更を見えるようにします。<code>mut</code> を検索すれば、関数が書き込むフィールドがすべて一覧できます。"
+      }
+    },
+    "code-after-return": {
+      "page_title": {
+        "en": "Code after <code>return</code>",
+        "tr": "<code>return</code> の後のコード"
+      },
+      "why": {
+        "en": "Adding tax after the function already returned.",
+        "tr": "関数がすでに return した後で税額を足す。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "警告なしでコンパイルが通る"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "警告"
+      },
+      "ts_result": {
+        "en": "<b>The tax line never runs.</b>",
+        "tr": "<b>税額の行は一度も実行されません。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dead line.</b>",
+        "tr": "<b>Glyph は実行されない行を指摘します。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only shows unreachable code as a faded hint in the editor by default.",
+        "tr": "TypeScript はデフォルトでは、到達不能なコードをエディタ上で薄く表示するだけです。"
+      }
+    },
+    "comparing-records-with-triple-equals": {
+      "page_title": {
+        "en": "Comparing two records with <code>===</code>",
+        "tr": "2 つのレコードを <code>===</code> で比較する"
+      },
+      "why": {
+        "en": "Skipping a save when nothing changed.",
+        "tr": "何も変わっていなければ保存を省く。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then compares identity, not data",
+        "tr": "コンパイルは通るが、データではなく同一性を比較する"
+      },
+      "glyph_verdict": {
+        "en": "compares the data",
+        "tr": "データを比較する"
+      },
+      "ts_result": {
+        "en": "<b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs.",
+        "tr": "<b>データは同じでも、<code>===</code> は同じオブジェクトかどうかを調べます。</b>そのため毎回保存が走ります。"
+      },
+      "glyph_result": {
+        "en": "<b>Two records with the same fields are equal.</b>",
+        "tr": "<b>同じフィールドを持つ 2 つのレコードは等しいとみなされます。</b>"
+      },
+      "page_note": {
+        "en": "This is JavaScript working as designed: <code>===</code> on objects compares identity, and comparing data needs a helper such as lodash's <code>isEqual</code>. The mistake is reaching for <code>===</code> when the data was meant. In Glyph <code>==</code> on records compares the data, so the obvious spelling is the right one.",
+        "tr": "これは JavaScript の仕様どおりの動作です。オブジェクトに対する <code>===</code> は同一性を比較し、データを比較するには lodash の <code>isEqual</code> のようなヘルパーが必要です。誤りは、データを比べるつもりで <code>===</code> を使ってしまうことにあります。Glyph ではレコードに対する <code>==</code> がデータを比較するので、素直な書き方がそのまま正しい書き方になります。"
+      }
+    },
+    "computed-value-never-used": {
+      "page_title": {
+        "en": "A computed value that is never used",
+        "tr": "計算したのに使われない値"
+      },
+      "why": {
+        "en": "Cleaning an input, then returning the original by mistake.",
+        "tr": "入力をクリーニングしたのに、誤って元の値を返す。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "警告なしでコンパイルが通る"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "警告"
+      },
+      "ts_result": {
+        "en": "<b>The cleaning never happens.</b>",
+        "tr": "<b>クリーニングは結局行われません。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the unused value.</b>",
+        "tr": "<b>Glyph は使われていない値を指摘します。</b>"
+      },
+      "page_note": {
+        "en": "<code>noUnusedLocals</code> is not part of <code>--strict</code>, so TypeScript says nothing by default.",
+        "tr": "<code>noUnusedLocals</code> は <code>--strict</code> に含まれないので、TypeScript はデフォルトでは何も言いません。"
+      }
+    },
+    "config-with-a-setting-missing": {
+      "page_title": {
+        "en": "A config with a setting missing",
+        "tr": "設定が 1 つ欠けたコンフィグ"
+      },
+      "why": {
+        "en": "A limit for each plan, loaded from a file someone forgot to update.",
+        "tr": "プランごとの上限を、誰かが更新し忘れたファイルから読み込む。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "コンパイルは通り、不正なデータのまま動く"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "データの到着時に検査"
+      },
+      "ts_result": {
+        "en": "<b>The type promises every plan has a limit.</b> The file does not.",
+        "tr": "<b>型はすべてのプランに上限があると約束しています。</b>ファイルはそうなっていません。"
+      },
+      "glyph_result": {
+        "en": "<b>Every plan must be there, and nothing else.</b>",
+        "tr": "<b>すべてのプランがそろっていて、それ以外は何もないことが必要です。</b>"
+      },
+      "page_note": {
+        "en": "<code>Record&lt;Plan, number&gt;</code> promises a value for every plan, and <code>as</code> never looks. Glyph requires every key in the type and refuses extra ones.",
+        "tr": "<code>Record&lt;Plan, number&gt;</code> はすべてのプランに値があると約束し、<code>as</code> は中身を一切見ません。Glyph は型にあるキーをすべて要求し、余分なキーは拒否します。"
+      }
+    },
+    "connection-left-open": {
+      "page_title": {
+        "en": "A connection left open",
+        "tr": "開いたままの接続"
+      },
+      "why": {
+        "en": "Returning early before cleanup.",
+        "tr": "後始末の前に早期 return する。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then leaks a connection",
+        "tr": "コンパイルは通り、接続がリークする"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>Every rejected request leaks a connection.</b>",
+        "tr": "<b>拒否されたリクエストのたびに接続がリークします。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Every path must close it.</b>",
+        "tr": "<b>すべての経路で接続を閉じる必要があります。</b>"
+      },
+      "page_note": {
+        "en": "This check applies to values declared <code>owned</code>. A resource without it is not tracked.",
+        "tr": "この検査は <code>owned</code> と宣言された値に適用されます。宣言のないリソースは追跡されません。"
+      }
+    },
+    "data-from-outside-the-program": {
+      "page_title": {
+        "en": "Data from outside the program",
+        "tr": "プログラムの外から来るデータ"
+      },
+      "why": {
+        "en": "A request body, a file, an API response.",
+        "tr": "リクエストボディ、ファイル、API のレスポンス。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "コンパイルは通り、不正なデータのまま動く"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "データの到着時に検査"
+      },
+      "ts_result": {
+        "en": "<b>Nothing checks the data.</b> <code>undefined</code> travels on as a plan.",
+        "tr": "<b>データを検査するものが何もありません。</b><code>undefined</code> がプランとしてそのまま流れていきます。"
+      },
+      "glyph_result": {
+        "en": "<b>A body that is not a real <code>User</code> is an <code>Err</code>.</b> The program never holds a fake one.",
+        "tr": "<b>本物の <code>User</code> ではないボディは <code>Err</code> になります。</b>プログラムが偽物を持つことはありません。"
+      },
+      "page_note": {
+        "en": "<code>as User</code> does not check anything. It tells the compiler to trust you. Glyph has no <code>as</code>.",
+        "tr": "<code>as User</code> は何も検査しません。自分を信じるようにコンパイラに伝えるだけです。Glyph には <code>as</code> がありません。"
+      }
+    },
+    "duplicate-case": {
+      "page_title": {
+        "en": "A duplicate case",
+        "tr": "重複したケース"
+      },
+      "why": {
+        "en": "Deciding which orders can be refunded.",
+        "tr": "どの注文を返金できるかを判定する。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "警告なしでコンパイルが通る"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>The second rule is dead.</b> Nobody notices.",
+        "tr": "<b>2 つ目のルールは実行されません。</b>誰も気づきません。"
+      },
+      "glyph_result": {
+        "en": "<b>An arm that can never run is an error.</b>",
+        "tr": "<b>決して実行されないアームはエラーになります。</b>"
+      },
+      "page_note": {
+        "en": "tsc does not flag a <code>case</code> label that appears twice.",
+        "tr": "tsc は、同じ <code>case</code> ラベルが 2 回現れても指摘しません。"
+      }
+    },
+    "error-nobody-looked-at": {
+      "page_title": {
+        "en": "An error nobody looked at",
+        "tr": "誰も見なかったエラー"
+      },
+      "why": {
+        "en": "Calling something that can fail and moving on.",
+        "tr": "失敗しうるものを呼び出し、そのまま先へ進む。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "警告なしでコンパイルが通る"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "警告"
+      },
+      "ts_result": {
+        "en": "<b>The failure is dropped</b> and the user is told it worked.",
+        "tr": "<b>失敗は捨てられ、</b>ユーザーには成功したと伝えられます。"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dropped failure.</b>",
+        "tr": "<b>Glyph は捨てられた失敗を指摘します。</b>"
+      },
+      "page_note": {
+        "en": "A warning, not an error. To drop it on purpose, say so: <code>let _ = save(user)</code>.",
+        "tr": "エラーではなく警告です。意図して捨てる場合は、そう書きます：<code>let _ = save(user)</code>。"
+      }
+    },
+    "error-the-signature-hides": {
+      "page_title": {
+        "en": "An error the signature hides",
+        "tr": "シグネチャに表れないエラー"
+      },
+      "why": {
+        "en": "A function that can fail, called by code that does not know it can.",
+        "tr": "失敗しうる関数を、それを知らないコードが呼び出す。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "コンパイルは通り、実行時にクラッシュする"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>The type says <code>Config</code>.</b> Nothing says it can throw.",
+        "tr": "<b>型は <code>Config</code> と言っています。</b>throw しうることはどこにも書かれていません。"
+      },
+      "glyph_result": {
+        "en": "<b>Failure is part of the return type,</b> so the caller has to handle it.",
+        "tr": "<b>失敗は戻り値の型の一部なので、</b>呼び出し側はそれを扱わなければなりません。"
+      },
+      "page_note": {
+        "en": "A TypeScript function's type lists what it returns, never what it throws. In Glyph, failure is part of the return type, so every caller can see it.",
+        "tr": "TypeScript の関数の型には、何を返すかは書かれますが、何を throw するかは書かれません。Glyph では失敗が戻り値の型の一部なので、どの呼び出し側からも見えます。"
+      }
+    },
+    "filter-that-keeps-everyone": {
+      "page_title": {
+        "en": "A filter that keeps everyone",
+        "tr": "全員を残してしまうフィルタ"
+      },
+      "why": {
+        "en": "Checking each user against an async permission call.",
+        "tr": "各ユーザーを非同期の権限チェックにかける。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "コンパイルは通り、誤った結果を返す"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>Nothing is filtered out.</b>",
+        "tr": "<b>何も除外されません。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>An async function is not a yes/no answer.</b>",
+        "tr": "<b>async 関数は yes/no の答えではありません。</b>"
+      },
+      "page_note": {
+        "en": "An async function returns a Promise, and any Promise counts as true. A permission filter built this way lets everyone through.",
+        "tr": "async 関数は Promise を返し、Promise はどれも true とみなされます。こうして作った権限フィルタは全員を通してしまいます。"
+      }
+    },
+    "gap-g380-mutation-without-mut": {
+      "summary": {
+        "en": "<code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it.",
+        "tr": "ヘルパー内の <code>xs.sort(...)</code> が呼び出し元の配列を並べ替えますが、<code>mut</code> による印がありません。"
+      }
+    },
+    "gap-g381-member-read-on-unknown": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "文字列に対する <code>input + 1</code>、<code>users.find(...).name</code>、<code>unknown</code> に対するフィールドの読み取りは、<code>tsc</code> のステップでしか検出されず、Glyph 自身の型検査では検出されません。そのためエディタやエージェント向けツールでは見逃されます。"
+      }
+    },
+    "gap-g382-string-plus-number": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "文字列に対する <code>input + 1</code>、<code>users.find(...).name</code>、<code>unknown</code> に対するフィールドの読み取りは、<code>tsc</code> のステップでしか検出されず、Glyph 自身の型検査では検出されません。そのためエディタやエージェント向けツールでは見逃されます。"
+      }
+    },
+    "gap-g384-dropped-async-call": {
+      "summary": {
+        "en": "<code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns.",
+        "tr": "<code>forEach(async ...)</code> はすべての Promise を捨てるので、処理はそれに依存するコードより後に終わり、何も警告しません。"
+      }
+    },
+    "gap-g385-record-in-template": {
+      "summary": {
+        "en": "<code>\"Welcome back, ${user}!\"</code> with a record prints <code>[object Object]</code>.",
+        "tr": "レコードを入れた <code>\"Welcome back, ${user}!\"</code> は <code>[object Object]</code> を出力します。"
+      }
+    },
+    "gap-g386-or-on-a-number": {
+      "summary": {
+        "en": "<code>requested || 3</code> turns a real <code>0</code> into <code>3</code>.",
+        "tr": "<code>requested || 3</code> は、正当な <code>0</code> を <code>3</code> に変えてしまいます。"
+      }
+    },
+    "gap-g387-sql-by-interpolation": {
+      "summary": {
+        "en": "A SQL query built with <code>${name}</code> is accepted by <code>std/sqlite</code>.",
+        "tr": "<code>${name}</code> で組み立てた SQL クエリを <code>std/sqlite</code> が受け付けてしまいます。"
+      }
+    },
+    "gap-g388-sort-as-text": {
+      "summary": {
+        "en": "<code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>.",
+        "tr": "数値に対する <code>.sort()</code> は数値を文字列として並べ替えます：<code>100,25,9</code>。"
+      }
+    },
+    "gap-g390-index-update-across-await": {
+      "summary": {
+        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
+        "tr": "<code>c[0]</code> に対する <code>await</code> をまたいだ更新の消失。フィールドへの同じ書き込みなら拒否されます。"
+      }
+    },
+    "gap-g391-null-in-optional-field": {
+      "summary": {
+        "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",
+        "tr": "省略可能なフィールドに入った JSON の <code>null</code> が検査を通り抜けるので、デフォルト値の上にスプレッドすると <code>null</code> が残ります。"
+      }
+    },
+    "gap-g392-find-method-option": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "文字列に対する <code>input + 1</code>、<code>users.find(...).name</code>、<code>unknown</code> に対するフィールドの読み取りは、<code>tsc</code> のステップでしか検出されず、Glyph 自身の型検査では検出されません。そのためエディタやエージェント向けツールでは見逃されます。"
+      }
+    },
+    "invalid-date": {
+      "page_title": {
+        "en": "An invalid date",
+        "tr": "無効な日付"
+      },
+      "why": {
+        "en": "Parsing a date from a form.",
+        "tr": "フォームから日付をパースする。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives a wrong date or crashes",
+        "tr": "コンパイルは通り、誤った日付になるかクラッシュする"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "書くことができない"
+      },
+      "ts_result": {
+        "en": "<b>Bad dates roll over</b> into real ones.",
+        "tr": "<b>不正な日付は繰り越されて</b>実在する日付になります。"
+      },
+      "glyph_result": {
+        "en": "<b>Parsing can fail, and the type says so.</b>",
+        "tr": "<b>パースは失敗しうるもので、型がそれを示しています。</b>"
+      },
+      "page_note": {
+        "en": "JavaScript's <code>Date</code> turns February 30 into March 2 without complaint. Glyph has no <code>Date</code>; <code>time.parse_iso</code> returns <code>None</code>.",
+        "tr": "JavaScript の <code>Date</code> は、2 月 30 日を何も言わずに 3 月 2 日に変えます。Glyph には <code>Date</code> がなく、<code>time.parse_iso</code> は <code>None</code> を返します。"
+      }
+    },
+    "lost-update-across-await": {
+      "page_title": {
+        "en": "A lost update across <code>await</code>",
+        "tr": "<code>await</code> をまたいで消える更新"
+      },
+      "why": {
+        "en": "Two requests charge the same account at once.",
+        "tr": "2 つのリクエストが同時に同じアカウントに課金する。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then loses money at run time",
+        "tr": "コンパイルは通り、実行時にお金が消える"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>One charge vanishes.</b> No test reliably catches it.",
+        "tr": "<b>課金が 1 件消えます。</b>これを確実に検出できるテストはありません。"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph spots the read-then-write around the wait.</b>",
+        "tr": "<b>Glyph は待機をまたいだ読み取りと書き込みを見つけます。</b>"
+      },
+      "page_note": {
+        "en": "While one call waits on <code>fee()</code>, another can update the balance. The first then writes back a stale value.",
+        "tr": "ある呼び出しが <code>fee()</code> を待っている間に、別の呼び出しが残高を更新できます。そのあと最初の呼び出しが古い値を書き戻します。"
+      }
+    },
+    "median-with-a-fractional-index": {
+      "page_title": {
+        "en": "A median with a fractional index",
+        "tr": "小数のインデックスで取る中央値"
+      },
+      "why": {
+        "en": "Taking the middle of a sorted list.",
+        "tr": "ソート済みリストの真ん中を取る。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "コンパイルは通り、誤った結果を返す"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "実行時に停止"
+      },
+      "ts_result": {
+        "en": "<b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.",
+        "tr": "<b>インデックス 1.5 を読むと <code>undefined</code> になり、</b>呼び出し側の計算でそれが <code>NaN</code> に変わります。"
+      },
+      "glyph_result": {
+        "en": "<b>A bad index stops the program</b> instead of spreading <code>NaN</code>.",
+        "tr": "<b>不正なインデックスはプログラムを停止させます。</b><code>NaN</code> を広げることはありません。"
+      },
+      "page_note": {
+        "en": "Glyph checks every array index when the code runs. This one is not caught at build time.",
+        "tr": "Glyph はコードの実行時に、配列のインデックスをすべて検査します。このケースはビルド時には検出されません。"
+      }
+    },
+    "method-forgets-its-object": {
+      "page_title": {
+        "en": "A method that forgets its object",
+        "tr": "自分のオブジェクトを忘れるメソッド"
+      },
+      "why": {
+        "en": "Passing a method around as a value.",
+        "tr": "メソッドを値として受け渡す。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "コンパイルは通り、実行時にクラッシュする"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>The method is pulled off its string</b> and loses track of it.",
+        "tr": "<b>メソッドが文字列から切り離され、</b>その文字列を見失います。"
+      },
+      "glyph_result": {
+        "en": "<b>A method has to be called where it is read.</b> Pass a function instead.",
+        "tr": "<b>メソッドは読み取ったその場で呼び出す必要があります。</b>代わりに関数を渡してください。"
+      },
+      "page_note": {
+        "en": "A TypeScript method depends on the object it is called on (<code>this</code>). Taken out of <code>name.toUpperCase()</code> as a value, it no longer knows which string to use.",
+        "tr": "TypeScript のメソッドは、呼び出されたオブジェクト（<code>this</code>）に依存します。<code>name.toUpperCase()</code> から値として取り出すと、どの文字列を使えばよいかがわからなくなります。"
+      }
+    },
+    "negative-age": {
+      "page_title": {
+        "en": "A negative age",
+        "tr": "負の年齢"
+      },
+      "why": {
+        "en": "A rule about a value, not just its type.",
+        "tr": "型だけでなく、値についてのルール。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "コンパイルは通り、不正なデータのまま動く"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "データの到着時に検査"
+      },
+      "ts_result": {
+        "en": "<b>The rule lives in a comment,</b> where nothing enforces it.",
+        "tr": "<b>ルールはコメントの中にあり、</b>それを強制するものは何もありません。"
+      },
+      "glyph_result": {
+        "en": "<b>The rule is part of the type,</b> and checked with it.",
+        "tr": "<b>ルールは型の一部であり、</b>型と一緒に検査されます。"
+      },
+      "page_note": {
+        "en": "In TypeScript, a rule like \"never negative\" lives in a comment or a separate validator. In Glyph it is part of the type, so every check of the type enforces it.",
+        "tr": "TypeScript では「負にならない」のようなルールは、コメントか別のバリデータに書かれます。Glyph ではそれが型の一部なので、型を検査するたびにルールも強制されます。"
+      }
+    },
+    "non-exhaustive-match": {
+      "page_title": {
+        "en": "A case nobody handled",
+        "tr": "誰も扱わなかったケース"
+      },
+      "why": {
+        "en": "An agent adds an <code>\"archived\"</code> status. The handler that announces each status was written before it existed.",
+        "tr": "エージェントが <code>\"archived\"</code> というステータスを追加する。各ステータスを通知するハンドラは、それが存在する前に書かれていた。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "警告なしでコンパイルが通る"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>Archiving an item logs nothing.</b> Nothing says the <code>switch</code> is out of date.",
+        "tr": "<b>アイテムをアーカイブしても何もログに出ません。</b><code>switch</code> が古くなっていることを示すものは何もありません。"
+      },
+      "glyph_result": {
+        "en": "<b>The build stops and names the case.</b>",
+        "tr": "<b>ビルドが止まり、そのケースの名前が示されます。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript checks that a <code>switch</code> covers every case only when the function returns a value from every branch, or with the <code>assertNever</code> idiom. A handler that returns nothing gets neither. In Glyph every <code>match</code> must cover every case, so adding a variant lists each place that has to change.",
+        "tr": "TypeScript が <code>switch</code> ですべてのケースが扱われているかを検査するのは、関数がすべての分岐から値を返す場合か、<code>assertNever</code> のイディオムを使った場合だけです。何も返さないハンドラはどちらにも当てはまりません。Glyph ではすべての <code>match</code> がすべてのケースを扱わなければならないので、バリアントを追加すると、変更が必要な箇所がすべて一覧されます。"
+      }
+    },
+    "number-accepted-as-enum": {
+      "page_title": {
+        "en": "A number accepted as an enum",
+        "tr": "enum として受け入れられる数値"
+      },
+      "why": {
+        "en": "A status code read from the database.",
+        "tr": "データベースから読み込んだステータスコード。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then picks the wrong state",
+        "tr": "コンパイルは通り、誤った状態を選ぶ"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>An unknown code becomes a real status.</b>",
+        "tr": "<b>未知のコードが実在するステータスになります。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A number is not a <code>Status</code>.</b>",
+        "tr": "<b>数値は <code>Status</code> ではありません。</b>"
+      },
+      "page_note": {
+        "en": "Any number is assignable to a numeric enum in TypeScript, even one with no matching member.",
+        "tr": "TypeScript では、数値の enum にはどんな数値でも代入できます。対応するメンバーがない数値でもです。"
+      }
+    },
+    "number-that-is-not-a-number": {
+      "page_title": {
+        "en": "A number that is not a number",
+        "tr": "数値ではない数値"
+      },
+      "why": {
+        "en": "User input, a query string, a CSV cell.",
+        "tr": "ユーザー入力、クエリ文字列、CSV のセル。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "コンパイルは通り、不正なデータのまま動く"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b><code>NaN</code> spreads</b> through every sum it touches.",
+        "tr": "<b><code>NaN</code> が広がり、</b>触れたすべての合計を汚染します。"
+      },
+      "glyph_result": {
+        "en": "<b>Parsing returns a <code>Result</code>:</b> a number, or a reason it failed.",
+        "tr": "<b>パースは <code>Result</code> を返します。</b>数値か、失敗した理由のどちらかです。"
+      },
+      "page_note": {
+        "en": "The error points at this line, before <code>total</code> is ever called. To compile, the code has to say what a bad input means: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>",
+        "tr": "エラーは <code>total</code> が呼ばれるより前に、この行を指します。コンパイルを通すには、不正な入力が何を意味するかをコードに書く必要があります：<code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>"
+      }
+    },
+    "one-function-many-names": {
+      "page_title": {
+        "en": "One function, many names",
+        "tr": "1 つの関数、たくさんの名前"
+      },
+      "why": {
+        "en": "Finding every caller before you change something.",
+        "tr": "何かを変更する前に、すべての呼び出し元を探す。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "警告なしでコンパイルが通る"
+      },
+      "glyph_verdict": {
+        "en": "one name everywhere",
+        "tr": "どこでも同じ名前"
+      },
+      "ts_result": {
+        "en": "<b><code>grep getUser</code> misses two of three callers.</b>",
+        "tr": "<b><code>grep getUser</code> は 3 つの呼び出し元のうち 2 つを見逃します。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>No default exports, no renaming.</b> <code>grep get_user</code> finds every caller.",
+        "tr": "<b>デフォルトエクスポートも名前の付け替えもありません。</b><code>grep get_user</code> ですべての呼び出し元が見つかります。"
+      },
+      "page_note": {
+        "en": "This is what lets an agent change a function safely: it can find every place that uses it with a plain text search.",
+        "tr": "これがあるから、エージェントは関数を安全に変更できます。普通のテキスト検索で、その関数を使っている場所をすべて見つけられるからです。"
+      }
+    },
+    "one-step-past-the-end": {
+      "page_title": {
+        "en": "One step past the end",
+        "tr": "末尾を 1 つ越える"
+      },
+      "why": {
+        "en": "Summing a list with a loop.",
+        "tr": "ループでリストの合計を求める。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "コンパイルは通り、誤った結果を返す"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "実行時に停止"
+      },
+      "ts_result": {
+        "en": "<b><code>&lt;=</code> reads one past the end.</b>",
+        "tr": "<b><code>&lt;=</code> は末尾の 1 つ先まで読みます。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program.",
+        "tr": "<b>Glyph には C 言語スタイルの <code>for</code> がありません。</b>末尾を越えて読むとプログラムが停止します。"
+      },
+      "page_note": {
+        "en": "Out-of-range reads return <code>undefined</code> in TypeScript, and arithmetic turns that into <code>NaN</code>.",
+        "tr": "TypeScript では範囲外の読み取りは <code>undefined</code> を返し、計算がそれを <code>NaN</code> に変えます。"
+      }
+    },
+    "quantity-of-one-and-a-half": {
+      "page_title": {
+        "en": "A quantity of 1.5",
+        "tr": "数量 1.5"
+      },
+      "why": {
+        "en": "An order line that can only be a whole number.",
+        "tr": "整数しかありえない注文明細。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "コンパイルは通り、不正なデータのまま動く"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "データの到着時に検査"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript has one <code>number</code>.</b> Half an item ships.",
+        "tr": "<b>TypeScript には <code>number</code> が 1 つしかありません。</b>商品が半分だけ出荷されます。"
+      },
+      "glyph_result": {
+        "en": "<b><code>int</code> is its own type,</b> and it is checked.",
+        "tr": "<b><code>int</code> は独立した型で、</b>検査されます。"
+      },
+      "page_note": {
+        "en": "TypeScript has one <code>number</code> type for whole numbers and fractions alike. Glyph has <code>int</code>, and checks it when the data arrives.",
+        "tr": "TypeScript では、整数にも小数にも同じ <code>number</code> 型を使います。Glyph には <code>int</code> があり、データの到着時に検査します。"
+      }
+    },
+    "split-into-a-pair": {
+      "page_title": {
+        "en": "Destructuring a <code>split</code>",
+        "tr": "<code>split</code> の分割代入"
+      },
+      "why": {
+        "en": "Splitting an address into a user and a host.",
+        "tr": "アドレスをユーザーとホストに分ける。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "コンパイルは通り、誤ったテキストを出力する"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads \"nobody at undefined\".",
+        "tr": "<b>TypeScript は 2 つ目の要素があるものとみなします。</b><code>@</code> がないと、テキストは \"nobody at undefined\" になります。"
+      },
+      "glyph_result": {
+        "en": "<b>The missing part has to be handled.</b>",
+        "tr": "<b>欠けている要素を扱う必要があります。</b>"
+      },
+      "page_note": {
+        "en": "<code>split</code> can return one piece. TypeScript types <code>host</code> as <code>string</code> anyway.",
+        "tr": "<code>split</code> は要素を 1 つしか返さないことがあります。それでも TypeScript は <code>host</code> を <code>string</code> と型付けします。"
+      }
+    },
+    "switch-fallthrough": {
+      "page_title": {
+        "en": "Switch fallthrough",
+        "tr": "switch のフォールスルー"
+      },
+      "why": {
+        "en": "A discount per plan.",
+        "tr": "プランごとの割引。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then charges the wrong price",
+        "tr": "コンパイルは通り、誤った金額を請求する"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "書くことができない"
+      },
+      "ts_result": {
+        "en": "<b>The missing <code>break</code> runs the next case.</b>",
+        "tr": "<b><code>break</code> がないので次のケースが実行されます。</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>match</code> arms never fall through.</b>",
+        "tr": "<b><code>match</code> のアームはフォールスルーしません。</b>"
+      },
+      "page_note": {
+        "en": "<code>noFallthroughCasesInSwitch</code> is not part of <code>--strict</code>.",
+        "tr": "<code>noFallthroughCasesInSwitch</code> は <code>--strict</code> に含まれません。"
+      }
+    },
+    "template-prints-undefined": {
+      "page_title": {
+        "en": "A template that prints \"undefined\"",
+        "tr": "\"undefined\" と出力するテンプレート"
+      },
+      "why": {
+        "en": "Showing an optional relation.",
+        "tr": "省略可能な関連データを表示する。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "コンパイルは通り、誤ったテキストを出力する"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>The user sees the word \"undefined\".</b>",
+        "tr": "<b>ユーザーに \"undefined\" という文字が表示されます。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The missing case needs a default.</b>",
+        "tr": "<b>値がない場合にはデフォルトが必要です。</b>"
+      },
+      "page_note": {
+        "en": "<code>?.</code> stops the crash, but the <code>undefined</code> it produces still gets printed.",
+        "tr": "<code>?.</code> でクラッシュは防げますが、それが生む <code>undefined</code> はそのまま出力されます。"
+      }
+    },
+    "trap-array-holes": {
+      "summary": {
+        "en": "<code>Array(3).map(...)</code> returns three holes, because <code>map</code> skips them. Glyph has no <code>Array(n)</code>; arrays are written as literals.",
+        "tr": "<code>Array(3).map(...)</code> は穴が 3 つの配列を返します。<code>map</code> が穴を飛ばすからです。Glyph には <code>Array(n)</code> がなく、配列はリテラルで書きます。"
+      }
+    },
+    "trap-foreach-method-this": {
+      "summary": {
+        "en": "<code>[1, 2, 3].forEach(counter.increment)</code> runs the method without its object. Glyph has no classes and no <code>this</code>.",
+        "tr": "<code>[1, 2, 3].forEach(counter.increment)</code> は、メソッドをそのオブジェクトなしで実行します。Glyph にはクラスも <code>this</code> もありません。"
+      }
+    },
+    "trap-map-parseint": {
+      "summary": {
+        "en": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> is <code>[10, NaN, NaN]</code>, because <code>map</code> passes the index as the number base. Glyph has <code>number.parse</code>, which returns a <code>Result</code>.",
+        "tr": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> は <code>[10, NaN, NaN]</code> になります。<code>map</code> がインデックスを基数として渡すからです。Glyph には <code>Result</code> を返す <code>number.parse</code> があります。"
+      }
+    },
+    "trap-math-max-empty": {
+      "summary": {
+        "en": "<code>Math.max(...[])</code> is <code>-Infinity</code>. Glyph's <code>array.max</code> returns an <code>Option</code>, empty for an empty list.",
+        "tr": "<code>Math.max(...[])</code> は <code>-Infinity</code> です。Glyph の <code>array.max</code> は <code>Option</code> を返し、空のリストでは空になります。"
+      }
+    },
+    "trap-regex-lastindex": {
+      "summary": {
+        "en": "A <code>/g</code> regex reused with <code>.test</code> fails every second match, because it remembers <code>lastIndex</code>. Glyph has no regex objects; <code>regex.matches(pattern, text)</code> has no state.",
+        "tr": "<code>/g</code> 付きの正規表現を <code>.test</code> で使い回すと、<code>lastIndex</code> を覚えているせいで 1 回おきにマッチに失敗します。Glyph には正規表現オブジェクトがなく、<code>regex.matches(pattern, text)</code> は状態を持ちません。"
+      }
+    },
+    "trusting-find-with-bang": {
+      "page_title": {
+        "en": "Trusting <code>find</code> with <code>!</code>",
+        "tr": "<code>!</code> で <code>find</code> を信用する"
+      },
+      "why": {
+        "en": "Looking a record up by id.",
+        "tr": "ID でレコードを探す。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "コンパイルは通り、実行時にクラッシュする"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b><code>!</code> tells the compiler \"trust me\".</b> At run time it does nothing.",
+        "tr": "<b><code>!</code> はコンパイラに「信じてくれ」と伝えるものです。</b>実行時には何もしません。"
+      },
+      "glyph_result": {
+        "en": "<b><code>find</code> returns an <code>Option</code>,</b> so the empty case must be handled.",
+        "tr": "<b><code>find</code> は <code>Option</code> を返すので、</b>空の場合を扱わなければなりません。"
+      },
+      "page_note": {
+        "en": "Without the <code>!</code>, <code>tsc --strict</code> refuses this line. The <code>!</code> is what switches that check off, and it does nothing at run time. Glyph has no <code>!</code>.",
+        "tr": "<code>!</code> がなければ、<code>tsc --strict</code> はこの行を拒否します。その検査を無効にしているのが <code>!</code> で、実行時には何もしません。Glyph には <code>!</code> がありません。"
+      }
+    },
+    "two-types-same-shape": {
+      "page_title": {
+        "en": "Two types with the same shape",
+        "tr": "同じ形をした 2 つの型"
+      },
+      "why": {
+        "en": "Verified and unverified email addresses.",
+        "tr": "確認済みと未確認のメールアドレス。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "警告なしでコンパイルが通る"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>An unverified address gets the invoice.</b>",
+        "tr": "<b>未確認のアドレスに請求書が届きます。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Two named types are different types.</b>",
+        "tr": "<b>名前の違う 2 つの型は別の型です。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript compares object types by shape, so same-shaped types are interchangeable whatever they are called.",
+        "tr": "TypeScript はオブジェクト型を形で比較するので、同じ形の型は名前が何であれ互いに置き換えられます。"
+      }
+    },
+    "type-guard-that-checks-less": {
+      "page_title": {
+        "en": "A type guard that checks less than it claims",
+        "tr": "主張するほど検査しない型ガード"
+      },
+      "why": {
+        "en": "Validating a request body by hand.",
+        "tr": "リクエストボディを手書きで検証する。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "コンパイルは通り、実行時にクラッシュする"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "データの到着時に検査"
+      },
+      "ts_result": {
+        "en": "<b>The guard says \"User\" after checking one field.</b>",
+        "tr": "<b>ガードはフィールドを 1 つ検査しただけで \"User\" だと言います。</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>User.is</code> checks every field.</b> Glyph has no hand-written guards.",
+        "tr": "<b><code>User.is</code> はすべてのフィールドを検査します。</b>Glyph には手書きのガードがありません。"
+      },
+      "page_note": {
+        "en": "TypeScript trusts a <code>x is User</code> function completely, whatever its body actually checks.",
+        "tr": "TypeScript は <code>x is User</code> 関数を、その本体が実際に何を検査していようと完全に信用します。"
+      }
+    },
+    "typo-in-an-options-object": {
+      "page_title": {
+        "en": "A typo in an options object",
+        "tr": "オプションオブジェクトのタイポ"
+      },
+      "why": {
+        "en": "Building the options in a variable, then passing them.",
+        "tr": "オプションを変数に組み立ててから渡す。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then uses the wrong setting",
+        "tr": "コンパイルは通り、誤った設定を使う"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>The misspelled option is silently dropped.</b>",
+        "tr": "<b>綴りを間違えたオプションは黙って捨てられます。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The wrong name is an error.</b>",
+        "tr": "<b>誤った名前はエラーになります。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only checks for unknown keys on a literal written directly in the call, not on one built in a variable first.",
+        "tr": "TypeScript が未知のキーを検査するのは、呼び出しに直接書いたリテラルだけです。先に変数に組み立てたものは検査しません。"
+      }
+    },
+    "typo-nobody-sees": {
+      "page_title": {
+        "en": "A typo nobody sees",
+        "tr": "誰も気づかないタイポ"
+      },
+      "why": {
+        "en": "Reading a field from a response.",
+        "tr": "レスポンスからフィールドを読む。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then fails at run time",
+        "tr": "コンパイルは通り、実行時に失敗する"
+      },
+      "glyph_verdict": {
+        "en": "refused by glyph check",
+        "tr": "glyph check で拒否"
+      },
+      "ts_result": {
+        "en": "<b><code>res.json()</code> is <code>any</code>,</b> so nothing about it is checked.",
+        "tr": "<b><code>res.json()</code> は <code>any</code> なので、</b>何も検査されません。"
+      },
+      "glyph_result": {
+        "en": "<b>There is no <code>any</code>.</b> Data nobody has checked is <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gives it a type.",
+        "tr": "<b><code>any</code> はありません。</b>誰も検査していないデータは <code>unknown</code> で、<code>json.parse&lt;User&gt;</code> が型を与えます。"
+      },
+      "page_note": {
+        "en": "<code>any</code> switches type checking off for everything it touches, and it spreads: <code>data.usr</code> is <code>any</code> too. Glyph has no <code>any</code>. The refusal here comes from the <code>tsc</code> step that <code>glyph check</code> and <code>glyph build</code> run; Glyph's own checker does not see it yet (G381).",
+        "tr": "<code>any</code> は触れるものすべての型検査を無効にし、しかも広がります。<code>data.usr</code> も <code>any</code> です。Glyph には <code>any</code> がありません。ここでの拒否は、<code>glyph check</code> と <code>glyph build</code> が実行する <code>tsc</code> のステップから来ています。Glyph 自身の型検査はまだこれを検出しません（G381）。"
+      }
+    },
+    "unvalidated-boundary-read": {
+      "page_title": {
+        "en": "A parsed body given a type without a check",
+        "tr": "検査なしで型を付けたパース済みボディ"
+      },
+      "why": {
+        "en": "Reading a request body into a typed variable.",
+        "tr": "リクエストボディを型付きの変数に読み込む。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "コンパイルは通り、不正なデータのまま動く"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>The annotation is a promise nothing keeps.</b> <code>JSON.parse</code> returns <code>any</code>, so a body of any shape gets through.",
+        "tr": "<b>型注釈は誰も守らない約束です。</b><code>JSON.parse</code> は <code>any</code> を返すので、どんな形のボディでも通ります。"
+      },
+      "glyph_result": {
+        "en": "<b><code>json.parse</code> returns a <code>Result</code> of <code>unknown</code>,</b> and that is not a <code>User</code>.",
+        "tr": "<b><code>json.parse</code> は <code>unknown</code> の <code>Result</code> を返し、</b>それは <code>User</code> ではありません。"
+      },
+      "page_note": {
+        "en": "Writing <code>const user: User</code> looks like a check and is not one. In Glyph, <code>json.parse&lt;User&gt;(body)</code> checks the body and returns a <code>Result</code> to match on.",
+        "tr": "<code>const user: User</code> と書くと検査のように見えますが、検査ではありません。Glyph では <code>json.parse&lt;User&gt;(body)</code> がボディを検査し、match で扱う <code>Result</code> を返します。"
+      }
+    },
+    "unverifiable-parse": {
+      "page_title": {
+        "en": "A validator that cannot check what it claims",
+        "tr": "主張する内容を検査できないバリデータ"
+      },
+      "why": {
+        "en": "A record holding a socket, checked by a hand-written guard.",
+        "tr": "ソケットを持つレコードを、手書きのガードで検査する。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then accepts a string as a socket",
+        "tr": "コンパイルは通り、文字列をソケットとして受け入れる"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "ビルド時に拒否"
+      },
+      "ts_result": {
+        "en": "<b>The guard says <code>Conn</code> after checking that <code>sock</code> exists.</b> A string passes as a socket.",
+        "tr": "<b>ガードは <code>sock</code> が存在することを確かめただけで <code>Conn</code> だと言います。</b>文字列がソケットとして通ってしまいます。"
+      },
+      "glyph_result": {
+        "en": "<b>A socket has no runtime check,</b> so Glyph refuses <code>Conn.parse</code> instead of generating a check that cannot hold.",
+        "tr": "<b>ソケットには実行時の検査がないので、</b>Glyph は成り立たない検査を生成する代わりに <code>Conn.parse</code> を拒否します。"
+      },
+      "page_note": {
+        "en": "Split the wire type from the domain type: parse the fields that can be checked, then build the record around the socket.",
+        "tr": "通信用の型とドメインの型を分けてください。検査できるフィールドをパースしてから、ソケットを含めてレコードを組み立てます。"
+      }
+    },
+    "value-outside-the-list": {
+      "page_title": {
+        "en": "A value outside the list",
+        "tr": "リストにない値"
+      },
+      "why": {
+        "en": "An API starts sending a status your code has never seen.",
+        "tr": "API が、コードが見たことのないステータスを送り始める。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "コンパイルは通り、不正なデータのまま動く"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "データの到着時に検査"
+      },
+      "ts_result": {
+        "en": "<b><code>\"deleted\"</code> is treated as one of the two.</b> Every check on <code>status</code> is now wrong.",
+        "tr": "<b><code>\"deleted\"</code> が 2 つのうちのどちらかとして扱われます。</b><code>status</code> に対する検査はすべて誤った結果になります。"
+      },
+      "glyph_result": {
+        "en": "<b>Only the listed values get through.</b>",
+        "tr": "<b>リストにある値だけが通ります。</b>"
+      },
+      "page_note": {
+        "en": "In TypeScript a union like <code>\"active\" | \"banned\"</code> exists only while compiling. At run time nothing stops a third value. Glyph checks it when the data comes in.",
+        "tr": "TypeScript では <code>\"active\" | \"banned\"</code> のようなユニオンはコンパイル中にしか存在しません。実行時には 3 つ目の値を止めるものは何もありません。Glyph はデータが入ってきたときに検査します。"
+      }
+    }
+  }
+}

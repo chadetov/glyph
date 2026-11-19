@@ -1,0 +1,326 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "teams/index.html",
+  "locale": "ja",
+  "source_hash": "d4a38356fad5c816",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "For teams · what Glyph guarantees and costs · Glyph",
+      "tr": "チーム向け · Glyph が保証するものと、そのコスト · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "For a lead weighing Glyph: what the compiler guarantees and where it stops, adopting it in a TypeScript app, the exit story, version pinning and pre-1.0 status.",
+      "tr": "Glyph の導入を検討しているリード向けに：コンパイラが保証するものとその限界、TypeScript アプリへの導入、やめるときの手段、バージョンの固定、1.0 前の現状。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "次に読むもの"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "おすすめ"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "See what TypeScript lets through",
+      "tr": "TypeScript が通してしまうものを見る"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "The cases a strict TypeScript project accepts, ranked, each run under <code>tsc --strict</code> and under Glyph.",
+      "tr": "strict な TypeScript のプロジェクトが受け入れてしまうケースを順位付きで。それぞれ <code>tsc --strict</code> と Glyph の両方で実行しています。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "検出できるものを見る"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "最初のプログラムを書く"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "インストールし、雛形を作り、実行し、わざと壊してエラーを読みます。約 10 分です。"
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "Try it in the browser",
+      "tr": "ブラウザで試す"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "The compiler runs in the page, with nothing to install.",
+      "tr": "コンパイラがページの中で動くので、何もインストールする必要がありません。"
+    },
+    {
+      "id": "h-7b11bd08",
+      "kind": "html",
+      "en": "For teams",
+      "tr": "チーム向け"
+    },
+    {
+      "id": "h-205f7b1f",
+      "kind": "html",
+      "en": "What it guarantees, what adopting it costs, and how you get out",
+      "tr": "何を保証し、導入にどれだけのコストがかかり、どうやめられるか"
+    },
+    {
+      "id": "h-26a40a38",
+      "kind": "html",
+      "en": "Glyph refuses a specific, checked list of cases that a strict TypeScript project accepts, and it compiles to TypeScript you can keep if you stop using it. It is an early preview: pre-1.0, maintained mainly by one person, and releasing several times a week.",
+      "tr": "Glyph は、strict な TypeScript のプロジェクトが受け入れてしまうケースのうち、具体的で検証済みのリストにあるものを拒否します。そして TypeScript にコンパイルされるので、使うのをやめてもその出力を手元に残せます。現在はアーリープレビューです。1.0 前で、主に 1 人がメンテナンスしており、週に何度もリリースしています。"
+    },
+    {
+      "id": "h-8eba8f1c",
+      "kind": "html",
+      "en": "What it guarantees",
+      "tr": "何を保証するか"
+    },
+    {
+      "id": "h-3cd6a8a0",
+      "kind": "html",
+      "en": "Every claim about what Glyph catches is a case in the repository's <code>catches/</code> directory: the same program in TypeScript and in Glyph, both run by a CI gate. {{catches:breakdown}} Of the mistakes it does not refuse, {{catches:warned-all}} draw a warning, {{catches:boundary-all}} are bad data stopped at a runtime boundary check, and {{catches:runtime-all}} stop at run time. The ones a reviewer of agent-written code leans on most:",
+      "tr": "Glyph が何を検出するかについての主張は、どれもリポジトリの <code>catches/</code> ディレクトリにあるケースです。同じプログラムを TypeScript と Glyph で書いたもので、どちらも CI のゲートが実行します。{{catches:breakdown}} 拒否しないミスのうち、{{catches:warned-all}} 件は警告が出て、{{catches:boundary-all}} 件は実行時の境界での検査で止まる不正なデータで、{{catches:runtime-all}} 件は実行時に止まります。エージェントが書いたコードをレビューする人が最も頼りにするのは次のものです。"
+    },
+    {
+      "id": "h-340f4630",
+      "kind": "html",
+      "en": "Code",
+      "tr": "コード"
+    },
+    {
+      "id": "h-9628cd47",
+      "kind": "html",
+      "en": "What is refused",
+      "tr": "拒否されるもの"
+    },
+    {
+      "id": "h-07b6c4ea",
+      "kind": "html",
+      "en": "A <code>match</code> that leaves out a case of a union, so adding a case lists every place that has to change",
+      "tr": "ユニオンのケースを 1 つ漏らした <code>match</code>。そのため、ケースを追加すると変更が必要な箇所がすべて一覧される"
+    },
+    {
+      "id": "h-84e123b3",
+      "kind": "html",
+      "en": "A cast (<code>as</code>, <code>as unknown as</code>); there is no cast, and no <code>any</code>",
+      "tr": "キャスト（<code>as</code>、<code>as unknown as</code>）。キャストも <code>any</code> も存在しない"
+    },
+    {
+      "id": "h-5f3dcbe8",
+      "kind": "html",
+      "en": "Parsed JSON assigned to a typed name without being checked",
+      "tr": "検査されないまま型付きの名前に代入される、パースした JSON"
+    },
+    {
+      "id": "h-0baae682",
+      "kind": "html",
+      "en": "A read from a map typed as if the key were always there",
+      "tr": "キーが常に存在するかのように型付けされたマップからの読み取り"
+    },
+    {
+      "id": "h-2284bbcd",
+      "kind": "html",
+      "en": "A <code>Result</code> dropped on the floor (a warning; <code>let _ =</code> says it was deliberate)",
+      "tr": "捨てられた <code>Result</code>（警告。<code>let _ =</code> と書けば意図したものだと示せる）"
+    },
+    {
+      "id": "h-109fb606",
+      "kind": "html",
+      "en": "<a href=\"/catches/\">The catches page</a> lists every case with its TypeScript, its Glyph, and the error, and says which ones a fully configured typescript-eslint setup would also have caught.",
+      "tr": "<a href=\"/catches/\">検出できるもののページ</a>には、すべてのケースが TypeScript のコード、Glyph のコード、エラーとともに載っており、最も厳しく設定した typescript-eslint でも検出できたものはどれかも書かれています。"
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "限界"
+    },
+    {
+      "id": "h-a3c9c6f6",
+      "kind": "html",
+      "en": "The guarantees cover code written in Glyph. An exception thrown inside an npm dependency still bypasses <code>Result</code>, and a type imported from a package's <code>.d.ts</code> has no runtime check. Inside Glyph, the {{catches:gap-cases}} open holes are listed with their gap numbers in <a href=\"/catches/#not-yet\">what it does not catch yet</a>, and the full ledger is <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>. For a comparison with strict TypeScript plus zod, eslint and ts-pattern, including where that setup is still ahead, see <a href=\"/answers/vs-tooled-ts/\">why not tooled TypeScript</a>.",
+      "tr": "保証の対象は Glyph で書いたコードです。npm の依存パッケージの中で throw された例外は今も <code>Result</code> を迂回し、パッケージの <code>.d.ts</code> からインポートした型には実行時の検査がありません。Glyph の中では、未解決の穴 {{catches:gap-cases}} 件が gap 番号とともに<a href=\"/catches/#not-yet\">まだ検出できないもの</a>に載っており、完全な一覧は <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> にあります。strict な TypeScript に zod、eslint、ts-pattern を加えた構成との比較は、その構成がまだ優れている点も含めて、<a href=\"/answers/vs-tooled-ts/\">ツールを揃えた TypeScript ではなぜ駄目か</a>を見てください。"
+    },
+    {
+      "id": "h-5e4dc7dc",
+      "kind": "html",
+      "en": "Adopting it inside an existing app",
+      "tr": "既存のアプリの中で導入する"
+    },
+    {
+      "id": "h-35d77f2f",
+      "kind": "html",
+      "en": "There is no rewrite. You write the part you can't afford to get wrong (models, permissions, state transitions, money) in Glyph, and the rest of the app stays TypeScript and imports the emitted modules like any local file. The walkthrough uses a stock Vite scaffold: <a href=\"/answers/embedding/\">Can I adopt Glyph inside my existing app?</a>",
+      "tr": "書き直しは不要です。間違えるわけにはいかない部分（モデル、権限、状態遷移、お金）を Glyph で書き、アプリの残りは TypeScript のまま、出力されたモジュールを普通のローカルファイルと同じようにインポートします。手順の説明では標準的な Vite の雛形を使っています：<a href=\"/answers/embedding/\">既存のアプリの中で Glyph を導入できるか</a>"
+    },
+    {
+      "id": "h-16ba11f7",
+      "kind": "html",
+      "en": "The exit story",
+      "tr": "やめるときの手段"
+    },
+    {
+      "id": "h-261452ac",
+      "kind": "html",
+      "en": "<code>glyph build</code> writes plain TypeScript, one file per module, that passes <code>tsc --strict</code>. If you stop using Glyph, you commit that output and keep going with <code>tsc</code>. The licence is MIT or Apache-2.0, so a fork is always possible. <a href=\"/from-typescript/\">Coming from TypeScript</a> shows a module next to its emitted file.",
+      "tr": "<code>glyph build</code> は、<code>tsc --strict</code> を通る、モジュールごとに 1 ファイルの普通の TypeScript を書き出します。Glyph の使用をやめるなら、その出力をコミットして <code>tsc</code> で開発を続ければよいだけです。ライセンスは MIT または Apache-2.0 なので、いつでもフォークできます。<a href=\"/from-typescript/\">TypeScript から来た人へ</a>では、モジュールと出力されたファイルを並べて示しています。"
+    },
+    {
+      "id": "h-c3485edf",
+      "kind": "html",
+      "en": "Pinning and upgrades",
+      "tr": "バージョンの固定とアップグレード"
+    },
+    {
+      "id": "h-7a7d8a9d",
+      "kind": "html",
+      "en": "<code>glyph init</code> pins the compiler to an exact version in <code>package.json</code>, with no <code>^</code>, so no release reaches your build by accident. Three commands handle the rest:",
+      "tr": "<code>glyph init</code> は <code>package.json</code> でコンパイラを <code>^</code> なしの正確なバージョンに固定するので、どのリリースもうっかりビルドに入り込むことはありません。残りは 3 つのコマンドで扱います。"
+    },
+    {
+      "id": "h-c6147f53",
+      "kind": "html",
+      "en": "upgrading on purpose",
+      "tr": "意図してアップグレードする"
+    },
+    {
+      "id": "h-454480a0",
+      "kind": "html",
+      "en": "Details in <a href=\"/answers/upgrades/\">Will a new Glyph release break my build?</a>",
+      "tr": "詳しくは <a href=\"/answers/upgrades/\">Glyph の新しいリリースでビルドが壊れることはあるか</a> にあります。"
+    },
+    {
+      "id": "h-b04fdb5f",
+      "kind": "html",
+      "en": "Release cadence and the Breaking marker",
+      "tr": "リリースの頻度と Breaking の印"
+    },
+    {
+      "id": "h-228fec82",
+      "kind": "html",
+      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
+      "tr": "<a href=\"/versions/\">バージョンのページ</a>には、0.1.0 から {{releases:latest}} までのすべてのリリース、計 {{releases:count}} 件の項目があり、そのうち 22 件は 2026 年 11 月の 19 日までに出たものです。前のバージョンが受け入れていたプログラムを拒否するリリースには Breaking の印が付きます。正しさに関する修正の多くはこの形で入ります。印が付いている項目は {{releases:breaking}} 件です。印は差分を読んで付けるのではなく、影響を受ける最小のプログラムを両方のバージョンで実行して付けています。0.1.99 より前のリリースはこの方法で確認していないので、印のない古いリリースは安全なのではなく、未確認ということです。"
+    },
+    {
+      "id": "h-5ee8f8ce",
+      "kind": "html",
+      "en": "What a Breaking release has cost in practice: each recent note says what happened when the old and new versions were run over the repository's example apps. These are the newest Breaking releases, quoted from their notes:",
+      "tr": "Breaking のリリースが実際にどれだけのコストになったか：最近のリリースノートにはそれぞれ、リポジトリのサンプルアプリを古いバージョンと新しいバージョンで実行したときに何が起きたかが書かれています。以下は最新の Breaking リリースのノートからの引用です。"
+    },
+    {
+      "id": "h-87b572a3",
+      "kind": "html",
+      "en": "The example apps are the project's own code, kept compiling release by release, so a newly refused shape is less likely to turn up in them than in yours. Each note names the shapes it refuses, so read it before upgrading.",
+      "tr": "サンプルアプリはプロジェクト自身のコードで、リリースごとにコンパイルが通るように保たれているので、新たに拒否されるようになった書き方は、あなたのコードよりも出てきにくいはずです。各ノートには拒否するようになった書き方が書かれているので、アップグレードの前に読んでください。"
+    },
+    {
+      "id": "h-920e413c",
+      "kind": "html",
+      "en": "Status",
+      "tr": "現状"
+    },
+    {
+      "id": "h-33711ac1",
+      "kind": "html",
+      "en": "Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> says what may change and what is held stable. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> says plainly that the project is maintained primarily by one person today.",
+      "tr": "Glyph は 1.0 前です。1.0 までは、構文、標準ライブラリ、出力される TypeScript の形が変わる可能性があり、以前はコンパイルが通ったコードをリリースが拒否することもあります。何が変わりうるか、何を安定に保つかは <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> に書かれています。<a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> には、現在このプロジェクトは主に 1 人でメンテナンスされていると率直に書かれています。"
+    },
+    {
+      "id": "h-731f8c8c",
+      "kind": "html",
+      "en": "Objections, answered",
+      "tr": "よくある反論への回答"
+    },
+    {
+      "id": "h-5188f42e",
+      "kind": "html",
+      "en": "We don't use AI much. Is it still worth it?",
+      "tr": "AI はあまり使っていません。それでも価値はありますか？"
+    },
+    {
+      "id": "h-367570a5",
+      "kind": "html",
+      "en": "The checks are the same whoever writes the code: fewer runtime surprises, smaller diffs, code you can grep.",
+      "tr": "検査は誰がコードを書いても同じです。実行時の想定外が減り、差分が小さくなり、grep できるコードになります。"
+    },
+    {
+      "id": "h-9d1e7593",
+      "kind": "html",
+      "en": "We already run strict TypeScript and lint.",
+      "tr": "すでに strict な TypeScript と lint を使っています。"
+    },
+    {
+      "id": "h-a311b0b7",
+      "kind": "html",
+      "en": "Every one of those checks is opt-in and can be turned off in one line. Glyph's can't.",
+      "tr": "それらの検査はどれも任意で、1 行で無効にできます。Glyph の検査はできません。"
+    },
+    {
+      "id": "h-72cdf2bf",
+      "kind": "html",
+      "en": "Can our agents write a language they've barely seen?",
+      "tr": "エージェントは、ほとんど見たこともない言語を書けますか？"
+    },
+    {
+      "id": "h-ec32f008",
+      "kind": "html",
+      "en": "Most of what a model knows about TypeScript carries over, and the compiler names the rest.",
+      "tr": "モデルが TypeScript について知っていることの大半はそのまま通用し、残りはコンパイラが教えてくれます。"
+    },
+    {
+      "id": "h-89f4eb9e",
+      "kind": "html",
+      "en": "Why compile to TypeScript at all?",
+      "tr": "そもそも、なぜ TypeScript にコンパイルするのですか？"
+    },
+    {
+      "id": "h-085a9545",
+      "kind": "html",
+      "en": "That is where npm, React and Node are, and it is why adoption can be one file at a time.",
+      "tr": "npm も React も Node もそこにあるからです。導入を 1 ファイルずつ進められるのもそのためです。"
+    },
+    {
+      "id": "h-07402c5a",
+      "kind": "html",
+      "en": "What does on-call see when it breaks?",
+      "tr": "障害が起きたとき、オンコール担当者には何が見えますか？"
+    },
+    {
+      "id": "h-3cefcf3a",
+      "kind": "html",
+      "en": "Readable TypeScript, source maps back to the <code>.glyph</code> file, and stable error codes.",
+      "tr": "読める TypeScript、<code>.glyph</code> ファイルに戻れるソースマップ、そして変わらないエラーコードです。"
+    },
+    {
+      "id": "h-9ed9269c",
+      "kind": "html",
+      "en": "How do we know any of this is true?",
+      "tr": "これが本当だと、どうしてわかるのですか？"
+    },
+    {
+      "id": "h-e6301226",
+      "kind": "html",
+      "en": "How each claim on this site is checked, and how to reproduce one yourself.",
+      "tr": "このサイトの各主張をどう検証しているか、そして自分で再現する方法。"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+---
+title: 設計 · 4 つの柱と設計判断 · Glyph
+description: Glyph の設計の考え方。すべての判断の基準となる 4 つの柱、仕様にある番号付きの設計判断、そして言語が意図的に入れなかったもの。
+source_hash: 28891a173ca9e4a0
+next_steps: |
+  次に読むもの
+  おすすめ | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | 仕様を読む | 番号付きの設計判断すべて。それぞれの最後に、どの柱に資するかが書かれています。 | 仕様を開く
+  /catches/ | catches | Glyph が拒否するもの | 各ケースを <code>tsc --strict</code> と Glyph の両方で検証しています。
+  /start/ | start | 最初のプログラムを書く | インストールし、雛形を作り、実行し、わざと壊してエラーを読みます。約 10 分です。
+---
+      <p class="q-eyebrow">設計</p>
+      <h1 class="q-title">4 つの柱と、すべてのルールに対する設計判断の記録</h1>
+
+      <p class="short-answer">
+        Glyph のすべてのルールは 4 つの性質に照らして検討され、各ルールはどの柱に資するかを添えた番号付きの設計判断として仕様に記されています。柱はプロジェクトの設定ではなく言語の性質なので、見慣れない Glyph のコードベースを開いたエージェントは、どの設定が選ばれているかを先に調べることなく、それを前提にできます。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">4 つの柱</h2>
+        <p>
+          重要な順に並べています。最初の 2 つが核となる部分で、毎日感じている問題に対するものです。後の 2 つは使い心地をよくするための仕上げです。両者が衝突したときは、核となる部分が優先されます。
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/pillars/verifiability/"><span class="n">柱 01</span><span class="q">検証可能性</span><p><code>any</code> も、書ける <code>as</code> もありません。<code>match</code> はすべてのケースを扱わなければならず、レコード型とユニオン型からは厳密な実行時バリデータが生成されるので、境界を越える値は前提とされるのではなく検査されます。<code>tsc</code> の上に載った、無効にできない厳密な層です。<code>tsc --strict</code> が受け入れるミスの多くは、ここではコンパイルが通りません。まだ通ってしまうものは<a href="/catches/#not-yet">まだ検出できないもの</a>に載せています。</p></a>
+        <a class="a-card" href="/pillars/greppability/"><span class="n">柱 02</span><span class="q">grep しやすさ</span><p>1 つの名前に 1 つの場所。すべてのシンボルは宣言の場所でただ 1 つの構文形式を持ち、オーバーロードも、デコレータも、暗黙の <code>this</code> も、namespace のマージもありません。<code>grep "fn parseUser"</code> で定義が見つかります。</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">柱 03</span><span class="q">差分の安定性</span><p>1 行の変更は 1 行の差分になります。正規のレイアウトは 1 つだけです。リストは収まる間は 1 行に書き、収まらなければ 1 要素 1 行にして、詰め直すことはしません。末尾のカンマがあり、バレルファイルもオプションもないので、同じコードはどのプロジェクトでも同じように出力されます。レビュアーが読むのは変更そのもので、無関係な書き換えではありません。</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">柱 04</span><span class="q">抽象化</span><p>意図をそのまま書く：switch の連なりではなくパターンマッチ、throw される例外ではなく <code>Result</code>、タプルではなく名前付きのレコード。TypeScript のように積み重なった層ではなく、小さく直交したコアから組み立てます。</p></a>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">仕様は設計判断の一覧</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">docs/language/spec.md</a> には D1 から D49 まで 49 個の番号付きの設計判断があり、それぞれの最後にどの柱に資するかが書かれています。文法は仕様に従います。曖昧な点はまず仕様で解決し、それからパーサーに反映します。<code>glyph llms --json</code> は仕様からこの一覧を読み出すので、エージェントはあなたと同じ設計判断を読むことになります。その 1 つを短くしたもの：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">D9（docs/language/spec.md より、短縮版）</span>
+<pre>D9. `else` is a catch-all arm; `_` is a position-level wildcard;
+a PascalCase arm head is a variant reference, not a binding.
+
+... a PascalCase head that names no variant of that union is a
+compile error (E0220, with a nearest-variant suggestion), never a
+silent catch-all that would mask a missing variant (E0200) and
+misroute values at runtime. ...
+
+*[verifiability, abstraction]*</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">意図的に入れなかったもの</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">マニフェスト</a>に基本姿勢が書かれていますが、要するに、それぞれの制約は柱に照らして存在理由があるということです。Glyph には <code>if</code>/<code>else</code> がなく（条件分岐は <code>match</code> だけです）、クラスも、オーバーロードもデコレータも、キャストも、<code>any</code> も、相対 import も、フォーマッタのオプションもありません。設定もできません。フォーマッタは 1 つ、モジュール解決は 1 つ、厳しさのレベルも 1 つです。煩わしい制約にはドキュメントで応え、ルールを緩めることはしません。
+        </p>
+
+        <h2 class="block-label">比較</h2>
+        <p>
+          Glyph は既存のいくつかのものに近く、以下の比較では、それぞれ相手のほうが優れている点も挙げています。
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">なぜ Go や新しい言語ではなく TypeScript なのか</span><p>なぜ出力先が TypeScript なのか、そしてそれで何ができるのか：1 ファイルずつ導入できること。</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">strict な TypeScript + zod + eslint + ts-pattern ではなぜ駄目なのか</span><p>設定としての検査と、言語としての検査の比較。そして、ツールを揃えた TypeScript がまだ優れている点。</p></a>
+        <a class="a-card" href="/design/vs-effect/"><span class="q">Effect と比べてどうか</span><p>型付きのエラーと大きなエコシステムを持つ TypeScript のライブラリと、抜け道を取り除いた言語の比較。</p></a>
+        <a class="a-card" href="/design/vs-rescript-gleam-elm/"><span class="q">ReScript、Gleam、Elm ではなぜ駄目なのか</span><p>JavaScript にコンパイルされる、より歴史のある 3 つの型付き言語。それぞれが優れている点と、Glyph が違うやり方をしている点。</p></a>
+        <a class="a-card" href="/answers/language/"><span class="q">これは本物の言語ですか。それとも穴だらけのおもちゃですか。</span><p>モジュールの可視性、インターフェース、defer、標準ライブラリ、そしてまだ残っている制約。</p></a>
+      </div>
+
+      <div class="detail">
+        <p>
+          そのすべての裏にある仮説は、まだ結果ではありません。同じタスクを与えられたエージェントは、TypeScript より Glyph のほうが確実に正しいコードを書き、レビュアーがそれを確認する時間も短くなる、というものです。その研究はまだ行っていないので、このサイトではそれに数値を付けていません。これまでに何を測定したかは<a href="/benchmarks/">ベンチマーク</a>に書いてあります。
+        </p>
+      </div>

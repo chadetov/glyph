@@ -1,0 +1,206 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "benchmarks/index.html",
+  "locale": "ja",
+  "source_hash": "c2635229de656794",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Benchmarks · measured, not asserted · Glyph",
+      "tr": "ベンチマーク · 主張ではなく測定 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's four pillars as numbers: errors caught at compile time, one grep per symbol, one-line diffs, and about 9% fewer tokens than TypeScript, with caveats.",
+      "tr": "Glyph の 4 つの柱を数値で：コンパイル時に検出されるエラー、シンボルごとに 1 回の grep、1 行の差分、TypeScript より約 9% 少ないトークン。注意点も添えています。"
+    },
+    {
+      "id": "h-9f2e7732",
+      "kind": "html",
+      "en": "Benchmarks",
+      "tr": "ベンチマーク"
+    },
+    {
+      "id": "h-9c3743c9",
+      "kind": "html",
+      "en": "Two kinds of <span class=\"accent\">evidence</span>.",
+      "tr": "2 種類の<span class=\"accent\">根拠</span>。"
+    },
+    {
+      "id": "h-b3331cb8",
+      "kind": "html",
+      "en": "There are two questions worth measuring, and we keep them separate. <strong>Structural:</strong> what does Glyph reject by construction that TypeScript accepts? That's provable today, shown below. <strong>Reliability:</strong> do agents actually ship fewer defects in Glyph than in a <em>well-configured</em> strict-TypeScript setup? That's the number that decides adoption, and we don't have it yet. It's a study we're building, and we won't dress up a proxy as if it were that answer. (The real comparison isn't Glyph vs naive TS; it's Glyph vs <a href=\"/answers/vs-tooled-ts/\">strict TS + zod + eslint + ts-pattern</a>.)",
+      "tr": "測る価値のある問いは 2 つあり、私たちはこれを分けて扱います。<strong>構造面：</strong>TypeScript が受け入れるもののうち、Glyph が構造上拒否するものは何か。これは現時点で証明でき、下に示しています。<strong>信頼性：</strong>エージェントが Glyph で書いたコードは、<em>きちんと設定した</em> strict な TypeScript の構成よりも、実際に出荷される欠陥が少ないのか。導入を決めるのはこの数値ですが、まだありません。構築中の調査で、代わりの指標をその答えであるかのように見せることはしません。（本当の比較は Glyph と素の TS ではなく、Glyph と <a href=\"/answers/vs-tooled-ts/\">strict な TS + zod + eslint + ts-pattern</a> です。）"
+    },
+    {
+      "id": "h-cae40d7f",
+      "kind": "html",
+      "en": "Structural: provable by construction",
+      "tr": "構造面：構造上証明できること"
+    },
+    {
+      "id": "h-2f56c6d4",
+      "kind": "html",
+      "en": "Not a statistic: paired demonstrations. Each is a case Glyph rejects and <code>tsc --strict</code> accepts, reproducible from the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory.",
+      "tr": "統計ではなく、対になった実証です。どれも Glyph が拒否し <code>tsc --strict</code> が受け入れるケースで、<a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> ディレクトリから再現できます。"
+    },
+    {
+      "id": "h-7d361f00",
+      "kind": "html",
+      "en": "Verifiability: the bugs that cost you",
+      "tr": "検証可能性：高くつくバグ"
+    },
+    {
+      "id": "h-b9c29918",
+      "kind": "html",
+      "en": "<span class=\"accent\">Both</span> caught at compile time",
+      "tr": "<span class=\"accent\">どちらも</span>コンパイル時に検出"
+    },
+    {
+      "id": "h-d9a4c68e",
+      "kind": "html",
+      "en": "Two mistakes agents make constantly (a missing <code>match</code> variant and a cast through <code>as unknown as</code>) are rejected by Glyph and accepted by <code>tsc --strict</code>. Both are checked cases in <code>catches/</code> (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>), re-run by the build gate. Wrong code that compiles is the expensive failure. Glyph won't let it.",
+      "tr": "エージェントがいつも犯す 2 つのミス（<code>match</code> のバリアントの漏れと、<code>as unknown as</code> を通したキャスト）は、Glyph では拒否され、<code>tsc --strict</code> では受け入れられます。どちらも <code>catches/</code> にある検証済みのケース（<code>non-exhaustive-match</code>、<code>E0200</code>。<code>as-unknown-as</code>、<code>E0013</code>）で、ビルドのゲートが再実行します。コンパイルが通る誤ったコードは高くつく失敗です。Glyph はそれを許しません。"
+    },
+    {
+      "id": "h-18ef286e",
+      "kind": "html",
+      "en": "Greppability: one name, one place",
+      "tr": "grep しやすさ：1 つの名前、1 つの場所"
+    },
+    {
+      "id": "h-7d95f946",
+      "kind": "html",
+      "en": "<span class=\"accent\">1</span> match, every time",
+      "tr": "いつでもマッチは <span class=\"accent\">1</span> 件"
+    },
+    {
+      "id": "h-c195e0eb",
+      "kind": "html",
+      "en": "Every symbol has exactly one declaration form: no overloads, decorators, or merged namespaces to scatter it.",
+      "tr": "すべてのシンボルは宣言の形をちょうど 1 つだけ持ちます。それを散らばらせるオーバーロード、デコレータ、マージされた namespace はありません。"
+    },
+    {
+      "id": "h-395c7a50",
+      "kind": "html",
+      "en": "Diff stability: reviewable by default",
+      "tr": "差分の安定性：最初からレビューしやすい"
+    },
+    {
+      "id": "h-eb7a3918",
+      "kind": "html",
+      "en": "1 line &rarr; 1 line",
+      "tr": "1 行 &rarr; 1 行"
+    },
+    {
+      "id": "h-78c7e9a8",
+      "kind": "html",
+      "en": "A one-line Glyph edit produces a one-line TypeScript diff through the transpiler, and <code>glyph fmt</code> adds no churn. The diff is the change, not the noise around it.",
+      "tr": "Glyph での 1 行の編集は、トランスパイラを通しても 1 行の TypeScript の差分になり、<code>glyph fmt</code> は余計な書き換えを加えません。差分は変更そのもので、周りのノイズではありません。"
+    },
+    {
+      "id": "h-6b841d3c",
+      "kind": "html",
+      "en": "And the safety does not cost length",
+      "tr": "そして安全性のためにコードが長くなるわけではない"
+    },
+    {
+      "id": "h-c31998ef",
+      "kind": "html",
+      "en": "Tokens for the same three functions",
+      "tr": "同じ 3 つの関数のトークン数"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-18885f27",
+      "kind": "html",
+      "en": "Python",
+      "tr": "Python"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-6cc8519b",
+      "kind": "html",
+      "en": "Go",
+      "tr": "Go"
+    },
+    {
+      "id": "h-d9aa89fd",
+      "kind": "html",
+      "en": "Rust",
+      "tr": "Rust"
+    },
+    {
+      "id": "h-df8eac6d",
+      "kind": "html",
+      "en": "Safety usually costs length: Go and Rust, the other rows with static types and explicit error handling, are the longest. Glyph has both and is not longer for it: 436 tokens to TypeScript's 478, about 9% fewer, level with Python, about 23% fewer than Go and 30% fewer than Rust, on real <code>cl100k_base</code> counts of programs that pass <code>glyph check</code> with <code>tsc</code>. The lead is in the function with real control flow (<code>parse_user</code>, 132 to 174); on the one-line <code>slugify</code> Glyph is longer (67 to 47) because it has no regex literal. Three functions, a small sample. An earlier figure of 341 was measured on fixtures the compiler did not accept and is withdrawn. <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">See the methodology and caveats &rarr;</a>",
+      "tr": "安全性はふつうコードの長さで払うものです。静的型と明示的なエラー処理を持つほかの行、Go と Rust が最も長くなっています。Glyph はその両方を持ちながら長くなりません。<code>glyph check</code> と <code>tsc</code> を通るプログラムを実際に <code>cl100k_base</code> で数えると、TypeScript の 478 に対して 436 トークンで、約 9% 少なく、Python と同程度、Go より約 23%、Rust より 30% 少なくなります。差がつくのは本当の制御フローを持つ関数（<code>parse_user</code>、132 対 174）で、1 行の <code>slugify</code> では Glyph のほうが長くなります（67 対 47）。正規表現リテラルがないからです。関数 3 つの小さなサンプルです。以前の 341 という数値は、コンパイラが受け入れない fixture で測ったものだったので撤回しました。<a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">方法と注意点を見る &rarr;</a>"
+    },
+    {
+      "id": "h-8ac5b0ca",
+      "kind": "html",
+      "en": "Reliability: the study we're building",
+      "tr": "信頼性：構築中の調査"
+    },
+    {
+      "id": "h-a81f267c",
+      "kind": "html",
+      "en": "The structural results above are <em>reasons to expect</em> Glyph helps; they are not proof that it does. The proof is a differential study: the same agent, the same realistic tasks, written once in Glyph and once in a fully-tooled strict-TypeScript setup (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod), scored on <strong>escaped semantic defects</strong> and one-shot green-build rate. That's the number five different reviewers told us would move them, so we're building it, and until it exists these bars are a placeholder, not a claim.",
+      "tr": "上の構造面の結果は、Glyph が役立つと<em>期待する理由</em>であって、役立つことの証明ではありません。証明となるのは差分比較の調査です。同じエージェントが同じ現実的なタスクを、Glyph で 1 回、ツールを完全に揃えた strict な TypeScript の構成（<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod）で 1 回書き、<strong>すり抜けた意味上の欠陥</strong>と、一発でビルドがグリーンになる割合で評価します。5 人の異なるレビュアーが、自分たちを動かすのはこの数値だと言ったので、私たちはこれを構築しています。それができるまで、これらの棒グラフは主張ではなくプレースホルダです。"
+    },
+    {
+      "id": "h-dcf46d14",
+      "kind": "html",
+      "en": "Escaped defects per task &middot; lower is better &middot; <span style=\"color:var(--amber)\">not measured yet</span>",
+      "tr": "タスクあたりのすり抜けた欠陥 &middot; 少ないほど良い &middot; <span style=\"color:var(--amber)\">まだ測定していません</span>"
+    },
+    {
+      "id": "h-bce540e4",
+      "kind": "html",
+      "en": "Glyph vs fully-tooled strict TypeScript",
+      "tr": "Glyph とツールを完全に揃えた strict な TypeScript"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "未測定"
+    },
+    {
+      "id": "h-e82e7273",
+      "kind": "html",
+      "en": "tooled TS",
+      "tr": "ツールを揃えた TS"
+    },
+    {
+      "id": "h-57cc1ce7",
+      "kind": "html",
+      "en": "The apparatus (a task corpus, a run/replay harness, and the pinned strongest-honest TS baseline) is in the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory; the first real pilot (with its <em>n</em>, the model, and the cost stated on the label) publishes here the moment it runs. Whatever it shows.",
+      "tr": "仕組み（タスクの集合、実行と再生のハーネス、バージョンを固定した、公正で最も強い TS のベースライン）は <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> ディレクトリにあります。最初の本格的な試行は、実行し次第ここに公開します（<em>n</em>、モデル、コストをラベルに明記します）。結果がどうであれ公開します。"
+    },
+    {
+      "id": "h-88029d8d",
+      "kind": "html",
+      "en": "Why the comparison is against tooled TS &rarr;",
+      "tr": "比較対象がツールを揃えた TS である理由 &rarr;"
+    },
+    {
+      "id": "h-c0b5c819",
+      "kind": "html",
+      "en": "&larr; Back to home",
+      "tr": "&larr; ホームに戻る"
+    }
+  ]
+}

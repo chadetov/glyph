@@ -1,0 +1,43 @@
+---
+title: TypeScript が通してしまい、Glyph が検出するもの · Glyph
+description: AI エージェントが書く、tsc --strict を通過してしまうコード。それぞれを Glyph で書いた同じプログラムと並べ、実際のコンパイラ出力とともに示します。ビルドのゲートがすべてのケースを再実行します。
+source_hash: 09d8897c06eb2254
+---
+      <header class="page-hero">
+        <p class="eyebrow">TypeScript が通してしまうケース</p>
+        <h1>出荷する前に検出する</h1>
+        <p class="lede">{{catches:breakdown}}</p>
+        <p class="lede">{{catches:measured}}</p>
+        <p class="lede">
+          各項目は <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> にある 2 つのプログラムで、その下の出力はツールが実際に表示したものです。ビルドのゲートである <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a> がすべてのケースを再実行し、どちらかがこのページの記述どおりに動かなくなると失敗します。検証に使う TypeScript の設定の全体は、このスクリプトにあります。
+        </p>
+      </header>
+
+      <section class="c-cases" id="cases">
+        <h2 class="group-head">TypeScript のミス {{catches:count}} 件</h2>
+{{catches:legend}}
+{{catches:filters}}
+{{catches:mistakes}}
+      </section>
+      <section class="c-section" id="traps">
+        <h2 class="group-head">Glyph には存在しない JavaScript の落とし穴 {{catches:trap-count}} 件</h2>
+        <p class="group-sub">
+          昔からある落とし穴ですが、エージェントは今でもときどきはまります。Glyph はどのプログラムも拒否しますが、ミスを見つけるからではありません。その原因となる機能が言語になく、代わりに使うものが示されるからです。
+        </p>
+{{catches:traps}}
+      </section>
+
+      <section class="c-section" id="not-yet">
+        <h2 class="group-head">Glyph がまだ検出できないもの</h2>
+        <p class="group-sub">
+          Glyph がまだ塞いでいない穴 {{catches:gap-cases}} 件。どれも現在の Glyph でコンパイルが通り、TypeScript と同じ誤った動作をします。それぞれに <code>catches/</code> の再現コードと未解決の gap 番号があり、修正が入るとゲートが失敗するので、穴が塞がった後に項目が残ることはありません。
+        </p>
+{{catches:gaps}}
+        <p class="group-sub c-after">
+          エージェントが書いたコードに関するどの研究でも、最大の分類はロジックの誤りで、型検査器にはそれが見えません。式の誤りやタスクの読み違いは、TypeScript と同じく Glyph でもコンパイルが通ります。
+        </p>
+        <p class="group-sub">
+          Glyph には、TypeScript で書くしかないもののための抜け道が 1 つだけあります。<code>extern_ts</code> です。固定のキーワードなので、<code>grep extern_ts</code> でルールが停止している場所をすべて一覧できます。
+        </p>
+      </section>
+{{catches:script}}

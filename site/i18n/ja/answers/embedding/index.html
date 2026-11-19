@@ -1,0 +1,54 @@
+---
+title: 既存のアプリの中で Glyph を導入できるか · Glyph
+description: 書き直しは不要です。アプリは TypeScript のまま、ドメインの中核を Glyph で書き、コンパイルされたモジュールをローカルファイルと同じように import します。素の Vite でそのまま動きます。
+source_hash: 4dc0a3c1d0f26ab3
+prev: /answers/imports/ | &larr; 前へ | 既存の TypeScript、JavaScript、npm のライブラリは使えますか。
+next: /answers/typed-apis/ | 次へ &rarr; | API ごとにバリデータを手書きする必要がありますか？
+---
+      <p class="q-eyebrow">10 &middot; アプリに組み込む</p>
+      <h1 class="q-title">既存のアプリの中で Glyph を導入できるか、それとも全面移行しかないのか</h1>
+
+      <p class="short-answer">
+        書き直しは不要です。アプリは TypeScript のままにして、間違えるわけにいかない部分（モデル、権限、状態遷移、金額計算）を Glyph で書きます。<code>glyph build</code> が出力するモジュールは、<strong>ローカルファイルと同じように</strong> アプリから import できます。バンドラの設定もパスエイリアスも要りません。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">なぜ重要か</h2>
+        <p>
+          たいていのチームはアプリケーションを書き直せませんし、アプリケーションの大部分には Glyph は必要ありません。必要なのはドメインの中核です。来月 AI エージェントが編集することになり、黙って間違っていては誰も困るルールの部分です。その中核を Glyph にしておけば、網羅的な <code>match</code>、キャストのないコード、検証された境界を、効果のある場所にだけ導入できます。React コンポーネント、スタイル、インフラはふつうの TypeScript のままです。
+        </p>
+
+        <h2 class="block-label">実例</h2>
+        <p>Glyph のソースを 1 つのディレクトリにまとめ、アプリにコンパイルして、UI から import します。</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">ハイブリッド構成：ドメインの中核は Glyph、それ以外はすべて TypeScript</span>
+<pre>src/
+  glyph/          # models.glyph, permissions.glyph, analytics.glyph
+  generated/      # glyph build --out src/generated src/glyph
+  components/     # hand-written React/TSX
+
+<span class="add">// BoardContext.tsx: the app imports compiled Glyph like a local module</span>
+import { TaskCard, can_move } from "../generated/models";
+
+const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          出力されたコードが必要とするものは、すべてコードと一緒に運ばれます。import は同梱の標準ライブラリも含めてすべて相対パスなので、プロジェクトの <code>tsconfig.json</code> にもバンドラにも何も追加する必要がありません。素の Vite の雛形がそのまま出力をコンパイル・バンドルでき、同じファイルはホスト側の <code>tsc --strict</code> も通ります。アプリから import するものには <code>pub</code> を付けます。付いていない宣言はそのモジュール内に閉じます。これは仮定の話ではありません。外部のエンジニアが<a href="https://github.com/yildizadem/glyph-kanban">この方法で React のカンバンボードを作りました</a>。RBAC のマトリクス、分析用の計算式、ステータス遷移を 4 つの Glyph モジュールに置き、その上に手書きの React UI を載せています。
+        </p>
+      </div>
+
+      <h2 class="block-label">現状</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">提供中</h3>
+          <p>出力はそのままホストのプロジェクトに組み込めます。指定子はすべて相対パスで、prelude の型はコード自身が持ち運びます。素の Vite の雛形、ホスト側の <code>tsc --strict</code>、esbuild、<code>tsx</code> で検証済みです。ハイブリッド構成は<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">デプロイガイド</a>に記載しています。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">予定</h3>
+          <p>watch モードはまだありません。<code>.glyph</code> のソースを編集したら <code>glyph build</code> を再実行してください（<code>dev</code> スクリプトに組み込むと便利です）。<code>std/fs</code> や <code>std/net</code> を使うモジュールは、Node に触れる TypeScript と同じく、ホスト側に <code>@types/node</code> が必要です。</p>
+        </div>
+      </div>

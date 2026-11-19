@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/binary/index.html",
+  "locale": "ja",
+  "source_hash": "597ac2fe9fcb5f04",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I handle binary data, or is everything a string? · Glyph",
+      "tr": "バイナリデータは扱えるのか、それとも何でも文字列なのか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "std/bytes gives Glyph an immutable byte sequence, with hex, base64 and base32 codecs that refuse malformed input, plus file I/O and HMACs over bytes.",
+      "tr": "std/bytes は Glyph に不変のバイト列を提供します。不正な入力を拒否する hex、base64、base32 のコーデックに加え、バイト列でのファイル I/O と HMAC もあります。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 前へ"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "サーバーは書けるのか、それともプロセスはすぐ終了するのか"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "次へ &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can the compiler tell me what a change will break before I make it?",
+      "tr": "変更を加える前に、それが何を壊すかをコンパイラが教えてくれるか？"
+    },
+    {
+      "id": "h-a24343fd",
+      "kind": "html",
+      "en": "20 &middot; Binary data",
+      "tr": "20 &middot; バイナリデータ"
+    },
+    {
+      "id": "h-0a58139d",
+      "kind": "html",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "バイナリデータは扱えるのか、それとも何でも文字列なのか"
+    },
+    {
+      "id": "h-50ebd61b",
+      "kind": "html",
+      "en": "<code>std/bytes</code> gives you an immutable sequence of octets, and <code>std/fs</code> and <code>std/crypto</code> both speak it. Until 0.1.78 they did not: every boundary in the standard library was string-in, string-out, so a PNG could not be read and an HMAC could not be given a real key.",
+      "tr": "<code>std/bytes</code> は不変のオクテット列を提供し、<code>std/fs</code> と <code>std/crypto</code> はどちらもそれを扱えます。0.1.78 より前はそうではありませんでした。標準ライブラリの境界はすべて文字列を受け取って文字列を返す形だったので、PNG を読むことも、HMAC に本物の鍵を渡すこともできませんでした。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "h-fb444517",
+      "kind": "html",
+      "en": "A PNG's first byte is <code>0x89</code>, which is not valid UTF-8 on its own. Read that file as text and every byte the decoder cannot make sense of becomes U+FFFD, so the file is corrupt before your program sees it and nothing reports an error. The same thing happens to a key: an HMAC secret is arbitrary octets, and routing one through a string changes it, so you compute a different MAC than the specification says and every test you wrote against your own code passes.",
+      "tr": "PNG の先頭バイトは <code>0x89</code> で、これ単体では有効な UTF-8 ではありません。このファイルをテキストとして読むと、デコーダが解釈できないバイトはすべて U+FFFD になります。プログラムが目にする前にファイルは壊れていて、エラーを報告するものは何もありません。鍵でも同じことが起きます。HMAC の秘密鍵は任意のオクテット列で、文字列を経由させると変わってしまいます。その結果、仕様とは違う MAC を計算することになり、しかも自分のコードに対して書いたテストはすべて通ります。"
+    },
+    {
+      "id": "h-2923da28",
+      "kind": "html",
+      "en": "Two applications written independently, one a PNG reader and one an authenticator, stopped on this same sentence in the same week. Neither could be worked around inside the language.",
+      "tr": "別々に書かれた 2 つのアプリケーション、PNG リーダーと認証アプリが、同じ週にこの同じ問題で止まりました。どちらも言語の中で回避することはできませんでした。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "実例"
+    },
+    {
+      "id": "h-1575f58f",
+      "kind": "html",
+      "en": "An RFC 6238 authenticator, which needs bytes on both sides of the HMAC. The secret arrives base32-encoded, the message is an eight-byte counter that is mostly zero, and the digest is indexed by its own last byte:",
+      "tr": "RFC 6238 の認証アプリです。HMAC の両側でバイト列が必要になります。秘密鍵は base32 でエンコードされて届き、メッセージはほとんどがゼロの 8 バイトのカウンタで、ダイジェストは自身の最後のバイトでインデックスされます："
+    },
+    {
+      "id": "h-e573d962",
+      "kind": "html",
+      "en": "One-time password, start to finish",
+      "tr": "ワンタイムパスワードの最初から最後まで"
+    },
+    {
+      "id": "h-1280c9e1",
+      "kind": "html",
+      "en": "<code>Bytes</code> is a <code>Uint8Array</code> at run time, so it hands to any host API that takes one without unwrapping. The sequence operations are named after their peers in <code>std/array</code> and <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Nothing mutates its argument.",
+      "tr": "<code>Bytes</code> は実行時には <code>Uint8Array</code> なので、それを受け取るホスト API にそのまま渡せます。列の操作は <code>std/array</code> や <code>std/string</code> の対応する関数にならって名付けられています：<code>len</code>、<code>get</code>、<code>slice</code>、<code>concat</code>、<code>index_of</code>、<code>starts_with</code>。引数を変更するものはありません。"
+    },
+    {
+      "id": "h-53d05d13",
+      "kind": "html",
+      "en": "Every decode can refuse, and says where",
+      "tr": "どのデコードも拒否でき、その位置を示す"
+    },
+    {
+      "id": "h-5a77fb2e",
+      "kind": "html",
+      "en": "This is the part that cost the most to build and is the reason to use it. Node's <code>Buffer</code> accepts malformed input and reports success:",
+      "tr": "ここが作るのに最もコストがかかった部分で、使う理由でもあります。Node の <code>Buffer</code> は不正な入力を受け入れ、成功を報告します："
+    },
+    {
+      "id": "h-53c32033",
+      "kind": "html",
+      "en": "What the platform does quietly",
+      "tr": "プラットフォームが黙ってすること"
+    },
+    {
+      "id": "h-f57d9b58",
+      "kind": "html",
+      "en": "What Glyph does",
+      "tr": "Glyph がすること"
+    },
+    {
+      "id": "h-ce7398d8",
+      "kind": "html",
+      "en": "Every codec is written out rather than delegated to <code>Buffer</code>, so hex, base64, base64url and base32 all refuse a character outside their alphabet, a trailing group too short to encode a whole byte, and a final character carrying bits past the end of the data. <code>to_text</code> scans to find the first byte that cannot be part of a valid UTF-8 sequence, so you get a position rather than a verdict. <code>from_array</code> rejects anything outside 0..255 for the same reason: a silent <code>&amp; 0xff</code> turns 256 into 0 and a typo into data.",
+      "tr": "どのコーデックも <code>Buffer</code> に任せずに自前で書いてあります。そのため hex、base64、base64url、base32 はどれも、アルファベット外の文字、1 バイトをエンコードするには短すぎる末尾のグループ、データの終わりを越えるビットを持つ最後の文字を拒否します。<code>to_text</code> は走査して、有効な UTF-8 シーケンスの一部になりえない最初のバイトを見つけるので、判定だけでなく位置がわかります。<code>from_array</code> も同じ理由で 0..255 の範囲外を拒否します。黙って <code>&amp; 0xff</code> をかけると、256 が 0 になり、タイポがデータになってしまうからです。"
+    },
+    {
+      "id": "h-5b1335e7",
+      "kind": "html",
+      "en": "Writing the codecs out bought something that was not the motive. The module reaches for no host API at all, only <code>Uint8Array</code>, <code>TextEncoder</code> and <code>TextDecoder</code>, so a bundle that touches only <code>std/bytes</code> still runs in a Web Worker.",
+      "tr": "コーデックを自前で書いたことで、狙っていなかった利点も得られました。このモジュールはホスト API を一切使わず、使うのは <code>Uint8Array</code>、<code>TextEncoder</code>、<code>TextDecoder</code> だけです。そのため <code>std/bytes</code> だけを使うバンドルは Web Worker でも動きます。"
+    },
+    {
+      "id": "h-12c85de2",
+      "kind": "html",
+      "en": "Which HMAC you pick changes the answer",
+      "tr": "どの HMAC を選ぶかで答えが変わる"
+    },
+    {
+      "id": "h-45fc3393",
+      "kind": "html",
+      "en": "<code>std/crypto</code> now has both forms of every algorithm. The plain name takes a string and returns hex, which is what hashing a password wants. The <code>_bytes</code> form takes and returns <code>Bytes</code>, which is what a wire protocol wants. If the key came from <code>bytes.from_base64</code> or <code>crypto.random_bytes</code>, it has bytes a string cannot hold, and the text form will quietly compute something else.",
+      "tr": "<code>std/crypto</code> には、どのアルゴリズムにも 2 つの形があります。素の名前のものは文字列を受け取って hex を返し、パスワードのハッシュ化に向いています。<code>_bytes</code> の形は <code>Bytes</code> を受け取って返し、通信プロトコルに向いています。鍵が <code>bytes.from_base64</code> や <code>crypto.random_bytes</code> から来たものなら、文字列では表せないバイトを含んでいるので、テキスト版は黙って別のものを計算してしまいます。"
+    },
+    {
+      "id": "h-168ab7fa",
+      "kind": "html",
+      "en": "Verifying an attacker-supplied value against a secret uses <code>crypto.timing_safe_equal</code>, not <code>bytes.equals</code>. <code>equals</code> returns as soon as it finds a mismatch, so how long it takes says how many leading bytes were right.",
+      "tr": "攻撃者が渡した値を秘密と照合するには、<code>bytes.equals</code> ではなく <code>crypto.timing_safe_equal</code> を使います。<code>equals</code> は不一致を見つけた時点で return するので、かかった時間から先頭の何バイトが合っていたかがわかってしまいます。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "現状"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "提供中"
+    },
+    {
+      "id": "h-f6e99ace",
+      "kind": "html",
+      "en": "<code>std/bytes</code> with 21 functions: the sequence operations, the UTF-8 bridge, and hex, base64, base64url and base32 codecs that return a <code>Result</code> naming the offending position. <code>fs.read_bytes</code>, <code>write_bytes</code> and <code>append_bytes</code> read and write a file undecoded. <code>std/crypto</code> has a <code>_bytes</code> form of every digest and HMAC, plus SHA-1 for the protocols that specify it, <code>random_bytes</code>, and <code>timing_safe_equal</code>. The codecs are pinned against the RFC 4648 vectors and the HMAC against RFC 6238, in the compiler's own test suite.",
+      "tr": "21 個の関数を持つ <code>std/bytes</code>：列の操作、UTF-8 との橋渡し、そして問題の位置を示す <code>Result</code> を返す hex、base64、base64url、base32 のコーデックです。<code>fs.read_bytes</code>、<code>write_bytes</code>、<code>append_bytes</code> はファイルをデコードせずに読み書きします。<code>std/crypto</code> には、すべてのダイジェストと HMAC の <code>_bytes</code> 版に加え、SHA-1 を指定するプロトコル向けの SHA-1、<code>random_bytes</code>、<code>timing_safe_equal</code> があります。コーデックは RFC 4648 のテストベクタで、HMAC は RFC 6238 で、コンパイラ自身のテストスイートの中で固定されています。"
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "改善中"
+    },
+    {
+      "id": "h-cbb9e44a",
+      "kind": "html",
+      "en": "There is no integer codec yet, so reading a big-endian <code>u32</code> out of a header is arithmetic you write: past 32 bits a shift is the wrong tool anyway, so it divides. Hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read. <code>std/websocket</code> still decodes a binary frame as UTF-8 text; the type it needed now exists, and the frames are next. And <code>std/encoding</code>'s six older string-to-string functions are still silent on malformed input, so use the <code>std/bytes</code> codecs for anything that has to be right. The codecs are written in TypeScript rather than delegating to node's <code>Buffer</code>, which is what lets them run in a Web Worker, and they are between 1x and 35x slower than the platform's on a megabyte. Encoding a key or a token costs nothing you can measure either way; the performance guide has the table if you are moving tens of megabytes.",
+      "tr": "整数のコーデックはまだないので、ヘッダからビッグエンディアンの <code>u32</code> を読むには自分で計算を書きます。32 ビットを超えるとシフトはそもそも適さないので、割り算を使います。16 進リテラルはまだパースできないので、10 進で書いた 256 要素の CRC32 テーブルは読みにくくなります。<code>std/websocket</code> はまだバイナリフレームを UTF-8 テキストとしてデコードします。必要だった型はもう存在するので、フレームが次の対応対象です。また <code>std/encoding</code> にある古い文字列から文字列への関数 6 つは、不正な入力に対して今も黙ったままなので、正しくなければならない処理には <code>std/bytes</code> のコーデックを使ってください。コーデックは node の <code>Buffer</code> に任せずに TypeScript で書かれています。それが Web Worker で動く理由ですが、1 メガバイトのデータではプラットフォームのものより 1 倍から 35 倍遅くなります。鍵やトークンのエンコードなら、どちらを使っても測れるほどのコストはかかりません。数十メガバイトを扱うなら、パフォーマンスガイドに表があります。"
+    }
+  ]
+}

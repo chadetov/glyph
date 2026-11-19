@@ -1,0 +1,260 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "evidence/index.html",
+  "locale": "ja",
+  "source_hash": "22fcc8a3d8e611cf",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Evidence · how each claim on this site is checked · Glyph",
+      "tr": "根拠 · このサイトの各主張をどう検証しているか · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How each claim on this site is checked: the catches fixtures and the CI gate behind them, the TypeScript setup they are compared with, and how to reproduce one.",
+      "tr": "このサイトの各主張をどう検証しているか：catches の fixture とその背後にある CI のゲート、比較対象の TypeScript の設定、そして 1 つのケースを再現する方法。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "The rest of the record",
+      "tr": "記録の残り"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "おすすめ"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "Catches",
+      "tr": "検出できるもの"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Every case: the TypeScript, the Glyph, the error, and whether tooled TypeScript would catch it.",
+      "tr": "すべてのケース：TypeScript のコード、Glyph のコード、エラー、そしてツールを揃えた TypeScript なら検出できたかどうか。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See every case",
+      "tr": "すべてのケースを見る"
+    },
+    {
+      "id": "ns./hardening/.title",
+      "kind": "ns.title",
+      "en": "Hardening",
+      "tr": "堅牢化"
+    },
+    {
+      "id": "ns./hardening/.desc",
+      "kind": "ns.desc",
+      "en": "How agents playing skeptical engineers attack the compiler, and the bugs that found.",
+      "tr": "懐疑的なエンジニアを演じるエージェントがコンパイラをどう攻撃し、どんなバグを見つけたか。"
+    },
+    {
+      "id": "ns./benchmarks/.title",
+      "kind": "ns.title",
+      "en": "Benchmarks",
+      "tr": "ベンチマーク"
+    },
+    {
+      "id": "ns./benchmarks/.desc",
+      "kind": "ns.desc",
+      "en": "What is measured (token density, grep, diffs) and the reliability study that isn't done yet.",
+      "tr": "何を測定しているか（トークン密度、grep、差分）と、まだ終わっていない信頼性の調査。"
+    },
+    {
+      "id": "ns./versions/.title",
+      "kind": "ns.title",
+      "en": "Versions",
+      "tr": "バージョン"
+    },
+    {
+      "id": "ns./versions/.desc",
+      "kind": "ns.desc",
+      "en": "Every release, what it changed, and which ones are Breaking.",
+      "tr": "すべてのリリースと、その変更内容、どれが Breaking か。"
+    },
+    {
+      "id": "h-03867aea",
+      "kind": "html",
+      "en": "Evidence",
+      "tr": "根拠"
+    },
+    {
+      "id": "h-dc5eb7de",
+      "kind": "html",
+      "en": "How each claim on this site is checked",
+      "tr": "このサイトの各主張をどう検証しているか"
+    },
+    {
+      "id": "h-e3358e09",
+      "kind": "html",
+      "en": "A claim that Glyph catches something is a pair of programs in the repository, one in TypeScript and one in Glyph, and a CI gate runs both on every change. If the TypeScript stops compiling or the Glyph stops being refused, the build fails. You can run any case yourself in two commands.",
+      "tr": "Glyph が何かを検出するという主張は、リポジトリにある 1 組のプログラムです。1 つは TypeScript、1 つは Glyph で書かれており、CI のゲートが変更のたびに両方を実行します。TypeScript のほうがコンパイルできなくなったり、Glyph のほうが拒否されなくなったりすると、ビルドが失敗します。どのケースも 2 つのコマンドで自分で実行できます。"
+    },
+    {
+      "id": "h-1fc65ae1",
+      "kind": "html",
+      "en": "The fixtures",
+      "tr": "fixture"
+    },
+    {
+      "id": "h-d916d7bf",
+      "kind": "html",
+      "en": "Each directory under <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> holds <code>ts.ts</code>, <code>glyph.glyph</code> and a <code>case.toml</code> saying what each one does. <code>scripts/check_catches.py</code> runs in CI. It requires every <code>ts.ts</code> to pass <code>tsc --strict</code>, since a TypeScript program that doesn't compile proves nothing, and checks the Glyph half according to the case's kind. {{catches:breakdown}} By the kind the gate checks:",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> の下の各ディレクトリには、<code>ts.ts</code>、<code>glyph.glyph</code>、そしてそれぞれが何をするかを記した <code>case.toml</code> があります。<code>scripts/check_catches.py</code> は CI で実行されます。コンパイルできない TypeScript のプログラムでは何も証明できないので、すべての <code>ts.ts</code> が <code>tsc --strict</code> を通ることを要求し、Glyph のほうはケースの種類に応じて検査します。{{catches:breakdown}} ゲートが検査する種類ごとに見ると、次のとおりです。"
+    },
+    {
+      "id": "h-f5387f9b",
+      "kind": "html",
+      "en": "Kind",
+      "tr": "種類"
+    },
+    {
+      "id": "h-2249bd50",
+      "kind": "html",
+      "en": "Cases",
+      "tr": "ケース数"
+    },
+    {
+      "id": "h-cdb22e2c",
+      "kind": "html",
+      "en": "What the gate requires of the Glyph",
+      "tr": "ゲートが Glyph のほうに求めること"
+    },
+    {
+      "id": "h-eb9256d3",
+      "kind": "html",
+      "en": "The build fails with the code in <code>case.toml</code>",
+      "tr": "<code>case.toml</code> にあるコードでビルドが失敗する"
+    },
+    {
+      "id": "h-ca67701b",
+      "kind": "html",
+      "en": "The build passes and reports that code as a warning",
+      "tr": "ビルドは通り、そのコードを警告として報告する"
+    },
+    {
+      "id": "h-1ee000e2",
+      "kind": "html",
+      "en": "The program runs, and the check at the boundary turns the bad data into an <code>Err</code>",
+      "tr": "プログラムは実行され、境界での検査が不正なデータを <code>Err</code> に変える"
+    },
+    {
+      "id": "h-16733f99",
+      "kind": "html",
+      "en": "The program builds, then stops when it runs, with the stated output",
+      "tr": "プログラムはビルドされ、実行時に記載どおりの出力で停止する"
+    },
+    {
+      "id": "h-822949d7",
+      "kind": "html",
+      "en": "Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case",
+      "tr": "Glyph はプログラムを受け入れ、プログラムは誤った動作をする。穴が塞がるとゲートが失敗し、ケースを移すよう伝える"
+    },
+    {
+      "id": "h-92bc404d",
+      "kind": "html",
+      "en": "A case that stops being demonstrable is deleted rather than softened, and the <a href=\"https://github.com/chadetov/glyph/blob/main/catches/README.md\">catches README</a> lists the six that were deleted and why. One of them turned out to be caught by <code>tsc</code> too; another only worked because its TypeScript took a value as <code>any</code>.",
+      "tr": "示せなくなったケースは、手加減して残すのではなく削除します。<a href=\"https://github.com/chadetov/glyph/blob/main/catches/README.md\">catches の README</a> に、削除した 6 件とその理由が載っています。そのうち 1 件は <code>tsc</code> でも検出できると判明したもので、別の 1 件は TypeScript のほうが値を <code>any</code> として受け取っていたから成り立っていただけでした。"
+    },
+    {
+      "id": "h-db083445",
+      "kind": "html",
+      "en": "The TypeScript it is compared against",
+      "tr": "比較対象の TypeScript"
+    },
+    {
+      "id": "h-4d9ff34c",
+      "kind": "html",
+      "en": "Each case also says whether a fully configured TypeScript project would have caught the mistake, which is where the \"would TypeScript catch it\" tag comes from. \"Fully configured\" is <code>tsc --strict</code> plus every option that makes it stricter, and a typescript-eslint run. The gate installs the packages fresh on each run (TypeScript 6, eslint 9, typescript-eslint 8, tsx 4 and the latest <code>@types/node</code>) and fails, rather than skips, without the network.",
+      "tr": "各ケースには、最も厳しく設定した TypeScript のプロジェクトならそのミスを検出できたかどうかも記されています。「TypeScript なら検出できるか」のタグはここから来ています。「最も厳しく設定した」とは、<code>tsc --strict</code> に、それをさらに厳しくするすべてのオプションを加え、typescript-eslint も実行する構成です。ゲートは実行のたびにパッケージを新しくインストールし（TypeScript 6、eslint 9、typescript-eslint 8、tsx 4、最新の <code>@types/node</code>）、ネットワークがなければ飛ばすのではなく失敗します。"
+    },
+    {
+      "id": "h-f909a15d",
+      "kind": "html",
+      "en": "tsconfig options on top of strict",
+      "tr": "strict に加える tsconfig のオプション"
+    },
+    {
+      "id": "h-e79273f1",
+      "kind": "html",
+      "en": "A case's tag is <code>none</code>, <code>flag:</code> plus the one option that reports it, or <code>lint:</code> plus the rule. When the corrected program also trips a rule for an unrelated reason, the case carries <code>ts_ok.ts</code> and the tag only counts what fires on the mistake. For example, <code>non-exhaustive-match</code> is <code>lint:switch-exhaustiveness-check</code>: typescript-eslint catches it if you turn that rule on, and the page says so.",
+      "tr": "ケースのタグは、<code>none</code>、それを報告する 1 つのオプションを付けた <code>flag:</code>、またはルールを付けた <code>lint:</code> のいずれかです。修正後のプログラムも無関係な理由でルールに引っかかる場合、そのケースには <code>ts_ok.ts</code> があり、タグはミスに対して反応するものだけを数えます。たとえば <code>non-exhaustive-match</code> は <code>lint:switch-exhaustiveness-check</code> です。そのルールを有効にすれば typescript-eslint で検出でき、ページにもそう書かれています。"
+    },
+    {
+      "id": "h-e4bf87e8",
+      "kind": "html",
+      "en": "Reproduce one case",
+      "tr": "1 つのケースを再現する"
+    },
+    {
+      "id": "h-1e0de939",
+      "kind": "html",
+      "en": "Run the gate on a single case from a clone of the repository, or do it by hand. Both halves of <code>non-exhaustive-match</code>, as they ran for this page:",
+      "tr": "リポジトリを clone して 1 つのケースに対してゲートを実行するか、手で実行します。以下は、このページのために実行した <code>non-exhaustive-match</code> の両方の結果です。"
+    },
+    {
+      "id": "h-41fe29d9",
+      "kind": "html",
+      "en": "the gate, one case",
+      "tr": "ゲート、1 ケース"
+    },
+    {
+      "id": "h-fa9e17d5",
+      "kind": "html",
+      "en": "the TypeScript half, by hand",
+      "tr": "TypeScript のほう、手で実行"
+    },
+    {
+      "id": "h-ddaaa114",
+      "kind": "html",
+      "en": "the Glyph half, by hand",
+      "tr": "Glyph のほう、手で実行"
+    },
+    {
+      "id": "h-6672a1cf",
+      "kind": "html",
+      "en": "The snippets on this site compile",
+      "tr": "このサイトのコード例はコンパイルできる"
+    },
+    {
+      "id": "h-994c5a78",
+      "kind": "html",
+      "en": "<code>scripts/check_docs_compile.py</code> runs in CI and compiles every Glyph snippet on the site that stands on its own (it opens with <code>module</code> and declares something), plus the ones in the docs and <code>llms.txt</code>. A snippet that is meant to fail has to name the error it draws, and it has to draw exactly that one. Snippets that need React or an npm package are compiled against those packages' real types. Fragments are counted and skipped, and the count is printed so the skipped share stays visible.",
+      "tr": "<code>scripts/check_docs_compile.py</code> は CI で実行され、このサイトにある単独で成り立つ Glyph のコード例（<code>module</code> で始まり、何かを宣言しているもの）と、ドキュメントや <code>llms.txt</code> にあるものをすべてコンパイルします。失敗することを意図したコード例は、出すエラーの名前を書かなければならず、まさにそのエラーを出さなければなりません。React や npm パッケージが必要なコード例は、それらのパッケージの実際の型に対してコンパイルされます。断片は数えたうえで飛ばし、その件数を出力するので、飛ばした割合は見えるままです。"
+    },
+    {
+      "id": "h-260fe982",
+      "kind": "html",
+      "en": "What it does not catch yet",
+      "tr": "まだ検出できないもの"
+    },
+    {
+      "id": "h-e4a785b3",
+      "kind": "html",
+      "en": "The {{catches:gap-cases}} <code>gap</code> cases are on <a href=\"/catches/#not-yet\">the catches page</a>, each with its gap number. Every gap found by building apps in Glyph is in the ledger, <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>, where a bracketed marker is the only live status (<code>[FIXED]</code>, <code>[HALF FIXED]</code>, or none for open) and <code>scripts/check_gaps.py</code> fails CI when an open entry was last reproduced more than five releases ago.",
+      "tr": "<code>gap</code> のケース {{catches:gap-cases}} 件は、それぞれの gap 番号とともに<a href=\"/catches/#not-yet\">検出できるもののページ</a>に載っています。Glyph でアプリを作って見つかった穴はすべて台帳 <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> にあります。そこでは角括弧の印だけが現在の状態を表し（<code>[FIXED]</code>、<code>[HALF FIXED]</code>、未解決なら印なし）、未解決の項目の最後の再現が 5 リリース以上前だと <code>scripts/check_gaps.py</code> が CI を失敗させます。"
+    },
+    {
+      "id": "h-ae7fa29b",
+      "kind": "html",
+      "en": "How a release is marked Breaking",
+      "tr": "リリースに Breaking の印を付ける方法"
+    },
+    {
+      "id": "h-d28e217b",
+      "kind": "html",
+      "en": "A release is marked Breaking when it rejects a program the previous version accepted. That is decided by writing the smallest affected program and running it under the published previous release and the new binary, then comparing exit codes. It is not inferred from the wording of the notes. Releases before 0.1.99 were never tested this way, so an unmarked one is untested rather than safe. The record is on <a href=\"/versions/\">the versions page</a>.",
+      "tr": "前のバージョンが受け入れていたプログラムを拒否するリリースには Breaking の印が付きます。その判定は、影響を受ける最小のプログラムを書き、公開済みの前のリリースと新しいバイナリで実行して、終了コードを比べることで行います。リリースノートの文言から推測するのではありません。0.1.99 より前のリリースはこの方法で確認していないので、印のないものは安全なのではなく、未確認ということです。記録は<a href=\"/versions/\">バージョンのページ</a>にあります。"
+    }
+  ]
+}

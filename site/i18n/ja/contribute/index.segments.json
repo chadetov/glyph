@@ -1,0 +1,248 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "contribute/index.html",
+  "locale": "ja",
+  "source_hash": "98fd22506cb2f943",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Contribute · how the compiler is built, how to help · Glyph",
+      "tr": "コントリビュート · コンパイラの作りと貢献の方法 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How the Glyph compiler is built (a Rust workspace: lex, parse, resolve, typecheck, emit), how to build and test it, and how issues and pull requests work.",
+      "tr": "Glyph のコンパイラの作り（Rust のワークスペース：字句解析、構文解析、名前解決、型検査、出力）、ビルドとテストの方法、Issue とプルリクエストの扱い。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "次に読むもの"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Start here",
+      "tr": "ここから始める"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph.title",
+      "kind": "ns.title",
+      "en": "The repository",
+      "tr": "リポジトリ"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph.desc",
+      "kind": "ns.desc",
+      "en": "Source, issues, discussions and releases.",
+      "tr": "ソースコード、Issue、ディスカッション、リリース。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open it on GitHub",
+      "tr": "GitHub で開く"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "The design",
+      "tr": "設計"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars and the decision record every change is judged against.",
+      "tr": "4 つの柱と、あらゆる変更の判断基準になる設計判断の記録。"
+    },
+    {
+      "id": "h-97b0c61b",
+      "kind": "html",
+      "en": "Contribute",
+      "tr": "コントリビュート"
+    },
+    {
+      "id": "h-f8152d5e",
+      "kind": "html",
+      "en": "How the compiler is built, and how to help",
+      "tr": "コンパイラの作りと、貢献の方法"
+    },
+    {
+      "id": "h-874a5023",
+      "kind": "html",
+      "en": "The compiler is a Rust workspace of twelve crates in one public repository, licensed MIT or Apache-2.0. Bug reports with a small reproduction help most today. A change to the language starts as an issue, because every rule traces to a numbered design decision.",
+      "tr": "コンパイラは、1 つの公開リポジトリにある 12 個のクレートからなる Rust のワークスペースで、ライセンスは MIT または Apache-2.0 です。今いちばん役に立つのは、小さな再現コード付きのバグ報告です。言語への変更は Issue から始めます。どのルールも番号付きの設計判断にさかのぼれるからです。"
+    },
+    {
+      "id": "h-940e5ca3",
+      "kind": "html",
+      "en": "The pipeline",
+      "tr": "パイプライン"
+    },
+    {
+      "id": "h-a19553e3",
+      "kind": "html",
+      "en": "<code>glyph build</code> lexes, parses, resolves names, type-checks and emits TypeScript, then runs <code>tsc --strict</code> on what it wrote. The middle stages run as incremental queries on <a href=\"https://github.com/salsa-rs/salsa\">salsa</a>, so a re-check reuses the results an edit did not invalidate.",
+      "tr": "<code>glyph build</code> は字句解析、構文解析、名前解決、型検査を行って TypeScript を出力し、書き出したものに対して <code>tsc --strict</code> を実行します。中間の段階は <a href=\"https://github.com/salsa-rs/salsa\">salsa</a> 上のインクリメンタルなクエリとして動くので、再検査では編集で無効にならなかった結果が再利用されます。"
+    },
+    {
+      "id": "h-546976e1",
+      "kind": "html",
+      "en": "one .glyph file, through the crates",
+      "tr": "1 つの .glyph ファイルがクレートを通る流れ"
+    },
+    {
+      "id": "h-ef90fcdd",
+      "kind": "html",
+      "en": "Crate",
+      "tr": "クレート"
+    },
+    {
+      "id": "h-c74ea9dc",
+      "kind": "html",
+      "en": "What it does",
+      "tr": "役割"
+    },
+    {
+      "id": "h-0ef08b51",
+      "kind": "html",
+      "en": "Tokens, keywords, significant newlines, template literals",
+      "tr": "トークン、キーワード、意味を持つ改行、テンプレートリテラル"
+    },
+    {
+      "id": "h-9dcac089",
+      "kind": "html",
+      "en": "Syntax tree types, with a source span on every node",
+      "tr": "構文木の型。すべてのノードにソース上の範囲を持つ"
+    },
+    {
+      "id": "h-9883c2af",
+      "kind": "html",
+      "en": "Pratt parser for every decision in the spec, JSX included",
+      "tr": "仕様のすべての設計判断に対応する Pratt パーサー。JSX も含む"
+    },
+    {
+      "id": "h-e4e07009",
+      "kind": "html",
+      "en": "Name resolution, the module graph, cross-module import checks, the prelude",
+      "tr": "名前解決、モジュールグラフ、モジュール間の import の検査、prelude"
+    },
+    {
+      "id": "h-52d65da7",
+      "kind": "html",
+      "en": "The salsa query pipeline and cross-file invalidation",
+      "tr": "salsa のクエリパイプラインと、ファイルをまたいだ無効化"
+    },
+    {
+      "id": "h-0fbf280c",
+      "kind": "html",
+      "en": "Exhaustiveness, <code>?</code>, generics, <code>owned</code>, runtime descriptors, the stdlib model",
+      "tr": "網羅性、<code>?</code>、ジェネリクス、<code>owned</code>、実行時ディスクリプタ、標準ライブラリのモデル"
+    },
+    {
+      "id": "h-12794c13",
+      "kind": "html",
+      "en": "The TypeScript writer, descriptor generation, expression-level source maps",
+      "tr": "TypeScript の出力、ディスクリプタの生成、式単位のソースマップ"
+    },
+    {
+      "id": "h-eea25fb5",
+      "kind": "html",
+      "en": "<code>glyph fmt</code>: one layout, comment-preserving, idempotent",
+      "tr": "<code>glyph fmt</code>：レイアウトは 1 通りだけ、コメントを保持し、冪等"
+    },
+    {
+      "id": "h-01d7f937",
+      "kind": "html",
+      "en": "The language server and the MCP server, sharing one analysis layer",
+      "tr": "言語サーバーと MCP サーバー。1 つの解析層を共有する"
+    },
+    {
+      "id": "h-97f50295",
+      "kind": "html",
+      "en": "The <code>glyph</code> binary and every subcommand",
+      "tr": "<code>glyph</code> バイナリとすべてのサブコマンド"
+    },
+    {
+      "id": "h-7692d295",
+      "kind": "html",
+      "en": "The compiler in WebAssembly, which runs the playground",
+      "tr": "WebAssembly 版のコンパイラ。Playground を動かしている"
+    },
+    {
+      "id": "h-5a430b53",
+      "kind": "html",
+      "en": "A stub; tests run through the emitter and <code>tsx</code> instead",
+      "tr": "スタブ。テストは代わりに出力器と <code>tsx</code> を通して実行する"
+    },
+    {
+      "id": "h-47c936c4",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md\">glyph-compiler/README.md</a> has the full crate notes and the current test count.",
+      "tr": "クレートの詳しい説明と現在のテスト数は <a href=\"https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md\">glyph-compiler/README.md</a> にあります。"
+    },
+    {
+      "id": "h-ae97f6f1",
+      "kind": "html",
+      "en": "Build and test",
+      "tr": "ビルドとテスト"
+    },
+    {
+      "id": "h-ad0fde9e",
+      "kind": "html",
+      "en": "Rust 1.95 is pinned in <code>rust-toolchain.toml</code>. Some tests shell out to <code>tsc</code> and <code>tsx</code>, so install those too. CI runs clippy with warnings as errors, and neither <code>cargo build</code> nor <code>cargo test</code> runs it, so run the script before you push.",
+      "tr": "Rust 1.95 が <code>rust-toolchain.toml</code> で固定されています。一部のテストは <code>tsc</code> と <code>tsx</code> を呼び出すので、これらもインストールしてください。CI は警告をエラーとして clippy を実行しますが、<code>cargo build</code> も <code>cargo test</code> も clippy を実行しないので、push する前にスクリプトを実行してください。"
+    },
+    {
+      "id": "h-07e9fc9b",
+      "kind": "html",
+      "en": "from a clone",
+      "tr": "clone してから"
+    },
+    {
+      "id": "h-b879e6fa",
+      "kind": "html",
+      "en": "A new diagnostic comes with a program under <code>tests/negative/</code> that must fail with that code. A claim that Glyph catches something TypeScript misses goes in <code>catches/</code>, where <a href=\"/evidence/\">a gate runs both halves</a>.",
+      "tr": "新しい診断を追加するときは、そのコードで失敗しなければならないプログラムを <code>tests/negative/</code> に加えます。TypeScript が見逃すものを Glyph が検出するという主張は <code>catches/</code> に置き、そこで<a href=\"/evidence/\">ゲートが両方のプログラムを実行します</a>。"
+    },
+    {
+      "id": "h-ead58161",
+      "kind": "html",
+      "en": "What is planned, and what is broken",
+      "tr": "予定されていること、壊れていること"
+    },
+    {
+      "id": "h-574361b1",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">docs/roadmap/releases.md</a> is the release roadmap: what each shipped release did and what the next ones are for. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> is the gap ledger, every limitation found by building real apps, each numbered (<code>G</code> plus a number) with a status marker. An open gap with a reproduction is a good place to start.",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">docs/roadmap/releases.md</a> はリリースのロードマップで、リリース済みの各バージョンで何をしたか、次のリリースが何のためのものかが書かれています。<a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> は穴の台帳で、実際のアプリを作る中で見つかった制約がすべて、番号（<code>G</code> と数字）と状態の印付きで並んでいます。再現コードのある未解決の穴は、始めるのにちょうどよい場所です。"
+    },
+    {
+      "id": "h-55f877d3",
+      "kind": "html",
+      "en": "Issues and pull requests",
+      "tr": "Issue とプルリクエスト"
+    },
+    {
+      "id": "h-1be0f32e",
+      "kind": "html",
+      "en": "Toolchain fixes, diagnostics, docs and examples can go straight to a pull request. A change to syntax or semantics starts with an issue, and larger ones go through the RFC process in <code>docs/rfcs/</code>; a PR that relaxes a rule \"to be helpful\" will probably be declined, because the restriction is the point. Keep a pull request to one gap, usually one to three commits, and sign each commit (<code>git commit -s</code>). <code>main</code> is protected and merges are rebase-only. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md\">CONTRIBUTING.md</a> has the full rules, and issues labelled <a href=\"https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22\">good first issue</a> are scoped for a first change.",
+      "tr": "ツールチェーンの修正、診断、ドキュメント、サンプルは、直接プルリクエストにして構いません。構文や意味論の変更は Issue から始め、大きなものは <code>docs/rfcs/</code> の RFC プロセスを通します。「便利だから」とルールを緩めるプルリクエストは、おそらく採用されません。その制約こそが要点だからです。プルリクエストは 1 つの穴に絞り、通常はコミット 1 から 3 個にして、各コミットに署名してください（<code>git commit -s</code>）。<code>main</code> は保護されていて、マージは rebase のみです。詳しいルールは <a href=\"https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md\">CONTRIBUTING.md</a> にあり、<a href=\"https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22\">good first issue</a> ラベルの付いた Issue は、最初の変更に向くように範囲を絞ってあります。"
+    },
+    {
+      "id": "h-f3ec8e88",
+      "kind": "html",
+      "en": "Licence",
+      "tr": "ライセンス"
+    },
+    {
+      "id": "h-2e7bb863",
+      "kind": "html",
+      "en": "MIT or Apache-2.0, at your option (<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-MIT\">LICENSE-MIT</a>, <a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE\">LICENSE-APACHE</a>). Contributions are accepted under the same dual licence, certified by the sign-off line.",
+      "tr": "MIT または Apache-2.0 のどちらかを選べます（<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-MIT\">LICENSE-MIT</a>、<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE\">LICENSE-APACHE</a>）。コントリビューションも同じデュアルライセンスで受け付け、sign-off の行がそれを証明します。"
+    }
+  ]
+}

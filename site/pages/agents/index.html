@@ -4,6 +4,14 @@ description: The interface an agent or tool uses to work with Glyph: an MCP serv
 layout: article
 nav: agents
 sitemap: 2026-11-19 weekly 0.8
+next_steps: |
+  Each piece in depth
+  Start here | /mcp/ | agents | The MCP server | Setup, the eleven tools with their arguments, the <code>glyph query</code> verbs, and what the server doesn't do yet. | Set up the server
+  /answers/ask-the-compiler/ | answers | Can my agent ask the compiler what a symbol is? | <code>glyph_symbol</code>: a union's cases with the syntax that constructs each.
+  /answers/impact/ | answers | Can the compiler say what a change breaks first? | Six change kinds, one verdict per site, and the csvql run above in full.
+  /answers/repair-protocol/ | answers | Does a failed build tell my agent how to fix it? | <code>check --agent</code>, <code>glyph fix</code>, and a walkthrough with real output.
+  /answers/generated-docs/ | answers | Is the agent's documentation generated? | What <code>glyph llms</code> emits, where each number comes from, and what is still missing.
+  /answers/ai-authoring/ | answers | Can an AI write a language it has barely seen? | What carries over from TypeScript, and how the compiler covers the rest.
 ---
       <p class="q-eyebrow">For agents and tool builders</p>
       <h1 class="q-title">The compiler's interface for agents</h1>
@@ -147,17 +155,4 @@ sitemap: 2026-11-19 weekly 0.8
 glyph llms --json           <span class="cm"># the same, as data from the compiler's tables</span>
 glyph llms --negative E0200 <span class="cm"># wrong programs that draw E0200</span>
 glyph --explain E0200       <span class="cm"># the long explanation of one code</span></pre>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label">Each piece in depth</h2>
-      </div>
-
-      <div class="ans-cards">
-        <a class="a-card" href="/mcp/"><span class="q">The MCP server</span><p>Setup, the eleven tools with their arguments, the <code>glyph query</code> verbs, and what the server doesn't do yet.</p></a>
-        <a class="a-card" href="/answers/ask-the-compiler/"><span class="q">Can my agent ask the compiler what a symbol is?</span><p><code>glyph_symbol</code>: a union's cases with the syntax that constructs each.</p></a>
-        <a class="a-card" href="/answers/impact/"><span class="q">Can the compiler say what a change breaks first?</span><p>Six change kinds, one verdict per site, and the csvql run above in full.</p></a>
-        <a class="a-card" href="/answers/repair-protocol/"><span class="q">Does a failed build tell my agent how to fix it?</span><p><code>check --agent</code>, <code>glyph fix</code>, and a walkthrough with real output.</p></a>
-        <a class="a-card" href="/answers/generated-docs/"><span class="q">Is the agent's documentation generated?</span><p>What <code>glyph llms</code> emits, where each number comes from, and what is still missing.</p></a>
-        <a class="a-card" href="/answers/ai-authoring/"><span class="q">Can an AI write a language it has barely seen?</span><p>What carries over from TypeScript, and how the compiler covers the rest.</p></a>
       </div>

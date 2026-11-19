@@ -1,7 +1,7 @@
 ---
 title: Glyph: typisiert, kompiliert zu TypeScript, für KI-Agenten
 description: Glyph ist eine statisch typisierte Sprache, die zu TypeScript kompiliert, damit sich Code eines KI-Agenten ohne Rätselraten lesen, prüfen und ändern lässt.
-source_hash: dc3c50270be35784
+source_hash: a5087688a56d8e43
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, programmiersprache, typescript, transpiler, ki-agenten, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -17,9 +17,10 @@ head: |
           </p>
           <div class="install" title="Benötigt Node.js 18 oder neuer">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">kopieren</button>
           </div>
+          <p class="install-alt">Ohne globale Installation. Wer <code>glyph</code> lieber im PATH hat: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">Sehen, was es findet →</a>
             <a class="btn" href="/start/">In 10 Minuten loslegen →</a>

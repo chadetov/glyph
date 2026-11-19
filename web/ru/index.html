@@ -427,9 +427,10 @@
           </p>
           <div class="install" title="Нужен Node.js 18 или новее">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">копировать</button>
           </div>
+          <p class="install-alt">Глобальная установка не нужна. Чтобы <code>glyph</code> был в PATH: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">Посмотреть, что он ловит →</a>
             <a class="btn" href="/start/">Начать за 10 минут →</a>

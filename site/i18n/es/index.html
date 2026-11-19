@@ -1,7 +1,7 @@
 ---
 title: Glyph: tipado, compila a TypeScript, para agentes de IA
 description: Glyph es un lenguaje de tipado estático que compila a TypeScript, para que el código de un agente de IA se pueda leer, comprobar y modificar sin adivinar.
-source_hash: dc3c50270be35784
+source_hash: a5087688a56d8e43
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, lenguaje de programación, typescript, transpilador, agentes de ia, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -17,9 +17,10 @@ head: |
           </p>
           <div class="install" title="Requiere Node.js 18 o superior">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">copiar</button>
           </div>
+          <p class="install-alt">Sin instalar nada globalmente. Para tener <code>glyph</code> en el PATH: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">Mira qué detecta →</a>
             <a class="btn" href="/start/">Empieza en 10 minutos →</a>

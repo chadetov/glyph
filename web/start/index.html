@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Start Here · your first Glyph program in 10 minutes · Glyph</title>
-    <meta name="description" content="Install Glyph, scaffold a project, run it, break it on purpose, read the compiler error and fix it. Ten minutes, no prior Glyph knowledge needed." />
+    <meta name="description" content="Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally." />
     <link rel="canonical" href="https://glyphlang.io/start/" />
     <link rel="alternate" type="text/markdown" href="/start/index.md" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/start/" />
     <meta property="og:title" content="Start Here · your first Glyph program in 10 minutes" />
-    <meta property="og:description" content="Install Glyph, scaffold a project, run it, break it on purpose, read the compiler error and fix it. Ten minutes, no prior Glyph knowledge needed." />
+    <meta property="og:description" content="Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally." />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -35,7 +35,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/start/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Start Here","item":"https://glyphlang.io/start/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/start/#article","headline":"Start Here · your first Glyph program in 10 minutes","description":"Install Glyph, scaffold a project, run it, break it on purpose, read the compiler error and fix it. Ten minutes, no prior Glyph knowledge needed.","url":"https://glyphlang.io/start/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/start/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/start/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Start Here","item":"https://glyphlang.io/start/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/start/#article","headline":"Start Here · your first Glyph program in 10 minutes","description":"Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally.","url":"https://glyphlang.io/start/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/start/#breadcrumb"}}]}</script>
 
   </head>
   <body>
@@ -380,35 +380,44 @@
       <h1 class="q-title">Your first Glyph program</h1>
 
       <p class="short-answer">
-        Install it, scaffold a project, run it, then <strong>break it on purpose</strong> and read
+        Scaffold a project, run it, then <strong>break it on purpose</strong> and read
         the error the compiler gives you. No prior Glyph knowledge assumed. If you've written
         a little TypeScript, you'll follow every line.
       </p>
 
       <div class="detail">
-        <h2 class="block-label" id="1-install">1 &middot; Install<a class="h-anchor" href="#1-install" aria-label="Link to this section">#</a></h2>
+        <h2 class="block-label" id="1-create-a-project">1 &middot; Create a project<a class="h-anchor" href="#1-create-a-project" aria-label="Link to this section">#</a></h2>
         <p>
-          Glyph ships as a single prebuilt binary. You also need Node with <code>tsx</code> and
-          <code>typescript</code>, which Glyph uses to run and type-check.
+          Glyph ships on npm as a prebuilt binary for macOS and Linux (x64 and ARM) and Windows
+          (x64), and needs Node 18 or later. This path installs nothing globally:
+          <code>npx</code> fetches the compiler to scaffold the project, and the project pins its
+          own copy along with <code>tsx</code> and <code>typescript</code>, which Glyph uses to
+          run and type-check.
         </p>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
-<pre><span class="f">npm</span> install <span class="fl">-g</span> @glyphlang/glyph
-<span class="f">npm</span> install <span class="fl">-g</span> tsx typescript   <span class="cm"># run &amp; type-check toolchain</span>
-<span class="f">glyph</span> doctor                    <span class="cm"># confirms your toolchain is ready</span></pre>
+<pre><span class="f">npx</span> <span class="fl">-y</span> @glyphlang/glyph init hello
+<span class="f">cd</span> hello
+<span class="f">npm</span> install</pre>
+      </div>
+      <div class="detail">
+        <p>
+          If you'd rather have <code>glyph</code> on your PATH, install it globally with the two
+          tools it runs through, and drop the <code>npx</code> from the commands on this page:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal, the global alternative</span>
+<pre><span class="f">npm</span> install <span class="fl">-g</span> @glyphlang/glyph tsx typescript
+<span class="f">glyph</span> doctor                    <span class="cm"># confirms your toolchain is ready</span>
+<span class="f">glyph</span> init hello
+<span class="f">cd</span> hello</pre>
       </div>
 
       <div class="detail">
-        <h2 class="block-label" id="2-scaffold-a-project">2 &middot; Scaffold a project<a class="h-anchor" href="#2-scaffold-a-project" aria-label="Link to this section">#</a></h2>
+        <h2 class="block-label" id="2-look-at-what-it-made">2 &middot; Look at what it made<a class="h-anchor" href="#2-look-at-what-it-made" aria-label="Link to this section">#</a></h2>
         <p><code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a <code>package.json</code>, a <code>.gitignore</code>, and two files coding agents read on their own: <code>AGENTS.md</code>, which points at <code>glyph llms</code> for the full language reference, and <code>.mcp.json</code>, which registers <code>glyph mcp</code> so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, <code>glyph agents</code> writes those two. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.</p>
-      </div>
-      <div class="code">
-        <span class="cap">terminal</span>
-<pre><span class="f">glyph</span> init hello
-<span class="f">cd</span> hello</pre>
-      </div>
-      <div class="detail">
         <p>Open <code>src/main.glyph</code>. It's a hello-world:</p>
       </div>
       <div class="code">
@@ -433,13 +442,13 @@
       </div>
       <div class="code">
         <span class="cap">terminal</span>
-<pre><span class="f">glyph</span> run
+<pre><span class="f">npx</span> glyph run
 <span class="dim">hello from glyph</span></pre>
       </div>
       <div class="detail">
         <p>
-          <code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That's
-          the whole loop.
+          <code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That
+          is the loop you repeat for the rest of this page.
         </p>
 
         <h2 class="block-label" id="4-add-something-real">4 &middot; Add something real<a class="h-anchor" href="#4-add-something-real" aria-label="Link to this section">#</a></h2>
@@ -470,7 +479,7 @@
       </div>
       <div class="code">
         <span class="cap">terminal</span>
-<pre><span class="f">glyph</span> run
+<pre><span class="f">npx</span> glyph run
 <span class="dim">finished</span></pre>
       </div>
 
@@ -492,7 +501,7 @@
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ glyph run</span>
+        <span class="cap">$ npx glyph run</span>
 <pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Done`</span></span>
    <span class="bx">╭─</span>[main:6:10]
    <span class="bx">│</span>
@@ -519,7 +528,7 @@
       </div>
       <div class="code">
         <span class="cap">terminal</span>
-<pre><span class="f">glyph</span> run
+<pre><span class="f">npx</span> glyph run
 <span class="dim">finished</span></pre>
       </div>
 

@@ -20,9 +20,10 @@ head: |
           </p>
           <div class="install" title="Requires Node.js 18+">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">copy</button>
           </div>
+          <p class="install-alt">No global install needed. To put <code>glyph</code> on your PATH instead: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">See what it catches →</a>
             <a class="btn" href="/start/">Start in 10 minutes →</a>

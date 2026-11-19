@@ -7,7 +7,7 @@
 - [For agents and tool builders](https://glyphlang.io/agents/index.md): How an agent works with Glyph: an MCP server with eleven tools, the same queries on the command line, and glyph check --agent for repairing a red build.
 - [Evidence · how each claim on this site is checked](https://glyphlang.io/evidence/index.md): How each claim on this site is checked: the catches fixtures and the CI gate behind them, the TypeScript setup they are compared with, and how to reproduce one.
 - [Coming from TypeScript · what changes in Glyph](https://glyphlang.io/from-typescript/index.md): Glyph reads almost like TypeScript and compiles to it. What changes: a few syntax deltas, no any, as or !, one greppable escape hatch, and how npm works.
-- [Start Here · your first Glyph program in 10 minutes](https://glyphlang.io/start/index.md): Install Glyph, scaffold a project, run it, break it on purpose, read the compiler error and fix it. Ten minutes, no prior Glyph knowledge needed.
+- [Start Here · your first Glyph program in 10 minutes](https://glyphlang.io/start/index.md): Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally.
 - [For teams · what Glyph guarantees and costs](https://glyphlang.io/teams/index.md): For a lead weighing Glyph: what the compiler guarantees and where it stops, adopting it in a TypeScript app, the exit story, version pinning and pre-1.0 status.
 
 ## Answers

@@ -429,9 +429,10 @@
           </p>
           <div class="install" title="Node.js 18 이상 필요">
             <span class="prompt">$</span>
-            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <code id="install-cmd">npx -y @glyphlang/glyph init hello &amp;&amp; cd hello &amp;&amp; npm install &amp;&amp; npx glyph run</code>
             <button class="copy" onclick="copyInstall()">복사</button>
           </div>
+          <p class="install-alt">전역 설치가 필요 없습니다. <code>glyph</code>를 PATH에 두려면: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">무엇을 잡아내는지 보기 →</a>
             <a class="btn" href="/start/">10분 만에 시작하기 →</a>

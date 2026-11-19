@@ -1,0 +1,431 @@
+---
+title: ¿Por qué Glyph detecta lo mismo que tsc, pero antes? · Glyph
+description: Glyph informa de un await fuera de un async fn, de un brazo de match que no produce valor y de un mut que falta sobre tu código fuente, con la regla y el arreglo, antes que tsc.
+source_hash: 117852a982fffaf4
+prev: /answers/tooling/ | &larr; Anterior | ¿Cómo es la experiencia con el editor, la depuración y los errores?
+next: /answers/parse-errors/ | Siguiente &rarr; | Cuando falla un parseo, ¿me entero de por qué?
+---
+      <p class="q-eyebrow">26 &middot; Detectado antes</p>
+      <h1 class="q-title">¿Por qué Glyph detecta lo mismo que tsc, pero antes?</h1>
+
+      <p class="short-answer">
+        Porque un error sobre el TypeScript generado es un error sobre código que tú no escribiste. Glyph los informa sobre tu código fuente, con la regla que has incumplido y la edición que lo arregla.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por qué importa</h2>
+        <p>
+          Glyph compila a TypeScript y luego comprueba los tipos de la salida con <code>tsc --strict</code>, así que un error que Glyph no modela no se pierde. Vuelve una etapa más tarde, expresado en términos del archivo generado: un <code>TS1308</code> que señala un <code>await</code> en una función que nunca escribiste, o un <code>TS2366</code> sobre un <code>switch</code> que no escribiste. La línea se traslada de vuelta a tu <code>.glyph</code>, pero la explicación no.
+        </p>
+        <p>
+          Ese hueco es donde el compilador deja de enseñar. Así que cada regla que Glyph puede decidir por sí mismo sube de etapa: <code>await</code> fuera de un <code>async fn</code> (<code>E0222</code>), un brazo de <code>match</code> que no produce valor cuando el <code>match</code> se usa como valor (<code>E0223</code>) y una asignación escrita sin <code>mut</code> (<code>E0008</code>). Cada uno nombra la regla, cita la decisión que hay detrás y muestra el antes y el después.
+        </p>
+
+        <h2 class="block-label">Míralo</h2>
+        <p>
+          El caso del brazo es el que antes se escapaba del todo. <code>{}</code> en posición de brazo es un <em>bloque</em> vacío, no un record vacío, así que el brazo se ejecutaba y no producía nada:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph: un brazo que no produce nada, en una posición que necesita un valor</span>
+<pre>fn label(s: Status) -&gt; string {
+  let text = match s {
+<span class="del">    Loading =&gt; {},          // an empty block: the arm produces no value</span>
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+  }
+  return text
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
+   ╰─ End the arm with an expression, or `return` from it. `X =&gt; {}` is a no-op
+      only where the `match` is a statement.
+   note: A value-position arm lowers to `case X: { break; }` when it yields
+         nothing, so the value would be `undefined` at run time.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Antes de esto, el <code>switch</code> generado se salía de sus propios casos y <code>text</code> contenía <code>undefined</code> mientras su tipo decía <code>string</code>. <code>tsc</code> detecta algunas formas de eso y otras no. Glyph ahora lo decide siempre que la posición se puede decidir: un <code>let</code>, un <code>mut</code>, un <code>return</code> o el final de una función que declara un tipo de retorno. Un <code>match</code> usado como sentencia mantiene <code>X =&gt; {}</code> como la no-operación deliberada que es.
+        </p>
+        <p>
+          <code>await</code> es el mismo movimiento. Glyph no tiene una <code>Promise</code> visible para el usuario: un <code>async fn -&gt; T</code> se espera hasta obtener un <code>T</code>, así que un <code>await</code> en cualquier otro sitio no tiene nada que suspender. Antes eso era el <code>TS1308</code> de <code>tsc</code> sobre el archivo generado. Ahora es <code>E0222</code>, y decide la función que lo contiene más de cerca, así que una lambda síncrona dentro de un <code>async fn</code> es su propio contexto, la misma regla que usa TypeScript.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, sobre `fn total() -&gt; number { return await fetch_count() }`</span>
+<pre><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
+   ╰─ Mark the enclosing function `async fn`, or call a non-async function here.
+
+<span class="cm">// before: no Glyph diagnostic, then</span>
+<span class="dim">dist/main.ts:14:18 - error TS1308: 'await' expressions are only allowed
+within async functions and at the top levels of modules.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          El tercero trata de una regla que la gente incumple el primer día. Glyph marca cada mutación, así que reasignar un binding es <code>mut x = e</code> e introducir uno es <code>let x = e</code>. Un <code>x = e</code> a secas antes informaba "unexpected token: Equals", que nombra un carácter en lugar de la regla. Ahora es <code>E0008</code>, y <code>glyph --explain E0008</code> explica por qué existe la marca: cada sitio donde cambia un valor empieza con <code>mut</code>, así que <code>grep "mut total"</code> los encuentra todos.
+        </p>
+        <p>
+          El operador <code>?</code> recibe el mismo trato desde la otra dirección. <code>?</code> se expande en un binding más un <code>return</code> anticipado colocado antes de la sentencia en la que está, así que necesita una sentencia en la que expandirse. Funciona en un <code>let</code>, en un <code>return</code>, en un argumento y ahora en el cuerpo de un brazo de <code>match</code>. Donde no puede funcionar, el mensaje dice de qué posición se trata y cómo sacar el valor a un binding (<code>E0302</code> y <code>E0303</code>) en lugar de afirmar que el operador no está implementado.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">El caso peor: cuando tsc también está contento</h2>
+        <p>
+          Un error de <code>tsc</code> en el sitio equivocado es molesto. Un build limpio de un programa que significa otra cosa es el problema de verdad, y Glyph tenía uno. Cada nombre de nivel superior que declaras va tal cual al módulo generado, incluidos los constructores de variantes de una unión etiquetada, así que una variante llamada <code>Error</code> genera <code>export function Error(...)</code> en el nivel superior del módulo. El <code>new Error(...)</code> que el compilador escribe debajo llama entonces a tu variante.
+        </p>
+        <p>
+          <code>type Key = string | number</code> es el mismo defecto con mejor cara. En Glyph, <code>A | B</code> declara una unión etiquetada cuyos miembros son <em>constructores</em> de variantes, así que esa línea declara variantes llamadas <code>string</code> y <code>number</code>. Compilaba, pasaba <code>tsc --strict</code> y generaba un <code>export const number</code> que ocultaba el namespace <code>number</code> del preludio. Nada fallaba hasta que fallaba una llamada posterior a <code>number.to_string</code>.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, sobre una unión con una variante `Error`</span>
+<pre><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
+        references the JavaScript global `Error`, and this declaration would
+        shadow it</span>
+ 5 │   | Error(string)
+   │     ──────┬─────
+   ╰─ Rename it (e.g. `Error` -&gt; `Failure`). The name is legal TypeScript, so
+      nothing downstream catches the rebinding.
+
+<span class="cm">// before: no Glyph diagnostic, then, twenty lines later</span>
+<span class="dim">dist/main.ts:31:12 - error TS2345: Argument of type 'string' is not
+assignable to parameter of type ...</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          El span es la declaración, que es donde va el renombrado. La lista protegida se deriva del emisor y no de una lista general de globales de JavaScript, y un test hace grep sobre el emisor y falla cuando aparece una referencia a un global nuevo sin su entrada correspondiente. Ese test es lo importante: <code>Number</code> era inofensivo hasta que salió <code>int</code> y empezó a generar <code>Number.isInteger</code>, que es como esto llegó a una versión publicada. <code>Date</code>, <code>Math</code> y <code>JSON</code> siguen libres, porque nada de lo que genera Glyph los menciona.
+        </p>
+        <p>
+          El caso de la unión de primitivos tiene su propio código, <code>E0111</code>, porque rechazarlo sin explicarlo no enseña nada. Dice cómo se ha parseado realmente la línea, remite a las variantes con nombre y menciona <code>extern_ts("string | number")</code> para la frontera donde quieres la unión de TypeScript tal cual. Todos los nombres que Glyph no te deja usar están tabulados en <code>docs/reference/reserved-words.md</code>: las 32 palabras clave, las 33 palabras reservadas de TypeScript que hay detrás de <code>E0109</code> y la lista de ocultación, cada una con el motivo por el que el nombre está ocupado.
+        </p>
+        <p>
+          Conviene dejar claro lo que esto no hace. Sigues sin poder llamar <code>Error</code> a un tipo o a una variante, y la hoja de cálculo que destapó esto tiene una variante llamada <code>Cellerr</code> por ese motivo. El programa que quería ser sigue sin poder escribirse; lo que ha cambiado es que ahora el compilador lo dice en la declaración en lugar de dejar que el build se ponga en verde y signifique otra cosa. Hacer que el nombre sea utilizable implica transformar los nombres de Glyph al pasar a TypeScript, lo que cambia lo que ven una traza de pila, un <code>grep</code> sobre <code>dist/</code> y un shim <code>extern/</code> escrito a mano, así que no es un parche que podamos hacer sin avisar.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Un mensaje equivocado es peor que ningún mensaje</h2>
+        <p>
+          La lista de ocultación empezó con los nombres que el emisor escribe como <em>valores</em>. Le faltaban los que escribe como <em>tipos</em>, y eso produjo la versión más afilada de todo este problema. El <code>parse</code> de cada descriptor devuelve <code>Result&lt;T, Issue[]&gt;</code>, así que el módulo generado escribe <code>Issue</code> lo escribieras tú o no. Declara <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> en tu propio módulo y el tuyo gana, los objetos <code>Issue</code> generados llevan un campo <code>code</code> del que el tuyo no sabe nada, y el build falla con un error de <code>tsc</code> sobre código generado, con un span que apunta a otro sitio.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, antes: quince como este, ninguno cerca de la causa</span>
+<pre><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
+specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, ahora</span>
+<pre><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
+        references the Glyph prelude global `Issue`, and this declaration
+        would shadow it</span>
+   ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
+      the rebinding.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Record</code> se unió a la lista al mismo tiempo, archivado con los globales de JavaScript y no con los nombres del preludio, porque es un built-in de TypeScript y decir otra cosa haría que el mensaje se equivocara sobre de dónde viene el nombre. El test de desviación que hace grep sobre el emisor ahora cubre también los tipos ambientales, y tuvo que aprender a ver <code>Issue[]</code> en posición de tipo, que es el motivo por el que esto llegó a una versión publicada. <code>Schema</code>, <code>Component</code> y <code>Option</code> siguen siendo válidos por la misma regla que deja libre a <code>Date</code>: el emisor solo los escribe porque tú los escribiste en una anotación, así que declarar uno no oculta nada.
+        </p>
+        <p>
+          El otro de esta categoría era un import. La ruta de un import local se resuelve desde la raíz del build, el directorio que le pasas a <code>glyph build</code>, no desde el directorio del archivo que importa. Compila un árbol que lo contenga y <code>import catalog</code> no encuentra nada, y hasta ahora nada lo decía. El tipo se degradaba a unknown, un <code>match</code> sobre él perdía las variantes que estaba comprobando y lo que obtenías era <code>E0218</code>, match no exhaustivo, en un <code>match</code> que cubría todos los casos. Hacer lo que pedía ese mensaje habría añadido un brazo <code>else</code> muerto a código correcto.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build examples/apps, sobre `import catalog` dentro de csvql/</span>
+<pre><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
+        root `examples/apps`. There is a `csvql/catalog.glyph` under the
+        root; a local import path is resolved from the build root, not from
+        the importing file's directory (D15)</span>
+   ╰─ Build that module's own directory as the root, or spell the import path
+      as it reads from the root.
+
+<span class="cm">// before: no import diagnostic, then</span>
+<span class="dim">[E0218] non-exhaustive match on string   // on a match over all four values</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          El riesgo de una comprobación así es que salte con cosas que están bien, y un comprobador de imports que da falsas alarmas con cada paquete de npm es peor que el silencio al que sustituye. Así que el build primero reúne los nombres de módulo que puede resolver sin un archivo <code>.glyph</code>: cada <code>declare module "X"</code> bajo <code>&lt;root&gt;/.types/</code> y en el shim de Node incluido, más cada paquete del <code>node_modules</code> del proyecto. Un nombre de esa lista nunca se informa, aunque un archivo local comparta su nombre base. Cuando un proyecto no tiene <code>node_modules</code>, el compilador no puede distinguir una dependencia sin instalar de una errata, así que solo informa de lo que puede demostrar: un import al que responde algún archivo <code>.glyph</code> bajo la raíz.
+        </p>
+        <p>
+          La resolución en sí no ha cambiado. Compilan los mismos programas y fallan los mismos programas. Lo que ha cambiado es que el fallo ahora nombra el import en lugar de acusar a un <code>match</code> dos archivos más allá, y eso es todo: un compilador que informa de la causa equivocada te cuesta la hora que pasas persiguiéndola, y después el beneficio de la duda en cada mensaje siguiente.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Nombrar la regla, no el token</h2>
+        <p>
+          La versión más discreta del mismo problema es un error que es correcto y aun así no te dice nada. Un agente que escribía un árbol rojo-negro recurrió al constructor posicional que tiene todo lenguaje de la familia ML, y el parser se detuvo en la primera coma con &ldquo;expected <code>)</code>&rdquo; y el consejo &ldquo;add the expected token&rdquo;. Añadir un <code>)</code> ahí produce un programa distinto, no uno que funcione. Una variante de Glyph lleva un solo payload, y un payload con varios campos es un record. Ninguna de esas dos frases aparecía en la salida.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check, antes y ahora</span>
+<pre><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
+   ╰─ Add the expected token.</span>
+
+<span class="del">[E0010] a union variant carries one payload, but `Node` lists 6 positional
+        fields</span>
+   ╰─ Glyph has no tuple payload. Put the fields in one record and name them:
+      `Node({ /* name */: Color, /* name */: Tree&lt;K, V&gt;, /* name */: K,
+              /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
+      and destructure it by those names in a match arm.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Para decir eso, el parser tuvo que leer la lista entera antes de rechazarla, que es también lo que le permite contar. El span subraya los seis campos en lugar del separador en el que casualmente murió, y el record sugerido se construye a partir del nombre de la variante y los seis tipos del archivo, así que el arreglo nombra tu programa y no un ejemplo del de otra persona. Los nombres de los campos son lo único que el compilador no puede aportar, así que los deja como huecos.
+        </p>
+        <p>
+          La regla detrás del mensaje es una elección, no un hueco. <code>Node(Black, l, x, b, h, r)</code> es el intercambio de argumentos que pasa la comprobación de tipos, y la posición cuatro no le dice nada a quien lee. La forma con record nombra cada campo, un brazo de match nombra solo los campos que usa, y las dos cosas se pueden encontrar con <code>grep</code>.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Dos más de los que se encargó el checker en la 0.1.121</h2>
+        <p>
+          <code>Order { id: "a", total: 1 }</code> es lo que escribe alguien que viene de TypeScript para construir un record, y Glyph no tiene esa forma: un valor se escribe solo y el tipo va en la anotación. Lo que el compilador decía antes sobre esa línea era <code>E0108</code>, código inalcanzable, en un build que salía con 0, porque el nombre se resolvía al tipo y las llaves se parseaban como un bloque después del <code>return</code>. El nombre de un tipo escrito como valor es <code>E0228</code>, y el mensaje se lee de la declaración, así que un record lista sus campos, una unión etiquetada lista sus variantes con la forma de sus payloads y una unión de literales de string lista sus literales. <code>Order.parse(raw)</code> y <code>Order.is(v)</code> siguen siendo válidos, ya que el receptor del propio descriptor de un tipo es la única posición de expresión donde cabe el nombre de un tipo.
+        </p>
+        <p>
+          Eso arregló el caso en que el nombre era un tipo y dejó el parseo como estaba, así que <code>return h() { k: 2 }</code> seguía devolviendo <code>h()</code> y descartando las llaves con un aviso. Desde la 0.1.146, un <code>{</code> en la línea donde terminó una sentencia es <code>E0013</code> al parsear, sea cual sea el nombre que lo precede, y su ayuda da la misma reescritura. Desde la 0.1.149 la regla cubre todas las sentencias, no solo las que empiezan con una llave: <code>let s = "a" "b"</code> enlazaba <code>"a"</code> y descartaba <code>"b"</code>, y <code>return x as User</code> eran tres sentencias, ya que Glyph no tiene casts. Cada sentencia de un bloque empieza en su propia línea.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check, sobre un record construido al estilo de TypeScript</span>
+<pre><span class="del">[E0013] a statement cannot begin on the line where
+        `return Order` ends</span>
+   ╰─ Glyph has no `TypeName { ... }` construction form. Write the literal
+      alone and put the type on the annotation: `let o: Order = { id: "a" }`.
+
+<span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
+<span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          El otro es un contenedor del preludio asignado a un primitivo. <code>let x: string = o</code> con <code>o: Option&lt;int&gt;</code> no provocaba nada en el checker de Glyph, y tampoco pasar un <code>Nullable&lt;int&gt;</code> a un parámetro declarado <code>int</code>. Ahora hay cinco contenedores cubiertos en las dos direcciones: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> y <code>Nullable</code> nunca son un <code>string</code>, un <code>number</code> ni un <code>bool</code>, sean cuales sean sus argumentos, y <code>Nullable&lt;T&gt;</code> frente a un escalar se decide un nivel más adentro, frente a <code>T</code>, así que <code>let v: Nullable&lt;int&gt; = 3</code> sigue siendo correcto y <code>let v: Nullable&lt;int&gt; = "three"</code> es <code>E0204</code>. El caso de <code>Nullable</code> pertenece a esta página más que los otros, porque es uno que <code>tsc</code> no puede detectar: el <code>const v: number | null = 3</code> generado se estrecha de vuelta a <code>number</code> antes de comprobar la llamada, así que un tipo de frontera que existe para hacer visible <code>null</code> pasaba sin avisar donde se declaraba un <code>int</code>, y el checker de Glyph era el único sitio donde se podía detectar.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Después vinieron los mismos contenedores frente a un record o una unión declarados. Desde la 0.1.130, <code>let user: User = json.parse(body)</code> es <code>E0204</code>, se esperaba <code>User</code> y se encontró <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>. Antes solo lo decía <code>tsc</code>, lo que significaba que <code>glyph check --no-tsc</code>, el editor y el playground mostraban un archivo limpio justo en la línea que una frontera existe para hacer bien.
+        </p>
+        <p>
+          Un miembro mal escrito en un array o un string es el otro caso que antes esperaba a <code>tsc</code>. <code>xs.lenght</code> es <code>E0210</code> con "did you mean <code>length</code>", comprobado contra los miembros que la librería de TypeScript declara para arrays y strings, igual que la lectura de un campo de un record se comprueba contra sus campos. <code>tsc</code> habría rechazado los dos, así que un build que lo ejecutara ya estaba en rojo; lo que cambia es que el checker, y todo lo que se construye sobre él, los ve primero.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Y tres más, desde la 0.1.133</h2>
+        <p>
+          <code>let up = s.toUpperCase</code> pasa la comprobación de tipos en TypeScript y lanza una excepción cuando se ejecuta <code>up()</code>, porque la lectura pierde el string al que pertenece. Glyph lo rechaza como <code>E0234</code>, y también rechaza <code>.bind(s)</code> sobre él: envuelve la llamada en una lambda. El checker ahora sabe qué devuelve cada método de array y de string, a partir de una tabla generada de las propias declaraciones de TypeScript.
+        </p>
+        <p>
+          <code>r?.label</code> sobre un <code>Result</code> se lee como "propaga el error y luego lee el campo". Es optional chaining, y un <code>Result</code> nunca es null, así que lee el campo del objeto <code>Result</code> y no propaga nada. Un agente escribió exactamente eso mientras construía una herramienta de consultas CSV. Ahora es <code>E0236</code>, también sobre un <code>Option</code>, y la ayuda dice que primero enlaces con <code>?</code>.
+        </p>
+        <p>
+          <code>json.parse(body)</code> sin argumento de tipo es la lectura sin comprobar, un <code>Result&lt;unknown, ...&gt;</code>. Escrito donde se declaraba un <code>Result&lt;User, ...&gt;</code>, <code>tsc</code> antes infería <code>User</code> a partir de la declaración y el programa fallaba en la primera lectura de un campo. El emisor ahora escribe el <code>unknown</code> explícitamente, así que <code>glyph check</code> lo rechaza a través de <code>tsc</code>. El checker propio de Glyph todavía no detecta un <code>unknown</code> que acaba dentro de un tipo declarado, así que <code>--no-tsc</code> y el editor siguen sin ver un <code>Result&lt;unknown, ...&gt;</code> escrito donde se declara <code>Result&lt;User, ...&gt;</code>. (Un <code>let user: User = json.parse(body)</code> a secas es <code>E0204</code> del checker propio de Glyph, porque el tipo exterior ya es incorrecto.) Rechazar <code>unknown</code> a cualquier profundidad es G325, previsto para la 0.1.158.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Y dos más en la 0.1.122</h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> declara un conjunto finito de strings, y el checker de Glyph no comparaba un valor con él de ninguna manera. Un número, un <code>bool</code>, un record y un string fuera del conjunto pasaban todos <code>glyph check --no-tsc</code> con solo avisos de variables sin usar, mientras <code>tsc</code> rechazaba cada uno sobre el TypeScript generado. Así que un <code>glyph build</code> completo nunca se equivocaba en esto, pero las cuatro superficies que no tienen <code>tsc</code> en el ciclo sí: <code>--no-tsc</code>, el servidor de lenguaje, las herramientas MCP y el playground.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc, sobre un tipo que lista sus strings válidos</span>
+<pre>type Mode = "read" | "write"
+
+let a: Mode = 3
+let b: Mode = "rw"
+let c: Mode = takes_mode(true)
+let d: Mode = { x: 1 }
+<span class="cm">// before: four unused-variable warnings, exit 0</span>
+<span class="del">[E0204] type mismatch: expected `Mode`, found `number`
+[E0204] type mismatch: expected `Mode`, found `"rw"`
+[E0211] argument type mismatch: expected `Mode`, found `bool`
+[E0204] type mismatch: expected `Mode`, found `record`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Son los cuatro que informaba <code>tsc</code>, en las mismas cuatro sentencias, sin ejecutar <code>tsc</code>. La regla lee la unión como lo que es en tiempo de ejecución, un <code>string</code>, y le hace al checker la pregunta correspondiente sobre <code>string</code> en cada dirección, así que hereda las reglas que ya rechazan un record o un contenedor frente a un <code>string</code> en lugar de repetirlas forma a forma. Dos conjuntos de literales se comparan como conjuntos, así que una unión más estrecha puede ir donde se declara una más amplia; una cadena de alias se sigue por los dos lados; una unión importada se decide igual que una local; y en <code>Nullable&lt;Mode&gt;</code> se desciende manteniendo la unión intacta.
+        </p>
+        <p>
+          Una unión anidada en un campo de un record o en un argumento genérico se dejaba a <code>tsc</code> en la 0.1.122 y se decide en la 0.1.123. Ver más abajo.
+        </p>
+        <p>
+          El segundo no tiene nada que ver con <code>tsc</code>. El parser es de descenso recursivo sin límite de profundidad, así que una expresión anidada dos mil niveles agotaba la pila del proceso y abortaba con código de salida 134. Eso es malo en <code>glyph check</code> y peor en <code>glyph lsp</code> y <code>glyph mcp</code>, que leen todos los archivos bajo la raíz: un solo archivo patológico tumbaba el servidor para todo el workspace. Ahora es <code>E0011</code>, generado en el token que habría abierto el nivel 65.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">0.1.123: el literal que es un valor, no el <code>string</code> al que se genera</h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> ponía el conjunto en la declaración y nada en el valor, así que <code>"read"</code> era un <code>string</code> y <code>["read", "write"]</code> un <code>Array&lt;string&gt;</code>. Eso hacía indistinguibles dos programas: <code>return ["read", "write"]</code> donde se declara un <code>Array&lt;Mode&gt;</code>, que <code>tsc</code> compila, y <code>return xs</code> para un <code>xs: Array&lt;string&gt;</code>, que rechaza. La 0.1.122 renunció a decidir ese emparejamiento en lugar de equivocarse, y así acertaba con el programa correcto a costa de dejar pasar el incorrecto: <code>{ mode: "nope" }</code> frente a un <code>{ mode: Mode }</code> no provocaba nada.
+        </p>
+        <p>
+          Un literal de string escrito tiene ahora el tipo de un solo literal que escribe, el tipo de elemento de un literal de array es la unión de los de sus elementos, y un literal de array u objeto escrito se comprueba elemento a elemento y campo a campo frente al tipo declarado, así que el diagnóstico nombra el literal y lo subraya.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc, sobre un literal dentro de un contenedor</span>
+<pre>type Mode = "read" | "write"
+type Cfg = { mode: Mode }
+
+fn ok() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
+fn bad() -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }
+fn wrong() -&gt; Cfg { return { mode: "nope" } }
+<span class="cm">// 0.1.122: nothing, on all three</span>
+<span class="del">[E0204] type mismatch: expected `Mode`, found `"nope"`   (twice)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          El literal se ensancha de vuelta a <code>string</code> donde TypeScript lo ensancha: en un <code>let</code> sin anotación, cuyo <code>let</code> de TypeScript generado se ensancha igual, y en el binding de elemento de un <code>for</code> sobre un array escrito. Así que <code>let l = "read"</code> seguido de <code>takes_mode(l)</code> se rechaza aquí y es <code>TS2345</code> allí. Un <code>const</code> genera un <code>const</code> de TypeScript y mantiene su literal, así que <code>takes_mode(CM)</code> compila en los dos. Un tipo literal que llegó a través de un nombre no se ensancha, que es la propia regla de frescura de TypeScript. Cada fila de esto se decidió ejecutando <code>tsc --strict</code> sobre el TypeScript equivalente, no razonándolo.
+        </p>
+        <p>
+          Sigue habiendo un emparejamiento que no se decide: el argumento de clave de un <code>Record</code> frente al de otro <code>Record</code>. TypeScript escribe <code>Record&lt;string, V&gt;</code> como una index signature que cubre cada clave que declara un <code>Record&lt;Mode, V&gt;</code> y lo acepta en las dos direcciones, así que rechazarlo rechazaría un programa que compila. Hay dos formas más sobre las que el checker todavía no dice nada: un literal dentro de <code>Some(...)</code>, porque aquí un constructor del preludio todavía no tiene tipo, y un literal de record enlazado a un <code>let</code> sin anotación, porque no se sintetiza ningún tipo record para un literal de objeto.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Un módulo bajo <code>std/</code> era código muerto sin diagnóstico</h2>
+        <p>
+          <code>std/</code> y <code>extern/</code> nombran módulos que lleva el compilador, y el resolver los reservaba para los imports. Nada impedía que un archivo del proyecto <em>declarara</em> uno. <code>module std/io</code> en tu propio <code>src/io.glyph</code> compilaba sin errores, y luego <code>import std/io { shout }</code> se resolvía al stub e informaba de que <code>shout</code> no se exporta: tu archivo nunca se leía. Un archivo que no provoca ningún diagnóstico y no ejecuta ningún código es la peor situación en la que te puede dejar un compilador, porque nada en él parece incorrecto.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc, sobre src/io.glyph declarando `module std/io`</span>
+<pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
+
+<span class="del">[E0113] `std/io` declares a module under `std/`, a prefix reserved for the
+        modules the compiler carries (D15)</span>
+ 1 &#9474; module std/io
+   &#9474; &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+   &#9584;&#9472; Rename the module to a path of your own (`io`, `app/io`).</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          El prefijo se compara como primer segmento completo, así que <code>standard</code>, <code>externals/io</code>, <code>app/std</code> y <code>app/extern/helper</code> no se ven afectados, e importar bajo cualquiera de los dos prefijos sigue funcionando como siempre.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check, sobre `const x = ` seguido de 2,000 corchetes anidados</span>
+<pre><span class="cm">// before: thread 'main' has overflowed its stack
+//         fatal runtime error: stack overflow, aborting   (exit 134)</span>
+
+<span class="del">[E0011] this array literal nests deeper than the parser's limit of 64 levels</span>
+   &#9584;&#9472; Name the inner levels: pull them out into `let` bindings, or into a
+      `fn` that returns one of them, so no single expression, type or
+      pattern is more than 64 levels deep.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          El límite es 64 y se midió en lugar de elegirse. Un nivel de la construcción más costosa, un literal de array anidado, cuesta 7,792 bytes de pila en el build de release y 8,810 en el de debug, calculado buscando por bisección la pila de hilo más pequeña en la que se parsea una profundidad dada. La pila más pequeña sobre la que corre el parser es la de 2 MiB de un hilo lanzado, que es la que reciben los workers del servidor de lenguaje, y 64 niveles gastan menos de un tercio en el build más costoso. El anidamiento más profundo entre los 343 archivos <code>.glyph</code> de este repositorio es 16. El límite cubre por igual expresiones, tipos, patrones, bloques e hijos de JSX, y mil arrays hermanos se siguen parseando, porque la profundidad es el anidamiento de cada construcción y no un presupuesto que se gasta a lo largo del archivo.
+        </p>
+      </div>
+
+      <h2 class="block-label">Cuando ningún compilador se equivoca</h2>
+      <div class="detail">
+        <p>
+          Hay una tercera forma, y es la que peor se lee. Glyph no informa de nada, <code>tsc</code> informa de algo cierto, y el programa que escribiste estaba bien. Lo que falló es la traducción entre ambos.
+        </p>
+        <p>
+          Un binding en Glyph tiene un solo tipo durante toda su vida. TypeScript estrecha un binding a lo último que vio asignado, y su <code>boolean</code> es la unión <code>true | false</code>, así que <code>let done = false</code> llegaba a <code>tsc</code> con el tipo <code>false</code> y el brazo <code>true</code> del <code>switch</code> generado no tenía nada con qué coincidir.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">poll.glyph, y lo que tsc decía de él antes de la 0.1.89</span>
+<pre>fn classify() -&gt; int {
+  let done = false
+  match done {
+    true =&gt; { return 1 },
+    false =&gt; { return 0 },
+  }
+}
+
+<span class="cm">// no Glyph diagnostic, then</span>
+<span class="del">[TS2678] Type 'true' is not comparable to type 'false'.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Un tipo declarado como conjunto de literales de string fallaba igual, y también <code>==</code>, que volvía como <code>TS2367</code>: dos mensajes, dos códigos, una causa. La app que se topó con ello consultaba periódicamente un flag que establece el callback de un timer, que es como conviertes una API basada en eventos en un valor mientras Glyph no tenga una <code>Promise</code> que puedas construir a mano. Resultó que el callback no tenía nada que ver: cuatro líneas sin callback lo provocan.
+        </p>
+        <p>
+          El arreglo no es un diagnóstico nuevo, porque no hay nada que diagnosticar. El emisor ahora vuelve a declarar el tipo que el checker ya decidió, en los dos sitios que discriminan sobre un valor: el valor del <code>match</code> y cada lado de un <code>==</code> o <code>!=</code>. Cada lado se decide por su propio tipo e ignora lo que tiene al lado, así que una comparación entre dos bindings queda cubierta igual que una comparación con un literal.
+        </p>
+        <p>
+          Las comprobaciones que quieres siguen saltando. <code>m == "nope"</code> donde <code>m</code> es un <code>Mode</code> se sigue rechazando, y ahora el mensaje nombra <code>Mode</code> en lugar del único miembro que <code>m</code> casualmente contenía. Hacerlo en la asignación habría sido menos código y habría tirado eso por la borda: un cast a <code>Mode</code> se acepta donde la asignación anotada no, y la comprobación de pertenencia es la parte que Glyph deja a propósito a <code>tsc</code>.
+        </p>
+        <p>
+          Lo que cuesta es poco y merece nombrarse. Un cast puede estrechar además de confirmar, así que un valor que Glyph tipa como <code>bool</code> cuyo tipo de TypeScript salió <code>unknown</code> ahora pasa donde antes el <code>switch</code> se quejaba. Los dos tipos tienen que seguir siendo comparables, así que un modelo que se ha desviado lo suficiente como para importar, <code>string</code> frente a <code>bool</code>, informa <code>TS2352</code> en lugar de nada.
+        </p>
+      </div>
+
+      <h2 class="block-label">La misma errata, dos respuestas</h2>
+      <div class="detail">
+        <p>
+          Una función de la librería estándar mal escrita recibía antes una respuesta distinta según cómo hubieras escrito el import, que es el tipo de incoherencia que te enseña a no fiarte de ninguna de las dos respuestas.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">el import con nombre, siempre un E0105</span>
+<pre>import std/string { repeeat }
+<span class="del">[E0105] import: `repeeat` is not exported by `std/string`</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">la lectura del namespace, antes de la 0.1.72</span>
+<pre>import std/string
+string.repeeat(s, 2)
+<span class="del">[TS2551] Property 'repeeat' does not exist on type ... Did you mean 'repeat'?</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          La primera forma se comprobaba contra la lista de exports del módulo durante la resolución. La segunda no se comprobaba en absoluto, así que acababa en <code>tsc</code>, que veía un acceso a una propiedad de un objeto y respondía en esos términos. Las dos formas pasan ahora por la lista de exports, y las dos dicen <code>E0105</code>, nombrando el miembro y el módulo del que falta.
+        </p>
+        <p>
+          Activarlo encontró enseguida algo que nadie estaba buscando: un fixture de tests llevaba tiempo llamando a <code>fs.write</code>, cuando la función es <code>write_text</code>. Había pasado durante meses porque ese fixture se ejecuta con la comprobación de tipos desactivada, y nada más en el compilador miraba los miembros de un namespace. La lista de exports es ahora la autoridad para las dos formas, así que una comprobación aparte la mantiene alineada con lo que el runtime exporta de verdad. Esa comprobación se escribió y luego se rompió a propósito para confirmar que fallaba, y así descubrimos que su primera versión no comprobaba nada sin que nadie se diera cuenta.
+        </p>
+      </div>
+
+      <h2 class="block-label">Dónde está</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponible hoy</h3>
+          <p><code>E0222</code> para <code>await</code> fuera de un <code>async fn</code>, <code>E0223</code> para un brazo de <code>match</code> en posición de valor que no produce valor, <code>E0008</code> para una asignación sin <code>mut</code>, <code>E0010</code> para una variante con varios campos de payload posicionales cuando la forma que existe es la de record, <code>E0302</code>/<code>E0303</code> para un <code>?</code> en una posición desde la que no puede propagar, <code>E0110</code>/<code>E0111</code> para una declaración que ocultaría un nombre del que ya depende el módulo generado, <code>E0104</code> para un import local que no nombra ningún módulo bajo la raíz del build, <code>E0105</code> para un nombre que un módulo no exporta, tanto si llegaste a él con un import con nombre como a través de un namespace, <code>E0228</code> para el nombre de un tipo escrito donde se espera un valor, <code>E0013</code> para una sentencia que empieza en la línea donde terminó otra, que antes descartaba el valor que venía después, <code>E0204</code>/<code>E0211</code> para un contenedor del preludio asignado a o pasado como un primitivo o un record o unión declarados, incluido el caso de <code>Nullable&lt;T&gt;</code> que <code>tsc</code> estrecha y hace desaparecer, <code>E0210</code> para un miembro que un array o un string no tiene, esos mismos dos códigos para un valor que no está en el conjunto declarado de una unión de literales de string, <code>E0011</code> para una construcción anidada más allá de 64 niveles, <code>E0101</code> para una ruta de import relativa, que antes se detenía en el parser con un genérico "expected module path segment", y <code>E0113</code> para un módulo del proyecto declarado bajo <code>std/</code> o <code>extern/</code>, que antes compilaba sin errores y quedaba inalcanzable. La lista de ocultación cubre los tipos que el emisor escribe por su cuenta, así que <code>Issue</code> y <code>Record</code> se detectan en la declaración. Cada código tiene un arreglo de una línea, una nota que explica la regla y un texto largo en <code>glyph --explain</code>; <code>docs/error-codes.md</code> lista el catálogo y un test mantiene los dos alineados.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Cada vez más preciso</h3>
+          <p><code>array.map</code>, <code>flat_map</code> y <code>zip</code> todavía aceptan un callback <code>async</code> sin quejarse y devuelven un array de valores pendientes, que se imprime como <code>[object Promise]</code>; las cinco funciones de array que reciben un predicado sí lo impiden, con <code>E0211</code> en el callback. Modelar las otras tres de la misma forma también rechazaría <code>par.all(array.map(items, async fn ...))</code>, que es como Glyph ejecuta trabajo en concurrencia, porque un array de valores pendientes no tiene forma de escribirse en el lenguaje. Es una decisión del sistema de tipos y no una entrada que falte, así que sigue abierta. El inicializador de un <code>const</code> a nivel de módulo no tiene una función que lo contenga, así que se permite un <code>await</code> de nivel superior y el ESM generado lo ejecuta; si Glyph quiere inicialización asíncrona implícita de módulos sigue siendo una cuestión abierta de la especificación. <code>E0223</code> solo puede juzgar un <code>match</code> final cuando la función declara un tipo de retorno, así que un brazo dentro de una lambda sin anotar sigue llegando a <code>tsc</code>. En el lado de la ocultación, hay dos cosas a medias. <code>E0110</code> te dice que renombres en lugar de dejarte mantener el nombre, así que <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> y <code>Promise</code> siguen vetados para un tipo o una variante. Y <code>E0111</code> impide que <code>type Key = string | number</code> signifique lo que no es sin darte una forma de decirlo: una unión de dos tipos primitivos no tiene forma de escribirse en Glyph salvo con <code>extern_ts</code>, cuyo contenido su propio checker trata como opaco. Las uniones sin etiqueta afectan a la exhaustividad, a los descriptores de runtime y a <code>is</code>, así que es una decisión del sistema de tipos y no está planificada. <code>E0104</code> llega a <code>glyph build</code> y <code>glyph check</code> pero no al editor: el LSP analiza el texto de un documento sin raíz de build, y la carpeta del workspace tampoco lo es, así que adivinar produciría los falsos positivos que la comprobación se diseñó para evitar. Y un parámetro con una palabra reservada sigue escondiéndose detrás de un error no relacionado en el mismo archivo, porque un fallo en la fase de recolección se salta la fase de resolución que lo habría encontrado. Aparte, la fijación en el punto de lectura que mantiene comparable en un match un binding <code>bool</code> o de unión de literales de string solo sigue un alias de tipo dentro del módulo que se está generando, así que <code>pub type Ready = bool</code> en un módulo y <code>let r: catalog.Ready = false</code> en otro siguen llegando a <code>tsc</code> como <code>TS2678</code>. Las uniones de literales de string están cubiertas entre módulos con las tres formas de import, y desde la 0.1.123 el diagnóstico nombra la declaración (se esperaba <code>Mode</code>) con cualquier forma en lugar de imprimir su conjunto de literales con una de ellas.</p>
+        </div>
+      </div>

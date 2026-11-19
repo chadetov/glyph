@@ -1,0 +1,127 @@
+---
+title: Para agentes y para quien construye herramientas · Glyph
+description: Cómo trabaja un agente con Glyph: un servidor MCP con once herramientas, las mismas consultas en la línea de comandos y glyph check --agent para reparar un build en rojo.
+source_hash: 74db8e3bf226ba57
+next_steps: |
+  Cada pieza en detalle
+  Empieza aquí | /mcp/ | agents | El servidor MCP | Configuración, las once herramientas con sus argumentos, los verbos de <code>glyph query</code> y lo que el servidor todavía no hace. | Configurar el servidor
+  /answers/ask-the-compiler/ | lookup | ¿Puede mi agente preguntarle al compilador qué es un símbolo? | <code>glyph_symbol</code>: los casos de una unión con la sintaxis que construye cada uno.
+  /answers/impact/ | impact | ¿Puede el compilador decir qué rompe un cambio antes de hacerlo? | Seis tipos de cambio, un veredicto por sitio y la ejecución completa de csvql de arriba.
+  /answers/repair-protocol/ | repair | ¿Un build fallido le dice a mi agente cómo arreglarlo? | <code>check --agent</code>, <code>glyph fix</code> y un recorrido con salida real.
+  /answers/generated-docs/ | docs | ¿La documentación para el agente se genera? | Qué emite <code>glyph llms</code>, de dónde sale cada número y qué falta todavía.
+  /answers/ai-authoring/ | spark | ¿Puede una IA escribir un lenguaje que apenas ha visto? | Qué se mantiene de TypeScript y cómo cubre el compilador el resto.
+---
+      <p class="q-eyebrow">Para agentes y para quien construye herramientas</p>
+      <h1 class="q-title">La interfaz del compilador para agentes</h1>
+
+      <p class="short-answer">
+        Un agente puede preguntarle al compilador de Glyph qué es un símbolo, qué va a romper una edición y por qué ha fallado un build, y recibir JSON como respuesta. <code>glyph mcp</code> sirve once herramientas por stdio, cada una también disponible como verbo de <code>glyph query</code>, y <code>glyph llms</code> imprime la referencia del lenguaje sin conexión.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Configúralo</h2>
+        <p>
+          <code>glyph init</code> escribe este <code>.mcp.json</code> en un proyecto nuevo, y <code>glyph agents</code> lo escribe (con un <code>AGENTS.md</code> que apunta a <code>glyph llms</code>) en uno existente. Cualquier cliente MCP que lea el archivo lanza el servidor; no hay puerto ni daemon.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">.mcp.json, tal como lo escribe glyph init</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Una llamada, con su respuesta real</h2>
+        <p>
+          Un archivo lee un campo que su record no declara (<code>u.naem</code>). El agente llama a <code>glyph_diagnostics</code> y recibe el diagnóstico del propio compilador, con los campos que sí declara el record y el record al que pertenecen. Esta es la salida de la herramienta en la 0.1.149, recortada solo donde se indica.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">petición</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": {
+      "path": "src/user.glyph"
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">resultado</span>
+<pre>{
+  "diagnostics": [ {
+    "code": "E0210",
+    "severity": "error",
+    "stage": "typecheck",
+    "message": "type `U` has no field
+      `naem`; did you mean `name`?",
+    "alternatives": ["name", "email"],
+    "alternatives_kind": "fields",
+    "cause": "user::U",
+    "entity": "user::greet",
+    "file": "user.glyph",
+    "range": {
+      "start": { "line": 9, "col": 10 },
+      "end": { "line": 9, "col": 16 } },
+    ...
+  } ],
+  "member": true,
+  "module": "user",
+  "not_run": [
+    { "what": "tsc", ... },
+    { "what": "E0104, ...", ... },
+    { "what": "E0400, ...", ... } ],
+  "path": "src/user.glyph",
+  "project_root": "src",
+  "unindexed": []
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>not_run</code> indica lo que esta comprobación no cubrió, así que una lista de <code>diagnostics</code> vacía no se puede confundir con un build completo. Sin un cliente MCP, <code>glyph query diagnostics --path src/user.glyph</code> imprime el mismo JSON. La lista completa de herramientas, con cada verbo, está en <a href="/mcp/">la página de MCP</a>.
+        </p>
+
+        <h2 class="block-label">Antes de editar: ¿qué va a romper?</h2>
+        <p>
+          <code>examples/apps/csvql</code> es un motor de consultas CSV de once archivos con una unión de cuatro casos, <code>Value</code>. Al preguntarle qué pasa si se añade un quinto caso, <code>glyph_impact</code> lista 10 sitios con <code>match</code> en 4 archivos: 8 <code>WILL_FAIL</code> y 2 <code>ABSORBS</code>, donde un brazo comodín se tragará el caso nuevo y seguirá compilando. Añadir el caso de verdad da exactamente 8 errores <code>E0200</code>, en esos 8 sitios. Los 2 sitios que lo absorben no dicen nada, y por eso la respuesta los nombra.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">la misma pregunta en la línea de comandos</span>
+<pre>glyph query impact --path value.glyph --entity value::Value \
+  --change add_variant --variant Blob</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Después de un build en rojo: ¿qué tiene que respetar el arreglo?</h2>
+        <p>
+          <code>glyph check --agent</code> imprime los diagnósticos de <code>check --json</code> con dos claves más en cada uno. <code>constraints</code> lista lo que una edición de reparación no debe romper; para la errata de arriba dice "the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others". <code>symbols</code> lleva la respuesta de <code>glyph_symbol</code> para cada símbolo que nombra el diagnóstico, así que la siguiente edición no necesita una segunda llamada. Cuando el arreglo está totalmente determinado, <code>glyph fix</code> lo escribe.
+        </p>
+
+        <h2 class="block-label">Leer el lenguaje sin conexión</h2>
+        <p>
+          <code>glyph llms</code> imprime la referencia del lenguaje, y <code>/llms.txt</code> en este sitio es el mismo documento. <code>glyph llms --json</code> es ese conocimiento en forma de datos, leído de las propias tablas del compilador: 77 códigos de diagnóstico, 24 nombres del preludio, 40 módulos de la librería estándar con 340 exports, 49 decisiones del lenguaje y las once herramientas. <code>glyph llms --negative</code> devuelve 117 programas incorrectos en la 0.1.149 (139 a partir de la próxima versión) con el código que genera cada uno, compilados cuando lo pides. <code>scripts/check_llms_sync.py</code> falla cuando las tablas de diagnósticos y palabras reservadas de la referencia se desvían de las del compilador.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">puntos de entrada sin conexión</span>
+<pre>glyph llms                  <span class="cm"># the reference, as prose</span>
+glyph llms --json           <span class="cm"># the same, as data from the compiler's tables</span>
+glyph llms --negative E0200 <span class="cm"># wrong programs that draw E0200</span>
+glyph --explain E0200       <span class="cm"># the long explanation of one code</span></pre>
+      </div>

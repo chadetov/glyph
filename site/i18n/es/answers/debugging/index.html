@@ -1,0 +1,78 @@
+---
+title: ¿Qué ve la guardia cuando algo se rompe a las 3 de la mañana? · Glyph
+description: Glyph compila a TypeScript legible con un source map v3 que apunta a cada archivo .glyph, así que las trazas de pila y los errores de tsc señalan el Glyph que escribiste.
+source_hash: 23c0350a6befa9fd
+prev: /answers/parse-errors/ | &larr; Anterior | Cuando falla un parseo, ¿me entero de por qué?
+next: /playground/ | Ya lo has visto &rarr; | Ahora escribe algo de Glyph en el playground
+---
+      <p class="q-eyebrow">28 &middot; Operación</p>
+      <h1 class="q-title">Cuando se rompe en producción a las 3 de la mañana, ¿qué ve la guardia?</h1>
+
+      <p class="short-answer">
+        TypeScript legible que es tuyo, con un <strong>source map que apunta a tu <code>.glyph</code></strong> junto a cada archivo generado. Un depurador, un bundler o un rastreador de errores sigue el código en ejecución hasta tu código fuente, e incluso alguien que nunca ha visto Glyph puede leer el TS generado. Antes de todo eso, <code>glyph build</code> y <code>glyph run</code> informan de los mismos diagnósticos sobre el mismo árbol, así que el ciclo rápido no puede ocultar algo que el build habría detectado. Más abajo se señalan dos limitaciones, las dos en el camino de <code>glyph run</code>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; El TypeScript generado es tuyo y lo puedes leer</h2>
+        <p>
+          Glyph no trae un runtime opaco. Genera TypeScript normal y formateado que commiteas y despliegas como cualquier otro TS. Así que el peor caso (alguien de guardia que no conoce Glyph, a las 3 de la mañana) sigue leyendo TypeScript normal, no un dialecto. No hay ninguna caja negra entre tu código fuente y producción.
+        </p>
+
+        <h2 class="block-label">2 &middot; Source maps que apuntan a <code>.glyph</code></h2>
+        <p>
+          Cada <code>.ts</code> generado lleva al lado un source map v3 estándar (<code>.ts.map</code>), con un comentario <code>sourceMappingURL</code> y tu código Glyph incrustado (<code>sourcesContent</code>). Cualquier cosa que consuma source maps (Chrome DevTools, un depurador de Node, un rastreador de errores como Sentry, tu bundler) puede encadenarse a través de él y mostrarte la línea del <code>.glyph</code>, no la generada.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">dist/main.ts (final)</span>
+<pre>// ...emitted TypeScript...
+//# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">3 &middot; Los errores de build y de tipos ya señalan a Glyph</h2>
+        <p>
+          Rara vez llegas a producción con un error de tipos, porque <code>glyph build</code> ejecuta <code>tsc --strict</code> y <strong>traslada cada error de <code>tsc</code> a tu código fuente <code>.glyph</code></strong> (el mismo caret, con el código de error de TypeScript conservado). El caret va sobre la expresión de Glyph más pequeña cuyo código rechazó <code>tsc</code>: un argumento incorrecto subraya ese argumento, un campo mal escrito dentro de un handler de eventos de JSX subraya ese acceso al miembro, no todo el <code>return</code> que lo rodea. Y <code>glyph build --json</code> emite cada diagnóstico como JSON estructurado (código, severidad, archivo, línea/columna empezando en 1, ayuda) para que tu CI o tus herramientas actúen sobre él.
+        </p>
+
+        <h2 class="block-label">4 &middot; <code>glyph run</code> te dice lo mismo</h2>
+        <p>
+          El comando que tecleas todo el día es <code>glyph run</code>, y hasta la 0.1.40 era más callado que el build. Compilaba todo el directorio, sacaba del informe la lista de archivos generados y tiraba los diagnósticos. Un árbol en el que <code>glyph build</code> señalaba problemas se ejecutaba sin avisos y salía con 0. Ahora informa del mismo conjunto: avisos incluidos, en el archivo que nombraste y en sus hermanos, después de la salida del programa, con un recuento de una línea. La caché de ejecución los guarda, así que una segunda ejecución sobre fuentes sin cambios dice lo mismo que la primera en lugar de quedarse callada, y una entrada de caché a la que le faltan los diagnósticos cuenta como fallo de caché y se recompila.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">un import sin usar, añadido un paso antes del código que lo iba a usar</span>
+<pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
+<span class="cm">...the game plays and exits 0...</span>
+
+[E0106] Warning: lint: unused import `math`
+    ╭─[adventure:21:1]
+    │
+ 21 │ import std/math
+    │         ╰─────── unused import `math`
+    │ Help: Remove the import. Nothing in this module references it.
+
+glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Dos limitaciones actuales</h2>
+        <p>
+          <strong>La traza de pila de un fallo en <code>glyph run</code> todavía muestra números de línea del <code>.ts</code>.</strong> <code>glyph run</code> ejecuta mediante <code>tsx</code>, y <code>tsx</code> no encadena el source map a través de su propia transformación de <code>.ts</code>&rarr;<code>.js</code>, así que una excepción no capturada durante <code>glyph run</code> informa de la línea generada. Remapear esa traza es una tarea pendiente. Afecta al ciclo local de <code>run</code>; en un despliegue real haces <code>glyph build</code> a <code>.ts</code>, lo empaquetas con tu toolchain habitual, y el <code>.ts.map</code> se encadena como siempre, así que la traza de producción por la que te despiertan apunta a <code>.glyph</code>.
+        </p>
+        <p>
+          <strong>Un error en un módulo hermano no cambia el código de salida de <code>glyph run</code>.</strong> Un módulo que no compiló no se puede importar, y un programa que nunca lo importó se ejecuta igualmente. Ahora ves el error, pero el proceso sigue saliendo con lo que devolvió <code>main</code>. Hacer que salga con un código distinto de cero haría fallar árboles que hoy funcionan bien, así que es una decisión abierta y no un descuido. Si quieres que la salud del árbol decida el código de salida, eso es <code>glyph build</code>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Dónde está</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponible hoy</h3>
+          <p>TS legible y commiteado, un <code>.ts.map</code> v3 por archivo, errores de <code>tsc</code> trasladados a <code>.glyph</code> y diagnósticos con <code>--json</code>. <code>glyph run</code> informa de lo mismo que <code>glyph build</code>, también con la caché caliente. La cadena de source maps de tu toolchain de despliegue llega hasta <code>.glyph</code>.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">En camino</h3>
+          <p>Remapear la propia traza de pila de un fallo en <code>glyph run</code> (para que el ciclo local también muestre frames de <code>.glyph</code>), una decisión sobre si el error de un módulo hermano debe hacer que <code>glyph run</code> salga con un código distinto de cero, y una depuración más rica en el editor a través del LSP.</p>
+        </div>
+      </div>

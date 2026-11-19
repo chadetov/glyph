@@ -1,0 +1,229 @@
+---
+title: Si vienes de TypeScript · qué cambia en Glyph · Glyph
+description: Glyph se lee casi como TypeScript y compila a TypeScript. Lo que cambia: unas pocas diferencias de sintaxis, sin any, as ni !, una única vía de escape que se puede buscar con grep, y cómo funciona npm.
+source_hash: bc168f89faa5ea6e
+next_steps: |
+  Adónde ir ahora
+  Recomendado | /catches/ | catches | Mira lo que TypeScript deja pasar | Cada caso ejecutado con <code>tsc --strict</code> y con Glyph, con el error. | Ver los casos
+  /start/ | start | Escribe tu primer programa | Instala, crea el proyecto, ejecútalo, rómpelo a propósito, lee el error. Unos diez minutos.
+  /playground/ | playground | Pruébalo en el navegador | El compilador se ejecuta en la página, sin nada que instalar.
+---
+      <p class="q-eyebrow">Si vienes de TypeScript</p>
+      <h1 class="q-title">Qué cambia cuando ya escribes TypeScript</h1>
+
+      <p class="short-answer">
+        Menos de lo que esperas. Glyph compila a TypeScript que pasa <code>tsc --strict</code>, mantiene npm y tu despliegue, y se lee casi igual. Las diferencias son un puñado, y cada una cambia una forma de equivocarse por una comprobación que hace el compilador.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Si sabes TypeScript, ya sabes casi todo esto</h2>
+        <p>
+          No aprendes un lenguaje nuevo, solo estas cuatro cosas. Son las que aparecen en todos los ejemplos de este sitio.
+        </p>
+      </div>
+
+      <dl class="gloss-list">
+        <div>
+          <dt><code>match</code></dt>
+          <dd>Un <code>switch</code> exhaustivo: sobre una unión, el compilador te obliga a manejar cada caso. También es el único condicional: no hay <code>if</code>/<code>else</code> ni operador ternario, <a href="#there-is-no-if">se explica más abajo</a>.</dd>
+        </div>
+        <div>
+          <dt><code>Result&lt;T, E&gt;</code></dt>
+          <dd>Los errores como valores de retorno, no como excepciones lanzadas. Los manejas con <code>match</code>, o los propagas con el operador <code>?</code>.</dd>
+        </div>
+        <div>
+          <dt><code>fn f() -&gt; T</code></dt>
+          <dd>Una función; el <code>-&gt;</code> es su tipo de retorno. Un <code>type X = {...}</code> es un record, y un <code>type X = A | B</code> es una unión etiquetada.</dd>
+        </div>
+        <div>
+          <dt><code>mut x = e</code></dt>
+          <dd>La reasignación es explícita y se puede buscar con grep. Un binding <code>let</code> normal nunca cambia a tus espaldas; escribes <code>mut</code> para cambiar uno.</dd>
+        </div>
+      </dl>
+
+      <div class="detail">
+        <p>
+          En este sitio, "agentes" son asistentes de programación con IA como Claude, Copilot y Cursor. Glyph es a ellos a quienes más ayuda, pero las comprobaciones son las mismas tanto si el código lo escribió una persona como un modelo. Si ya usas TypeScript estricto con zod y eslint, <a href="/answers/vs-tooled-ts/">esto es lo que añade un lenguaje a eso</a>.
+        </p>
+
+        <h2 class="block-label">No hay if</h2>
+        <p>
+          Una bifurcación sobre un booleano es un <code>match</code> sobre <code>true</code> y <code>false</code>. Cuando solo actúas en un lado, el otro brazo es un bloque vacío.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript</span>
+<pre>function label(admin: boolean): string {
+  return admin ? "admin" : "member";
+}
+
+if (verbose) {
+  console.log("starting");
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph</span>
+<pre>fn label(admin: bool) -&gt; string {
+  return match admin {
+    true =&gt; "admin",
+    false =&gt; "member",
+  }
+}
+
+match verbose {
+  true =&gt; io.println("starting"),
+  false =&gt; {},
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          El motivo es la decisión D3 de la especificación: una sola construcción para bifurcar según un valor, así que hay una sola forma que leer, escribir y buscar. Un valor que sale de una bifurcación siempre sale de un <code>match</code>, cuyo tipo de resultado calcula el checker propio de Glyph en lugar de dejárselo a <code>tsc</code>. Para una unión, esa misma construcción es la que tiene que cubrir todos los casos (<code>E0200</code>). Para un booleano aporta poco, ya que <code>false =&gt; {}</code> no dice más que omitir un <code>else</code>.
+        </p>
+        <p>
+          Tiene un coste. Un ternario de una línea se convierte en un <code>match</code> de cuatro, un return anticipado según una condición es un <code>match</code> con un brazo vacío, y es lo primero que le parece raro a quien lee TypeScript. La especificación recoge la verbosidad como un coste aceptado. Escribir <code>if</code> de todos modos da el error <code>E0006</code>, cuya ayuda muestra la forma con <code>match</code>; un ternario da <code>E0013</code> con la misma ayuda.
+        </p>
+
+        <h2 class="block-label">El peaje que ya pagas</h2>
+        <p>
+          Si desarrollas con agentes de IA sobre un código TypeScript, estos son los costes del día a día. Cada uno tiene una respuesta concreta en Glyph, enlazada desde la lista.
+        </p>
+      </div>
+
+      <ul class="tax-list">
+        <li>Los agentes se inventan APIs, porque TypeScript borra sus tipos y el runtime deja de coincidir con lo que había al compilar. Los tipos de Glyph llevan una comprobación en tiempo de ejecución (<code>T.parse</code>, <code>T.is</code>), consulta <a href="/answers/typed-apis/">APIs tipadas</a>.</li>
+        <li>Los agentes tapan la incertidumbre con <code>any</code> y <code>as unknown as T</code>, y el compilador se lo permite. Ninguno de los dos existe en Glyph, consulta la tabla de abajo.</li>
+        <li>Pides un cambio de una línea y te reescriben el archivo entero, porque el formateador encadena cambios en cada edición. <code>glyph fmt</code> tiene un solo formato sin opciones, consulta <a href="/answers/diff-stability/">diffs limpios</a>.</li>
+        <li>Mantienes un validador escrito a mano junto a cada tipo (zod, y un serializador), y un agente renombra un campo en uno pero no en los demás; todo sigue compilando. En Glyph el tipo es el validador.</li>
+        <li>Haces <code>grep</code> de un símbolo y encuentras diez coincidencias que no tienen nada que ver: sobrecargas, decoradores, namespaces fusionados. Glyph no tiene nada de eso, consulta <a href="/answers/greppability/">encontrar cosas</a>.</li>
+      </ul>
+
+      <div class="detail">
+        <h2 class="block-label">Los interruptores de apagado que te da TypeScript, y lo que Glyph tiene en su lugar</h2>
+        <p>
+          Cada construcción de TypeScript de abajo le dice al checker que deje de comprobar. Ninguna es sintaxis de Glyph. La columna del medio es lo que imprimió <code>glyph check --no-tsc</code> para cada una en la 0.1.149.
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>TypeScript</th><th>En Glyph</th><th>Lo que escribes en su lugar</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="TypeScript"><code>x!</code></td><td data-label="In Glyph">No es sintaxis: <code>E0013</code></td><td data-label="What you write instead">Un <code>Option&lt;T&gt;</code> manejado con <code>match</code>, o propagado con <code>?</code></td></tr>
+            <tr><td data-label="TypeScript"><code>x as T</code>, <code>as unknown as T</code></td><td data-label="In Glyph">No existe ningún cast: <code>E0013</code>, cuya ayuda dice que valides</td><td data-label="What you write instead"><code>T.parse(x)</code>, que devuelve un <code>Result</code></td></tr>
+            <tr><td data-label="TypeScript"><code>any</code></td><td data-label="In Glyph">No es un tipo: <code>E0103</code>, nombre sin resolver</td><td data-label="What you write instead"><code>unknown</code>, estrechado con <code>T.parse</code>, <code>T.is</code> o un brazo de <code>match</code> <code>is T</code></td></tr>
+            <tr><td data-label="TypeScript"><code>(v): v is T</code></td><td data-label="In Glyph">No hay type guards escritos por el usuario: <code>E0002</code></td><td data-label="What you write instead">El <code>T.is(v)</code> generado, que comprueba la forma declarada, así que un guard no puede comprobar menos de lo que afirma</td></tr>
+            <tr><td data-label="TypeScript"><code>// @ts-ignore</code>, <code>// eslint-disable</code></td><td data-label="In Glyph">Un comentario normal; el error que tiene debajo se sigue disparando</td><td data-label="What you write instead">Nada. Ningún comentario ni flag desactiva un diagnóstico de Glyph</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph check</code> tiene flags que se saltan una fase entera (<code>--no-tsc</code> se salta la ejecución de <code>tsc --strict</code>, <code>--no-test</code> se salta los tests <code>@example</code>), y ninguno que silencie una comprobación concreta. La lista completa de lo que acepta un proyecto TypeScript y Glyph rechaza, con cada caso ejecutado en los dos compiladores, está en <a href="/catches/">la página de casos</a>.
+        </p>
+
+        <h2 class="block-label">Una vía de escape, y la puedes buscar con grep</h2>
+        <p>
+          Cuando necesitas TypeScript que Glyph no sabe escribir, <code>extern_ts("...")</code> acepta un tipo o una expresión en línea, y <code>tsc</code> lo sigue comprobando. Para un módulo entero, pon el <code>.ts</code> en <code>src/extern/</code> y escribe <code>import extern/name</code>; los imports relativos no están permitidos en ningún otro caso, así que esa ruta es la única entrada. Las dos formas contienen la palabra <code>extern</code>, así que <code>grep -rn extern src/</code> lista cada sitio donde el checker cede el control a TypeScript.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">src/clock.glyph</span>
+<pre>module clock
+
+pub fn now_ms() -&gt; number {
+  return extern_ts("Date.now()")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Cómo es el TypeScript generado</h2>
+        <p>
+          TypeScript normal, un archivo por módulo, que puedes leer y commitear. Una unión se convierte en una unión discriminada más un valor que lleva su comprobación en tiempo de ejecución, y un <code>match</code> se convierte en un <code>switch</code> sobre la etiqueta. Esta es la salida de <code>glyph build</code> para el módulo de la izquierda, sin las líneas de import.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">plan.glyph</span>
+<pre>module plan
+
+pub type Plan = Free | Pro | Team
+
+pub fn seats(p: Plan) -&gt; number {
+  return match p {
+    Free =&gt; 1,
+    Pro =&gt; 5,
+    Team =&gt; 50,
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">plan.ts (generado, recortado)</span>
+<pre>export type Plan =
+  | { tag: "Free" }
+  | { tag: "Pro" }
+  | { tag: "Team" };
+
+export const Free: Plan = { tag: "Free" };
+export const Pro: Plan = { tag: "Pro" };
+export const Team: Plan = { tag: "Team" };
+export const Plan = {
+  is(value: unknown): value is Plan { ... },
+  parse(value: unknown) { ... },
+  schema: ...,
+};
+
+export function seats(p: Plan): number {
+  const __m0 = p;
+  switch (__m0.tag) {
+    case "Free": { return 1; }
+    case "Pro": { return 5; }
+    case "Team": { return 50; }
+    default: throw new Error("non-exhaustive match");
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Borra el brazo <code>Team</code> y el build se detiene antes de escribir nada de TypeScript:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc (recortado)</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Plan`: missing variants `Team`</span>
+   ╭─[ plan:6:10 ]
+   │
+ 6 │ ╭─▶   return match p {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── non-exhaustive match on `Plan`: missing variants `Team`
+   │     Help: Add an arm for each missing variant.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Si dejas de usar Glyph, lo que te quedas es el <code>.ts</code> generado. No tiene dependencias en tiempo de ejecución aparte de un pequeño directorio de soporte que el build escribe a su lado.
+        </p>
+
+        <h2 class="block-label">npm, y el TypeScript que ya tienes</h2>
+        <p>
+          Un módulo <code>.glyph</code> importa un paquete de npm por su nombre (<code>import kafkajs { Kafka }</code>), tipado con las declaraciones del propio paquete, y tu <code>.ts</code> existente importa los módulos de Glyph generados como cualquier archivo local. Así que puedes empezar con un solo módulo dentro de una app que sigue siendo TypeScript. Los detalles están en tres respuestas.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/imports/"><span class="q">¿Puedo usar mis librerías de TypeScript, JavaScript y npm?</span><p>Importar paquetes, mantener un shim en <code>.ts</code> e importar Glyph de vuelta en <code>.ts</code>.</p></a>
+        <a class="a-card" href="/answers/embedding/"><span class="q">¿Puedo adoptar Glyph dentro de mi app actual?</span><p>El núcleo del dominio en Glyph y el resto en TypeScript, en un proyecto Vite estándar.</p></a>
+        <a class="a-card" href="/answers/react/"><span class="q">¿Funciona con React?</span><p>Componentes, JSX, hooks, Context, y dónde sigue comprobando <code>tsc</code>.</p></a>
+      </div>

@@ -1,0 +1,545 @@
+---
+title: ¿Tengo que escribir a mano un validador para cada API? · Glyph
+description: No. En Glyph un tipo es su propio validador en tiempo de ejecución, así que los cuerpos de peticiones y respuestas se comprueban sin escribir ningún validador, y los tipos pueden venir de una especificación OpenAPI o de un .d.ts.
+source_hash: e5583b6a5d857445
+prev: /answers/embedding/ | &larr; Anterior | ¿Puedo adoptar Glyph dentro de mi app actual, o es todo o nada?
+next: /answers/codegen/ | Siguiente &rarr; | ¿Puedo generar un cliente y un servidor tipados a partir de la especificación de mi API?
+---
+      <p class="q-eyebrow">11 &middot; Fronteras de datos</p>
+      <h1 class="q-title">¿Tengo que escribir a mano un validador para cada API?</h1>
+
+      <p class="short-answer">
+        No. En Glyph un <strong>tipo es su propio validador</strong>. Declara un <code>type</code> y el compilador genera a su lado un descriptor de runtime, así que el cuerpo de una petición o una respuesta en el que no confías se valida con una sola llamada, sin un schema de <code>zod</code> aparte que escribir y mantener sincronizado.
+      </p>
+
+      <figure class="ak-hero" id="the-boundary">
+        <div class="ak-flow">
+          <div class="ak-node in"><span class="k">Cuerpo no fiable</span><span class="v">req.body</span><span class="n">unknown, p. ej. {"title": 123}</span></div>
+          <div class="ak-arrow" aria-hidden="true"><svg viewBox="0 0 40 16" preserveAspectRatio="none"><path d="M3 8h32M30 3.5l5 4.5-5 4.5"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-node gate"><span class="k">Descriptor</span><span class="v">NewTask.parse</span><span class="n">generado a partir de <code>type NewTask</code></span></div>
+          <div class="ak-arrow fork" aria-hidden="true"><svg viewBox="0 0 44 100" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M0 50H16M16 24V76M16 24H42M16 76H42"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-outs">
+            <div class="ak-node ok"><span class="k">Ok</span><span class="v">NewTask</span><span class="n">un valor tipado, con cada campo comprobado</span></div>
+            <div class="ak-node err"><span class="k">Err</span><span class="v">Array&lt;Issue&gt;</span><span class="n">el cuerpo incorrecto se detiene aquí</span></div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Una declaración, una comprobación. El descriptor se genera a partir del tipo, así que los dos no pueden discrepar, y la única forma de llegar a un <code>NewTask</code> es a través de él.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="En esta página">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#see-it">Míralo</a></li>
+          <li><a href="#the-parse-result-is-an-ordinary-result">Un Result normal</a></li>
+          <li><a href="#composing-your-own-the-output-type-is-derived-not-trusted">Combinadores</a></li>
+          <li><a href="#if-i-parse-a-date-do-i-get-a-real-date">Fechas</a></li>
+          <li><a href="#you-don-t-even-have-to-write-the-types">Tipos generados</a></li>
+          <li><a href="#the-database-is-a-boundary-too">Bases de datos</a></li>
+          <li><a href="#a-signed-webhook-is-a-boundary-too">Webhooks</a></li>
+          <li><a href="#where-it-stands">Dónde está</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Por qué importa<a class="ak-anchor" href="#why-it-matters" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        En la mayoría de los stacks de TypeScript cada payload se describe <em>dos veces</em>: una como <code>type</code> para el compilador, y otra como un validador escrito a mano para que el valor tenga de verdad esa forma en tiempo de ejecución.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Los dos se desfasan, y es justo por ese desfase por donde se cuelan los datos incorrectos. Glyph los reduce a una sola declaración: el tipo <em>produce</em> el validador, así que no pueden discrepar.</p></div>
+
+      <h2 class="ak-h" id="see-it">Míralo<a class="ak-anchor" href="#see-it" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Declara el DTO una vez. Su descriptor te da <code>.parse</code> (valida un valor no fiable convirtiéndolo en el tipo) y <code>.is</code> (un type guard), sin nada más que escribir:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">api.glyph</span>
+<pre>type NewTask = {
+  title: string,
+  done: bool,
+}
+
+fn create(req: Request)
+  -&gt; Result&lt;Response, string&gt; {
+  return match NewTask.parse(req.body) {
+    Ok(task) =&gt; Ok(json(201, task)),
+    Err(issues) =&gt; Ok(json(400, {
+      error: "invalid task",
+    })),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">lo que <em>no</em> has escrito</span>
+<pre>// No zod schema:
+const NewTask = z.object({
+  title: z.string(),
+  done: z.boolean(),
+});
+// No drift between the type and
+// the validator, because there is
+// only one declaration.
+
+// A bad body, {"title": 123},
+// takes the Err arm. Only a
+// well-formed body reaches Ok.</pre>
+        </div>
+      </div>
+
+      <h3 class="ak-h3" id="typed-value">Conserva el valor tipado después del <code>match</code><a class="ak-anchor" href="#typed-value" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        También puedes sacar el valor en lugar de hacer el trabajo dentro del brazo.
+      </p>
+      <div class="code">
+        <span class="cap">api.glyph: el valor sale del match con su tipo</span>
+<pre>let task = match NewTask.parse(req.body) {
+  Ok(t) =&gt; t,
+  Err(issues) =&gt; { return bad_request(issues) },
+}
+task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; did you mean `title`?</span></pre>
+      </div>
+      <div class="ak-chips"><span class="chip since">desde la 0.1.45</span><span class="chip">tipos genéricos: todavía no</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">cómo se mantiene el tipo, y la excepción de los genéricos</span></summary><div class="body">
+        <p>
+          <code>T.parse</code> tiene el tipo <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> y un <code>match</code> cuyos brazos coinciden conserva su tipo, así que <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> te da un <code>NewTask</code> para el resto de la función, con los nombres de campo comprobados por Glyph y no por <code>tsc</code> sobre el TypeScript generado. Eso llegó en la 0.1.45; antes, el valor perdía el tipo en cuanto salía del <code>match</code>. El <code>parse</code> de un tipo genérico es el único que todavía no lo hace, porque su descriptor recibe un checker de runtime por cada parámetro de tipo.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-parse-result-is-an-ordinary-result">El resultado del parseo es un <code>Result</code> normal<a class="ak-anchor" href="#the-parse-result-is-an-ordinary-result" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        En Glyph <code>T.parse</code> devuelve el mismo <code>Result</code> que devuelve cualquier función del lenguaje que puede fallar, así que lo devuelves tal cual, lo pasas por <code>map_err</code> para convertir los problemas de validación en tu propio tipo de error o lo propagas con <code>?</code>.
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">boundary.glyph</span>
+<pre>// Hand it straight back.
+fn read_task(body: unknown)
+  -&gt; Result&lt;NewTask, Array&lt;Issue&gt;&gt; {
+  return NewTask.parse(body)
+}
+
+// Or restate the failure in your own terms.
+fn read_checked(body: unknown)
+  -&gt; Result&lt;NewTask, string&gt; {
+  return NewTask.parse(body).map_err(
+    fn(issues: Array&lt;Issue&gt;) -&gt; string {
+      return "invalid task: ${issue_text(issues)}"
+    },
+  )
+}
+
+// Or propagate it and get on with the work.
+fn create(body: unknown) -&gt; Result&lt;Response, string&gt; {
+  let task = read_checked(body)?
+  return Ok(json(201, save(task)))
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">lo que esto sustituyó</span>
+<pre>// Until 0.1.52 the generated descriptor
+// returned a bare { tag, value } object,
+// so both of the first two shapes were
+// tsc errors (TS2322 and TS2339) even
+// though Glyph's own checker reported
+// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround
+// was an identity re-wrap:
+
+match NewTask.parse(body) {
+  Ok(t)  =&gt; Ok(t),          // does nothing
+  Err(e) =&gt; Err(reword(e)),
+}
+
+// Four lines to say map_err. bracket.glyph
+// carried this twice until the fix landed.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">el coste en tiempo de ejecución de usar Result aquí</span></summary><div class="body">
+        <p>
+          Un validador que te devuelve un valor con su propia forma privada solo sirve a medias, porque el resto de tu manejo de errores no puede tocarlo. Un resultado de parseo no tiene nada de especial.
+        </p>
+        <p>
+          El motivo de que antes no fuera así: un descriptor se genera junto a tu <code>type</code>, y generar el objeto desnudo evitaba que un módulo que declara un tipo dependiera de <code>std/result</code> en tiempo de ejecución. Ahora ese intercambio se hace al revés. Un módulo con un <code>pub type</code> lleva un import de <code>std/result</code> tanto si escribe <code>Result</code> como si no, y una llamada a <code>parse</code> reserva las closures de los combinadores que reserva cualquier <code>Ok(...)</code>. A cambio, la frontera validada y el resto de tu manejo de errores son la misma API.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="composing-your-own-the-output-type-is-derived-not-trusted">Componer los tuyos: el tipo de salida se deriva, no se da por bueno<a class="ak-anchor" href="#composing-your-own-the-output-type-is-derived-not-trusted" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        El <code>infer_output&lt;Shape&gt;</code> de Glyph <strong>deriva</strong> el tipo de salida a partir de la forma, y <code>tsc</code> comprueba tu anotación contra él. Una forma que omite un campo del tipo que afirmas no compila:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">schema.glyph</span>
+<pre>fn object_schema&lt;Shape: Record&lt;string, Schema&lt;unknown&gt;&gt;&gt;(
+  shape: Shape,
+) -&gt; Schema&lt;infer_output&lt;Shape&gt;&gt; { ... }
+
+type User = { name: string, age: number }
+
+// The shape must produce a User, or this
+// line does not compile:
+const user_schema: Schema&lt;User&gt; =
+  object_schema({
+    name: string_schema(),
+    age: number_schema(),
+  })</pre>
+        </div>
+        <div class="code">
+          <span class="cap">el desfase que elimina Glyph</span>
+<pre>// TS/zod: shape and output type are two
+// separate things you keep in sync by hand.
+const s = z.object({ name: z.string() });
+type User = { name: string; age: number };
+// `s` is inferred { name }, but nothing
+// checks it against User. The `age` you
+// forgot is caught at runtime, if ever.
+
+// Glyph: drop `age` from the shape and
+// `Schema&lt;User&gt;` fails to compile. The
+// shape is the single source of truth.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">la trampa de TypeScript, y el cast que sigue al return desde la 0.1.92</span></summary><div class="body">
+        <p>
+          A veces quieres un combinador al estilo de <code>zod</code>: construir un validador componiendo otros más pequeños. La trampa en TypeScript es que el <em>tipo de salida</em> del combinador y la <em>forma</em> que le pasaste se separan. Escribes la forma, luego te repites en un segundo parámetro de tipo, y nada comprueba que coincidan.
+        </p>
+        <p>
+          El tipo derivado se mantiene sea cual sea la forma en que retorna el combinador. <code>infer_output</code> necesita un cast en la frontera de la función, porque el cuerpo construye un valor del que el sistema de tipos no puede demostrar que tenga el tipo derivado de la forma, y el compilador escribe ese cast por ti. Hasta la 0.1.91 iba pegado a un <code>return &lt;value&gt;</code> simple. Si ponías un <code>match</code> entre el <code>return</code> y el valor, o terminabas el cuerpo en <code>r?</code>, la misma función dejaba de compilar: un <code>TS2322</code> sobre el TypeScript generado, para un Glyph que el compilador ya había aceptado. Desde la 0.1.92 el cast sigue al return y no a su forma de escribirlo, así que <code>return match strict { ... }</code> pasa la comprobación de tipos igual que la forma con un solo <code>return</code> del mismo cuerpo.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-rest-of-the-boundary">El resto de la frontera no fiable<a class="ak-anchor" href="#the-rest-of-the-boundary" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        El descriptor es el mismo que hace seguro <code>json.parse&lt;T&gt;</code>: dale un string JSON y lo parsea <em>y</em> lo valida en un solo paso.
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>Entrada</th><th>Llamada</th><th>Devuelve</th></tr></thead>
+          <tbody>
+            <tr><td>Un string JSON</td><td><code>json.parse&lt;T&gt;(text)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>Un cuerpo ya decodificado</td><td><code>T.parse(value)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>Una cabecera</td><td><code>header(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+            <tr><td>Un parámetro de la query</td><td><code>query_param(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">cuerpos de petición, cabeceras y parámetros de la query</span></summary><div class="body">
+        <p>
+          El cuerpo de una petición llega ya decodificado como <code>unknown</code>, así que ahí usas <code>T.parse(value)</code>: la misma garantía, sin cast.
+        </p>
+        <p>
+          El resto de la frontera no fiable se tipa igual: <code>header(req, name)</code> y <code>query_param(req, name)</code> devuelven <code>Option&lt;string&gt;</code>, así que una cabecera o un parámetro de la query que falta es <code>None</code> y el <code>match</code> te <em>obliga</em> a manejarlo. Omite el brazo <code>None</code> y no compila. Una entrada ausente no se puede leer como si estuviera.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="does-a-map-keyed-by-an-enum-check-its-keys">¿Un mapa con claves de un enum comprueba sus claves?<a class="ak-anchor" href="#does-a-map-keyed-by-an-enum-check-its-keys" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Sí, desde la 0.1.148. Un <code>Record&lt;Tier, int&gt;</code> con <code>type Tier = "free" | "pro"</code> solo parsea un objeto cuyas claves sean exactamente <code>free</code> y <code>pro</code>: una clave de más y una que falta son ambas un <code>Err</code>, que es también lo que dice <code>tsc</code> del mismo objeto escrito como literal.
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>Tipo de la clave</th><th>Qué comprueba <code>parse</code> en cada clave</th></tr></thead>
+          <tbody>
+            <tr><td>Una unión de literales de string</td><td>exactamente las claves listadas, sin que falte ni sobre ninguna</td></tr>
+            <tr><td>Un tipo refinado con <code>where</code></td><td>el predicado</td></tr>
+            <tr><td><code>int</code></td><td>la forma simple de escribir un número entero; <code>"01"</code> y <code>"1.5"</code> fallan</td></tr>
+            <tr><td><code>string</code></td><td>nada nuevo</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">claves refinadas e int, y lo que todavía queda para tsc</span></summary><div class="body">
+        <p>
+          Un tipo de clave refinado con <code>where</code> ejecuta su predicado sobre cada clave, y una clave <code>int</code> tiene que ser la forma simple de escribir un número entero, así que <code>"01"</code> y <code>"1.5"</code> se rechazan. Un <code>Record&lt;string, V&gt;</code> se comprueba exactamente igual que antes. El checker propio de Glyph sigue dejando a <code>tsc</code> las claves de un valor que escribes en el código, y un record genérico cuyas claves son su propio parámetro de tipo se rechaza salvo que ese parámetro sea <code>string</code>.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="if-i-parse-a-date-do-i-get-a-real-date">Si parseo una fecha, ¿obtengo una fecha de verdad?<a class="ak-anchor" href="#if-i-parse-a-date-do-i-get-a-real-date" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Sí, y lo interesante es lo que obtienes con una entrada que no lo es. <code>time.parse_iso</code> devuelve <code>Option&lt;number&gt;</code>, y es <code>None</code> para todo lo que no sea ISO-8601.
+      </p>
+      <div class="two-up fit">
+        <div class="code">
+          <span class="cap">aceptado</span>
+<pre>"2026-01-03"              // UTC midnight
+"2026-07-25T18:33:08.000Z"
+"2026-03-15T09:30:00-05:00"
+"2028-02-29"              // a real leap day</pre>
+        </div>
+        <div class="code">
+          <span class="cap">None, en todos los casos</span>
+<pre>"January 5 2026"   // not ISO
+"2026-1-3"         // not padded
+"2026-13-01"       // no month 13
+"2026-02-31"       // no such day
+"2026-02-29"       // not a leap year
+"2026-01-03T10:00" // no offset</pre>
+        </div>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>El último es el que sorprende a la gente, y es justo de lo que se trata. Una fecha y hora sin <code>Z</code> ni desplazamiento <code>+HH:MM</code> es hora local según la gramática de ECMAScript, así que aceptarla significaría que el mismo string nombra un día distinto del calendario según la máquina que ejecute el programa.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">qué hace Date.parse en su lugar, y por qué UTC</span></summary><div class="body">
+        <p>
+          Es una garantía más fuerte que la de <code>Date.parse</code> de JavaScript, que acepta texto libre (<code>"January 5 2026"</code>), lee una fecha sin ceros a la izquierda como <code>"2026-1-3"</code> en la zona horaria en la que se esté ejecutando el proceso, y da por bueno un día imposible pasándolo al siguiente mes: <code>"2026-02-31"</code> se convierte en el 3 de marzo, y recibes un número sin ninguna indicación de que haya pasado algo.
+        </p>
+        <p>
+          Los accesores de calendario de Glyph (<code>time.year</code>, <code>time.month</code>, <code>time.day</code>) son UTC y lo dicen, y un validador que importara en silencio la zona horaria de la máquina haría que mintieran. Así que el string se rechaza, y decides tú qué quería decir.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="the-guard-moved">La comprobación pasó a la primitiva<a class="ak-anchor" href="#the-guard-moved" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Cuando una aplicación escribe una comprobación de corrección alrededor de una primitiva de la librería estándar, esa comprobación pertenece a la primitiva. Esto es lo que borró la app:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">antes: la app protege la librería estándar</span>
+<pre>const ISO_DATE = "^\\d{4}-\\d{2}-\\d{2}$"
+
+fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match regex.matches(ISO_DATE, value) {
+    false =&gt; Err(BadDate({ line: line, value: value })),
+    true =&gt; match time.parse_iso(value) {
+      Some(ms) =&gt; match string.starts_with(
+        time.format_iso(ms), value
+      ) {
+        true =&gt; Ok(ms),
+        false =&gt; Err(BadDate({ line: line, value: value })),
+      },
+      None =&gt; Err(BadDate({ line: line, value: value })),
+    },
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">después: la primitiva se encarga</span>
+<pre>fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match time.parse_iso(value) {
+    Some(ms) =&gt; Ok(ms),
+    None =&gt; Err(BadDate({ line: line, value: value })),
+  }
+}</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        El <code>import std/regex</code> se fue con ella. El mismo libro de cuentas, las mismas filas rechazadas, el mismo informe byte a byte.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Historia <span class="hint">la app de gastos de la que salió esto</span></summary><div class="body">
+        <p>
+          Esto salió de escribir una <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph">CLI de informes de gastos en Glyph</a>. Cada fila del libro de cuentas lleva una fecha, y apuntar una fila en el mes equivocado es el bug que importa, así que la app no se fiaba del antiguo <code>parse_iso</code>: primero comprobaba la forma con una regex y luego convertía la marca de tiempo de vuelta a texto para detectar un día desbordado.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="you-don-t-even-have-to-write-the-types">Ni siquiera tienes que escribir los tipos<a class="ak-anchor" href="#you-don-t-even-have-to-write-the-types" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Si la forma ya existe en una especificación OpenAPI o en un archivo de declaraciones de TypeScript, genera los tipos de Glyph a partir de ella: declaraciones <code>type</code> reales, commiteadas y que se pueden buscar con grep, cada una con su descriptor, no un fantasma inferido:
+      </p>
+      <div class="two-up fit">
+        <div class="code term">
+          <span class="cap">a partir de una especificación OpenAPI / JSON Schema</span>
+<pre>glyph gen openapi petstore.yaml \
+  --out src/</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">a partir de un paquete instalado, por su nombre</span>
+<pre>glyph gen dts api-types \
+  --out src/types</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        Un tipo de transporte se convierte en una frontera validada, sin nada escrito a mano:
+      </p>
+      <div class="code">
+        <span class="cap">webhook.glyph</span>
+<pre>import types/api_types { Customer }
+
+match Customer.parse(webhook_body) {
+  Ok(c) =&gt; handle(c),
+  Err(issues) =&gt; reject(issues),
+}</pre>
+      </div>
+      <p class="ak-lede">La generación es <strong>fiel a lo que viaja por la red</strong>: lo que la especificación dice de un valor es lo que comprueba <code>parse</code>.</p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>En la especificación o el <code>.d.ts</code></th><th>Glyph generado</th></tr></thead>
+          <tbody>
+            <tr><td>Un enum de strings</td><td>una unión de literales de string; <code>parse</code> comprueba la pertenencia</td></tr>
+            <tr><td>Un campo <code>integer</code></td><td><code>int</code>; un <code>3.5</code> recibido falla</td></tr>
+            <tr><td>Un schema de objeto</td><td>un record marcado como <code>@open</code>; estricto con <code>additionalProperties: false</code></td></tr>
+            <tr><td><code>interface Page&lt;T&gt;</code></td><td><code>type Page&lt;T&gt;</code>, con cada elemento comprobado como <code>T</code></td></tr>
+            <tr><td>Una unión no discriminada</td><td>estrechada, con una nota impresa</td></tr>
+            <tr><td>Un nombre en dos archivos alcanzables</td><td>marcado con una nota, sin enlazar</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">qué se materializa hoy, regeneración, tipos genéricos</span></summary><div class="body">
+        <p>
+          Apunta <code>glyph gen dts</code> a un archivo <code>.d.ts</code> o, como arriba, a un paquete de npm instalado por su nombre: resuelve la entrada de declaraciones del propio paquete en <code>node_modules</code> y escribe tipos commiteados que importas.
+        </p>
+        <p>
+          Qué se materializa hoy: <code>gen dts</code> lee las declaraciones <code>interface</code> y <code>type</code> que exporta un paquete, incluidas las que están dentro de un árbol <code>declare namespace</code> (las referencias cruzadas sin cualificar se resuelven a través del ámbito) y las de archivos hermanos que reexporta un barrel <code>index</code> (se recorre el <code>.d.ts</code> de entrada más cada <code>.d.ts</code> importado de forma relativa). Un genérico se mantiene como tal: <code>interface Page&lt;T&gt;</code> se materializa como <code>type Page&lt;T&gt;</code> y recibe un descriptor que valida cada elemento como su argumento de tipo, no solo que exista. Las reexportaciones con alias y con <code>export * as</code> se resuelven mediante un mapa de bindings por archivo. El único caso que no puede hacer seguro, un nombre de tipo que coincide en dos archivos alcanzables, lo <em>marca con una nota</em> en lugar de enlazar en silencio la forma equivocada. Para lo que el materializador no alcanza, escribe a mano las formas que cruzan la frontera, o usa la vía de escape <code>extern_ts</code>.
+        </p>
+        <p>
+          La regeneración es idempotente, así que un cambio en la especificación es un diff limpio y revisable. La generación es <strong>fiel a lo que viaja por la red</strong>: un enum de strings se materializa como una unión de literales de string (<code>"free" | "pro"</code>), así que <code>parse</code> comprueba la pertenencia, no solo que el valor sea un string, y un <code>match</code> sobre ella es exhaustivo sin <code>else</code>. Un campo <code>integer</code> se convierte en <code>int</code>, así que un <code>3.5</code> recibido falla en <code>parse</code> donde un number normal pasaría. Donde una construcción no tiene una forma exacta en Glyph (una unión no discriminada), se estrecha e <em>imprime una nota</em> en lugar de generar un validador que rechazaría datos reales. Los records generados también llevan <code>@open</code>, así que <code>parse</code> tolera un campo que la API añada más adelante y sigue validando cada campo que declara; un schema que fija <code>additionalProperties: false</code> sigue siendo estricto. En Glyph los records son estrictos por defecto, y esta es la misma marca, buscable con grep, en el sitio de la declaración que usaría un record escrito a mano, así que no cambia nada de lo que significa un record.
+        </p>
+        <p>
+          Los tipos genéricos también se validan. Un <code>Paginated&lt;T&gt;</code> recibe un descriptor cuyo <code>parse</code> acepta el argumento de tipo: <code>Paginated.parse&lt;User&gt;(body)</code> comprueba cada entrada de <code>items</code> <em>como un <code>User</code></em>, no solo que exista, y <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> estrecha de la misma forma. Esto se mantiene entre módulos: define <code>Paginated&lt;T&gt;</code> en un archivo, impórtalo con <code>import</code> en otro, y tanto <code>Paginated.parse&lt;User&gt;(body)</code> como <code>is Paginated&lt;User&gt;</code> siguen comprobando ahí cada elemento como un <code>User</code>. El compilador construye la comprobación de cada elemento a partir del argumento de tipo en el sitio de la llamada, así que el archivo en el que vive el tipo genérico no cambia nada de lo que se valida.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+          Dónde se detiene: los descriptores cubren las formas de las que están hechos la mayoría de los payloads: objetos, primitivos, arrays, referencias, campos opcionales y nullables, y ahora tipos genéricos en una instanciación concreta. Un tipo que Glyph no generó (un paquete externo o un <code>.d.ts</code> que solo importas) se comprueba en tiempo de compilación pero no lleva descriptor hasta que lo materializas, que ahora es un solo comando contra el paquete instalado (<code>glyph gen dts &lt;package&gt;</code>, para las interfaces y los alias de tipo de nivel superior que exporta). Esa frontera es deliberada: un tipo que Glyph no generó no puede prometer validación en tiempo de ejecución, así que lo activas paquete a paquete y el resultado queda commiteado y buscable con grep, no conjurado en cada build.</p></div>
+
+      <h2 class="ak-h" id="the-database-is-a-boundary-too">La base de datos también es una frontera<a class="ak-anchor" href="#the-database-is-a-boundary-too" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Una fila leída de una base de datos es tan poco fiable como el cuerpo de una petición. El mismo <code>.parse</code> que usas con el cuerpo de una petición valida una fila.
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>type Task    = { id: int, title: string, done: bool }
+type TaskRow = { id: int, title: string, done: int }
+
+fn row_to_task(r: TaskRow) -&gt; Task {
+  return { id: r.id, title: r.title,
+           done: r.done != 0 }
+}
+
+// A row is validated, then mapped. No cast.
+match TaskRow.parse(row) {
+  Ok(r)  =&gt; Ok(row_to_task(r)),
+  Err(_) =&gt; Err("row failed validation"),
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">el bug que esto elimina</span>
+<pre>// TS, better-sqlite3 / node:sqlite:
+const row = stmt.get(id) as Task;
+// `row.done` is really 0 or 1, a number.
+// Nothing complains. Then:
+if (row.done === true) { ... }   // never runs
+
+// The row was `unknown`; the cast invented
+// a type. Glyph makes you validate the row
+// into TaskRow, and the int-to-bool step is
+// a line of code, not a silent lie.</pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">std/sqlite, y el booleano que es 0 o 1</span></summary><div class="body">
+        <p>
+          Una fila leída de una base de datos es tan poco fiable como el cuerpo de una petición: el schema de la base de datos y la idea que tiene tu código de la fila pueden no coincidir, y un cast (<code>row as Task</code>) lo tapa. <code>std/sqlite</code>, el módulo de base de datos sobre el SQLite integrado de Node, va en esa dirección. Una consulta devuelve <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>, así que no hay forma de tratar una fila como un <code>Task</code> sin validarla antes.
+        </p>
+        <p>
+          Esto detecta un bug que se publica constantemente. SQLite no tiene tipo booleano, así que una columna <code>done</code> vuelve como el entero <code>0</code> o <code>1</code>. Haz un cast de la fila a un record con un campo <code>bool</code> y <code>task.done === true</code> nunca es verdadero, sin avisar. En Glyph la forma de almacenamiento y la forma del dominio son tipos separados, y la conversión entre ellas es una línea que se ve:
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="3.8" rx="5" ry="1.9"/><path d="M3 3.8v8.4c0 1 2.2 1.9 5 1.9s5-.9 5-1.9V3.8M3 8c0 1 2.2 1.9 5 1.9s5-.9 5-1.9"/></svg><p>
+          Todo esto es un ejemplo que funciona: <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph"><code>examples/apps/tasks/main.glyph</code></a> es una API de tareas con persistencia, <code>std/sqlite</code> para el almacenamiento y <code>std/http</code> para las rutas, con datos que sobreviven a un reinicio y validación tanto en la red como en la base de datos. Sin validadores escritos a mano en ninguna parte.</p></div>
+
+      <h2 class="ak-h" id="a-signed-webhook-is-a-boundary-too">Un webhook firmado también es una frontera<a class="ak-anchor" href="#a-signed-webhook-is-a-boundary-too" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Verificar la firma de un webhook necesita los bytes exactos que firmó el emisor, no una copia vuelta a serializar (volver a convertir en string un cuerpo parseado cambia los espacios y el orden de las claves, así que el HMAC nunca coincidiría). <code>http.raw(req)</code> te da esos bytes, así que la comprobación se queda en Glyph:
+      </p>
+<pre>fn handle(req: Request) -&gt; Result&lt;Response, string&gt; {
+  let expected = crypto.hmac_sha256(secret, raw(req))
+  return match header(req, "x-hook-signature") {
+    Some(sig) =&gt; match sig == expected {
+      true  =&gt; accept(req),          // then validate req.body with T.parse
+      false =&gt; Ok(text(401, "bad signature")),
+    },
+    None =&gt; Ok(text(401, "missing signature")),
+  }
+}</pre>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">bytes en bruto para la firma, cuerpo parseado para la forma</span></summary><div class="body">
+        <p>
+          <code>req.body</code> sigue siendo el valor parseado para comprobar la forma; <code>raw</code> es el payload sin alterar sobre el que se calcula la firma. Un receptor que verifica una firma y valida el cuerpo no necesita TypeScript escrito a mano.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-type-can-validate-its-invariants-not-just-its-shape">Un tipo puede validar sus invariantes, no solo su forma<a class="ak-anchor" href="#a-type-can-validate-its-invariants-not-just-its-shape" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Una comprobación de forma te dice que un campo es un número. No te dice que la cantidad no sea negativa ni que la valoración esté entre 1 y 5. Un refinamiento <code>where</code> pone ese invariante en el tipo, y el descriptor lo hace cumplir en la frontera:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">refinements.glyph</span>
+<pre>type Amount   = int where value &gt;= 0
+type Rating   = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+type NonEmpty = string where value.length &gt; 0
+
+// Amount.parse(-1)  -&gt; Err   (not just "is a number")
+// Rating.parse(6)   -&gt; Err
+// Amount.parse(3.5) -&gt; Err   (int check too)
+
+type Line = { amount: Amount, }
+// Line.parse({ amount: -1 }) -&gt; Err too:
+// the predicate follows the type into
+// the field, and across modules.</pre>
+        </div>
+        <div class="code">
+          <span class="cap">lo que no estás escribiendo</span>
+<pre>// The check that usually lives three
+// functions away from the boundary,
+// if someone remembers it:
+if (amount &lt; 0) throw new Error(...);
+
+// In Glyph it's the type. A value that
+// fails the predicate never becomes an
+// Amount in the first place.</pre>
+        </div>
+      </div>
+
+      <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy <span class="count">10</span></h3>
+
+          <p class="ak-st-group">Descriptores</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Cada record y cada unión etiquetada declarados llevan un descriptor de runtime (<code>.parse</code>, <code>.is</code>, <code>.schema</code>), incluidos los records genéricos</span><span class="chip">una unión etiquetada genérica no</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>.parse</code> devuelve el mismo <code>Result</code> que usa el resto del lenguaje, así que se combina con <code>map_err</code>, con <code>?</code> y con cualquier función que devuelva uno</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Un refinamiento <code>where</code> (<code>int where value &gt;= 0</code>) valida un invariante en la frontera, no solo una forma</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>json.parse&lt;T&gt;</code> valida JSON</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>infer_output&lt;Shape&gt;</code> deriva el tipo de salida de un combinador a partir de su forma para que los dos no puedan desfasarse</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Generación</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code> / <code>glyph gen dts</code> generan tipos commiteados con descriptor a partir de una especificación, un <code>.d.ts</code> o un paquete instalado por su nombre</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Fronteras</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/sqlite</code> devuelve las filas como <code>unknown</code>, así que la base de datos es una frontera validada como cualquier otra</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Un receptor de webhooks firmados se queda entero en Glyph</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p><code>http.raw(req)</code> expone el cuerpo de la petición sin parsear, así que la firma de un webhook se verifica sobre los bytes exactos y un receptor de webhooks firmados se queda entero en Glyph.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">La entrada no fiable no puede llegar a un destino SQL o de shell sin <code>sanitize</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>Los tipos <code>Tainted</code>/<code>Trusted</code> de <code>std/taint</code> impiden que la entrada no fiable llegue a un destino SQL o de shell sin un <code>sanitize</code> explícito, así que <code>tsc</code> rechaza un camino de inyección al compilar.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>time.parse_iso</code> acepta ISO-8601 y nada más</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>Las primitivas de frontera más pequeñas siguen el mismo criterio: <code>time.parse_iso</code> acepta ISO-8601 y devuelve <code>None</code> para texto libre, un día imposible y una fecha y hora sin desplazamiento que de otro modo se leería en la zona horaria local de la máquina.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> En camino <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Las uniones discriminadas se generan a partir de una especificación y de un <code>.d.ts</code>; lo siguiente es cubrir enums y mapped types</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>Las uniones discriminadas ya se generan tanto a partir de un <code>discriminator</code> de OpenAPI como de una unión de un <code>.d.ts</code> de TypeScript (un despachador <code>parse_&lt;Name&gt;</code> lee la etiqueta y valida en la variante correcta). Lo siguiente: una cobertura más completa de enums y mapped types.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">El código tipado de cliente y servidor a partir de una especificación ya está disponible</span> <a class="chip" href="/answers/codegen/">Ver cliente y servidor</a></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Una marca de tiempo y una duración son ambas <code>number</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>En las fechas, el rigor es toda la característica y termina en el parseo: <code>parse_iso</code> devuelve milisegundos desde epoch, así que una marca de tiempo y una duración son ambas <code>number</code> y nada te impide sumar una a la otra. Un tipo de fecha propio es una decisión para más adelante, y no una pequeña.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>

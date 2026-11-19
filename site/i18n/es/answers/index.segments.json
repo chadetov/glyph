@@ -1,0 +1,452 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/index.html",
+  "locale": "es",
+  "source_hash": "f574b9ebcd22635e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Answers · what engineers ask about Glyph · Glyph",
+      "tr": "Respuestas · lo que preguntan los ingenieros sobre Glyph · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Specific answers to what engineers ask about Glyph: what stops silent breakage, React and npm, why not tooled TypeScript, and debugging in production.",
+      "tr": "Respuestas concretas a lo que preguntan los ingenieros sobre Glyph: qué impide las roturas silenciosas, React y npm, por qué no TypeScript con herramientas y la depuración en producción."
+    },
+    {
+      "id": "h-4ad0a0a6",
+      "kind": "html",
+      "en": "Answers",
+      "tr": "Respuestas"
+    },
+    {
+      "id": "h-b8cc598e",
+      "kind": "html",
+      "en": "What engineers <span class=\"accent\">ask about Glyph</span>.",
+      "tr": "Lo que preguntan los ingenieros <span class=\"accent\">sobre Glyph</span>."
+    },
+    {
+      "id": "h-18cc597f",
+      "kind": "html",
+      "en": "Each answer shows a worked example and ends with what does not work yet. Start wherever your doubt is. New to Glyph? The <a href=\"/start/\">10-minute Start Here</a> is the fastest first run.",
+      "tr": "Cada respuesta muestra un ejemplo resuelto y termina con lo que todavía no funciona. Empieza por donde tengas la duda. ¿Nuevo en Glyph? <a href=\"/start/\">Empieza aquí, en 10 minutos</a>, es la forma más rápida de dar el primer paso."
+    },
+    {
+      "id": "h-041d266f",
+      "kind": "html",
+      "en": "The problem it solves",
+      "tr": "El problema que resuelve"
+    },
+    {
+      "id": "h-7289e459",
+      "kind": "html",
+      "en": "What an agent's edit can break without anyone noticing, and what Glyph does about each.",
+      "tr": "Lo que la edición de un agente puede romper sin que nadie lo note, y qué hace Glyph con cada cosa."
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "¿Qué impide que un agente rompa mi código sin que nadie lo note?"
+    },
+    {
+      "id": "h-bdd8080c",
+      "kind": "html",
+      "en": "No <code>any</code>, no casts, exhaustive <code>match</code>, runtime-checked types, and colocated tests that run on every build.",
+      "tr": "Sin <code>any</code>, sin casts, <code>match</code> exhaustivo, tipos comprobados en tiempo de ejecución y tests junto al código que se ejecutan en cada build."
+    },
+    {
+      "id": "h-b91718bd",
+      "kind": "html",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo entero?"
+    },
+    {
+      "id": "h-e84f06e7",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout, nothing repacked.",
+      "tr": "Un cambio de una línea es un diff de una línea. Un único formato canónico, sin reempaquetar nada."
+    },
+    {
+      "id": "h-546a7b11",
+      "kind": "html",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "¿Puede un agente (o yo) encontrar dónde está definido cualquier cosa?"
+    },
+    {
+      "id": "h-9cc9e5b6",
+      "kind": "html",
+      "en": "One name, one declaration form. <code>grep</code> always lands on it.",
+      "tr": "Un nombre, una forma de declaración. <code>grep</code> siempre da con ella."
+    },
+    {
+      "id": "h-c6330c11",
+      "kind": "html",
+      "en": "Deciding whether to adopt it",
+      "tr": "Decidir si adoptarlo"
+    },
+    {
+      "id": "h-22146028",
+      "kind": "html",
+      "en": "Why a language rather than more tooling, and what taking it on costs.",
+      "tr": "Por qué un lenguaje y no más herramientas, y qué cuesta adoptarlo."
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "¿Por qué TypeScript, y no Go o un lenguaje nuevo?"
+    },
+    {
+      "id": "h-851a58c8",
+      "kind": "html",
+      "en": "Because that's where your ecosystem is, and it's why adoption is per-file.",
+      "tr": "Porque ahí está tu ecosistema, y por eso se adopta archivo a archivo."
+    },
+    {
+      "id": "h-32fb06b2",
+      "kind": "html",
+      "en": "Why not just strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "¿Por qué no simplemente TypeScript estricto + zod + eslint + ts-pattern?"
+    },
+    {
+      "id": "h-23c639b0",
+      "kind": "html",
+      "en": "Non-optionality: the language the agent can't config-disable.",
+      "tr": "Que no sea opcional: el lenguaje que el agente no puede desactivar con configuración."
+    },
+    {
+      "id": "h-e2f8d2d6",
+      "kind": "html",
+      "en": "Is Glyph worth it if I'm not using AI?",
+      "tr": "¿Merece la pena Glyph si no uso IA?"
+    },
+    {
+      "id": "h-9d32c00a",
+      "kind": "html",
+      "en": "Yes: the guarantees are plain engineering wins a human gets directly.",
+      "tr": "Sí: las garantías son mejoras de ingeniería normales que una persona aprovecha directamente."
+    },
+    {
+      "id": "h-e92baf62",
+      "kind": "html",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "¿Puede una IA escribir con fiabilidad un lenguaje que apenas ha visto?"
+    },
+    {
+      "id": "h-d8728111",
+      "kind": "html",
+      "en": "Most of what a model knows about TypeScript carries over, and the compiler names the places it doesn't.",
+      "tr": "Casi todo lo que un modelo sabe de TypeScript le sirve, y el compilador señala los sitios donde no."
+    },
+    {
+      "id": "h-7af5847c",
+      "kind": "html",
+      "en": "Will a new Glyph release break my build?",
+      "tr": "¿Una nueva versión de Glyph va a romper mi build?"
+    },
+    {
+      "id": "h-722022d5",
+      "kind": "html",
+      "en": "Projects pin the compiler exactly, so no release arrives by accident. <code>glyph doctor</code> says one exists; <code>glyph upgrade</code> takes it.",
+      "tr": "Los proyectos fijan la versión exacta del compilador, así que ninguna versión llega por accidente. <code>glyph doctor</code> te dice que existe una; <code>glyph upgrade</code> la instala."
+    },
+    {
+      "id": "h-3c3ebd0a",
+      "kind": "html",
+      "en": "Using it with your stack",
+      "tr": "Usarlo con tu stack"
+    },
+    {
+      "id": "h-ec9e0bd8",
+      "kind": "html",
+      "en": "npm packages, an existing app, API boundaries, React.",
+      "tr": "Paquetes de npm, una app existente, fronteras de API, React."
+    },
+    {
+      "id": "h-e9a25225",
+      "kind": "html",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "¿Puedo usar mis librerías de TypeScript, JavaScript y npm?"
+    },
+    {
+      "id": "h-3731bc81",
+      "kind": "html",
+      "en": "Yes: import any npm package, keep a hand-written <code>.ts</code> shim where you need one, and import Glyph back into <code>.ts</code>.",
+      "tr": "Sí: importa cualquier paquete de npm, mantén un shim <code>.ts</code> escrito a mano donde lo necesites e importa Glyph de vuelta en <code>.ts</code>."
+    },
+    {
+      "id": "h-68c07ce1",
+      "kind": "html",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "¿Puedo adoptar Glyph dentro de mi app actual, o es todo o nada?"
+    },
+    {
+      "id": "h-40d4518d",
+      "kind": "html",
+      "en": "No rewrite: the domain core in Glyph, the rest in TypeScript. The emitted TypeScript is imported by a stock Vite app like any other module.",
+      "tr": "Sin reescribir: el núcleo del dominio en Glyph y el resto en TypeScript. Una app Vite estándar importa el TypeScript generado como cualquier otro módulo."
+    },
+    {
+      "id": "h-01f55cfa",
+      "kind": "html",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "¿Tengo que escribir a mano un validador para cada API?"
+    },
+    {
+      "id": "h-aa1959d8",
+      "kind": "html",
+      "en": "No. Declaring a type generates its validator.",
+      "tr": "No. Declarar un tipo genera su validador."
+    },
+    {
+      "id": "h-aacedd15",
+      "kind": "html",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "¿Puedo generar un cliente y un servidor tipados a partir de la especificación de mi API?"
+    },
+    {
+      "id": "h-56e357b7",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: committed, greppable code.",
+      "tr": "<code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: código que se commitea y se puede buscar con grep."
+    },
+    {
+      "id": "h-03457be7",
+      "kind": "html",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "¿Funciona con React: componentes, hooks y Context?"
+    },
+    {
+      "id": "h-83e1d236",
+      "kind": "html",
+      "en": "First-class JSX, hooks, and exhaustive reducer actions.",
+      "tr": "JSX, hooks y acciones de reducer exhaustivas, con soporte de primera clase."
+    },
+    {
+      "id": "h-d14ef0f9",
+      "kind": "html",
+      "en": "How do I share mutable state between functions?",
+      "tr": "¿Cómo comparto estado mutable entre funciones?"
+    },
+    {
+      "id": "h-9a4c4436",
+      "kind": "html",
+      "en": "A store: a <code>const</code> whose <code>.set</code>/<code>.update</code> are the write-surface.",
+      "tr": "Un store: un <code>const</code> cuyos <code>.set</code>/<code>.update</code> son la superficie de escritura."
+    },
+    {
+      "id": "h-450a537d",
+      "kind": "html",
+      "en": "What you can build with it",
+      "tr": "Qué puedes construir con él"
+    },
+    {
+      "id": "h-a57d1773",
+      "kind": "html",
+      "en": "The language and standard library, by the kind of program.",
+      "tr": "El lenguaje y la librería estándar, según el tipo de programa."
+    },
+    {
+      "id": "h-49ee7f98",
+      "kind": "html",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "¿Es un lenguaje de verdad o un juguete con huecos?"
+    },
+    {
+      "id": "h-6f5d2044",
+      "kind": "html",
+      "en": "Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.",
+      "tr": "Visibilidad de módulos, restricciones de interfaz, defer, un <code>match</code> que funciona como cualquier valor y lleva su tipo, y una librería estándar que tiene <code>slice</code>, <code>pad_start</code> y <code>fold</code>."
+    },
+    {
+      "id": "h-a3ec390e",
+      "kind": "html",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "¿Puedo confiarle dinero, y entradas que no controlo?"
+    },
+    {
+      "id": "h-bc5ff3de",
+      "kind": "html",
+      "en": "Exact decimals and ids, invariants as types, injection as a compile error.",
+      "tr": "Decimales e ids exactos, invariantes como tipos, la inyección como error de compilación."
+    },
+    {
+      "id": "h-97be9762",
+      "kind": "html",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "¿Puedo servir una página web, o solo una API JSON?"
+    },
+    {
+      "id": "h-a3e56df8",
+      "kind": "html",
+      "en": "HTML, redirects, response headers, and form posts, without a hand-written server.",
+      "tr": "HTML, redirecciones, cabeceras de respuesta y envíos de formularios, sin un servidor escrito a mano."
+    },
+    {
+      "id": "h-e3bd5d73",
+      "kind": "html",
+      "en": "Can I write a program someone types into?",
+      "tr": "¿Puedo escribir un programa en el que alguien teclee?"
+    },
+    {
+      "id": "h-b04febf4",
+      "kind": "html",
+      "en": "<code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.",
+      "tr": "<code>io.read_line</code> responde a cada línea según llega en lugar de esperar a que se cierre stdin, así que un REPL o un bucle de juego funcionan."
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "¿Puedo escribir un servidor, o el proceso simplemente termina?"
+    },
+    {
+      "id": "h-d69c3e64",
+      "kind": "html",
+      "en": "<code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.",
+      "tr": "<code>main</code> prepara todo y retorna; el proceso sigue vivo mientras haya sockets y timers pendientes, la misma regla que usa Node."
+    },
+    {
+      "id": "h-0a58139d",
+      "kind": "html",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "¿Puedo manejar datos binarios, o todo es un string?"
+    },
+    {
+      "id": "h-56281a97",
+      "kind": "html",
+      "en": "<code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.",
+      "tr": "<code>std/bytes</code> es una secuencia de octetos, con codecs que rechazan la entrada mal formada en lugar de saltársela, y HMACs que reciben una clave de verdad."
+    },
+    {
+      "id": "h-966247fe",
+      "kind": "html",
+      "en": "Working with an agent",
+      "tr": "Trabajar con un agente"
+    },
+    {
+      "id": "h-7495dd12",
+      "kind": "html",
+      "en": "Questions an agent asks the compiler before and after an edit.",
+      "tr": "Preguntas que un agente le hace al compilador antes y después de una edición."
+    },
+    {
+      "id": "h-f56d1cc7",
+      "kind": "html",
+      "en": "Can the compiler tell me what a change will break before I make it?",
+      "tr": "¿Puede el compilador decirme qué va a romper un cambio antes de hacerlo?"
+    },
+    {
+      "id": "h-6e99d2f9",
+      "kind": "html",
+      "en": "<code>glyph_impact</code>: one verdict per site, from a closed list, with the reason, before you touch the file.",
+      "tr": "<code>glyph_impact</code>: un veredicto por sitio, de una lista cerrada, con el motivo, antes de tocar el archivo."
+    },
+    {
+      "id": "h-d339a2b7",
+      "kind": "html",
+      "en": "Can my agent ask the compiler what a symbol is before it writes code?",
+      "tr": "¿Puede mi agente preguntarle al compilador qué es un símbolo antes de escribir código?"
+    },
+    {
+      "id": "h-e85a7e3e",
+      "kind": "html",
+      "en": "<code>glyph_symbol</code>: a union's variants with the syntax that constructs each, in one call. Eleven tools, each with a <code>glyph query</code> verb.",
+      "tr": "<code>glyph_symbol</code>: las variantes de una unión con la sintaxis que construye cada una, en una sola llamada. Once herramientas, cada una con un verbo de <code>glyph query</code>."
+    },
+    {
+      "id": "h-e2d1e436",
+      "kind": "html",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "Cuando el build falla, ¿el compilador le dice a mi agente cómo arreglarlo?"
+    },
+    {
+      "id": "h-9f5626a6",
+      "kind": "html",
+      "en": "The diagnostic carries the symbol at fault, the legal alternatives, and what a repairing edit must not break. <code>glyph fix</code> writes the ones the compiler settles on its own.",
+      "tr": "El diagnóstico lleva el símbolo culpable, las alternativas válidas y lo que una edición de reparación no debe romper. <code>glyph fix</code> escribe las que el compilador resuelve por su cuenta."
+    },
+    {
+      "id": "h-bbccff1f",
+      "kind": "html",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "¿La documentación que lee mi agente se genera, o está escrita a mano y desactualizada?"
+    },
+    {
+      "id": "h-f3a7c0f2",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits the diagnostics, the prelude, the stdlib signatures and the tool manual out of the compiler's own tables, and a gate fails when a hand-written copy disagrees.",
+      "tr": "<code>glyph llms --json</code> emite los diagnósticos, el preludio, las firmas de la librería estándar y el manual de herramientas a partir de las propias tablas del compilador, y una comprobación falla cuando una copia escrita a mano no coincide."
+    },
+    {
+      "id": "h-8479d742",
+      "kind": "html",
+      "en": "Errors, editors and production",
+      "tr": "Errores, editores y producción"
+    },
+    {
+      "id": "h-2c63defe",
+      "kind": "html",
+      "en": "What you see when something is wrong, from the editor to on-call.",
+      "tr": "Lo que ves cuando algo va mal, desde el editor hasta la guardia."
+    },
+    {
+      "id": "h-173622d8",
+      "kind": "html",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "¿Cómo es la experiencia con el editor, la depuración y los errores?"
+    },
+    {
+      "id": "h-dae86273",
+      "kind": "html",
+      "en": "A language server for any LSP editor, and errors with a stable code that name the fix.",
+      "tr": "Un servidor de lenguaje para cualquier editor con LSP, y errores con un código estable que nombran el arreglo."
+    },
+    {
+      "id": "h-d7091fd1",
+      "kind": "html",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "¿Por qué Glyph detecta lo mismo que tsc, pero antes?"
+    },
+    {
+      "id": "h-81b11c93",
+      "kind": "html",
+      "en": "<code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.",
+      "tr": "El contexto de <code>await</code>, un brazo de <code>match</code> sin valor y un <code>mut</code> que falta, informados sobre tu código fuente en lugar de sobre el TypeScript generado."
+    },
+    {
+      "id": "h-f32168df",
+      "kind": "html",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "Cuando falla un parseo, ¿me entero de por qué?"
+    },
+    {
+      "id": "h-b7a930d1",
+      "kind": "html",
+      "en": "Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.",
+      "tr": "Qué campo, qué regla incumplió, el predicado <code>where</code> que violó y un <code>code</code> sobre el que bifurcar."
+    },
+    {
+      "id": "h-2a9e070d",
+      "kind": "html",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "Cuando se rompe en producción a las 3 de la mañana, ¿qué ve la guardia?"
+    },
+    {
+      "id": "h-ba5d5c26",
+      "kind": "html",
+      "en": "Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.",
+      "tr": "TS legible que es tuyo, source maps que apuntan a tu <code>.glyph</code> y un <code>run</code> que informa de lo mismo que <code>build</code>."
+    },
+    {
+      "id": "h-366d0e89",
+      "kind": "html",
+      "en": "Read them in order &rarr;",
+      "tr": "Léelas en orden &rarr;"
+    }
+  ]
+}

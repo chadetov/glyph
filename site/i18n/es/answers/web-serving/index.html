@@ -1,0 +1,85 @@
+---
+title: ¿Puedo servir una página web, o solo una API JSON? · Glyph
+description: std/http sirve páginas HTML, redirecciones, cabeceras de respuesta personalizadas y envíos de formularios, no solo JSON, con las cabeceras de respuesta modeladas por el type checker.
+source_hash: 3919e268d4a46ec8
+prev: /answers/finance/ | &larr; Anterior | ¿Puedo confiarle dinero, y entradas que no controlo?
+next: /answers/interactive-cli/ | Siguiente &rarr; | ¿Puedo escribir un programa en el que alguien teclee?
+---
+      <p class="q-eyebrow">17 &middot; Servir la web</p>
+      <h1 class="q-title">¿Puedo servir una página web, o solo una API JSON?</h1>
+
+      <p class="short-answer">
+        Una página web. <code>std/http</code> establece cabeceras de respuesta, así que una página <code>text/html</code>, una redirección 302, una cabecera de caché y el envío de un formulario HTML son Glyph normal. Sin Express, sin un shim de TypeScript escrito a mano.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por qué importa</h2>
+        <p>
+          Hasta la 0.1.46 una respuesta era <code>{ status, body }</code> y el servidor elegía el content type según la forma del cuerpo: un string era <code>text/plain</code> y cualquier otra cosa era JSON. Eso sirve para una API y no sirve para nada que renderice un navegador. La salida era escribir tu propio servidor sobre <code>node:http</code> en un archivo <code>.ts</code> escrito a mano, lo que deja todo el camino de la petición fuera del type checker. Dos constructores que faltaban costaban toda una frontera de la aplicación.
+        </p>
+
+        <h2 class="block-label">Míralo</h2>
+        <p>
+          Este es el router de <code>examples/apps/shortlink/main.glyph</code>, un acortador de URLs que viene en el repositorio. Un formulario HTML crea un código, un POST responde con una redirección para que recargar el navegador nunca vuelva a enviarlo, y seguir un código es un 302 al destino:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">shortlink.glyph: una página HTML, el envío de un formulario y el 302</span>
+<pre>fn handle_home(req: Request) -&gt; Response {
+  return match req.method {
+    "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
+    "POST" =&gt; {
+      let fields = form(req)
+      match create_link(form_field(fields, "url"), form_field(fields, "alias")) {
+        Ok(link) =&gt; redirect(303, "/${link.code}+"),
+        Err(message) =&gt; redirect(303, "/?error=${url_encode(message)}"),
+      }
+    },
+    else =&gt; html(405, page("405", "&lt;h1&gt;405&lt;/h1&gt;")),
+  }
+}
+
+fn route(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match segments(req) {
+    [] =&gt; Ok(handle_home(req)),
+    [one] =&gt; match stats_code(percent_decode(one)) {
+      Some(code) =&gt; Ok(handle_stats(code)),
+      None =&gt; Ok(handle_code(percent_decode(one))),
+    },
+    else =&gt; Ok(html(404, not_found_page(path(req)))),
+  }
+}
+
+async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let outcome = await serve(8138, route)
+  return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          La misma app estaba en el repositorio una versión antes con 615 líneas, 121 de ellas un servidor <code>node:http</code> escrito a mano en un archivo <code>.ts</code> a su lado, porque un <code>Location</code> y un cuerpo <code>text/html</code> no se podían escribir. Ahora tiene 494 líneas y no importa nada fuera de <code>std</code>. Un handler devuelve <code>Result&lt;Response, string&gt;</code>, así que un 404 es un <code>Ok</code> normal y un <code>Err</code> queda para lo que la app no puede responder, que el servidor convierte en un 500. <code>serve</code> sigue pendiente mientras escucha, así que nada tiene que mantener vivo el proceso a mano, y un bind fallido vuelve como un valor.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Response</code> lleva un <code>headers: Record&lt;string, string&gt;</code> obligatorio. Obligatorio, no opcional: cada constructor lo rellena, así que leer <code>resp.headers</code> nunca necesita comprobar si falta, y el canal no se puede olvidar. <code>with_header(resp, "cache-control", "no-store")</code> devuelve una respuesta nueva en lugar de modificar una existente, porque Glyph no permite modificar campos de records. El type checker sabe que los tres constructores devuelven un <code>Response</code>, así que un handler cuyo tipo de retorno declarado dice <code>Result&lt;Response, string&gt;</code> se comprueba en Glyph, no con <code>tsc</code> sobre la salida generada.
+        </p>
+        <p>
+          Dos detalles que de otro modo harías mal a mano. Cualquier carácter que Node se niega a escribir en una cabecera se elimina del valor al salir, así que un <code>location</code> construido a partir de un parámetro de la query no puede inyectar una segunda cabecera ni una segunda respuesta, y un emoji en una URL acortada no puede tumbar el servidor. Y <code>form(req)</code> decodifica <code>+</code> como espacio junto con los escapes de porcentaje, la pareja que suele olvidar el parseo de formularios hecho a mano; lee el cuerpo en bruto, así que <code>req.body</code> queda intacto para los handlers que lo parsean por su cuenta.
+        </p>
+      </div>
+
+      <h2 class="block-label">Dónde está</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponible hoy</h3>
+          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> y <code>form</code>; cabeceras de respuesta en la red, con el content type inferido solo cuando no has puesto uno; cabeceras de la petición, parámetros de la query, segmentos de la ruta y el cuerpo en bruto a la entrada; el cliente informa de las cabeceras de respuesta que recibió.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">En camino</h3>
+          <p>La codificación con porcentajes es el hueco que muestra el fragmento de arriba: <code>form</code> decodifica el cuerpo de un formulario, pero no hay <code>encode_component</code> para construir una URL, así que el acortador escribe el suyo. También faltan en el lado del cliente: un timeout, una política de redirecciones, <code>head</code> y la URL final a la que llevó una redirección. No hay servidor de archivos estáticos ni motor de plantillas, y no hay planes para ninguno de los dos.</p>
+        </div>
+      </div>

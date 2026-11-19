@@ -1,0 +1,158 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/finance/index.html",
+  "locale": "es",
+  "source_hash": "890e758a8ba38ece",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I trust it with money and untrusted input? · Glyph",
+      "tr": "¿Puedo confiarle dinero y entradas no fiables? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Money is exact (decimals and integers past 2^53), invariants are types the boundary enforces, and untrusted input cannot reach a SQL or shell sink unsanitized.",
+      "tr": "El dinero es exacto (decimales y enteros más allá de 2^53), los invariantes son tipos que la frontera hace cumplir, y una entrada no fiable no puede llegar sin sanear a un destino SQL o de shell."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "¿Es un lenguaje de verdad o un juguete con huecos?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Siguiente &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "¿Puedo servir una página web, o solo una API JSON?"
+    },
+    {
+      "id": "h-4ffa9bda",
+      "kind": "html",
+      "en": "16 &middot; Money &amp; safety",
+      "tr": "16 &middot; Dinero y seguridad"
+    },
+    {
+      "id": "h-a3ec390e",
+      "kind": "html",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "¿Puedo confiarle dinero, y entradas que no controlo?"
+    },
+    {
+      "id": "h-6d9773aa",
+      "kind": "html",
+      "en": "Yes. Money is <strong>exact</strong>, an invariant like non-negative is a <strong>type the boundary enforces</strong>, and untrusted input <strong>cannot reach a SQL or shell sink</strong> without being sanitized. Each of these is a compile-or-parse error if you get it wrong, not a convention someone has to remember three functions away.",
+      "tr": "Sí. El dinero es <strong>exacto</strong>, un invariante como \"no negativo\" es un <strong>tipo que la frontera hace cumplir</strong>, y una entrada no fiable <strong>no puede llegar a un destino SQL o de shell</strong> sin sanearse. Cada una de estas cosas es un error de compilación o de parseo si te equivocas, no una convención que alguien tiene que recordar tres funciones más allá."
+    },
+    {
+      "id": "h-f57cd228",
+      "kind": "html",
+      "en": "Money is not a float",
+      "tr": "El dinero no es un float"
+    },
+    {
+      "id": "h-318aa8fb",
+      "kind": "html",
+      "en": "A financial system on IEEE-754 <code>number</code> is a bug waiting to be reported: <code>0.1 + 0.2</code> is not <code>0.3</code>, and value past 2<sup>53</sup> silently loses precision. <code>std/decimal</code> is exact base-10 fixed-point over BigInt. Add, subtract, and multiply are exact; division takes an explicit scale and rounds half away from zero; a malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
+      "tr": "Un sistema financiero sobre el <code>number</code> IEEE-754 es un bug esperando a que alguien lo reporte: <code>0.1 + 0.2</code> no es <code>0.3</code>, y un valor por encima de 2<sup>53</sup> pierde precisión sin avisar. <code>std/decimal</code> es coma fija exacta en base 10 sobre BigInt. Sumar, restar y multiplicar son exactos; la división recibe una escala explícita y redondea la mitad alejándose de cero; una cantidad mal formada se parsea como un <code>Err</code>, nunca como un <code>NaN</code> silencioso."
+    },
+    {
+      "id": "h-73ae9568",
+      "kind": "html",
+      "en": "the bug it removes",
+      "tr": "el bug que elimina"
+    },
+    {
+      "id": "h-24b27366",
+      "kind": "html",
+      "en": "Ids and counters stay exact past 2<sup>53</sup>",
+      "tr": "Los ids y los contadores siguen siendo exactos más allá de 2<sup>53</sup>"
+    },
+    {
+      "id": "h-3a0b55f8",
+      "kind": "html",
+      "en": "An account id or a ledger counter that overflows the float range and rounds is a different kind of catastrophe. <code>bigint</code> is an exact arbitrary-precision integer with <code>123n</code> literals, and a record field typed <code>bigint</code> validates <code>typeof === \"bigint\"</code> at the boundary, so an id arriving as a JSON <code>number</code> is rejected rather than quietly truncated.",
+      "tr": "Un id de cuenta o un contador de un libro contable que se sale del rango de los float y se redondea es otro tipo de catástrofe. <code>bigint</code> es un entero exacto de precisión arbitraria con literales <code>123n</code>, y un campo de record tipado <code>bigint</code> valida <code>typeof === \"bigint\"</code> en la frontera, así que un id que llega como <code>number</code> de JSON se rechaza en lugar de truncarse sin avisar."
+    },
+    {
+      "id": "h-66804ead",
+      "kind": "html",
+      "en": "An invariant is a type, not a comment",
+      "tr": "Un invariante es un tipo, no un comentario"
+    },
+    {
+      "id": "h-a4555080",
+      "kind": "html",
+      "en": "\"The amount is non-negative\" and \"the rating is 1 to 5\" are the checks that get written once and forgotten later. A <code>where</code> refinement puts the invariant in the type, and the descriptor enforces it at the boundary. A value that fails the predicate never becomes an <code>Amount</code> in the first place.",
+      "tr": "\"La cantidad no es negativa\" y \"la puntuación va de 1 a 5\" son las comprobaciones que se escriben una vez y luego se olvidan. Un refinamiento <code>where</code> pone el invariante en el tipo, y el descriptor lo hace cumplir en la frontera. Un valor que no cumple el predicado nunca llega a ser un <code>Amount</code>."
+    },
+    {
+      "id": "h-791f6228",
+      "kind": "html",
+      "en": "Injection is a compile error",
+      "tr": "La inyección es un error de compilación"
+    },
+    {
+      "id": "h-0f83c921",
+      "kind": "html",
+      "en": "The classic remote-code path is untrusted input reaching a SQL query, a shell command, or an HTML template. <code>std/taint</code> makes that a type error. A value from outside is <code>Tainted</code>; a sink you want to protect takes <code>Trusted</code>. The two are structurally distinct, so the only way from one to the other is an explicit <code>sanitize</code>. Hand a sink the tainted value directly and <code>tsc</code> refuses to compile it.",
+      "tr": "El camino clásico hacia la ejecución remota de código es una entrada no fiable que llega a una consulta SQL, un comando de shell o una plantilla HTML. <code>std/taint</code> lo convierte en un error de tipos. Un valor que viene de fuera es <code>Tainted</code>; un destino que quieres proteger recibe <code>Trusted</code>. Los dos son estructuralmente distintos, así que la única forma de pasar de uno a otro es un <code>sanitize</code> explícito. Pásale a un destino el valor contaminado directamente y <code>tsc</code> se niega a compilarlo."
+    },
+    {
+      "id": "h-8aff8559",
+      "kind": "html",
+      "en": "the safe path compiles",
+      "tr": "el camino seguro compila"
+    },
+    {
+      "id": "h-a469e7bc",
+      "kind": "html",
+      "en": "the injection path does not",
+      "tr": "el camino de la inyección no"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Dónde está"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponible hoy"
+    },
+    {
+      "id": "h-0571eb2f",
+      "kind": "html",
+      "en": "<code>std/decimal</code> for exact money, <code>bigint</code> for exact large integers, <code>where</code> refinements so an invariant is validated at the boundary, and <code>std/taint</code> so untrusted input can't reach a protected sink without an explicit <code>sanitize</code>. Each is checked: a bad amount or id fails <code>parse</code>, a bad invariant fails <code>parse</code>, and an unsanitized value fails <code>tsc</code>.",
+      "tr": "<code>std/decimal</code> para dinero exacto, <code>bigint</code> para enteros grandes exactos, refinamientos <code>where</code> para que un invariante se valide en la frontera, y <code>std/taint</code> para que una entrada no fiable no pueda llegar a un destino protegido sin un <code>sanitize</code> explícito. Cada uno se comprueba: una cantidad o un id incorrectos fallan en <code>parse</code>, un invariante incumplido falla en <code>parse</code>, y un valor sin sanear falla en <code>tsc</code>."
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "Dónde se detiene"
+    },
+    {
+      "id": "h-b6c3fdb9",
+      "kind": "html",
+      "en": "A <code>where</code> refinement covers primitive base types today; record and cross-field invariants (<code>where value.paid &lt;= value.total</code>) are a planned extension. Taint is discipline you opt into by typing a sink <code>Trusted</code>, not automatic flow analysis: the compiler enforces the boundary you declare, it does not infer taint across the whole program for you.",
+      "tr": "Hoy un refinamiento <code>where</code> cubre los tipos base primitivos; los invariantes de records y entre campos (<code>where value.paid &lt;= value.total</code>) son una extensión planificada. Taint es una disciplina que adoptas al tipar un destino como <code>Trusted</code>, no un análisis de flujo automático: el compilador hace cumplir la frontera que declaras, no infiere la contaminación por ti en todo el programa."
+    }
+  ]
+}

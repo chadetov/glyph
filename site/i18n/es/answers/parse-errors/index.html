@@ -1,0 +1,105 @@
+---
+title: Cuando falla un parseo, ¿me entero de por qué? · Glyph
+description: Un parseo que falla nombra el campo, dice qué regla incumplió el valor, cita el predicado where que violó y marca el problema con un código sobre el que puedes bifurcar.
+source_hash: 7f1a8b2bd45c7f9e
+prev: /answers/early-errors/ | &larr; Anterior | ¿Por qué Glyph detecta lo mismo que tsc, pero antes?
+next: /answers/debugging/ | Siguiente &rarr; | Cuando se rompe en producción a las 3 de la mañana, ¿qué ve la guardia?
+---
+      <p class="q-eyebrow">27 &middot; Fallos de parseo</p>
+      <h1 class="q-title">Cuando falla un parseo, ¿me entero de por qué?</h1>
+
+      <p class="short-answer">
+        Sí. Cada problema nombra el campo, dice <strong>qué regla incumplió el valor</strong> y lleva un <code>code</code> sobre el que puedes bifurcar. Un campo restringido por un predicado <code>where</code> informa del propio predicado, así que con grep llegas desde el rechazo a la línea que lo impuso.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por qué importa</h2>
+        <p>
+          Un validador que dice "este payload es incorrecto" ha hecho la mitad del trabajo. El handler todavía tiene que decidir: ¿es un cliente que olvidó un campo, o un cliente que envió una contraseña de cuatro caracteres? Uno es un 400, el otro es un 422, y si el validador no lo dice, acabas parseando el mismo cuerpo dos veces con dos tipos distintos para recuperar un dato que el validador ya tenía.
+        </p>
+        <p>
+          Es exactamente lo que pasó al construir una API de autenticación en Glyph. Un registro sin ninguna clave <code>password</code> volvía como <code>weak_password</code>, porque la ausencia y la longitud insuficiente producían el mismo string.
+        </p>
+
+        <h2 class="block-label">Míralo</h2>
+        <p>Un tipo, una restricción:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">signup.glyph</span>
+<pre>pub type Password = string where value.length &gt;= 8
+
+pub type Signup = {
+  email: string,
+  password: Password,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Cuatro payloads incorrectos, cuatro respuestas distintas. Cada una es un <code>Issue</code>, mostrado como <code>code | path | message</code>:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Signup.parse(...)</span>
+<pre><span class="cm">// { "email": "user@example.com" }</span>
+missing     ["password"]  field `password` is required
+
+<span class="cm">// { "email": "user@example.com", "password": "short" }</span>
+refinement  ["password"]  expected Password (string where value.length &gt;= 8)
+
+<span class="cm">// { "email": 42, "password": "longenough" }</span>
+type        ["email"]     field `email` must be string
+
+<span class="cm">// [1, 2, 3]</span>
+type        []            expected Signup (an object), got an array</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          La segunda es la clave. <code>value.length &gt;= 8</code> se escribe una sola vez, en el tipo, y el rechazo lo cita literalmente. Copia ese string del cuerpo de un HTTP 422, pégalo en <code>grep</code> y llegas a la declaración que lo produjo. Nadie tiene que mantener una copia de la regla en la capa de mensajes de error, que es como las dos acaban divergiendo.
+        </p>
+        <p>
+          La cuarta antes era peor que un mal mensaje. Para <code>typeof</code> un array es un objeto, así que un record sin campos obligatorios lo aceptaba sin más, y un <code>[1, 2, 3]</code> enviado volvía como un problema confuso por cada campo declarado, sin que ninguno mencionara que habías enviado una lista.
+        </p>
+
+        <h2 class="block-label">Los tipos anidados responden por sí mismos</h2>
+        <p>
+          Un campo cuyo tipo tiene su propio descriptor se valida con el <code>parse</code> de ese tipo, y sus problemas vuelven con el nombre del campo al principio de la ruta. Así, un <code>Password</code> anidado dos niveles más abajo informa de <code>["body", "password"]</code> y sigue llevando su propio mensaje. Obtienes la ubicación y el motivo del mismo problema, sin volver a ejecutar nada.
+        </p>
+
+        <h2 class="block-label">El código, no el string</h2>
+        <p>
+          <code>Issue</code> lleva un <code>code</code> opcional: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code> o <code>"unexpected"</code>. Bifurca según eso. Hacer match sobre el texto del mensaje es justo la fragilidad que Glyph existe para eliminar, y el mensaje es para la persona que lee el cuerpo de la respuesta.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Una separación entre 400 y 422 que no lee el mensaje</span>
+<pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
+  let first = issues[0]
+  return match first.code == "refinement" {
+    true =&gt; 422,
+    false =&gt; 400,
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>code</code> es opcional, así que un <code>Issue</code> que construyas a mano, y todo consumidor escrito antes de que existiera, sigue compilando sin cambios.
+        </p>
+      </div>
+
+      <h2 class="block-label">Dónde está</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponible hoy</h3>
+          <p>Los records y los tipos <code>where</code> informan de la regla que falla, no solo del campo que falla: <code>"missing"</code> para un campo obligatorio ausente, <code>"type"</code> para una forma incorrecta (incluido algo que no es un objeto, o un array), <code>"refinement"</code> para un valor que pasó su tipo base y no cumplió el predicado, y <code>"unexpected"</code> para una clave que el tipo no declara. Un refinamiento cita su predicado. Un campo cuyo tipo tiene un descriptor delega en él, así que los problemas anidados llegan con la ruta completa. Los campos opcionales (<code>f?: T</code>) nunca se informan como ausentes.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Mejorando</h3>
+          <p>Dos límites. Un campo con un tipo que no tiene descriptor propio, un parámetro de tipo sin restricciones o un tipo importado de un <code>.d.ts</code> escrito a mano, sigue recibiendo la comprobación plana y un problema <code>"type"</code>; el compilador no sintetiza un descriptor para esos, y lo que les da uno es ejecutar <code>glyph gen dts</code> sobre la declaración. Un módulo que declaraba su propio tipo llamado <code>Issue</code> ocultaba el del preludio dentro del archivo generado y rompía todos los descriptores de ese módulo; desde la 0.1.60 esa declaración da <code>E0110</code> en la línea que nombra el tipo, así que sabes dónde está el problema en lugar de leer un error de <code>tsc</code> sobre código generado.</p>
+        </div>
+      </div>

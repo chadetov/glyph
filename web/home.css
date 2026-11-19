@@ -1,0 +1,94 @@
+/* glyphlang.io: the home page's own sections.
+   Source: site/home.css, copied to web/home.css by scripts/build_site.py.
+   The hero, install line and buttons are in site/style.css (.home ...); the
+   catch pair and cards are in site/catches.css. */
+
+.home .hero .sub code {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--on-band);
+}
+.h-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s3);
+}
+.h-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: var(--s4) var(--s5);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  color: var(--ink);
+}
+a.h-tile:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+  color: var(--ink);
+}
+.h-tile b {
+  font-size: var(--fs-md);
+}
+.h-tile span {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.h-more {
+  margin: var(--s4) 0 0;
+}
+.h-measured {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s5);
+  align-items: center;
+  padding: var(--s6);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.h-measured p {
+  margin: 0;
+  color: var(--ink-2);
+  max-width: 70ch;
+}
+.h-measured .h-big {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.h-big span {
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+.h-after {
+  margin-top: var(--s5);
+}
+.h-notyet {
+  margin: 0;
+  padding: var(--s4) var(--s5);
+  border-left: 3px solid var(--amber-fill);
+  background: var(--amber-bg);
+  border-radius: 0 var(--r) var(--r) 0;
+  color: var(--ink-2);
+  max-width: 80ch;
+}
+.home > section:last-of-type {
+  padding-bottom: var(--s8);
+}
+@media (max-width: 860px) {
+  .h-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .h-measured {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s3);
+    padding: var(--s5);
+  }
+}
+.home .h-routes {
+  padding-top: var(--s6);
+}

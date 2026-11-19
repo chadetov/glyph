@@ -405,3 +405,22 @@ a.c-card:hover {
     padding-left: var(--s3);
   }
 }
+
+/* ============ touch targets on a phone ============ */
+@media (max-width: 860px) {
+  .c-chip {
+    min-height: 44px;
+    padding: 4px 14px;
+  }
+  .c-links {
+    gap: 0 var(--s4);
+  }
+  .c-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .c-anchor {
+    padding-block: 10px;
+  }
+}

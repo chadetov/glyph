@@ -1,0 +1,193 @@
+---
+title: Diff stability · a one-line change is a one-line diff · Glyph
+description: Glyph's third pillar: one canonical format, trailing commas, lists inline or one element per line and never repacked, no barrel files, idempotent codegen. The diff shows the change, not the churn.
+layout: article
+article_class: answer-page pillar-page
+nav: pillars
+subnav: pillars
+prev: /pillars/greppability/ | &larr; Previous pillar | Greppability: one name, one place
+next: /pillars/abstraction/ | Next pillar &rarr; | Abstraction: a small, orthogonal core
+sitemap: 2026-08-06 weekly 0.9
+---
+      <p class="q-eyebrow">Pillar 03 &middot; <span class="polish">The polish</span></p>
+      <h1 class="q-title">Diff stability</h1>
+
+      <p class="short-answer">
+        A one-line change is a <strong>one-line diff</strong>. One canonical format, trailing
+        commas, and a list that is either entirely inline or entirely one element per line, never
+        repacked, so a review shows the change that was made, not the churn around it.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Review is reading diffs</p>
+        <p class="lede">
+          Almost everything we trust about a change (the review, the blame, the revert, the
+          bisect) is built on the diff. So the diff's signal-to-noise ratio is the real
+          currency. In most codebases it's terrible: a formatter reflows a wrapped line, an
+          import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one
+          line that <em>matters</em> is buried in fifty that don't.
+        </p>
+        <p class="lede">
+          Agents make this sharply worse. Given a small task, a model will happily rewrite a whole
+          function, or a whole file, to change one thing, because regenerating is easier
+          for it than editing surgically. The reviewer is left to diff a rewrite against the original
+          and <em>hope</em> the only real change is the intended one. Glyph is built so that the layout
+          gives the model nothing to churn.
+        </p>
+
+        <p class="block-label"><span class="ex-label">01</span> One canonical layout, no choices</p>
+        <p>
+          <code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a
+          trailing comma on every multi-line list, and a list that stays on one line while it fits
+          inside 100 columns and goes one element per line when it doesn't. The choice is
+          all-or-nothing. The formatter never repacks your elements to fill a line, so a list is
+          never partly on one row and partly on the next, and adding a field is a single added line.
+          Because there's exactly one legal shape, there's nothing to argue about and nothing for a
+          tool to "fix" on the side.
+        </p>
+        <p>
+          The width threshold is what this costs. Rename a binding so a call crosses 100 columns and
+          the call expands to one argument per line: a one-token edit, a four-line diff. The trade is
+          that the layout depends on the code and the column it starts at and nothing else, so two
+          agents editing the same file converge on the same bytes.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">Reflowed style: one change, three touched lines</span>
+          <span class="cap">git diff (packed formatting)</span>
+<pre><span class="del">- type User = { id: number, name:</span>
+<span class="del">-   string }</span>
+<span class="add">+ type User = { id: number, name:</span>
+<span class="add">+   string, email: string }</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: one change, one added line</span>
+          <span class="cap">git diff (canonical)</span>
+<pre>  type User = {
+    id: number,
+    name: string,
+<span class="add">+   email: string,</span>
+  }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          The trailing comma is doing quiet work: because the last element already ends in a comma,
+          adding a sibling <strong>never edits the line above it.</strong> One insertion, one line.
+        </p>
+
+        <p class="block-label"><span class="ex-label">02</span> Order is stable, so history is legible</p>
+        <p>
+          One element per line means reordering, inserting, or removing an item touches only that
+          item's lines, never its neighbours. <code>git blame</code> stays meaningful:
+          each line's last-touched commit is the commit that actually changed <em>that</em> element,
+          not the formatting pass that happened to repack the row it shared.
+        </p>
+
+        <p class="block-label"><span class="ex-label">03</span> No barrel files: no import churn</p>
+        <p>
+          Because imports never re-export and there are no <code>index.ts</code> aggregation layers
+          (<code>E0102</code>), adding or moving a symbol doesn't ripple through a barrel that every
+          consumer imports. The dependency edges you edit are the ones you meant to; the rest of the
+          import graph doesn't move.
+        </p>
+
+        <p class="block-label"><span class="ex-label">04</span> Generation is idempotent, not a blob</p>
+        <p>
+          The same discipline extends to generated code. <code>glyph gen</code> and
+          <code>glyph regen</code> reprint their output through the canonical formatter, so
+          regenerating after a spec change produces a <em>minimal</em> diff you can actually review,
+          a couple of changed lines, not a wholesale replacement of a machine-written file.
+          And every emitted <code>.ts</code> ships a source map, so even the compiled output traces
+          cleanly back to the line you changed.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">a field added to the spec &rarr; the regenerated diff</span>
+<pre>  type Task = {
+    id: number,
+    title: string,
+<span class="add">+   done: bool,</span>
+  }
+<span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label"><span class="ex-label">05</span> "TypeScript can do this with Prettier"</p>
+        <p>
+          For a lot of the formatting, it can. Prettier with <code>trailingComma: "all"</code> puts a
+          comma on the last element and prints long lists one per line, and that gets you most of
+          section 01. The differences are in three places.
+        </p>
+        <p>
+          <strong>The layout depends only on the code.</strong> Prettier keeps an object literal
+          expanded if its author put a line break after the <code>{</code>, and collapses it if they
+          didn't, so the same object can be printed two ways depending on how it was first typed. Two
+          agents writing the same thing produce two layouts, and the next edit to one of them shows
+          up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way
+          however the input was wrapped.
+        </p>
+        <p>
+          <strong>There is nothing to configure.</strong> Prettier's output is whatever the
+          repository's config file says, and some repositories don't have one. An agent moving
+          between TypeScript projects meets a different layout in each. A Glyph file has the same
+          layout in every project, because the formatter has no options.
+        </p>
+        <p>
+          <strong>The formatter can't change what a file says.</strong> <code>glyph fmt</code> is
+          tested by parsing its own output and comparing the syntax tree with the input's, on every
+          example in the repository and under a fuzzer. When a comment sits somewhere the layout has
+          no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to
+          code it doesn't describe.
+        </p>
+        <p>
+          One thing on the list is not done yet: <code>glyph fmt</code> does not sort imports, so two
+          agents adding an import in different places still produce different import blocks (G358).
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          Diff stability is what turns "the agent changed something" into "the agent changed
+          <strong>exactly this</strong>." When the noise floor is zero, review is fast and trust is
+          cheap.
+        </p>
+
+        <p class="block-label">The benchmark: coming</p>
+        <p>
+          The number that captures this is diff size per logical change: how many lines move when you
+          make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical
+          formatter. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills
+          in with real measurements once there's real history to draw from.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Diff lines per one-field change &middot; lower is better</span>
+        <h3>TypeScript vs Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 22%;">pending</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 58%;">pending</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Not measured yet</span>
+          We'll draw diff-size numbers from a real Glyph repo's history and publish them here, whatever
+          they show.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          It costs a little freedom (you don't get to hand-pack a line the way you like)
+          and buys a lot of legibility in return. That's the trade every polish pillar makes: give up a
+          choice that didn't matter to keep a signal that does.
+        </p>
+      </div>

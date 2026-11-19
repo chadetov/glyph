@@ -1,0 +1,16 @@
+{
+  "_comment": "Shared data for scripts/build_site.py: the main nav and sitemap entries for pages the generator does not render. The numbered sub-navs are site/partials/subnav-<name>.html.",
+  "nav": [
+    {"label": "Playground", "href": "/playground/", "key": "playground"},
+    {"label": "Why Glyph", "href": "/pillars/verifiability/", "key": "pillars"},
+    {"label": "Answers", "href": "/answers/", "key": "answers"},
+    {"label": "Hardening", "href": "/hardening/", "key": "hardening"},
+    {"label": "Benchmarks", "href": "/benchmarks/", "key": "benchmarks"},
+    {"label": "For agents", "href": "/llms.txt", "key": "llms"},
+    {"label": "MCP", "href": "/mcp/", "key": "mcp"},
+    {"label": "GitHub", "href": "https://github.com/chadetov/glyph", "key": "github"}
+  ],
+  "extra_sitemap": [
+    {"loc": "/playground/", "lastmod": "2026-06-15", "changefreq": "monthly", "priority": "0.7"}
+  ]
+}

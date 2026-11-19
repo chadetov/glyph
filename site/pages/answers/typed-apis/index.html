@@ -1,0 +1,568 @@
+---
+title: Do I have to hand-write a validator for every API? · Glyph
+description: No. In Glyph a type is its own runtime validator: declare a type, and request and response bodies validate for free. You can even generate the types from an OpenAPI spec or a TypeScript .d.ts.
+layout: article
+nav: answers
+subnav: answers
+prev: /answers/embedding/ | &larr; Previous | Can I adopt Glyph inside my existing app, or is it all-or-nothing?
+next: /answers/codegen/ | Next &rarr; | Can I generate a typed client and server from my API spec?
+sitemap: 2026-08-27 weekly 0.8
+---
+      <p class="q-eyebrow">06 &middot; Data boundaries</p>
+      <h1 class="q-title">Do I have to hand-write a validator for every API?</h1>
+
+      <p class="short-answer">
+        No. In Glyph a <strong>type is its own validator</strong>. Declare a
+        <code>type</code> and the compiler generates a runtime descriptor beside it, so an
+        untrusted request or response body validates with one call, no separate
+        <code>zod</code> schema to write and keep in sync.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          In most TypeScript stacks every payload is described <em>twice</em>: once as a
+          <code>type</code> for the compiler, and again as a hand-written validator so the value is
+          actually that shape at runtime. The two drift, and the drift is exactly where bad data
+          slips in. Glyph collapses them into one declaration: the type <em>produces</em> the
+          validator, so they cannot disagree.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          Declare the DTO once. Its descriptor gives you <code>.parse</code> (validate an untrusted
+          value into the type) and <code>.is</code> (a type guard) for free:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">api.glyph</span>
+<pre>type NewTask = {
+  title: string,
+  done: bool,
+}
+
+fn create(req: Request)
+  -&gt; Result&lt;Response, string&gt; {
+  return match NewTask.parse(req.body) {
+    Ok(task) =&gt; Ok(json(201, task)),
+    Err(issues) =&gt; Ok(json(400, {
+      error: "invalid task",
+    })),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">what you did <em>not</em> write</span>
+<pre>// No zod schema:
+const NewTask = z.object({
+  title: z.string(),
+  done: z.boolean(),
+});
+// No drift between the type and
+// the validator, because there is
+// only one declaration.
+
+// A bad body, {"title": 123},
+// takes the Err arm. Only a
+// well-formed body reaches Ok.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          You can also pull the value out instead of doing the work inside the arm.
+          <code>T.parse</code> is typed as <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>
+          and a <code>match</code> whose arms agree carries their type, so
+          <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues)
+          =&gt; { return bad_request(issues) }, }</code> gives you a
+          <code>NewTask</code> for the rest of the function, with field names
+          checked by Glyph rather than by <code>tsc</code> on the generated
+          TypeScript. That landed in 0.1.45; before it, the value went untyped once
+          it left the <code>match</code>. A generic type's <code>parse</code> is the
+          one that still doesn't, because its descriptor takes a runtime checker per
+          type parameter.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">The parse result is an ordinary <code>Result</code></p>
+        <p>
+          A validator that gives you back a value in its own private shape is only half
+          useful, because the rest of your error handling can't touch it. In Glyph
+          <code>T.parse</code> returns the same <code>Result</code> every fallible function in
+          the language returns, so you hand it straight back, run it through
+          <code>map_err</code> to turn validation issues into your own error type, or
+          propagate it with <code>?</code>. Nothing about a parse result is special:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">boundary.glyph</span>
+<pre>// Hand it straight back.
+fn read_task(body: unknown)
+  -&gt; Result&lt;NewTask, Array&lt;Issue&gt;&gt; {
+  return NewTask.parse(body)
+}
+
+// Or restate the failure in your own terms.
+fn read_checked(body: unknown)
+  -&gt; Result&lt;NewTask, string&gt; {
+  return NewTask.parse(body).map_err(
+    fn(issues: Array&lt;Issue&gt;) -&gt; string {
+      return "invalid task: ${issue_text(issues)}"
+    },
+  )
+}
+
+// Or propagate it and get on with the work.
+fn create(body: unknown) -&gt; Result&lt;Response, string&gt; {
+  let task = read_checked(body)?
+  return Ok(json(201, save(task)))
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">what this replaced</span>
+<pre>// Until 0.1.52 the generated descriptor
+// returned a bare { tag, value } object,
+// so both of the first two shapes were
+// tsc errors (TS2322 and TS2339) even
+// though Glyph's own checker reported
+// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround
+// was an identity re-wrap:
+
+match NewTask.parse(body) {
+  Ok(t)  =&gt; Ok(t),          // does nothing
+  Err(e) =&gt; Err(reword(e)),
+}
+
+// Four lines to say map_err. bracket.glyph
+// carried this twice until the fix landed.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The reason it was ever otherwise: a descriptor is generated next to your
+          <code>type</code>, and emitting the bare object kept a module that declares a type
+          from depending on <code>std/result</code> at runtime. That trade is now made the
+          other way. A module with a <code>pub type</code> in it carries an import of
+          <code>std/result</code> whether or not it ever writes <code>Result</code>, and a
+          <code>parse</code> call allocates the combinator closures any <code>Ok(...)</code>
+          allocates. What you get for it is that the validated boundary and the rest of your
+          error handling are the same API.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Composing your own: the output type is derived, not trusted</p>
+        <p>
+          Sometimes you want a <code>zod</code>-style combinator: build a validator by composing
+          smaller ones. The trap in TypeScript is that the combinator's <em>output type</em> and the
+          <em>shape</em> you passed it drift apart. You write the shape, then repeat yourself
+          in a second type parameter, and nothing checks that they agree. Glyph's
+          <code>infer_output&lt;Shape&gt;</code> <strong>derives</strong> the output type from the shape,
+          and <code>tsc</code> checks your annotation against it. A shape that omits a field of the
+          type you claim doesn't compile:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">schema.glyph</span>
+<pre>fn object_schema&lt;Shape: Record&lt;string, Schema&lt;unknown&gt;&gt;&gt;(
+  shape: Shape,
+) -&gt; Schema&lt;infer_output&lt;Shape&gt;&gt; { ... }
+
+type User = { name: string, age: number }
+
+// The shape must produce a User, or this
+// line does not compile:
+const user_schema: Schema&lt;User&gt; =
+  object_schema({
+    name: string_schema(),
+    age: number_schema(),
+  })</pre>
+        </div>
+        <div class="code">
+          <span class="cap">the drift Glyph removes</span>
+<pre>// TS/zod: shape and output type are two
+// separate things you keep in sync by hand.
+const s = z.object({ name: z.string() });
+type User = { name: string; age: number };
+// `s` is inferred { name }, but nothing
+// checks it against User. The `age` you
+// forgot is caught at runtime, if ever.
+
+// Glyph: drop `age` from the shape and
+// `Schema&lt;User&gt;` fails to compile. The
+// shape is the single source of truth.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The derived type holds however the combinator returns. <code>infer_output</code>
+          needs one cast at the function's boundary, because the body builds a value the
+          type system can't prove carries the shape-derived type, and the compiler writes
+          that cast for you. Through 0.1.91 it was attached to a plain
+          <code>return &lt;value&gt;</code>. Put a <code>match</code> between the
+          <code>return</code> and the value, or end the body in <code>r?</code>, and the
+          same function stopped compiling: a <code>TS2322</code> against generated
+          TypeScript, over Glyph the compiler had already accepted. As of 0.1.92 the cast
+          follows the return rather than its spelling, so <code>return match strict { ... }</code>
+          type-checks the same as the single <code>return</code> spelling of the identical body.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          The descriptor is the same one that makes <code>json.parse&lt;T&gt;</code> safe: give it a
+          JSON string and it parses <em>and</em> validates in one step. A request body arrives
+          already decoded as an <code>unknown</code>, so there you reach for
+          <code>T.parse(value)</code> instead: same guarantee, no cast.
+        </p>
+        <p class="block-label">Does a map keyed by an enum check its keys?</p>
+        <p>
+          Yes, since 0.1.148. A <code>Record&lt;Tier, int&gt;</code> with
+          <code>type Tier = "free" | "pro"</code> parses only an object whose keys are exactly
+          <code>free</code> and <code>pro</code>: a stray key and a missing one are both an
+          <code>Err</code>, which is also what <code>tsc</code> says about the same object written
+          as a literal. A <code>where</code>-refined key type runs its predicate on every key, and
+          an <code>int</code> key has to be the plain spelling of a whole number, so
+          <code>"01"</code> and <code>"1.5"</code> are refused. A <code>Record&lt;string, V&gt;</code>
+          is checked exactly as before. Glyph's own checker still leaves the keys of a value you
+          write in code to <code>tsc</code>, and a generic record keyed by its own type parameter
+          is refused unless that parameter is <code>string</code>.
+        </p>
+        <p>
+          The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code>
+          and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a
+          missing header or query parameter is <code>None</code> and the <code>match</code>
+          <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't
+          compile. Absent input can't be read as if it were present.
+        </p>
+
+        <p class="block-label">If I parse a date, do I get a real date?</p>
+        <p>
+          Yes, and the interesting part is what you get back for input that isn't one.
+          <code>time.parse_iso</code> returns <code>Option&lt;number&gt;</code>, and it is
+          <code>None</code> for everything that is not ISO-8601. That is a stronger claim than
+          JavaScript's <code>Date.parse</code>, which takes free-form text
+          (<code>"January 5 2026"</code>), reads an unpadded date like <code>"2026-1-3"</code> in
+          whatever timezone the process happens to run in, and reports an impossible day as a
+          success by rolling it forward: <code>"2026-02-31"</code> becomes March 3, and you get a
+          number back with no indication anything happened.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">accepted</span>
+<pre>"2026-01-03"              // UTC midnight
+"2026-07-25T18:33:08.000Z"
+"2026-03-15T09:30:00-05:00"
+"2028-02-29"              // a real leap day</pre>
+        </div>
+        <div class="code">
+          <span class="cap">None, every one of them</span>
+<pre>"January 5 2026"   // not ISO
+"2026-1-3"         // not padded
+"2026-13-01"       // no month 13
+"2026-02-31"       // no such day
+"2026-02-29"       // not a leap year
+"2026-01-03T10:00" // no offset</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The last one is the one that surprises people, and it is the whole point. A datetime with
+          no <code>Z</code> and no <code>+HH:MM</code> offset is local time by the ECMAScript
+          grammar, so accepting it would mean the same string names a different calendar day
+          depending on which machine ran the program. Glyph's calendar accessors
+          (<code>time.year</code>, <code>time.month</code>, <code>time.day</code>) are UTC and say
+          so, and a validator that quietly imports the host's timezone would make them lie. So the
+          string is rejected instead, and you decide what it meant.
+        </p>
+
+        <p>
+          This one came out of writing an <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph">expense-report
+          CLI in Glyph</a>. Every ledger row carries a date,
+          and filing a row under the wrong month is the bug that matters, so the app didn't trust
+          the old <code>parse_iso</code>: it checked the shape with a regex first, then round-tripped
+          the timestamp back to text to catch a rolled-over day. When an application writes a
+          correctness guard around a standard-library primitive, the guard belongs in the
+          primitive. Here is what the app deleted:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">before: the app guards the stdlib</span>
+<pre>const ISO_DATE = "^\\d{4}-\\d{2}-\\d{2}$"
+
+fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match regex.matches(ISO_DATE, value) {
+    false =&gt; Err(BadDate({ line: line, value: value })),
+    true =&gt; match time.parse_iso(value) {
+      Some(ms) =&gt; match string.starts_with(
+        time.format_iso(ms), value
+      ) {
+        true =&gt; Ok(ms),
+        false =&gt; Err(BadDate({ line: line, value: value })),
+      },
+      None =&gt; Err(BadDate({ line: line, value: value })),
+    },
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">after: the primitive holds the line</span>
+<pre>fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match time.parse_iso(value) {
+    Some(ms) =&gt; Ok(ms),
+    None =&gt; Err(BadDate({ line: line, value: value })),
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The <code>import std/regex</code> went with it. Same ledger, same rejected rows, same
+          report byte for byte.
+        </p>
+
+        <p class="block-label">You don't even have to write the types</p>
+        <p>
+          If the shape already exists in an OpenAPI spec or a TypeScript declaration file, generate
+          the Glyph types from it: real, committed, greppable <code>type</code> declarations,
+          each with its descriptor, not an inferred phantom:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">from an OpenAPI / JSON Schema spec</span>
+<pre>glyph gen openapi petstore.yaml \
+  --out src/</pre>
+        </div>
+        <div class="code">
+          <span class="cap">from an installed package, by name</span>
+<pre>glyph gen dts api-types \
+  --out src/types</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Point <code>glyph gen dts</code> at a <code>.d.ts</code> file, or, as above, at an
+          installed npm package by name: it resolves the package's own declaration entry from
+          <code>node_modules</code> and writes committed types you import. A wire type becomes a
+          validated boundary, with nothing hand-written:
+        </p>
+<pre>import types/api_types { Customer }
+
+match Customer.parse(webhook_body) {
+  Ok(c) =&gt; handle(c),
+  Err(issues) =&gt; reject(issues),
+}</pre>
+        <p>
+          What materializes today: <code>gen dts</code> reads the <code>interface</code> and
+          <code>type</code> declarations a package exports, including those inside a
+          <code>declare namespace</code> tree (bare cross-references resolve through the scope) and
+          those in sibling files an <code>index</code> barrel re-exports (the entry
+          <code>.d.ts</code> plus every relatively-imported <code>.d.ts</code> is walked). A generic
+          is kept first-class: <code>interface Page&lt;T&gt;</code> materializes as
+          <code>type Page&lt;T&gt;</code> and gets a descriptor that validates each item as its type
+          argument, not just for presence. Aliased and <code>export * as</code> re-exports resolve
+          through a per-file binding map. The one case it can't make safe, a type name that collides
+          across two reachable files, it <em>flags with a note</em> rather than bind the wrong shape
+          silently. For anything the materializer can't reach, hand-write the shapes you cross the
+          boundary with, or use the <code>extern_ts</code> escape hatch.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Regeneration is idempotent, so a spec change is a clean, reviewable diff. Generation is
+          <strong>wire-faithful</strong>: a string enum materializes as a string-literal union
+          (<code>"free" | "pro"</code>), so <code>parse</code> checks membership, not just that the
+          value is a string, and a <code>match</code> over it is exhaustive without an
+          <code>else</code>. An <code>integer</code> field becomes <code>int</code>, so a wire
+          <code>3.5</code> fails <code>parse</code> where a plain number would pass. Where a
+          construct has no exact Glyph form (an undiscriminated union), it narrows and
+          <em>prints a note</em> rather than emit a validator that would reject real data. Generated
+          records also carry
+          <code>@open</code>, so <code>parse</code> tolerates a field the API adds later while still
+          validating every field it declares; a schema that sets
+          <code>additionalProperties: false</code> stays strict. Records are strict by default in
+          Glyph, and this is the same greppable declaration-site marker a hand-written record would
+          use, so nothing about what a record means changes.
+        </p>
+        <p>
+          Generic types validate too. A <code>Paginated&lt;T&gt;</code> gets a descriptor whose
+          <code>parse</code> takes the type argument: <code>Paginated.parse&lt;User&gt;(body)</code>
+          checks every <code>items</code> entry <em>as a <code>User</code></em>, not just for
+          presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way.
+          This holds across module boundaries: define <code>Paginated&lt;T&gt;</code> in one file,
+          <code>import</code> it into another, and both <code>Paginated.parse&lt;User&gt;(body)</code>
+          and <code>is Paginated&lt;User&gt;</code> there still check each element as a
+          <code>User</code>. The compiler builds the per-element
+          check from the type argument at the call site, so which file the generic type lives in
+          makes no difference to what gets validated.
+        </p>
+        <p>
+          Where it stops: descriptors cover the shapes most payloads are made of:
+          objects, primitives, arrays, references, optional and nullable fields, and now
+          generic types at a given instantiation. A type Glyph did not generate (an external
+          package or <code>.d.ts</code> you only import) is type-checked but carries no descriptor
+          until you materialize it, which is now one command against the installed package
+          (<code>glyph gen dts &lt;package&gt;</code>, for the top-level interfaces and type aliases
+          it exports). That boundary is deliberate: a type Glyph didn't emit can't promise runtime
+          validation, so you opt in per package and the result is committed and greppable, not
+          conjured on every build.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">The database is a boundary too</p>
+        <p>
+          A row read out of a database is untrusted in exactly the way a request body is: the
+          database schema and your code's idea of the row can disagree, and a cast
+          (<code>row as Task</code>) papers over it. <code>std/sqlite</code>, the DB module over
+          Node's built-in SQLite, leans into that. A query returns
+          <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>, so there is no way to treat a row as a
+          <code>Task</code> without validating it first. The same <code>.parse</code> you use on a
+          request body validates a row.
+        </p>
+        <p>
+          This catches a bug people ship constantly. SQLite has no boolean type, so a
+          <code>done</code> column comes back as the integer <code>0</code> or <code>1</code>. Cast
+          the row to a record with a <code>bool</code> field and <code>task.done === true</code> is
+          quietly never true. In Glyph the storage shape and the domain shape are separate types, and
+          the mapping between them is one line you actually see:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>type Task    = { id: int, title: string, done: bool }
+type TaskRow = { id: int, title: string, done: int }
+
+fn row_to_task(r: TaskRow) -&gt; Task {
+  return { id: r.id, title: r.title,
+           done: r.done != 0 }
+}
+
+// A row is validated, then mapped. No cast.
+match TaskRow.parse(row) {
+  Ok(r)  =&gt; Ok(row_to_task(r)),
+  Err(_) =&gt; Err("row failed validation"),
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">the bug this removes</span>
+<pre>// TS, better-sqlite3 / node:sqlite:
+const row = stmt.get(id) as Task;
+// `row.done` is really 0 or 1, a number.
+// Nothing complains. Then:
+if (row.done === true) { ... }   // never runs
+
+// The row was `unknown`; the cast invented
+// a type. Glyph makes you validate the row
+// into TaskRow, and the int-to-bool step is
+// a line of code, not a silent lie.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The whole thing is a working example: <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph"><code>examples/apps/tasks/main.glyph</code></a>
+          is a persisted task API, <code>std/sqlite</code> for storage and <code>std/http</code> for
+          routes, with data that survives a restart and validation on both the wire and the database
+          side. No hand-written validators anywhere in it.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">A signed webhook is a boundary too</p>
+        <p>
+          Verifying a webhook signature needs the exact bytes the sender signed, not a
+          re-serialized copy (re-stringifying a parsed body changes whitespace and key order, so the
+          HMAC would never match). <code>http.raw(req)</code> hands you those bytes, so the check
+          stays in Glyph:
+        </p>
+<pre>fn handle(req: Request) -&gt; Result&lt;Response, string&gt; {
+  let expected = crypto.hmac_sha256(secret, raw(req))
+  return match header(req, "x-hook-signature") {
+    Some(sig) =&gt; match sig == expected {
+      true  =&gt; accept(req),          // then validate req.body with T.parse
+      false =&gt; Ok(text(401, "bad signature")),
+    },
+    None =&gt; Ok(text(401, "missing signature")),
+  }
+}</pre>
+        <p>
+          <code>req.body</code> is still the parsed value for the shape check; <code>raw</code> is the
+          untampered payload the signature is computed over. A receiver that verifies a signature and
+          validates the body needs no hand-written TypeScript.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">A type can validate its invariants, not just its shape</p>
+        <p>
+          A shape check tells you a field is a number. It does not tell you the
+          amount is non-negative or the rating is between 1 and 5. A
+          <code>where</code> refinement puts that invariant in the type, and the
+          descriptor enforces it at the boundary:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">refinements.glyph</span>
+<pre>type Amount   = int where value &gt;= 0
+type Rating   = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+type NonEmpty = string where value.length &gt; 0
+
+// Amount.parse(-1)  -&gt; Err   (not just "is a number")
+// Rating.parse(6)   -&gt; Err
+// Amount.parse(3.5) -&gt; Err   (int check too)
+
+type Line = { amount: Amount, }
+// Line.parse({ amount: -1 }) -&gt; Err too:
+// the predicate follows the type into
+// the field, and across modules.</pre>
+        </div>
+        <div class="code">
+          <span class="cap">what you're not writing</span>
+<pre>// The check that usually lives three
+// functions away from the boundary,
+// if someone remembers it:
+if (amount &lt; 0) throw new Error(...);
+
+// In Glyph it's the type. A value that
+// fails the predicate never becomes an
+// Amount in the first place.</pre>
+        </div>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>), and <code>.parse</code> returns the same <code>Result</code> the rest of the language uses, so it composes with <code>map_err</code>, with <code>?</code>, and with any function that returns one; a <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape; <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name; and <code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other. <code>http.raw(req)</code> exposes the unparsed request body, so a webhook signature is verified over the exact bytes and a signed-webhook receiver stays entirely in Glyph. <code>std/taint</code>'s <code>Tainted</code>/<code>Trusted</code> types keep untrusted input from reaching a SQL or shell sink without an explicit <code>sanitize</code>, so <code>tsc</code> rejects an injection path at compile time. The smaller boundary primitives hold the same line: <code>time.parse_iso</code> takes ISO-8601 and returns <code>None</code> for free-form text, an impossible day, and an offset-less datetime that would otherwise be read in the host's local timezone.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">On the way</p>
+          <p>Discriminated unions now generate from both an OpenAPI <code>discriminator</code> and a TypeScript <code>.d.ts</code> union (a <code>parse_&lt;Name&gt;</code> dispatcher reads the tag and validates into the right variant). Next: richer enum and mapped-type coverage. Typed client and server code from a spec already ships. See <a href="/answers/codegen/">client &amp; server</a>. On dates, the strictness is the whole feature and it stops at the parse: <code>parse_iso</code> hands back epoch milliseconds, so a timestamp and a duration are both <code>number</code> and nothing stops you adding one to the other. A distinct date type is a later decision, not a small one.</p>
+        </div>
+      </div>

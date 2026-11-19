@@ -1,0 +1,69 @@
+---
+title: Is Glyph worth it if I'm not using AI? · Glyph
+description: Yes. The AI-agent framing is the headline, but every guarantee (exhaustive match, no any, runtime-checked types, greppability, stable diffs) is a plain engineering win a human benefits from directly.
+layout: article
+nav: answers
+subnav: answers
+prev: /answers/vs-tooled-ts/ | &larr; Previous | Why not just strict TypeScript + zod + eslint + ts-pattern?
+next: /answers/ai-authoring/ | Next &rarr; | Can an AI reliably write a language it's barely seen?
+sitemap: 2026-08-23 weekly 0.8
+---
+      <p class="q-eyebrow">12 &middot; For humans too</p>
+      <h1 class="q-title">Is Glyph worth it if I'm not using AI?</h1>
+
+      <p class="short-answer">
+        Yes. The AI-agent framing is the headline because agents break these things constantly,
+        but every guarantee underneath is a <strong>plain engineering win a human gets directly</strong>.
+        Fewer runtime surprises, smaller diffs, code you can actually grep. None of it requires an LLM.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">These are language features, not AI features</p>
+        <p>
+          Strip the word "agent" out and read the list: no <code>any</code>, exhaustive
+          <code>match</code>, errors as values, types that are checked at runtime, one declaration
+          form per name, a canonical diff-stable format. Anyone who's written Rust, Elm, or OCaml
+          recognizes these as the things that make a codebase pleasant to maintain. They were
+          good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language
+          you can adopt one file at a time.
+        </p>
+
+        <p class="block-label">What you get, solo</p>
+        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>Fewer 3am pages.</strong> Boundary data is validated by construction
+            (<code>User.parse</code>), and a missing case is a compile error, not an
+            <code>undefined</code> that surfaces in production.</li>
+          <li><strong>Faster review.</strong> A one-line change is a one-line diff, so a reviewer reads
+            the change, not the reformatting churn around it.</li>
+          <li><strong>You can find anything.</strong> <code>grep "fn parseUser"</code> lands on the
+            definition: no overloads, barrels, or decorators scattering it.</li>
+          <li><strong>Easier onboarding.</strong> A small core with one way to do each thing means
+            less tribal knowledge for the next person to learn.</li>
+        </ul>
+
+        <p class="block-label">So why lead with agents?</p>
+        <p>
+          Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and
+          handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green,
+          and it can't be trusted to keep the opt-in tooling on. The value of making the
+          strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor
+          (the wins above) is there whether you use an agent or not.
+        </p>
+
+        <p class="callout">
+          Think of it as a stricter TypeScript that happens to be great for agents, not an
+          agent tool you can only justify if you use one.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">The tradeoff</p>
+          <p>If you're starting something new, or your team already values ML-family discipline, the wins land immediately. If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Either way</p>
+          <p>The escape hatch is permanent: it compiles to readable TypeScript you own, so trying it on one module is cheap and reversible.</p>
+        </div>
+      </div>

@@ -36,6 +36,8 @@
       name="twitter:description"
       content="A statically typed, transpile-to-TypeScript language built so code an AI agent writes can be read, checked and changed without guessing."
     />
+    <link rel="stylesheet" href="/catches.css" />
+    <link rel="stylesheet" href="/home.css" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -74,285 +76,142 @@
       <header class="hero">
         <div>
           <a class="pill" href="/versions/" title="See what's new"><span class="dot"></span>v0.1.149 · early preview →</a>
-          <h1>Ask the compiler what your change <span class="accent">breaks</span>.</h1>
+          <h1>Code an AI agent writes, <span class="accent">checked before it ships.</span></h1>
           <p class="sub">
-            Glyph compiles to TypeScript you can read, so you adopt it one file
-            at a time and keep node, npm and everything you already deploy. What
-            it adds is a compiler that answers questions about your program
-            instead of leaving an agent to rediscover them with grep. Add a case
-            to a union and it names every match that will fail, and every match
-            that will keep compiling while silently swallowing it.
+            Glyph is a typed language that reads like TypeScript and compiles to
+            readable TypeScript. You keep node, npm and the code you already
+            have, and the compiler refuses mistakes that <code>tsc --strict</code>
+            lets through.
           </p>
-          <div class="cta">
-            <a class="btn primary" href="/start/">Start Here →</a>
-            <a class="btn" href="/playground/">Try the Playground →</a>
-          </div>
           <div class="install" title="Requires Node.js 18+">
             <span class="prompt">$</span>
             <code id="install-cmd">npm install -g @glyphlang/glyph</code>
             <button class="copy" onclick="copyInstall()">copy</button>
           </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-bar">
-            <span class="dots"><span></span><span></span><span></span></span>
-            <span class="tabs">
-              <button class="tab active" data-tab="glyph" onclick="showTab('glyph')">main.glyph</button>
-              <button class="tab" data-tab="ts" onclick="showTab('ts')">main.ts</button>
-            </span>
+          <div class="cta">
+            <a class="btn primary" href="/catches/">See what it catches →</a>
+            <a class="btn" href="/start/">Start in 10 minutes →</a>
           </div>
-          <pre id="tab-glyph"><span class="ln"><span class="k">module</span> <span class="f">welcome</span></span><span class="ln"> </span><span class="ln"><span class="k">import</span> std/result { <span class="t">Result</span>, <span class="f">Ok</span>, <span class="f">Err</span> }</span><span class="ln"> </span><span class="ln"><span class="k">pub type</span> <span class="t">Role</span> =</span><span class="ln">  | <span class="t">Admin</span></span><span class="ln">  | <span class="t">Member</span></span><span class="ln">  | <span class="t">Guest</span></span><span class="ln"> </span><span class="ln"><span class="k">pub type</span> <span class="t">User</span> = {</span><span class="ln">  email: <span class="t">string</span>,</span><span class="ln">  role: <span class="t">Role</span>,</span><span class="ln">}</span><span class="ln"> </span><span class="ln"><span class="k">pub fn</span> <span class="f">welcome</span>(user: <span class="t">User</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt; {</span><span class="ln">  <span class="k">return</span> <span class="k">match</span> user.role {</span><span class="ln">    <span class="t">Admin</span> =&gt; <span class="f">Ok</span>(<span class="s">"Welcome back, admin"</span>),</span><span class="ln">    <span class="t">Member</span> =&gt; <span class="f">Ok</span>(<span class="s">"Hello, ${user.email}"</span>),</span><span class="ln">    <span class="t">Guest</span> =&gt; <span class="f">Err</span>(<span class="s">"guests cannot sign in"</span>),</span><span class="ln">  }</span><span class="ln">}</span></pre>
-          <pre id="tab-ts" class="ts" hidden><span class="ln"><span class="k">import</span> { schema as __glyph_schema } <span class="k">from</span> <span class="s">"std/schema"</span>;</span><span class="ln"> </span><span class="ln"><span class="k">import</span> { <span class="t">Result</span>, <span class="f">Ok</span>, <span class="f">Err</span> } <span class="k">from</span> <span class="s">"std/result"</span>;</span><span class="ln"> </span><span class="ln"><span class="k">export</span> <span class="k">type</span> <span class="t">Role</span> =</span><span class="ln">  | { tag: <span class="s">"Admin"</span> }</span><span class="ln">  | { tag: <span class="s">"Member"</span> }</span><span class="ln">  | { tag: <span class="s">"Guest"</span> };</span><span class="ln"> </span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">Admin</span>: <span class="t">Role</span> = { tag: <span class="s">"Admin"</span> };</span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">Member</span>: <span class="t">Role</span> = { tag: <span class="s">"Member"</span> };</span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">Guest</span>: <span class="t">Role</span> = { tag: <span class="s">"Guest"</span> };</span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">Role</span> = {</span><span class="ln">  <span class="k">is</span>(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">Role</span> {</span><span class="ln">    if (<span class="k">typeof</span> value !== <span class="s">"object"</span> || value === null) {</span><span class="ln">      <span class="k">return</span> false;</span><span class="ln">    }</span><span class="ln">    <span class="k">switch</span> ((value as { tag?: <span class="t">unknown</span> }).tag) {</span><span class="ln">      <span class="k">case</span> <span class="s">"Admin"</span>: <span class="k">return</span> true;</span><span class="ln">      <span class="k">case</span> <span class="s">"Member"</span>: <span class="k">return</span> true;</span><span class="ln">      <span class="k">case</span> <span class="s">"Guest"</span>: <span class="k">return</span> true;</span><span class="ln">      <span class="k">default</span>: <span class="k">return</span> false;</span><span class="ln">    }</span><span class="ln">  },</span><span class="ln">  parse(value: <span class="t">unknown</span>): <span class="t">Result</span>&lt;<span class="t">Role</span>, <span class="t">Issue</span>[]&gt; {</span><span class="ln">    <span class="k">return</span> this.<span class="k">is</span>(value)</span><span class="ln">      ? <span class="f">Ok</span>(value)</span><span class="ln">      : <span class="f">Err</span>([{ path: [], message: <span class="s">"expected Role"</span>, code: <span class="s">"type"</span> }]);</span><span class="ln">  },</span><span class="ln">  schema: __glyph_schema&lt;<span class="t">Role</span>&gt;(<span class="s">"Role"</span>, (v): v <span class="k">is</span> <span class="t">Role</span> =&gt; <span class="t">Role</span>.<span class="k">is</span>(v)),</span><span class="ln">};</span><span class="ln"> </span><span class="ln"><span class="k">export</span> <span class="k">type</span> <span class="t">User</span> = { email: <span class="t">string</span>; role: <span class="t">Role</span> };</span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">User</span> = {</span><span class="ln">  <span class="k">is</span>(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">User</span> {</span><span class="ln">    <span class="k">return</span> <span class="k">typeof</span> value === <span class="s">"object"</span> &amp;&amp; value !== null</span><span class="ln">      &amp;&amp; <span class="k">typeof</span> (value as <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).email === <span class="s">"string"</span></span><span class="ln">      &amp;&amp; <span class="t">Role</span>.<span class="k">is</span>((value as <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).role);</span><span class="ln">  },</span><span class="ln">  parse(value: <span class="t">unknown</span>): <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">Issue</span>[]&gt; {</span><span class="ln">    <span class="k">return</span> this.<span class="k">is</span>(value)</span><span class="ln">      ? <span class="f">Ok</span>(value)</span><span class="ln">      : <span class="f">Err</span>([{ path: [<span class="s">"email"</span>], message: <span class="s">"field `email` must be string"</span>, code: <span class="s">"type"</span> }]);</span><span class="ln">  },</span><span class="ln">  schema: __glyph_schema&lt;<span class="t">User</span>&gt;(<span class="s">"User"</span>, (v): v <span class="k">is</span> <span class="t">User</span> =&gt; <span class="t">User</span>.<span class="k">is</span>(v)),</span><span class="ln">};</span><span class="ln"> </span><span class="ln"><span class="k">export</span> <span class="k">function</span> <span class="f">welcome</span>(user: <span class="t">User</span>): <span class="t">Result</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt; {</span><span class="ln">  <span class="k">const</span> __m0 = user.role;</span><span class="ln">  <span class="k">switch</span> (__m0.tag) {</span><span class="ln">    <span class="k">case</span> <span class="s">"Admin"</span>: {</span><span class="ln">      <span class="k">return</span> <span class="f">Ok</span>(<span class="s">"Welcome back, admin"</span>);</span><span class="ln">    }</span><span class="ln">    <span class="k">case</span> <span class="s">"Member"</span>: {</span><span class="ln">      <span class="k">return</span> <span class="f">Ok</span>(<span class="s">`Hello, ${user.email}`</span>);</span><span class="ln">    }</span><span class="ln">    <span class="k">case</span> <span class="s">"Guest"</span>: {</span><span class="ln">      <span class="k">return</span> <span class="f">Err</span>(<span class="s">"guests cannot sign in"</span>);</span><span class="ln">    }</span><span class="ln">    <span class="k">default</span>: <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"non-exhaustive match"</span>);</span><span class="ln">  }</span><span class="ln">}</span></pre>
         </div>
+          <figure class="c-hero">
+            <figcaption><a href="/catches/#error-the-signature-hides">An error the signature hides</a>: A function that can fail, called by code that does not know it can.</figcaption>
+            <div class="c-hero-side ts">
+              <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, crashes</span></div>
+              <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> loadConfig(): <span class="t">Config</span> {
+  <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"missing file"</span>);
+}
+
+<span class="k">const</span> cfg = loadConfig(); <span class="c">// no try</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Error: missing file</span></pre></div>
+            </div>
+            <div class="c-hero-side gl">
+              <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
+              <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> load_config() -&gt; <span class="t">Result</span>&lt;<span class="t">Config</span>, string&gt; {
+  <span class="k">return</span> <span class="t">Err</span>(<span class="s">"missing file"</span>)
+}
+
+<span class="k">let</span> cfg: <span class="t">Config</span> = load_config()</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `Config`, found `Result&lt;Config, string&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            </div>
+          </figure>
+
       </header>
     </div>
 
-    <div class="strip">
-      <span><b>Passes</b> tsc --strict</span>
-      <span>Compiles to <b>readable TS</b></span>
-      <span>Written in <b>Rust</b></span>
-      <span><b>Exhaustiveness</b> enforced</span>
-    </div>
+    <section class="h-routes">
+      <div class="wrap">
+        <h2 class="section-head">Where to go from here</h2>
+        <div class="h-tiles">
+          <a class="h-tile" href="/from-typescript/"><b>I write TypeScript</b><span>What changes, what stays, and how npm packages come along.</span></a>
+          <a class="h-tile" href="/teams/"><b>I'm deciding for a team</b><span>What it guarantees, what it does not, and what leaving costs.</span></a>
+          <a class="h-tile" href="/agents/"><b>I build agents and tools</b><span>The MCP server, the queries it answers, and the diagnostic format.</span></a>
+          <a class="h-tile" href="/evidence/"><b>Show me the evidence</b><span>How each claim is checked, and how to reproduce it.</span></a>
+          <a class="h-tile" href="/design/"><b>Why a new language?</b><span>The design argument, and what was left out on purpose.</span></a>
+          <div class="h-tile h-tile-try"><b>Just let me try it</b><span><a href="/start/">Start in 10 minutes</a> or open the <a href="/playground/">playground</a>.</span></div>
+        </div>
+      </div>
+    </section>
 
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">Mistakes nothing in TypeScript catches</h2>
+        <p class="friction-intro">
+          The three highest-ranked mistakes that pass <code>tsc --strict</code>
+          with every extra flag on and typescript-eslint strict, ranked by how
+          often an agent writes them and how bad they are when they ship.
+        </p>
+        <div class="c-cards">
+          <a class="c-card" href="/catches/#data-from-outside-the-program">
+            <span class="c-card-n">1</span>
+            <h3>Data from outside the program</h3>
+            <p>A request body, a file, an API response.</p>
+            <p class="c-card-v"><span class="ts">TypeScript: compiles, runs</span><span class="gl">Glyph: checked when the data arrives</span></p>
+          </a>
+          <a class="c-card" href="/catches/#error-the-signature-hides">
+            <span class="c-card-n">2</span>
+            <h3>An error the signature hides</h3>
+            <p>A function that can fail, called by code that does not know it can.</p>
+            <p class="c-card-v"><span class="ts">TypeScript: compiles, crashes</span><span class="gl">Glyph: refused when you build</span></p>
+          </a>
+          <a class="c-card" href="/catches/#error-nobody-looked-at">
+            <span class="c-card-n">3</span>
+            <h3>An error nobody looked at</h3>
+            <p>Calling something that can fail and moving on.</p>
+            <p class="c-card-v"><span class="ts">TypeScript: compiles</span><span class="gl">Glyph: warned</span></p>
+          </a>
+        </div>
+
+        <p class="h-more"><a class="card-more" href="/catches/">See all 37 &rarr;</a></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="h-measured">
+          <p class="h-big"><span>21</span> of 37</p>
+          <p>Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For 21 of the 37 mistakes, nothing in that setup catches it. A compiler flag that is off by default catches 5, and a lint rule catches 11. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting.</p>
+        </div>
+      </div>
+    </section>
 
     <section>
       <div class="wrap">
         <h2 class="section-head">One change, on a real application</h2>
         <p class="friction-intro">
           <code>examples/apps/csvql</code> is a CSV query engine in this
-          repository, eleven files, with a <code>Value</code> union at its
-          centre. Here is what happens when you add a case to it.
+          repository, with a <code>Value</code> union at its centre. Before
+          adding a case to it, ask the compiler which places it reaches.
         </p>
         <div class="code">
-          <span class="cap">before touching anything: glyph_variants { name: "Value" }</span>
+          <span class="cap">glyph_variants { name: "Value" }</span>
 <pre>10 match sites across 4 files
  <span class="del">8 will fail compilation</span>
- <span class="add">2 contain a catch-all and will silently absorb it</span>
-
-<span class="del">FAILS  </span> value.glyph:18    value::render
-<span class="del">FAILS  </span> value.glyph:32    value::key
-<span class="del">FAILS  </span> bind.glyph:148    bind::literal_kind
-<span class="add">ABSORBS</span> exec.glyph:130    exec::total
-<span class="add">ABSORBS</span> render.glyph:128  render::literal_text
-<span class="dim">...</span></pre>
-          <span class="cap">then add the case for real, and run glyph check</span>
-<pre>8 errors, E0200 non-exhaustive match.
-The same eight.
-
+ <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
+          <span class="cap">then add the case and run glyph check</span>
+<pre>8 errors, E0200 non-exhaustive match. The same eight.
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
-        <p class="friction-intro" style="margin-top:28px">
-          The prediction was exact, eight of eight. The interesting number is the
-          other one. <code>exec::total</code> and <code>render::literal_text</code>
-          keep compiling and route the new case wherever their catch-all points.
-          No build, no test and no type error will ever mention them. An agent
-          that fixes the eight failures and stops has a green tree and two live
-          bugs, and this is the part a language server cannot tell it.
+        <p class="friction-intro h-after">
+          The prediction was right on all eight. The other two,
+          <code>exec::total</code> and <code>render::literal_text</code>, keep
+          compiling and send the new case wherever their catch-all points. An
+          agent that fixes the eight errors and stops has a green build and two
+          live bugs, and the query is what names them.
         </p>
       </div>
     </section>
 
     <section>
       <div class="wrap">
-        <h2 class="section-head">Five bugs that pass <code>tsc --strict</code></h2>
-        <p class="friction-intro">
-          Every claim on this site has a pair of files behind it: a
-          <code>.ts</code> that type-checks clean under <code>tsc --strict</code>,
-          and the same program in Glyph that does not compile, with the error code
-          named. A build gate re-runs all of them and fails if either half stops
-          behaving, so a guarantee that quietly disappears takes the build with
-          it.
-        </p>
-        <div class="code">
-          <span class="cap">scripts/check_catches.py</span>
-<pre>catches: 5/5 verified both ways (verifiability: 5, greppability: 0, abstraction: 0, diff stability: 0).
-TypeScript checked with tsc --strict and @types/node 26.6.6.</pre>
-        </div>
-        <p class="friction-intro" style="margin-top:22px">
-          <a class="card-more" href="/hardening/">See the five cases &rarr;</a>
-        </p>
-      </div>
-    </section>
-    <section>
-      <div class="wrap">
-        <h2 class="section-head">If you know TypeScript, you know most of this</h2>
-        <p class="friction-intro">
-          Glyph reads almost identically. You don't learn a new language, just a
-          handful of deltas. Each one trades a footgun for a guarantee. Here are the ones in the
-          sample above.
-        </p>
-        <div class="glossary">
-          <div class="gloss">
-            <code>match</code>
-            <span>an <em>exhaustive</em> <code>switch</code>: the compiler makes you handle every case. There is no <code>if</code>/<code>else</code>; <code>match</code> is the only conditional, so a case can't be silently forgotten.</span>
-          </div>
-          <div class="gloss">
-            <code>Result&lt;T, E&gt;</code>
-            <span>errors as return values, not thrown exceptions. You handle one with <code>match</code>, or propagate it with the <code>?</code> operator.</span>
-          </div>
-          <div class="gloss">
-            <code>fn f() -&gt; T</code>
-            <span>a function; the <code>-&gt;</code> is its return type. A <code>type X = {...}</code> is a record, and a <code>type X = A | B</code> is a tagged union.</span>
-          </div>
-          <div class="gloss">
-            <code>mut x = e</code>
-            <span>reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.</span>
-          </div>
-        </div>
-        <p class="gloss-note">
-          "Agents" here means AI coding assistants (Claude, Copilot, Cursor). Glyph helps them most,
-          but the guarantees are plain engineering wins whether or not you use one, and if you
-          already run strict TypeScript with zod and eslint, <a href="/answers/vs-tooled-ts/">here's what a language buys over that &rarr;</a>
+        <p class="h-notyet">
+          Glyph does not catch everything yet. 11 known holes
+          have a reproduction and a gap number, and logic errors pass in Glyph as
+          they do in TypeScript.
+          <a href="/catches/#not-yet">What it does not catch yet &rarr;</a>
         </p>
       </div>
     </section>
 
-    <section>
-      <div class="wrap">
-        <h2 class="section-head">The tax you already pay</h2>
-        <p class="friction-intro">
-          If you build with AI agents on a TypeScript codebase, you know the
-          daily cost. Glyph is TypeScript with these footguns removed.
-        </p>
-        <ul class="pains">
-          <li>
-            <span class="x">✗</span>
-            <span>Agents <b>hallucinate APIs</b>, because TypeScript erases its types and runtime no longer agrees with compile time.</span>
-          </li>
-          <li>
-            <span class="x">✗</span>
-            <span>Agents paper over uncertainty with <code>any</code> and <code>as unknown as T</code>, and the compiler lets them.</span>
-          </li>
-          <li>
-            <span class="x">✗</span>
-            <span>You ask for a one-line change and get a <b>whole file rewritten</b>, because the formatter cascades on every edit.</span>
-          </li>
-          <li>
-            <span class="x">✗</span>
-            <span>You keep a <b>hand-written validator</b> next to every type (zod, and a serializer), and an agent renames a field in one but not the others; all of it still compiles.</span>
-          </li>
-          <li>
-            <span class="x">✗</span>
-            <span>You <code>grep</code> for a symbol and find <b>ten unrelated matches</b>: overloads, decorators, merged namespaces.</span>
-          </li>
-        </ul>
-        <p class="fix-line">Glyph removes each one, <span class="accent">by construction.</span></p>
-      </div>
-    </section>
-
-    <section>
-      <div class="wrap">
-        <h2 class="section-head">Why Glyph wins</h2>
-        <p class="friction-intro">
-          In order of what matters most. The first two are the wedge, the problems
-          you feel every day. The last two are the polish that makes it pleasant.
-        </p>
-        <div class="grid">
-          <a class="card" href="/pillars/verifiability/">
-            <div class="icon">◇</div>
-            <span class="label">Pillar 01</span>
-            <h3>Verifiability</h3>
-            <p>
-              No <code>any</code> and no <code>as</code> you can write; <code>match</code>
-              must cover every case; and your record types generate strict runtime
-              validators, so a boundary value is checked, not assumed. An enforced
-              strict layer over <code>tsc</code>: the footguns an agent ships that
-              <code>tsc --strict</code> waves through don't compile here.
-            </p>
-            <span class="card-more">Read the story →</span>
-          </a>
-          <a class="card" href="/pillars/greppability/">
-            <div class="icon">⌕</div>
-            <span class="label">Pillar 02</span>
-            <h3>Greppability</h3>
-            <p>
-              One name, one place. Every symbol has exactly one syntactic form at
-              its declaration, with no overloads, decorators, implicit <code>this</code>,
-              or namespace merging. <code>grep "fn parseUser"</code> finds the
-              definition. Always.
-            </p>
-            <span class="card-more">Read the story →</span>
-          </a>
-          <a class="card" href="/pillars/diff-stability/">
-            <div class="icon">≡</div>
-            <span class="label">Pillar 03</span>
-            <h3>Diff stability</h3>
-            <p>
-              A one-line change is a one-line diff. One canonical layout: a list
-              is inline while it fits, one element per line when it doesn't,
-              never repacked, trailing commas, no barrel files, and no options, so
-              the same code prints the same way in every project. Reviewers read
-              the change, not the churn.
-            </p>
-            <span class="card-more">Read the story →</span>
-          </a>
-          <a class="card" href="/pillars/abstraction/">
-            <div class="icon">⊟</div>
-            <span class="label">Pillar 04</span>
-            <h3>Abstraction</h3>
-            <p>
-              Say what you mean: pattern matching over switch ladders,
-              <code>Result</code> over thrown exceptions, named records over
-              tuples, from a small orthogonal core rather than TypeScript's accreted layers.
-            </p>
-            <span class="card-more">Read the story →</span>
-          </a>
-        </div>
-      </div>
-    </section>
-
-
-<section id="answers">
-      <div class="wrap">
-        <h2 class="section-head">Questions engineers actually ask</h2>
-        <p class="answers-intro">
-          Real questions, straight answers: what works today, and what's
-          next. Read them as one guided walk-through.
-        </p>
-        <div class="ans-grid">
-          <a class="ans-card" href="/answers/verifiability/"><span class="n">01</span><span class="q">What stops an agent from silently breaking my code?</span></a>
-          <a class="ans-card" href="/answers/diff-stability/"><span class="n">02</span><span class="q">Will agent edits stay clean, or reformat my whole file?</span></a>
-          <a class="ans-card" href="/answers/greppability/"><span class="n">03</span><span class="q">Can an agent (or I) find where anything is defined?</span></a>
-          <a class="ans-card" href="/answers/imports/"><span class="n">04</span><span class="q">Can I use my existing TypeScript, JS, and npm libraries?</span></a>
-          <a class="ans-card" href="/answers/typed-apis/"><span class="n">05</span><span class="q">Do I have to hand-write a validator for every API?</span></a>
-          <a class="ans-card" href="/answers/codegen/"><span class="n">06</span><span class="q">Can I generate a typed client and server from my API spec?</span></a>
-          <a class="ans-card" href="/answers/react/"><span class="n">07</span><span class="q">Does it work with React: components, hooks, and Context?</span></a>
-          <a class="ans-card" href="/answers/state/"><span class="n">08</span><span class="q">How do I share mutable state between functions?</span></a>
-          <a class="ans-card" href="/answers/why-typescript/"><span class="n">09</span><span class="q">Why TypeScript, and not Go or a new language?</span></a>
-          <a class="ans-card" href="/answers/vs-tooled-ts/"><span class="n">10</span><span class="q">Why not just strict TypeScript + zod + eslint + ts-pattern?</span></a>
-          <a class="ans-card" href="/answers/human-value/"><span class="n">11</span><span class="q">Is Glyph worth it if I'm not using AI?</span></a>
-          <a class="ans-card" href="/answers/ai-authoring/"><span class="n">12</span><span class="q">Can an AI reliably write a language it's barely seen?</span></a>
-          <a class="ans-card" href="/answers/tooling/"><span class="n">13</span><span class="q">What's the editor, debugging, and error experience?</span></a>
-          <a class="ans-card" href="/answers/debugging/"><span class="n">14</span><span class="q">When it breaks in production, what does on-call see?</span></a>
-          <a class="ans-card" href="/answers/language/"><span class="n">15</span><span class="q">What does the language itself give me?</span></a>
-          <a class="ans-card" href="/answers/finance/"><span class="n">16</span><span class="q">Can I trust it with money and untrusted input?</span></a>
-          <a class="ans-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">Can I serve a web page, or only a JSON API?</span></a>
-          <a class="ans-card" href="/answers/early-errors/"><span class="n">18</span><span class="q">Why does Glyph catch what tsc catches, but earlier?</span></a>
-          <a class="ans-card" href="/answers/parse-errors/"><span class="n">19</span><span class="q">When a parse fails, do I find out why?</span></a>
-          <a class="ans-card" href="/answers/interactive-cli/"><span class="n">20</span><span class="q">Can I write a program someone types into?</span></a>
-          <a class="ans-card" href="/answers/long-running/"><span class="n">21</span><span class="q">Can I write a server, or does the process just exit?</span></a>
-        </div>
-        <div class="answers-cta">
-          <a class="btn primary" href="/answers/">Explore all answers &rarr;</a>
-        </div>
-      </div>
-    </section>
-
-    <div class="wrap">
-      <div class="band">
-        <h2>Write less. <span class="accent">Break nothing.</span></h2>
-        <a class="btn primary" href="/playground/">Try the Playground →</a>
-      </div>
-    </div>
     <script>
-      function showTab(name) {
-        document.getElementById("tab-glyph").hidden = name !== "glyph";
-        document.getElementById("tab-ts").hidden = name !== "ts";
-        document.querySelectorAll(".tab").forEach(function (b) {
-          b.classList.toggle("active", b.dataset.tab === name);
-        });
-      }
       function copyInstall() {
         var text = document.getElementById("install-cmd").textContent;
         navigator.clipboard && navigator.clipboard.writeText(text);

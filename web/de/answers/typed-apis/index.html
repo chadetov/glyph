@@ -1,0 +1,1157 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Muss ich für jede API einen Validator von Hand schreiben? · Glyph</title>
+    <meta name="description" content="Nein. In Glyph ist ein Typ sein eigener Laufzeitvalidator, also werden Request- und Response-Bodys geprüft, ohne dass du einen Validator schreibst, und die Typen können aus einer OpenAPI-Spezifikation oder einer .d.ts kommen." />
+    <link rel="canonical" href="https://glyphlang.io/de/answers/typed-apis/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/de/answers/typed-apis/" />
+    <meta property="og:title" content="Muss ich für jede API einen Validator von Hand schreiben?" />
+    <meta property="og:description" content="Nein. In Glyph ist ein Typ sein eigener Laufzeitvalidator, also werden Request- und Response-Bodys geprüft, ohne dass du einen Validator schreibst, und die Typen können aus einer OpenAPI-Spezifikation oder einer .d.ts kommen." />
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Muss ich für jede API einen Validator von Hand schreiben?","item":"https://glyphlang.io/de/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/typed-apis/#article","headline":"Muss ich für jede API einen Validator von Hand schreiben?","description":"Nein. In Glyph ist ein Typ sein eigener Laufzeitvalidator, also werden Request- und Response-Bodys geprüft, ohne dass du einen Validator schreibst, und die Typen können aus einer OpenAPI-Spezifikation oder einer .d.ts kommen.","url":"https://glyphlang.io/de/answers/typed-apis/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/typed-apis/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/typed-apis/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/typed-apis/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/typed-apis/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/typed-apis/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/typed-apis/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/typed-apis/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/typed-apis/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/typed-apis/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/typed-apis/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/typed-apis/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/typed-apis/" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Zum Inhalt springen</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Hauptnavigation">
+        <div class="nav-brand">
+          <a href="/de/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="Release Notes">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">Warum Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Für wen es ist</p>
+                    <ul>
+                      <li><a href="/de/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Für Entwickler von Agenten</span><span class="nav-desc">Der MCP-Server und die Abfragen, die er beantwortet</span></span></a></li>
+                      <li><a href="/de/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">Umstieg von TypeScript</span><span class="nav-desc">Was sich ändert und was gleich bleibt</span></span></a></li>
+                      <li><a href="/de/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">Für Teams</span><span class="nav-desc">Was es garantiert und was die Einführung kostet</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Das Design</p>
+                    <ul>
+                      <li><a href="/de/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Das Design</span><span class="nav-desc">Die vier Säulen und was bewusst weggelassen wurde</span></span></a></li>
+                      <li><a href="/de/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Die vier Säulen</span><span class="nav-desc">Überprüfbarkeit, Durchsuchbarkeit, Abstraktion, stabile Diffs</span></span></a></li>
+                      <li><a href="/de/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph im Vergleich zu Effect</span><span class="nav-desc">Eine Sprache und eine Bibliothek im Vergleich</span></span></a></li>
+                      <li><a href="/de/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Warum nicht ReScript, Gleam oder Elm?</span><span class="nav-desc">Drei typisierte Sprachen, die zu JavaScript kompilieren</span></span></a></li>
+                      <li><a href="/de/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph im Vergleich zu TypeScript mit vollem Tooling</span><span class="nav-desc">Was striktes tsc, zod und eslint trotzdem durchlassen</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/de/catches/">Was es findet</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">Lernen<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Loslegen</p>
+                    <ul>
+                      <li><a href="/de/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">In 10 Minuten loslegen</span><span class="nav-desc">Installieren, ein Programm schreiben, ausführen</span></span></a></li>
+                      <li><a href="/de/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Antworten <span class="nav-count">28</span></span><span class="nav-desc">Fragen von Entwicklern, mit durchgearbeiteten Beispielen</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Sprachreferenz</span><span class="nav-desc">Die vollständige Spezifikation, auf GitHub</span></span></a></li>
+                      <li><a href="/de/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Mitmachen</span><span class="nav-desc">Wie der Compiler aufgebaut ist und wie du helfen kannst</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Agent anbinden</p>
+                    <ul>
+                      <li><a href="/de/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP-Server</span><span class="nav-desc">Verbinde deinen Agenten mit den Abfragen des Compilers</span></span></a></li>
+                      <li><a href="/de/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">Den Compiler fragen</span><span class="nav-desc">Symbol, Typ oder Änderung vor dem Bearbeiten nachschlagen</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">llms.txt für Agenten</span><span class="nav-desc">Die Sprache in einer Datei, die ein Agent lesen kann</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">Belege<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Wie es geprüft wird</p>
+                    <ul>
+                      <li><a href="/de/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Wie Aussagen geprüft werden</span><span class="nav-desc">Die Fixtures und das CI-Gate hinter jeder Aussage</span></span></a></li>
+                      <li><a href="/de/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Härtung</span><span class="nav-desc">Agenten, die es kaputtmachen wollten, und was sie gefunden haben</span></span></a></li>
+                      <li><a href="/de/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Benchmarks</span><span class="nav-desc">Die vier Säulen in Zahlen, mit Einschränkungen</span></span></a></li>
+                      <li><a href="/de/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Noch nicht erkannt</span><span class="nav-desc">Bekannte Lücken, jede mit einer Reproduktion</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/de/catches/"><span class="nav-feature-big">21 von 37</span><span class="nav-feature-text">TypeScript-Fehler, die in einem maximal konfigurierten Setup nichts findet</span><span class="nav-feature-cta">Sehen, was es findet <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">Versionen</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="Sprache: Deutsch (DE)"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">Deutsch</span><span class="lang-short" aria-hidden="true">DE</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">Sprache</p>
+            <ul>
+              <li><a href="/answers/typed-apis/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/typed-apis/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/typed-apis/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/typed-apis/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/typed-apis/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/typed-apis/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/typed-apis/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/typed-apis/" hreflang="de" lang="de" data-lang="de" aria-current="true"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/ru/answers/typed-apis/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/typed-apis/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/typed-apis/" hreflang="en" data-lang="en">Auf Englisch lesen</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Farbschema: automatisch (folgt dem System). Zu hell wechseln.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Menü öffnen">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Menü schließen" : "Menü öffnen");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="Navigation der Antworten">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/de/answers/">Antworten</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/de/answers/typed-apis/" aria-current="page"><span class="n">11</span> Typisierte APIs</a></p>
+        <a class="ans-step prev" href="/de/answers/embedding/" aria-label="Vorherige Antwort: 10 In deiner Anwendung">&lsaquo; 10</a><a class="ans-step next" href="/de/answers/codegen/" aria-label="Nächste Antwort: 12 Client und Server">12 &rsaquo;</a>
+        <a class="ans-all-link" href="/de/answers/">Alle Antworten</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">Alle Antworten<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>Sprache: Deutsch</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/typed-apis/" hreflang="en" data-lang="en">Auf Englisch lesen</a></p>
+      <button class="i18n-x" type="button" aria-label="Schließen"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>Diese Seite ist eine Übersetzung. Maßgeblich ist die englische Version. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28de%29%3A+%2Fde%2Fanswers%2Ftyped-apis%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fde%2Fanswers%2Ftyped-apis%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Ftyped-apis%2F%0A%0AWhat+is+wrong%3A%0A">Ein Problem mit der Übersetzung melden</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side ak">
+      <p class="q-eyebrow">11 &middot; Datengrenzen</p>
+      <h1 class="q-title">Muss ich für jede API einen Validator von Hand schreiben?</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="Antworten">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/de/answers/">Alle Antworten</a><button class="ans-close" type="button" aria-label="Liste der Antworten schließen"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>Das Problem, das es löst</summary><ol>
+            <li><a href="/de/answers/verifiability/"><span class="n">01</span><span class="t">Stille Fehler</span></a></li>
+            <li><a href="/de/answers/diff-stability/"><span class="n">02</span><span class="t">Saubere Diffs</span></a></li>
+            <li><a href="/de/answers/greppability/"><span class="n">03</span><span class="t">Dinge finden</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Entscheiden, ob du es einsetzt</summary><ol>
+            <li><a href="/de/answers/why-typescript/"><span class="n">04</span><span class="t">Warum TypeScript</span></a></li>
+            <li><a href="/de/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">Warum nicht TS mit Tooling</span></a></li>
+            <li><a href="/de/answers/human-value/"><span class="n">06</span><span class="t">Ohne KI</span></a></li>
+            <li><a href="/de/answers/ai-authoring/"><span class="n">07</span><span class="t">Von KI geschrieben</span></a></li>
+            <li><a href="/de/answers/upgrades/"><span class="n">08</span><span class="t">Upgrades</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>Einsatz mit deinem Stack</summary><ol>
+            <li><a href="/de/answers/imports/"><span class="n">09</span><span class="t">Deine Bibliotheken</span></a></li>
+            <li><a href="/de/answers/embedding/"><span class="n">10</span><span class="t">In deiner Anwendung</span></a></li>
+            <li><a href="/de/answers/typed-apis/" aria-current="page"><span class="n">11</span><span class="t">Typisierte APIs</span></a></li>
+            <li><a href="/de/answers/codegen/"><span class="n">12</span><span class="t">Client und Server</span></a></li>
+            <li><a href="/de/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/de/answers/state/"><span class="n">14</span><span class="t">Gemeinsamer Zustand</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Was du damit bauen kannst</summary><ol>
+            <li><a href="/de/answers/language/"><span class="n">15</span><span class="t">Die Sprache</span></a></li>
+            <li><a href="/de/answers/finance/"><span class="n">16</span><span class="t">Geld und Sicherheit</span></a></li>
+            <li><a href="/de/answers/web-serving/"><span class="n">17</span><span class="t">Webserver</span></a></li>
+            <li><a href="/de/answers/interactive-cli/"><span class="n">18</span><span class="t">Interaktive Programme</span></a></li>
+            <li><a href="/de/answers/long-running/"><span class="n">19</span><span class="t">Server und Daemons</span></a></li>
+            <li><a href="/de/answers/binary/"><span class="n">20</span><span class="t">Binärdaten</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Mit einem Agenten arbeiten</summary><ol>
+            <li><a href="/de/answers/impact/"><span class="n">21</span><span class="t">Vor dem Bearbeiten</span></a></li>
+            <li><a href="/de/answers/ask-the-compiler/"><span class="n">22</span><span class="t">Den Compiler fragen</span></a></li>
+            <li><a href="/de/answers/repair-protocol/"><span class="n">23</span><span class="t">Einen roten Build reparieren</span></a></li>
+            <li><a href="/de/answers/generated-docs/"><span class="n">24</span><span class="t">Doku, die nicht veraltet</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Fehler, Editoren und Produktion</summary><ol>
+            <li><a href="/de/answers/tooling/"><span class="n">25</span><span class="t">Editor und Debugging</span></a></li>
+            <li><a href="/de/answers/early-errors/"><span class="n">26</span><span class="t">Früher gefunden</span></a></li>
+            <li><a href="/de/answers/parse-errors/"><span class="n">27</span><span class="t">Warum das Parsen scheiterte</span></a></li>
+            <li><a href="/de/answers/debugging/"><span class="n">28</span><span class="t">Debugging und Betrieb</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        Nein. In Glyph ist ein <strong>Typ sein eigener Validator</strong>. Deklariere einen <code>type</code>, und der Compiler erzeugt daneben einen Laufzeit-Deskriptor, also validiert ein nicht vertrauenswürdiger Request- oder Response-Body mit einem Aufruf, ohne separates <code>zod</code>-Schema, das du schreiben und synchron halten musst.
+      </p>
+
+      <figure class="ak-hero" id="the-boundary">
+        <div class="ak-flow">
+          <div class="ak-node in"><span class="k">Nicht vertrauenswürdiger Body</span><span class="v">req.body</span><span class="n">unknown, z. B. {"title": 123}</span></div>
+          <div class="ak-arrow" aria-hidden="true"><svg viewBox="0 0 40 16" preserveAspectRatio="none"><path d="M3 8h32M30 3.5l5 4.5-5 4.5"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-node gate"><span class="k">Deskriptor</span><span class="v">NewTask.parse</span><span class="n">erzeugt aus <code>type NewTask</code></span></div>
+          <div class="ak-arrow fork" aria-hidden="true"><svg viewBox="0 0 44 100" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M0 50H16M16 24V76M16 24H42M16 76H42"/></svg><svg class="down" viewBox="0 0 16 24"><path d="M8 2v19M3.5 16.5L8 21l4.5-4.5"/></svg></div>
+          <div class="ak-outs">
+            <div class="ak-node ok"><span class="k">Ok</span><span class="v">NewTask</span><span class="n">ein typisierter Wert, jedes Feld geprüft</span></div>
+            <div class="ak-node err"><span class="k">Err</span><span class="v">Array&lt;Issue&gt;</span><span class="n">der fehlerhafte Body endet hier</span></div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Eine Deklaration, eine Prüfung. Der Deskriptor wird aus dem Typ erzeugt, also können die beiden sich nicht widersprechen, und der einzige Weg zu einem <code>NewTask</code> führt durch ihn.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#see-it">So sieht es aus</a></li>
+          <li><a href="#the-parse-result-is-an-ordinary-result">Ein gewöhnliches Result</a></li>
+          <li><a href="#composing-your-own-the-output-type-is-derived-not-trusted">Kombinatoren</a></li>
+          <li><a href="#if-i-parse-a-date-do-i-get-a-real-date">Datumswerte</a></li>
+          <li><a href="#you-don-t-even-have-to-write-the-types">Generierte Typen</a></li>
+          <li><a href="#the-database-is-a-boundary-too">Datenbanken</a></li>
+          <li><a href="#a-signed-webhook-is-a-boundary-too">Webhooks</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        In den meisten TypeScript-Stacks wird jeder Payload <em>zweimal</em> beschrieben: einmal als <code>type</code> für den Compiler und noch einmal als handgeschriebener Validator, damit der Wert zur Laufzeit tatsächlich diese Form hat.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Die beiden laufen auseinander, und genau dort rutschen fehlerhafte Daten durch. Glyph legt sie zu einer Deklaration zusammen: Der Typ <em>erzeugt</em> den Validator, also können sie sich nicht widersprechen.</p></div>
+
+      <h2 class="ak-h" id="see-it">So sieht es aus<a class="ak-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Deklariere das DTO einmal. Sein Deskriptor gibt dir <code>.parse</code> (einen nicht vertrauenswürdigen Wert in den Typ validieren) und <code>.is</code> (einen Type Guard), ohne dass du sonst etwas schreiben musst:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">api.glyph</span>
+<pre><span class="k">type</span> <span class="t">NewTask</span> = {
+  title: <span class="t">string</span>,
+  done: <span class="t">bool</span>,
+}
+
+<span class="k">fn</span> create(req: <span class="t">Request</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> <span class="t">NewTask</span>.parse(req.body) {
+    <span class="t">Ok</span>(task) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">201</span>, task)),
+    <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="t">Ok</span>(json(<span class="n">400</span>, {
+      error: <span class="s">"invalid task"</span>,
+    })),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">was du <em>nicht</em> geschrieben hast</span>
+<pre><span class="c">// No zod schema:</span>
+<span class="k">const</span> <span class="t">NewTask</span> = z.<span class="t">object</span>({
+  title: z.<span class="t">string</span>(),
+  done: z.<span class="t">boolean</span>(),
+});
+<span class="c">// No drift between the type and</span>
+<span class="c">// the validator, because there is</span>
+<span class="c">// only one declaration.</span>
+
+<span class="c">// A bad body, {"title": 123},</span>
+<span class="c">// takes the Err arm. Only a</span>
+<span class="c">// well-formed body reaches Ok.</span></pre>
+        </div>
+      </div>
+
+      <h3 class="ak-h3" id="typed-value">Den typisierten Wert nach dem <code>match</code> behalten<a class="ak-anchor" href="#typed-value" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Du kannst den Wert auch herausziehen, statt die Arbeit im Arm zu erledigen.
+      </p>
+      <div class="code">
+        <span class="cap">api.glyph: Der Wert verlässt das match typisiert</span>
+<pre><span class="k">let</span> task = <span class="k">match</span> <span class="t">NewTask</span>.parse(req.body) {
+  <span class="t">Ok</span>(t) <span class="op">=&gt;</span> t,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> { <span class="k">return</span> bad_request(issues) },
+}
+task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; did you mean `title`?</span></pre>
+      </div>
+      <div class="ak-chips"><span class="chip since">seit 0.1.45</span><span class="chip">generische Typen: noch nicht</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">wie der Typ mitgetragen wird, und die generische Ausnahme</span></summary><div class="body">
+        <p>
+          <code>T.parse</code> ist als <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> typisiert, und ein <code>match</code>, dessen Arme übereinstimmen, trägt ihren Typ, also gibt dir <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> ein <code>NewTask</code> für den Rest der Funktion, mit Feldnamen, die von Glyph geprüft werden statt von <code>tsc</code> am erzeugten TypeScript. Das kam in 0.1.45; davor war der Wert untypisiert, sobald er das <code>match</code> verließ. Das <code>parse</code> eines generischen Typs ist dasjenige, bei dem es noch nicht so ist, weil sein Deskriptor pro Typparameter einen Laufzeit-Checker nimmt.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-parse-result-is-an-ordinary-result">Das Parse-Ergebnis ist ein gewöhnliches <code>Result</code><a class="ak-anchor" href="#the-parse-result-is-an-ordinary-result" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        In Glyph gibt <code>T.parse</code> dasselbe <code>Result</code> zurück wie jede andere Funktion der Sprache, die fehlschlagen kann, also reichst du es direkt zurück, schickst es durch <code>map_err</code>, um Validierungsprobleme in deinen eigenen Fehlertyp zu verwandeln, oder reichst es mit <code>?</code> weiter.
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">boundary.glyph</span>
+<pre><span class="c">// Hand it straight back.</span>
+<span class="k">fn</span> read_task(body: <span class="t">unknown</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">NewTask</span>, <span class="t">Array</span>&lt;<span class="t">Issue</span>&gt;&gt; {
+  <span class="k">return</span> <span class="t">NewTask</span>.parse(body)
+}
+
+<span class="c">// Or restate the failure in your own terms.</span>
+<span class="k">fn</span> read_checked(body: <span class="t">unknown</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">NewTask</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="t">NewTask</span>.parse(body).map_err(
+    <span class="k">fn</span>(issues: <span class="t">Array</span>&lt;<span class="t">Issue</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+      <span class="k">return</span> <span class="s">"invalid task: </span><span class="ip">${</span>issue_text(issues)<span class="ip">}</span><span class="s">"</span>
+    },
+  )
+}
+
+<span class="c">// Or propagate it and get on with the work.</span>
+<span class="k">fn</span> create(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">let</span> task = read_checked(body)<span class="op">?</span>
+  <span class="k">return</span> <span class="t">Ok</span>(json(<span class="n">201</span>, save(task)))
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">was das ersetzt hat</span>
+<pre><span class="c">// Until 0.1.52 the generated descriptor</span>
+<span class="c">// returned a bare { tag, value } object,</span>
+<span class="c">// so both of the first two shapes were</span>
+<span class="c">// tsc errors (TS2322 and TS2339) even</span>
+<span class="c">// though Glyph's own checker reported</span>
+<span class="c">// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround</span>
+<span class="c">// was an identity re-wrap:</span>
+
+<span class="k">match</span> <span class="t">NewTask</span>.parse(body) {
+  <span class="t">Ok</span>(t)  <span class="op">=&gt;</span> <span class="t">Ok</span>(t),          <span class="c">// does nothing</span>
+  <span class="t">Err</span>(e) <span class="op">=&gt;</span> <span class="t">Err</span>(reword(e)),
+}
+
+<span class="c">// Four lines to say map_err. bracket.glyph</span>
+<span class="c">// carried this twice until the fix landed.</span></pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">die Laufzeitkosten, hier Result zu verwenden</span></summary><div class="body">
+        <p>
+          Ein Validator, der dir einen Wert in seiner eigenen privaten Form zurückgibt, ist nur halb nützlich, weil der Rest deiner Fehlerbehandlung nichts damit anfangen kann. An einem Parse-Ergebnis ist nichts Besonderes.
+        </p>
+        <p>
+          Der Grund, warum es je anders war: Ein Deskriptor wird neben deinem <code>type</code> erzeugt, und das bloße Objekt auszugeben hielt ein Modul, das einen Typ deklariert, frei von einer Laufzeitabhängigkeit auf <code>std/result</code>. Dieser Tausch wird jetzt andersherum gemacht. Ein Modul mit einem <code>pub type</code> trägt einen Import von <code>std/result</code>, ob es je <code>Result</code> schreibt oder nicht, und ein Aufruf von <code>parse</code> allokiert die Kombinator-Closures, die jedes <code>Ok(...)</code> allokiert. Was du dafür bekommst: Die validierte Grenze und der Rest deiner Fehlerbehandlung sind dieselbe API.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="composing-your-own-the-output-type-is-derived-not-trusted">Eigene Kombinatoren: Der Ausgabetyp wird abgeleitet, nicht blind übernommen<a class="ak-anchor" href="#composing-your-own-the-output-type-is-derived-not-trusted" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyphs <code>infer_output&lt;Shape&gt;</code> <strong>leitet</strong> den Ausgabetyp aus der Form ab, und <code>tsc</code> prüft deine Annotation dagegen. Eine Form, der ein Feld des behaupteten Typs fehlt, kompiliert nicht:
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">schema.glyph</span>
+<pre><span class="k">fn</span> object_schema&lt;<span class="t">Shape</span>: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">Schema</span>&lt;<span class="t">unknown</span>&gt;&gt;&gt;(
+  shape: <span class="t">Shape</span>,
+) <span class="op">-&gt;</span> <span class="t">Schema</span>&lt;infer_output&lt;<span class="t">Shape</span>&gt;&gt; { ... }
+
+<span class="k">type</span> <span class="t">User</span> = { name: <span class="t">string</span>, age: <span class="t">number</span> }
+
+<span class="c">// The shape must produce a User, or this</span>
+<span class="c">// line does not compile:</span>
+<span class="k">const</span> user_schema: <span class="t">Schema</span>&lt;<span class="t">User</span>&gt; =
+  object_schema({
+    name: string_schema(),
+    age: number_schema(),
+  })</pre>
+        </div>
+        <div class="code">
+          <span class="cap">das Auseinanderlaufen, das Glyph beseitigt</span>
+<pre><span class="c">// TS/zod: shape and output type are two</span>
+<span class="c">// separate things you keep in sync by hand.</span>
+<span class="k">const</span> s = z.<span class="t">object</span>({ name: z.<span class="t">string</span>() });
+<span class="k">type</span> <span class="t">User</span> = { name: <span class="t">string</span>; age: <span class="t">number</span> };
+<span class="c">// `s` is inferred { name }, but nothing</span>
+<span class="c">// checks it against User. The `age` you</span>
+<span class="c">// forgot is caught at runtime, if ever.</span>
+
+<span class="c">// Glyph: drop `age` from the shape and</span>
+<span class="c">// `Schema&lt;User&gt;` fails to compile. The</span>
+<span class="c">// shape is the single source of truth.</span></pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">die TypeScript-Falle, und der Cast, der seit 0.1.92 dem Return folgt</span></summary><div class="body">
+        <p>
+          Manchmal willst du einen Kombinator im Stil von <code>zod</code>: einen Validator, der aus kleineren zusammengesetzt wird. Die Falle in TypeScript ist, dass der <em>Ausgabetyp</em> des Kombinators und die <em>Form</em>, die du ihm übergeben hast, auseinanderlaufen. Du schreibst die Form und wiederholst dich dann in einem zweiten Typparameter, und nichts prüft, ob sie übereinstimmen.
+        </p>
+        <p>
+          Der abgeleitete Typ gilt, egal wie der Kombinator zurückkehrt. <code>infer_output</code> braucht einen Cast an der Grenze der Funktion, weil der Rumpf einen Wert baut, von dem das Typsystem nicht beweisen kann, dass er den aus der Form abgeleiteten Typ hat, und der Compiler schreibt diesen Cast für dich. Bis 0.1.91 hing er an einem einfachen <code>return &lt;value&gt;</code>. Setz ein <code>match</code> zwischen das <code>return</code> und den Wert, oder lass den Rumpf mit <code>r?</code> enden, und dieselbe Funktion kompilierte nicht mehr: ein <code>TS2322</code> am erzeugten TypeScript, für Glyph, das der Compiler schon akzeptiert hatte. Seit 0.1.92 folgt der Cast dem Return statt seiner Schreibweise, also besteht <code>return match strict { ... }</code> die Typprüfung genauso wie die Schreibweise mit einem einzigen <code>return</code> desselben Rumpfs.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-rest-of-the-boundary">Der Rest der nicht vertrauenswürdigen Grenze<a class="ak-anchor" href="#the-rest-of-the-boundary" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Der Deskriptor ist derselbe, der <code>json.parse&lt;T&gt;</code> sicher macht: Gib ihm einen JSON-String, und er parst <em>und</em> validiert in einem Schritt.
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>Eingabe</th><th>Aufruf</th><th>Gibt zurück</th></tr></thead>
+          <tbody>
+            <tr><td>Ein JSON-String</td><td><code>json.parse&lt;T&gt;(text)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>Ein dekodierter Body</td><td><code>T.parse(value)</code></td><td><code>Result&lt;T, Array&lt;Issue&gt;&gt;</code></td></tr>
+            <tr><td>Ein Header</td><td><code>header(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+            <tr><td>Ein Query-Parameter</td><td><code>query_param(req, name)</code></td><td><code>Option&lt;string&gt;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">Request-Bodys, Header und Query-Parameter</span></summary><div class="body">
+        <p>
+          Ein Request-Body kommt schon dekodiert als <code>unknown</code> an, also greifst du dort stattdessen zu <code>T.parse(value)</code>: dieselbe Garantie, kein Cast.
+        </p>
+        <p>
+          Der Rest der nicht vertrauenswürdigen Grenze ist genauso typisiert: <code>header(req, name)</code> und <code>query_param(req, name)</code> geben <code>Option&lt;string&gt;</code> zurück, also ist ein fehlender Header oder Query-Parameter <code>None</code>, und das <code>match</code> <em>zwingt</em> dich, das zu behandeln. Lass den <code>None</code>-Arm weg, und es kompiliert nicht. Eine fehlende Eingabe lässt sich nicht so lesen, als wäre sie vorhanden.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="does-a-map-keyed-by-an-enum-check-its-keys">Prüft eine Map mit einem Enum als Schlüssel ihre Schlüssel?<a class="ak-anchor" href="#does-a-map-keyed-by-an-enum-check-its-keys" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ja, seit 0.1.148. Ein <code>Record&lt;Tier, int&gt;</code> mit <code>type Tier = "free" | "pro"</code> parst nur ein Objekt, dessen Schlüssel genau <code>free</code> und <code>pro</code> sind: Ein überzähliger und ein fehlender Schlüssel sind beide ein <code>Err</code>, und genau das sagt auch <code>tsc</code> über dasselbe Objekt, wenn es als Literal geschrieben ist.
+      </p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>Schlüsseltyp</th><th>Was <code>parse</code> bei jedem Schlüssel prüft</th></tr></thead>
+          <tbody>
+            <tr><td>Eine Union aus String-Literalen</td><td>genau die aufgeführten Schlüssel, keiner fehlt, keiner zu viel</td></tr>
+            <tr><td>Ein mit <code>where</code> verfeinerter Typ</td><td>das Prädikat</td></tr>
+            <tr><td><code>int</code></td><td>die einfache Schreibweise einer ganzen Zahl; <code>"01"</code> und <code>"1.5"</code> scheitern</td></tr>
+            <tr><td><code>string</code></td><td>nichts Neues</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">verfeinerte und int-Schlüssel, und was noch tsc überlassen bleibt</span></summary><div class="body">
+        <p>
+          Ein mit <code>where</code> verfeinerter Schlüsseltyp führt sein Prädikat auf jedem Schlüssel aus, und ein <code>int</code>-Schlüssel muss die einfache Schreibweise einer ganzen Zahl sein, also werden <code>"01"</code> und <code>"1.5"</code> abgelehnt. Ein <code>Record&lt;string, V&gt;</code> wird genau wie vorher geprüft. Glyphs eigener Checker überlässt die Schlüssel eines Werts, den du im Code schreibst, weiterhin <code>tsc</code>, und ein generischer Record, dessen Schlüssel sein eigener Typparameter ist, wird abgelehnt, es sei denn, dieser Parameter ist <code>string</code>.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="if-i-parse-a-date-do-i-get-a-real-date">Wenn ich ein Datum parse, bekomme ich ein echtes Datum?<a class="ak-anchor" href="#if-i-parse-a-date-do-i-get-a-real-date" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ja, und der interessante Teil ist, was du für eine Eingabe zurückbekommst, die keins ist. <code>time.parse_iso</code> gibt <code>Option&lt;number&gt;</code> zurück, und es ist <code>None</code> für alles, was nicht ISO-8601 ist.
+      </p>
+      <div class="two-up fit">
+        <div class="code">
+          <span class="cap">akzeptiert</span>
+<pre><span class="s">"2026-01-03"</span>              <span class="c">// UTC midnight</span>
+<span class="s">"2026-07-25T18:33:08.000Z"</span>
+<span class="s">"2026-03-15T09:30:00-05:00"</span>
+<span class="s">"2028-02-29"</span>              <span class="c">// a real leap day</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">None, für jede davon</span>
+<pre><span class="s">"January 5 2026"</span>   <span class="c">// not ISO</span>
+<span class="s">"2026-1-3"</span>         <span class="c">// not padded</span>
+<span class="s">"2026-13-01"</span>       <span class="c">// no month 13</span>
+<span class="s">"2026-02-31"</span>       <span class="c">// no such day</span>
+<span class="s">"2026-02-29"</span>       <span class="c">// not a leap year</span>
+<span class="s">"2026-01-03T10:00"</span> <span class="c">// no offset</span></pre>
+        </div>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Die letzte überrascht die Leute, und genau darum geht es. Ein Datum mit Uhrzeit ohne <code>Z</code> und ohne <code>+HH:MM</code>-Offset ist nach der ECMAScript-Grammatik Ortszeit, also hieße es zu akzeptieren, dass derselbe String je nach Rechner, auf dem das Programm lief, einen anderen Kalendertag bezeichnet.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">was Date.parse stattdessen tut, und warum UTC</span></summary><div class="body">
+        <p>
+          Das ist eine stärkere Aussage als bei JavaScripts <code>Date.parse</code>, das Freitext nimmt (<code>"January 5 2026"</code>), ein Datum ohne führende Nullen wie <code>"2026-1-3"</code> in der Zeitzone liest, in der der Prozess gerade läuft, und einen unmöglichen Tag als Erfolg meldet, indem es ihn weiterrollt: <code>"2026-02-31"</code> wird zum 3. März, und du bekommst eine Zahl zurück, ohne Hinweis darauf, dass etwas passiert ist.
+        </p>
+        <p>
+          Glyphs Kalender-Zugriffe (<code>time.year</code>, <code>time.month</code>, <code>time.day</code>) sind UTC und sagen das, und ein Validator, der still die Zeitzone des Hosts übernimmt, würde sie lügen lassen. Also wird der String stattdessen abgelehnt, und du entscheidest, was er bedeuten sollte.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="the-guard-moved">Die Absicherung ist in den Grundbaustein gewandert<a class="ak-anchor" href="#the-guard-moved" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Wenn eine Anwendung eine Korrektheits-Absicherung um einen Grundbaustein der Standardbibliothek schreibt, gehört die Absicherung in den Grundbaustein. Hier ist, was die App gelöscht hat:
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">vorher: Die App sichert die Stdlib ab</span>
+<pre><span class="k">const</span> <span class="t">ISO_DATE</span> = <span class="s">"^\\d{4}-\\d{2}-\\d{2}$"</span>
+
+<span class="k">fn</span> parse_date(line: <span class="t">int</span>, value: <span class="t">string</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, <span class="t">RowError</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> regex.matches(<span class="t">ISO_DATE</span>, value) {
+    <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
+    <span class="k">true</span> <span class="op">=&gt;</span> <span class="k">match</span> time.parse_iso(value) {
+      <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="k">match</span> <span class="t">string</span>.starts_with(
+        time.format_iso(ms), value
+      ) {
+        <span class="k">true</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(ms),
+        <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
+      },
+      <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
+    },
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">nachher: Der Grundbaustein hält die Linie</span>
+<pre><span class="k">fn</span> parse_date(line: <span class="t">int</span>, value: <span class="t">string</span>)
+  <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">number</span>, <span class="t">RowError</span>&gt; {
+  <span class="k">return</span> <span class="k">match</span> time.parse_iso(value) {
+    <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="t">Ok</span>(ms),
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="t">BadDate</span>({ line: line, value: value })),
+  }
+}</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        Das <code>import std/regex</code> fiel mit weg. Dasselbe Hauptbuch, dieselben abgelehnten Zeilen, derselbe Bericht Byte für Byte.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">die Spesenabrechnungs-App, aus der das kam</span></summary><div class="body">
+        <p>
+          Das kam beim Schreiben einer <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph">CLI für Spesenabrechnungen in Glyph</a> heraus. Jede Zeile im Hauptbuch trägt ein Datum, und eine Zeile unter dem falschen Monat abzulegen ist der Bug, auf den es ankommt, also traute die App dem alten <code>parse_iso</code> nicht: Sie prüfte die Form zuerst mit einer Regex und wandelte dann den Zeitstempel zurück in Text, um einen weitergerollten Tag zu erkennen.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="you-don-t-even-have-to-write-the-types">Du musst die Typen nicht einmal schreiben<a class="ak-anchor" href="#you-don-t-even-have-to-write-the-types" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Wenn die Form schon in einer OpenAPI-Spezifikation oder einer TypeScript-Deklarationsdatei existiert, generier die Glyph-Typen daraus: echte, committete, durchsuchbare <code>type</code>-Deklarationen, jede mit ihrem Deskriptor, kein abgeleitetes Phantom:
+      </p>
+      <div class="two-up fit">
+        <div class="code term">
+          <span class="cap">aus einer OpenAPI- / JSON-Schema-Spezifikation</span>
+<pre><span class="f">glyph</span> gen openapi petstore.yaml \
+  <span class="fl">--out</span> src/</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">aus einem installierten Paket, über seinen Namen</span>
+<pre><span class="f">glyph</span> gen dts api-types \
+  <span class="fl">--out</span> src/types</pre>
+        </div>
+      </div>
+      <p class="ak-lede">
+        Ein Wire-Typ wird zu einer validierten Grenze, ohne etwas Handgeschriebenes:
+      </p>
+      <div class="code">
+        <span class="cap">webhook.glyph</span>
+<pre><span class="k">import</span> types/api_types { <span class="t">Customer</span> }
+
+<span class="k">match</span> <span class="t">Customer</span>.parse(webhook_body) {
+  <span class="t">Ok</span>(c) <span class="op">=&gt;</span> handle(c),
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> reject(issues),
+}</pre>
+      </div>
+      <p class="ak-lede">Die Generierung ist <strong>treu zum Wire-Format</strong>: Was die Spezifikation über einen Wert sagt, ist das, was <code>parse</code> prüft.</p>
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead><tr><th>In der Spezifikation oder <code>.d.ts</code></th><th>Generiertes Glyph</th></tr></thead>
+          <tbody>
+            <tr><td>Ein String-Enum</td><td>eine Union aus String-Literalen; <code>parse</code> prüft die Mitgliedschaft</td></tr>
+            <tr><td>Ein <code>integer</code>-Feld</td><td><code>int</code>; ein <code>3.5</code> auf der Leitung scheitert</td></tr>
+            <tr><td>Ein Objekt-Schema</td><td>ein mit <code>@open</code> markierter Record; strikt bei <code>additionalProperties: false</code></td></tr>
+            <tr><td><code>interface Page&lt;T&gt;</code></td><td><code>type Page&lt;T&gt;</code>, jedes Element als <code>T</code> geprüft</td></tr>
+            <tr><td>Eine Union ohne Diskriminator</td><td>eingeengt, mit einer ausgegebenen Notiz</td></tr>
+            <tr><td>Ein Name in zwei erreichbaren Dateien</td><td>mit einer Notiz markiert, nicht gebunden</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">was heute materialisiert wird, Neugenerierung, generische Typen</span></summary><div class="body">
+        <p>
+          Richte <code>glyph gen dts</code> auf eine <code>.d.ts</code>-Datei oder, wie oben, auf ein installiertes npm-Paket über seinen Namen: Es löst den eigenen Deklarations-Einstieg des Pakets aus <code>node_modules</code> auf und schreibt committete Typen, die du importierst.
+        </p>
+        <p>
+          Was heute materialisiert wird: <code>gen dts</code> liest die <code>interface</code>- und <code>type</code>-Deklarationen, die ein Paket exportiert, auch die innerhalb eines <code>declare namespace</code>-Baums (bloße Querverweise werden über den Scope aufgelöst) und die in Geschwisterdateien, die ein <code>index</code>-Barrel re-exportiert (die Einstiegs-<code>.d.ts</code> plus jede relativ importierte <code>.d.ts</code> wird durchlaufen). Ein Generic bleibt vollwertig: <code>interface Page&lt;T&gt;</code> wird zu <code>type Page&lt;T&gt;</code> und bekommt einen Deskriptor, der jedes Element als sein Typargument validiert, nicht nur auf Vorhandensein. Re-Exports per Alias und <code>export * as</code> werden über eine Binding-Map pro Datei aufgelöst. Den einen Fall, den es nicht sicher machen kann, einen Typnamen, der in zwei erreichbaren Dateien kollidiert, <em>markiert es mit einer Notiz</em>, statt still die falsche Form zu binden. Für alles, was der Materialisierer nicht erreicht, schreib die Formen, mit denen du die Grenze überquerst, von Hand, oder nimm die Hintertür <code>extern_ts</code>.
+        </p>
+        <p>
+          Neugenerierung ist idempotent, also ist eine Änderung der Spezifikation ein sauberer, reviewbarer Diff. Die Generierung ist <strong>treu zum Wire-Format</strong>: Ein String-Enum wird zu einer Union aus String-Literalen (<code>"free" | "pro"</code>), also prüft <code>parse</code> die Mitgliedschaft und nicht nur, ob der Wert ein String ist, und ein <code>match</code> darüber ist ohne <code>else</code> erschöpfend. Ein <code>integer</code>-Feld wird zu <code>int</code>, also scheitert ein <code>3.5</code> auf der Leitung an <code>parse</code>, wo eine einfache Zahl durchginge. Wo ein Konstrukt keine exakte Glyph-Form hat (eine Union ohne Diskriminator), engt es ein und <em>gibt eine Notiz aus</em>, statt einen Validator zu erzeugen, der echte Daten ablehnen würde. Generierte Records tragen außerdem <code>@open</code>, also toleriert <code>parse</code> ein Feld, das die API später hinzufügt, und validiert trotzdem jedes Feld, das sie deklariert; ein Schema, das <code>additionalProperties: false</code> setzt, bleibt strikt. Records sind in Glyph standardmäßig strikt, und das ist dieselbe durchsuchbare Markierung an der Deklaration, die ein handgeschriebener Record verwenden würde, also ändert sich nichts daran, was ein Record bedeutet.
+        </p>
+        <p>
+          Generische Typen werden auch validiert. Ein <code>Paginated&lt;T&gt;</code> bekommt einen Deskriptor, dessen <code>parse</code> das Typargument nimmt: <code>Paginated.parse&lt;User&gt;(body)</code> prüft jeden Eintrag in <code>items</code> <em>als <code>User</code></em>, nicht nur auf Vorhandensein, und <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> engt genauso ein. Das gilt über Modulgrenzen hinweg: Definier <code>Paginated&lt;T&gt;</code> in einer Datei, <code>import</code>iere es in eine andere, und dort prüfen sowohl <code>Paginated.parse&lt;User&gt;(body)</code> als auch <code>is Paginated&lt;User&gt;</code> weiterhin jedes Element als <code>User</code>. Der Compiler baut die Prüfung pro Element aus dem Typargument an der Aufrufstelle, also macht es keinen Unterschied für das, was validiert wird, in welcher Datei der generische Typ lebt.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+          Wo es aufhört: Deskriptoren decken die Formen ab, aus denen die meisten Payloads bestehen: Objekte, Primitive, Arrays, Referenzen, optionale und nullbare Felder und jetzt auch generische Typen bei einer gegebenen Instanziierung. Ein Typ, den Glyph nicht erzeugt hat (ein externes Paket oder eine <code>.d.ts</code>, die du nur importierst), wird typgeprüft, hat aber keinen Deskriptor, bis du ihn materialisierst, was jetzt ein Befehl gegen das installierte Paket ist (<code>glyph gen dts &lt;package&gt;</code>, für die Interfaces und Typ-Aliase auf oberster Ebene, die es exportiert). Diese Grenze ist Absicht: Ein Typ, den Glyph nicht erzeugt hat, kann keine Validierung zur Laufzeit versprechen, also entscheidest du dich pro Paket dafür, und das Ergebnis ist committet und durchsuchbar, nicht bei jedem Build herbeigezaubert.</p></div>
+
+      <h2 class="ak-h" id="the-database-is-a-boundary-too">Auch die Datenbank ist eine Grenze<a class="ak-anchor" href="#the-database-is-a-boundary-too" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Eine Zeile, die aus einer Datenbank gelesen wird, ist genauso wenig vertrauenswürdig wie ein Request-Body. Dasselbe <code>.parse</code>, das du für einen Request-Body verwendest, validiert eine Zeile.
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre><span class="k">type</span> <span class="t">Task</span>    = { id: <span class="t">int</span>, title: <span class="t">string</span>, done: <span class="t">bool</span> }
+<span class="k">type</span> <span class="t">TaskRow</span> = { id: <span class="t">int</span>, title: <span class="t">string</span>, done: <span class="t">int</span> }
+
+<span class="k">fn</span> row_to_task(r: <span class="t">TaskRow</span>) <span class="op">-&gt;</span> <span class="t">Task</span> {
+  <span class="k">return</span> { id: r.id, title: r.title,
+           done: r.done != <span class="n">0</span> }
+}
+
+<span class="c">// A row is validated, then mapped. No cast.</span>
+<span class="k">match</span> <span class="t">TaskRow</span>.parse(row) {
+  <span class="t">Ok</span>(r)  <span class="op">=&gt;</span> <span class="t">Ok</span>(row_to_task(r)),
+  <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="t">Err</span>(<span class="s">"row failed validation"</span>),
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">der Bug, den es beseitigt</span>
+<pre><span class="c">// TS, better-sqlite3 / node:sqlite:</span>
+<span class="k">const</span> row = stmt.<span class="k">get</span>(id) <span class="k">as</span> <span class="t">Task</span>;
+<span class="c">// `row.done` is really 0 or 1, a number.</span>
+<span class="c">// Nothing complains. Then:</span>
+<span class="k">if</span> (row.done === <span class="k">true</span>) { ... }   <span class="c">// never runs</span>
+
+<span class="c">// The row was `unknown`; the cast invented</span>
+<span class="c">// a type. Glyph makes you validate the row</span>
+<span class="c">// into TaskRow, and the int-to-bool step is</span>
+<span class="c">// a line of code, not a silent lie.</span></pre>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">std/sqlite und das Boolean als 0 oder 1</span></summary><div class="body">
+        <p>
+          Eine Zeile, die aus einer Datenbank gelesen wird, ist genauso wenig vertrauenswürdig wie ein Request-Body: Das Datenbankschema und die Vorstellung deines Codes von der Zeile können sich widersprechen, und ein Cast (<code>row as Task</code>) kleistert das zu. <code>std/sqlite</code>, das DB-Modul über Nodes eingebautem SQLite, setzt genau da an. Eine Abfrage gibt <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code> zurück, also gibt es keinen Weg, eine Zeile als <code>Task</code> zu behandeln, ohne sie vorher zu validieren.
+        </p>
+        <p>
+          Das findet einen Bug, den Leute ständig ausliefern. SQLite hat keinen Boolean-Typ, also kommt eine Spalte <code>done</code> als Ganzzahl <code>0</code> oder <code>1</code> zurück. Cast die Zeile in einen Record mit einem <code>bool</code>-Feld, und <code>task.done === true</code> ist still nie wahr. In Glyph sind die Speicherform und die Domänenform getrennte Typen, und die Abbildung zwischen ihnen ist eine Zeile, die du tatsächlich siehst:
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="3.8" rx="5" ry="1.9"/><path d="M3 3.8v8.4c0 1 2.2 1.9 5 1.9s5-.9 5-1.9V3.8M3 8c0 1 2.2 1.9 5 1.9s5-.9 5-1.9"/></svg><p>
+          Das Ganze ist ein funktionierendes Beispiel: <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph"><code>examples/apps/tasks/main.glyph</code></a> ist eine persistente Aufgaben-API, <code>std/sqlite</code> für die Speicherung und <code>std/http</code> für die Routen, mit Daten, die einen Neustart überleben, und Validierung sowohl auf der Leitungs- als auch auf der Datenbankseite. Nirgends ein handgeschriebener Validator.</p></div>
+
+      <h2 class="ak-h" id="a-signed-webhook-is-a-boundary-too">Auch ein signierter Webhook ist eine Grenze<a class="ak-anchor" href="#a-signed-webhook-is-a-boundary-too" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Die Signatur eines Webhooks zu prüfen braucht genau die Bytes, die der Absender signiert hat, keine neu serialisierte Kopie (einen geparsten Body erneut zu stringifizieren ändert Leerraum und Schlüsselreihenfolge, also würde der HMAC nie passen). <code>http.raw(req)</code> gibt dir diese Bytes, also bleibt die Prüfung in Glyph:
+      </p>
+<pre><span class="k">fn</span> handle(req: <span class="t">Request</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
+  <span class="k">let</span> expected = crypto.hmac_sha256(secret, raw(req))
+  <span class="k">return</span> <span class="k">match</span> header(req, <span class="s">"x-hook-signature"</span>) {
+    <span class="t">Some</span>(sig) <span class="op">=&gt;</span> <span class="k">match</span> sig == expected {
+      <span class="k">true</span>  <span class="op">=&gt;</span> accept(req),          <span class="c">// then validate req.body with T.parse</span>
+      <span class="k">false</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(text(<span class="n">401</span>, <span class="s">"bad signature"</span>)),
+    },
+    <span class="t">None</span> <span class="op">=&gt;</span> <span class="t">Ok</span>(text(<span class="n">401</span>, <span class="s">"missing signature"</span>)),
+  }
+}</pre>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">rohe Bytes für die Signatur, geparster Body für die Form</span></summary><div class="body">
+        <p>
+          <code>req.body</code> ist weiterhin der geparste Wert für die Prüfung der Form; <code>raw</code> ist der unveränderte Payload, über den die Signatur berechnet wird. Ein Empfänger, der eine Signatur prüft und den Body validiert, braucht kein handgeschriebenes TypeScript.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="a-type-can-validate-its-invariants-not-just-its-shape">Ein Typ kann seine Invarianten validieren, nicht nur seine Form<a class="ak-anchor" href="#a-type-can-validate-its-invariants-not-just-its-shape" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Eine Prüfung der Form sagt dir, dass ein Feld eine Zahl ist. Sie sagt dir nicht, dass der Betrag nicht negativ ist oder die Bewertung zwischen 1 und 5 liegt. Eine <code>where</code>-Verfeinerung legt diese Invariante in den Typ, und der Deskriptor setzt sie an der Grenze durch:
+      </p>
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">refinements.glyph</span>
+<pre><span class="k">type</span> <span class="t">Amount</span>   = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
+<span class="k">type</span> <span class="t">Rating</span>   = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">1</span> &amp;&amp; value &lt;= <span class="n">5</span>
+<span class="k">type</span> <span class="t">NonEmpty</span> = <span class="t">string</span> <span class="k">where</span> value.length &gt; <span class="n">0</span>
+
+<span class="c">// Amount.parse(-1)  -&gt; Err   (not just "is a number")</span>
+<span class="c">// Rating.parse(6)   -&gt; Err</span>
+<span class="c">// Amount.parse(3.5) -&gt; Err   (int check too)</span>
+
+<span class="k">type</span> <span class="t">Line</span> = { amount: <span class="t">Amount</span>, }
+<span class="c">// Line.parse({ amount: -1 }) -&gt; Err too:</span>
+<span class="c">// the predicate follows the type into</span>
+<span class="c">// the field, and across modules.</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">was du nicht schreibst</span>
+<pre><span class="c">// The check that usually lives three</span>
+<span class="c">// functions away from the boundary,</span>
+<span class="c">// if someone remembers it:</span>
+<span class="k">if</span> (amount &lt; <span class="n">0</span>) <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(...);
+
+<span class="c">// In Glyph it's the type. A value that</span>
+<span class="c">// fails the predicate never becomes an</span>
+<span class="c">// Amount in the first place.</span></pre>
+        </div>
+      </div>
+
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar <span class="count">10</span></h3>
+
+          <p class="ak-st-group">Deskriptoren</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Jeder deklarierte Record und jede Tagged Union trägt einen Laufzeit-Deskriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>), generische Records eingeschlossen</span><span class="chip">eine generische Tagged Union nicht</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>.parse</code> gibt dasselbe <code>Result</code> zurück, das der Rest der Sprache verwendet, also lässt es sich mit <code>map_err</code>, mit <code>?</code> und mit jeder Funktion kombinieren, die eins zurückgibt</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine <code>where</code>-Verfeinerung (<code>int where value &gt;= 0</code>) validiert eine Invariante an der Grenze, nicht nur eine Form</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>json.parse&lt;T&gt;</code> validiert JSON</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>infer_output&lt;Shape&gt;</code> leitet den Ausgabetyp eines Kombinators aus seiner Form ab, damit die beiden nicht auseinanderlaufen</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Generierung</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code> / <code>glyph gen dts</code> erzeugen committete Typen mit Deskriptoren aus einer Spezifikation, einer <code>.d.ts</code> oder einem installierten Paket über seinen Namen</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Grenzen</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/sqlite</code> liefert Zeilen als <code>unknown</code>, also ist die Datenbank eine validierte Grenze wie jede andere</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Empfänger für signierte Webhooks bleibt vollständig in Glyph</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>http.raw(req)</code> stellt den ungeparsten Request-Body bereit, also wird eine Webhook-Signatur über genau die Bytes geprüft, und ein Empfänger für signierte Webhooks bleibt vollständig in Glyph.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Nicht vertrauenswürdige Eingaben erreichen kein SQL- oder Shell-Ziel ohne <code>sanitize</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Die Typen <code>Tainted</code>/<code>Trusted</code> aus <code>std/taint</code> verhindern, dass nicht vertrauenswürdige Eingaben ein SQL- oder Shell-Ziel ohne explizites <code>sanitize</code> erreichen, also lehnt <code>tsc</code> einen Injection-Pfad beim Kompilieren ab.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>time.parse_iso</code> nimmt ISO-8601 und sonst nichts</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Die kleineren Grundbausteine an der Grenze halten dieselbe Linie: <code>time.parse_iso</code> nimmt ISO-8601 und gibt <code>None</code> für Freitext, einen unmöglichen Tag und ein Datum mit Uhrzeit ohne Offset zurück, das sonst in der lokalen Zeitzone des Hosts gelesen würde.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> In Arbeit <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Discriminated Unions werden aus einer Spezifikation und aus einer <code>.d.ts</code> generiert; Enums und Mapped Types als Nächstes</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Discriminated Unions werden jetzt sowohl aus einem OpenAPI-<code>discriminator</code> als auch aus einer TypeScript-<code>.d.ts</code>-Union generiert (ein <code>parse_&lt;Name&gt;</code>-Dispatcher liest den Tag und validiert in die richtige Variante). Als Nächstes: bessere Abdeckung von Enums und Mapped Types.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Typisierter Client- und Server-Code aus einer Spezifikation wird schon ausgeliefert</span> <a class="chip" href="/de/answers/codegen/">Client &amp; Server ansehen</a></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Zeitstempel und eine Dauer sind beide <code>number</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Bei Datumswerten ist die Strenge das ganze Feature, und sie hört beim Parsen auf: <code>parse_iso</code> liefert Epoch-Millisekunden, also sind ein Zeitstempel und eine Dauer beide <code>number</code>, und nichts hindert dich daran, das eine zum anderen zu addieren. Ein eigener Datumstyp ist eine spätere Entscheidung, keine kleine.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+      </div>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.149 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      <nav class="prevnext" aria-label="Zurück und weiter">
+        <a href="/de/answers/embedding/">
+          <span class="dir">&larr; Zurück</span>
+          <span class="t">Kann ich Glyph in meiner bestehenden App einführen, oder heißt es alles oder nichts?</span>
+        </a>
+        <a href="/de/answers/codegen/" class="nx cta">
+          <span class="dir">Weiter &rarr;</span>
+          <span class="t">Kann ich aus meiner API-Spezifikation einen typisierten Client und Server generieren?</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/de/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>Eine typisierte Sprache, die zu TypeScript kompiliert, gebaut, damit Agenten Code ändern können, ohne ihn kaputtzumachen.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Loslegen</h2>
+            <a href="/de/start/">Dein erstes Programm</a>
+            <a href="/de/from-typescript/">Umstieg von TypeScript</a>
+            <a href="/de/teams/">Für Teams</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Die Fünf-Minuten-Tour</a>
+          </div>
+          <div class="foot-col">
+            <h2>Lernen</h2>
+            <a href="/de/answers/">Antworten</a>
+            <a href="/de/answers/verifiability/">Die Antworten der Reihe nach lesen</a>
+            <a href="/de/answers/tooling/">Editor- und Agenten-Tooling</a>
+            <a href="/de/agents/">Für Agenten</a>
+            <a href="/de/mcp/">MCP-Server</a>
+            <a href="/llms-pages.txt">Seiten als Markdown</a>
+            <a href="/de/design/">Design</a>
+            <a href="/de/pillars/verifiability/">Die vier Säulen</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Sprachspezifikation</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifest</a>
+          </div>
+          <div class="foot-col">
+            <h2>Belege</h2>
+            <a href="/de/catches/">Was es findet</a>
+            <a href="/de/evidence/">Wie Aussagen geprüft werden</a>
+            <a href="/de/hardening/">Härtung</a>
+            <a href="/de/benchmarks/">Benchmarks</a>
+            <a href="/versions/">Versionen</a>
+          </div>
+          <div class="foot-col">
+            <h2>Quellcode</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/de/contribute/">Mitmachen</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases auf GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/de/answers/typed-apis/index.segments.json">Diese Seite bearbeiten</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript, das deine Agenten nicht unbemerkt kaputtmachen können.</span>
+          <span>&copy; 2026 Glyph &middot; MIT oder Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Hell", dark: "Dunkel" };
+        var labels = { auto: "Farbschema: automatisch (folgt dem System). Zu hell wechseln.", light: "Farbschema: hell. Zu dunkel wechseln.", dark: "Farbschema: dunkel. Zu automatisch wechseln." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

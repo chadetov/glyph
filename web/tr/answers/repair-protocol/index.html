@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Derleyici ajanıma nasıl düzelteceğini söylüyor mu? · Glyph</title>
+    <meta name="description" content="Her diagnostic tipleri, hatalı sembolü ve geçerli alternatifleri taşır; glyph fix de derleyicinin kendi başına karara bağlayabildiği onarımları yazar." />
+    <link rel="canonical" href="https://glyphlang.io/tr/answers/repair-protocol/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/tr/answers/repair-protocol/" />
+    <meta property="og:title" content="Derleyici ajanıma nasıl düzelteceğini söylüyor mu?" />
+    <meta property="og:description" content="Her diagnostic tipleri, hatalı sembolü ve geçerli alternatifleri taşır; glyph fix de derleyicinin kendi başına karara bağlayabildiği onarımları yazar." />
+    <meta property="og:locale" content="tr_TR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/repair-protocol/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Derleyici ajanıma nasıl düzelteceğini söylüyor mu?","item":"https://glyphlang.io/tr/answers/repair-protocol/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/repair-protocol/#article","headline":"Derleyici ajanıma nasıl düzelteceğini söylüyor mu?","description":"Her diagnostic tipleri, hatalı sembolü ve geçerli alternatifleri taşır; glyph fix de derleyicinin kendi başına karara bağlayabildiği onarımları yazar.","url":"https://glyphlang.io/tr/answers/repair-protocol/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/repair-protocol/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/repair-protocol/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/repair-protocol/" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">İçeriğe geç</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Ana menü">
+        <div class="nav-brand">
+          <a href="/tr/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="Sürüm notları">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">Neden Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Kimler için</p>
+                    <ul>
+                      <li><a href="/tr/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Ajan geliştirenler için</span><span class="nav-desc">MCP sunucusu ve yanıtladığı sorgular</span></span></a></li>
+                      <li><a href="/tr/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript'ten geliyorsanız</span><span class="nav-desc">Neler değişiyor, neler aynı kalıyor</span></span></a></li>
+                      <li><a href="/tr/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">Ekipler için</span><span class="nav-desc">Neyi garanti ediyor ve benimsemenin maliyeti ne</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Tasarım</p>
+                    <ul>
+                      <li><a href="/tr/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Tasarım</span><span class="nav-desc">Dört temel ilke ve bilerek dışarıda bırakılanlar</span></span></a></li>
+                      <li><a href="/tr/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Dört temel ilke</span><span class="nav-desc">Doğrulanabilirlik, aranabilirlik, soyutlama, kararlı diff</span></span></a></li>
+                      <li><a href="/tr/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph ve Effect</span><span class="nav-desc">Bir dil ile bir kütüphanenin karşılaştırması</span></span></a></li>
+                      <li><a href="/tr/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Neden ReScript, Gleam ya da Elm değil?</span><span class="nav-desc">JavaScript'e derlenen üç tipli dil</span></span></a></li>
+                      <li><a href="/tr/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph ve araçlarla donatılmış TypeScript</span><span class="nav-desc">Strict tsc, zod ve eslint'in hâlâ gözden kaçırdıkları</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/tr/catches/">Neleri yakalıyor</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-learn">Öğren<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Başlarken</p>
+                    <ul>
+                      <li><a href="/tr/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 dakikada başla</span><span class="nav-desc">Kurun, bir program yazın, çalıştırın</span></span></a></li>
+                      <li><a href="/tr/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Yanıtlar <span class="nav-count">28</span></span><span class="nav-desc">Mühendislerin sorduğu sorular, çalışan örneklerle</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Dil referansı</span><span class="nav-desc">Spesifikasyonun tamamı, GitHub'da</span></span></a></li>
+                      <li><a href="/tr/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Katkıda bulun</span><span class="nav-desc">Derleyici nasıl yapıldı ve nasıl yardım edebilirsiniz</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Ajanınızı bağlayın</p>
+                    <ul>
+                      <li><a href="/tr/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP sunucusu</span><span class="nav-desc">Ajanınızı derleyicinin sorgularına bağlayın</span></span></a></li>
+                      <li><a href="/tr/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">Derleyiciye sorun</span><span class="nav-desc">Düzenlemeden önce bir sembolü, tipi ya da değişikliği sorgulayın</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">Ajanlar için llms.txt</span><span class="nav-desc">Dilin tamamı, bir ajanın okuyabileceği tek bir dosyada</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">Kanıtlar<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Nasıl kontrol ediliyor</p>
+                    <ul>
+                      <li><a href="/tr/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">İddialar nasıl kontrol ediliyor</span><span class="nav-desc">Her iddianın arkasındaki fixture'lar ve CI kontrolü</span></span></a></li>
+                      <li><a href="/tr/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Sağlamlaştırma</span><span class="nav-desc">Onu bozmaya çalışan ajanlar ve buldukları</span></span></a></li>
+                      <li><a href="/tr/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Benchmark'lar</span><span class="nav-desc">Dört temel ilke rakamlarla, çekinceleriyle birlikte</span></span></a></li>
+                      <li><a href="/tr/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Henüz yakalanmayanlar</span><span class="nav-desc">Bilinen açıklar, her biri bir reprodüksiyonla</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/tr/catches/"><span class="nav-feature-big">21 / 37</span><span class="nav-feature-text">tamamen yapılandırılmış bir kurulumda hiçbir şeyin yakalamadığı TypeScript hatası</span><span class="nav-feature-cta">Neleri yakaladığını gör <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">Sürümler</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="Dil: Türkçe (TR)"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">Türkçe</span><span class="lang-short" aria-hidden="true">TR</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">Dil</p>
+            <ul>
+              <li><a href="/answers/repair-protocol/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/answers/repair-protocol/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/repair-protocol/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/repair-protocol/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/repair-protocol/" hreflang="tr" lang="tr" data-lang="tr" aria-current="true"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/zh-cn/answers/repair-protocol/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/repair-protocol/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/repair-protocol/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/repair-protocol/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/repair-protocol/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/answers/repair-protocol/" hreflang="en" data-lang="en">İngilizce oku</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Renk teması: otomatik (sistemi izler). Açık temaya geç.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Otomatik</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Menüyü aç">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Menüyü kapat" : "Menüyü aç");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <nav class="ans-bar" aria-label="Yanıtlar arasında gezinme">
+      <div class="ans-bar-in">
+        <p class="ans-crumb"><a href="/tr/answers/">Yanıtlar</a><span class="sep" aria-hidden="true">/</span><a class="cur" href="/tr/answers/repair-protocol/" aria-current="page"><span class="n">23</span> Kırmızı build'i düzeltmek</a></p>
+        <a class="ans-step prev" href="/tr/answers/ask-the-compiler/" aria-label="Önceki yanıt: 22 Derleyiciye sorun">&lsaquo; 22</a><a class="ans-step next" href="/tr/answers/generated-docs/" aria-label="Sonraki yanıt: 24 Eskimeyen dokümantasyon">24 &rsaquo;</a>
+        <a class="ans-all-link" href="/tr/answers/">Tüm yanıtlar</a>
+        <button class="ans-all" type="button" aria-expanded="false" aria-controls="ans-nav">Tüm yanıtlar<span class="nav-chev" aria-hidden="true"></span></button>
+      </div>
+    </nav>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>Dil: Türkçe</span><span class="sep" aria-hidden="true">&middot;</span><a href="/answers/repair-protocol/" hreflang="en" data-lang="en">İngilizce oku</a></p>
+      <button class="i18n-x" type="button" aria-label="Kapat"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>Bu sayfa bir çeviridir. Referans alınan sürüm İngilizce sürümdür. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28tr%29%3A+%2Ftr%2Fanswers%2Frepair-protocol%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Ftr%2Fanswers%2Frepair-protocol%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Frepair-protocol%2F%0A%0AWhat+is+wrong%3A%0A">Çeviriyle ilgili bir sorun bildir</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page has-side">
+      <p class="q-eyebrow">23 &middot; Kırmızı bir build'i düzeltmek</p>
+      <h1 class="q-title">Build başarısız olduğunda derleyici ajanıma nasıl düzelteceğini söylüyor mu?</h1>
+      <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
+        <div class="subnav ans-list">
+          <p class="ans-side-head"><a href="/tr/answers/">Tüm yanıtlar</a><button class="ans-close" type="button" aria-label="Yanıt listesini kapat"><span aria-hidden="true">&times;</span></button></p>
+          <details class="ans-grp"><summary>Çözdüğü problem</summary><ol>
+            <li><a href="/tr/answers/verifiability/"><span class="n">01</span><span class="t">Sessiz bozulmalar</span></a></li>
+            <li><a href="/tr/answers/diff-stability/"><span class="n">02</span><span class="t">Temiz diff'ler</span></a></li>
+            <li><a href="/tr/answers/greppability/"><span class="n">03</span><span class="t">Bir şeyi bulmak</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Benimseyip benimsememeye karar vermek</summary><ol>
+            <li><a href="/tr/answers/why-typescript/"><span class="n">04</span><span class="t">Neden TypeScript</span></a></li>
+            <li><a href="/tr/answers/vs-tooled-ts/"><span class="n">05</span><span class="t">Neden araçlı TS değil</span></a></li>
+            <li><a href="/tr/answers/human-value/"><span class="n">06</span><span class="t">Yapay zekâ olmadan</span></a></li>
+            <li><a href="/tr/answers/ai-authoring/"><span class="n">07</span><span class="t">Yapay zekâ ile yazılan kod</span></a></li>
+            <li><a href="/tr/answers/upgrades/"><span class="n">08</span><span class="t">Yükseltmeler</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Kendi stack'inizle kullanmak</summary><ol>
+            <li><a href="/tr/answers/imports/"><span class="n">09</span><span class="t">Kütüphaneleriniz</span></a></li>
+            <li><a href="/tr/answers/embedding/"><span class="n">10</span><span class="t">Uygulamanızın içinde</span></a></li>
+            <li><a href="/tr/answers/typed-apis/"><span class="n">11</span><span class="t">Tipli API'ler</span></a></li>
+            <li><a href="/tr/answers/codegen/"><span class="n">12</span><span class="t">İstemci ve sunucu</span></a></li>
+            <li><a href="/tr/answers/react/"><span class="n">13</span><span class="t">React</span></a></li>
+            <li><a href="/tr/answers/state/"><span class="n">14</span><span class="t">Paylaşılan durum</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Onunla neler yapabilirsiniz</summary><ol>
+            <li><a href="/tr/answers/language/"><span class="n">15</span><span class="t">Dil</span></a></li>
+            <li><a href="/tr/answers/finance/"><span class="n">16</span><span class="t">Para ve güvenlik</span></a></li>
+            <li><a href="/tr/answers/web-serving/"><span class="n">17</span><span class="t">Web sunmak</span></a></li>
+            <li><a href="/tr/answers/interactive-cli/"><span class="n">18</span><span class="t">Etkileşimli programlar</span></a></li>
+            <li><a href="/tr/answers/long-running/"><span class="n">19</span><span class="t">Sunucular ve daemon'lar</span></a></li>
+            <li><a href="/tr/answers/binary/"><span class="n">20</span><span class="t">Binary veri</span></a></li>
+          </ol></details>
+          <details class="ans-grp" open><summary>Bir ajanla çalışmak</summary><ol>
+            <li><a href="/tr/answers/impact/"><span class="n">21</span><span class="t">Düzenlemeden önce</span></a></li>
+            <li><a href="/tr/answers/ask-the-compiler/"><span class="n">22</span><span class="t">Derleyiciye sorun</span></a></li>
+            <li><a href="/tr/answers/repair-protocol/" aria-current="page"><span class="n">23</span><span class="t">Kırmızı build'i düzeltmek</span></a></li>
+            <li><a href="/tr/answers/generated-docs/"><span class="n">24</span><span class="t">Eskimeyen dokümantasyon</span></a></li>
+          </ol></details>
+          <details class="ans-grp"><summary>Hatalar, editörler ve production</summary><ol>
+            <li><a href="/tr/answers/tooling/"><span class="n">25</span><span class="t">Editör ve debug</span></a></li>
+            <li><a href="/tr/answers/early-errors/"><span class="n">26</span><span class="t">Erken yakalananlar</span></a></li>
+            <li><a href="/tr/answers/parse-errors/"><span class="n">27</span><span class="t">Parse neden başarısız oldu</span></a></li>
+            <li><a href="/tr/answers/debugging/"><span class="n">28</span><span class="t">Debug ve işletim</span></a></li>
+          </ol></details>
+        </div>
+      </nav>
+
+      <p class="short-answer">
+        Neyin yanlış olduğunu parse edilecek bir cümle olarak değil, veri olarak söyler: iki tip, <code>module::name</code> biçiminde hatalı sembol ve yanlış şeyin durduğu yerde geçerli olarak durabilecek şeylerin sonlu listesi. <code>glyph check --agent</code>, onarıcı düzenlemenin bozmaması gerekenleri ekler. Yanıtın tamamen belirli olduğu yerde <code>glyph fix</code> onu yazar.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-it-matters">Neden önemli<a class="h-anchor" href="#why-it-matters" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          Bir ajanın derleyici etrafındaki döngüsü şudur: hatayı oku, düzenlemeyi tahmin et, yeniden build et. Hasar tahmin adımında olur ve hata bir string olduğu için olur. "<code>OrderStatus</code> üzerinde kapsamı eksik match" okuyan bir ajan, bir match'te bazı arm'ların eksik olduğunu bilir. Eksik variant'ların ne taşıdığını bilmez, bu yüzden <code>Paid("tx_1")</code> yazar ve bunu bir sonraki diagnostic'ten öğrenir. Ya da "exhaustive" kelimesini okur, bir <code>else</code> arm'ı ekler ve build, diagnostic'in korumak için var olduğu garantiyi atmış olarak yeşile döner.
+        </p>
+        <p>
+          Derleyici bunların hepsini biliyordu. Union'ın variant'larını ve payload'larını biliyordu, bir <code>else</code>'in mührü kaybettireceğini biliyordu ve ikisini de yanıttan bir satır önce atıyordu.
+        </p>
+
+        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          İki modüllü bir proje. <code>orders</code> union'ı tanımlar; <code>main</code> onun üzerinde bir <code>match</code> yazar ve bir durumu ele alır. <code>glyph check --agent</code>, burada önemli olan anahtarlara kısaltılmış hâliyle:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --agent --no-tsc src</span>
+<pre>{
+  <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+  <span class="pk">"severity"</span>: <span class="s">"error"</span>,
+  <span class="pk">"stage"</span>: <span class="s">"typecheck"</span>,
+  <span class="pk">"message"</span>: <span class="s">"non-exhaustive match on `OrderStatus`: missing variants
+              `Paid`, `Cancelled`"</span>,
+  <span class="pk">"help"</span>: <span class="s">"Add an arm for each missing variant."</span>,
+  <span class="pk">"file"</span>:   <span class="s">"main.glyph"</span>,
+  <span class="pk">"module"</span>: <span class="s">"main"</span>,
+  <span class="pk">"entity"</span>: <span class="s">"main::describe"</span>,
+  <span class="pk">"cause"</span>:  <span class="s">"orders::OrderStatus"</span>,
+  <span class="pk">"related"</span>: [<span class="s">"Pending"</span>, <span class="s">"Paid"</span>, <span class="s">"Cancelled"</span>],
+  <span class="pk">"missing_variants"</span>: [<span class="s">"Paid"</span>, <span class="s">"Cancelled"</span>],
+  <span class="pk">"expected"</span>: <span class="k">null</span>, <span class="pk">"actual"</span>: <span class="k">null</span>, <span class="pk">"alternatives"</span>: <span class="k">null</span>,
+
+  <span class="pk">"constraints"</span>: [
+    <span class="s">"preserve exhaustiveness: this match must name every case of
+     `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`."</span>,
+    <span class="s">"do not add an `else` arm: `OrderStatus` is declared in this project,
+     and a catch-all forfeits the guarantee that adding a variant to it
+     later forces this match to be updated (D9)."</span>
+  ],
+
+  <span class="pk">"symbols"</span>: [
+    { <span class="pk">"entity"</span>: <span class="s">"orders::OrderStatus"</span>, <span class="pk">"kind"</span>: <span class="s">"union"</span>, <span class="pk">"pub"</span>: <span class="k">true</span>,
+      <span class="pk">"type"</span>: <span class="s">"Pending | Paid({ transaction_id: string }) | Cancelled"</span>,
+      <span class="pk">"exhaustive_match"</span>: <span class="k">true</span>,
+      <span class="pk">"variants"</span>: [
+        { <span class="pk">"name"</span>: <span class="s">"Pending"</span>, <span class="pk">"payload"</span>: <span class="k">null</span>, <span class="pk">"construct"</span>: <span class="s">"Pending"</span> },
+        { <span class="pk">"name"</span>: <span class="s">"Paid"</span>,    <span class="pk">"payload"</span>: <span class="s">"{ transaction_id: string }"</span>,
+          <span class="pk">"construct"</span>: <span class="s">"Paid({ transaction_id: string })"</span> },
+        { <span class="pk">"name"</span>: <span class="s">"Cancelled"</span>, <span class="pk">"payload"</span>: <span class="k">null</span>, <span class="pk">"construct"</span>: <span class="s">"Cancelled"</span> }
+      ] }
+  ],
+  <span class="pk">"symbols_absent"</span>: [],
+
+  <span class="pk">"explain"</span>: { <span class="pk">"command"</span>: <span class="s">"glyph --explain E0200"</span>,
+               <span class="pk">"docs"</span>: <span class="s">"https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200"</span> }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Öne çıkarmaya değer üç şey var. <code>cause</code> hatalı semboldür ve diagnostic'in içinde bulunduğu tanım olan <code>entity</code>'den farklı bir şeydir: burada düzenleme <code>main::describe</code> içinde yapılır ve uyması gereken yapı <code>orders::OrderStatus</code>'tan gelir. İkisi de diğer araçların aldığı adreslerdir, yani bir yanıt hiçbir şeyi yeniden türetmeden zincirlenir.
+        </p>
+        <p>
+          <code>constraints</code> onarımın kendisi değildir. Her biri derleyicinin zaten zorladığı bir şeydir ve diagnostic'i karşılayan düzenleme arkasındaki garantiyi bozmasın diye açıkça yazılmıştır. İkinci kısıt, anahtarın var olma nedenidir: bir <code>else</code> arm'ı geçerlidir, build'i yeşile çevirir ve kısıt bunu seçmenin bedelini söyler.
+        </p>
+        <p>
+          <code>symbols</code>, diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtıdır; böylece ajanın bir sonraki düzenlemesi ikinci bir çağrıya ihtiyaç duymaz. Aracın reddettiği bir sembol gerekçesiyle birlikte <code>symbols_absent</code>'ta görünür; bu da "bakmadık" ile "baktık ve orada değil"i birbirinden ayırır.
+        </p>
+        <p>
+          Her anahtar her zaman mevcuttur. Derleyicinin sahip olmadığı bir bilgi, eksik bir anahtar olarak değil, açık bir <code>null</code> olarak gelir; böylece yokluğun her kodda ve hem CLI hem MCP yüzeyinde tek bir yazılışı vardır.
+        </p>
+
+        <h2 class="block-label" id="where-the-answer-is-determined-the-compiler-writes-it">Yanıtın belirli olduğu yerde derleyici onu yazar<a class="h-anchor" href="#where-the-answer-is-determined-the-compiler-writes-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          <code>glyph fix</code> yalnızca derleyicinin kendi başına karara bağladığı onarımları uygular: kullanılmayan import'lar, checker'ın tam olarak tek bir öneri hesapladığı durumda variant olmayan bir arm başı ve record'un tanımlamadığı, tam olarak bir tanımlı alanın bir karakter uzağında olduğu bir alan. Yukarıdaki <code>match</code> bunlardan biri değil.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">yukarıdaki match üzerinde glyph fix src</span>
+<pre>glyph fix: removed 0 unused import(s) across 0 file(s).
+glyph fix: declined E0200 in src/main.glyph: the compiler does not
+           determine what a missing arm should do, so `glyph fix`
+           writes none: add an arm for each of `Paid`, `Cancelled`.
+           `glyph check --agent` gives the pattern each case takes.
+
+<span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Derleyici hangi durumların eksik olduğunu ve her birinin hangi pattern'i aldığını bilir. Bir sipariş <code>Paid</code> olduğunda programın ne yapması gerektiğini bilmez ve yazacağı her gövde derlenen bir tahmin olur. 0.1.128'e kadar <code>glyph fix</code> o tahmini yazıyordu: her durum için gövdesi durumu yazdırıp <code>process.exit(1)</code>'i çağıran bir arm. Program bundan sonra <code>check</code>, <code>tsc</code> ve <code>build</code>'den geçiyordu ve <code>glyph query variants</code> match'i kapsamı tam olarak bildiriyordu; yani eksik durum bir derleme hatasından çalışma zamanında bir çökmeye taşınmıştı ve onu işaretleyecek hiçbir şey kalmamıştı.
+        </p>
+        <p>
+          Bu yüzden kural reddeder ve durumları adıyla söyler. Arm'ları yazmak için gereken her şey zaten yukarıdaki <code>--agent</code> yanıtında var: <code>missing_variants</code> ve <code>symbols</code> altında her variant'ın <code>construct</code> yazılışı. Arm'ları yazmak, davranışını derleyicinin çıkaramadığı diğer her kod gibi size ya da ajanınıza kalır.
+        </p>
+        <p>
+          <code>glyph fix</code> yazdığını tahmin etmeden yazar ve bir yanıtı karara bağlayamayan her kural, reddi ve gerekçesini uyguladıklarıyla aynı çıktıda yazdırır. Bir yazım hatasından bir karakter uzaktaki iki alan bir değil iki alandır ve seçim yapmak yerine bunu söyler.
+        </p>
+
+        <h2 class="block-label" id="the-code-s-own-explanation-as-data">Kodun kendi açıklaması, veri olarak<a class="h-anchor" href="#the-code-s-own-explanation-as-data" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          <code>glyph --explain &lt;CODE&gt; --json</code>, uzun açıklamayı, tek satırlık <code>help</code>'i, doküman URL'sini ve derleyicinin negatif derleminden alınmış yanlış bir programı, bu derleyicinin onun için ürettiği diagnostic'le eşleştirilmiş olarak döndürür. Diagnostic saklanmaz, siz sorduğunuzda derlenir; bu yüzden derleyicinin gerçekte söylediğinden sapamaz.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --explain E0200 --json</span>
+<pre>{
+  <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+  <span class="pk">"title"</span>: <span class="s">"non-exhaustive match"</span>,
+  <span class="pk">"explanation"</span>: <span class="s">"A `match` over a tagged union must handle every variant.
+    Unions are sealed (D9): adding a variant later forces every match to be
+    updated, so a missing variant cannot silently fall through at runtime ..."</span>,
+  <span class="pk">"help"</span>: <span class="s">"Add an arm for each missing variant."</span>,
+  <span class="pk">"docs"</span>: <span class="s">"https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200"</span>,
+  <span class="pk">"counter_example"</span>: {
+    <span class="pk">"name"</span>: <span class="s">"alias_of_local_union_not_exhaustive"</span>,
+    <span class="pk">"expected_error"</span>: <span class="s">"E0200"</span>,
+    <span class="pk">"files"</span>: [ { <span class="pk">"path"</span>: <span class="s">"alias_of_local_union_not_exhaustive.glyph"</span>,
+                 <span class="pk">"source"</span>: <span class="s">"module main\n\ntype Shape =\n  | Circle\n ..."</span> } ],
+    <span class="pk">"diagnostic"</span>: { <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
+                    <span class="pk">"message"</span>: <span class="s">"non-exhaustive match on `Shape`: missing variants `Tri`"</span>,
+                    <span class="pk">"cause"</span>: <span class="s">"alias_of_local_union_not_exhaustive::Shape"</span>,
+                    <span class="pk">"related"</span>: [<span class="s">"Circle"</span>, <span class="s">"Square"</span>, <span class="s">"Tri"</span>],
+                    <span class="pk">"missing_variants"</span>: [<span class="s">"Tri"</span>] },
+    <span class="pk">"corrected"</span>: <span class="k">null</span>,
+    <span class="pk">"corrected_absent"</span>: <span class="s">"`tests/negative/` pairs no repaired program with a case:
+      an entry is a wrong program and the code it draws. A fix invented here would
+      compile nowhere and be checked by nothing."</span>
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Derlemin kapsamadığı bir kod, uydurulmuş bir örnek yerine <code>counter_example: null</code> ve derlemde onun için bir durum olmadığını söyleyen bir cümleyle döner. Derlem kapsadığı şeyler hakkında iddiada bulunur, gerisi hakkında hiçbir şey söylemez.
+        </p>
+        <p>
+          <code>glyph --explain</code> kod başına bir durum verir. Derlemin tamamı da okunabilir: <code>glyph llms --negative E0200</code> o kodu tetikleyen her yanlış programı, her birini siz sorduğunuzda derleyerek yazdırır; ikinci bir derlemin <code>tsc --strict</code>'in kabul ettiği bir programı onu reddeden Glyph ile eşleştirdiği yerde o da yanında gelir. Kod verilmezse 70 kodun 46'sı üzerinde 102 durum listeler ve hiç durumu olmayan 24 kodu adıyla söyler; böylece kapsam, dönenlerden çıkarılmak yerine açıkça belirtilir. Bu ve derleyicinin kendisi hakkında yayımladığı geri kalan her şey <a href="/tr/answers/generated-docs/">ayrı bir sayfada</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Bugün yayında</h3>
+          <p>Her diagnostic <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (<code>alternatives_kind</code> ile listenin <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> ya da <code>exports</code> olup olmadığı belirtilir ve hatanın üretildiği yerde ayarlanır), <code>related</code>, <code>module</code>, <code>file</code> ve <code>explain</code> taşır; bunlar yeniden türetilmek yerine derleyicinin ürettiği hatadan doldurulur ve derleyici böyle bir bilgiye sahip değilse her biri açık bir <code>null</code> olur. <code>file</code>, çözümleme köküne göreli bir yoldur ve rapor o kökü <code>project_root</code>'ta belirtir, yani yol açılabilir. <code>glyph check --agent</code> her diagnostic için <code>constraints</code> ve <code>symbols</code> ekler. <code>glyph fix</code> üç kural uygular (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) ve her reddi gerekçesiyle belirtir; bildirdiği ama hiçbir zaman yazmadığı her <code>E0200</code> dahil. <code>glyph --explain &lt;CODE&gt; --json</code> açıklamayı derlenmiş bir karşı örnekle döndürür, <code>glyph llms --negative &lt;CODE&gt;</code> ise o kodu tetikleyen yanlış programların tüm derlemini döndürür.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Nerede duruyor</h3>
+          <p><code>E0211</code>'de <code>cause</code> <code>null</code>'dır: bir çağrı argümanındaki hatalı sembol bir parametredir ve <code>module::fn.param</code> kimlik sözlüğünün yazabildiği bir şey değildir; yani bu null bir eksiklik değil, bilinçli bir tercihtir. Bir karşı örnekteki <code>corrected</code> her zaman <code>null</code>'dır, çünkü negatif derlem bir durumla onarılmış bir programı eşleştirmez ve 70 kodun 24'ünün hiç durumu yoktur. <code>glyph fix</code> üç kural yazar, başka hiçbir şey yazmaz ve kapsamı eksik bir <code>match</code> için arm yazmaz: bunlar, durumlar ve pattern'leri diagnostic'te olacak şekilde size ya da ajanınıza bırakılır. Reddettiği her şeyi açıkça reddeder.</p>
+        </div>
+        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.149 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      </div>
+      <nav class="prevnext" aria-label="Önceki ve sonraki">
+        <a href="/tr/answers/ask-the-compiler/">
+          <span class="dir">&larr; Önceki</span>
+          <span class="t">Ajanım kod yazmadan önce derleyiciye bir sembolün ne olduğunu sorabilir mi?</span>
+        </a>
+        <a href="/tr/answers/generated-docs/" class="nx cta">
+          <span class="dir">Sonraki &rarr;</span>
+          <span class="t">Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?</span>
+        </a>
+      </nav>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/tr/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript'e derlenen tipli bir dil; ajanlar kodu bozmadan değiştirebilsin diye tasarlandı.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Başla</h2>
+            <a href="/tr/start/">İlk programınız</a>
+            <a href="/tr/from-typescript/">TypeScript'ten geliyorsanız</a>
+            <a href="/tr/teams/">Ekipler için</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Beş dakikalık tur</a>
+          </div>
+          <div class="foot-col">
+            <h2>Öğren</h2>
+            <a href="/tr/answers/">Yanıtlar</a>
+            <a href="/tr/answers/verifiability/">Yanıtları sırayla oku</a>
+            <a href="/tr/answers/tooling/">Editör ve ajan araçları</a>
+            <a href="/tr/agents/">Ajanlar için</a>
+            <a href="/tr/mcp/">MCP sunucusu</a>
+            <a href="/llms-pages.txt">Markdown sayfaları</a>
+            <a href="/tr/design/">Tasarım</a>
+            <a href="/tr/pillars/verifiability/">Dört temel ilke</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Dil spesifikasyonu</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Kanıtlar</h2>
+            <a href="/tr/catches/">Yakaladıkları</a>
+            <a href="/tr/evidence/">İddialar nasıl kontrol ediliyor</a>
+            <a href="/tr/hardening/">Sağlamlaştırma</a>
+            <a href="/tr/benchmarks/">Benchmark'lar</a>
+            <a href="/versions/">Sürümler</a>
+          </div>
+          <div class="foot-col">
+            <h2>Kaynak kod</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issue'lar</a>
+            <a href="/tr/contribute/">Katkıda bulun</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub'daki release'ler</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/tr/answers/repair-protocol/index.segments.json">Bu sayfayı düzenle</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: ajanlarınızın siz fark etmeden bozamayacağı TypeScript.</span>
+          <span>&copy; 2026 Glyph &middot; MIT veya Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Otomatik", light: "Açık", dark: "Koyu" };
+        var labels = { auto: "Renk teması: otomatik (sistemi izler). Açık temaya geç.", light: "Renk teması: açık. Koyu temaya geç.", dark: "Renk teması: koyu. Otomatik temaya geç." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

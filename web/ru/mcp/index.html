@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Подключите агента к Glyph через MCP · Glyph</title>
+    <meta name="description" content="glyph mcp запускает MCP-сервер с одиннадцатью инструментами: что такое символ, что сломает изменение, диагностики, ссылки и другое. Каждый также доступен как команда glyph query." />
+    <link rel="canonical" href="https://glyphlang.io/ru/mcp/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ru/mcp/" />
+    <meta property="og:title" content="Подключите агента к Glyph через MCP" />
+    <meta property="og:description" content="glyph mcp запускает MCP-сервер с одиннадцатью инструментами: что такое символ, что сломает изменение, диагностики, ссылки и другое. Каждый также доступен как команда glyph query." />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/mcp/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Подключите агента к Glyph через MCP","item":"https://glyphlang.io/ru/mcp/"}]}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/mcp/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/mcp/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/mcp/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/mcp/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/mcp/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/mcp/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/mcp/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/mcp/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/mcp/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/mcp/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/mcp/" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Перейти к содержимому</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Основная навигация">
+        <div class="nav-brand">
+          <a href="/ru/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="Примечания к выпуску">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-why">Почему Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Для кого он</p>
+                    <ul>
+                      <li><a href="/ru/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">Для разработчиков агентов</span><span class="nav-desc">MCP-сервер и запросы, на которые он отвечает</span></span></a></li>
+                      <li><a href="/ru/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">Если вы пишете на TypeScript</span><span class="nav-desc">Что меняется, а что остаётся как было</span></span></a></li>
+                      <li><a href="/ru/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">Для команд</span><span class="nav-desc">Что он гарантирует и чего стоит его внедрение</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Дизайн</p>
+                    <ul>
+                      <li><a href="/ru/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Дизайн</span><span class="nav-desc">Четыре принципа и то, что намеренно оставили за бортом</span></span></a></li>
+                      <li><a href="/ru/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">Четыре принципа</span><span class="nav-desc">Проверяемость, удобство поиска, абстракция, стабильные диффы</span></span></a></li>
+                      <li><a href="/ru/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph и Effect</span><span class="nav-desc">Сравнение языка и библиотеки</span></span></a></li>
+                      <li><a href="/ru/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Почему не ReScript, Gleam или Elm?</span><span class="nav-desc">Три типизированных языка, компилируемых в JavaScript</span></span></a></li>
+                      <li><a href="/ru/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph и TypeScript со всеми инструментами</span><span class="nav-desc">Что всё ещё пропускают строгий tsc, zod и eslint</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/ru/catches/">Что он ловит</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">Обучение<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">С чего начать</p>
+                    <ul>
+                      <li><a href="/ru/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">Начать за 10 минут</span><span class="nav-desc">Установите, напишите программу и запустите её</span></span></a></li>
+                      <li><a href="/ru/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Ответы <span class="nav-count">28</span></span><span class="nav-desc">Вопросы, которые задают инженеры, с разобранными примерами</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Справочник по языку</span><span class="nav-desc">Полная спецификация на GitHub</span></span></a></li>
+                      <li><a href="/ru/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Участие в разработке</span><span class="nav-desc">Как устроен компилятор и как помочь</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Подключите агента</p>
+                    <ul>
+                      <li><a href="/ru/mcp/" aria-current="page"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP-сервер</span><span class="nav-desc">Подключите агента к запросам компилятора</span></span></a></li>
+                      <li><a href="/ru/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">Спросите компилятор</span><span class="nav-desc">Узнайте о символе, типе или изменении до правки</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">llms.txt для агентов</span><span class="nav-desc">Весь язык в одном файле, который может прочитать агент</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">Доказательства<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Как это проверяется</p>
+                    <ul>
+                      <li><a href="/ru/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Как проверяются утверждения</span><span class="nav-desc">Фикстуры и проверка в CI за каждым утверждением</span></span></a></li>
+                      <li><a href="/ru/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Проверка на прочность</span><span class="nav-desc">Агенты пытаются его сломать, и что они нашли</span></span></a></li>
+                      <li><a href="/ru/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Бенчмарки</span><span class="nav-desc">Четыре принципа в цифрах, с оговорками</span></span></a></li>
+                      <li><a href="/ru/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Что пока не ловится</span><span class="nav-desc">Известные дыры, у каждой есть воспроизведение</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ru/catches/"><span class="nav-feature-big">21 из 37</span><span class="nav-feature-text">ошибок в TypeScript, которые не ловит ничто даже в максимально настроенном проекте</span><span class="nav-feature-cta">Посмотреть, что он ловит <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">Версии</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Песочница</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="Язык: Русский (RU)"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">Русский</span><span class="lang-short" aria-hidden="true">RU</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">Язык</p>
+            <ul>
+              <li><a href="/mcp/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/mcp/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/mcp/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/mcp/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/mcp/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/mcp/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/mcp/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/mcp/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/mcp/" hreflang="ru" lang="ru" data-lang="ru" aria-current="true"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/th/mcp/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/mcp/" hreflang="en" data-lang="en">Читать на английском</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Цветовая тема: авто (как в системе). Переключить на светлую.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Авто</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Открыть меню">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Закрыть меню" : "Открыть меню");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>Язык: Русский</span><span class="sep" aria-hidden="true">&middot;</span><a href="/mcp/" hreflang="en" data-lang="en">Читать на английском</a></p>
+      <button class="i18n-x" type="button" aria-label="Закрыть"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>Эта страница является переводом. Основной считается английская версия. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ru%29%3A+%2Fru%2Fmcp%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fru%2Fmcp%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fmcp%2F%0A%0AWhat+is+wrong%3A%0A">Сообщить о проблеме с переводом</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">Для агентов &middot; Model Context Protocol</p>
+      <h1 class="q-title">Подключите агента к компилятору Glyph</h1>
+
+      <p class="short-answer">
+        <code>glyph mcp</code> запускает <strong>сервер Model Context Protocol</strong> с одиннадцатью инструментами для вашего проекта: что такое символ; что сломается, если его изменить; можно ли подставить значение одного типа туда, где объявлен другой; от чего зависит объявление; что экспортирует модуль; диагностики, проверенные внутри проекта; тип под курсором; где определено имя; все ссылки на него; все места <code>match</code> по union; поиск символов. Каждый из них также доступен как команда <code>glyph query</code>, так что агент без MCP-клиента задаёт те же вопросы и получает те же байты.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="why-an-agent-wants-this">Зачем это агенту<a class="h-anchor" href="#why-an-agent-wants-this" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          Агент, который правит кодовую базу, обычно работает вслепую. Он читает файлы, угадывает типы и узнаёт, сломал ли что-то, только после сборки. Для редактора Glyph уже отвечает на эти вопросы. <code>glyph mcp</code> даёт агенту те же ответы прямо от компилятора, без разбора вывода сборки и без чтения всех файлов, чтобы понять, кто что вызывает. Два инструмента отвечают на вопросы, которые редактор никогда не задаёт: <code>glyph_symbol</code> возвращает варианты union с синтаксисом, который создаёт каждый из них, а это именно то, что нужно агенту перед тем, как написать <code>match</code>; <code>glyph_impact</code> отвечает, что сломает правка, ещё до того, как она сделана.
+        </p>
+
+        <h2 class="block-label" id="set-it-up">Настройка<a class="h-anchor" href="#set-it-up" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          Запустить его может любой MCP-клиент. Укажите клиенту бинарный файл <code>glyph</code> с подкомандой <code>mcp</code> и передайте корень проекта аргументом или запускайте из каталога проекта. Сервер говорит на MCP через stdio, поэтому ни порта, ни демона нет.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">конфигурация MCP-клиента (общая)</span>
+<pre>{
+  <span class="pk">"mcpServers"</span>: {
+    <span class="pk">"glyph"</span>: {
+      <span class="pk">"command"</span>: <span class="s">"glyph"</span>,
+      <span class="pk">"args"</span>: [<span class="s">"mcp"</span>, <span class="s">"/path/to/your/project"</span>]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          При первом подключении клиент вызывает <code>initialize</code> и <code>tools/list</code>; сервер сообщает об одиннадцати инструментах ниже. Позиции, которые вы отправляете, следуют соглашению LSP: <code>line</code> с нуля и <code>character</code> с нуля в единицах кода UTF-16. Диапазоны диагностик возвращаются так же, как их печатает <code>glyph check --json</code>: <code>line</code> и <code>col</code> с единицы плюс байтовый <code>offset</code>.
+        </p>
+        <p>
+          Описание каждого инструмента содержит контракт, который нужен в момент вызова, а полное руководство лежит в <code>glyph llms --json</code> под ключом <code>tools</code>, по имени инструмента, рядом с командой <code>glyph query</code> для каждого. Раньше этот ответ содержал все руководства: одиннадцать инструментов, 31 446 байт описаний в ответе размером 45 509 байт. Теперь это 8 627 байт в ответе на 20 386 байт, и ничего не удалено. Каждая сессия платит за <code>tools/list</code> при подключении, а за руководство только когда запрашивает его. <a href="/ru/answers/generated-docs/">Этот документ</a> генерируется из собственных таблиц компилятора, и тест валит сборку, если в нём назван инструмент, которого этот сервер не предоставляет.
+        </p>
+
+        <h2 class="block-label" id="the-eleven-tools">Одиннадцать инструментов<a class="h-anchor" href="#the-eleven-tools" aria-label="Ссылка на этот раздел">#</a></h2>
+      </div>
+
+      <div class="code">
+        <span class="cap">инструменты, которые предоставляет glyph mcp</span>
+<pre><span class="cm">// everything the compiler holds about one symbol: kind, identity,</span>
+<span class="cm">// visibility, a record's fields, a union's variants with payloads and</span>
+<span class="cm">// construction syntax, parameters and return, interface members,</span>
+<span class="cm">// whether a `match` over it must be exhaustive, its `@example`.</span>
+<span class="cm">// The identity reaches the stdlib: std/result::Result answers with</span>
+<span class="cm">// Ok(T) and Err(E), and `path` is null beside the reason why</span>
+glyph_symbol(entity)                       <span class="cm">// or (path, line, character)</span>
+
+<span class="cm">// what breaks if you make one named change to one declaration:</span>
+<span class="cm">// add_variant, remove_variant, rename, change_arity,</span>
+<span class="cm">// change_signature_type, remove. One verdict per site</span>
+glyph_impact(entity, change)
+
+<span class="cm">// can a value of `from` go where a `to` is declared? Asked of the</span>
+<span class="cm">// checker's own comparison. Each side is a `module::name` or a</span>
+<span class="cm">// Glyph type spelling read in the scope of `path`</span>
+glyph_assignable(path, from, to)
+
+<span class="cm">// every diagnostic for one file, checked inside its project, in the</span>
+<span class="cm">// shape `glyph check --json` prints, plus what was not checked</span>
+glyph_diagnostics(path)
+
+<span class="cm">// the type at a position: an expression, a declaration name, a</span>
+<span class="cm">// parameter, an annotation, a variant, or a binding</span>
+glyph_hover(path, line, character)
+
+<span class="cm">// where the name is defined, following imports across modules,</span>
+<span class="cm">// with the `module::name` so the answer chains into glyph_impact</span>
+glyph_definition(path, line, character)
+
+<span class="cm">// every edge into a symbol across the project, split by relation</span>
+<span class="cm">// (CALLS, REFERENCES, GENERATED_FROM), each with its provenance</span>
+glyph_references(path, name)               <span class="cm">// or by position</span>
+
+<span class="cm">// every `match` site over one tagged union and which variants each</span>
+<span class="cm">// site's arms name, with the union's own variants</span>
+glyph_variants(path, name)
+
+<span class="cm">// search top-level declarations and union variants by name, each</span>
+<span class="cm">// entry with its identity, `pub`, kind and one-line signature</span>
+glyph_symbols(query)
+
+<span class="cm">// what one declaration depends on: every declaration its own source</span>
+<span class="cm">// names, split by relation (CALLS, REFERENCES, FIELD_ACCESS), each</span>
+<span class="cm">// edge with both ends and its provenance. The mirror of references</span>
+glyph_dependencies(entity)
+
+<span class="cm">// what one module makes visible to an importer: every `pub`</span>
+<span class="cm">// declaration and every variant a `pub` union hoists, each with</span>
+<span class="cm">// its identity, kind and signature</span>
+glyph_exports(module)</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="see-it">Посмотрите сами<a class="h-anchor" href="#see-it" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          <code>tools/call</code> для <code>glyph_diagnostics</code> на файле с опечаткой в поле возвращает собственную диагностику компилятора, тот же тип Rust, который сериализует <code>glyph check --json</code>, внутри обёртки, которая также говорит, что проверка не покрыла.
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">запрос</span>
+<pre>{
+  <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
+  <span class="pk">"params"</span>: {
+    <span class="pk">"name"</span>: <span class="s">"glyph_diagnostics"</span>,
+    <span class="pk">"arguments"</span>: { <span class="pk">"path"</span>: <span class="s">"src/user.glyph"</span> }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">результат (JSON-содержимое инструмента)</span>
+<pre>{
+  <span class="pk">"path"</span>: <span class="s">"src/user.glyph"</span>,
+  <span class="pk">"module"</span>: <span class="s">"user"</span>,
+  <span class="pk">"project_root"</span>: <span class="s">"src"</span>,
+  <span class="pk">"member"</span>: <span class="k">true</span>,
+  <span class="pk">"diagnostics"</span>: [
+    {
+      <span class="pk">"code"</span>: <span class="s">"E0210"</span>,
+      <span class="pk">"severity"</span>: <span class="s">"error"</span>,
+      <span class="pk">"stage"</span>: <span class="s">"typecheck"</span>,
+      <span class="pk">"message"</span>: <span class="s">"type `U` has no field `naem`; did you mean `name`?"</span>,
+      <span class="pk">"help"</span>: <span class="s">"Check the field name for a typo,
+        or add the field to the type."</span>,
+      <span class="pk">"entity"</span>: <span class="s">"user::greet"</span>,
+      <span class="pk">"file"</span>: <span class="s">"user"</span>,
+      <span class="pk">"range"</span>: {
+        <span class="pk">"start"</span>: { <span class="pk">"line"</span>: <span class="n">9</span>, <span class="pk">"col"</span>: <span class="n">10</span>, <span class="pk">"offset"</span>: <span class="n">99</span> },
+        <span class="pk">"end"</span>:   { <span class="pk">"line"</span>: <span class="n">9</span>, <span class="pk">"col"</span>: <span class="n">16</span>, <span class="pk">"offset"</span>: <span class="n">105</span> }
+      },
+      <span class="pk">"union"</span>: <span class="k">null</span>,
+      <span class="pk">"missing_variants"</span>: <span class="k">null</span>
+    }
+  ],
+  <span class="pk">"unindexed"</span>: [],
+  <span class="pk">"not_run"</span>: [ <span class="c">...</span> ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Файл проверяется внутри своего проекта, поэтому неверное поле у импортированной записи и <code>match</code> без части веток по импортированному union сообщаются здесь так же, как их сообщает <code>glyph check</code>. То, что инструмент не смог покрыть, указано в ответе, а не оставлено на ваше предположение: <code>member</code> говорит, доходит ли обход проекта до файла, <code>unindexed</code> называет файлы проекта, которые не разбираются, а <code>not_run</code> называет три проверки, которые делает <code>glyph check</code>, а эта нет: <code>tsc</code>; <code>E0104</code> для импорта несуществующего модуля, которому нужен взгляд сборки на <code>node_modules</code>; и <code>E0400</code> для упавшего <code>@example</code>, что решается запуском сгенерированного проекта. Тест запускает обе поверхности на шести проектах и сравнивает JSON ключ за ключом, так что расхождений быть не может.
+        </p>
+        <p>
+          <code>glyph_references</code> работает по всему рабочему пространству: спросите о символе, и вы получите его объявление, каждое использование и привязку <code>import</code> в каждом импортирующем модуле, во всех файлах. Он использует ту же межфайловую идентичность, что и переименование в редакторе, поэтому ответ покрывает весь проект, а не только файл, из которого вы спросили.
+        </p>
+
+        <h2 class="block-label" id="no-mcp-client-same-questions-on-the-command-line">Нет MCP-клиента? Те же вопросы в командной строке<a class="h-anchor" href="#no-mcp-client-same-questions-on-the-command-line" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          У каждого инструмента есть команда <code>glyph query</code>, которая принимает аргументы инструмента как флаги и печатает его JSON в stdout. Отвеченный вопрос завершается с кодом 0; отклонённый пишет причину в stderr и завершается с кодом 2. Команды идут через ту же точку входа, что и MCP-клиент, а интеграционный тест задаёт обеим поверхностям один и тот же вопрос и сравнивает ответы как текст, так что команда, которая переформатировала бы или сократила ответ, его не пройдёт.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">те же одиннадцать вопросов без клиента</span>
+<pre><span class="f">glyph</span> query symbol       <span class="fl">--path</span> src/main.glyph <span class="fl">--entity</span> orders::OrderStatus
+<span class="f">glyph</span> query impact       <span class="fl">--entity</span> orders::OrderStatus <span class="fl">--change</span> add_variant <span class="fl">--variant</span> Refunded
+<span class="f">glyph</span> query assignable   <span class="fl">--path</span> src/main.glyph <span class="fl">--from</span> <span class="s">'Nullable&lt;int&gt;'</span> <span class="fl">--to</span> int
+<span class="f">glyph</span> query diagnostics  <span class="fl">--path</span> src/main.glyph
+<span class="f">glyph</span> query hover        <span class="fl">--path</span> src/main.glyph <span class="fl">--line</span> 9 <span class="fl">--character</span> 6
+<span class="f">glyph</span> query definition   <span class="fl">--path</span> src/main.glyph <span class="fl">--line</span> 9 <span class="fl">--character</span> 6
+<span class="f">glyph</span> query references   <span class="fl">--path</span> src/orders.glyph <span class="fl">--name</span> create
+<span class="f">glyph</span> query variants     <span class="fl">--path</span> src/orders.glyph <span class="fl">--name</span> OrderStatus
+<span class="f">glyph</span> query symbols      <span class="fl">--query</span> order
+<span class="f">glyph</span> query dependencies <span class="fl">--path</span> src/main.glyph <span class="fl">--entity</span> main::build
+<span class="f">glyph</span> query exports      <span class="fl">--path</span> src/main.glyph <span class="fl">--module</span> orders
+
+<span class="cm">// the same two, asked about a module the compiler carries</span>
+<span class="f">glyph</span> query symbol       <span class="fl">--path</span> src/main.glyph <span class="fl">--entity</span> std/result::Result
+<span class="f">glyph</span> query exports      <span class="fl">--path</span> src/main.glyph <span class="fl">--module</span> std/result</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="when-the-build-is-already-red">Когда сборка уже красная<a class="h-anchor" href="#when-the-build-is-already-red" aria-label="Ссылка на этот раздел">#</a></h2>
+        <p>
+          Инструменты отвечают на вопросы, заданные до правки. После неё читать нужно <code>glyph check --agent</code>: он печатает диагностики <code>check --json</code> с двумя дополнительными ключами у каждой. <code>constraints</code> это инварианты, которые исправляющая правка должна сохранить, а <code>symbols</code> это ответ <code>glyph_symbol</code> для каждого символа, упомянутого в диагностике, так что следующей правке не нужен второй вызов. Для <code>match</code> без части веток это значит, что варианты union с их полезной нагрузкой приходят вместе с ошибкой, которая их запросила, вместе с фразой о том, что ветка <code>else</code> отказалась бы от гарантии, ради которой эта диагностика существует. Где исправление определено полностью, <code>glyph fix</code> записывает его и сообщает, от чего отказался. Есть <a href="/ru/answers/repair-protocol/">пошаговый разбор всего цикла</a> с настоящим выводом.
+        </p>
+      </div>
+
+      <h2 class="block-label" id="where-it-stands">Текущее состояние<a class="h-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел">#</a></h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Сервер <code>glyph mcp [root]</code> через stdio с одиннадцатью инструментами: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (по всему рабочему пространству), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> и <code>glyph_exports</code>. У каждого есть команда <code>glyph query</code>, печатающая тот же JSON. Ответы берутся из собственных запросов компилятора, и каждый факт, которого у инструмента нет, равен null, а рядом стоит фраза <code>&lt;key&gt;_absent</code> с объяснением. Hover отвечает на имени, объявленном в другом модуле, так что и у импортированной функции в месте вызова, и у поля, прочитанного из импортированной записи, есть тип. Идентичность сущностей доходит до стандартной библиотеки: <code>Result</code> из прелюдии это <code>std/result::Result</code>, то есть модуль, под которым его регистрирует резолвер и из которого эмиттер пишет импорт, поэтому <code>glyph_symbol</code> на нём отвечает <code>Ok(T)</code> и <code>Err(E)</code>, а <code>glyph_exports</code> на <code>std/result</code> перечисляет его поверхность. Исходного кода на Glyph за ним нет, поэтому <code>path</code> и <code>range</code> равны null с этой причиной, а не отсутствуют.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">В работе</h3>
+          <p>Инструменты только читают: переименовать или применить правку через MCP нельзя. Сторона записи живёт в командной строке, это <code>glyph fix</code>. Сервер пересканирует проект при каждом вызове, а не держит кэшированный индекс, и пропускает файлы, которые не разбираются. Ответ <code>tools/list</code> занимает 20 386 байт, было 45 509, и это всё ещё контекст, за который каждая сессия платит при подключении.</p>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Помимо инструментов, агент может читать описание языка и диагностик без сети: <a href="/llms.txt">llms.txt</a> это текст, <code>glyph llms --json</code> те же знания как данные из собственных таблиц компилятора, а <code>glyph build --json</code> пакетный путь для диагностик с кодами по всему дереву.
+        </p>
+      </div>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ru/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>Типизированный язык, который компилируется в TypeScript и устроен так, чтобы агенты могли менять код, не ломая его.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Начало</h2>
+            <a href="/ru/start/">Первая программа</a>
+            <a href="/ru/from-typescript/">Если вы пишете на TypeScript</a>
+            <a href="/ru/teams/">Для команд</a>
+            <a href="/playground/">Песочница</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Обзор за пять минут</a>
+          </div>
+          <div class="foot-col">
+            <h2>Обучение</h2>
+            <a href="/ru/answers/">Ответы</a>
+            <a href="/ru/answers/verifiability/">Читать ответы по порядку</a>
+            <a href="/ru/answers/tooling/">Редактор и инструменты для агентов</a>
+            <a href="/ru/agents/">Для агентов</a>
+            <a href="/ru/mcp/">MCP-сервер</a>
+            <a href="/llms-pages.txt">Страницы в Markdown</a>
+            <a href="/ru/design/">Дизайн</a>
+            <a href="/ru/pillars/verifiability/">Четыре принципа</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Спецификация языка</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Манифест</a>
+          </div>
+          <div class="foot-col">
+            <h2>Доказательства</h2>
+            <a href="/ru/catches/">Что он ловит</a>
+            <a href="/ru/evidence/">Как проверяются утверждения</a>
+            <a href="/ru/hardening/">Проверка на прочность</a>
+            <a href="/ru/benchmarks/">Бенчмарки</a>
+            <a href="/versions/">Версии</a>
+          </div>
+          <div class="foot-col">
+            <h2>Исходный код</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/ru/contribute/">Участие в разработке</a>
+            <a href="https://github.com/chadetov/glyph/releases">Релизы на GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ru/mcp/index.segments.json">Редактировать эту страницу</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript, который агенты не сломают незаметно для вас.</span>
+          <span>&copy; 2026 Glyph &middot; MIT или Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Авто", light: "Светлая", dark: "Тёмная" };
+        var labels = { auto: "Цветовая тема: авто (как в системе). Переключить на светлую.", light: "Цветовая тема: светлая. Переключить на тёмную.", dark: "Цветовая тема: тёмная. Переключить на авто." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

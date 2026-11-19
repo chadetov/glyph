@@ -13,6 +13,15 @@
     <meta property="og:title" content="Is this a real language, or a toy with gaps?" />
     <meta property="og:description" content="Module visibility, structural interfaces for generic bounds, defer, structured concurrency and match as a value, and the JavaScript semantics it inherits." />
     <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
@@ -35,8 +44,47 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Is this a real language, or a toy with gaps?","item":"https://glyphlang.io/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/language/#article","headline":"Is this a real language, or a toy with gaps?","description":"Module visibility, structural interfaces for generic bounds, defer, structured concurrency and match as a value, and the JavaScript semantics it inherits.","url":"https://glyphlang.io/answers/language/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/language/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Is this a real language, or a toy with gaps?","item":"https://glyphlang.io/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/language/#article","headline":"Is this a real language, or a toy with gaps?","description":"Module visibility, structural interfaces for generic bounds, defer, structured concurrency and match as a value, and the JavaScript semantics it inherits.","url":"https://glyphlang.io/answers/language/","inLanguage":"en","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/language/#breadcrumb"}}]}</script>
 
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/language/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/language/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/answers/language/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/answers/language/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/answers/language/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/answers/language/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/answers/language/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/answers/language/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/answers/language/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/answers/language/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/answers/language/" />
+    <script>
+      (function () {
+        var pages = {"pt-br":"/pt-br/answers/language/","es":"/es/answers/language/","ja":"/ja/answers/language/","tr":"/tr/answers/language/","zh-cn":"/zh-cn/answers/language/","ko":"/ko/answers/language/","de":"/de/answers/language/","ru":"/ru/answers/language/","th":"/th/answers/language/"};
+        try {
+          if (localStorage.getItem("glyph-lang") !== null) return;
+          if (/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)) return;
+          var prefs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+          for (var i = 0; i < prefs.length; i++) {
+            var l = String(prefs[i]).toLowerCase(), loc = null;
+            if (/^en\b/.test(l)) return;
+            if (/^pt\b/.test(l)) loc = "pt-br";
+            else if (/^zh\b/.test(l)) {
+              if (/hant|-tw|-hk|-mo/.test(l)) continue;
+              loc = "zh-cn";
+            } else {
+              var base = l.split("-")[0];
+              if (["es", "ja", "tr", "ko", "de", "ru", "th"].indexOf(base) >= 0) loc = base;
+            }
+            if (!loc) continue;
+            if (!pages[loc]) return;
+            localStorage.setItem("glyph-lang", loc);
+            sessionStorage.setItem("glyph-lang-auto", "1");
+            location.replace(pages[loc] + location.search + location.hash);
+            return;
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -128,15 +176,15 @@
             <p class="lang-head">Language</p>
             <ul>
               <li><a href="/answers/language/" hreflang="en" lang="en" data-lang="en" aria-current="true"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span><span class="lang-tick" aria-hidden="true"></span></a></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="pt-BR">Português (Brasil)</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="es">Español</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ja">日本語</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="tr">Türkçe</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="zh-Hans">简体中文</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ko">한국어</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="de">Deutsch</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ru">Русский</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="th">ไทย</span><span class="lang-note">not translated yet</span></span></li>
+              <li><a href="/pt-br/answers/language/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/answers/language/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/answers/language/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/answers/language/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/answers/language/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/answers/language/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/answers/language/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/answers/language/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/answers/language/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
             </ul>
           </div>
         </details>
@@ -506,13 +554,14 @@
 
       <div class="detail">
         <p>
-          The honest part: Glyph compiles to TypeScript and runs on a JavaScript
-          engine, so evaluation order, value-versus-reference, equality
-          (<code>==</code> is <code>===</code>, no overloading), and the
-          single-threaded garbage-collected model are inherited, not invented.
-          The spec now states them as guarantees rather than leaving you to find
-          out. Manual memory and a non-GC model aren't on a roadmap; they're
-          outside what a transpile-to-TypeScript language is.
+          Glyph compiles to TypeScript and runs on a JavaScript engine, so it
+          inherits evaluation order, reference semantics for mutation, and the
+          single-threaded garbage-collected model. Equality is where it differs:
+          <code>==</code> compares values, records field by field, where
+          JavaScript's <code>===</code> compares references. The spec states
+          these as guarantees rather than leaving you to find out. Manual memory
+          and a non-GC model aren't on a roadmap; they're outside what a
+          transpile-to-TypeScript language is.
         </p>
       </div>
 
@@ -986,7 +1035,7 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
           <h3 class="h">Where it stops</h3>
           <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Visibility is checked on type annotations, not on values read through a namespace: <code>lib.helper()</code> where <code>helper</code> is private is still a <code>tsc</code> error rather than a Glyph one. Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it. The arm join still needs the arms to agree on the type's head: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it. Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into. A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>. Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time. <code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible. A nested field pattern has one edge left: a constructor that carries a payload, sitting in a field, on a union reached through a namespace import. <code>import tree { Node }</code> then <code>Node({ left: Node({ key: k }) })</code> compiles, and <code>import tree</code> then <code>tree.Node({ left: tree.Node({ key: k }) })</code> is <code>E0300</code> on the same union. The other edge is gone: a union generic over its own parameter (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) used to refuse the nested arm that the same union without the parameter accepts, and now takes it, at an open type parameter and at a concrete instantiation alike. The same lookup was deciding whether the match got checked for missing variants at all, so until this release a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit <code>Leaf</code>, build clean, pass <code>tsc --strict</code>, and throw at run time where the non-generic spelling was <code>E0200</code>. Both spellings report it, and moving the union one import away no longer changes the answer: a <code>match</code> on an imported <code>Tree&lt;string&gt;</code> that omits <code>Leaf</code> is <code>E0200</code> naming <code>Leaf</code>, the same as the imported non-generic <code>Tree</code>. That was a different code path, checked separately, and it went the other way until this release, building clean and throwing at run time. One thing about an imported union's coverage is still worth knowing before you lean on it: its variant payloads are never checked either, so <code>B(X)</code> where <code>X</code> is a variant of the payload's own union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and that one has nothing to do with generics. Binding a field, or matching a tag with no payload in one, works in every case.</p>
         </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
+        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed <time datetime="2026-11-20">20 Nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/state/">

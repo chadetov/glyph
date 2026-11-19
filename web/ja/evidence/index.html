@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>根拠 · このサイトの各主張をどう検証しているか · Glyph</title>
+    <meta name="description" content="このサイトの各主張をどう検証しているか：catches の fixture とその背後にある CI のゲート、比較対象の TypeScript の設定、そして 1 つのケースを再現する方法。" />
+    <link rel="canonical" href="https://glyphlang.io/ja/evidence/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ja/evidence/" />
+    <meta property="og:title" content="根拠 · このサイトの各主張をどう検証しているか" />
+    <meta property="og:description" content="このサイトの各主張をどう検証しているか：catches の fixture とその背後にある CI のゲート、比較対象の TypeScript の設定、そして 1 つのケースを再現する方法。" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/evidence/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"根拠","item":"https://glyphlang.io/ja/evidence/"}]}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/evidence/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/evidence/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/evidence/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/evidence/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/evidence/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/evidence/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/evidence/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/evidence/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/evidence/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/evidence/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/evidence/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">本文へスキップ</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="メイン">
+        <div class="nav-brand">
+          <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">なぜ Glyph か<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">対象となる人</p>
+                    <ul>
+                      <li><a href="/ja/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">エージェント開発者向け</span><span class="nav-desc">MCP サーバーと、それが答えるクエリ</span></span></a></li>
+                      <li><a href="/ja/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript から来た人へ</span><span class="nav-desc">変わること、変わらないこと</span></span></a></li>
+                      <li><a href="/ja/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">チーム向け</span><span class="nav-desc">何を保証し、導入にどれだけのコストがかかるか</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">設計</p>
+                    <ul>
+                      <li><a href="/ja/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">設計</span><span class="nav-desc">4 つの柱と、意図的に入れなかったもの</span></span></a></li>
+                      <li><a href="/ja/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">4 つの柱</span><span class="nav-desc">検証可能性、grep しやすさ、抽象化、差分の安定性</span></span></a></li>
+                      <li><a href="/ja/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph と Effect の比較</span><span class="nav-desc">言語とライブラリの比較</span></span></a></li>
+                      <li><a href="/ja/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">ReScript、Gleam、Elm ではなぜ駄目なのか</span><span class="nav-desc">JavaScript にコンパイルされる 3 つの型付き言語</span></span></a></li>
+                      <li><a href="/ja/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph とツールを揃えた TypeScript の比較</span><span class="nav-desc">strict な tsc、zod、eslint でも通ってしまうもの</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/ja/catches/">何を検出できるか</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">学ぶ<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">はじめよう</p>
+                    <ul>
+                      <li><a href="/ja/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 分で始める</span><span class="nav-desc">インストールし、プログラムを書いて、実行する</span></span></a></li>
+                      <li><a href="/ja/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Q&A <span class="nav-count">28</span></span><span class="nav-desc">エンジニアがよく聞く質問と、実例付きの回答</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">言語リファレンス</span><span class="nav-desc">GitHub にある完全な仕様</span></span></a></li>
+                      <li><a href="/ja/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">コントリビュート</span><span class="nav-desc">コンパイラの作りと、貢献の方法</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">エージェントをつなぐ</p>
+                    <ul>
+                      <li><a href="/ja/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP サーバー</span><span class="nav-desc">エージェントをコンパイラのクエリにつなぐ</span></span></a></li>
+                      <li><a href="/ja/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">コンパイラに聞く</span><span class="nav-desc">編集の前にシンボル、型、変更の影響を調べる</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">エージェント向けの llms.txt</span><span class="nav-desc">エージェントが読める 1 ファイルにまとめた言語仕様</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-evidence">根拠<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">検証の方法</p>
+                    <ul>
+                      <li><a href="/ja/evidence/" aria-current="page"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">主張の検証方法</span><span class="nav-desc">各主張を支える fixture と CI のゲート</span></span></a></li>
+                      <li><a href="/ja/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">堅牢化</span><span class="nav-desc">エージェントが壊そうとして見つけたもの</span></span></a></li>
+                      <li><a href="/ja/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">ベンチマーク</span><span class="nav-desc">4 つの柱を数値で、注意点とともに</span></span></a></li>
+                      <li><a href="/ja/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">まだ検出できないもの</span><span class="nav-desc">既知の穴と、それぞれの再現コード</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ja/catches/"><span class="nav-feature-big">37 件中 21 件</span><span class="nav-feature-text">最も厳しく設定した環境でも何も検出できない TypeScript のミス</span><span class="nav-feature-cta">検出できるものを見る <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">バージョン</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="言語: 日本語 (日本)"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">日本語</span><span class="lang-short" aria-hidden="true">日本</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">言語</p>
+            <ul>
+              <li><a href="/evidence/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/evidence/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/evidence/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/evidence/" hreflang="ja" lang="ja" data-lang="ja" aria-current="true"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/tr/evidence/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/evidence/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/evidence/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/evidence/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/evidence/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/evidence/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/evidence/" hreflang="en" data-lang="en">英語で読む</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="カラーテーマ: 自動 (システム設定に従う)。ライトに切り替えます。">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">自動</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="メニューを開く">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "メニューを閉じる" : "メニューを開く");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>表示言語: 日本語</span><span class="sep" aria-hidden="true">&middot;</span><a href="/evidence/" hreflang="en" data-lang="en">英語で読む</a></p>
+      <button class="i18n-x" type="button" aria-label="閉じる"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fevidence%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fevidence%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fevidence%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">根拠</p>
+      <h1 class="q-title">このサイトの各主張をどう検証しているか</h1>
+
+      <p class="short-answer">
+        Glyph が何かを検出するという主張は、リポジトリにある 1 組のプログラムです。1 つは TypeScript、1 つは Glyph で書かれており、CI のゲートが変更のたびに両方を実行します。TypeScript のほうがコンパイルできなくなったり、Glyph のほうが拒否されなくなったりすると、ビルドが失敗します。どのケースも 2 つのコマンドで自分で実行できます。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="the-fixtures">fixture<a class="h-anchor" href="#the-fixtures" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> の下の各ディレクトリには、<code>ts.ts</code>、<code>glyph.glyph</code>、そしてそれぞれが何をするかを記した <code>case.toml</code> があります。<code>scripts/check_catches.py</code> は CI で実行されます。コンパイルできない TypeScript のプログラムでは何も証明できないので、すべての <code>ts.ts</code> が <code>tsc --strict</code> を通ることを要求し、Glyph のほうはケースの種類に応じて検査します。チェック済みのケースは全部で 53 件です。TypeScript のミスが 37 件、Glyph には存在しない JavaScript の落とし穴が 5 件、Glyph がまだ塞いでいない穴が 11 件です。そのうち 28 件はビルド時に Glyph が拒否します（ミス 23 件と落とし穴 5 件）。 ゲートが検査する種類ごとに見ると、次のとおりです。
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>種類</th><th>ケース数</th><th>ゲートが Glyph のほうに求めること</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Kind"><code>refused</code></td><td data-label="Cases">28</td><td data-label="What the gate requires of the Glyph"><code>case.toml</code> にあるコードでビルドが失敗する</td></tr>
+            <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">ビルドは通り、そのコードを警告として報告する</td></tr>
+            <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">プログラムは実行され、境界での検査が不正なデータを <code>Err</code> に変える</td></tr>
+            <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">プログラムはビルドされ、実行時に記載どおりの出力で停止する</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">11</td><td data-label="What the gate requires of the Glyph">Glyph はプログラムを受け入れ、プログラムは誤った動作をする。穴が塞がるとゲートが失敗し、ケースを移すよう伝える</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          示せなくなったケースは、手加減して残すのではなく削除します。<a href="https://github.com/chadetov/glyph/blob/main/catches/README.md">catches の README</a> に、削除した 6 件とその理由が載っています。そのうち 1 件は <code>tsc</code> でも検出できると判明したもので、別の 1 件は TypeScript のほうが値を <code>any</code> として受け取っていたから成り立っていただけでした。
+        </p>
+
+        <h2 class="block-label" id="the-typescript-it-is-compared-against">比較対象の TypeScript<a class="h-anchor" href="#the-typescript-it-is-compared-against" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          各ケースには、最も厳しく設定した TypeScript のプロジェクトならそのミスを検出できたかどうかも記されています。「TypeScript なら検出できるか」のタグはここから来ています。「最も厳しく設定した」とは、<code>tsc --strict</code> に、それをさらに厳しくするすべてのオプションを加え、typescript-eslint も実行する構成です。ゲートは実行のたびにパッケージを新しくインストールし（TypeScript 6、eslint 9、typescript-eslint 8、tsx 4、最新の <code>@types/node</code>）、ネットワークがなければ飛ばすのではなく失敗します。
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">strict に加える tsconfig のオプション</span>
+<pre>noUncheckedIndexedAccess: true
+noFallthroughCasesInSwitch: true
+noUnusedLocals: true
+noUnusedParameters: true
+noImplicitReturns: true
+noImplicitOverride: true
+allowUnreachableCode: false
+allowUnusedLabels: false
+exactOptionalPropertyTypes: true
+noPropertyAccessFromIndexSignature: true</pre>
+        </div>
+        <div class="code">
+          <span class="cap">eslint.config.mjs</span>
+<pre><span class="k">export</span> <span class="k">default</span> tseslint.config(
+  js.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  { rules: {
+    <span class="s">"@typescript-eslint/switch-exhaustiveness-check"</span>: <span class="s">"error"</span>,
+    <span class="s">"@typescript-eslint/strict-boolean-expressions"</span>: <span class="s">"error"</span>,
+    <span class="s">"@typescript-eslint/require-array-sort-compare"</span>: <span class="s">"error"</span>,
+    <span class="s">"require-atomic-updates"</span>: <span class="s">"error"</span>,
+  } },
+);</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          ケースのタグは、<code>none</code>、それを報告する 1 つのオプションを付けた <code>flag:</code>、またはルールを付けた <code>lint:</code> のいずれかです。修正後のプログラムも無関係な理由でルールに引っかかる場合、そのケースには <code>ts_ok.ts</code> があり、タグはミスに対して反応するものだけを数えます。たとえば <code>non-exhaustive-match</code> は <code>lint:switch-exhaustiveness-check</code> です。そのルールを有効にすれば typescript-eslint で検出でき、ページにもそう書かれています。
+        </p>
+
+        <h2 class="block-label" id="reproduce-one-case">1 つのケースを再現する<a class="h-anchor" href="#reproduce-one-case" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          リポジトリを clone して 1 つのケースに対してゲートを実行するか、手で実行します。以下は、このページのために実行した <code>non-exhaustive-match</code> の両方の結果です。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">ゲート、1 ケース</span>
+<pre class="wraps"><span class="pr">$</span> <span class="f">python3</span> scripts/check_catches.py non-exhaustive-match
+catches: 1/1 cases hold every claim they make.
+TypeScript checked with tsc --strict and the full flag set (typescript 6.0.3),
+typescript-eslint 8.73.0 strictTypeChecked on eslint 9.39.5, run with
+tsx 4.23.15, and @types/node 26.6.6.</pre>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">TypeScript のほう、手で実行</span>
+<pre class="wraps"><span class="pr">$</span> <span class="f">npm</span> i <span class="fl">-D</span> typescript@6 tsx@4
+<span class="pr">$</span> <span class="f">npx</span> tsc <span class="fl">--strict</span> <span class="fl">--noEmit</span> ts.ts
+<span class="pr">$</span> <span class="f">echo</span> $?
+0
+<span class="pr">$</span> <span class="f">npx</span> tsx ts.ts
+finished
+archived logged nothing</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph のほう、手で実行</span>
+<pre class="wraps"><span class="pr">$</span> <span class="f">glyph</span> check <span class="fl">--no-tsc</span> catches/non-exhaustive-match
+<span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match
+  on <span class="q">`"todo" | "doing" | "done" | "archived"`</span>:
+  missing variants "archived"</span>
+glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="the-snippets-on-this-site-compile">このサイトのコード例はコンパイルできる<a class="h-anchor" href="#the-snippets-on-this-site-compile" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          <code>scripts/check_docs_compile.py</code> は CI で実行され、このサイトにある単独で成り立つ Glyph のコード例（<code>module</code> で始まり、何かを宣言しているもの）と、ドキュメントや <code>llms.txt</code> にあるものをすべてコンパイルします。失敗することを意図したコード例は、出すエラーの名前を書かなければならず、まさにそのエラーを出さなければなりません。React や npm パッケージが必要なコード例は、それらのパッケージの実際の型に対してコンパイルされます。断片は数えたうえで飛ばし、その件数を出力するので、飛ばした割合は見えるままです。
+        </p>
+
+        <h2 class="block-label" id="what-it-does-not-catch-yet">まだ検出できないもの<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          <code>gap</code> のケース 11 件は、それぞれの gap 番号とともに<a href="/ja/catches/#not-yet">検出できるもののページ</a>に載っています。Glyph でアプリを作って見つかった穴はすべて台帳 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> にあります。そこでは角括弧の印だけが現在の状態を表し（<code>[FIXED]</code>、<code>[HALF FIXED]</code>、未解決なら印なし）、未解決の項目の最後の再現が 5 リリース以上前だと <code>scripts/check_gaps.py</code> が CI を失敗させます。
+        </p>
+
+        <h2 class="block-label" id="how-a-release-is-marked-breaking">リリースに Breaking の印を付ける方法<a class="h-anchor" href="#how-a-release-is-marked-breaking" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          前のバージョンが受け入れていたプログラムを拒否するリリースには Breaking の印が付きます。その判定は、影響を受ける最小のプログラムを書き、公開済みの前のリリースと新しいバイナリで実行して、終了コードを比べることで行います。リリースノートの文言から推測するのではありません。0.1.99 より前のリリースはこの方法で確認していないので、印のないものは安全なのではなく、未確認ということです。記録は<a href="/versions/">バージョンのページ</a>にあります。
+        </p>
+      </div>
+      <section class="next-steps">
+        <h2 class="block-label" id="the-rest-of-the-record">記録の残り<a class="h-anchor" href="#the-rest-of-the-record" aria-label="このセクションへのリンク">#</a></h2>
+        <a class="ns-primary" href="/ja/catches/">
+          <span class="ns-body"><span class="ns-eyebrow">おすすめ</span><span class="ns-title">検出できるもの</span><span class="ns-desc">すべてのケース：TypeScript のコード、Glyph のコード、エラー、そしてツールを揃えた TypeScript なら検出できたかどうか。</span><span class="ns-cta">すべてのケースを見る <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
+          <span class="ns-art"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>
+        </a>
+        <div class="ns-grid">
+          <a class="ns-card span-2" href="/ja/hardening/"><span class="ns-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="ns-card-title">堅牢化</span><span class="ns-card-desc">懐疑的なエンジニアを演じるエージェントがコンパイラをどう攻撃し、どんなバグを見つけたか。</span><span class="ns-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+          <a class="ns-card span-2" href="/ja/benchmarks/"><span class="ns-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="ns-card-title">ベンチマーク</span><span class="ns-card-desc">何を測定しているか（トークン密度、grep、差分）と、まだ終わっていない信頼性の調査。</span><span class="ns-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+          <a class="ns-card span-2" href="/versions/"><span class="ns-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.3"/></svg></span><span class="ns-card-title">バージョン</span><span class="ns-card-desc">すべてのリリースと、その変更内容、どれが Breaking か。</span><span class="ns-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+        </div>
+      </section>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript にトランスパイルされる型付き言語。エージェントがコードを壊さずに変更できるように作られています。</p>
+          </div>
+          <div class="foot-col">
+            <h2>はじめる</h2>
+            <a href="/ja/start/">最初のプログラム</a>
+            <a href="/ja/from-typescript/">TypeScript から来た人へ</a>
+            <a href="/ja/teams/">チーム向け</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">5 分でわかるツアー</a>
+          </div>
+          <div class="foot-col">
+            <h2>学ぶ</h2>
+            <a href="/ja/answers/">Q&amp;A</a>
+            <a href="/ja/answers/verifiability/">Q&amp;A を順番に読む</a>
+            <a href="/ja/answers/tooling/">エディタとエージェント向けツール</a>
+            <a href="/ja/agents/">エージェント向け</a>
+            <a href="/ja/mcp/">MCP サーバー</a>
+            <a href="/llms-pages.txt">Markdown 版のページ</a>
+            <a href="/ja/design/">設計</a>
+            <a href="/ja/pillars/verifiability/">4 つの柱</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">言語仕様</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">マニフェスト</a>
+          </div>
+          <div class="foot-col">
+            <h2>根拠</h2>
+            <a href="/ja/catches/">検出できるもの</a>
+            <a href="/ja/evidence/">主張の検証方法</a>
+            <a href="/ja/hardening/">堅牢化</a>
+            <a href="/ja/benchmarks/">ベンチマーク</a>
+            <a href="/versions/">バージョン</a>
+          </div>
+          <div class="foot-col">
+            <h2>ソースコード</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/ja/contribute/">コントリビュート</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub のリリース</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ja/evidence/index.segments.json">このページを編集する</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: エージェントが気づかれずに壊すことのできない TypeScript。</span>
+          <span>&copy; 2026 Glyph &middot; MIT または Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "自動", light: "ライト", dark: "ダーク" };
+        var labels = { auto: "カラーテーマ: 自動 (システム設定に従う)。ライトに切り替えます。", light: "カラーテーマ: ライト。ダークに切り替えます。", dark: "カラーテーマ: ダーク。自動に切り替えます。" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

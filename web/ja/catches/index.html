@@ -1,0 +1,1706 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TypeScript が通してしまい、Glyph が検出するもの · Glyph</title>
+    <meta name="description" content="AI エージェントが書く、tsc --strict を通過してしまうコード。それぞれを Glyph で書いた同じプログラムと並べ、実際のコンパイラ出力とともに示します。ビルドのゲートがすべてのケースを再実行します。" />
+    <link rel="canonical" href="https://glyphlang.io/ja/catches/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ja/catches/" />
+    <meta property="og:title" content="TypeScript が通してしまい、Glyph が検出するもの" />
+    <meta property="og:description" content="AI エージェントが書く、tsc --strict を通過してしまうコード。それぞれを Glyph で書いた同じプログラムと並べ、実際のコンパイラ出力とともに示します。ビルドのゲートがすべてのケースを再実行します。" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/catches.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/catches/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"TypeScript が通してしまい、Glyph が検出するもの","item":"https://glyphlang.io/ja/catches/"}]}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/catches/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/catches/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/catches/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/catches/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/catches/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/catches/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/catches/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/catches/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/catches/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">本文へスキップ</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="メイン">
+        <div class="nav-brand">
+          <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">なぜ Glyph か<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">対象となる人</p>
+                    <ul>
+                      <li><a href="/ja/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">エージェント開発者向け</span><span class="nav-desc">MCP サーバーと、それが答えるクエリ</span></span></a></li>
+                      <li><a href="/ja/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript から来た人へ</span><span class="nav-desc">変わること、変わらないこと</span></span></a></li>
+                      <li><a href="/ja/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">チーム向け</span><span class="nav-desc">何を保証し、導入にどれだけのコストがかかるか</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">設計</p>
+                    <ul>
+                      <li><a href="/ja/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">設計</span><span class="nav-desc">4 つの柱と、意図的に入れなかったもの</span></span></a></li>
+                      <li><a href="/ja/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">4 つの柱</span><span class="nav-desc">検証可能性、grep しやすさ、抽象化、差分の安定性</span></span></a></li>
+                      <li><a href="/ja/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph と Effect の比較</span><span class="nav-desc">言語とライブラリの比較</span></span></a></li>
+                      <li><a href="/ja/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">ReScript、Gleam、Elm ではなぜ駄目なのか</span><span class="nav-desc">JavaScript にコンパイルされる 3 つの型付き言語</span></span></a></li>
+                      <li><a href="/ja/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph とツールを揃えた TypeScript の比較</span><span class="nav-desc">strict な tsc、zod、eslint でも通ってしまうもの</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top active" href="/ja/catches/" aria-current="page">何を検出できるか</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">学ぶ<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">はじめよう</p>
+                    <ul>
+                      <li><a href="/ja/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 分で始める</span><span class="nav-desc">インストールし、プログラムを書いて、実行する</span></span></a></li>
+                      <li><a href="/ja/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Q&A <span class="nav-count">28</span></span><span class="nav-desc">エンジニアがよく聞く質問と、実例付きの回答</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">言語リファレンス</span><span class="nav-desc">GitHub にある完全な仕様</span></span></a></li>
+                      <li><a href="/ja/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">コントリビュート</span><span class="nav-desc">コンパイラの作りと、貢献の方法</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">エージェントをつなぐ</p>
+                    <ul>
+                      <li><a href="/ja/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP サーバー</span><span class="nav-desc">エージェントをコンパイラのクエリにつなぐ</span></span></a></li>
+                      <li><a href="/ja/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">コンパイラに聞く</span><span class="nav-desc">編集の前にシンボル、型、変更の影響を調べる</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">エージェント向けの llms.txt</span><span class="nav-desc">エージェントが読める 1 ファイルにまとめた言語仕様</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">根拠<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">検証の方法</p>
+                    <ul>
+                      <li><a href="/ja/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">主張の検証方法</span><span class="nav-desc">各主張を支える fixture と CI のゲート</span></span></a></li>
+                      <li><a href="/ja/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">堅牢化</span><span class="nav-desc">エージェントが壊そうとして見つけたもの</span></span></a></li>
+                      <li><a href="/ja/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">ベンチマーク</span><span class="nav-desc">4 つの柱を数値で、注意点とともに</span></span></a></li>
+                      <li><a href="/ja/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">まだ検出できないもの</span><span class="nav-desc">既知の穴と、それぞれの再現コード</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ja/catches/"><span class="nav-feature-big">37 件中 21 件</span><span class="nav-feature-text">最も厳しく設定した環境でも何も検出できない TypeScript のミス</span><span class="nav-feature-cta">検出できるものを見る <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">バージョン</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="言語: 日本語 (日本)"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">日本語</span><span class="lang-short" aria-hidden="true">日本</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">言語</p>
+            <ul>
+              <li><a href="/catches/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/catches/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/catches/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/catches/" hreflang="ja" lang="ja" data-lang="ja" aria-current="true"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/tr/catches/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/catches/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/catches/" hreflang="ko" lang="ko" data-lang="ko"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span></a></li>
+              <li><a href="/de/catches/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/catches/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/catches/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/catches/" hreflang="en" data-lang="en">英語で読む</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="カラーテーマ: 自動 (システム設定に従う)。ライトに切り替えます。">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">自動</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="メニューを開く">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "メニューを閉じる" : "メニューを開く");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>表示言語: 日本語</span><span class="sep" aria-hidden="true">&middot;</span><a href="/catches/" hreflang="en" data-lang="en">英語で読む</a></p>
+      <button class="i18n-x" type="button" aria-label="閉じる"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fcatches%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fcatches%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fcatches%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <div class="wrap">
+      <header class="page-hero">
+        <p class="eyebrow">TypeScript が通してしまうケース</p>
+        <h1>出荷する前に検出する</h1>
+        <p class="lede">チェック済みのケースは全部で 53 件です。TypeScript のミスが 37 件、Glyph には存在しない JavaScript の落とし穴が 5 件、Glyph がまだ塞いでいない穴が 11 件です。そのうち 28 件はビルド時に Glyph が拒否します（ミス 23 件と落とし穴 5 件）。</p>
+        <p class="lede">リストにある TypeScript の例は、どれも <code>tsc --strict</code> をエラーなしで通過します。さらに各例を、最も厳しく設定したプロジェクトでも検証しています。<code>--strict</code> より厳しいコンパイラフラグをすべて有効にし、typescript-eslint の <code>strictTypeChecked</code> も加えた設定です。37 件のケースのうち 21 件は、この設定のどれにも検出されません。デフォルトでは無効のコンパイラフラグで検出できるのが 5 件、lint ルールで検出できるのが 11 件です。これらはプロジェクトごとに 1 つずつ有効にする必要があり、エージェントが無効に戻すこともできます。Glyph では、どれも設定項目ではありません。</p>
+        <p class="lede">
+          各項目は <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> にある 2 つのプログラムで、その下の出力はツールが実際に表示したものです。ビルドのゲートである <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a> がすべてのケースを再実行し、どちらかがこのページの記述どおりに動かなくなると失敗します。検証に使う TypeScript の設定の全体は、このスクリプトにあります。
+        </p>
+      </header>
+
+      <section class="c-cases" id="cases">
+        <h2 class="group-head">TypeScript のミス 37 件</h2>
+      <div class="c-legend">
+        <span class="c-score likely"><b>起こりやすさ</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> AI エージェントがそれを書く頻度</span>
+        <span class="c-score severe"><b>深刻度</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> 本番に出たときの被害の大きさ</span>
+        <p>評価は 1 から 5 の 5 段階で、エージェントが書いたコードに関する公開研究と、私たち自身がエージェントを動かした結果をもとにした判断です。これらの頻度を直接測定した人はいません。リストは起こりやすさと深刻度の積の順に並んでいます。</p>
+      </div>
+
+      <div class="c-filters" hidden>
+        <div class="c-fgroup" role="group" aria-label="TypeScript で何が検出するか"><span class="c-flabel">TypeScript で何が検出するか</span><button type="button" class="c-chip" data-group="ts" data-value="none" aria-pressed="false">なし <span>21</span></button><button type="button" class="c-chip" data-group="ts" data-value="flag" aria-pressed="false">コンパイラフラグ <span>5</span></button><button type="button" class="c-chip" data-group="ts" data-value="lint" aria-pressed="false">lint ルール <span>11</span></button></div>
+        <div class="c-fgroup" role="group" aria-label="Glyph での扱い"><span class="c-flabel">Glyph での扱い</span><button type="button" class="c-chip" data-group="glyph" data-value="build" aria-pressed="false">ビルド時に拒否 <span>23</span></button><button type="button" class="c-chip" data-group="glyph" data-value="data" aria-pressed="false">データの到着時に検査 <span>6</span></button><button type="button" class="c-chip" data-group="glyph" data-value="warned" aria-pressed="false">警告 <span>3</span></button><button type="button" class="c-chip" data-group="glyph" data-value="run" aria-pressed="false">実行時に停止 <span>2</span></button><button type="button" class="c-chip" data-group="glyph" data-value="design" aria-pressed="false">言語に存在しない <span>3</span></button></div>
+        <p class="c-fstatus" aria-live="polite"></p>
+      </div>
+
+      <div class="c-list">
+      <article class="catch" id="data-from-outside-the-program" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">1</span>
+          <h3><a class="c-anchor" href="#data-from-outside-the-program">プログラムの外から来るデータ</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 5">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 段階中 5</span></span><span class="c-score severe" title="深刻度: 5 段階中 5">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 段階中 5</span></span></div>
+        </div>
+        <p class="c-why">リクエストボディ、ファイル、API のレスポンス。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、不正なデータのまま動く</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> user = <span class="t">JSON</span>.parse(body) <span class="k">as</span> <span class="t">User</span>;
+console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">invoice for the undefined plan</span></pre></div>
+            <p class="c-result"><b>データを検査するものが何もありません。</b><code>undefined</code> がプランとしてそのまま流れていきます。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">データの到着時に検査</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">User</span>&gt;(body) {
+  <span class="t">Ok</span>(user) <span class="op">=&gt;</span> send_invoice(user.plan),
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["plan"],"message":"field `plan` is required","code":"missing"}]</span></pre></div>
+            <p class="c-result"><b>本物の <code>User</code> ではないボディは <code>Err</code> になります。</b>プログラムが偽物を持つことはありません。</p>
+          </div>
+        </div>
+        <p class="c-note"><code>as User</code> は何も検査しません。自分を信じるようにコンパイラに伝えるだけです。Glyph には <code>as</code> がありません。</p>
+        <p class="c-links"><a class="c-copy" href="#data-from-outside-the-program" data-slug="data-from-outside-the-program">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/data-from-outside-the-program">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=data-from-outside-the-program&amp;title=Score%3A+Data+from+outside+the+program">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="non-exhaustive-match" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">2</span>
+          <h3><a class="c-anchor" href="#non-exhaustive-match">誰も扱わなかったケース</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 5">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 段階中 5</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">エージェントが <code>"archived"</code> というステータスを追加する。各ステータスを通知するハンドラは、それが存在する前に書かれていた。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">警告なしでコンパイルが通る</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">switch</span> (s) {
+  <span class="k">case</span> <span class="s">"todo"</span>:
+    console.log(<span class="s">"not started"</span>);
+    <span class="k">break</span>;
+  <span class="k">case</span> <span class="s">"doing"</span>:
+    console.log(<span class="s">"in progress"</span>);
+    <span class="k">break</span>;
+  <span class="k">case</span> <span class="s">"done"</span>:
+    console.log(<span class="s">"finished"</span>);
+    <span class="k">break</span>;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">finished</span>
+<span class="e">archived logged nothing</span></pre></div>
+            <p class="c-result"><b>アイテムをアーカイブしても何もログに出ません。</b><code>switch</code> が古くなっていることを示すものは何もありません。</p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>switch-exhaustiveness-check</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">match</span> s {
+  <span class="s">"todo"</span> <span class="op">=&gt;</span> print(<span class="s">"not started"</span>),
+  <span class="s">"doing"</span> <span class="op">=&gt;</span> print(<span class="s">"in progress"</span>),
+  <span class="s">"done"</span> <span class="op">=&gt;</span> print(<span class="s">"finished"</span>),
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0200] Error: typecheck: non-exhaustive match on `"todo" | "doing" | "done" | "archived"`: missing variants "archived"</span>
+<span class="h">Help: Add an arm for each missing variant.</span></pre></div>
+            <p class="c-result"><b>ビルドが止まり、そのケースの名前が示されます。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript が <code>switch</code> ですべてのケースが扱われているかを検査するのは、関数がすべての分岐から値を返す場合か、<code>assertNever</code> のイディオムを使った場合だけです。何も返さないハンドラはどちらにも当てはまりません。Glyph ではすべての <code>match</code> がすべてのケースを扱わなければならないので、バリアントを追加すると、変更が必要な箇所がすべて一覧されます。</p>
+        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="trusting-find-with-bang" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">3</span>
+          <h3><a class="c-anchor" href="#trusting-find-with-bang"><code>!</code> で <code>find</code> を信用する</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 5">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 段階中 5</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">ID でレコードを探す。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、実行時にクラッシュする</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> users.find((u) <span class="op">=&gt;</span> u.id === id)!.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
+            <p class="c-result"><b><code>!</code> はコンパイラに「信じてくれ」と伝えるものです。</b>実行時には何もしません。</p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>no-non-null-assertion</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> array.find(users, <span class="k">fn</span>(u: <span class="t">User</span>) <span class="op">-&gt;</span> <span class="t">bool</span> { u.id == id }).name</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0210] Error: typecheck: type `Option&lt;User&gt;` has no field `name`: an `Option` has no members</span>
+<span class="h">Help: Open it with `match array.find(...) { Some(u) =&gt; u.name, None =&gt; &lt;default&gt; }`. If the absence is a JSON `null` from the wire, declare the type `Nullable&lt;User&gt;` (D45).</span></pre></div>
+            <p class="c-result"><b><code>find</code> は <code>Option</code> を返すので、</b>空の場合を扱わなければなりません。</p>
+          </div>
+        </div>
+        <p class="c-note"><code>!</code> がなければ、<code>tsc --strict</code> はこの行を拒否します。その検査を無効にしているのが <code>!</code> で、実行時には何もしません。Glyph には <code>!</code> がありません。</p>
+        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="error-the-signature-hides" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">4</span>
+          <h3><a class="c-anchor" href="#error-the-signature-hides">シグネチャに表れないエラー</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">失敗しうる関数を、それを知らないコードが呼び出す。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、実行時にクラッシュする</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> loadConfig(): <span class="t">Config</span> {
+  <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"missing file"</span>);
+}
+
+<span class="k">const</span> cfg = loadConfig(); <span class="c">// no try</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Error: missing file</span></pre></div>
+            <p class="c-result"><b>型は <code>Config</code> と言っています。</b>throw しうることはどこにも書かれていません。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> load_config() <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Config</span>, <span class="t">string</span>&gt; {
+  <span class="k">return</span> <span class="t">Err</span>(<span class="s">"missing file"</span>)
+}
+
+<span class="k">let</span> cfg: <span class="t">Config</span> = load_config()</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `Config`, found `Result&lt;Config, string&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            <p class="c-result"><b>失敗は戻り値の型の一部なので、</b>呼び出し側はそれを扱わなければなりません。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript の関数の型には、何を返すかは書かれますが、何を throw するかは書かれません。Glyph では失敗が戻り値の型の一部なので、どの呼び出し側からも見えます。</p>
+        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="error-nobody-looked-at" data-ts="none" data-glyph="warned">
+        <div class="c-head">
+          <span class="c-num">5</span>
+          <h3><a class="c-anchor" href="#error-nobody-looked-at">誰も見なかったエラー</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">失敗しうるものを呼び出し、そのまま先へ進む。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">警告なしでコンパイルが通る</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre>save(user); <span class="c">// returns { ok: false }</span>
+<span class="k">return</span> <span class="s">"done"</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">done</span></pre></div>
+            <p class="c-result"><b>失敗は捨てられ、</b>ユーザーには成功したと伝えられます。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl warn">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">警告</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>save(user)
+<span class="k">return</span> <span class="s">"done"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored</span>
+<span class="h">Help: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional.</span></pre></div>
+            <p class="c-result"><b>Glyph は捨てられた失敗を指摘します。</b></p>
+          </div>
+        </div>
+        <p class="c-note">エラーではなく警告です。意図して捨てる場合は、そう書きます：<code>let _ = save(user)</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#error-nobody-looked-at" data-slug="error-nobody-looked-at">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-nobody-looked-at">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-nobody-looked-at&amp;title=Score%3A+An+error+nobody+looked+at">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="filter-that-keeps-everyone" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">6</span>
+          <h3><a class="c-anchor" href="#filter-that-keeps-everyone">全員を残してしまうフィルタ</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">各ユーザーを非同期の権限チェックにかける。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤った結果を返す</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> active = names.filter(
+  <span class="k">async</span> (n) <span class="op">=&gt;</span> <span class="k">await</span> isActive(n));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ 'ada', 'mallory' ]</span></pre></div>
+            <p class="c-result"><b>何も除外されません。</b></p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>no-misused-promises</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> active = array.filter(names, <span class="k">async</span> <span class="k">fn</span>(n: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">bool</span> { <span class="k">await</span> is_active(n) })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `function`, found `async function`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>async 関数は yes/no の答えではありません。</b></p>
+          </div>
+        </div>
+        <p class="c-note">async 関数は Promise を返し、Promise はどれも true とみなされます。こうして作った権限フィルタは全員を通してしまいます。</p>
+        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="type-guard-that-checks-less" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">7</span>
+          <h3><a class="c-anchor" href="#type-guard-that-checks-less">主張するほど検査しない型ガード</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">リクエストボディを手書きで検証する。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、実行時にクラッシュする</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> isUser(x: <span class="t">unknown</span>): x <span class="k">is</span> <span class="t">User</span> {
+  <span class="k">return</span> <span class="k">typeof</span> x === <span class="s">"object"</span> &amp;&amp; x !== <span class="k">null</span> &amp;&amp; <span class="s">"id"</span> <span class="k">in</span> x;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'toLowerCase')</span></pre></div>
+            <p class="c-result"><b>ガードはフィールドを 1 つ検査しただけで "User" だと言います。</b></p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">データの到着時に検査</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> <span class="t">User</span>.<span class="k">is</span>(body) {
+  <span class="k">true</span> <span class="op">=&gt;</span> <span class="s">"user"</span>,
+  <span class="k">false</span> <span class="op">=&gt;</span> <span class="s">"not a user"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">not a user</span></pre></div>
+            <p class="c-result"><b><code>User.is</code> はすべてのフィールドを検査します。</b>Glyph には手書きのガードがありません。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript は <code>x is User</code> 関数を、その本体が実際に何を検査していようと完全に信用します。</p>
+        <p class="c-links"><a class="c-copy" href="#type-guard-that-checks-less" data-slug="type-guard-that-checks-less">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/type-guard-that-checks-less">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=type-guard-that-checks-less&amp;title=Score%3A+A+type+guard+that+checks+less+than+it+claims">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="as-unknown-as" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">8</span>
+          <h3><a class="c-anchor" href="#as-unknown-as"><code>as unknown as T</code></a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">値を望みの型に無理やり変える。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、実行時にクラッシュする</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cfg = raw <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">Config</span>;
+console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'length')</span></pre></div>
+            <p class="c-result"><b>二重のキャストで型検査が無効になります。</b></p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span><span class="c-verdict">書くことができない</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cfg = raw <span class="k">as</span> <span class="t">unknown</span> <span class="k">as</span> <span class="t">Config</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0013] Error: parse: a statement cannot begin on the line where `let cfg = raw` ends</span></pre></div>
+            <p class="c-result"><b>書けるキャストがありません。</b>代わりにどうすればよいかはヘルプに表示されます。</p>
+          </div>
+        </div>
+        <p class="c-note"><code>as unknown as T</code> は、エージェントが直せない型エラーを黙らせるときに使う手です。</p>
+        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="unvalidated-boundary-read" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">9</span>
+          <h3><a class="c-anchor" href="#unvalidated-boundary-read">検査なしで型を付けたパース済みボディ</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">リクエストボディを型付きの変数に読み込む。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、不正なデータのまま動く</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> user: <span class="t">User</span> = <span class="t">JSON</span>.parse(body);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
+            <p class="c-result"><b>型注釈は誰も守らない約束です。</b><code>JSON.parse</code> は <code>any</code> を返すので、どんな形のボディでも通ります。</p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>no-unsafe-assignment</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> user: <span class="t">User</span> = json.parse(body)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `User`, found `Result&lt;unknown, Array&lt;Issue&gt;&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            <p class="c-result"><b><code>json.parse</code> は <code>unknown</code> の <code>Result</code> を返し、</b>それは <code>User</code> ではありません。</p>
+          </div>
+        </div>
+        <p class="c-note"><code>const user: User</code> と書くと検査のように見えますが、検査ではありません。Glyph では <code>json.parse&lt;User&gt;(body)</code> がボディを検査し、match で扱う <code>Result</code> を返します。</p>
+        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="lost-update-across-await" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">10</span>
+          <h3><a class="c-anchor" href="#lost-update-across-await"><code>await</code> をまたいで消える更新</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 5">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 段階中 5</span></span></div>
+        </div>
+        <p class="c-why">2 つのリクエストが同時に同じアカウントに課金する。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、実行時にお金が消える</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = a.balance;
+<span class="k">const</span> f = <span class="k">await</span> fee();
+a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">balance 90</span></pre></div>
+            <p class="c-result"><b>課金が 1 件消えます。</b>これを確実に検出できるテストはありません。</p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>require-atomic-updates</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> before = a.balance
+<span class="k">let</span> f = <span class="k">await</span> fee()
+<span class="k">mut</span> a.balance = before - f</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0225] Error: typecheck: `a.balance` is read before an `await` and written after it, so a concurrent write in between is lost</span>
+<span class="h">Help: Move the read after the `await`, so the value written is the one that is current when it is written.</span></pre></div>
+            <p class="c-result"><b>Glyph は待機をまたいだ読み取りと書き込みを見つけます。</b></p>
+          </div>
+        </div>
+        <p class="c-note">ある呼び出しが <code>fee()</code> を待っている間に、別の呼び出しが残高を更新できます。そのあと最初の呼び出しが古い値を書き戻します。</p>
+        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="split-into-a-pair" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">11</span>
+          <h3><a class="c-anchor" href="#split-into-a-pair"><code>split</code> の分割代入</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 5">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 段階中 5</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">アドレスをユーザーとホストに分ける。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤ったテキストを出力する</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> [user, host] = s.split(<span class="s">"@"</span>);
+<span class="k">return</span> <span class="s">`</span><span class="ip">${</span>user<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span>host<span class="ip">}</span><span class="s">`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">nobody at undefined</span></pre></div>
+            <p class="c-result"><b>TypeScript は 2 つ目の要素があるものとみなします。</b><code>@</code> がないと、テキストは "nobody at undefined" になります。</p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>restrict-template-expressions</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> [user, host] = <span class="t">string</span>.split(s, <span class="s">"@"</span>)
+<span class="k">return</span> <span class="s">"</span><span class="ip">${</span>user<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span>host<span class="ip">}</span><span class="s">"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0230] Error: typecheck: the length of `Array&lt;string&gt;` is not known, so a name in the pattern could hold `undefined`</span>
+<span class="h">Help: Its length is known only at run time, so match on it with a fallback arm: `match xs { [a, b] =&gt; ..., else =&gt; ... }`.</span></pre></div>
+            <p class="c-result"><b>欠けている要素を扱う必要があります。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>split</code> は要素を 1 つしか返さないことがあります。それでも TypeScript は <code>host</code> を <code>string</code> と型付けします。</p>
+        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="value-outside-the-list" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">12</span>
+          <h3><a class="c-anchor" href="#value-outside-the-list">リストにない値</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">API が、コードが見たことのないステータスを送り始める。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、不正なデータのまま動く</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Account</span> = { status: <span class="s">"active"</span> | <span class="s">"banned"</span> };
+
+<span class="k">const</span> body = <span class="s">'{"status":"deleted"}'</span>;
+<span class="k">const</span> acc = <span class="t">JSON</span>.parse(body) <span class="k">as</span> <span class="t">Account</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">status deleted</span></pre></div>
+            <p class="c-result"><b><code>"deleted"</code> が 2 つのうちのどちらかとして扱われます。</b><code>status</code> に対する検査はすべて誤った結果になります。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">データの到着時に検査</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Account</span> = { status: <span class="s">"active"</span> | <span class="s">"banned"</span> }
+
+<span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Account</span>&gt;(body) {
+  <span class="t">Ok</span>(acc) <span class="op">=&gt;</span> <span class="s">"status </span><span class="ip">${</span>acc.status<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["status"],"message":"field `status` must be \"active\" | \"banned\"","code":"type"}]</span></pre></div>
+            <p class="c-result"><b>リストにある値だけが通ります。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript では <code>"active" | "banned"</code> のようなユニオンはコンパイル中にしか存在しません。実行時には 3 つ目の値を止めるものは何もありません。Glyph はデータが入ってきたときに検査します。</p>
+        <p class="c-links"><a class="c-copy" href="#value-outside-the-list" data-slug="value-outside-the-list">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/value-outside-the-list">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=value-outside-the-list&amp;title=Score%3A+A+value+outside+the+list">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="config-with-a-setting-missing" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">13</span>
+          <h3><a class="c-anchor" href="#config-with-a-setting-missing">設定が 1 つ欠けたコンフィグ</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">プランごとの上限を、誰かが更新し忘れたファイルから読み込む。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、不正なデータのまま動く</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> limits = <span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">Plan</span>, <span class="t">number</span>&gt;;
+console.log(limits.team * <span class="n">2</span>);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b>型はすべてのプランに上限があると約束しています。</b>ファイルはそうなっていません。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">データの到着時に検査</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Record</span>&lt;<span class="t">Plan</span>, <span class="t">int</span>&gt;&gt;(text) {
+  <span class="t">Ok</span>(limits) <span class="op">=&gt;</span> <span class="s">"loaded"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":[],"message":"expected Record&lt;Plan, int&gt;"}]</span></pre></div>
+            <p class="c-result"><b>すべてのプランがそろっていて、それ以外は何もないことが必要です。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>Record&lt;Plan, number&gt;</code> はすべてのプランに値があると約束し、<code>as</code> は中身を一切見ません。Glyph は型にあるキーをすべて要求し、余分なキーは拒否します。</p>
+        <p class="c-links"><a class="c-copy" href="#config-with-a-setting-missing" data-slug="config-with-a-setting-missing">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/config-with-a-setting-missing">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=config-with-a-setting-missing&amp;title=Score%3A+A+config+with+a+setting+missing">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="number-accepted-as-enum" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">14</span>
+          <h3><a class="c-anchor" href="#number-accepted-as-enum">enum として受け入れられる数値</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">データベースから読み込んだステータスコード。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤った状態を選ぶ</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> fromDb: <span class="t">number</span> = <span class="n">7</span>;
+console.log(label(fromDb));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">suspended</span></pre></div>
+            <p class="c-result"><b>未知のコードが実在するステータスになります。</b></p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>no-unsafe-enum-assignment</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> from_db: <span class="t">number</span> = <span class="n">7</span>
+print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `Status`, found `number`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>数値は <code>Status</code> ではありません。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript では、数値の enum にはどんな数値でも代入できます。対応するメンバーがない数値でもです。</p>
+        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="connection-left-open" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">15</span>
+          <h3><a class="c-anchor" href="#connection-left-open">開いたままの接続</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">後始末の前に早期 return する。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、接続がリークする</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> c = openConn();
+<span class="k">if</span> (!valid) <span class="k">return</span> <span class="s">"rejected"</span>;
+closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">rejected 1 still open</span></pre></div>
+            <p class="c-result"><b>拒否されたリクエストのたびに接続がリークします。</b></p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> <span class="k">owned</span> c: <span class="t">Conn</span> = open()
+<span class="k">match</span> valid {
+  <span class="k">false</span> <span class="op">=&gt;</span> { <span class="k">return</span> <span class="s">"rejected"</span> },
+  <span class="k">true</span> <span class="op">=&gt;</span> close(c),
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0206] Error: typecheck: `owned` resource `c` is not consumed on every path before the function returns</span>
+<span class="h">Help: Consume the handle on every path (move it into an `owned` parameter) before the function returns.</span></pre></div>
+            <p class="c-result"><b>すべての経路で接続を閉じる必要があります。</b></p>
+          </div>
+        </div>
+        <p class="c-note">この検査は <code>owned</code> と宣言された値に適用されます。宣言のないリソースは追跡されません。</p>
+        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="typo-nobody-sees" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">16</span>
+          <h3><a class="c-anchor" href="#typo-nobody-sees">誰も気づかないタイポ</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">レスポンスからフィールドを読む。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、実行時に失敗する</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> data = <span class="k">await</span> res.json();
+<span class="k">return</span> data.usr.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
+            <p class="c-result"><b><code>res.json()</code> は <code>any</code> なので、</b>何も検査されません。</p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>no-unsafe-member-access</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span><span class="c-verdict">glyph check で拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> json.parse(text) {
+  <span class="t">Ok</span>(data) <span class="op">=&gt;</span> data.usr.name,
+  <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unreadable"</span>,
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[TS18046] Error: tsc: 'data' is of type 'unknown'.</span>
+<span class="h">Help: TypeScript's checker rejected the code this expression compiles to. The caret is on the Glyph expression that produced it.</span></pre></div>
+            <p class="c-result"><b><code>any</code> はありません。</b>誰も検査していないデータは <code>unknown</code> で、<code>json.parse&lt;User&gt;</code> が型を与えます。</p>
+          </div>
+        </div>
+        <p class="c-note"><code>any</code> は触れるものすべての型検査を無効にし、しかも広がります。<code>data.usr</code> も <code>any</code> です。Glyph には <code>any</code> がありません。ここでの拒否は、<code>glyph check</code> と <code>glyph build</code> が実行する <code>tsc</code> のステップから来ています。Glyph 自身の型検査はまだこれを検出しません（G381）。</p>
+        <p class="c-links"><a class="c-copy" href="#typo-nobody-sees" data-slug="typo-nobody-sees">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-nobody-sees">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-nobody-sees&amp;title=Score%3A+A+typo+nobody+sees">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="absent-map-key" data-ts="flag" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">17</span>
+          <h3><a class="c-anchor" href="#absent-map-key">存在しないかもしれないキー</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">文字列の行からフィールドを読むとき、名前を綴り間違える。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、undefined を出力する</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> nameOf(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;): <span class="t">string</span> {
+  <span class="k">return</span> row.naem;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">undefined</span></pre></div>
+            <p class="c-result"><b>どのキーも <code>string</code> として読まれます。</b>存在しないキーでも同じなので、綴りを間違えたフィールドは <code>undefined</code> を出力します。</p>
+            <p class="c-cfg flag"><b>デフォルトでは無効</b>コンパイラフラグ <code>noUncheckedIndexedAccess</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">pub</span> <span class="k">fn</span> name_of(row: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> row.naem
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0224] Error: typecheck: `Record&lt;string, string&gt;` is a map, so `naem` may not be there</span>
+<span class="h">Help: Use `record.get(map, "key")`, which returns `Option&lt;V&gt;` so the absent case has somewhere to go. `record.has` tests for the key alone.</span></pre></div>
+            <p class="c-result"><b>マップの読み取りは空かもしれないと示すので、</b>そのときどうするかをコードに書く必要があります。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript の <code>Record&lt;string, string&gt;</code> は、あらゆるキーに文字列があると主張します。Glyph はこれをマップとして扱い、検索が何も見つけない場合があるとみなすので、正しく綴った <code>row.name</code> も拒否します。</p>
+        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="typo-in-an-options-object" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">18</span>
+          <h3><a class="c-anchor" href="#typo-in-an-options-object">オプションオブジェクトのタイポ</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">オプションを変数に組み立ててから渡す。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤った設定を使う</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> opts = { host: <span class="s">"db"</span>, timeoutMS: <span class="n">500</span> };
+console.log(<span class="s">"timeout"</span>, connect(opts));</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">timeout 30000</span></pre></div>
+            <p class="c-result"><b>綴りを間違えたオプションは黙って捨てられます。</b></p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> opts = { host: <span class="s">"db"</span>, timeout_MS: <span class="t">Some</span>(<span class="n">500</span>) }
+print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<span class="ip">}</span><span class="s">"</span>)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `ConnectOptions`, found `record`: missing field `timeout_ms`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>誤った名前はエラーになります。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript が未知のキーを検査するのは、呼び出しに直接書いたリテラルだけです。先に変数に組み立てたものは検査しません。</p>
+        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="invalid-date" data-ts="none" data-glyph="design">
+        <div class="c-head">
+          <span class="c-num">19</span>
+          <h3><a class="c-anchor" href="#invalid-date">無効な日付</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">フォームから日付をパースする。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤った日付になるかクラッシュする</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="k">new</span> <span class="t">Date</span>(input).toISOString().slice(<span class="n">0</span>, <span class="n">10</span>);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">2025-03-02</span>
+<span class="e">RangeError: Invalid time value</span></pre></div>
+            <p class="c-result"><b>不正な日付は繰り越されて</b>実在する日付になります。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">書くことができない</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> time.parse_iso(input) {
+  <span class="t">Some</span>(ms) <span class="op">=&gt;</span> <span class="s">"ok </span><span class="ip">${</span>ms<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">None</span> <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>input<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: 2025-02-30</span>
+<span class="o">rejected: next friday</span></pre></div>
+            <p class="c-result"><b>パースは失敗しうるもので、型がそれを示しています。</b></p>
+          </div>
+        </div>
+        <p class="c-note">JavaScript の <code>Date</code> は、2 月 30 日を何も言わずに 3 月 2 日に変えます。Glyph には <code>Date</code> がなく、<code>time.parse_iso</code> は <code>None</code> を返します。</p>
+        <p class="c-links"><a class="c-copy" href="#invalid-date" data-slug="invalid-date">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/invalid-date">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=invalid-date&amp;title=Score%3A+An+invalid+date">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="computed-value-never-used" data-ts="flag" data-glyph="warned">
+        <div class="c-head">
+          <span class="c-num">20</span>
+          <h3><a class="c-anchor" href="#computed-value-never-used">計算したのに使われない値</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 4">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">入力をクリーニングしたのに、誤って元の値を返す。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">警告なしでコンパイルが通る</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> cleaned = input.trim().toLowerCase();
+<span class="k">return</span> input;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">"  Ada@Example.COM "</span></pre></div>
+            <p class="c-result"><b>クリーニングは結局行われません。</b></p>
+            <p class="c-cfg flag"><b>デフォルトでは無効</b>コンパイラフラグ <code>noUnusedLocals</code> で検出されます</p>
+          </div>
+          <div class="c-side gl warn">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">警告</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> cleaned = <span class="t">string</span>.lower(<span class="t">string</span>.trim(input))
+<span class="k">return</span> input</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0107] Warning: lint: unused variable `cleaned`</span>
+<span class="h">Help: Remove the binding, or prefix its name with `_` if it is intentionally unused.</span></pre></div>
+            <p class="c-result"><b>Glyph は使われていない値を指摘します。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>noUnusedLocals</code> は <code>--strict</code> に含まれないので、TypeScript はデフォルトでは何も言いません。</p>
+        <p class="c-links"><a class="c-copy" href="#computed-value-never-used" data-slug="computed-value-never-used">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/computed-value-never-used">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=computed-value-never-used&amp;title=Score%3A+A+computed+value+that+is+never+used">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="template-prints-undefined" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">21</span>
+          <h3><a class="c-anchor" href="#template-prints-undefined">"undefined" と出力するテンプレート</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 5">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 段階中 5</span></span><span class="c-score severe" title="深刻度: 5 段階中 2">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">5 段階中 2</span></span></div>
+        </div>
+        <p class="c-why">省略可能な関連データを表示する。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤ったテキストを出力する</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="s">`Reports to: </span><span class="ip">${</span>e.manager<span class="op">?.</span>name<span class="ip">}</span><span class="s">`</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Reports to: undefined</span></pre></div>
+            <p class="c-result"><b>ユーザーに "undefined" という文字が表示されます。</b></p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>restrict-template-expressions</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="s">"Reports to: </span><span class="ip">${</span>e.manager<span class="op">?.</span>name<span class="ip">}</span><span class="s">"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0235] Error: typecheck: `?.name` over a `Nullable&lt;Manager&gt;` is `undefined` when the value is null, and it is not given a default with `??` or compared with `==`/`!=`</span>
+<span class="h">Help: Give the absent case a value with `??` (`n?.name ?? "none"`), or convert the whole value with `nullable.to_option(n)` and `match` on it.</span></pre></div>
+            <p class="c-result"><b>値がない場合にはデフォルトが必要です。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>?.</code> でクラッシュは防げますが、それが生む <code>undefined</code> はそのまま出力されます。</p>
+        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="number-that-is-not-a-number" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">22</span>
+          <h3><a class="c-anchor" href="#number-that-is-not-a-number">数値ではない数値</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">ユーザー入力、クエリ文字列、CSV のセル。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、不正なデータのまま動く</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> total(input: <span class="t">string</span>): <span class="t">number</span> {
+  <span class="k">const</span> qty = parseInt(input);
+  <span class="k">return</span> qty * <span class="n">10</span>;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b><code>NaN</code> が広がり、</b>触れたすべての合計を汚染します。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> total(input: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> qty: <span class="t">number</span> = <span class="t">number</span>.parse(input)
+  <span class="k">return</span> qty * <span class="n">10</span>
+}</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0204] Error: typecheck: type mismatch: expected `number`, found `Result&lt;number, string&gt;`</span>
+<span class="h">Help: Change the value, or the declared type, so the two agree.</span></pre></div>
+            <p class="c-result"><b>パースは <code>Result</code> を返します。</b>数値か、失敗した理由のどちらかです。</p>
+          </div>
+        </div>
+        <p class="c-note">エラーは <code>total</code> が呼ばれるより前に、この行を指します。コンパイルを通すには、不正な入力が何を意味するかをコードに書く必要があります：<code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code></p>
+        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="comparing-records-with-triple-equals" data-ts="none" data-glyph="design">
+        <div class="c-head">
+          <span class="c-num">23</span>
+          <h3><a class="c-anchor" href="#comparing-records-with-triple-equals">2 つのレコードを <code>===</code> で比較する</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">何も変わっていなければ保存を省く。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通るが、データではなく同一性を比較する</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> before = { x: <span class="n">1</span>, y: <span class="n">2</span> };
+<span class="k">const</span> after = { x: <span class="n">1</span>, y: <span class="n">2</span> };
+
+<span class="k">if</span> (before === after) skipSave();</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">skipped false</span></pre></div>
+            <p class="c-result"><b>データは同じでも、<code>===</code> は同じオブジェクトかどうかを調べます。</b>そのため毎回保存が走ります。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">データを比較する</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> before: <span class="t">Point</span> = { x: <span class="n">1</span>, y: <span class="n">2</span> }
+<span class="k">let</span> after: <span class="t">Point</span> = { x: <span class="n">1</span>, y: <span class="n">2</span> }
+
+<span class="k">let</span> same = before == after</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">same true</span></pre></div>
+            <p class="c-result"><b>同じフィールドを持つ 2 つのレコードは等しいとみなされます。</b></p>
+          </div>
+        </div>
+        <p class="c-note">これは JavaScript の仕様どおりの動作です。オブジェクトに対する <code>===</code> は同一性を比較し、データを比較するには lodash の <code>isEqual</code> のようなヘルパーが必要です。誤りは、データを比べるつもりで <code>===</code> を使ってしまうことにあります。Glyph ではレコードに対する <code>==</code> がデータを比較するので、素直な書き方がそのまま正しい書き方になります。</p>
+        <p class="c-links"><a class="c-copy" href="#comparing-records-with-triple-equals" data-slug="comparing-records-with-triple-equals">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/comparing-records-with-triple-equals">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=comparing-records-with-triple-equals&amp;title=Score%3A+Comparing+two+records+with+%3D%3D%3D">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="change-hidden-in-a-helper" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">24</span>
+          <h3><a class="c-anchor" href="#change-hidden-in-a-helper">ヘルパーに隠れた変更</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">受け取ったオブジェクトを書き換える関数。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">警告なしでコンパイルが通る</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> label(u: <span class="t">User</span>): <span class="t">string</span> {
+  u.name = <span class="s">"admin"</span>;
+  <span class="k">return</span> u.name;
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">admin</span></pre></div>
+            <p class="c-result"><b>呼び出し元のユーザーの名前が変わります。</b>呼び出し箇所にはそれを示すものが何もありません。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span><span class="c-verdict">明示するまで拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>u.name = <span class="s">"admin"</span></pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0008] Error: parse: assignment requires `mut`</span>
+<span class="h">Help: Glyph marks every mutation (D5): write `mut x = ...` to reassign an existing binding, or `let x = ...` to introduce a new one.</span></pre></div>
+            <p class="c-result"><b>フィールドを変更するには <code>mut</code> が必要です。</b></p>
+          </div>
+        </div>
+        <p class="c-note">Glyph は変更そのものを禁止しません。変更を見えるようにします。<code>mut</code> を検索すれば、関数が書き込むフィールドがすべて一覧できます。</p>
+        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="negative-age" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">25</span>
+          <h3><a class="c-anchor" href="#negative-age">負の年齢</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">型だけでなく、値についてのルール。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、不正なデータのまま動く</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Person</span> = { age: <span class="t">number</span> }; <span class="c">// must be &gt;= 0</span>
+
+<span class="k">const</span> text = <span class="s">'{"age": -5}'</span>;
+console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Person</span>).age);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">-5</span></pre></div>
+            <p class="c-result"><b>ルールはコメントの中にあり、</b>それを強制するものは何もありません。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">データの到着時に検査</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Age</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
+
+<span class="k">type</span> <span class="t">Person</span> = { age: <span class="t">Age</span> }
+
+<span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Person</span>&gt;(text) {
+  <span class="t">Ok</span>(p) <span class="op">=&gt;</span> <span class="s">"age </span><span class="ip">${</span>p.age<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["age"],"message":"expected Age (int where value &gt;= 0)","code":"refinement"}]</span></pre></div>
+            <p class="c-result"><b>ルールは型の一部であり、</b>型と一緒に検査されます。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript では「負にならない」のようなルールは、コメントか別のバリデータに書かれます。Glyph ではそれが型の一部なので、型を検査するたびにルールも強制されます。</p>
+        <p class="c-links"><a class="c-copy" href="#negative-age" data-slug="negative-age">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/negative-age">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=negative-age&amp;title=Score%3A+A+negative+age">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="one-function-many-names" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">26</span>
+          <h3><a class="c-anchor" href="#one-function-many-names">1 つの関数、たくさんの名前</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">何かを変更する前に、すべての呼び出し元を探す。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">警告なしでコンパイルが通る</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">import</span> getUser <span class="k">from</span> <span class="s">"./users"</span>;
+<span class="k">import</span> fetchUser <span class="k">from</span> <span class="s">"./users"</span>;
+<span class="k">import</span> { <span class="k">default</span> <span class="k">as</span> load } <span class="k">from</span> <span class="s">"./users"</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">ada ada ada</span></pre></div>
+            <p class="c-result"><b><code>grep getUser</code> は 3 つの呼び出し元のうち 2 つを見逃します。</b></p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span><span class="c-verdict">どこでも同じ名前</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">import</span> users { get_user <span class="k">as</span> fetch_user }</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0002] Error: parse: expected `}`, found As</span>
+<span class="h">Help: Add the expected token. Glyph is deliberately stricter than TypeScript (e.g. trailing commas required, no `if`/`else`).</span></pre></div>
+            <p class="c-result"><b>デフォルトエクスポートも名前の付け替えもありません。</b><code>grep get_user</code> ですべての呼び出し元が見つかります。</p>
+          </div>
+        </div>
+        <p class="c-note">これがあるから、エージェントは関数を安全に変更できます。普通のテキスト検索で、その関数を使っている場所をすべて見つけられるからです。</p>
+        <p class="c-links"><a class="c-copy" href="#one-function-many-names" data-slug="one-function-many-names">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/one-function-many-names">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=one-function-many-names&amp;title=Score%3A+One+function%2C+many+names">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="switch-fallthrough" data-ts="flag" data-glyph="design">
+        <div class="c-head">
+          <span class="c-num">27</span>
+          <h3><a class="c-anchor" href="#switch-fallthrough">switch のフォールスルー</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">プランごとの割引。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤った金額を請求する</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"pro"</span>: pct = <span class="n">10</span>;
+<span class="k">case</span> <span class="s">"team"</span>: pct = <span class="n">20</span>; <span class="k">break</span>;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">pro discount 20</span></pre></div>
+            <p class="c-result"><b><code>break</code> がないので次のケースが実行されます。</b></p>
+            <p class="c-cfg flag"><b>デフォルトでは無効</b>コンパイラフラグ <code>noFallthroughCasesInSwitch</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">書くことができない</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="k">match</span> plan {
+  <span class="s">"pro"</span> <span class="op">=&gt;</span> <span class="n">10</span>,
+  <span class="s">"team"</span> <span class="op">=&gt;</span> <span class="n">20</span>,
+  <span class="s">"free"</span> <span class="op">=&gt;</span> <span class="n">0</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">pro discount 10</span></pre></div>
+            <p class="c-result"><b><code>match</code> のアームはフォールスルーしません。</b></p>
+          </div>
+        </div>
+        <p class="c-note"><code>noFallthroughCasesInSwitch</code> は <code>--strict</code> に含まれません。</p>
+        <p class="c-links"><a class="c-copy" href="#switch-fallthrough" data-slug="switch-fallthrough">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/switch-fallthrough">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=switch-fallthrough&amp;title=Score%3A+Switch+fallthrough">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="median-with-a-fractional-index" data-ts="none" data-glyph="run">
+        <div class="c-head">
+          <span class="c-num">28</span>
+          <h3><a class="c-anchor" href="#median-with-a-fractional-index">小数のインデックスで取る中央値</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">ソート済みリストの真ん中を取る。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤った結果を返す</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sorted[sorted.length / <span class="n">2</span>];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b>インデックス 1.5 を読むと <code>undefined</code> になり、</b>呼び出し側の計算でそれが <code>NaN</code> に変わります。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">実行時に停止</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> sorted[sorted.length / <span class="n">2</span>]</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="e">RangeError: index 1.5 is out of range for an array of length 3</span></pre></div>
+            <p class="c-result"><b>不正なインデックスはプログラムを停止させます。</b><code>NaN</code> を広げることはありません。</p>
+          </div>
+        </div>
+        <p class="c-note">Glyph はコードの実行時に、配列のインデックスをすべて検査します。このケースはビルド時には検出されません。</p>
+        <p class="c-links"><a class="c-copy" href="#median-with-a-fractional-index" data-slug="median-with-a-fractional-index">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/median-with-a-fractional-index">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=median-with-a-fractional-index&amp;title=Score%3A+A+median+with+a+fractional+index">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="one-step-past-the-end" data-ts="none" data-glyph="run">
+        <div class="c-head">
+          <span class="c-num">29</span>
+          <h3><a class="c-anchor" href="#one-step-past-the-end">末尾を 1 つ越える</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">ループでリストの合計を求める。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤った結果を返す</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt;= prices.length; i++)
+  sum += prices[i];</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">NaN</span></pre></div>
+            <p class="c-result"><b><code>&lt;=</code> は末尾の 1 つ先まで読みます。</b></p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">実行時に停止</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">for</span> i <span class="k">in</span> array.range(prices.length + <span class="n">1</span>) {
+  <span class="k">mut</span> sum = sum + prices[i]
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="e">RangeError: index 3 is out of range for an array of length 3</span></pre></div>
+            <p class="c-result"><b>Glyph には C 言語スタイルの <code>for</code> がありません。</b>末尾を越えて読むとプログラムが停止します。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript では範囲外の読み取りは <code>undefined</code> を返し、計算がそれを <code>NaN</code> に変えます。</p>
+        <p class="c-links"><a class="c-copy" href="#one-step-past-the-end" data-slug="one-step-past-the-end">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/one-step-past-the-end">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=one-step-past-the-end&amp;title=Score%3A+One+step+past+the+end">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="code-after-return" data-ts="flag" data-glyph="warned">
+        <div class="c-head">
+          <span class="c-num">30</span>
+          <h3><a class="c-anchor" href="#code-after-return"><code>return</code> の後のコード</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">関数がすでに return した後で税額を足す。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">警告なしでコンパイルが通る</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> sum;
+sum = sum * (<span class="n">1</span> + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">30</span></pre></div>
+            <p class="c-result"><b>税額の行は一度も実行されません。</b></p>
+            <p class="c-cfg flag"><b>デフォルトでは無効</b>コンパイラフラグ <code>allowUnreachableCode: false</code> で検出されます</p>
+          </div>
+          <div class="c-side gl warn">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">警告</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> sum
+<span class="k">mut</span> sum = sum * (<span class="n">1</span> + tax_rate)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="w">[E0108] Warning: lint: unreachable code</span>
+<span class="h">Help: Remove it, or move the earlier `return`/`break`/`continue` so this can run.</span></pre></div>
+            <p class="c-result"><b>Glyph は実行されない行を指摘します。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript はデフォルトでは、到達不能なコードをエディタ上で薄く表示するだけです。</p>
+        <p class="c-links"><a class="c-copy" href="#code-after-return" data-slug="code-after-return">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/code-after-return">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=code-after-return&amp;title=Score%3A+Code+after+return">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="arrow-function-returns-nothing" data-ts="flag" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">31</span>
+          <h3><a class="c-anchor" href="#arrow-function-returns-nothing">何も返さないアロー関数</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 3">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">ユーザーを行に変換する。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、誤った結果を返す</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> rows = users.map((u) <span class="op">=&gt;</span> { label: u.name });</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ undefined ]</span></pre></div>
+            <p class="c-result"><b>波括弧は関数本体として扱われ、</b><code>label:</code> は文のラベルになります。</p>
+            <p class="c-cfg flag"><b>デフォルトでは無効</b>コンパイラフラグ <code>allowUnusedLabels: false</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span><span class="c-verdict">書くことができない</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> rows = array.map(users, <span class="k">fn</span>(u: <span class="t">User</span>) <span class="op">-&gt;</span> <span class="t">Row</span> { label: u.name })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0003] Error: parse: unexpected token: Colon</span>
+<span class="h">Help: Remove or correct this token; it can't appear here.</span></pre></div>
+            <p class="c-result"><b>この曖昧な書き方は Glyph では無効です。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript のアロー関数でオブジェクトを返すには、波括弧を丸括弧で囲む必要があります：<code>u =&gt; ({ ... })</code>。</p>
+        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="array-covariance" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">32</span>
+          <h3><a class="c-anchor" href="#array-covariance">配列の共変性</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 2">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">5 段階中 2</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">動物のリストを期待する場所に犬のリストを渡す。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、実行時にクラッシュする</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> adopt(shelter: <span class="t">Animal</span>[]): <span class="k">void</span> {
+  shelter.push({ name: <span class="s">"Tom the cat"</span> });
+}
+
+adopt(dogs);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: d.bark is not a function</span></pre></div>
+            <p class="c-result"><b>犬のリストに猫が入ってしまいます。</b></p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>adopt(dogs)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `Array&lt;Animal&gt;`, found `Array&lt;Dog&gt;`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>犬のリストは、書き込み可能な動物のリストではありません。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript では、関数がその配列に要素を追加する場合でも、<code>Dog[]</code> を <code>Animal[]</code> の代わりに渡せます。</p>
+        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="two-types-same-shape" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">33</span>
+          <h3><a class="c-anchor" href="#two-types-same-shape">同じ形をした 2 つの型</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 2">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">5 段階中 2</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">確認済みと未確認のメールアドレス。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">警告なしでコンパイルが通る</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">UnverifiedEmail</span> = { address: <span class="t">string</span> };
+<span class="k">type</span> <span class="t">VerifiedEmail</span> = { address: <span class="t">string</span> };
+
+sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">invoice sent to typo@exmaple.com</span></pre></div>
+            <p class="c-result"><b>未確認のアドレスに請求書が届きます。</b></p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre>send_invoice(signup)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `VerifiedEmail`, found `UnverifiedEmail`</span>
+<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+            <p class="c-result"><b>名前の違う 2 つの型は別の型です。</b></p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript はオブジェクト型を形で比較するので、同じ形の型は名前が何であれ互いに置き換えられます。</p>
+        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="unverifiable-parse" data-ts="none" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">34</span>
+          <h3><a class="c-anchor" href="#unverifiable-parse">主張する内容を検査できないバリデータ</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 2">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">5 段階中 2</span></span><span class="c-score severe" title="深刻度: 5 段階中 4">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">5 段階中 4</span></span></div>
+        </div>
+        <p class="c-why">ソケットを持つレコードを、手書きのガードで検査する。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、文字列をソケットとして受け入れる</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> isConn(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">Conn</span> {
+  <span class="k">return</span> (
+    <span class="k">typeof</span> value === <span class="s">"object"</span> &amp;&amp;
+    value !== <span class="k">null</span> &amp;&amp;
+    <span class="k">typeof</span> (value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).id === <span class="s">"number"</span> &amp;&amp;
+    (value <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).sock !== <span class="k">undefined</span>
+  );
+}</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">{ id: 1, sock: 'not a socket' }</span></pre></div>
+            <p class="c-result"><b>ガードは <code>sock</code> が存在することを確かめただけで <code>Conn</code> だと言います。</b>文字列がソケットとして通ってしまいます。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">return</span> <span class="t">Conn</span>.parse(v)</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0304] Error: emit: cannot validate `Conn`: field `sock` has type `Socket`, which has no runtime check</span>
+<span class="h">Help: Split the wire type from the domain type: parse a record whose fields are all checkable, then build this one from it.</span></pre></div>
+            <p class="c-result"><b>ソケットには実行時の検査がないので、</b>Glyph は成り立たない検査を生成する代わりに <code>Conn.parse</code> を拒否します。</p>
+          </div>
+        </div>
+        <p class="c-note">通信用の型とドメインの型を分けてください。検査できるフィールドをパースしてから、ソケットを含めてレコードを組み立てます。</p>
+        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="method-forgets-its-object" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">35</span>
+          <h3><a class="c-anchor" href="#method-forgets-its-object">自分のオブジェクトを忘れるメソッド</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 2">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">5 段階中 2</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">メソッドを値として受け渡す。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、実行時にクラッシュする</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> up = name.toUpperCase;
+console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: String.prototype.toUpperCase called on null or undefined</span></pre></div>
+            <p class="c-result"><b>メソッドが文字列から切り離され、</b>その文字列を見失います。</p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>unbound-method</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> up = name.toUpperCase</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0234] Error: typecheck: method `toUpperCase` of `string` is read without being called</span></pre></div>
+            <p class="c-result"><b>メソッドは読み取ったその場で呼び出す必要があります。</b>代わりに関数を渡してください。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript のメソッドは、呼び出されたオブジェクト（<code>this</code>）に依存します。<code>name.toUpperCase()</code> から値として取り出すと、どの文字列を使えばよいかがわからなくなります。</p>
+        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="quantity-of-one-and-a-half" data-ts="none" data-glyph="data">
+        <div class="c-head">
+          <span class="c-num">36</span>
+          <h3><a class="c-anchor" href="#quantity-of-one-and-a-half">数量 1.5</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 2">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">5 段階中 2</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">整数しかありえない注文明細。</p>
+        <div class="c-pair stack">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">コンパイルは通り、不正なデータのまま動く</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: <span class="t">number</span> };
+
+<span class="k">const</span> text = <span class="s">'{"qty": 1.5}'</span>;
+console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Order</span>).qty);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">1.5</span></pre></div>
+            <p class="c-result"><b>TypeScript には <code>number</code> が 1 つしかありません。</b>商品が半分だけ出荷されます。</p>
+            <p class="c-cfg none"><b>何も検出しない</b>コンパイラフラグをすべて有効にし、typescript-eslint を strict 設定にしても検出されません</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">データの到着時に検査</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: <span class="t">int</span> }
+
+<span class="k">let</span> out = <span class="k">match</span> json.parse&lt;<span class="t">Order</span>&gt;(text) {
+  <span class="t">Ok</span>(o) <span class="op">=&gt;</span> <span class="s">"qty </span><span class="ip">${</span>o.qty<span class="ip">}</span><span class="s">"</span>,
+  <span class="t">Err</span>(issues) <span class="op">=&gt;</span> <span class="s">"rejected: </span><span class="ip">${</span>json.stringify(issues)<span class="ip">}</span><span class="s">"</span>,
+}</pre><span class="cap">$ glyph run</span><pre class="c-out"><span class="o">rejected: [{"path":["qty"],"message":"field `qty` must be int","code":"type"}]</span></pre></div>
+            <p class="c-result"><b><code>int</code> は独立した型で、</b>検査されます。</p>
+          </div>
+        </div>
+        <p class="c-note">TypeScript では、整数にも小数にも同じ <code>number</code> 型を使います。Glyph には <code>int</code> があり、データの到着時に検査します。</p>
+        <p class="c-links"><a class="c-copy" href="#quantity-of-one-and-a-half" data-slug="quantity-of-one-and-a-half">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/quantity-of-one-and-a-half">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=quantity-of-one-and-a-half&amp;title=Score%3A+A+quantity+of+1.5">この評価に異論がありますか？</a></p>
+      </article>
+      <article class="catch" id="duplicate-case" data-ts="lint" data-glyph="build">
+        <div class="c-head">
+          <span class="c-num">37</span>
+          <h3><a class="c-anchor" href="#duplicate-case">重複したケース</a></h3>
+          <div class="c-scores"><span class="c-score likely" title="起こりやすさ: 5 段階中 2">起こりやすさ <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">5 段階中 2</span></span><span class="c-score severe" title="深刻度: 5 段階中 3">深刻度 <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">5 段階中 3</span></span></div>
+        </div>
+        <p class="c-why">どの注文を返金できるかを判定する。</p>
+        <div class="c-pair">
+          <div class="c-side ts">
+            <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">警告なしでコンパイルが通る</span></div>
+            <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">case</span> <span class="s">"paid"</span>: <span class="k">return</span> <span class="k">true</span>;
+<span class="k">case</span> <span class="s">"shipped"</span>: <span class="k">return</span> <span class="k">true</span>;
+<span class="k">case</span> <span class="s">"paid"</span>: <span class="k">return</span> <span class="k">false</span>; <span class="c">// never runs</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">true</span></pre></div>
+            <p class="c-result"><b>2 つ目のルールは実行されません。</b>誰も気づきません。</p>
+            <p class="c-cfg lint"><b>lint のみ</b>lint ルール <code>no-duplicate-case</code> で検出されます</p>
+          </div>
+          <div class="c-side gl">
+            <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">ビルド時に拒否</span></div>
+            <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="s">"paid"</span> <span class="op">=&gt;</span> <span class="k">true</span>,
+<span class="s">"shipped"</span> <span class="op">=&gt;</span> <span class="k">true</span>,
+<span class="s">"paid"</span> <span class="op">=&gt;</span> <span class="k">false</span>,</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0305] Error: emit: this match arm can never run: an earlier arm already matches `"paid"`</span>
+<span class="h">Help: Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.</span></pre></div>
+            <p class="c-result"><b>決して実行されないアームはエラーになります。</b></p>
+          </div>
+        </div>
+        <p class="c-note">tsc は、同じ <code>case</code> ラベルが 2 回現れても指摘しません。</p>
+        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">リンクをコピー</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">この評価に異論がありますか？</a></p>
+      </article>
+      </div>
+
+      </section>
+      <section class="c-section" id="traps">
+        <h2 class="group-head">Glyph には存在しない JavaScript の落とし穴 5 件</h2>
+        <p class="group-sub">
+          昔からある落とし穴ですが、エージェントは今でもときどきはまります。Glyph はどのプログラムも拒否しますが、ミスを見つけるからではありません。その原因となる機能が言語になく、代わりに使うものが示されるからです。
+        </p>
+      <ul class="c-traps">
+        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> は <code>[10, NaN, NaN]</code> になります。<code>map</code> がインデックスを基数として渡すからです。Glyph には <code>Result</code> を返す <code>number.parse</code> があります。</li>
+        <li id="trap-regex-lastindex"><code>/g</code> 付きの正規表現を <code>.test</code> で使い回すと、<code>lastIndex</code> を覚えているせいで 1 回おきにマッチに失敗します。Glyph には正規表現オブジェクトがなく、<code>regex.matches(pattern, text)</code> は状態を持ちません。</li>
+        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code> は、メソッドをそのオブジェクトなしで実行します。Glyph にはクラスも <code>this</code> もありません。</li>
+        <li id="trap-math-max-empty"><code>Math.max(...[])</code> は <code>-Infinity</code> です。Glyph の <code>array.max</code> は <code>Option</code> を返し、空のリストでは空になります。</li>
+        <li id="trap-array-holes"><code>Array(3).map(...)</code> は穴が 3 つの配列を返します。<code>map</code> が穴を飛ばすからです。Glyph には <code>Array(n)</code> がなく、配列はリテラルで書きます。</li>
+      </ul>
+
+      </section>
+
+      <section class="c-section" id="not-yet">
+        <h2 class="group-head">Glyph がまだ検出できないもの</h2>
+        <p class="group-sub">
+          Glyph がまだ塞いでいない穴 11 件。どれも現在の Glyph でコンパイルが通り、TypeScript と同じ誤った動作をします。それぞれに <code>catches/</code> の再現コードと未解決の gap 番号があり、修正が入るとゲートが失敗するので、穴が塞がった後に項目が残ることはありません。
+        </p>
+      <ul class="c-gaps">
+        <li><code>requested || 3</code> は、正当な <code>0</code> を <code>3</code> に変えてしまいます。 <span>G386</span></li>
+        <li>レコードを入れた <code>"Welcome back, ${user}!"</code> は <code>[object Object]</code> を出力します。 <span>G385</span></li>
+        <li><code>forEach(async ...)</code> はすべての Promise を捨てるので、処理はそれに依存するコードより後に終わり、何も警告しません。 <span>G384</span></li>
+        <li>省略可能なフィールドに入った JSON の <code>null</code> が検査を通り抜けるので、デフォルト値の上にスプレッドすると <code>null</code> が残ります。 <span>G391</span></li>
+        <li>ヘルパー内の <code>xs.sort(...)</code> が呼び出し元の配列を並べ替えますが、<code>mut</code> による印がありません。 <span>G380</span></li>
+        <li>数値に対する <code>.sort()</code> は数値を文字列として並べ替えます：<code>100,25,9</code>。 <span>G388</span></li>
+        <li><code>${name}</code> で組み立てた SQL クエリを <code>std/sqlite</code> が受け付けてしまいます。 <span>G387</span></li>
+        <li><code>c[0]</code> に対する <code>await</code> をまたいだ更新の消失。フィールドへの同じ書き込みなら拒否されます。 <span>G390</span></li>
+        <li>文字列に対する <code>input + 1</code>、<code>users.find(...).name</code>、<code>unknown</code> に対するフィールドの読み取りは、<code>tsc</code> のステップでしか検出されず、Glyph 自身の型検査では検出されません。そのためエディタやエージェント向けツールでは見逃されます。 <span>G381, G382, G392</span></li>
+      </ul>
+
+        <p class="group-sub c-after">
+          エージェントが書いたコードに関するどの研究でも、最大の分類はロジックの誤りで、型検査器にはそれが見えません。式の誤りやタスクの読み違いは、TypeScript と同じく Glyph でもコンパイルが通ります。
+        </p>
+        <p class="group-sub">
+          Glyph には、TypeScript で書くしかないもののための抜け道が 1 つだけあります。<code>extern_ts</code> です。固定のキーワードなので、<code>grep extern_ts</code> でルールが停止している場所をすべて一覧できます。
+        </p>
+      </section>
+    <script>
+      (function () {
+        var T = {"showing": "{total} 件中 {shown} 件を表示しています。選択中のフィルタをもう一度押すと解除できます。", "copied": "リンクをコピーしました"};
+        var bar = document.querySelector(".c-filters");
+        var items = Array.prototype.slice.call(document.querySelectorAll(".catch"));
+        var status = document.querySelector(".c-fstatus");
+        var chips = Array.prototype.slice.call(document.querySelectorAll(".c-chip"));
+        var state = { ts: "", glyph: "" };
+        function read() {
+          var q = new URLSearchParams(location.search);
+          state.ts = q.get("ts") || "";
+          state.glyph = q.get("glyph") || "";
+        }
+        function write() {
+          var q = new URLSearchParams(location.search);
+          ["ts", "glyph"].forEach(function (k) {
+            if (state[k]) q.set(k, state[k]); else q.delete(k);
+          });
+          var s = q.toString();
+          history.replaceState(null, "", location.pathname + (s ? "?" + s : "") + location.hash);
+        }
+        function apply() {
+          var shown = 0;
+          items.forEach(function (el) {
+            var ok = (!state.ts || el.dataset.ts === state.ts) && (!state.glyph || el.dataset.glyph === state.glyph);
+            el.hidden = !ok;
+            if (ok) shown++;
+          });
+          chips.forEach(function (c) {
+            c.setAttribute("aria-pressed", String(state[c.dataset.group] === c.dataset.value));
+          });
+          status.textContent = state.ts || state.glyph
+            ? T.showing.replace("{shown}", shown).replace("{total}", items.length)
+            : "";
+        }
+        if (bar) {
+          bar.hidden = false;
+          read();
+          apply();
+          chips.forEach(function (c) {
+            c.addEventListener("click", function () {
+              var g = c.dataset.group;
+              state[g] = state[g] === c.dataset.value ? "" : c.dataset.value;
+              write();
+              apply();
+            });
+          });
+        }
+        document.querySelectorAll(".c-copy").forEach(function (a) {
+          a.addEventListener("click", function (e) {
+            var url = location.origin + location.pathname + "#" + a.dataset.slug;
+            if (!navigator.clipboard) return;
+            e.preventDefault();
+            history.replaceState(null, "", "#" + a.dataset.slug);
+            navigator.clipboard.writeText(url).then(function () {
+              var prev = a.textContent;
+              a.textContent = T.copied;
+              setTimeout(function () { a.textContent = prev; }, 1400);
+            });
+          });
+        });
+      })();
+    </script>
+
+    </div>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript にトランスパイルされる型付き言語。エージェントがコードを壊さずに変更できるように作られています。</p>
+          </div>
+          <div class="foot-col">
+            <h2>はじめる</h2>
+            <a href="/ja/start/">最初のプログラム</a>
+            <a href="/ja/from-typescript/">TypeScript から来た人へ</a>
+            <a href="/ja/teams/">チーム向け</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">5 分でわかるツアー</a>
+          </div>
+          <div class="foot-col">
+            <h2>学ぶ</h2>
+            <a href="/ja/answers/">Q&amp;A</a>
+            <a href="/ja/answers/verifiability/">Q&amp;A を順番に読む</a>
+            <a href="/ja/answers/tooling/">エディタとエージェント向けツール</a>
+            <a href="/ja/agents/">エージェント向け</a>
+            <a href="/ja/mcp/">MCP サーバー</a>
+            <a href="/llms-pages.txt">Markdown 版のページ</a>
+            <a href="/ja/design/">設計</a>
+            <a href="/ja/pillars/verifiability/">4 つの柱</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">言語仕様</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">マニフェスト</a>
+          </div>
+          <div class="foot-col">
+            <h2>根拠</h2>
+            <a href="/ja/catches/">検出できるもの</a>
+            <a href="/ja/evidence/">主張の検証方法</a>
+            <a href="/ja/hardening/">堅牢化</a>
+            <a href="/ja/benchmarks/">ベンチマーク</a>
+            <a href="/versions/">バージョン</a>
+          </div>
+          <div class="foot-col">
+            <h2>ソースコード</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/ja/contribute/">コントリビュート</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub のリリース</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ja/catches/index.segments.json">このページを編集する</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: エージェントが気づかれずに壊すことのできない TypeScript。</span>
+          <span>&copy; 2026 Glyph &middot; MIT または Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "自動", light: "ライト", dark: "ダーク" };
+        var labels = { auto: "カラーテーマ: 自動 (システム設定に従う)。ライトに切り替えます。", light: "カラーテーマ: ライト。ダークに切り替えます。", dark: "カラーテーマ: ダーク。自動に切り替えます。" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

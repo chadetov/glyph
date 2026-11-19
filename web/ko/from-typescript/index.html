@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TypeScript 사용자라면 · Glyph에서 바뀌는 것 · Glyph</title>
+    <meta name="description" content="Glyph는 TypeScript와 거의 똑같이 읽히고 TypeScript로 컴파일됩니다. 바뀌는 것은 몇 가지 문법 차이, any와 as와 !가 없다는 점, grep으로 찾을 수 있는 탈출구 하나, 그리고 npm을 쓰는 방식입니다." />
+    <link rel="canonical" href="https://glyphlang.io/ko/from-typescript/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glyph" />
+    <meta property="og:url" content="https://glyphlang.io/ko/from-typescript/" />
+    <meta property="og:title" content="TypeScript 사용자라면 · Glyph에서 바뀌는 것" />
+    <meta property="og:description" content="Glyph는 TypeScript와 거의 똑같이 읽히고 TypeScript로 컴파일됩니다. 바뀌는 것은 몇 가지 문법 차이, any와 as와 !가 없다는 점, grep으로 찾을 수 있는 탈출구 하나, 그리고 npm을 쓰는 방식입니다." />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="th_TH" />
+    <meta property="og:image" content="https://glyphlang.io/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript 사용자라면","item":"https://glyphlang.io/ko/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/from-typescript/#article","headline":"TypeScript 사용자라면 · Glyph에서 바뀌는 것","description":"Glyph는 TypeScript와 거의 똑같이 읽히고 TypeScript로 컴파일됩니다. 바뀌는 것은 몇 가지 문법 차이, any와 as와 !가 없다는 점, grep으로 찾을 수 있는 탈출구 하나, 그리고 npm을 쓰는 방식입니다.","url":"https://glyphlang.io/ko/from-typescript/","inLanguage":"ko","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/from-typescript/#breadcrumb"}}]}</script>
+
+    <link rel="alternate" hreflang="en" href="https://glyphlang.io/from-typescript/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/from-typescript/" />
+    <link rel="alternate" hreflang="es" href="https://glyphlang.io/es/from-typescript/" />
+    <link rel="alternate" hreflang="ja" href="https://glyphlang.io/ja/from-typescript/" />
+    <link rel="alternate" hreflang="tr" href="https://glyphlang.io/tr/from-typescript/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://glyphlang.io/zh-cn/from-typescript/" />
+    <link rel="alternate" hreflang="ko" href="https://glyphlang.io/ko/from-typescript/" />
+    <link rel="alternate" hreflang="de" href="https://glyphlang.io/de/from-typescript/" />
+    <link rel="alternate" hreflang="ru" href="https://glyphlang.io/ru/from-typescript/" />
+    <link rel="alternate" hreflang="th" href="https://glyphlang.io/th/from-typescript/" />
+    <link rel="alternate" hreflang="x-default" href="https://glyphlang.io/from-typescript/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="주 메뉴">
+        <div class="nav-brand">
+          <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top active" aria-controls="nav-why">왜 Glyph인가<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">누구를 위한 언어인가</p>
+                    <ul>
+                      <li><a href="/ko/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">에이전트 개발자를 위한 안내</span><span class="nav-desc">MCP 서버와 서버가 답하는 쿼리</span></span></a></li>
+                      <li><a href="/ko/from-typescript/" aria-current="page"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">TypeScript 사용자라면</span><span class="nav-desc">무엇이 바뀌고 무엇이 그대로인가</span></span></a></li>
+                      <li><a href="/ko/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">팀을 위한 안내</span><span class="nav-desc">무엇을 보장하고 도입 비용은 얼마인가</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">설계</p>
+                    <ul>
+                      <li><a href="/ko/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">설계</span><span class="nav-desc">네 가지 원칙과 일부러 넣지 않은 것들</span></span></a></li>
+                      <li><a href="/ko/pillars/verifiability/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">네 가지 기둥</span><span class="nav-desc">검증 가능성, 검색 용이성, 추상화, 안정적인 diff</span></span></a></li>
+                      <li><a href="/ko/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph와 Effect 비교</span><span class="nav-desc">언어와 라이브러리의 비교</span></span></a></li>
+                      <li><a href="/ko/design/vs-rescript-gleam-elm/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">왜 ReScript, Gleam, Elm이 아닌가?</span><span class="nav-desc">JavaScript로 컴파일되는 세 가지 타입 언어</span></span></a></li>
+                      <li><a href="/ko/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph와 도구를 갖춘 TypeScript 비교</span><span class="nav-desc">strict tsc, zod, eslint로도 여전히 통과하는 것들</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/ko/catches/">무엇을 잡아내는가</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">배우기<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">시작하기</p>
+                    <ul>
+                      <li><a href="/ko/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10분 만에 시작하기</span><span class="nav-desc">설치하고, 프로그램을 작성하고, 실행하기</span></span></a></li>
+                      <li><a href="/ko/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">답변 <span class="nav-count">28</span></span><span class="nav-desc">엔지니어들이 묻는 질문과 예제로 보는 답</span></span></a></li>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">언어 레퍼런스</span><span class="nav-desc">GitHub에 있는 전체 명세</span></span></a></li>
+                      <li><a href="/ko/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">기여하기</span><span class="nav-desc">컴파일러의 구조와 기여하는 방법</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">에이전트 연결</p>
+                    <ul>
+                      <li><a href="/ko/mcp/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">MCP 서버</span><span class="nav-desc">에이전트를 컴파일러 쿼리에 연결합니다</span></span></a></li>
+                      <li><a href="/ko/answers/ask-the-compiler/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span><span class="nav-text"><span class="nav-label">컴파일러에게 묻기</span><span class="nav-desc">편집하기 전에 심볼, 타입, 변경의 영향을 조회합니다</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">에이전트를 위한 llms.txt</span><span class="nav-desc">에이전트가 읽을 수 있는 파일 하나에 담은 언어</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">근거<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">검증 방법</p>
+                    <ul>
+                      <li><a href="/ko/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">주장을 검증하는 방법</span><span class="nav-desc">각 주장 뒤에 있는 fixture와 CI 게이트</span></span></a></li>
+                      <li><a href="/ko/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">하드닝</span><span class="nav-desc">에이전트가 깨뜨리려 시도한 기록과 찾아낸 것들</span></span></a></li>
+                      <li><a href="/ko/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">벤치마크</span><span class="nav-desc">네 가지 원칙을 숫자로, 단서와 함께</span></span></a></li>
+                      <li><a href="/ko/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">아직 잡아내지 못하는 것</span><span class="nav-desc">알려진 구멍과 각각의 재현 코드</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/ko/catches/"><span class="nav-feature-big">37개 중 21개</span><span class="nav-feature-text">최대한 엄격하게 설정한 환경의 어떤 도구도 잡지 못하는 TypeScript 실수</span><span class="nav-feature-cta">무엇을 잡아내는지 보기 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/versions/">버전</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">플레이그라운드</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <details class="lang-menu">
+          <summary class="lang-btn" aria-label="언어: 한국어 (한국)"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">한국어</span><span class="lang-short" aria-hidden="true">한국</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <div class="lang-drop">
+            <p class="lang-head">언어</p>
+            <ul>
+              <li><a href="/from-typescript/" hreflang="en" lang="en" data-lang="en"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span></a></li>
+              <li><a href="/pt-br/from-typescript/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Português (Brasil)</span></a></li>
+              <li><a href="/es/from-typescript/" hreflang="es" lang="es" data-lang="es"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Español</span></a></li>
+              <li><a href="/ja/from-typescript/" hreflang="ja" lang="ja" data-lang="ja"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">日本語</span></a></li>
+              <li><a href="/tr/from-typescript/" hreflang="tr" lang="tr" data-lang="tr"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Türkçe</span></a></li>
+              <li><a href="/zh-cn/from-typescript/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh-cn"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">简体中文</span></a></li>
+              <li><a href="/ko/from-typescript/" hreflang="ko" lang="ko" data-lang="ko" aria-current="true"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">한국어</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><a href="/de/from-typescript/" hreflang="de" lang="de" data-lang="de"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Deutsch</span></a></li>
+              <li><a href="/ru/from-typescript/" hreflang="ru" lang="ru" data-lang="ru"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">Русский</span></a></li>
+              <li><a href="/th/from-typescript/" hreflang="th" lang="th" data-lang="th"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">ไทย</span></a></li>
+            </ul>
+            <a class="lang-en" href="/from-typescript/" hreflang="en" data-lang="en">영어로 읽기</a>
+          </div>
+        </details>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="색상 테마: 자동(시스템 설정을 따름). 라이트로 전환.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">자동</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="메뉴 열기">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "메뉴 닫기" : "메뉴 열기");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // A code block wider than its box says so: site/style.css fades the
+      // edge it can scroll toward. A block in a closed <details> has no width
+      // until it opens, so each one is re-measured whenever its size changes.
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.ResizeObserver) return;
+        function edges(p) {
+          var scrolls = p.scrollWidth > p.clientWidth + 1;
+          p.classList.toggle("scrolls", scrolls);
+          p.classList.toggle("at-start", scrolls && p.scrollLeft < 2);
+          p.classList.toggle("at-end", scrolls && p.scrollLeft + p.clientWidth >= p.scrollWidth - 2);
+        }
+        var seen = new ResizeObserver(function (entries) {
+          entries.forEach(function (e) {
+            edges(e.target);
+          });
+        });
+        var pres = [].slice.call(document.querySelectorAll("pre"));
+        pres.forEach(function (p) {
+          seen.observe(p);
+          p.addEventListener("scroll", function () {
+            edges(p);
+          }, { passive: true });
+        });
+        // the web font changes how wide a line is without resizing the box
+        if (document.fonts) document.fonts.ready.then(function () {
+          pres.forEach(edges);
+        });
+      });
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <div class="i18n-auto" role="status" hidden>
+      <p><span>언어: 한국어</span><span class="sep" aria-hidden="true">&middot;</span><a href="/from-typescript/" hreflang="en" data-lang="en">영어로 읽기</a></p>
+      <button class="i18n-x" type="button" aria-label="닫기"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="i18n-note" role="note">
+      <p>이 페이지는 번역본입니다. 기준은 영어판입니다. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ko%29%3A+%2Fko%2Ffrom-typescript%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fko%2Ffrom-typescript%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Ffrom-typescript%2F%0A%0AWhat+is+wrong%3A%0A">번역 문제 신고하기</a></p>
+    </div>
+    <script>
+      (function () {
+        var bar = document.querySelector(".i18n-auto");
+        try {
+          if (sessionStorage.getItem("glyph-lang-auto") === "1") bar.hidden = false;
+        } catch (e) {}
+        bar.querySelector(".i18n-x").addEventListener("click", function () {
+          bar.hidden = true;
+          try {
+            sessionStorage.removeItem("glyph-lang-auto");
+          } catch (e) {}
+        });
+      })();
+    </script>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">TypeScript 사용자라면</p>
+      <h1 class="q-title">이미 TypeScript를 쓰고 있다면 무엇이 바뀌는가</h1>
+
+      <p class="short-answer">
+        생각보다 적습니다. Glyph는 <code>tsc --strict</code>를 통과하는 TypeScript로 컴파일되고, npm과 기존 배포 방식을 그대로 쓰며, 거의 똑같이 읽힙니다. 차이는 몇 가지뿐이고, 각각은 틀릴 수 있는 방법 하나를 컴파일러가 하는 검사 하나와 맞바꿉니다.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label" id="if-you-know-typescript-you-know-most-of-this">TypeScript를 안다면 대부분은 이미 아는 것입니다<a class="h-anchor" href="#if-you-know-typescript-you-know-most-of-this" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          새 언어를 배우는 것이 아니라 이 네 가지만 익히면 됩니다. 이 사이트의 모든 예제에 나오는 것들입니다.
+        </p>
+      </div>
+
+      <dl class="gloss-list">
+        <div>
+          <dt><code>match</code></dt>
+          <dd>망라적인 <code>switch</code>: 유니언에 대해 쓰면 컴파일러가 모든 case를 처리하게 합니다. 이것이 유일한 조건문이기도 합니다. <code>if</code>/<code>else</code>도 삼항 연산자도 없으며, 이유는 <a href="#there-is-no-if">아래에서 설명합니다</a>.</dd>
+        </div>
+        <div>
+          <dt><code>Result&lt;T, E&gt;</code></dt>
+          <dd>오류는 던지는 예외가 아니라 반환값입니다. <code>match</code>로 처리하거나 <code>?</code> 연산자로 위로 전달합니다.</dd>
+        </div>
+        <div>
+          <dt><code>fn f() -&gt; T</code></dt>
+          <dd>함수이며, <code>-&gt;</code> 뒤가 반환 타입입니다. <code>type X = {...}</code>는 레코드이고, <code>type X = A | B</code>는 태그 유니언입니다.</dd>
+        </div>
+        <div>
+          <dt><code>mut x = e</code></dt>
+          <dd>재할당은 명시적이고 grep으로 찾을 수 있습니다. 평범한 <code>let</code> 바인딩은 모르는 사이에 바뀌지 않으며, 바꾸려면 <code>mut</code>를 씁니다.</dd>
+        </div>
+      </dl>
+
+      <div class="detail">
+        <p>
+          이 사이트에서 "에이전트"는 Claude, Copilot, Cursor 같은 AI 코딩 도우미를 뜻합니다. Glyph가 가장 도움이 되는 대상은 에이전트이지만, 사람이 썼든 모델이 썼든 검사는 같습니다. 이미 zod와 eslint를 곁들인 strict TypeScript를 쓰고 있다면, <a href="/ko/answers/vs-tooled-ts/">언어가 그 위에 더하는 것은 이것입니다</a>.
+        </p>
+
+        <h2 class="block-label" id="there-is-no-if">if가 없습니다<a class="h-anchor" href="#there-is-no-if" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          불리언에 대한 분기는 <code>true</code>와 <code>false</code>에 대한 <code>match</code>입니다. 한쪽에서만 무언가를 할 때는 다른 arm을 빈 블록으로 둡니다.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">TypeScript</span>
+<pre><span class="k">function</span> label(admin: <span class="t">boolean</span>): <span class="t">string</span> {
+  <span class="k">return</span> admin <span class="op">?</span> <span class="s">"admin"</span> : <span class="s">"member"</span>;
+}
+
+<span class="k">if</span> (verbose) {
+  console.log(<span class="s">"starting"</span>);
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">Glyph</span>
+<pre><span class="k">fn</span> label(admin: <span class="t">bool</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> admin {
+    <span class="k">true</span> <span class="op">=&gt;</span> <span class="s">"admin"</span>,
+    <span class="k">false</span> <span class="op">=&gt;</span> <span class="s">"member"</span>,
+  }
+}
+
+<span class="k">match</span> verbose {
+  <span class="k">true</span> <span class="op">=&gt;</span> io.println(<span class="s">"starting"</span>),
+  <span class="k">false</span> <span class="op">=&gt;</span> {},
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          이유는 명세의 결정 D3입니다. 값에 따른 분기를 위한 구문을 하나로 두면 읽고, 쓰고, 검색할 형태도 하나가 됩니다. 분기에서 나오는 값은 언제나 <code>match</code>에서 나오며, 그 결과 타입은 <code>tsc</code>에 넘기지 않고 Glyph 자체 검사기가 계산합니다. 유니언에서는 바로 이 구문이 모든 case를 다뤄야 하는 구문입니다(<code>E0200</code>). 불리언에서는 얻는 것이 적습니다. <code>false =&gt; {}</code>는 <code>else</code>를 생략하는 것 이상을 말해 주지 않기 때문입니다.
+        </p>
+        <p>
+          대가도 있습니다. 한 줄짜리 삼항 연산자는 네 줄짜리 <code>match</code>가 되고, 조건에 따른 조기 반환은 빈 arm이 있는 <code>match</code>가 되며, TypeScript 사용자가 보기에 가장 먼저 어색한 부분입니다. 명세는 이 장황함을 감수하는 비용으로 기록해 두었습니다. 그래도 <code>if</code>를 쓰면 오류 <code>E0006</code>이 나고, 그 도움말이 <code>match</code> 형태를 보여 줍니다. 삼항 연산자는 같은 도움말을 가진 <code>E0013</code>입니다.
+        </p>
+
+        <h2 class="block-label" id="the-tax-you-already-pay">이미 치르고 있는 비용<a class="h-anchor" href="#the-tax-you-already-pay" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          TypeScript 코드베이스에서 AI 에이전트와 함께 개발한다면 매일 치르는 비용입니다. Glyph에는 각각에 대한 구체적인 답이 있고, 목록에서 링크로 연결됩니다.
+        </p>
+      </div>
+
+      <ul class="tax-list">
+        <li>TypeScript는 타입을 지우기 때문에 런타임이 컴파일 시점과 더 이상 일치하지 않고, 그래서 에이전트는 존재하지 않는 API를 지어냅니다. Glyph의 타입은 런타임 검사(<code>T.parse</code>, <code>T.is</code>)를 함께 가집니다. <a href="/ko/answers/typed-apis/">타입이 있는 API</a>를 보세요.</li>
+        <li>에이전트는 불확실한 부분을 <code>any</code>와 <code>as unknown as T</code>로 덮고, 컴파일러는 이를 허용합니다. Glyph에는 둘 다 없습니다. 아래 표를 보세요.</li>
+        <li>한 줄만 바꿔 달라고 했는데 파일 전체가 다시 쓰여 돌아옵니다. 포매터가 편집할 때마다 연쇄적으로 바꾸기 때문입니다. <code>glyph fmt</code>는 옵션 없이 레이아웃이 하나뿐입니다. <a href="/ko/answers/diff-stability/">깔끔한 diff</a>를 보세요.</li>
+        <li>모든 타입 옆에 직접 작성한 검증기(zod와 직렬화 코드)를 따로 유지하는데, 에이전트가 한쪽에서만 필드 이름을 바꾸고 나머지는 그대로 둡니다. 그래도 전부 컴파일됩니다. Glyph에서는 타입이 곧 검증기입니다.</li>
+        <li>심볼을 <code>grep</code>하면 오버로드, 데코레이터, 병합된 네임스페이스 등 관련 없는 결과가 열 개 나옵니다. Glyph에는 그런 것이 없습니다. <a href="/ko/answers/greppability/">코드 찾기</a>를 보세요.</li>
+      </ul>
+
+      <div class="detail">
+        <h2 class="block-label" id="the-off-switches-typescript-gives-you-and-what-glyph-has">TypeScript가 주는 검사 끄기 스위치와, Glyph에서 대신 쓰는 것<a class="h-anchor" href="#the-off-switches-typescript-gives-you-and-what-glyph-has" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          아래의 각 TypeScript 구문은 검사기에게 검사를 멈추라고 말합니다. 어느 것도 Glyph 문법이 아닙니다. 가운데 열은 0.1.149에서 각 구문에 대해 <code>glyph check --no-tsc</code>가 출력한 내용입니다.
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>TypeScript</th><th>Glyph에서는</th><th>대신 쓰는 것</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="TypeScript"><code>x!</code></td><td data-label="In Glyph">문법이 아님: <code>E0013</code></td><td data-label="What you write instead"><code>match</code>로 처리하거나 <code>?</code>로 위로 전달하는 <code>Option&lt;T&gt;</code></td></tr>
+            <tr><td data-label="TypeScript"><code>x as T</code>, <code>as unknown as T</code></td><td data-label="In Glyph">캐스트가 존재하지 않음: <code>E0013</code>, 도움말은 검증하라고 안내</td><td data-label="What you write instead"><code>Result</code>를 반환하는 <code>T.parse(x)</code></td></tr>
+            <tr><td data-label="TypeScript"><code>any</code></td><td data-label="In Glyph">타입이 아님: <code>E0103</code>, 해석되지 않는 이름</td><td data-label="What you write instead"><code>T.parse</code>, <code>T.is</code>, 또는 <code>match</code> arm의 <code>is T</code>로 좁히는 <code>unknown</code></td></tr>
+            <tr><td data-label="TypeScript"><code>(v): v is T</code></td><td data-label="In Glyph">사용자가 작성하는 타입 가드 없음: <code>E0002</code></td><td data-label="What you write instead">선언된 모양을 검사하는 자동 생성된 <code>T.is(v)</code>. 따라서 가드가 주장하는 것보다 덜 검사할 수 없습니다</td></tr>
+            <tr><td data-label="TypeScript"><code>// @ts-ignore</code>, <code>// eslint-disable</code></td><td data-label="In Glyph">평범한 주석일 뿐이며, 그 아래의 오류는 그대로 발생합니다</td><td data-label="What you write instead">없음. 어떤 주석이나 플래그로도 Glyph 진단을 끌 수 없습니다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph check</code>에는 단계 전체를 건너뛰는 플래그가 있지만(<code>--no-tsc</code>는 <code>tsc --strict</code> 실행을, <code>--no-test</code>는 <code>@example</code> 테스트를 건너뜁니다), 검사 하나만 끄는 플래그는 없습니다. TypeScript 프로젝트는 받아들이고 Glyph는 거부하는 것의 전체 목록은 각 사례를 두 컴파일러로 실행한 결과와 함께 <a href="/ko/catches/">잡아내는 것 페이지</a>에 있습니다.
+        </p>
+
+        <h2 class="block-label" id="one-escape-hatch-and-you-can-grep-for-it">탈출구는 하나이고, grep으로 찾을 수 있습니다<a class="h-anchor" href="#one-escape-hatch-and-you-can-grep-for-it" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          Glyph로 표현할 수 없는 TypeScript가 필요할 때 <code>extern_ts("...")</code>는 인라인 타입이나 표현식 하나를 받고, <code>tsc</code>는 여전히 이를 검사합니다. 모듈 전체가 필요하면 <code>.ts</code> 파일을 <code>src/extern/</code> 아래에 두고 <code>import extern/name</code>이라고 씁니다. 그 밖의 상대 경로 import는 허용되지 않으므로 이 경로가 유일한 통로입니다. 두 형태 모두 <code>extern</code>이라는 단어를 포함하므로, <code>grep -rn extern src/</code>로 검사기가 TypeScript에 넘기는 모든 곳을 찾을 수 있습니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">src/clock.glyph</span>
+<pre><span class="k">module</span> clock
+
+<span class="k">pub</span> <span class="k">fn</span> now_ms() <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> extern_ts(<span class="s">"Date.now()"</span>)
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label" id="what-the-emitted-typescript-looks-like">생성된 TypeScript의 모습<a class="h-anchor" href="#what-the-emitted-typescript-looks-like" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          읽고 커밋할 수 있는 평범한 TypeScript이며, 모듈마다 파일 하나입니다. 유니언은 판별 유니언과 그 런타임 검사를 담은 값이 되고, <code>match</code>는 태그에 대한 <code>switch</code>가 됩니다. 왼쪽 모듈에 대한 <code>glyph build</code>의 출력이며, import 줄은 줄였습니다.
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">plan.glyph</span>
+<pre><span class="k">module</span> plan
+
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Plan</span> = <span class="t">Free</span> | <span class="t">Pro</span> | <span class="t">Team</span>
+
+<span class="k">pub</span> <span class="k">fn</span> seats(p: <span class="t">Plan</span>) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Free</span> <span class="op">=&gt;</span> <span class="n">1</span>,
+    <span class="t">Pro</span> <span class="op">=&gt;</span> <span class="n">5</span>,
+    <span class="t">Team</span> <span class="op">=&gt;</span> <span class="n">50</span>,
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">plan.ts (생성됨, 일부 생략)</span>
+<pre><span class="k">export</span> <span class="k">type</span> <span class="t">Plan</span> =
+  | { tag: <span class="s">"Free"</span> }
+  | { tag: <span class="s">"Pro"</span> }
+  | { tag: <span class="s">"Team"</span> };
+
+<span class="k">export</span> <span class="k">const</span> <span class="t">Free</span>: <span class="t">Plan</span> = { tag: <span class="s">"Free"</span> };
+<span class="k">export</span> <span class="k">const</span> <span class="t">Pro</span>: <span class="t">Plan</span> = { tag: <span class="s">"Pro"</span> };
+<span class="k">export</span> <span class="k">const</span> <span class="t">Team</span>: <span class="t">Plan</span> = { tag: <span class="s">"Team"</span> };
+<span class="k">export</span> <span class="k">const</span> <span class="t">Plan</span> = {
+  <span class="k">is</span>(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">Plan</span> { ... },
+  parse(value: <span class="t">unknown</span>) { ... },
+  schema: ...,
+};
+
+<span class="k">export</span> <span class="k">function</span> seats(p: <span class="t">Plan</span>): <span class="t">number</span> {
+  <span class="k">const</span> __m0 = p;
+  <span class="k">switch</span> (__m0.tag) {
+    <span class="k">case</span> <span class="s">"Free"</span>: { <span class="k">return</span> <span class="n">1</span>; }
+    <span class="k">case</span> <span class="s">"Pro"</span>: { <span class="k">return</span> <span class="n">5</span>; }
+    <span class="k">case</span> <span class="s">"Team"</span>: { <span class="k">return</span> <span class="n">50</span>; }
+    <span class="k">default</span>: <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"non-exhaustive match"</span>);
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Team</code> arm을 지우면 TypeScript를 쓰기 전에 빌드가 멈춥니다.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc (일부 생략)</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Plan`</span>: missing variants <span class="q">`Team`</span></span>
+   <span class="bx">╭─</span>[ plan:6:10 ]
+   <span class="bx">│</span>
+ 6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match p {
+   <span class="bx">┆</span> <span class="bx">┆</span>
+ 9 <span class="bx">│</span> <span class="bx">├─</span>▶   }
+   <span class="bx">│</span> <span class="bx">╰─────────</span> non-exhaustive match on <span class="q">`Plan`</span>: missing variants <span class="q">`Team`</span>
+   <span class="bx">│</span>     <span class="f">Help:</span> Add an arm for each missing variant.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph를 그만 쓰더라도 생성된 <code>.ts</code>는 남습니다. 빌드가 옆에 함께 쓰는 작은 지원 디렉터리 말고는 런타임 의존성이 없습니다.
+        </p>
+
+        <h2 class="block-label" id="npm-and-the-typescript-you-already-have">npm, 그리고 이미 가지고 있는 TypeScript<a class="h-anchor" href="#npm-and-the-typescript-you-already-have" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          <code>.glyph</code> 모듈은 npm 패키지를 이름으로 import하며(<code>import kafkajs { Kafka }</code>), 타입은 패키지 자체의 선언에서 가져옵니다. 기존 <code>.ts</code> 코드는 생성된 Glyph 모듈을 여느 로컬 파일처럼 import합니다. 따라서 TypeScript로 남아 있는 앱 안에서 모듈 하나부터 시작할 수 있습니다. 자세한 내용은 세 가지 답변에 있습니다.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/ko/answers/imports/"><span class="q">기존 TypeScript, JavaScript, npm 라이브러리를 쓸 수 있나요?</span><p>패키지 import, <code>.ts</code> shim 유지, 그리고 Glyph를 다시 <code>.ts</code>로 import하기.</p></a>
+        <a class="a-card" href="/ko/answers/embedding/"><span class="q">기존 앱 안에서 Glyph를 도입할 수 있나요?</span><p>기본 Vite 프로젝트에서 도메인 핵심은 Glyph로, 나머지는 TypeScript로.</p></a>
+        <a class="a-card" href="/ko/answers/react/"><span class="q">React와 함께 쓸 수 있나요?</span><p>컴포넌트, JSX, hook, Context, 그리고 여전히 <code>tsc</code>가 검사하는 부분.</p></a>
+      </div>
+      <section class="next-steps">
+        <h2 class="block-label" id="where-to-go-next">다음으로 볼 곳<a class="h-anchor" href="#where-to-go-next" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <a class="ns-primary" href="/ko/catches/">
+          <span class="ns-body"><span class="ns-eyebrow">추천</span><span class="ns-title">TypeScript가 통과시키는 것 보기</span><span class="ns-desc">각 사례를 <code>tsc --strict</code>와 Glyph에서 실행한 결과와 오류.</span><span class="ns-cta">사례 보기 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
+          <span class="ns-art"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>
+        </a>
+        <div class="ns-grid">
+          <a class="ns-card span-3" href="/ko/start/"><span class="ns-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="ns-card-title">첫 프로그램 작성하기</span><span class="ns-card-desc">설치하고, 프로젝트를 만들고, 실행하고, 일부러 깨뜨려 오류를 읽습니다. 약 10분.</span><span class="ns-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+          <a class="ns-card span-3" href="/playground/"><span class="ns-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12.5 15H17"/></svg></span><span class="ns-card-title">브라우저에서 써 보기</span><span class="ns-card-desc">컴파일러가 페이지 안에서 실행되므로 설치할 것이 없습니다.</span><span class="ns-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+        </div>
+      </section>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>TypeScript로 트랜스파일되는 타입 언어로, 에이전트가 코드를 깨뜨리지 않고 수정할 수 있도록 만들었습니다.</p>
+          </div>
+          <div class="foot-col">
+            <h2>시작하기</h2>
+            <a href="/ko/start/">첫 번째 프로그램</a>
+            <a href="/ko/from-typescript/">TypeScript 사용자라면</a>
+            <a href="/ko/teams/">팀을 위한 안내</a>
+            <a href="/playground/">플레이그라운드</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">5분 둘러보기</a>
+          </div>
+          <div class="foot-col">
+            <h2>배우기</h2>
+            <a href="/ko/answers/">답변</a>
+            <a href="/ko/answers/verifiability/">답변을 순서대로 읽기</a>
+            <a href="/ko/answers/tooling/">에디터와 에이전트 도구</a>
+            <a href="/ko/agents/">에이전트 개발자를 위한 안내</a>
+            <a href="/ko/mcp/">MCP 서버</a>
+            <a href="/llms-pages.txt">Markdown 버전 페이지</a>
+            <a href="/ko/design/">설계</a>
+            <a href="/ko/pillars/verifiability/">네 가지 기둥</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">언어 명세</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">매니페스토</a>
+          </div>
+          <div class="foot-col">
+            <h2>근거</h2>
+            <a href="/ko/catches/">잡아내는 것</a>
+            <a href="/ko/evidence/">주장을 검증하는 방법</a>
+            <a href="/ko/hardening/">하드닝</a>
+            <a href="/ko/benchmarks/">벤치마크</a>
+            <a href="/versions/">버전</a>
+          </div>
+          <div class="foot-col">
+            <h2>소스 코드</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">이슈</a>
+            <a href="/ko/contribute/">기여하기</a>
+            <a href="https://github.com/chadetov/glyph/releases">GitHub 릴리스</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/i18n/ko/from-typescript/index.segments.json">이 페이지 편집</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: 에이전트가 몰래 깨뜨릴 수 없는 TypeScript.</span>
+          <span>&copy; 2026 Glyph &middot; MIT 또는 Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "자동", light: "라이트", dark: "다크" };
+        var labels = { auto: "색상 테마: 자동(시스템 설정을 따름). 라이트로 전환.", light: "색상 테마: 라이트. 다크로 전환.", dark: "색상 테마: 다크. 자동으로 전환." };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute("aria-label", labels[mode]);
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+    <script>
+      // Translated nav labels vary in length and the bar does not grow, so
+      // when its contents overflow it first shortens the language button to
+      // its short label, then tightens the spacing.
+      (function () {
+        var root = document.documentElement;
+        var panel = document.querySelector(".nav-panel");
+        if (!panel) return;
+        var phone = window.matchMedia("(max-width: 860px)");
+        function over() {
+          return panel.scrollWidth > panel.clientWidth + 1;
+        }
+        function fit() {
+          root.classList.remove("nav-fit-1", "nav-fit-2");
+          if (phone.matches) return;
+          if (over()) root.classList.add("nav-fit-1");
+          if (over()) root.classList.add("nav-fit-2");
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
+      })();
+      // A language picked from the menu or a "Read in English" link is the
+      // reader's choice from then on; the first-visit redirect never overrides it.
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("a[data-lang]");
+        if (!a) return;
+        try {
+          localStorage.setItem("glyph-lang", a.getAttribute("data-lang"));
+          sessionStorage.removeItem("glyph-lang-auto");
+        } catch (err) {}
+      });
+    </script>
+  </body>
+</html>

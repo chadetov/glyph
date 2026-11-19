@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>For agents and tool builders · Glyph's compiler interface · Glyph</title>
+    <meta name="description" content="The interface an agent or tool uses to work with Glyph: an MCP server with eleven tools, the same questions as glyph query verbs, glyph check --agent for repairing a red build, and glyph llms for an offline language reference. With a real request and response, and impact numbers on a real application." />
+    <link rel="canonical" href="https://glyphlang.io/agents/" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Main">
+        <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+        <div class="nav-links">
+          <a href="/playground/">Playground</a>
+          <a href="/pillars/verifiability/">Why Glyph</a>
+          <a href="/answers/">Answers</a>
+          <a href="/hardening/">Hardening</a>
+          <a href="/benchmarks/">Benchmarks</a>
+          <a href="/llms.txt">For agents</a>
+          <a href="/mcp/">MCP</a>
+          <a href="https://github.com/chadetov/glyph">GitHub</a>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Colour theme: auto (follows your system). Switch to light.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+      </nav>
+    </header>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">For agents and tool builders</p>
+      <h1 class="q-title">The compiler's interface for agents</h1>
+
+      <p class="short-answer">
+        An agent can ask Glyph's compiler what a symbol is, what an edit will break, and why a
+        build failed, and get JSON back. <code>glyph mcp</code> serves eleven tools over stdio,
+        each one also a <code>glyph query</code> verb, and <code>glyph llms</code> prints the
+        language reference offline.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Set it up</p>
+        <p>
+          <code>glyph init</code> writes this <code>.mcp.json</code> into a new project, and
+          <code>glyph agents</code> writes it (with an <code>AGENTS.md</code> pointing at
+          <code>glyph llms</code>) into an existing one. Any MCP client that reads the file
+          launches the server; there is no port and no daemon.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">.mcp.json, as glyph init writes it</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">One call, with its real answer</p>
+        <p>
+          A file reads a field that its record doesn't declare (<code>u.naem</code>). The
+          agent calls <code>glyph_diagnostics</code> and gets the compiler's own diagnostic, with
+          the fields the record does declare and the record that owns them. This is the tool's
+          output on 0.1.149, trimmed only where marked.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">request</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": {
+      "path": "src/user.glyph"
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">result</span>
+<pre>{
+  "diagnostics": [ {
+    "code": "E0210",
+    "severity": "error",
+    "stage": "typecheck",
+    "message": "type `U` has no field
+      `naem`; did you mean `name`?",
+    "alternatives": ["name", "email"],
+    "alternatives_kind": "fields",
+    "cause": "user::U",
+    "entity": "user::greet",
+    "file": "user.glyph",
+    "range": {
+      "start": { "line": 9, "col": 10 },
+      "end": { "line": 9, "col": 16 } },
+    ...
+  } ],
+  "member": true,
+  "module": "user",
+  "not_run": [
+    { "what": "tsc", ... },
+    { "what": "E0104, ...", ... },
+    { "what": "E0400, ...", ... } ],
+  "path": "src/user.glyph",
+  "project_root": "src",
+  "unindexed": []
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>not_run</code> names what this check did not cover, so an empty
+          <code>diagnostics</code> list can't be mistaken for a full build. Without an MCP client,
+          <code>glyph query diagnostics --path src/user.glyph</code> prints the same JSON. The
+          full tool list, with every verb, is on <a href="/mcp/">the MCP page</a>.
+        </p>
+
+        <p class="block-label">Before an edit: what will it break?</p>
+        <p>
+          <code>examples/apps/csvql</code> is an eleven-file CSV query engine with a four-case union,
+          <code>Value</code>. Asked what adding a fifth case does, <code>glyph_impact</code> lists
+          10 <code>match</code> sites in 4 files: 8 <code>WILL_FAIL</code> and 2
+          <code>ABSORBS</code>, where a catch-all arm will swallow the new case and keep
+          compiling. Adding the case for real gives exactly 8 <code>E0200</code> errors, at those
+          8 sites. The 2 absorbing sites stay silent, which is why the answer names them.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">the same question on the command line</span>
+<pre>glyph query impact --path value.glyph --entity value::Value \
+  --change add_variant --variant Blob</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">After a red build: what does the fix have to keep?</p>
+        <p>
+          <code>glyph check --agent</code> prints <code>check --json</code>'s diagnostics with two
+          more keys on each. <code>constraints</code> lists what a repairing edit must not break;
+          for the typo above it reads "the record's fields are closed: <code>user::U</code>
+          declares <code>name</code>, <code>email</code> and no others". <code>symbols</code>
+          carries the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so
+          the next edit needs no second call. Where the fix is fully determined,
+          <code>glyph fix</code> writes it.
+        </p>
+
+        <p class="block-label">Reading the language offline</p>
+        <p>
+          <code>glyph llms</code> prints the language reference, and <code>/llms.txt</code> on this
+          site is the same document. <code>glyph llms --json</code> is that knowledge as data, read
+          from the compiler's own tables: 77 diagnostic codes, 24 prelude names, 40 stdlib modules
+          with 340 exports, 49 language decisions, and the eleven tools.
+          <code>glyph llms --negative</code> returns 139 wrong programs with the code each one
+          draws, compiled when you ask. <code>scripts/check_llms_sync.py</code> fails when the
+          diagnostic and reserved-word tables in the reference drift from the compiler's own.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">offline entry points</span>
+<pre>glyph llms                  <span class="cm"># the reference, as prose</span>
+glyph llms --json           <span class="cm"># the same, as data from the compiler's tables</span>
+glyph llms --negative E0200 <span class="cm"># wrong programs that draw E0200</span>
+glyph --explain E0200       <span class="cm"># the long explanation of one code</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Each piece in depth</p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/mcp/"><span class="q">The MCP server</span><p>Setup, the eleven tools with their arguments, the <code>glyph query</code> verbs, and what the server doesn't do yet.</p></a>
+        <a class="a-card" href="/answers/ask-the-compiler/"><span class="q">Can my agent ask the compiler what a symbol is?</span><p><code>glyph_symbol</code>: a union's cases with the syntax that constructs each.</p></a>
+        <a class="a-card" href="/answers/impact/"><span class="q">Can the compiler say what a change breaks first?</span><p>Six change kinds, one verdict per site, and the csvql run above in full.</p></a>
+        <a class="a-card" href="/answers/repair-protocol/"><span class="q">Does a failed build tell my agent how to fix it?</span><p><code>check --agent</code>, <code>glyph fix</code>, and a walkthrough with real output.</p></a>
+        <a class="a-card" href="/answers/generated-docs/"><span class="q">Is the agent's documentation generated?</span><p>What <code>glyph llms</code> emits, where each number comes from, and what is still missing.</p></a>
+        <a class="a-card" href="/answers/ai-authoring/"><span class="q">Can an AI write a language it has barely seen?</span><p>What carries over from TypeScript, and how the compiler covers the rest.</p></a>
+      </div>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>A typed language that transpiles to TypeScript, built so agents can change code without breaking it.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Product</h2>
+            <a href="/playground/">Playground</a>
+            <a href="/versions/">Versions</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases on GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+          </div>
+          <div class="foot-col">
+            <h2>Learn</h2>
+            <a href="/answers/">Answers</a>
+            <a href="/answers/verifiability/">Read the answers in order</a>
+            <a href="/answers/tooling/">Editor &amp; agent tooling</a>
+            <a href="/hardening/">Hardening</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">The five-minute tour</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Language spec</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Source</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/pages/agents/index.html">Edit this page</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript your agents can't quietly break.</span>
+          <span>&copy; 2026 Glyph &middot; MIT or Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Light", dark: "Dark" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          var next = order[(order.indexOf(mode) + 1) % order.length];
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute(
+            "aria-label",
+            "Colour theme: " + names[mode].toLowerCase() + (mode === "auto" ? " (follows your system)" : "") + ". Switch to " + names[next].toLowerCase() + "."
+          );
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+  </body>
+</html>

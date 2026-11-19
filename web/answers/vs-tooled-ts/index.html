@@ -525,9 +525,9 @@ return anything as any;</pre>
           <span class="tag-bad">tooled TS</span>
 <pre><span class="cm">// ts-pattern .exhaustive() catches it,</span>
 <span class="cm">// IF every site used ts-pattern and</span>
-<span class="cm">// nobody wrote a plain switch or</span>
-<span class="cm">// a default: case. One that didn't</span>
-<span class="cm">// compiles green and returns undefined.</span></pre>
+<span class="cm">// nobody wrote a default: case or a</span>
+<span class="cm">// switch that only logs. Those</span>
+<span class="cm">// compile green and skip the new case.</span></pre>
         </div>
         <div class="code">
           <span class="tag-good">Glyph</span>

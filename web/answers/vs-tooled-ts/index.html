@@ -209,9 +209,12 @@ return anything as any;</pre>
         </p>
         <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
           <li><strong>Richer validation.</strong> Glyph descriptors are strict by default (they
-            reject undeclared keys), but zod still has refinements (<code>.email()</code>,
-            <code>.min(3)</code>, custom predicates) that a generated descriptor doesn't. For rich
-            per-field rules today, zod is ahead.</li>
+            reject undeclared keys), and a <code>where</code> refinement puts a predicate on a
+            primitive (<code>type Email = string where value.includes("@")</code>), which the
+            descriptor runs at every boundary the type reaches. zod is still ahead in two ways: it
+            ships ready-made checks such as <code>.email()</code> and <code>.url()</code> that you
+            write yourself in Glyph, and it refines whole objects, while a <code>where</code> on a
+            record (<code>lo &lt;= hi</code> across two fields) is <code>E0300</code> today.</li>
           <li><strong>Deeper matching.</strong> ts-pattern's guards and deep structural patterns go
             beyond what Glyph's <code>match</code> expresses.</li>
           <li><strong>"Provable absence" stops at the <code>.ts</code> boundary.</strong> Glyph's

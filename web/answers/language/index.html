@@ -468,13 +468,14 @@ match err.<span class="add">kind</span> {                        <span class="cm
           host's result rather than every result the pool had collected.
         </p>
         <p>
-          What the <code>match</code> above does not get is a check. Glyph's
-          typechecker models what a stdlib function returns, not the shape of a
-          stdlib type, so <code>e.kind</code> is unknown to it and a match that
-          forgets <code>PermissionDenied</code> compiles clean and throws at run
-          time. Write the <code>else</code> arm. The names are the win here; the
-          exhaustiveness check waits on teaching the compiler the stdlib's own
-          types, which is a bigger change than adding a function.
+          That check is live. Delete the <code>PermissionDenied</code> arm from the
+          <code>match</code> above and <code>glyph check --no-tsc</code> stops with
+          <code>E0200</code>: non-exhaustive match on <code>fs.ErrorKind</code>,
+          missing variants <code>PermissionDenied</code>. When the stdlib model was
+          first written it covered return types only, and a match like this one
+          compiled clean and threw at run time; the field and variant shapes of
+          <code>fs.FsError</code>, <code>fs.FileInfo</code> and
+          <code>fs.ErrorKind</code> are modeled now.
         </p>
       </div>
 

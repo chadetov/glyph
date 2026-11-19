@@ -32,7 +32,10 @@ sitemap: 2026-07-23 weekly 0.7
             <div class="big"><span class="accent">Both</span> caught at compile time</div>
             <p>
               Two mistakes agents make constantly (a missing <code>match</code> variant and
-              an unsafe cast) are rejected by Glyph and accepted by <code>tsc --strict</code>.
+              a cast through <code>as unknown as</code>) are rejected by Glyph and accepted by
+              <code>tsc --strict</code>. Both are checked cases in <code>catches/</code>
+              (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>,
+              <code>E0013</code>), re-run by the build gate.
               Wrong code that compiles is the expensive failure. Glyph won't let it.
             </p>
           </div>

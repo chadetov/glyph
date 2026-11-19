@@ -8,6 +8,8 @@ pub type User = {
 }
 
 pub fn email_of(body: string) -> string {
+  // show
   let user: User = json.parse(body)
+  // end show
   return user.email
 }

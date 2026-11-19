@@ -18,7 +18,8 @@ that case; the same handler as a Glyph `match` is E0200. typescript-eslint's
 `switch-exhaustiveness-check` catches that one, if you run it. In Glyph none of
 these checks can be turned off. Each is a pair of programs in `catches/` in the
 repo, and CI runs both halves so the claim fails loudly if it stops being true.
-There are five pairs.
+There are 28 refusals among 53 pairs; the rest record warnings, run-time
+checks, and the gaps Glyph does not catch yet.
 
 What I have not done is measure whether agents produce correct code more often
 in Glyph. That is the reason the project exists and it is still a hypothesis.

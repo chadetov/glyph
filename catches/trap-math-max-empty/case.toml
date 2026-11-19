@@ -1,0 +1,10 @@
+code = "E0103"
+pillar = "verifiability"
+title = "The largest of an empty list"
+kind = "refused"
+ts_output = "-Infinity"
+fullconfig = "none"
+section = "trap"
+slug = "trap-math-max-empty"
+order = 4
+summary = "<code>Math.max(...[])</code> is <code>-Infinity</code>. Glyph's <code>array.max</code> returns an <code>Option</code>, empty for an empty list."

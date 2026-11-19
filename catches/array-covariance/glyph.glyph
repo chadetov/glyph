@@ -1,0 +1,17 @@
+module main
+
+type Animal = { name: string }
+
+type Dog = { name: string, bark: fn() -> string }
+
+fn adopt(shelter: Array<Animal>) -> void {
+  mut shelter.push({ name: "Tom the cat" })
+}
+
+fn main(argv: Array<string>) -> number {
+  let dogs: Array<Dog> = [{ name: "Rex", bark: fn() -> string { "woof" } }]
+  // show
+  adopt(dogs)
+  // end show
+  return 0
+}

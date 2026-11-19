@@ -4,6 +4,10 @@
 export type User = { id: number; email: string };
 
 export function emailOf(body: string): string {
+  // show
   const user: User = JSON.parse(body);
+  // end show
   return user.email;
 }
+
+console.log(emailOf('{"id": 1}'));

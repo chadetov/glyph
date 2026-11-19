@@ -1,0 +1,9 @@
+module main
+
+fn main(argv: Array<string>) -> number {
+  // show
+  let slots = Array(3).map(fn(x: number, i: number) -> string { "slot-${i}" })
+  // end show
+  print("${slots.length}")
+  return 0
+}

@@ -1,0 +1,10 @@
+module main
+
+fn main(argv: Array<string>) -> number {
+  let name = "ada"
+  // show
+  let up = name.toUpperCase
+  // end show
+  print(up())
+  return 0
+}

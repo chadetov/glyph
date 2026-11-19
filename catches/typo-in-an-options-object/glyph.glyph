@@ -1,0 +1,20 @@
+module main
+
+import std/option { Option, Some, None }
+
+type ConnectOptions = { host: string, timeout_ms: Option<number> }
+
+fn connect(o: ConnectOptions) -> number {
+  return match o.timeout_ms {
+    Some(ms) => ms,
+    None => 30000,
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  // show
+  let opts = { host: "db", timeout_MS: Some(500) }
+  print("timeout ${connect(opts)}")
+  // end show
+  return 0
+}

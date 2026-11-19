@@ -1,0 +1,15 @@
+module main
+
+type Manager = { name: string }
+
+type Employee = { name: string, manager: Nullable<Manager> }
+
+fn reports_to(e: Employee) -> string {
+  // show
+  return "Reports to: ${e.manager?.name}"
+  // end show
+}
+
+fn main(argv: Array<string>) -> number {
+  return 0
+}

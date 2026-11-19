@@ -1,0 +1,10 @@
+code = "E0228"
+pillar = "abstraction"
+title = "map over an array of holes"
+kind = "refused"
+ts_output = "[ <3 empty items> ]"
+fullconfig = "none"
+section = "trap"
+slug = "trap-array-holes"
+order = 5
+summary = "<code>Array(3).map(...)</code> returns three holes, because <code>map</code> skips them. Glyph has no <code>Array(n)</code>; arrays are written as literals."

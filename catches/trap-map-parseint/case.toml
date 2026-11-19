@@ -1,0 +1,10 @@
+code = "E0103"
+pillar = "verifiability"
+title = "parseInt passed to map"
+kind = "refused"
+ts_output = "[ 10, NaN, NaN ]"
+fullconfig = "none"
+section = "trap"
+slug = "trap-map-parseint"
+order = 1
+summary = "<code>\"10,20,30\".split(\",\").map(parseInt)</code> is <code>[10, NaN, NaN]</code>, because <code>map</code> passes the index as the number base. Glyph has <code>number.parse</code>, which returns a <code>Result</code>."

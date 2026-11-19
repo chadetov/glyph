@@ -1,0 +1,10 @@
+module main
+
+fn main(argv: Array<string>) -> number {
+  let scores: Array<number> = []
+  // show
+  let best = Math.max(scores)
+  // end show
+  print("${best}")
+  return 0
+}

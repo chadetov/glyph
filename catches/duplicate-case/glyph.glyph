@@ -1,0 +1,18 @@
+module main
+
+fn refundable(status: "paid" | "shipped" | "delivered") -> bool {
+  return match status {
+    "paid" => true,
+    "shipped" => true,
+    // show
+    "paid" => false,
+    // end show
+    "delivered" => false,
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  let r = refundable("paid")
+  print("${r}")
+  return 0
+}

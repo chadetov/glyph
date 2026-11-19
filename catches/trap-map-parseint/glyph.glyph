@@ -1,0 +1,12 @@
+module main
+
+import std/string
+
+fn main(argv: Array<string>) -> number {
+  let raw = string.split("10,20,30", ",")
+  // show
+  let nums = raw.map(parseInt)
+  // end show
+  print("${nums.length}")
+  return 0
+}

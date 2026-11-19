@@ -5,6 +5,7 @@ import type { Socket } from "net";
 
 export type Conn = { id: number; sock: Socket };
 
+// show
 export function isConn(value: unknown): value is Conn {
   return (
     typeof value === "object" &&
@@ -13,7 +14,10 @@ export function isConn(value: unknown): value is Conn {
     (value as Record<string, unknown>).sock !== undefined
   );
 }
+// end show
 
 export function parse(value: unknown): Conn | null {
   return isConn(value) ? value : null;
 }
+
+console.log(parse({ id: 1, sock: "not a socket" }));

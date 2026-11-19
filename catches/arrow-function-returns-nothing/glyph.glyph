@@ -1,0 +1,15 @@
+module main
+
+import std/array
+
+type User = { id: number, name: string }
+type Row = { label: string }
+
+fn main(argv: Array<string>) -> number {
+  let users: Array<User> = [{ id: 1, name: "Ada" }]
+  // show
+  let rows = array.map(users, fn(u: User) -> Row { label: u.name })
+  // end show
+  print(json.stringify(rows))
+  return 0
+}

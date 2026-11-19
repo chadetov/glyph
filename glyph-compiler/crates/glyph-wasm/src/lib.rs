@@ -547,11 +547,13 @@ mod tests {
                 d.display()
             );
         }
-        // The release notes say all five catches are refused in the
-        // playground. A case that gained a second module or a `tsc` code would
-        // leave the picker silently, so the count is pinned: adding or dropping
-        // a catch changes it here on purpose.
-        assert_eq!(shown, 5, "every catch should be in the picker and refused here");
+        // The release notes say how many catches are refused in the
+        // playground. A case that gained a second module, a `tsc` code or a
+        // kind other than `refused` would leave the picker silently, so the
+        // count is pinned: adding or dropping a refusal changes it here on
+        // purpose. 26 of the 28 refusals: `typo-nobody-sees` is a `tsc` code
+        // and `one-function-many-names` has two modules.
+        assert_eq!(shown, 26, "every catch should be in the picker and refused here");
     }
 
     #[test]

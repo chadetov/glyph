@@ -1,0 +1,27 @@
+module main
+
+resource type Conn = { id: number }
+
+fn open() -> Conn {
+  return { id: 1 }
+}
+
+fn close(owned c: Conn) -> void {
+  return void
+}
+
+fn save(valid: bool) -> string {
+  // show
+  let owned c: Conn = open()
+  match valid {
+    false => { return "rejected" },
+    true => close(c),
+  }
+  // end show
+  return "saved"
+}
+
+fn main(argv: Array<string>) -> number {
+  print(save(false))
+  return 0
+}

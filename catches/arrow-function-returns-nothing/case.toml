@@ -1,0 +1,18 @@
+code = "E0003"
+pillar = "verifiability"
+title = "An arrow function that returns nothing"
+kind = "refused"
+ts_output = "[ undefined ]"
+fullconfig = "flag:allowUnusedLabels=false"
+section = "mistake"
+slug = "arrow-function-returns-nothing"
+order = 30
+page_title = "An arrow function that returns nothing"
+why = "Mapping users to rows."
+likelihood = 3
+severity = 3
+ts_verdict = "compiles, wrong answer"
+glyph_verdict = "can't be written"
+ts_result = "<b>The braces are a function body,</b> and <code>label:</code> is a statement label."
+glyph_result = "<b>The ambiguous form is not valid Glyph.</b>"
+page_note = "To return an object from a TypeScript arrow function, the braces need parentheses: <code>u =&gt; ({ ... })</code>."

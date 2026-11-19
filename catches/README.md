@@ -11,9 +11,9 @@ The cases are also the source for the "mistakes TypeScript lets through" page.
 A case with a `section` is on that page, so the page cannot claim something the
 compiler stopped doing.
 
-There are 30 cases. By pillar, 27 are evidence for verifiability, 1 for
-greppability and 2 for abstraction. None is evidence for diff stability, and the
-check prints that zero rather than leaving it off. By kind, 5 are refused, 3
+There are 53 cases. By pillar, 45 are evidence for verifiability, 3 for
+greppability and 5 for abstraction. None is evidence for diff stability, and the
+check prints that zero rather than leaving it off. By kind, 28 are refused, 3
 warned, 9 checked at the boundary, 2 stopped at run time, and 11 are gaps Glyph
 does not catch yet. The check prints these counts on every run.
 
@@ -121,6 +121,10 @@ files are checked and linted with `ts.ts`.
 
 ## The cases
 
+The five cases the corpus started with. On the page, `non-exhaustive-match`
+is entry 2, `split-into-a-pair` 10 and `absent-map-key` 16;
+`unvalidated-boundary-read` and `unverifiable-parse` are entries of their own.
+
 | Case | What TypeScript accepts | Glyph | Pillar |
 |---|---|---|---|
 | `non-exhaustive-match` | A `void` handler whose `switch` misses a union case, so that case does nothing and nothing says so | `E0200` | verifiability |
@@ -146,6 +150,48 @@ In `unvalidated-boundary-read`, `json.parse` returns a
 `Result<unknown, Array<Issue>>`, and Glyph's checker refuses it where a `User`
 is declared, so `glyph check --no-tsc` fails on it as well as `glyph build`.
 In TypeScript `JSON.parse` returns `any`, and no setting changes that.
+typescript-eslint's `no-unsafe-assignment` does flag the assignment, which is
+why the page's first entry is the `as User` form in
+`data-from-outside-the-program` and this one is listed separately.
+`unverifiable-parse` carries a `ts_ok.ts`, because
+`noPropertyAccessFromIndexSignature` fires on the `Record` reads in the
+corrected guard too. `split-into-a-pair` interpolates `host` rather than
+calling a method on it, so `noUncheckedIndexedAccess` alone says nothing and
+`restrict-template-expressions` is what catches it.
+
+The page's other refusals:
+
+| # | Case | Glyph | Fully configured TypeScript |
+|---|---|---|---|
+| 3 | `trusting-find-with-bang` | `E0210` | lint `no-non-null-assertion` |
+| 4 | `error-the-signature-hides` | `E0204` | nothing |
+| 6 | `filter-that-keeps-everyone` | `E0211` | lint `no-misused-promises` |
+| 8 | `as-unknown-as` | `E0013` | nothing |
+| 9 | `lost-update-across-await` | `E0225` | lint `require-atomic-updates` |
+| 13 | `number-accepted-as-enum` | `E0211` | lint `no-unsafe-enum-assignment` |
+| 14 | `connection-left-open` | `E0206` | nothing |
+| 15 | `typo-nobody-sees` | `TS18046`, from the `tsc` pass, not Glyph's checker | lint `no-unsafe-member-access` |
+| 17 | `typo-in-an-options-object` | `E0211` | nothing |
+| 20 | `template-prints-undefined` | `E0235` | lint `restrict-template-expressions` |
+| 21 | `number-that-is-not-a-number` | `E0204` | nothing |
+| 23 | `change-hidden-in-a-helper` | `E0008` | nothing |
+| 25 | `one-function-many-names` | `E0002` | nothing |
+| 30 | `arrow-function-returns-nothing` | `E0003` | flag `allowUnusedLabels: false` |
+| 31 | `array-covariance` | `E0211` | nothing |
+| 32 | `two-types-same-shape` | `E0211` | nothing |
+| 33 | `method-forgets-its-object` | `E0234` | lint `unbound-method` |
+| 35 | `duplicate-case` | `E0305` | lint `no-duplicate-case` |
+
+JavaScript traps that do not exist in Glyph. Each is refused because the
+feature behind it is not in the language:
+
+| Case | Glyph |
+|---|---|
+| `trap-map-parseint` | `E0103`, no `parseInt` |
+| `trap-regex-lastindex` | `E0003`, no regex literals |
+| `trap-foreach-method-this` | `E0003`, no classes |
+| `trap-math-max-empty` | `E0103`, no `Math` |
+| `trap-array-holes` | `E0228`, no `Array(n)` |
 
 The page's entries that Glyph does not settle by refusing a program. Each row
 is the case, what Glyph does, and what a fully configured TypeScript project

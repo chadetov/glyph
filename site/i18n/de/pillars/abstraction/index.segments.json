@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/abstraction/index.html",
   "locale": "de",
-  "source_hash": "e8827b54becde411",
+  "source_hash": "01e075d4f0eca884",
   "segments": [
     {
       "id": "title",
@@ -25,26 +25,26 @@
     {
       "id": "prev.title",
       "kind": "prev.title",
-      "en": "Diff stability: a one-line change is a one-line diff",
+      "en": "Greppability: one name, one place",
       "tr": "Stabile Diffs: Eine einzeilige Änderung ist ein einzeiliger Diff"
     },
     {
       "id": "next.label",
       "kind": "next.label",
-      "en": "Back to the start &rarr;",
+      "en": "Next pillar &rarr;",
       "tr": "Zurück zum Anfang &rarr;"
     },
     {
       "id": "next.title",
       "kind": "next.title",
-      "en": "Verifiability: true at runtime",
+      "en": "Diff stability: a one-line change is a one-line diff",
       "tr": "Überprüfbarkeit: wahr zur Laufzeit"
     },
     {
-      "id": "h-f24d678d",
+      "id": "h-a6223e90",
       "kind": "html",
-      "en": "Pillar 04 &middot; <span class=\"polish\">The polish</span>",
-      "tr": "Säule 04 &middot; <span class=\"polish\">Der Feinschliff</span>"
+      "en": "Pillar 03 &middot; <span class=\"polish\">The polish</span>",
+      "tr": "Säule 03 &middot; <span class=\"polish\">Der Feinschliff</span>"
     },
     {
       "id": "h-6e4fdd69",

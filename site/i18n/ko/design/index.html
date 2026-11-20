@@ -1,7 +1,7 @@
 ---
 title: 설계 · 네 가지 기둥과 결정들 · Glyph
 description: Glyph의 설계 논리: 모든 결정을 검증하는 네 가지 기둥, 명세에 번호로 기록된 결정들, 그리고 언어가 일부러 넣지 않은 것.
-source_hash: 28891a173ca9e4a0
+source_hash: b519aa42b5487ebc
 next_steps: |
   다음으로 볼 곳
   추천 | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | 명세 읽기 | 번호가 붙은 모든 결정과, 각 결정이 지키는 기둥. | 명세 열기
@@ -25,8 +25,8 @@ next_steps: |
       <div class="ans-cards">
         <a class="a-card" href="/pillars/verifiability/"><span class="n">기둥 01</span><span class="q">검증 가능성</span><p>작성할 수 있는 <code>any</code>도 <code>as</code>도 없습니다. <code>match</code>는 모든 case를 다뤄야 합니다. 레코드 타입과 유니언 타입은 엄격한 런타임 검증기를 생성하므로, 경계에서 들어오는 값은 가정하지 않고 검사합니다. 끌 수 없는, <code>tsc</code> 위의 엄격한 계층입니다. <code>tsc --strict</code>가 받아들이는 실수 중 많은 것이 여기서는 컴파일되지 않습니다. 여전히 컴파일되는 것은 <a href="/catches/#not-yet">아직 잡아내지 못하는 것</a>에 나와 있습니다.</p></a>
         <a class="a-card" href="/pillars/greppability/"><span class="n">기둥 02</span><span class="q">검색 용이성</span><p>이름 하나에 위치 하나. 모든 심볼은 선언 위치에서 정확히 한 가지 문법 형태를 가지며, 오버로드, 데코레이터, 암묵적인 <code>this</code>, 네임스페이스 병합이 없습니다. <code>grep "fn parseUser"</code>로 정의를 찾을 수 있습니다.</p></a>
-        <a class="a-card" href="/pillars/diff-stability/"><span class="n">기둥 03</span><span class="q">diff 안정성</span><p>한 줄을 바꾸면 diff도 한 줄입니다. 정해진 레이아웃은 하나입니다. 목록은 들어가면 한 줄에, 들어가지 않으면 요소마다 한 줄에 쓰고, 다시 묶지 않으며, 후행 쉼표를 쓰고, barrel 파일도 옵션도 없습니다. 그래서 같은 코드는 어느 프로젝트에서나 같은 모양으로 출력됩니다. 리뷰어는 불필요한 변동이 아니라 변경 자체를 읽습니다.</p></a>
-        <a class="a-card" href="/pillars/abstraction/"><span class="n">기둥 04</span><span class="q">추상화</span><p>의도를 그대로 표현합니다. switch 사다리 대신 패턴 매칭, 던지는 예외 대신 <code>Result</code>, 튜플 대신 이름 붙은 레코드를 씁니다. TypeScript처럼 덧붙여 쌓인 계층이 아니라, 작고 직교하는 핵심에서 출발합니다.</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">기둥 03</span><span class="q">추상화</span><p>의도를 그대로 표현합니다. switch 사다리 대신 패턴 매칭, 던지는 예외 대신 <code>Result</code>, 튜플 대신 이름 붙은 레코드를 씁니다. TypeScript처럼 덧붙여 쌓인 계층이 아니라, 작고 직교하는 핵심에서 출발합니다.</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">기둥 04</span><span class="q">diff 안정성</span><p>한 줄을 바꾸면 diff도 한 줄입니다. 정해진 레이아웃은 하나입니다. 목록은 들어가면 한 줄에, 들어가지 않으면 요소마다 한 줄에 쓰고, 다시 묶지 않으며, 후행 쉼표를 쓰고, barrel 파일도 옵션도 없습니다. 그래서 같은 코드는 어느 프로젝트에서나 같은 모양으로 출력됩니다. 리뷰어는 불필요한 변동이 아니라 변경 자체를 읽습니다.</p></a>
       </div>
 
       <div class="detail">

@@ -1,7 +1,7 @@
 ---
 title: Design · os quatro pilares e as decisões · Glyph
 description: O raciocínio por trás do design do Glyph: quatro pilares contra os quais toda decisão é testada, as decisões numeradas da especificação e o que a linguagem deixa de fora de propósito.
-source_hash: 28891a173ca9e4a0
+source_hash: b519aa42b5487ebc
 next_steps: |
   Por onde seguir
   Recomendado | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | Leia a especificação | Cada decisão numerada, cada uma terminando com o pilar a que serve. | Abrir a especificação
@@ -25,8 +25,8 @@ next_steps: |
       <div class="ans-cards">
         <a class="a-card" href="/pillars/verifiability/"><span class="n">Pilar 01</span><span class="q">Verificabilidade</span><p>Não existe <code>any</code> nem <code>as</code> que você possa escrever; <code>match</code> precisa cobrir todos os casos; e seus tipos record e union geram validadores estritos em tempo de execução, então um valor de fronteira é verificado, não presumido. Uma camada estrita sobre o <code>tsc</code> que não pode ser desligada. Muitos erros que o <code>tsc --strict</code> aceita não compilam aqui; os que ainda compilam estão listados em <a href="/catches/#not-yet">ainda não detectados</a>.</p></a>
         <a class="a-card" href="/pillars/greppability/"><span class="n">Pilar 02</span><span class="q">Buscabilidade</span><p>Um nome, um lugar. Todo símbolo tem exatamente uma forma sintática na sua declaração, sem overloads, decorators, <code>this</code> implícito nem merge de namespaces. <code>grep "fn parseUser"</code> encontra a definição.</p></a>
-        <a class="a-card" href="/pillars/diff-stability/"><span class="n">Pilar 03</span><span class="q">Estabilidade dos diffs</span><p>Uma mudança de uma linha é um diff de uma linha. Um layout canônico: uma lista fica numa linha enquanto couber e com um elemento por linha quando não couber, nunca reagrupada, com vírgulas finais, sem barrel files e sem opções, então o mesmo código é impresso do mesmo jeito em todo projeto. Quem revisa lê a mudança, não o ruído.</p></a>
-        <a class="a-card" href="/pillars/abstraction/"><span class="n">Pilar 04</span><span class="q">Abstração</span><p>Diga o que você quer dizer: pattern matching em vez de escadas de switch, <code>Result</code> em vez de exceções lançadas, records nomeados em vez de tuplas, a partir de um núcleo pequeno e ortogonal em vez das camadas acumuladas do TypeScript.</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">Pilar 03</span><span class="q">Abstração</span><p>Diga o que você quer dizer: pattern matching em vez de escadas de switch, <code>Result</code> em vez de exceções lançadas, records nomeados em vez de tuplas, a partir de um núcleo pequeno e ortogonal em vez das camadas acumuladas do TypeScript.</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">Pilar 04</span><span class="q">Estabilidade dos diffs</span><p>Uma mudança de uma linha é um diff de uma linha. Um layout canônico: uma lista fica numa linha enquanto couber e com um elemento por linha quando não couber, nunca reagrupada, com vírgulas finais, sem barrel files e sem opções, então o mesmo código é impresso do mesmo jeito em todo projeto. Quem revisa lê a mudança, não o ruído.</p></a>
       </div>
 
       <div class="detail">

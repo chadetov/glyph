@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "design/index.html",
   "locale": "ko",
-  "source_hash": "28891a173ca9e4a0",
+  "source_hash": "b519aa42b5487ebc",
   "segments": [
     {
       "id": "title",
@@ -143,24 +143,6 @@
       "tr": "기둥 03"
     },
     {
-      "id": "h-93a58670",
-      "kind": "html",
-      "en": "Diff stability",
-      "tr": "diff 안정성"
-    },
-    {
-      "id": "h-0a940571",
-      "kind": "html",
-      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
-      "tr": "한 줄을 바꾸면 diff도 한 줄입니다. 정해진 레이아웃은 하나입니다. 목록은 들어가면 한 줄에, 들어가지 않으면 요소마다 한 줄에 쓰고, 다시 묶지 않으며, 후행 쉼표를 쓰고, barrel 파일도 옵션도 없습니다. 그래서 같은 코드는 어느 프로젝트에서나 같은 모양으로 출력됩니다. 리뷰어는 불필요한 변동이 아니라 변경 자체를 읽습니다."
-    },
-    {
-      "id": "h-80299b6d",
-      "kind": "html",
-      "en": "Pillar 04",
-      "tr": "기둥 04"
-    },
-    {
       "id": "h-6e4fdd69",
       "kind": "html",
       "en": "Abstraction",
@@ -171,6 +153,24 @@
       "kind": "html",
       "en": "Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.",
       "tr": "의도를 그대로 표현합니다. switch 사다리 대신 패턴 매칭, 던지는 예외 대신 <code>Result</code>, 튜플 대신 이름 붙은 레코드를 씁니다. TypeScript처럼 덧붙여 쌓인 계층이 아니라, 작고 직교하는 핵심에서 출발합니다."
+    },
+    {
+      "id": "h-80299b6d",
+      "kind": "html",
+      "en": "Pillar 04",
+      "tr": "기둥 04"
+    },
+    {
+      "id": "h-93a58670",
+      "kind": "html",
+      "en": "Diff stability",
+      "tr": "diff 안정성"
+    },
+    {
+      "id": "h-0a940571",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
+      "tr": "한 줄을 바꾸면 diff도 한 줄입니다. 정해진 레이아웃은 하나입니다. 목록은 들어가면 한 줄에, 들어가지 않으면 요소마다 한 줄에 쓰고, 다시 묶지 않으며, 후행 쉼표를 쓰고, barrel 파일도 옵션도 없습니다. 그래서 같은 코드는 어느 프로젝트에서나 같은 모양으로 출력됩니다. 리뷰어는 불필요한 변동이 아니라 변경 자체를 읽습니다."
     },
     {
       "id": "h-8bfd62a3",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "design/index.html",
   "locale": "es",
-  "source_hash": "28891a173ca9e4a0",
+  "source_hash": "b519aa42b5487ebc",
   "segments": [
     {
       "id": "title",
@@ -143,24 +143,6 @@
       "tr": "Pilar 03"
     },
     {
-      "id": "h-93a58670",
-      "kind": "html",
-      "en": "Diff stability",
-      "tr": "Estabilidad de los diffs"
-    },
-    {
-      "id": "h-0a940571",
-      "kind": "html",
-      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
-      "tr": "Un cambio de una línea es un diff de una línea. Un único formato canónico: una lista va en línea mientras quepa y con un elemento por línea cuando no, sin reempaquetarse nunca, con comas finales, sin barrel files y sin opciones, así que el mismo código se imprime igual en todos los proyectos. Quien revisa lee el cambio, no el ruido."
-    },
-    {
-      "id": "h-80299b6d",
-      "kind": "html",
-      "en": "Pillar 04",
-      "tr": "Pilar 04"
-    },
-    {
       "id": "h-6e4fdd69",
       "kind": "html",
       "en": "Abstraction",
@@ -171,6 +153,24 @@
       "kind": "html",
       "en": "Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.",
       "tr": "Di lo que quieres decir: pattern matching en lugar de escaleras de switch, <code>Result</code> en lugar de excepciones lanzadas, records con nombre en lugar de tuplas, a partir de un núcleo pequeño y ortogonal en lugar de las capas acumuladas de TypeScript."
+    },
+    {
+      "id": "h-80299b6d",
+      "kind": "html",
+      "en": "Pillar 04",
+      "tr": "Pilar 04"
+    },
+    {
+      "id": "h-93a58670",
+      "kind": "html",
+      "en": "Diff stability",
+      "tr": "Estabilidad de los diffs"
+    },
+    {
+      "id": "h-0a940571",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
+      "tr": "Un cambio de una línea es un diff de una línea. Un único formato canónico: una lista va en línea mientras quepa y con un elemento por línea cuando no, sin reempaquetarse nunca, con comas finales, sin barrel files y sin opciones, así que el mismo código se imprime igual en todos los proyectos. Quien revisa lee el cambio, no el ruido."
     },
     {
       "id": "h-8bfd62a3",

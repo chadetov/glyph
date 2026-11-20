@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/diff-stability/index.html",
   "locale": "tr",
-  "source_hash": "b485401a000696d8",
+  "source_hash": "dda01800844f43a2",
   "segments": [
     {
       "id": "title",
@@ -25,26 +25,26 @@
     {
       "id": "prev.title",
       "kind": "prev.title",
-      "en": "Greppability: one name, one place",
+      "en": "Abstraction: a small, orthogonal core",
       "tr": "Aranabilirlik: tek isim, tek yer"
     },
     {
       "id": "next.label",
       "kind": "next.label",
-      "en": "Next pillar &rarr;",
+      "en": "Back to the start &rarr;",
       "tr": "Sonraki ilke &rarr;"
     },
     {
       "id": "next.title",
       "kind": "next.title",
-      "en": "Abstraction: a small, orthogonal core",
+      "en": "Verifiability: true at runtime",
       "tr": "Soyutlama: küçük, ortogonal bir çekirdek"
     },
     {
-      "id": "h-a6223e90",
+      "id": "h-f24d678d",
       "kind": "html",
-      "en": "Pillar 03 &middot; <span class=\"polish\">The polish</span>",
-      "tr": "İlke 03 &middot; <span class=\"polish\">Cila</span>"
+      "en": "Pillar 04 &middot; <span class=\"polish\">The polish</span>",
+      "tr": "İlke 04 &middot; <span class=\"polish\">Cila</span>"
     },
     {
       "id": "h-93a58670",

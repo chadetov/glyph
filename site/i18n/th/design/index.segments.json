@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "design/index.html",
   "locale": "th",
-  "source_hash": "28891a173ca9e4a0",
+  "source_hash": "b519aa42b5487ebc",
   "segments": [
     {
       "id": "title",
@@ -143,24 +143,6 @@
       "tr": "เสาหลัก 03"
     },
     {
-      "id": "h-93a58670",
-      "kind": "html",
-      "en": "Diff stability",
-      "tr": "diff ที่คงที่"
-    },
-    {
-      "id": "h-0a940571",
-      "kind": "html",
-      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
-      "tr": "การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด มี layout มาตรฐานแบบเดียว: list อยู่ในบรรทัดเดียวเมื่อพอดี และหนึ่ง element ต่อบรรทัดเมื่อไม่พอดี ไม่มีการจัดกลุ่มใหม่ มี trailing comma ไม่มี barrel file และไม่มีตัวเลือก โค้ดเดียวกันจึงพิมพ์ออกมาเหมือนกันในทุกโปรเจกต์ คนรีวิวอ่านการเปลี่ยนแปลง ไม่ใช่ความวุ่นวายรอบๆ"
-    },
-    {
-      "id": "h-80299b6d",
-      "kind": "html",
-      "en": "Pillar 04",
-      "tr": "เสาหลัก 04"
-    },
-    {
       "id": "h-6e4fdd69",
       "kind": "html",
       "en": "Abstraction",
@@ -171,6 +153,24 @@
       "kind": "html",
       "en": "Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.",
       "tr": "เขียนตามที่ตั้งใจ: pattern matching แทนบันได switch, <code>Result</code> แทน exception ที่ throw, record ที่มีชื่อแทน tuple จาก core เล็กๆ ที่แต่ละส่วนตั้งฉากกัน ไม่ใช่ชั้นที่พอกพูนกันมาแบบ TypeScript"
+    },
+    {
+      "id": "h-80299b6d",
+      "kind": "html",
+      "en": "Pillar 04",
+      "tr": "เสาหลัก 04"
+    },
+    {
+      "id": "h-93a58670",
+      "kind": "html",
+      "en": "Diff stability",
+      "tr": "diff ที่คงที่"
+    },
+    {
+      "id": "h-0a940571",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
+      "tr": "การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด มี layout มาตรฐานแบบเดียว: list อยู่ในบรรทัดเดียวเมื่อพอดี และหนึ่ง element ต่อบรรทัดเมื่อไม่พอดี ไม่มีการจัดกลุ่มใหม่ มี trailing comma ไม่มี barrel file และไม่มีตัวเลือก โค้ดเดียวกันจึงพิมพ์ออกมาเหมือนกันในทุกโปรเจกต์ คนรีวิวอ่านการเปลี่ยนแปลง ไม่ใช่ความวุ่นวายรอบๆ"
     },
     {
       "id": "h-8bfd62a3",

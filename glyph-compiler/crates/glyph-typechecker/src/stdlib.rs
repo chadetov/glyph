@@ -1375,7 +1375,8 @@ pub(crate) fn record_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
         // it `V`, the same `V` as the map's, and a second slot for a name the
         // unifier has already bound pins it to the first argument's element
         // type: see the note above `array_fn_ty` for what that does to a
-        // literal. It takes a `V` on the release that joins candidates.
+        // literal. It takes a `V` once the unifier joins candidates; until
+        // then a wrong value reaches only `tsc` (G402).
         "set" => (vec![of(rec.clone()), key(), unknown()], rec),
         "remove" => (vec![of(rec.clone()), key()], rec),
         _ => return None,

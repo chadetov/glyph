@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "Welcome back, [object Object]!"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0237] Error: typecheck: `${user}` turns a `User` into text, and a record has no text form: it prints `[object Object]`\nHelp: Interpolate a field, such as `${user.id}`."
+  }
+}

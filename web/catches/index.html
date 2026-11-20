@@ -1501,7 +1501,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> turns a real <code>0</code> into <code>3</code>. <span>G386</span></li>
-        <li><code>"Welcome back, ${user}!"</code> with a record prints <code>[object Object]</code>. <span>G385</span></li>
         <li><code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns. <span>G384</span></li>
         <li><code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it. <span>G380</span></li>
         <li><code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>. <span>G388</span></li>

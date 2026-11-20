@@ -1486,7 +1486,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> превращает настоящий <code>0</code> в <code>3</code>. <span>G386</span></li>
-        <li><code>"Welcome back, ${user}!"</code> с записью печатает <code>[object Object]</code>. <span>G385</span></li>
         <li><code>forEach(async ...)</code> отбрасывает все промисы, поэтому работа завершается после кода, который от неё зависит, и ничто об этом не предупреждает. <span>G384</span></li>
         <li><code>xs.sort(...)</code> внутри хелпера переупорядочивает массив вызывающего кода, и никакой <code>mut</code> это не отмечает. <span>G380</span></li>
         <li><code>.sort()</code> на числах сортирует их как текст: <code>100,25,9</code>. <span>G388</span></li>

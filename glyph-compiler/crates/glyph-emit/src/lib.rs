@@ -126,6 +126,7 @@ use glyph_typechecker::{
     imported_string_literal_union_values, DeclTyResolver, IdentPattern, ImportedTypeDecl,
     Lowerer, Primitive, Ty, TypeMap,
 };
+use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
@@ -504,11 +505,89 @@ macro_rules! sibling_alias_note {
     };
 }
 
-/// The E0300 construct for a `where` over a string-literal union, a single
-/// literal included (G377). Named so [`EmitError::help`] can give this
-/// refusal its own fix: the members wanted, written as their own union.
-const REFINED_LITERAL_UNION: &str =
-    "a `where` refinement on a string-literal union (v1 supports refinements on primitive base types)";
+/// What a refused D39 base resolved to (G377, record 120).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RefinedBaseKind {
+    /// A string-literal union of two or more members (D30).
+    LiteralUnion,
+    /// A single string literal, a one-member D30 union.
+    SingleLiteral,
+    /// A record type.
+    Record,
+    /// A D8 tagged union.
+    TaggedUnion,
+}
+
+impl RefinedBaseKind {
+    fn noun(self) -> &'static str {
+        match self {
+            RefinedBaseKind::LiteralUnion => "a string-literal union",
+            RefinedBaseKind::SingleLiteral => "a single string literal",
+            RefinedBaseKind::Record => "a record",
+            RefinedBaseKind::TaggedUnion => "a tagged union",
+        }
+    }
+}
+
+/// The headline of a D39 base refusal: the declaration, its base as written
+/// and what that base resolved to. An inline record or tagged union has no
+/// name to quote, so it is called what it is.
+fn refined_base_message(name: &str, base: Option<&str>, kind: RefinedBaseKind) -> String {
+    let refines = match (base, kind) {
+        (Some(b), k) => format!("`{b}`, {}", k.noun()),
+        (None, RefinedBaseKind::Record) => "an inline record".to_string(),
+        (None, _) => "an inline tagged union".to_string(),
+    };
+    let tail = match kind {
+        RefinedBaseKind::Record => "; a check across a record's fields is a planned extension",
+        _ => "",
+    };
+    format!(
+        "`{name}` refines {refines}, and a `where` refines only `string`, `int`, `number`, `bool` and `bigint` (D39){tail}"
+    )
+}
+
+/// The help of a D39 base refusal, computed from the declaration. For a
+/// literal base it states the members the base resolves to, wherever they
+/// are declared, and the predicate as written, and leaves the choice of
+/// members to the author: no subset is computed and nothing is offered that
+/// could be pasted as code (record 120).
+fn refined_base_help(
+    name: &str,
+    base: Option<&str>,
+    kind: RefinedBaseKind,
+    members: &[String],
+    predicate: &str,
+) -> String {
+    match kind {
+        RefinedBaseKind::Record => {
+            "Put the `where` on the field it constrains, as a refined primitive field type.".to_string()
+        }
+        RefinedBaseKind::TaggedUnion => {
+            "Refine the payload's primitive type inside the variant, or validate after a `match`.".to_string()
+        }
+        RefinedBaseKind::LiteralUnion | RefinedBaseKind::SingleLiteral => {
+            let set = members
+                .iter()
+                .map(|m| format!("\"{}\"", glyph_formatter::escape_string(m)))
+                .collect::<Vec<_>>()
+                .join(" | ");
+            let base = base.unwrap_or(&set);
+            let mut help = format!(
+                "Declare `{name}` as the members of `{base}` it keeps, written as a union of their own. "
+            );
+            if base == set {
+                help.push_str(&format!("`{name}` is meant to hold the ones that pass `{predicate}`."));
+            } else {
+                help.push_str(&format!(
+                    "`{base}` is `{set}`, and `{name}` is meant to hold the ones that pass `{predicate}`. \
+                     A union of some of `{base}`'s members stands wherever `{base}` is declared (D30 compares literal sets)."
+                ));
+            }
+            help
+        }
+    }
+}
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum EmitError {
@@ -609,6 +688,28 @@ pub enum EmitError {
     /// right about it.
     #[error("this match arm can never run: an earlier arm already matches `{tag}`")]
     DuplicateMatchCase { tag: String, span: Span },
+    /// A `where` refinement (D39) whose base resolves, by any spelling, to
+    /// something other than a primitive: a string-literal union, a single
+    /// literal, a record or a tagged union. A deliberate refusal, not a
+    /// missing feature: a refined literal union would emit as its whole
+    /// base for `tsc` while its run-time check refused some members (G377),
+    /// and a record or union predicate has no primitive leaf to run on.
+    #[error("{}", refined_base_message(name, base.as_deref(), *kind))]
+    RefinedNonPrimitiveBase {
+        /// The refined declaration's name.
+        name: String,
+        /// The base as the user spelled it (`Plan`, `t.Tier`, or the inline
+        /// union's text); `None` for an inline record or tagged union.
+        base: Option<String>,
+        /// What the base resolved to.
+        kind: RefinedBaseKind,
+        /// For a literal kind, the members the base resolves to, in
+        /// declaration order, from wherever the chain ends. Empty otherwise.
+        members: Vec<String>,
+        /// The predicate as written, printed by the formatter.
+        predicate: String,
+        span: Span,
+    },
 }
 
 impl EmitError {
@@ -625,6 +726,7 @@ impl EmitError {
             EmitError::UnverifiablePatternPart { span, .. } => *span,
             EmitError::UnverifiableTypeParameter { span, .. } => *span,
             EmitError::DuplicateMatchCase { span, .. } => *span,
+            EmitError::RefinedNonPrimitiveBase { span, .. } => *span,
         }
     }
 
@@ -661,15 +763,24 @@ impl EmitError {
             EmitError::UnverifiablePatternPart { .. } => "E0304",
             EmitError::UnverifiableTypeParameter { .. } => "E0304",
             EmitError::DuplicateMatchCase { .. } => "E0305",
+            EmitError::RefinedNonPrimitiveBase { .. } => "E0300",
         }
     }
 
     /// A one-line, actionable fix.
-    pub fn help(&self) -> Option<&'static str> {
+    ///
+    /// Computed for a D39 base refusal, which states the declaration's own
+    /// names, members and predicate; a fixed sentence for every other error.
+    pub fn help(&self) -> Option<Cow<'static, str>> {
+        if let EmitError::RefinedNonPrimitiveBase { name, base, kind, members, predicate, .. } = self {
+            return Some(Cow::Owned(refined_base_help(name, base.as_deref(), *kind, members, predicate)));
+        }
+        self.fixed_help().map(Cow::Borrowed)
+    }
+
+    fn fixed_help(&self) -> Option<&'static str> {
         match self {
-            EmitError::Unsupported { construct, .. } if *construct == REFINED_LITERAL_UNION => Some(
-                "Write the members you mean as their own union: `type T2 = \"a\" | \"b\"`. It stands wherever `Tier` is declared (D30 compares literal sets).",
-            ),
+            EmitError::RefinedNonPrimitiveBase { .. } => None,
             EmitError::Unsupported { .. } => {
                 Some("Rewrite using a construct the v1 emitter supports; see the spec for the supported forms.")
             }
@@ -710,6 +821,7 @@ impl EmitError {
     pub fn note(&self) -> Option<&'static str> {
         match self {
             EmitError::Unsupported { .. } => None,
+            EmitError::RefinedNonPrimitiveBase { .. } => None,
             EmitError::MisplacedElse { .. } => Some(
                 "`<else>` is paired with its `<if>` only when it is the immediately following sibling; a sibling element (such as a `<p>`) between them breaks the pairing. This is an intentional D6 restriction.",
             ),
@@ -2583,11 +2695,8 @@ impl<'a> Emitter<'a> {
                 // and emit a working descriptor while the inline spelling was
                 // refused. D46 makes the alias and the record one type, so the
                 // two spellings are not allowed to disagree.
-                if let Some(construct) = self.refused_refinement_base(t) {
-                    return Err(EmitError::Unsupported {
-                        construct,
-                        span: t.span,
-                    });
+                if let Some(refusal) = self.refused_refinement_base(t) {
+                    return Err(refusal);
                 }
                 if let TypeExpr::Union { variants, .. } = &t.body {
                     self.emit_union(&t.name, &t.generics, variants)?;
@@ -6972,7 +7081,7 @@ impl<'a> Emitter<'a> {
             .collect()
     }
 
-    /// The E0300 construct for a `where` whose base is a record or a union, or
+    /// The E0300 refusal for a `where` whose base is a record or a union, or
     /// `None` when the refinement is admissible or absent. The base is judged
     /// by the shape it resolves to: written inline, or reached through a chain
     /// of second names (D46), it is the same record, and D39 refuses it either
@@ -6992,47 +7101,74 @@ impl<'a> Emitter<'a> {
     /// "c"` as all of `Tier`, the run-time check refused `"c"`, and a
     /// `Record` keyed by it had no value both would accept. A chain that
     /// leaves the module is followed through the sibling's own second names
-    /// too, so where the literal set is declared does not change the verdict.
-    fn refused_refinement_base(&self, t: &glyph_ast::TypeDecl) -> Option<&'static str> {
-        const UNION: &str =
-            "a `where` refinement on a union type (v1 supports refinements on primitive base types)";
-        const RECORD: &str =
-            "a `where` refinement on a record type (v1 supports refinements on primitive base types)";
-        t.refinement.as_ref()?;
-        let start = match &t.body {
-            TypeExpr::Union { .. } => return Some(UNION),
-            TypeExpr::Record { .. } => return Some(RECORD),
-            TypeExpr::StringLiteralUnion { .. } => return Some(REFINED_LITERAL_UNION),
-            TypeExpr::Path { .. } => self.lowerer.lower(&t.body),
+    /// too, so where the literal set is declared does not change the verdict;
+    /// that walk also reaches a record or tagged union a sibling names under
+    /// a second name of its own, which 0.1.149 missed (record 120). The
+    /// refusal carries the declaration, the base as written, the members and
+    /// the predicate, so its message and help are the program's own.
+    fn refused_refinement_base(&self, t: &glyph_ast::TypeDecl) -> Option<EmitError> {
+        let predicate = t.refinement.as_ref()?;
+        let literal = |values: &[String]| {
+            let kind = if values.len() == 1 {
+                RefinedBaseKind::SingleLiteral
+            } else {
+                RefinedBaseKind::LiteralUnion
+            };
+            (kind, values.to_vec())
+        };
+        let (base, (kind, members)) = match &t.body {
+            TypeExpr::Union { .. } => (None, (RefinedBaseKind::TaggedUnion, Vec::new())),
+            TypeExpr::Record { .. } => (None, (RefinedBaseKind::Record, Vec::new())),
+            TypeExpr::StringLiteralUnion { values, .. } => {
+                let text = values
+                    .iter()
+                    .map(|v| format!("\"{}\"", glyph_formatter::escape_string(v)))
+                    .collect::<Vec<_>>()
+                    .join(" | ");
+                (Some(text), literal(values))
+            }
+            TypeExpr::Path { segments, .. } => {
+                let spelled = segments.iter().map(|s| s.as_ref()).collect::<Vec<&str>>().join(".");
+                let start = self.lowerer.lower(&t.body);
+                let resolved = match resolve_alias_chain(self.module, self.resolved, &self.lowerer, &start) {
+                    end @ Ty::Named { .. } => match &direct_type_decl(self.module, self.resolved, &end)?.body {
+                        TypeExpr::Union { .. } => (RefinedBaseKind::TaggedUnion, Vec::new()),
+                        TypeExpr::Record { .. } => (RefinedBaseKind::Record, Vec::new()),
+                        TypeExpr::StringLiteralUnion { values, .. } => literal(values),
+                        _ => return None,
+                    },
+                    Ty::Imported { module, name } => {
+                        let mut current = (module.as_str().to_string(), name.to_string());
+                        let mut seen = std::collections::HashSet::new();
+                        loop {
+                            if !seen.insert(current.clone()) {
+                                return None; // cyclic alias across modules
+                            }
+                            match self.imported_type_decl(&current.0, &current.1)?.body {
+                                Ty::Union { .. } => break (RefinedBaseKind::TaggedUnion, Vec::new()),
+                                Ty::Record { .. } => break (RefinedBaseKind::Record, Vec::new()),
+                                Ty::StringLiteralUnion(values) => break literal(&values),
+                                Ty::Imported { module, name } => {
+                                    current = (module.as_str().to_string(), name.to_string());
+                                }
+                                _ => return None,
+                            }
+                        }
+                    }
+                    _ => return None,
+                };
+                (Some(spelled), resolved)
+            }
             _ => return None,
         };
-        match resolve_alias_chain(self.module, self.resolved, &self.lowerer, &start) {
-            end @ Ty::Named { .. } => match &direct_type_decl(self.module, self.resolved, &end)?.body {
-                TypeExpr::Union { .. } => Some(UNION),
-                TypeExpr::Record { .. } => Some(RECORD),
-                TypeExpr::StringLiteralUnion { .. } => Some(REFINED_LITERAL_UNION),
-                _ => None,
-            },
-            Ty::Imported { module, name } => {
-                let mut current = (module.as_str().to_string(), name.to_string());
-                let mut seen = std::collections::HashSet::new();
-                loop {
-                    if !seen.insert(current.clone()) {
-                        return None; // cyclic alias across modules
-                    }
-                    match self.imported_type_decl(&current.0, &current.1)?.body {
-                        Ty::Union { .. } => return Some(UNION),
-                        Ty::Record { .. } => return Some(RECORD),
-                        Ty::StringLiteralUnion(_) => return Some(REFINED_LITERAL_UNION),
-                        Ty::Imported { module, name } => {
-                            current = (module.as_str().to_string(), name.to_string());
-                        }
-                        _ => return None,
-                    }
-                }
-            }
-            _ => None,
-        }
+        Some(EmitError::RefinedNonPrimitiveBase {
+            name: t.name.to_string(),
+            base,
+            kind,
+            members,
+            predicate: glyph_formatter::format_expr(predicate),
+            span: t.span,
+        })
     }
 
     /// The body a module-local *descriptorless* alias `name` stands for, so a
@@ -14861,7 +14997,8 @@ pub fn n() -> number {\n  return 1\n}
         assert!(ts.contains("parse(value: unknown)"), "has parse: {ts}");
         // A refinement on a record type is a clear error in v1, not a silent drop.
         let err = emit_err("module x\npub type Bad = {\n  x: int,\n} where value.x > 0\n");
-        assert!(matches!(err, EmitError::Unsupported { .. }), "record refinement errors: {err:?}");
+        let (headline, _) = refusal_text(&err);
+        assert!(headline.starts_with("`Bad` refines an inline record, and a `where` refines only"), "record refinement errors: {headline}");
     }
 
     /// G207. D39's refusal is about the shape the base resolves to, not the
@@ -14873,25 +15010,29 @@ pub fn n() -> number {\n  return 1\n}
     #[test]
     fn where_over_an_alias_of_a_record_or_union_is_refused_like_the_direct_spelling() {
         let err = emit_err("module x\ntype Rec = { x: int, }\ntype Positive = Rec where value.x > 0\n");
-        assert!(
-            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("record type")),
-            "record through one alias: {err:?}"
+        let (headline, help) = refusal_text(&err);
+        assert_eq!(
+            headline,
+            "`Positive` refines `Rec`, a record, and a `where` refines only `string`, `int`, `number`, `bool` and `bigint` (D39); a check across a record's fields is a planned extension",
+            "record through one alias"
         );
+        assert_eq!(help, "Put the `where` on the field it constrains, as a refined primitive field type.");
         // Two hops resolve the same way as one.
         let err = emit_err(
             "module x\ntype Rec = { x: int, }\ntype R2 = Rec\ntype Positive = R2 where value.x > 0\n",
         );
-        assert!(
-            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("record type")),
-            "record through two aliases: {err:?}"
-        );
+        let (headline, _) = refusal_text(&err);
+        assert!(headline.starts_with("`Positive` refines `R2`, a record,"), "record through two aliases: {headline}");
         let err = emit_err(
             "module x\ntype Shape = | Circle | Square\ntype S2 = Shape\ntype Round = S2 where value.tag == \"Circle\"\n",
         );
-        assert!(
-            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("union type")),
-            "union through an alias: {err:?}"
+        let (headline, help) = refusal_text(&err);
+        assert_eq!(
+            headline,
+            "`Round` refines `S2`, a tagged union, and a `where` refines only `string`, `int`, `number`, `bool` and `bigint` (D39)",
+            "union through an alias"
         );
+        assert_eq!(help, "Refine the payload's primitive type inside the variant, or validate after a `match`.");
         // A `where` over an alias of a primitive is D39's own case and still
         // emits its descriptor.
         let ts = emit("module x\ntype Cents = int\ntype PosCents = Cents where value > 0\n");
@@ -15205,90 +15346,150 @@ pub fn n() -> number {\n  return 1\n}
         let a = "module a\npub type Doc = { title: string, }\npub type Shape = | Circle | Square\n";
         for (import, q) in [("import a { Doc, Shape }", ""), ("import a", "a."), ("import a as aa", "aa.")] {
             for (decls, what) in [
-                (format!("type T = {q}Doc where value.title != \"\"\n"), "record type"),
+                (format!("type T = {q}Doc where value.title != \"\"\n"), format!("`T` refines `{q}Doc`, a record,")),
                 (
                     format!("type Page = {q}Doc\ntype T = Page where value.title != \"\"\n"),
-                    "record type",
+                    "`T` refines `Page`, a record,".to_string(),
                 ),
-                (format!("type T = {q}Shape where value.tag == \"Circle\"\n"), "union type"),
+                (format!("type T = {q}Shape where value.tag == \"Circle\"\n"), format!("`T` refines `{q}Shape`, a tagged union,")),
             ] {
                 let err = emit_beside(("a", a), &format!("module main\n{import}\n{decls}"))
                     .expect_err(&format!("`{decls}` under `{import}` must be refused"));
-                assert!(
-                    matches!(&err, EmitError::Unsupported { construct, .. } if construct.contains(what)),
-                    "`{decls}` under `{import}`: {err:?}"
-                );
+                let (headline, _) = refusal_text(&err);
+                assert!(headline.starts_with(&what), "`{decls}` under `{import}`: {headline}");
             }
         }
     }
 
-    /// The E0300 construct and help for a `where` over a string-literal union.
-    fn assert_refined_literal_union_refused(err: &EmitError, what: &str) {
-        assert!(
-            matches!(err, EmitError::Unsupported { construct, .. } if *construct == REFINED_LITERAL_UNION),
-            "{what}: {err:?}"
-        );
-        assert_eq!(err.code(), "E0300", "{what}");
-        assert!(
-            err.to_string()
-                .contains("a `where` refinement on a string-literal union (v1 supports refinements on primitive base types)"),
-            "{what}: {err}"
-        );
-        assert!(
-            err.help().is_some_and(|h| h.starts_with("Write the members you mean as their own union")),
-            "{what}: {:?}",
-            err.help()
-        );
+    /// The headline and help of a D39 base refusal, after checking it is
+    /// E0300 and does not call a deliberate refusal unfinished work.
+    fn refusal_text(err: &EmitError) -> (String, String) {
+        assert_eq!(err.code(), "E0300", "{err:?}");
+        let headline = err.to_string();
+        assert!(!headline.contains("not implemented"), "a refusal, not a missing feature: {headline}");
+        (headline, err.help().map(|h| h.to_string()).unwrap_or_default())
     }
+
+    const ONLY_PRIMITIVES: &str = "and a `where` refines only `string`, `int`, `number`, `bool` and `bigint` (D39)";
 
     /// G377. D39 refuses a `where` whose base is a string-literal union, a
     /// single literal included, by every spelling the checker's chain takes.
     /// Through 0.1.151 the refusal matched only tagged unions and records,
     /// and `Tier where value != "c"` emitted as `type T2 = Tier;`: `tsc`
     /// typed a `Record<T2, int>` as requiring `c`, the run-time check
-    /// refused `c`, and no value passed both.
+    /// refused `c`, and no value passed both. The diagnostic names the
+    /// declaration, the base as written, the members the base resolves to
+    /// and the predicate as written, and offers no subset of its own.
     #[test]
     fn where_over_a_string_literal_union_is_refused_by_every_local_spelling() {
-        for (decls, what) in [
-            ("type T = \"a\" | \"b\" where value != \"a\"\n", "inline union"),
-            ("type T = \"a\" where value.length > 0\n", "inline single literal"),
-            ("type One = \"a\"\ntype T = One where value.length > 0\n", "single-literal alias"),
-            ("type Tier = \"a\" | \"b\" | \"c\"\ntype T = Tier where value != \"c\"\n", "local alias"),
+        let err = emit_err("module x\ntype Plan = \"free\" | \"pro\" | \"team\"\npub type Paid = Plan where value != \"free\"\n");
+        let (headline, help) = refusal_text(&err);
+        assert_eq!(headline, format!("`Paid` refines `Plan`, a string-literal union, {ONLY_PRIMITIVES}"));
+        assert_eq!(
+            help,
+            "Declare `Paid` as the members of `Plan` it keeps, written as a union of their own. \
+             `Plan` is `\"free\" | \"pro\" | \"team\"`, and `Paid` is meant to hold the ones that pass `value != \"free\"`. \
+             A union of some of `Plan`'s members stands wherever `Plan` is declared (D30 compares literal sets)."
+        );
+        assert!(!help.contains("T2") && !help.contains("Tier"), "no names from outside the program: {help}");
+        // (declarations, headline start, text the help must hold)
+        for (decls, start, holds) in [
+            (
+                "type T = \"a\" | \"b\" where value != \"a\"\n",
+                "`T` refines `\"a\" | \"b\"`, a string-literal union,",
+                vec!["Declare `T` as the members of `\"a\" | \"b\"` it keeps", "`value != \"a\"`"],
+            ),
+            (
+                "type T = \"a\" where value.length > 0\n",
+                "`T` refines `\"a\"`, a single string literal,",
+                vec!["`value.length > 0`"],
+            ),
+            (
+                "type One = \"a\"\ntype T = One where value.length > 0\n",
+                "`T` refines `One`, a single string literal,",
+                vec!["`One` is `\"a\"`", "`value.length > 0`"],
+            ),
             (
                 "type Tier = \"a\" | \"b\" | \"c\"\ntype T1 = Tier\ntype T2 = T1\ntype T = T2 where value != \"c\"\n",
-                "alias chain",
+                "`T` refines `T2`, a string-literal union,",
+                vec!["`T2` is `\"a\" | \"b\" | \"c\"`", "`value != \"c\"`", "wherever `T2` is declared"],
             ),
         ] {
-            let err = emit_err(&format!("module x\n{decls}"));
-            assert_refined_literal_union_refused(&err, what);
+            let (headline, help) = refusal_text(&emit_err(&format!("module x\n{decls}")));
+            assert!(headline.starts_with(start) && headline.ends_with(ONLY_PRIMITIVES), "`{decls}`: {headline}");
+            for h in holds {
+                assert!(help.contains(h), "`{decls}`: `{h}` in the help: {help}");
+            }
+            assert!(!help.contains("__glyph_eq"), "the predicate as written, not as emitted: {help}");
         }
     }
 
     /// G377 across a module boundary: the literal union imported by name,
-    /// through a namespace, through a local second name of either, and
-    /// through a second name the sibling itself declares for a third
-    /// module's union. Each is the verdict the local spelling gets.
+    /// through a namespace, through a local second name of either, through a
+    /// second name the sibling declares for its own union, and through a
+    /// chain of three modules, whose members are gathered from the module
+    /// that declares them. The same walk reaches a record and a tagged
+    /// union two hops away, which 0.1.149 accepted (record 120, probes `d`
+    /// and `g`).
     #[test]
     fn where_over_an_imported_string_literal_union_is_refused_by_every_spelling() {
         let a = "module a\npub type Tier = \"a\" | \"b\" | \"c\"\npub type One = \"a\"\n";
         let b = "module b\nimport a { Tier }\npub type Tier2 = Tier\n";
+        let members = "is `\"a\" | \"b\" | \"c\"`";
         for (import, q) in [("import a { Tier, One }", ""), ("import a", "a."), ("import a as aa", "aa.")] {
-            for decls in [
-                format!("type T = {q}Tier where value != \"c\"\n"),
-                format!("type T = {q}One where value.length > 0\n"),
-                format!("type L = {q}Tier\ntype T = L where value != \"c\"\n"),
+            for (decls, start, holds) in [
+                (
+                    format!("type T = {q}Tier where value != \"c\"\n"),
+                    format!("`T` refines `{q}Tier`, a string-literal union,"),
+                    format!("`{q}Tier` {members}"),
+                ),
+                (
+                    format!("type T = {q}One where value.length > 0\n"),
+                    format!("`T` refines `{q}One`, a single string literal,"),
+                    format!("`{q}One` is `\"a\"`"),
+                ),
+                (
+                    format!("type L = {q}Tier\ntype T = L where value != \"c\"\n"),
+                    "`T` refines `L`, a string-literal union,".to_string(),
+                    format!("`L` {members}"),
+                ),
             ] {
                 let err = emit_beside(("a", a), &format!("module main\n{import}\n{decls}"))
                     .expect_err(&format!("`{decls}` under `{import}` must be refused"));
-                assert_refined_literal_union_refused(&err, &format!("`{decls}` under `{import}`"));
+                let (headline, help) = refusal_text(&err);
+                assert!(headline.starts_with(&start), "`{decls}` under `{import}`: {headline}");
+                assert!(help.contains(&holds), "`{decls}` under `{import}`: `{holds}` in {help}");
             }
         }
         for (import, q) in [("import b { Tier2 }", ""), ("import b", "b.")] {
             let decls = format!("type T = {q}Tier2 where value != \"c\"\n");
             let err = emit_beside_all(&[("a", a), ("b", b)], &format!("module main\n{import}\n{decls}"))
                 .expect_err(&format!("`{decls}` under `{import}` must be refused"));
-            assert_refined_literal_union_refused(&err, &format!("sibling hop `{decls}` under `{import}`"));
+            let (headline, help) = refusal_text(&err);
+            assert!(headline.starts_with(&format!("`T` refines `{q}Tier2`, a string-literal union,")), "sibling hop: {headline}");
+            assert!(help.contains(&format!("`{q}Tier2` {members}")), "sibling hop: {help}");
         }
+        // Three modules: the members are declared two modules away.
+        let x1 = "module x1\npub type Tier = \"a\" | \"b\"\n";
+        let x2 = "module x2\nimport x1 as q\npub type Mid = q.Tier\n";
+        let err = emit_beside_all(&[("x1", x1), ("x2", x2)], "module main\nimport x2 as w\npub type T = w.Mid where value != \"a\"\n")
+            .expect_err("a three-module chain must be refused");
+        let (headline, help) = refusal_text(&err);
+        assert!(headline.starts_with("`T` refines `w.Mid`, a string-literal union,"), "{headline}");
+        assert!(help.contains("`w.Mid` is `\"a\" | \"b\"`, and `T` is meant to hold the ones that pass `value != \"a\"`"), "{help}");
+        // A record and a tagged union behind a sibling's own second name.
+        let r1 = "module r1\npub type Rec = { x: int, }\n";
+        let r2 = "module r2\nimport r1 { Rec }\npub type Rec2 = Rec\n";
+        let err = emit_beside_all(&[("r1", r1), ("r2", r2)], "module main\nimport r2 { Rec2 }\npub type T = Rec2 where value.x > 0\n")
+            .expect_err("a record two hops away must be refused");
+        let (headline, _) = refusal_text(&err);
+        assert!(headline.starts_with("`T` refines `Rec2`, a record,"), "{headline}");
+        let u1 = "module u1\npub type Sh = | A | B\n";
+        let u2 = "module u2\nimport u1 { Sh }\npub type Sh2 = Sh\n";
+        let err = emit_beside_all(&[("u1", u1), ("u2", u2)], "module main\nimport u2 { Sh2 }\npub type T = Sh2 where true\n")
+            .expect_err("a tagged union two hops away must be refused");
+        let (headline, _) = refusal_text(&err);
+        assert!(headline.starts_with("`T` refines `Sh2`, a tagged union,"), "{headline}");
     }
 
     /// The controls for G377: a refinement of a primitive stays legal,

@@ -13119,7 +13119,7 @@ fn where_over_an_imported_record_is_e0300_by_every_spelling() {
             write_file(&src, "b.glyph", &format!("module b\n\n{import}\n\n{decls}"));
             let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
             assert!(
-                report.diagnostics.iter().any(|d| d.contains("[E0300]") && d.contains("record type")),
+                report.diagnostics.iter().any(|d| d.contains("[E0300]") && d.contains("`Titled` refines") && d.contains(", a record,")),
                 "`{decls}` under `{import}` is E0300: {:?}",
                 report.diagnostics
             );
@@ -15587,7 +15587,7 @@ fn where_over_an_alias_of_a_record_is_e0300_like_the_direct_spelling() {
         .iter()
         .find(|d| d.contains("[E0300]"))
         .unwrap_or_else(|| panic!("no E0300; diagnostics were: {:?}", report.diagnostics));
-    assert!(diag.contains("record type"), "names the resolved shape: {diag}");
+    assert!(diag.contains("`Positive` refines `Rec`, a record,"), "names the declaration, its base and the resolved shape: {diag}");
 }
 
 #[test]
@@ -19402,41 +19402,94 @@ fn a_record_key_type_is_checked_with_one_verdict_on_every_path() {
 
 /// G377: a `where` over a string-literal union, a single literal included,
 /// is E0300 at the declaration under both `check` modes, by every spelling:
-/// inline, a local alias, an alias chain, imported by name, namespaced, and
-/// a second name a sibling declares. Through 0.1.151 each checked clean;
-/// `tsc` read `Tier where value != "c"` as all of `Tier`, the run-time
-/// check refused `"c"`, and `json.parse<Record<T2, int>>` had no document
-/// both would accept (record 119, probes `d/k`, `d/i`, `d/s`, `d/m`).
+/// inline, a local alias, an alias chain, imported by name, namespaced, a
+/// second name a sibling declares, and a chain of three modules. Through
+/// 0.1.151 each checked clean; `tsc` read `Tier where value != "c"` as all
+/// of `Tier`, the run-time check refused `"c"`, and `json.parse<Record<T2,
+/// int>>` had no document both would accept (record 119). The diagnostic
+/// names the declaration and its base as written, lists the members the
+/// base resolves to wherever they are declared, quotes the predicate as
+/// written, and offers no subset (record 120).
 #[test]
 fn a_where_over_a_string_literal_union_is_e0300_by_every_spelling() {
     let tiers = "module tiers\npub type Tier = \"a\" | \"b\" | \"c\"\npub type One = \"a\"\n";
     let hop = "module hop\nimport tiers { Tier }\npub type Tier2 = Tier\n";
-    let message = "a `where` refinement on a string-literal union (v1 supports refinements on primitive base types)";
-    let help = "Write the members you mean as their own union: `type T2 = \"a\" | \"b\"`. It stands wherever `Tier` is declared (D30 compares literal sets).";
-    let cases: Vec<(&str, String)> = vec![
-        ("inline", "type T2 = \"a\" | \"b\" where value != \"a\"\n".into()),
-        ("single-literal", "type One = \"a\"\ntype T2 = One where value.length > 0\n".into()),
-        ("local", "type Tier = \"a\" | \"b\" | \"c\"\ntype T2 = Tier where value != \"c\"\n".into()),
-        ("chain", "type Tier = \"a\" | \"b\" | \"c\"\ntype T1 = Tier\ntype T3 = T1\ntype T2 = T3 where value != \"c\"\n".into()),
-        ("by-name", "import tiers { Tier }\ntype T2 = Tier where value != \"c\"\n".into()),
-        ("namespaced", "import tiers as t\ntype T2 = t.Tier where value != \"c\"\n".into()),
-        ("imported-alias", "import tiers\ntype L = tiers.Tier\ntype T2 = L where value != \"c\"\n".into()),
-        ("sibling-hop", "import hop { Tier2 }\ntype T2 = Tier2 where value != \"c\"\n".into()),
+    let x1 = "module x1\npub type Deep = \"p\" | \"q\"\n";
+    let x2 = "module x2\nimport x1 as q\npub type Mid = q.Deep\n";
+    let abc = "`\"a\" | \"b\" | \"c\"`";
+    // (case, main's declarations, headline start, text the help holds)
+    let cases: Vec<(&str, String, String, String)> = vec![
+        ("inline", "type T2 = \"a\" | \"b\" where value != \"a\"\n".into(),
+         "`T2` refines `\"a\" | \"b\"`, a string-literal union".into(), "`value != \"a\"`".into()),
+        ("single-literal", "type One = \"a\"\ntype T2 = One where value.length > 0\n".into(),
+         "`T2` refines `One`, a single string literal".into(), "`One` is `\"a\"`".into()),
+        ("local", "type Plan = \"free\" | \"pro\" | \"team\"\npub type Paid = Plan where value != \"free\"\n".into(),
+         "`Paid` refines `Plan`, a string-literal union".into(),
+         "Declare `Paid` as the members of `Plan` it keeps, written as a union of their own. `Plan` is `\"free\" | \"pro\" | \"team\"`, and `Paid` is meant to hold the ones that pass `value != \"free\"`. A union of some of `Plan`'s members stands wherever `Plan` is declared (D30 compares literal sets).".into()),
+        ("chain", "type Tier = \"a\" | \"b\" | \"c\"\ntype T1 = Tier\ntype T3 = T1\ntype T2 = T3 where value != \"c\"\n".into(),
+         "`T2` refines `T3`, a string-literal union".into(), format!("`T3` is {abc}")),
+        ("by-name", "import tiers { Tier }\ntype T2 = Tier where value != \"c\"\n".into(),
+         "`T2` refines `Tier`, a string-literal union".into(), format!("`Tier` is {abc}")),
+        ("namespaced", "import tiers as t\ntype T2 = t.Tier where value != \"c\"\n".into(),
+         "`T2` refines `t.Tier`, a string-literal union".into(), format!("`t.Tier` is {abc}")),
+        ("imported-alias", "import tiers\ntype L = tiers.Tier\ntype T2 = L where value != \"c\"\n".into(),
+         "`T2` refines `L`, a string-literal union".into(), format!("`L` is {abc}")),
+        ("sibling-hop", "import hop { Tier2 }\ntype T2 = Tier2 where value != \"c\"\n".into(),
+         "`T2` refines `Tier2`, a string-literal union".into(), format!("`Tier2` is {abc}")),
+        ("three-modules", "import x2 as w\ntype T2 = w.Mid where value != \"p\"\n".into(),
+         "`T2` refines `w.Mid`, a string-literal union".into(), "`w.Mid` is `\"p\" | \"q\"`, and `T2` is meant to hold the ones that pass `value != \"p\"`".into()),
     ];
-    for (dir, decls) in cases {
+    for (dir, decls, start, holds) in cases {
         let root = unique_tmp(&format!("g377-{dir}"));
         let src = root.join("src");
         write_file(&src, "tiers.glyph", tiers);
         write_file(&src, "hop.glyph", hop);
+        write_file(&src, "x1.glyph", x1);
+        write_file(&src, "x2.glyph", x2);
         let main = format!("module main\n{decls}pub fn main() -> void {{ return void }}\n");
         write_file(&src, "main.glyph", &main);
         let (code, stderr) = check_no_tsc(&src);
         assert_eq!(code, 1, "{dir}: refused under --no-tsc:\n{main}\n{stderr}");
-        assert!(stderr.contains("E0300") && stderr.contains(message), "{dir}: the message:\n{stderr}");
-        assert!(stderr.contains(help), "{dir}: the help:\n{stderr}");
+        assert!(stderr.contains("E0300") && stderr.contains(&start), "{dir}: the headline `{start}`:\n{stderr}");
+        assert!(!stderr.contains("not implemented"), "{dir}: a refusal, not a missing feature:\n{stderr}");
+        assert!(stderr.contains(&holds), "{dir}: the help holds `{holds}`:\n{stderr}");
+        assert!(!stderr.contains("__glyph_eq"), "{dir}: the predicate as written:\n{stderr}");
         let (code, _stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("check"), src.as_os_str()]);
         assert_eq!(code, 1, "{dir}: refused under full check:\n{main}\n{stderr}");
         assert!(stderr.contains("E0300"), "{dir}: E0300 under full check:\n{stderr}");
+    }
+}
+
+/// Record 120, probes `d` and `g`: a `where` over a record or a tagged
+/// union that a sibling re-exports under a second name of its own is E0300.
+/// 0.1.149 followed the chain one hop into the sibling and stopped, so both
+/// checked clean; the G377 walk follows it to the declaration.
+#[test]
+fn a_where_over_a_record_or_tagged_union_two_modules_away_is_e0300() {
+    for (dir, files, decls, start) in [
+        (
+            "record",
+            [("r1.glyph", "module r1\npub type Rec = { x: int, }\n"), ("r2.glyph", "module r2\nimport r1 { Rec }\npub type Rec2 = Rec\n")],
+            "import r2 { Rec2 }\npub type T = Rec2 where value.x > 0\n",
+            "`T` refines `Rec2`, a record",
+        ),
+        (
+            "tagged-union",
+            [("u1.glyph", "module u1\npub type Sh = | A | B\n"), ("u2.glyph", "module u2\nimport u1 { Sh }\npub type Sh2 = Sh\n")],
+            "import u2 { Sh2 }\npub type T = Sh2 where true\n",
+            "`T` refines `Sh2`, a tagged union",
+        ),
+    ] {
+        let root = unique_tmp(&format!("r120-{dir}"));
+        let src = root.join("src");
+        for (name, text) in files {
+            write_file(&src, name, text);
+        }
+        let main = format!("module main\n{decls}pub fn main() -> void {{ return void }}\n");
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_eq!(code, 1, "{dir}: refused:\n{main}\n{stderr}");
+        assert!(stderr.contains("E0300") && stderr.contains(start), "{dir}: `{start}`:\n{stderr}");
     }
 }
 

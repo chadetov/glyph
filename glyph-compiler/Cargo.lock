@@ -522,6 +522,7 @@ name = "glyph-emit"
 version = "0.1.150"
 dependencies = [
  "glyph-ast",
+ "glyph-formatter",
  "glyph-parser",
  "glyph-resolver",
  "glyph-typechecker",

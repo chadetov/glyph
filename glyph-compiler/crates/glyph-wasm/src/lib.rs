@@ -210,7 +210,7 @@ fn compile_inner(source: &str) -> CompileOutput {
     ) {
         Ok(ts) => Some(ts),
         Err(e) => {
-            diagnostics.push(error(&index, source, e.span(), e.code(), &format!("{e}"), e.help()));
+            diagnostics.push(error(&index, source, e.span(), e.code(), &format!("{e}"), e.help().as_deref()));
             None
         }
     };

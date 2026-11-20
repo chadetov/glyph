@@ -85,6 +85,11 @@ KNOWN: dict[tuple[str, str, str], str] = {
     ("std/string", "pad_start", DECLARED_TO_RUNTIME): "G308",
     ("std/string", "slice", DECLARED_TO_RUNTIME): "G308",
     ("std/array", "slice", DECLARED_TO_RUNTIME): "G308",
+    # The row says `Array<K>`; the checker answers `Array<string>` for a
+    # numeric key at the call site, and the runtime spells that case as
+    # `Array<K extends string ? K : string>`, which the row cannot.
+    ("std/record", "keys", RUNTIME_TO_DECLARED): "G401",
+    ("std/record", "keys", DECLARED_TO_RUNTIME): "G401",
 }
 
 # Names a rendered signature may carry unqualified that are types, not type
@@ -330,9 +335,17 @@ def main() -> int:
         emitted = (dist / "sigs.ts").read_text()
         # Move each alias's type parameters onto the function it names:
         # `type S0<T> = (a0: T) => T` becomes `type S0 = <T>(a0: T) => T`.
+        # A parameter a signature uses as a `Record`'s key is constrained to
+        # `PropertyKey`, which TypeScript's `Record<K, V>` requires and the
+        # runtime declares (`std/record`, generic in its key since G373).
+        sig_of_alias = {f"S{i}": sig for i, (_, _, sig) in enumerate(rows)}
         for alias, params in generics.items():
             pat = re.compile(rf"^export type {alias}<{re.escape(', '.join(params))}> = ", re.M)
-            emitted, n = pat.subn(f"export type {alias} = <{', '.join(params)}>", emitted)
+            bound = [
+                f"{p} extends PropertyKey" if re.search(rf"\bRecord<{p},", sig_of_alias[alias]) else p
+                for p in params
+            ]
+            emitted, n = pat.subn(f"export type {alias} = <{', '.join(bound)}>", emitted)
             if n != 1:
                 print(f"could not find the emitted alias `{alias}<{', '.join(params)}>` in sigs.ts.")
                 return 1

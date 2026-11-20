@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "tr",
-  "source_hash": "2146f3700ce690e1",
+  "source_hash": "3a419cdee3b04e4b",
   "segments": [
     {
       "id": "title",
@@ -191,34 +191,40 @@
       "tr": "{{catches:measured}} Toplam {{catches:total}} doğrulanmış vaka var: {{catches:count}} TypeScript vakası, Glyph'te var olmayan {{catches:trap-count}} JavaScript tuzağı ve Glyph'in henüz kapatmadığı {{catches:gap-cases}} açık. Glyph bunların {{catches:refused-all}} tanesini derleme sırasında reddeder ({{catches:refused}} TypeScript vakası ve {{catches:traps-refused}} tuzak)."
     },
     {
-      "id": "h-cda6f98d",
+      "id": "h-36c9b818",
       "kind": "html",
-      "en": "One change, on a real application",
-      "tr": "Gerçek bir uygulamada tek bir değişiklik"
+      "en": "Your agent can ask the compiler first",
+      "tr": "Ajanınız önce derleyiciye sorabilir"
     },
     {
-      "id": "h-2e4f29c6",
+      "id": "h-651b7e75",
       "kind": "html",
-      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a case to it, ask the compiler which places it reaches.",
-      "tr": "<code>examples/apps/csvql</code>, bu repoda bulunan ve merkezinde bir <code>Value</code> union'ı olan bir CSV sorgu motoru. Ona yeni bir case eklemeden önce derleyiciye bunun hangi yerlere ulaştığını sorun."
+      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a <code>Date</code> case to it, an agent asks the compiler's MCP server what that edit breaks. The answer, trimmed here to verdict, site and function, names ten match sites across four files.",
+      "tr": "<code>examples/apps/csvql</code>, bu repoda bulunan ve merkezinde bir <code>Value</code> union'ı olan bir CSV sorgu motoru. Ona bir <code>Date</code> case'i eklemeden önce ajan, derleyicinin MCP sunucusuna bu düzenlemenin neyi bozacağını soruyor. Burada karar, yer ve fonksiyona indirilmiş cevap, dört dosyada on match noktası sayıyor."
     },
     {
-      "id": "h-bb44e881",
+      "id": "h-5dd9fdd6",
       "kind": "html",
-      "en": "glyph_variants { name: \"Value\" }",
-      "tr": "glyph_variants { name: \"Value\" }"
+      "en": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }",
+      "tr": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }"
     },
     {
-      "id": "h-dd6a6de7",
+      "id": "h-6face4dc",
       "kind": "html",
-      "en": "then add the case and run glyph check",
-      "tr": "ardından case'i ekleyin ve glyph check çalıştırın"
+      "en": "the change at an ABSORBS site: the catch-all becomes named arms",
+      "tr": "ABSORBS noktasındaki değişiklik: catch-all, isimli kollara dönüşüyor"
     },
     {
-      "id": "h-dcb7c936",
+      "id": "h-457bffe2",
       "kind": "html",
-      "en": "The prediction was right on all eight. The other two, <code>exec::total</code> and <code>render::literal_text</code>, keep compiling and send the new case wherever their catch-all points. An agent that fixes the eight errors and stops has a green build and two live bugs, and the query is what names them.",
-      "tr": "Tahmin sekizinde de doğru çıktı. Diğer ikisi, <code>exec::total</code> ve <code>render::literal_text</code>, derlenmeye devam ediyor ve yeni case'i catch-all'ları nereye gösteriyorsa oraya yolluyor. Sekiz hatayı düzeltip duran bir ajanın elinde yeşil bir build ve canlı iki bug kalır; bunları gösteren de sorgunun kendisidir."
+      "en": "glyph check, after all ten sites",
+      "tr": "glyph check, on noktanın hepsinden sonra"
+    },
+    {
+      "id": "h-a99103b3",
+      "kind": "html",
+      "en": "Each <code>WILL_FAIL</code> entry comes with the error it will raise, and adding the case alone gave exactly those eight <code>E0200</code> errors. The two <code>ABSORBS</code> sites raise nothing: <code>render::literal_text</code> would have printed a date literal without its quotes, and <code>exec::total</code> would have counted every date as zero. An agent working from compiler errors alone fixes eight sites and stops with a green build. Asked again after the fix, the compiler answers <code>WILL_FAIL</code> at all ten, so the next case cannot slip past either.",
+      "tr": "Her <code>WILL_FAIL</code> kaydı, orada çıkacak hatayla birlikte geliyor; sadece case'i eklemek tam olarak bu sekiz <code>E0200</code> hatasını verdi. İki <code>ABSORBS</code> noktası hiçbir şey vermiyor: <code>render::literal_text</code> bir tarih literal'ını tırnaksız yazdıracaktı, <code>exec::total</code> da her tarihi sıfır sayacaktı. Yalnızca derleyici hatalarıyla çalışan bir ajan sekiz noktayı düzeltir ve yeşil bir build ile durur. Düzeltmeden sonra aynı soru tekrar sorulduğunda derleyici onunda da <code>WILL_FAIL</code> diyor, yani bir sonraki case de gözden kaçamaz."
     },
     {
       "id": "h-35b0b48e",

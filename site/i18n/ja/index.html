@@ -1,7 +1,7 @@
 ---
 title: Glyph: AI エージェントのための、TypeScript にコンパイルされる型付き言語
 description: Glyph は TypeScript にコンパイルされる静的型付き言語です。AI エージェントが書いたコードを、推測に頼らずに読み、検証し、変更できるように設計されています。
-source_hash: 2146f3700ce690e1
+source_hash: 3a419cdee3b04e4b
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, プログラミング言語, typescript, トランスパイラ, AI エージェント, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -66,21 +66,40 @@ head: |
 
     <section>
       <div class="wrap">
-        <h2 class="section-head">実際のアプリケーションでの 1 つの変更</h2>
+        <h2 class="section-head">エージェントは先にコンパイラに聞ける</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code> はこのリポジトリにある CSV クエリエンジンで、中心に <code>Value</code> ユニオンがあります。ケースを追加する前に、その変更がどこに影響するかをコンパイラに聞いてみます。
+          <code>examples/apps/csvql</code> はこのリポジトリにある CSV クエリエンジンで、中心に <code>Value</code> ユニオンがあります。そこに <code>Date</code> ケースを追加する前に、エージェントはコンパイラの MCP サーバーに、その編集で何が壊れるかを聞きます。回答 (ここでは判定、場所、関数だけに絞っています) は、4 ファイルにまたがる 10 か所の match を挙げます。
         </p>
         <div class="code">
-          <span class="cap">glyph_variants { name: "Value" }</span>
-<pre>10 match sites across 4 files
- <span class="del">8 will fail compilation</span>
- <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
-          <span class="cap">次にケースを追加して glyph check を実行する</span>
-<pre>8 errors, E0200 non-exhaustive match. The same eight.
-The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+          <span class="cap">glyph_impact { entity: "value::Value", change: { kind: "add_variant", variant: "Date" } }</span>
+<pre>WILL_FAIL  bind.glyph:148    bind::literal_kind
+<span class="del">ABSORBS    exec.glyph:130    exec::total</span>
+<span class="del">ABSORBS    render.glyph:128  render::literal_text</span>
+WILL_FAIL  value.glyph:18    value::render
+WILL_FAIL  value.glyph:32    value::key
+WILL_FAIL  value.glyph:44    value::is_null
+WILL_FAIL  value.glyph:53    value::is_num
+WILL_FAIL  value.glyph:62    value::rank
+WILL_FAIL  value.glyph:71    value::num_of
+WILL_FAIL  value.glyph:83    value::text_of</pre>
+          <span class="cap">ABSORBS の箇所での変更: catch-all を名前付きのアームに置き換える</span>
+<pre> fn literal_text(v: Value) -> string {
+   return match v {
+     Text({ text }) => "'${text}'",
+<span class="del">-    else => value.render(v),</span>
+<span class="add">+    Date({ iso }) => "'${iso}'",</span>
+<span class="add">+    Num({ n }) => value.render(v),</span>
+<span class="add">+    Bool({ flag }) => value.render(v),</span>
+<span class="add">+    Null => value.render(v),</span>
+   }
+ }</pre>
+          <span class="cap">glyph check、10 か所すべてを直した後</span>
+<pre><span class="add">glyph check: 21 example(s) passed.
+glyph check: 11 module(s) checked, no diagnostics.
+glyph check: tsc --strict passed.</span></pre>
         </div>
         <p class="friction-intro h-after">
-          予測は 8 か所すべてで当たりました。残りの 2 か所、 <code>exec::total</code> と <code>render::literal_text</code> はコンパイルが通ったまま、新しいケースを catch-all の行き先に流します。 8 つのエラーを直したところで手を止めたエージェントには、通ったビルドと生きたままの 2 つのバグが残ります。その 2 つを指し示すのがこのクエリです。
+          <code>WILL_FAIL</code> の各エントリには、そこで出るエラーが付いています。実際にケースだけを追加すると、ちょうどその 8 つの <code>E0200</code> エラーが出ました。 <code>ABSORBS</code> の 2 か所は何も出しません。 <code>render::literal_text</code> は日付リテラルを引用符なしで出力し、 <code>exec::total</code> はすべての日付を 0 として数えていたはずです。コンパイラのエラーだけを頼りに作業するエージェントは、8 か所を直して通ったビルドのまま止まります。修正後にもう一度聞くと、コンパイラは 10 か所すべてで <code>WILL_FAIL</code> と答えるので、次のケースもすり抜けられません。
         </p>
       </div>
     </section>

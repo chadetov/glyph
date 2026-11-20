@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "ja",
-  "source_hash": "2146f3700ce690e1",
+  "source_hash": "3a419cdee3b04e4b",
   "segments": [
     {
       "id": "title",
@@ -191,34 +191,40 @@
       "tr": "{{catches:measured}}チェック済みのケースは全部で {{catches:total}} 件です。TypeScript のケースが {{catches:count}} 件、Glyph には存在しない JavaScript の落とし穴が {{catches:trap-count}} 件、Glyph がまだ塞いでいない穴が {{catches:gap-cases}} 件です。そのうち {{catches:refused-all}} 件はビルド時に Glyph が拒否します（TypeScript のケース {{catches:refused}} 件と落とし穴 {{catches:traps-refused}} 件）。"
     },
     {
-      "id": "h-cda6f98d",
+      "id": "h-36c9b818",
       "kind": "html",
-      "en": "One change, on a real application",
-      "tr": "実際のアプリケーションでの 1 つの変更"
+      "en": "Your agent can ask the compiler first",
+      "tr": "エージェントは先にコンパイラに聞ける"
     },
     {
-      "id": "h-2e4f29c6",
+      "id": "h-651b7e75",
       "kind": "html",
-      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a case to it, ask the compiler which places it reaches.",
-      "tr": "<code>examples/apps/csvql</code> はこのリポジトリにある CSV クエリエンジンで、中心に <code>Value</code> ユニオンがあります。ケースを追加する前に、その変更がどこに影響するかをコンパイラに聞いてみます。"
+      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a <code>Date</code> case to it, an agent asks the compiler's MCP server what that edit breaks. The answer, trimmed here to verdict, site and function, names ten match sites across four files.",
+      "tr": "<code>examples/apps/csvql</code> はこのリポジトリにある CSV クエリエンジンで、中心に <code>Value</code> ユニオンがあります。そこに <code>Date</code> ケースを追加する前に、エージェントはコンパイラの MCP サーバーに、その編集で何が壊れるかを聞きます。回答 (ここでは判定、場所、関数だけに絞っています) は、4 ファイルにまたがる 10 か所の match を挙げます。"
     },
     {
-      "id": "h-bb44e881",
+      "id": "h-5dd9fdd6",
       "kind": "html",
-      "en": "glyph_variants { name: \"Value\" }",
-      "tr": "glyph_variants { name: \"Value\" }"
+      "en": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }",
+      "tr": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }"
     },
     {
-      "id": "h-dd6a6de7",
+      "id": "h-6face4dc",
       "kind": "html",
-      "en": "then add the case and run glyph check",
-      "tr": "次にケースを追加して glyph check を実行する"
+      "en": "the change at an ABSORBS site: the catch-all becomes named arms",
+      "tr": "ABSORBS の箇所での変更: catch-all を名前付きのアームに置き換える"
     },
     {
-      "id": "h-dcb7c936",
+      "id": "h-457bffe2",
       "kind": "html",
-      "en": "The prediction was right on all eight. The other two, <code>exec::total</code> and <code>render::literal_text</code>, keep compiling and send the new case wherever their catch-all points. An agent that fixes the eight errors and stops has a green build and two live bugs, and the query is what names them.",
-      "tr": "予測は 8 か所すべてで当たりました。残りの 2 か所、 <code>exec::total</code> と <code>render::literal_text</code> はコンパイルが通ったまま、新しいケースを catch-all の行き先に流します。 8 つのエラーを直したところで手を止めたエージェントには、通ったビルドと生きたままの 2 つのバグが残ります。その 2 つを指し示すのがこのクエリです。"
+      "en": "glyph check, after all ten sites",
+      "tr": "glyph check、10 か所すべてを直した後"
+    },
+    {
+      "id": "h-a99103b3",
+      "kind": "html",
+      "en": "Each <code>WILL_FAIL</code> entry comes with the error it will raise, and adding the case alone gave exactly those eight <code>E0200</code> errors. The two <code>ABSORBS</code> sites raise nothing: <code>render::literal_text</code> would have printed a date literal without its quotes, and <code>exec::total</code> would have counted every date as zero. An agent working from compiler errors alone fixes eight sites and stops with a green build. Asked again after the fix, the compiler answers <code>WILL_FAIL</code> at all ten, so the next case cannot slip past either.",
+      "tr": "<code>WILL_FAIL</code> の各エントリには、そこで出るエラーが付いています。実際にケースだけを追加すると、ちょうどその 8 つの <code>E0200</code> エラーが出ました。 <code>ABSORBS</code> の 2 か所は何も出しません。 <code>render::literal_text</code> は日付リテラルを引用符なしで出力し、 <code>exec::total</code> はすべての日付を 0 として数えていたはずです。コンパイラのエラーだけを頼りに作業するエージェントは、8 か所を直して通ったビルドのまま止まります。修正後にもう一度聞くと、コンパイラは 10 か所すべてで <code>WILL_FAIL</code> と答えるので、次のケースもすり抜けられません。"
     },
     {
       "id": "h-35b0b48e",

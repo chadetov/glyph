@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "zh-cn",
-  "source_hash": "2146f3700ce690e1",
+  "source_hash": "3a419cdee3b04e4b",
   "segments": [
     {
       "id": "title",
@@ -191,34 +191,40 @@
       "tr": "{{catches:measured}}共有 {{catches:total}} 个经过检验的案例：{{catches:count}} 个 TypeScript 案例、{{catches:trap-count}} 个在 Glyph 中不存在的 JavaScript 陷阱，以及 {{catches:gap-cases}} 个 Glyph 尚未堵上的漏洞。其中 {{catches:refused-all}} 个在构建时就被 Glyph 拒绝（{{catches:refused}} 个 TypeScript 案例和 {{catches:traps-refused}} 个陷阱）。"
     },
     {
-      "id": "h-cda6f98d",
+      "id": "h-36c9b818",
       "kind": "html",
-      "en": "One change, on a real application",
-      "tr": "在真实应用里做一次改动"
+      "en": "Your agent can ask the compiler first",
+      "tr": "你的智能体可以先问编译器"
     },
     {
-      "id": "h-2e4f29c6",
+      "id": "h-651b7e75",
       "kind": "html",
-      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a case to it, ask the compiler which places it reaches.",
-      "tr": "<code>examples/apps/csvql</code> 是本仓库里的一个 CSV 查询引擎，核心是一个 <code>Value</code> 联合类型。给它加一个新 case 之前，先问编译器这会影响到哪些地方。"
+      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a <code>Date</code> case to it, an agent asks the compiler's MCP server what that edit breaks. The answer, trimmed here to verdict, site and function, names ten match sites across four files.",
+      "tr": "<code>examples/apps/csvql</code> 是本仓库里的一个 CSV 查询引擎，核心是一个 <code>Value</code> 联合类型。给它加一个 <code>Date</code> case 之前，智能体先问编译器的 MCP 服务器：这次修改会弄坏什么。回答（这里只保留判定、位置和函数）列出了四个文件中的十处 match。"
     },
     {
-      "id": "h-bb44e881",
+      "id": "h-5dd9fdd6",
       "kind": "html",
-      "en": "glyph_variants { name: \"Value\" }",
-      "tr": "glyph_variants { name: \"Value\" }"
+      "en": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }",
+      "tr": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }"
     },
     {
-      "id": "h-dd6a6de7",
+      "id": "h-6face4dc",
       "kind": "html",
-      "en": "then add the case and run glyph check",
-      "tr": "然后加上这个 case，运行 glyph check"
+      "en": "the change at an ABSORBS site: the catch-all becomes named arms",
+      "tr": "在 ABSORBS 处的修改：catch-all 换成逐个命名的分支"
     },
     {
-      "id": "h-dcb7c936",
+      "id": "h-457bffe2",
       "kind": "html",
-      "en": "The prediction was right on all eight. The other two, <code>exec::total</code> and <code>render::literal_text</code>, keep compiling and send the new case wherever their catch-all points. An agent that fixes the eight errors and stops has a green build and two live bugs, and the query is what names them.",
-      "tr": "预测的八处全部命中。另外两处，<code>exec::total</code> 和 <code>render::literal_text</code>，仍然能编译通过，并把新的 case 交给各自的 catch-all 分支处理。一个修完这八个错误就停手的智能体，会得到一个通过的构建和两个仍然存在的 bug，而指出这两处的正是那次查询。"
+      "en": "glyph check, after all ten sites",
+      "tr": "glyph check，十处全部改完之后"
+    },
+    {
+      "id": "h-a99103b3",
+      "kind": "html",
+      "en": "Each <code>WILL_FAIL</code> entry comes with the error it will raise, and adding the case alone gave exactly those eight <code>E0200</code> errors. The two <code>ABSORBS</code> sites raise nothing: <code>render::literal_text</code> would have printed a date literal without its quotes, and <code>exec::total</code> would have counted every date as zero. An agent working from compiler errors alone fixes eight sites and stops with a green build. Asked again after the fix, the compiler answers <code>WILL_FAIL</code> at all ten, so the next case cannot slip past either.",
+      "tr": "每条 <code>WILL_FAIL</code> 都附带它会触发的错误；只加这个 case 时，得到的正好是这八个 <code>E0200</code> 错误。两处 <code>ABSORBS</code> 什么都不报：<code>render::literal_text</code> 会把日期字面量打印成不带引号的样子，<code>exec::total</code> 会把每个日期都算作零。只看编译器错误工作的智能体会修好八处，然后带着通过的构建停手。修完之后再问一次，编译器在全部十处都回答 <code>WILL_FAIL</code>，所以下一个 case 也漏不过去。"
     },
     {
       "id": "h-35b0b48e",

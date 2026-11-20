@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "th",
-  "source_hash": "2146f3700ce690e1",
+  "source_hash": "3a419cdee3b04e4b",
   "segments": [
     {
       "id": "title",
@@ -191,34 +191,40 @@
       "tr": "{{catches:measured}} รวมทั้งหมดมี {{catches:total}} กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript {{catches:count}} กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph {{catches:trap-count}} กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ {{catches:gap-cases}} กรณี Glyph ปฏิเสธ {{catches:refused-all}} กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript {{catches:refused}} กรณี และกับดัก {{catches:traps-refused}} กรณี)"
     },
     {
-      "id": "h-cda6f98d",
+      "id": "h-36c9b818",
       "kind": "html",
-      "en": "One change, on a real application",
-      "tr": "การเปลี่ยนแปลงหนึ่งครั้ง ในแอปพลิเคชันจริง"
+      "en": "Your agent can ask the compiler first",
+      "tr": "เอเจนต์ถามคอมไพเลอร์ก่อนได้"
     },
     {
-      "id": "h-2e4f29c6",
+      "id": "h-651b7e75",
       "kind": "html",
-      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a case to it, ask the compiler which places it reaches.",
-      "tr": "<code>examples/apps/csvql</code> เป็น query engine สำหรับไฟล์ CSV ที่อยู่ใน repository นี้ โดยมี union <code>Value</code> เป็นแกนกลาง ก่อนจะเพิ่ม case ใหม่เข้าไป ให้ถามคอมไพเลอร์ก่อนว่าจะกระทบจุดไหนบ้าง"
+      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a <code>Date</code> case to it, an agent asks the compiler's MCP server what that edit breaks. The answer, trimmed here to verdict, site and function, names ten match sites across four files.",
+      "tr": "<code>examples/apps/csvql</code> เป็น query engine สำหรับไฟล์ CSV ที่อยู่ใน repository นี้ โดยมี union <code>Value</code> เป็นแกนกลาง ก่อนจะเพิ่ม case <code>Date</code> เข้าไป เอเจนต์จะถาม MCP server ของคอมไพเลอร์ว่าการแก้ไขนี้ทำให้อะไรพังบ้าง คำตอบ (ตัดมาเฉพาะผลตัดสิน ตำแหน่ง และฟังก์ชัน) ระบุจุด match สิบจุดในสี่ไฟล์"
     },
     {
-      "id": "h-bb44e881",
+      "id": "h-5dd9fdd6",
       "kind": "html",
-      "en": "glyph_variants { name: \"Value\" }",
-      "tr": "glyph_variants { name: \"Value\" }"
+      "en": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }",
+      "tr": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }"
     },
     {
-      "id": "h-dd6a6de7",
+      "id": "h-6face4dc",
       "kind": "html",
-      "en": "then add the case and run glyph check",
-      "tr": "จากนั้นเพิ่ม case แล้วรัน glyph check"
+      "en": "the change at an ABSORBS site: the catch-all becomes named arms",
+      "tr": "การแก้ที่จุด ABSORBS: เปลี่ยน catch-all เป็น arm ที่ระบุชื่อทีละตัว"
     },
     {
-      "id": "h-dcb7c936",
+      "id": "h-457bffe2",
       "kind": "html",
-      "en": "The prediction was right on all eight. The other two, <code>exec::total</code> and <code>render::literal_text</code>, keep compiling and send the new case wherever their catch-all points. An agent that fixes the eight errors and stops has a green build and two live bugs, and the query is what names them.",
-      "tr": "ที่คาดการณ์ไว้ถูกครบทั้งแปดจุด อีกสองจุดคือ <code>exec::total</code> และ <code>render::literal_text</code> ยังคอมไพล์ผ่าน และส่ง case ใหม่ไปตามที่ catch-all ของแต่ละจุดกำหนดไว้ เอเจนต์ที่แก้ error ครบแปดจุดแล้วหยุดจะได้ build สีเขียวพร้อมบั๊กที่ยังอยู่อีกสองตัว และคิวรีนี้คือสิ่งที่ชี้ให้เห็นว่าอยู่ตรงไหน"
+      "en": "glyph check, after all ten sites",
+      "tr": "glyph check หลังแก้ครบทั้งสิบจุด"
+    },
+    {
+      "id": "h-a99103b3",
+      "kind": "html",
+      "en": "Each <code>WILL_FAIL</code> entry comes with the error it will raise, and adding the case alone gave exactly those eight <code>E0200</code> errors. The two <code>ABSORBS</code> sites raise nothing: <code>render::literal_text</code> would have printed a date literal without its quotes, and <code>exec::total</code> would have counted every date as zero. An agent working from compiler errors alone fixes eight sites and stops with a green build. Asked again after the fix, the compiler answers <code>WILL_FAIL</code> at all ten, so the next case cannot slip past either.",
+      "tr": "แต่ละรายการ <code>WILL_FAIL</code> บอก error ที่จะเกิดขึ้นมาด้วย และเมื่อเพิ่มแค่ case อย่างเดียวก็ได้ error <code>E0200</code> แปดตัวนั้นพอดี ส่วนสองจุด <code>ABSORBS</code> ไม่รายงานอะไรเลย <code>render::literal_text</code> จะพิมพ์ literal วันที่ออกมาโดยไม่มีเครื่องหมายคำพูด และ <code>exec::total</code> จะนับทุกวันที่เป็นศูนย์ เอเจนต์ที่ทำงานจาก error ของคอมไพเลอร์อย่างเดียวจะแก้แปดจุดแล้วหยุดพร้อม build สีเขียว เมื่อถามซ้ำหลังแก้แล้ว คอมไพเลอร์ตอบ <code>WILL_FAIL</code> ทั้งสิบจุด case ถัดไปจึงหลุดรอดไปไม่ได้เช่นกัน"
     },
     {
       "id": "h-35b0b48e",

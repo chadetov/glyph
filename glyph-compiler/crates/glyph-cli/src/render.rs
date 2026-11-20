@@ -138,7 +138,7 @@ pub fn render_emit_error(
         "emit",
         &message,
         err.code(),
-        err.help(),
+        err.help().as_deref(),
         err.note(),
         with_color,
         Severity::Error,

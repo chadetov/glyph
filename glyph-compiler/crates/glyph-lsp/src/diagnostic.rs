@@ -651,7 +651,7 @@ pub fn from_emit_error(
         "error",
         "emit",
         format!("{err}"),
-        err.help(),
+        err.help().as_deref(),
         err.note(),
         entity_id(module_path, module, err.span().start),
     )

@@ -423,7 +423,7 @@
       <header class="page-hero">
         <p class="eyebrow">TypeScript 放过的案例</p>
         <h1>上线之前就被发现</h1>
-        <p class="lede">共有 53 个经过检验的案例：37 个 TypeScript 案例、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 11 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个 TypeScript 案例和 5 个陷阱）。</p>
+        <p class="lede">共有 52 个经过检验的案例：37 个 TypeScript 案例、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 10 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个 TypeScript 案例和 5 个陷阱）。</p>
         <p class="lede">列表中所有 TypeScript 示例都能零错误通过 <code>tsc --strict</code>。每个示例还会在一个配置拉满的项目里再检查一遍：比 <code>--strict</code> 更严格的所有编译器 flag，再加上 typescript-eslint 的 <code>strictTypeChecked</code>。在 37 个案例中，有 21 个是这套配置里没有任何一项能发现的。有 5 个能被默认关闭的编译器 flag 发现，11 个能被某条 lint 规则发现。这些都需要项目自己去打开，而智能体也可以再把它们关掉。在 Glyph 里，这些都不是配置项。</p>
         <p class="lede">
           每个条目都是 <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 中的两个程序，每个程序下方的输出就是工具实际打印的内容。构建检查 <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a> 会重新运行每个案例，只要任何一半不再符合页面的描述就会失败。它用来对照的完整 TypeScript 配置就在这个脚本里。
@@ -1484,13 +1484,12 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       <section class="c-section" id="not-yet">
         <h2 class="group-head">Glyph 还发现不了的问题</h2>
         <p class="group-sub">
-          11 个 Glyph 尚未堵上的漏洞。这些程序今天在 Glyph 中都能编译，并且和在 TypeScript 中一样出错。每个都在 <code>catches/</code> 中有复现，并有一个未关闭的 gap 编号；修复落地时检查会失败，所以条目不会比漏洞活得更久。
+          10 个 Glyph 尚未堵上的漏洞。这些程序今天在 Glyph 中都能编译，并且和在 TypeScript 中一样出错。每个都在 <code>catches/</code> 中有复现，并有一个未关闭的 gap 编号；修复落地时检查会失败，所以条目不会比漏洞活得更久。
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> 会把真实的 <code>0</code> 变成 <code>3</code>。 <span>G386</span></li>
         <li>把记录放进 <code>"Welcome back, ${user}!"</code> 会打印出 <code>[object Object]</code>。 <span>G385</span></li>
         <li><code>forEach(async ...)</code> 会丢掉每个 promise，于是这些工作在依赖它的代码之后才完成，而且没有任何警告。 <span>G384</span></li>
-        <li>可选字段里的 JSON <code>null</code> 能通过检查，所以用展开覆盖默认值时会留下 <code>null</code>。 <span>G391</span></li>
         <li>辅助函数里的 <code>xs.sort(...)</code> 会重排调用方的数组，却没有 <code>mut</code> 标记。 <span>G380</span></li>
         <li>对数字调用 <code>.sort()</code> 会按文本排序：<code>100,25,9</code>。 <span>G388</span></li>
         <li>用 <code>${name}</code> 拼出来的 SQL 查询会被 <code>std/sqlite</code> 接受。 <span>G387</span></li>

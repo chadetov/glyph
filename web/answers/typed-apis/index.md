@@ -199,7 +199,7 @@ The descriptor is the same one that makes `json.parse<T>` safe: give it a JSON s
 
 A request body arrives already decoded as an `unknown`, so there you reach for `T.parse(value)` instead: same guarantee, no cast.
 
-The rest of the untrusted boundary is typed the same way: `header(req, name)` and `query_param(req, name)` return `Option<string>`, so a missing header or query parameter is `None` and the `match` *forces* you to handle it. Omit the `None` arm and it won't compile. Absent input can't be read as if it were present.
+The rest of the untrusted boundary is typed the same way: `header(req, name)` and `query_param(req, name)` return `Option<string>`, so a missing header or query parameter is `None` and the `match` *forces* you to handle it. Omit the `None` arm and it won't compile. Absent input can't be read as if it were present. A body field follows the same rule: `timeout_ms?: number` is an absent key or a number, so `{"timeout_ms": null}` is an `Err` at `["timeout_ms"]`, from `T.parse`, `is T` and `json.parse<T>` alike. Declare `timeout_ms?: Nullable<number>` when the sender writes `null`. Until 0.1.152 that `null` came back inside the `Ok`.
 
 ## Does a map keyed by an enum check its keys?
 
@@ -210,13 +210,13 @@ Yes, since 0.1.148. A `Record<Tier, int>` with `type Tier = "free" | "pro"` pars
 |---|---|
 
 | A string-literal union | exactly the listed keys, none missing, none extra |
-| A `where`-refined `string` or number | the predicate |
+| A `where`-refined type | the predicate |
 | `int` | the plain spelling of a whole number; `"01"` and `"1.5"` fail |
 | `string` | nothing new |
 
 **Details refined and int keys, and what is still left to tsc **
 
-A `where`-refined key type runs its predicate on every key, and an `int` key has to be the plain spelling of a whole number, so `"01"` and `"1.5"` are refused. A `Record<string, V>` is checked exactly as before. A `where` cannot refine a string-literal union (`type T2 = Tier where value != "pro"` is `E0300` since 0.1.152); write the members you mean as their own union, `type T2 = "free"`, and it keys a `Record` with the same exact-keys check. Glyph's own checker still leaves the keys of a value you write in code to `tsc`, and a generic record keyed by its own type parameter is refused unless that parameter is `string`.
+A `where`-refined key type runs its predicate on every key, and an `int` key has to be the plain spelling of a whole number, so `"01"` and `"1.5"` are refused. A `Record<string, V>` is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to `tsc`, and a generic record keyed by its own type parameter is refused unless that parameter is `string`.
 
 ## If I parse a date, do I get a real date?
 
@@ -503,4 +503,4 @@ Boundaries
 
   On dates, the strictness is the whole feature and it stops at the parse: `parse_iso` hands back epoch milliseconds, so a timestamp and a duration are both `number` and nothing stops you adding one to the other. A distinct date type is a later decision, not a small one.
 
-Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 20 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed 20 Nov 2026.

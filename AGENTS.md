@@ -845,7 +845,10 @@ pub fn handle(body: unknown) -> string {
 
 A record descriptor is strict by default: it confirms the declared fields *and*
 rejects a value carrying undeclared keys. Put `@open` above a `type` to allow
-extra keys (`@open` then the `type` line).
+extra keys (`@open` then the `type` line). An optional field (`f?: T`) is an
+absent key or a `T`: a key holding `null` or `undefined` is a `"type"` issue,
+in `is` and `parse` alike, so declare `f?: Nullable<T>` where the sender writes
+`null` (D45).
 
 Each `Issue` has an optional `code`: `"missing"`, `"type"`, `"refinement"`,
 `"unexpected"`, or `"depth"`. No generated check walks a value nested more

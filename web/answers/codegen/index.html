@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I generate a typed client from my API spec?","item":"https://glyphlang.io/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/codegen/#article","headline":"Can I generate a typed client from my API spec?","description":"Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.","url":"https://glyphlang.io/answers/codegen/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/codegen/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I generate a typed client from my API spec?","item":"https://glyphlang.io/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/codegen/#article","headline":"Can I generate a typed client from my API spec?","description":"Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.","url":"https://glyphlang.io/answers/codegen/","inLanguage":"en","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/codegen/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/codegen/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/codegen/" />
@@ -92,7 +92,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.151</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.149</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -590,7 +590,9 @@
         </p>
         <p>
           Where it falls short: generation is wire-faithful, so it maps the common 80%:
-          objects, primitives, arrays, references, optional and nullable fields, and
+          objects, primitives, arrays, references, optional and nullable fields (kept
+          apart: a nullable field becomes <code>Nullable&lt;T&gt;</code>, and a field the
+          schema does not require gets <code>?</code>, which takes no <code>null</code>), and
           discriminated unions. It narrows what it can't represent exactly (a string enum, an
           <em>un</em>discriminated union) with a printed note rather than a validator that would
           reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen
@@ -621,7 +623,7 @@
           <h3 class="h">On the way</h3>
           <p>Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved. Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.</p>
         </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
+        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed <time datetime="2026-11-20">20 Nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/typed-apis/">

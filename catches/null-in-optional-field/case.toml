@@ -1,0 +1,6 @@
+pillar = "verifiability"
+title = "A JSON null in an optional field"
+kind = "boundary"
+ts_output = "timeout x2 = 0"
+glyph_output = ["rejected:", "is null; declare it `timeout_ms?: Nullable<number>` to accept null"]
+fullconfig = "none"

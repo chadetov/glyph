@@ -119,7 +119,9 @@ async fn getTask(base: string, id: number)
         </p>
         <p>
           Where it falls short: generation is wire-faithful, so it maps the common 80%:
-          objects, primitives, arrays, references, optional and nullable fields, and
+          objects, primitives, arrays, references, optional and nullable fields (kept
+          apart: a nullable field becomes <code>Nullable&lt;T&gt;</code>, and a field the
+          schema does not require gets <code>?</code>, which takes no <code>null</code>), and
           discriminated unions. It narrows what it can't represent exactly (a string enum, an
           <em>un</em>discriminated union) with a printed note rather than a validator that would
           reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen

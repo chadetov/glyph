@@ -82,6 +82,35 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
         });
     }
 
+    // `std/decimal`'s two constructors. Modeled so a `Decimal` is a type the
+    // checker holds rather than `Unknown`: a `Decimal` is an object whose text
+    // is its `to_string()`, and `${d}` prints `[object Object]`, which D51
+    // refuses only for a value the checker can see is one. `zero` is a value,
+    // not a function, and this table types functions, so it stays `Unknown`.
+    if module_key == "std/decimal" {
+        let decimal = || stdlib_named("decimal", "Decimal");
+        let (params, ret) = match field {
+            "decimal" => (
+                vec![required(Ty::Prim(Primitive::String))],
+                result_ty(prelude, decimal(), Ty::Prim(Primitive::String))?,
+            ),
+            "from_int" => (
+                vec![
+                    required(Ty::Prim(Primitive::Number)),
+                    required(Ty::Prim(Primitive::Number)),
+                ],
+                decimal(),
+            ),
+            _ => return None,
+        };
+        return Some(Ty::Fn {
+            params,
+            return_ty: Arc::new(ret),
+            is_async: false,
+            type_params: None,
+        });
+    }
+
     // `json.stringify(value, options?)` -> string. The sixth and last of the
     // trailing-optional functions G39 named: modelable now that the arity
     // check understands a minimum and a maximum, so its result stops being

@@ -283,7 +283,14 @@ type User = { name: string; age: number };
           and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a
           missing header or query parameter is <code>None</code> and the <code>match</code>
           <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't
-          compile. Absent input can't be read as if it were present.
+          compile. Absent input can't be read as if it were present. A body field
+          follows the same rule: <code>timeout_ms?: number</code> is an absent key or a
+          number, so <code>{"timeout_ms": null}</code> is an <code>Err</code> at
+          <code>["timeout_ms"]</code>, from <code>T.parse</code>, <code>is T</code> and
+          <code>json.parse&lt;T&gt;</code> alike. Declare
+          <code>timeout_ms?: Nullable&lt;number&gt;</code> when the sender writes
+          <code>null</code>. Until 0.1.152 that <code>null</code> came back inside the
+          <code>Ok</code>.
         </p>
       </div></details>
 

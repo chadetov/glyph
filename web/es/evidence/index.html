@@ -428,7 +428,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">Los casos<a class="h-anchor" href="#the-fixtures" aria-label="Enlace a esta sección">#</a></h2>
         <p>
-          Cada directorio bajo <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> contiene <code>ts.ts</code>, <code>glyph.glyph</code> y un <code>case.toml</code> que dice qué hace cada uno. <code>scripts/check_catches.py</code> se ejecuta en CI. Exige que cada <code>ts.ts</code> pase <code>tsc --strict</code>, ya que un programa TypeScript que no compila no demuestra nada, y comprueba la mitad de Glyph según el tipo de caso. En total hay 53 casos comprobados: 37 casos de TypeScript, 5 trampas de JavaScript que no existen en Glyph y 11 huecos que Glyph aún no cierra. Glyph rechaza 28 de ellos al compilar (23 casos de TypeScript y 5 trampas). Según el tipo que comprueba:
+          Cada directorio bajo <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> contiene <code>ts.ts</code>, <code>glyph.glyph</code> y un <code>case.toml</code> que dice qué hace cada uno. <code>scripts/check_catches.py</code> se ejecuta en CI. Exige que cada <code>ts.ts</code> pase <code>tsc --strict</code>, ya que un programa TypeScript que no compila no demuestra nada, y comprueba la mitad de Glyph según el tipo de caso. En total hay 52 casos comprobados: 37 casos de TypeScript, 5 trampas de JavaScript que no existen en Glyph y 10 huecos que Glyph aún no cierra. Glyph rechaza 28 de ellos al compilar (23 casos de TypeScript y 5 trampas). Según el tipo que comprueba:
         </p>
       </div>
 
@@ -442,7 +442,7 @@
             <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">El build pasa e informa de ese código como aviso</td></tr>
             <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">El programa se ejecuta, y la comprobación en la frontera convierte los datos incorrectos en un <code>Err</code></td></tr>
             <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">El programa compila y luego se detiene al ejecutarse, con la salida indicada</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">11</td><td data-label="What the gate requires of the Glyph">Glyph acepta el programa y este hace lo incorrecto. Cuando el hueco se cierra, la comprobación falla y pide mover el caso</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">10</td><td data-label="What the gate requires of the Glyph">Glyph acepta el programa y este hace lo incorrecto. Cuando el hueco se cierra, la comprobación falla y pide mover el caso</td></tr>
           </tbody>
         </table>
       </div>
@@ -536,7 +536,7 @@ glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
 
         <h2 class="block-label" id="what-it-does-not-catch-yet">Lo que todavía no detecta<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="Enlace a esta sección">#</a></h2>
         <p>
-          Los 11 casos <code>gap</code> están en <a href="/es/catches/#not-yet">la página de casos</a>, cada uno con su número de gap. Cada gap encontrado al construir apps en Glyph está en el registro, <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>, donde una marca entre corchetes es el único estado vigente (<code>[FIXED]</code>, <code>[HALF FIXED]</code>, o ninguna si está abierto) y <code>scripts/check_gaps.py</code> hace fallar el CI cuando una entrada abierta se reprodujo por última vez hace más de cinco versiones.
+          Los 10 casos <code>gap</code> están en <a href="/es/catches/#not-yet">la página de casos</a>, cada uno con su número de gap. Cada gap encontrado al construir apps en Glyph está en el registro, <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>, donde una marca entre corchetes es el único estado vigente (<code>[FIXED]</code>, <code>[HALF FIXED]</code>, o ninguna si está abierto) y <code>scripts/check_gaps.py</code> hace fallar el CI cuando una entrada abierta se reprodujo por última vez hace más de cinco versiones.
         </p>
 
         <h2 class="block-label" id="how-a-release-is-marked-breaking">Cómo se marca una versión como Breaking<a class="h-anchor" href="#how-a-release-is-marked-breaking" aria-label="Enlace a esta sección">#</a></h2>

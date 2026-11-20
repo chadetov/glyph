@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/codegen/, generated from the same source as the page. Last changed 2026-11-19. -->
+<!-- Markdown copy of https://glyphlang.io/answers/codegen/, generated from the same source as the page. Last changed 2026-11-20. -->
 
 12 · From your spec
 
@@ -84,7 +84,7 @@ type Task = {
 
 A polymorphic **discriminated union** (an OpenAPI `discriminator`) comes out as a real Glyph tagged union plus a generated `parse_<Name>` that reads the discriminator property and validates into the right variant. Because Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges the wire object to the union for you.
 
-Where it falls short: generation is wire-faithful, so it maps the common 80%: objects, primitives, arrays, references, optional and nullable fields, and discriminated unions. It narrows what it can't represent exactly (a string enum, an *un*discriminated union) with a printed note rather than a validator that would reject real data. Richer enums are next. And the tooling has real dependencies: `gen dts`/`gen zod` need Node plus `typescript`/`zod`. `gen dts` works with any TypeScript (5, 6, or the 7.x native port), resolved from your project first, and they tell you exactly what to install if it's missing.
+Where it falls short: generation is wire-faithful, so it maps the common 80%: objects, primitives, arrays, references, optional and nullable fields (kept apart: a nullable field becomes `Nullable<T>`, and a field the schema does not require gets `?`, which takes no `null`), and discriminated unions. It narrows what it can't represent exactly (a string enum, an *un*discriminated union) with a printed note rather than a validator that would reject real data. Richer enums are next. And the tooling has real dependencies: `gen dts`/`gen zod` need Node plus `typescript`/`zod`. `gen dts` works with any TypeScript (5, 6, or the 7.x native port), resolved from your project first, and they tell you exactly what to install if it's missing.
 
 ## Keeping it in sync
 
@@ -102,4 +102,4 @@ Two types that would be written under one Glyph name stop the generator instead 
 
 Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own `.d.ts` reads its `interface` and `type` declarations, so a library whose API is classes, or whose fields use computed types like `Omit`, leaves references the generator names in a note and `glyph build` reports as unresolved. Importing such a class and constructing it with `new` needs no generation and is checked by `tsc`, so that path is unaffected.
 
-Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed 20 Nov 2026.

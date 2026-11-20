@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "timeout x2 = 0"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "rejected: [{\"path\":[\"timeout_ms\"],\"message\":\"field `timeout_ms` is null; declare it `timeout_ms?: Nullable<number>` to accept null\",\"code\":\"type\"}]"
+  }
+}

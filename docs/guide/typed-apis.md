@@ -280,6 +280,15 @@ does not, because a non-null value is checked as an `int` and an object is not
 one. An absent `s` is still `field \`s\` is required`; write `s?: Nullable<int>`
 when the key may be missing too.
 
+The `?` alone does not take a null. `s?: int` is an absent key or an `int`, so
+`{"op": 10, "s": null}` against it is an `Err` with path `["s"]` and the message
+``field `s` is null; declare it `s?: Nullable<int>` to accept null``. A key
+holding `undefined`, which only a host value can carry, is refused too
+(``field `s` is undefined; omit the key``). `T.is`, `is T` and every `parse`
+route give the same answer. Until 0.1.152 an optional field read a `null` as
+absence and returned `Ok` with the `null` still in it, where the type said
+`int`.
+
 There is no `match` on a `Nullable` and no `Some`/`None` for it. The crossing to
 `Option` is `nullable.to_option`, and back is `nullable.from_option`; `is_null`
 tests without converting. That is deliberate: `grep to_option` lists every place

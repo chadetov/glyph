@@ -14,7 +14,7 @@ compiler stopped doing.
 There are 53 cases. By pillar, 45 are evidence for verifiability, 3 for
 greppability and 5 for abstraction. None is evidence for diff stability, and the
 check prints that zero rather than leaving it off. By kind, 28 are refused, 3
-warned, 9 checked at the boundary, 2 stopped at run time, and 11 are gaps Glyph
+warned, 10 checked at the boundary, 2 stopped at run time, and 10 are gaps Glyph
 does not catch yet. The check prints these counts on every run.
 
 A case that stops being demonstrable gets deleted, not softened. Six have been.
@@ -243,8 +243,13 @@ the day its gap closes:
 | G387 | `gap-g387-sql-by-interpolation` | a SQL query built with `${name}`, returning every row | nothing |
 | G388 | `gap-g388-sort-as-text` | `.sort()` on numbers, giving `100,25,9` | lint `require-array-sort-compare` |
 | G390 | `gap-g390-index-update-across-await` | a lost update on `c[0]` across `await` | lint `require-atomic-updates` |
-| G391 | `gap-g391-null-in-optional-field` | a JSON `null` kept in an optional field, so a spread erases the default | nothing |
 | G392 | `gap-g392-find-method-option` | `users.find(...).name`, refused only by the `tsc` pass (`TS2532`) | lint `no-non-null-assertion` |
+
+`null-in-optional-field` was the G391 gap case until 0.1.152 closed it. It is
+a `boundary` case now and off the page: `json.parse<Opts>` of
+`{"timeout_ms": null}` is an `Err` naming `timeout_ms?: Nullable<number>`, where
+the TypeScript spreads the `null` over its default and prints
+`timeout x2 = 0`.
 
 ## Adding one
 

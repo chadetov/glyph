@@ -20126,3 +20126,75 @@ fn every_null_suggestion_names_a_type_that_compiles() {
     let lines = run_main_lines(&src);
     assert_suggestions_compile("routes", &[("main.glyph", OPTIONAL_ROUTES_MAIN)], &suggested_null_types(&lines));
 }
+
+/// G373. A `Record`'s key is invariant whichever spelling reaches the key: a
+/// sibling's union imported by name, through a namespace, through a local
+/// alias of an alias, and through a sibling's second name for a third
+/// module's union, and a sibling's refined type the same. Each refusal is the
+/// same E0204 with the same note, and the same-domain pairings across those
+/// spellings are accepted.
+#[test]
+fn a_record_key_is_invariant_by_every_spelling() {
+    let root = unique_tmp("g373spell");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "tiers.glyph",
+        "module tiers\n\npub type Tier = \"a\" | \"b\"\n\npub type Slug = string where value.length > 1\n\npub type SlugAgain = Slug\n",
+    );
+    write_file(&src, "mid.glyph", "module mid\n\nimport tiers as q\n\npub type MidTier = q.Tier\n");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\nimport tiers { Tier }\nimport tiers as t\nimport mid { MidTier }\n\n\
+         type Local = Tier\n\ntype LocalLocal = Local\n\n\
+         pub fn by_name(r: Record<string, int>) -> Record<Tier, int> {\n  return r\n}\n\n\
+         pub fn by_ns(r: Record<string, int>) -> Record<t.Tier, int> {\n  return r\n}\n\n\
+         pub fn by_alias(r: Record<string, int>) -> Record<LocalLocal, int> {\n  return r\n}\n\n\
+         pub fn by_hop(r: Record<string, int>) -> Record<MidTier, int> {\n  return r\n}\n\n\
+         pub fn back(r: Record<MidTier, int>) -> Record<string, int> {\n  return r\n}\n\n\
+         pub fn slug(r: Record<string, int>) -> Record<t.Slug, int> {\n  return r\n}\n\n\
+         pub fn ok_ns(r: Record<Tier, int>) -> Record<t.Tier, int> {\n  return r\n}\n\n\
+         pub fn ok_hop(r: Record<LocalLocal, int>) -> Record<MidTier, int> {\n  return r\n}\n\n\
+         pub fn ok_slug(r: Record<t.Slug, int>) -> Record<t.SlugAgain, int> {\n  return r\n}\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+    let d = &report.diagnostics;
+    let refused: Vec<&String> = d.iter().filter(|d| d.contains("[E0204]")).collect();
+    assert_eq!(refused.len(), 6, "six refusals, nothing else: {d:?}");
+    for key in ["`Tier`", "`t.Tier`", "`LocalLocal`", "`MidTier`", "`t.Slug`"] {
+        assert!(
+            refused.iter().any(|r| r.contains(&format!("may hold keys outside {key}"))),
+            "{key}: {d:?}"
+        );
+    }
+    assert_eq!(d.len(), 6, "the same-domain pairings are accepted: {d:?}");
+}
+
+/// G373, the `std/record` signatures through the emitted TypeScript. A
+/// literal-union map keeps its key through `set`, `keys` is `Array<Tier>`,
+/// and `tsc --strict` agrees with Glyph on every line.
+#[test]
+fn std_record_keeps_a_literal_union_key_under_tsc() {
+    let root = unique_tmp("g373std");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\nimport std/record\n\ntype Tier = \"a\" | \"b\"\n\n\
+         pub fn bump(r: Record<Tier, int>) -> Record<Tier, int> {\n  return record.set(r, \"a\", 9)\n}\n\n\
+         pub fn ks(r: Record<Tier, int>) -> Array<Tier> {\n  return record.keys(r)\n}\n\n\
+         pub fn nks(r: Record<int, int>) -> Array<string> {\n  return record.keys(r)\n}\n\n\
+         pub fn one(r: Record<Tier, int>) -> Option<int> {\n  return record.get(r, \"b\")\n}\n\n\
+         pub fn any(r: Record<Tier, int>, k: string) -> bool {\n  return record.has(r, k)\n}\n\n\
+         pub fn drop(r: Record<string, int>) -> Record<string, int> {\n  return record.remove(r, \"z\")\n}\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+    assert!(!report.has_errors(), "{:?}", report.diagnostics);
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&root.join("dist")).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(out) => panic!("tsc --strict refused the emitted std/record calls:\n{out}"),
+        TscOutcome::NotFound => tool_missing("tsc"),
+    }
+}

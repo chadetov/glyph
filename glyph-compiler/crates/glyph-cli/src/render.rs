@@ -115,7 +115,7 @@ pub fn render_type_error(
         &message,
         err.code(),
         err.help().as_deref(),
-        err.note(),
+        err.note().as_deref(),
         with_color,
         err.severity(),
     )

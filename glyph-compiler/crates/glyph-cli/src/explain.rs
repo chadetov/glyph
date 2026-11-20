@@ -469,6 +469,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `Loaded({ users })` where `Loaded` carries an `Array<string>`, in a \
             `match` arm or a JSX `<case>`. Bind the value to one name instead, \
             `Loaded(users)`.\n\n\
+            A `Record`'s key must match exactly (D30): `Record<string, int>` and \
+            `Record<Tier, int>` do not stand for each other in either direction, \
+            and neither do two literal unions with different members, a refined \
+            key and its base, or a type parameter and `string`. The note names \
+            both keys. Go from an open map to a closed one with `is Record<Tier, \
+            int>` or `json.parse<Record<Tier, int>>`, and keep a closed key by \
+            declaring the position with it or making the function generic over \
+            it.\n\n\
             Change the value, or the declared type, so the two agree.",
         "E0205" => "E0205: `owned` requires a resource type\n\n\
             The `owned` modifier is the narrow D25 carve-out for resource handles \
@@ -553,6 +561,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             after the props object rather than inside it, so they never fill a \
             required `children` field: declare it `children?: T`, or write it as the \
             attribute `children={...}`.\n\n\
+            A `Record` argument is held to the key rule E0204 describes, and a \
+            `std/record` call takes a key of the record's own key type: \
+            `record.set(r, \"zzz\", 9)` on a `Record<Tier, int>` is refused at \
+            the key. `record.remove` on a `Record` whose key is a string-literal \
+            union is this error too, at the record: the map holds every member, \
+            so removing one leaves a value of no declared type. Use a record with \
+            optional fields for a partial map, and `record.set` to replace a \
+            value.\n\n\
             Pass a value of the expected type, or change the parameter's type.",
 
         "E0212" => "E0212: cannot reassign a `const`\n\n\
@@ -1938,8 +1954,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0204",
         phase: "typechecker",
-        meaning: "Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), a declared record where a `Record<string, V>` is declared with a required field that is not a `V`, an `@open` record there unless `V` is `unknown`, a tagged union where any `Record<K, V>` is declared, and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>`",
-        fix: "Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)`",
+        meaning: "Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), a declared record where a `Record<string, V>` is declared with a required field that is not a `V`, an `@open` record there unless `V` is `unknown`, a tagged union where any `Record<K, V>` is declared, a `Record` whose key is not the same key domain as the declared one (`Record<string, V>` against `Record<Tier, V>` in either direction, two literal unions with different members, a refined key against its base, a type parameter against `string`), and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>`",
+        fix: "Make the value and the expected type agree; check an open map with `is Record<Tier, V>`; bind a non-record payload to one name, `Loaded(users)`",
     },
     CodeEntry {
         code: "E0205",
@@ -1980,7 +1996,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0211",
         phase: "typechecker",
-        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name",
+        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record",
         fix: "Pass a value of the expected type",
     },
     CodeEntry {

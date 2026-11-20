@@ -205,13 +205,23 @@ const CORPUS: &[Program] = &[
              fn main() -> void { print(mixed(\"write\")[0] ?? \"read\") }\n",
         )],
     },
+    // G373 (0.1.153) made a `Record`'s key invariant, so the original
+    // `record_key` program, a `Record<string, number>` returned as a
+    // `Record<Mode, number>`, is refused on purpose now (record 119). The
+    // correct spelling of the same intent is the checked crossing below, and
+    // it stays in the corpus so the key rule cannot start refusing it.
     Program {
         name: "record_key",
         modules: &[(
             "main.glyph",
             "module main\n\
              type Mode = \"read\" | \"write\"\n\
-             fn keys(r: Record<string, number>) -> Record<Mode, number> { return r }\n\
+             fn keys(r: Record<string, number>) -> Option<Record<Mode, number>> {\n\
+             \x20 return match r {\n\
+             \x20   is Record<Mode, number> => Some(r),\n\
+             \x20   else => None,\n\
+             \x20 }\n\
+             }\n\
              fn main() -> void {\n\
              \x20 let r: Record<string, number> = {}\n\
              \x20 let _k = keys(r)\n\

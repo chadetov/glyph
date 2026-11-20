@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-391 entries, 302 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+392 entries, 303 are fixed, 8 are partly fixed, 11 are decided or resolved, and
 70 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -13086,7 +13086,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.144 and 0.1.145 (the release build) by record
   111's probes `g/A` and `g/Afix` (`/private/tmp/claude-501/linus111/`).*
 
-- **G369. A descriptor check recurses without bound, so a deeply nested value
+- **G369. [FIXED] A descriptor check recurses without bound, so a deeply nested value
   overflows the stack.** A `Tree` nested 20000 deep throws `RangeError:
   Maximum call stack size exceeded` in `is Tree` (0.1.144 and 0.1.145) and,
   since 0.1.145 checks contents, in `is Record<string, Tree>` too, where
@@ -13099,6 +13099,28 @@ and is the owner's to confirm.
   `q/deep`.*
 
   Planned for 0.1.150 (record 111).
+
+  Decided in record 116: a depth limit, enforced exactly, with a private
+  sentinel; not an iterative check (a cyclic value would hang it, and it
+  still needs a bound) and not a caught `RangeError` (it would hide the
+  caller's own overflow and could not be stated as a number). Measured on
+  0.1.148, the shallowest overflow was a generic record at about 4300 JSON
+  levels and the deepest a union at about 9600.
+
+  Fixed in 0.1.150 (D50). Every generated check takes the depth of its value
+  as a parameter and compares it once per object or array it enters, against
+  `MAX_DEPTH` (1000) in `std/schema`, which the emitted code names. Past it,
+  `is` and `T.is` answer `false`, and `T.parse`, `T.schema.parse`,
+  `T.schema.array().parse` and `json.parse<T>` answer one issue with
+  `code: "depth"` at the path a `type` issue for that part would carry.
+  Twenty-nine paths and shapes (records, a union, `Option`, `Nullable`, a
+  generic record, `Record` values and literal-union keys, a refined field and
+  a refined container, an inline record, sibling and namespaced descriptors,
+  `is` patterns over `Array` and `Record`) accept depth 1000 and refuse the
+  first depth past it, under node, under `glyph run`'s tsx, and at half
+  node's default stack, with no `RangeError` at 3000 or 20000; a
+  10,000,000-deep document through `json.parse<Tree>` is an `Err`, and a
+  cyclic value is `false` or the depth issue. `==` is not covered (G378).
 
 - **G370. [FIXED] Two statements on one line with nothing between them parse silently,
   and a value can be dropped.** `let x = h() g` binds `h()` and leaves `g` a
@@ -13213,6 +13235,28 @@ and is the owner's to confirm.
   and `k2t` (`/private/tmp/claude-501/linus115/`).*
 
   Planned for 0.1.153 (record 115).
+
+- **G378. `==` on two deeply nested values overflows the stack.** `==` on
+  two non-primitive values emits `__glyph_eq`, which recurses once per level
+  through `Array.prototype.every` closures. Two equal `Tree` values
+  (`{n, kids: Array<Tree>}`) 1300 levels deep (about 2600 JSON levels) throw
+  `RangeError: Maximum call stack size exceeded` under `glyph run`; with the
+  stack raised to 7 MB it still throws at 10000. The values are plain,
+  acyclic and well typed, and no input validation is involved. A depth limit
+  is not an option, because `==` past a limit would answer wrong rather than
+  refuse (D50 covers checks, not equality). The fix is an iterative
+  `__glyph_eq` with an explicit work stack, one runtime function in
+  `glyph-bootstrap.ts`. Decide first how cycles are handled once the walk is
+  iterative, since a walk with no recursion and no visited set hangs on a
+  cycle instead of throwing: a visited-pair set (coinductive equality), or
+  G272's refusal covering every path a cyclic value can reach `==`, including
+  `unknown`. Separate from G272 (cycles through opaque handles) and G369
+  (checks refuse; equality cannot). Found by the G369 decision (record 116).
+
+  *Reproduced against 0.1.148 (dev build) by record 116's probe `d/` (mode
+  `eq`): passes at 1250, throws at 1300.*
+
+  Scheduled after G272 is decided, in its own release (record 116).
 
 - **G379. Two top-level declarations on one line parse.** `pub fn a() -> int {
   return 1 } pub fn b() -> int { return 2 }`, `type A = int type B = string`

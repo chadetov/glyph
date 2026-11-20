@@ -285,7 +285,9 @@ jobs:
       # newer, so it cannot see a runtime file that needs a later release:
       # `NoInfer` (5.4) in `std/record.ts` passed every other check and broke
       # every project on 4.9 to 5.3 (record 126). This compiles the whole
-      # runtime under typescript@4.9.5.
+      # runtime under typescript@4.9.5 in both configurations the generated
+      # tsconfig has, without @types/node (the shims) and with it, setting
+      # `types` and `typeRoots` so nothing else on the runner is picked up.
       - name: Check the runtime compiles on the TypeScript floor
         run: python3 scripts/check_runtime_ts_floor.py
 

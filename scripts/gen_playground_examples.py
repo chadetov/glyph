@@ -17,7 +17,9 @@ Glyph's own checker on one module and never runs `tsc`, so a case is shown when
     `tsc` pass `glyph build` runs, which this page does not have), and
   - its directory holds exactly one `.glyph` file (the page compiles one module).
 
-An unknown `kind` is an error, as it is in the compiler build.
+An unknown `kind` is an error, as it is in the compiler build. The rule itself
+is `site_catches.in_playground()`, so the "Open in playground" links on
+/catches/ and on each case's page name exactly the cases this picker carries.
 
 Whether each included case really reproduces in the playground is checked by
 a test in `crates/glyph-wasm`, which applies the same rule and compiles every
@@ -71,18 +73,11 @@ PROGRAMS = {
 }
 
 
-KINDS = ("refused", "warned", "boundary", "runtime", "gap")
-
-
 def playground_case(d: pathlib.Path, meta: dict) -> bool:
-    kind = meta.get("kind", "refused")
-    if kind not in KINDS:
-        raise SystemExit(f"catches/{d.name}/case.toml: unknown kind {kind!r}; it is one of {', '.join(KINDS)}")
-    return (
-        kind == "refused"
-        and meta.get("code", "").startswith("E")
-        and len(list(d.glob("*.glyph"))) == 1
-    )
+    try:
+        return site_catches.in_playground(d, meta)
+    except site_catches.CatchesError as e:
+        raise SystemExit(str(e)) from None
 
 
 def editor_source(text: str) -> str:

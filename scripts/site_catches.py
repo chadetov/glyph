@@ -43,6 +43,11 @@ translated into. Its title is the case's `page_title` (through the
 body the same card the list shows, with prev/next in the ranked order.
 Traps and gaps have no page: they carry only a one-line `summary`.
 
+A case the playground carries (`in_playground()`, the rule
+scripts/gen_playground_examples.py applies too) gets an "Open in
+playground" link to /playground/#example=<slug>: on its card and its page,
+and for a trap on its line in the list of traps.
+
 Translated pages get the same blocks in their language: the labels around a
 case are UI strings (`catches.*` in site/i18n/<locale>/strings.json) and each
 case's own texts (page_title, why, the verdicts and results, page_note,
@@ -73,6 +78,8 @@ import site_i18n
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CASES = ROOT / "catches"
 REPO = "https://github.com/chadetov/glyph"
+
+PLAYGROUND = "/playground/#example="
 
 MARK_OPEN = "// show"
 MARK_CLOSE = "// end show"
@@ -121,6 +128,26 @@ class Lang:
 
 # ---------------------------------------------------------------- data
 
+KINDS = ("refused", "warned", "boundary", "runtime", "gap")
+
+
+def in_playground(d: pathlib.Path, meta: dict) -> bool:
+    """Whether the playground's picker carries this case. The playground runs
+    Glyph's own checker on one module and never runs `tsc`, so it shows a
+    refusal (`kind` missing or `refused`) with an `E....` code whose directory
+    holds exactly one `.glyph` file. scripts/gen_playground_examples.py
+    builds the picker with this rule, and a glyph-wasm test applies it too."""
+    kind = meta.get("kind", "refused")
+    if kind not in KINDS:
+        raise CatchesError(f"catches/{d.name}/case.toml: unknown kind {kind!r}; it is one of {', '.join(KINDS)}")
+    return (
+        kind == "refused"
+        and meta.get("code", "").startswith("E")
+        and len(list(d.glob("*.glyph"))) == 1
+    )
+
+
+
 _LOADED: list[dict] | None = None
 
 
@@ -153,6 +180,7 @@ def _read() -> list[dict]:
                 f"catches/{d.name}/observed.json is missing; run "
                 f"`python3 scripts/check_catches.py --write {d.name}`")
         meta["slug"] = d.name
+        meta["playground"] = in_playground(d, meta)
         meta["kind"] = meta.get("kind", "refused")
         meta["observed"] = json.loads(obs_path.read_text())
         meta["ts_code"] = excerpt(d / "ts.ts")
@@ -346,17 +374,19 @@ def mistake_html(c: dict, n: int, t: Lang, page: bool = False) -> str:
     warn = " warn" if ggroup == "warned" else ""
     ts_cap, ts_out = ts_output(c)
     gl_cap, gl_out = glyph_output(c)
+    playground = (f'<a class="c-play" href="{PLAYGROUND}{slug}">{s("catches.playground")}</a>'
+                  if c["playground"] else "")
     reproduce = f'<a href="{REPO}/tree/main/catches/{slug}">{s("catches.reproduce")}</a>'
     disagree = f'<a class="c-disagree" href="{html.escape(issue_link(c))}">{s("catches.disagree")}</a>'
     if page:
         cls, ident = "catch c-page", ""
         heading = f'<h1>{t.text(c, "page_title")}</h1>'
-        links = reproduce + disagree
+        links = playground + reproduce + disagree
     else:
         cls, ident = "catch", f' id="{slug}"'
         heading = f'<h3><a class="c-anchor" href="{case_url(c)}">{t.text(c, "page_title")}</a></h3>'
         links = (f'<a class="c-copy" href="#{slug}" data-slug="{slug}">{s("catches.copy_link")}</a>'
-                 + reproduce + disagree)
+                 + playground + reproduce + disagree)
     return f"""      <article class="{cls}"{ident} data-ts="{ts_group(c)}" data-glyph="{ggroup}">
         <div class="c-head">
           <span class="c-num">{n}</span>
@@ -502,7 +532,11 @@ def mistakes_html(cases: list[dict], t: Lang) -> str:
 
 
 def traps_html(cases: list[dict], t: Lang) -> str:
-    items = "".join(f'        <li id="{c["slug"]}">{t.text(c, "summary")}</li>\n' for c in listed(cases, "trap"))
+    def play(c: dict) -> str:
+        return (f' <a class="c-play" href="{PLAYGROUND}{c["slug"]}">{t.s("catches.playground")}</a>'
+                if c["playground"] else "")
+    items = "".join(f'        <li id="{c["slug"]}">{t.text(c, "summary")}{play(c)}</li>\n'
+                    for c in listed(cases, "trap"))
     return f'      <ul class="c-traps">\n{items}      </ul>\n'
 
 

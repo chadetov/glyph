@@ -4478,141 +4478,127 @@ a.c-card:hover {
   color: var(--on-band);
 }
 /* ============ where to go from here ============ */
-/* The six routes sit on a softly tinted band, as white tiles with a hairline
-   border, so they read apart from the grey case cards below. Each tile has
-   its own hue (--tone), drawn on the icon chip, a thin top edge and the
-   arrow; color-mix leans the icon toward --ink so it keeps its contrast in
-   both themes. */
+/* A numbered index, not a grid of tiles: hairline rules, the title and its
+   one-line description on one row, and the whole row as the link. The arrow
+   moves on hover so it means something. Trying it is a dark strip with two
+   buttons rather than a sixth tile. */
+/* The hero's wrapper already leaves a section's worth of space below the
+   band, so this section adds none of its own above. */
 .home .h-routes {
-  margin-top: var(--s8);
-  padding: var(--s7) 0;
-  background: color-mix(in srgb, var(--violet) 5%, var(--bg));
+  padding-top: 0;
+}
+.h-index {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
 }
-.tone-violet {
-  --tone: #7c5cff;
-}
-.tone-cyan {
-  --tone: #11a9b5;
-}
-.tone-green {
-  --tone: #1f9d55;
-}
-.tone-amber {
-  --tone: #d38b12;
-}
-.tone-rose {
-  --tone: #e0457b;
-}
-.tone-blue {
-  --tone: #3b7ff0;
-}
-.h-tiles {
+.h-index a {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--s4);
-}
-.h-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--s2);
-  padding: var(--s5);
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tone) 70%, transparent);
+  grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1.3fr) 32px;
+  gap: var(--s5);
+  align-items: baseline;
+  padding: var(--s5) var(--s2);
+  border-bottom: 1px solid var(--line);
   color: var(--ink);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  text-decoration: none;
+  transition: background-color 0.18s ease;
 }
-.h-ico {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: var(--s2);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--tone) 14%, transparent);
-  color: color-mix(in srgb, var(--tone) 72%, var(--ink));
+.h-n {
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  color: var(--muted);
 }
-.h-ico .ico {
-  width: 22px;
-  height: 22px;
-}
-.h-title {
-  font-size: var(--fs-md);
-  line-height: 1.3;
+.h-index .h-title {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  transition: color 0.18s ease;
 }
 .h-desc {
   color: var(--muted);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-base);
   line-height: 1.55;
 }
 .h-go {
+  justify-self: end;
+  align-self: center;
   display: inline-flex;
-  margin-top: auto;
-  padding-top: var(--s2);
-  color: color-mix(in srgb, var(--tone) 72%, var(--ink));
-  transition: transform 0.18s ease;
+  color: var(--muted);
+  transition: transform 0.18s ease, color 0.18s ease;
 }
-a.h-tile:hover {
+.h-index a:hover {
   text-decoration: none;
-  color: var(--ink);
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--tone) 45%, var(--line));
-  box-shadow: inset 0 3px 0 var(--tone), 0 14px 32px -16px color-mix(in srgb, var(--tone) 55%, transparent);
+  background: var(--card);
 }
-a.h-tile:hover .h-go {
-  transform: translateX(4px);
+.h-index a:hover .h-title,
+.h-index a:hover .h-go {
+  color: var(--accent);
 }
-a.h-tile:focus-visible,
+.h-index a:hover .h-go {
+  transform: translateX(6px);
+}
+.h-index a:focus-visible,
 .h-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+.h-try {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  margin-top: var(--s5);
+  padding: var(--s5) var(--s6);
+  background: var(--band);
+  border: 1px solid var(--band-line);
+  border-radius: var(--r-card);
+}
+.h-try .h-title {
+  color: var(--on-band);
+  font-size: var(--fs-lg);
+  font-weight: 600;
 }
 .h-acts {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s2);
-  margin-top: auto;
-  padding-top: var(--s2);
 }
 .h-btn {
   display: inline-flex;
+  text-decoration: none;
   align-items: center;
   min-height: 44px;
   padding: 0 var(--s4);
-  border: 1px solid color-mix(in srgb, var(--tone) 45%, var(--line));
-  border-radius: 999px;
-  color: color-mix(in srgb, var(--tone) 72%, var(--ink));
+  border: 1px solid var(--navy-3);
+  border-radius: 10px;
+  color: var(--on-band);
   font-size: var(--fs-sm);
   font-weight: 600;
   transition: background-color 0.15s, border-color 0.15s;
 }
 .h-btn:hover {
   text-decoration: none;
-  border-color: var(--tone);
-  background: color-mix(in srgb, var(--tone) 10%, transparent);
-  color: color-mix(in srgb, var(--tone) 72%, var(--ink));
+  color: var(--on-band);
+  border-color: var(--on-band-2);
 }
 .h-btn.primary {
-  background: var(--tone);
-  border-color: var(--tone);
-  color: #ffffff;
+  background: var(--button);
+  border-color: var(--button);
 }
 .h-btn.primary:hover {
-  background: color-mix(in srgb, var(--tone) 85%, #000000);
-  color: #ffffff;
+  background: var(--button-hover);
+  border-color: var(--button-hover);
 }
 @media (prefers-reduced-motion: reduce) {
-  .h-tile,
+  .h-index a,
+  .h-index .h-title,
   .h-go {
     transition: none;
   }
-  a.h-tile:hover,
-  a.h-tile:hover .h-go {
+  .h-index a:hover .h-go {
     transform: none;
   }
 }
@@ -4662,53 +4648,32 @@ a.h-tile:focus-visible,
   padding-bottom: var(--s8);
 }
 @media (max-width: 860px) {
-  .h-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--s3);
-  }
-  .home .h-routes {
-    margin-top: var(--s7);
-    padding: var(--s6) 0;
-  }
   .h-measured {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--s3);
     padding: var(--s5);
   }
 }
-/* one column on a phone, each tile a row: the chip, the words, the arrow */
-@media (max-width: 479px) {
-  .h-tiles {
-    grid-template-columns: minmax(0, 1fr);
+/* on a narrow screen the description drops under the title */
+@media (max-width: 720px) {
+  .h-index a {
+    grid-template-columns: 32px minmax(0, 1fr) 24px;
+    gap: var(--s1) var(--s3);
+    padding: var(--s4) var(--s1);
   }
-  .h-tile {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) auto;
-    column-gap: var(--s4);
-    row-gap: 2px;
-    align-items: center;
-    padding: var(--s4);
+  .h-index .h-title {
+    font-size: var(--fs-md);
   }
-  .h-ico {
-    grid-row: 1 / span 2;
-    align-self: start;
-    margin: 0;
-  }
-  .h-title,
   .h-desc {
     grid-column: 2;
+    grid-row: 2;
+    font-size: var(--fs-sm);
   }
   .h-go {
     grid-column: 3;
-    grid-row: 1 / span 2;
-    margin: 0;
-    padding: 0;
+    grid-row: 1;
   }
-  .h-tile-try .h-title {
-    grid-row: 1 / span 2;
-  }
-  .h-acts {
-    grid-column: 1 / -1;
-    padding-top: var(--s3);
+  .h-try {
+    padding: var(--s5);
   }
 }

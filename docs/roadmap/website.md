@@ -50,6 +50,11 @@ copy, an `npx`-first install, and a comparison with ReScript, Gleam and Elm.
 for desktop styles; all 48 non-release pages translated into nine languages;
 the site check now fails on unbalanced CSS braces.
 
+**2026-11-20 · "Where to go from here" as an index.** The six tinted tiles on
+the home page became a numbered list with hairline rules, the whole row as the
+link, and trying it moved to a dark strip with two buttons. Same text, so every
+translation carried over unchanged.
+
 ## Next
 
 1. **Launch readiness.** An "Open in playground" link on each case on

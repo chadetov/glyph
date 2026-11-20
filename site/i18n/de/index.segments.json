@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "de",
-  "source_hash": "2146f3700ce690e1",
+  "source_hash": "3a419cdee3b04e4b",
   "segments": [
     {
       "id": "title",
@@ -191,34 +191,40 @@
       "tr": "{{catches:measured}} Insgesamt gibt es {{catches:total}} geprüfte Fälle: {{catches:count}} TypeScript-Fälle, {{catches:trap-count}} JavaScript-Fallen, die es in Glyph nicht gibt, und {{catches:gap-cases}} Lücken, die Glyph noch nicht schließt. Glyph lehnt {{catches:refused-all}} davon beim Build ab ({{catches:refused}} TypeScript-Fälle und {{catches:traps-refused}} Fallen)."
     },
     {
-      "id": "h-cda6f98d",
+      "id": "h-36c9b818",
       "kind": "html",
-      "en": "One change, on a real application",
-      "tr": "Eine Änderung in einer echten Anwendung"
+      "en": "Your agent can ask the compiler first",
+      "tr": "Dein Agent kann zuerst den Compiler fragen"
     },
     {
-      "id": "h-2e4f29c6",
+      "id": "h-651b7e75",
       "kind": "html",
-      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a case to it, ask the compiler which places it reaches.",
-      "tr": "<code>examples/apps/csvql</code> ist eine Query-Engine für CSV-Dateien in diesem Repository, mit einer <code>Value</code>-Union im Zentrum. Bevor du einen Fall hinzufügst, frag den Compiler, welche Stellen er erreicht."
+      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a <code>Date</code> case to it, an agent asks the compiler's MCP server what that edit breaks. The answer, trimmed here to verdict, site and function, names ten match sites across four files.",
+      "tr": "<code>examples/apps/csvql</code> ist eine Query-Engine für CSV-Dateien in diesem Repository, mit einer <code>Value</code>-Union im Zentrum. Bevor ein Agent einen Fall <code>Date</code> hinzufügt, fragt er den MCP-Server des Compilers, was diese Änderung kaputt macht. Die Antwort, hier gekürzt auf Urteil, Stelle und Funktion, nennt zehn match-Stellen in vier Dateien."
     },
     {
-      "id": "h-bb44e881",
+      "id": "h-5dd9fdd6",
       "kind": "html",
-      "en": "glyph_variants { name: \"Value\" }",
-      "tr": "glyph_variants { name: \"Value\" }"
+      "en": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }",
+      "tr": "glyph_impact { entity: \"value::Value\", change: { kind: \"add_variant\", variant: \"Date\" } }"
     },
     {
-      "id": "h-dd6a6de7",
+      "id": "h-6face4dc",
       "kind": "html",
-      "en": "then add the case and run glyph check",
-      "tr": "dann den Fall hinzufügen und glyph check ausführen"
+      "en": "the change at an ABSORBS site: the catch-all becomes named arms",
+      "tr": "die Änderung an einer ABSORBS-Stelle: aus dem Catch-all werden benannte Arme"
     },
     {
-      "id": "h-dcb7c936",
+      "id": "h-457bffe2",
       "kind": "html",
-      "en": "The prediction was right on all eight. The other two, <code>exec::total</code> and <code>render::literal_text</code>, keep compiling and send the new case wherever their catch-all points. An agent that fixes the eight errors and stops has a green build and two live bugs, and the query is what names them.",
-      "tr": "Die Vorhersage traf bei allen acht zu. Die anderen beiden, <code>exec::total</code> und <code>render::literal_text</code>, kompilieren weiter und schicken den neuen Fall dorthin, wohin ihr Catch-all zeigt. Ein Agent, der die acht Fehler behebt und dann aufhört, hat einen grünen Build und zwei lebende Bugs, und erst die Abfrage benennt sie."
+      "en": "glyph check, after all ten sites",
+      "tr": "glyph check, nach allen zehn Stellen"
+    },
+    {
+      "id": "h-a99103b3",
+      "kind": "html",
+      "en": "Each <code>WILL_FAIL</code> entry comes with the error it will raise, and adding the case alone gave exactly those eight <code>E0200</code> errors. The two <code>ABSORBS</code> sites raise nothing: <code>render::literal_text</code> would have printed a date literal without its quotes, and <code>exec::total</code> would have counted every date as zero. An agent working from compiler errors alone fixes eight sites and stops with a green build. Asked again after the fix, the compiler answers <code>WILL_FAIL</code> at all ten, so the next case cannot slip past either.",
+      "tr": "Jeder <code>WILL_FAIL</code>-Eintrag nennt den Fehler, den er auslösen wird, und nur den Fall hinzuzufügen ergab genau diese acht <code>E0200</code>-Fehler. Die beiden <code>ABSORBS</code>-Stellen melden nichts: <code>render::literal_text</code> hätte ein Datumsliteral ohne Anführungszeichen ausgegeben, und <code>exec::total</code> hätte jedes Datum als null gezählt. Ein Agent, der nur mit Compilerfehlern arbeitet, behebt acht Stellen und hört mit einem grünen Build auf. Nach der Korrektur erneut gefragt, antwortet der Compiler an allen zehn Stellen <code>WILL_FAIL</code>, also rutscht auch der nächste Fall nicht durch."
     },
     {
       "id": "h-35b0b48e",

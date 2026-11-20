@@ -1,7 +1,7 @@
 ---
 title: Glyph: tipado, compila a TypeScript, para agentes de IA
 description: Glyph es un lenguaje de tipado estático que compila a TypeScript, para que el código de un agente de IA se pueda leer, comprobar y modificar sin adivinar.
-source_hash: 2146f3700ce690e1
+source_hash: 3a419cdee3b04e4b
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, lenguaje de programación, typescript, transpilador, agentes de ia, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -66,21 +66,40 @@ head: |
 
     <section>
       <div class="wrap">
-        <h2 class="section-head">Un cambio, en una aplicación real</h2>
+        <h2 class="section-head">Tu agente puede preguntar primero al compilador</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code> es un motor de consultas sobre CSV que vive en este repositorio, con una unión <code>Value</code> en el centro. Antes de añadirle un caso, pregúntale al compilador a qué sitios llega.
+          <code>examples/apps/csvql</code> es un motor de consultas sobre CSV que vive en este repositorio, con una unión <code>Value</code> en el centro. Antes de añadirle un caso <code>Date</code>, un agente le pregunta al servidor MCP del compilador qué rompe esa edición. La respuesta, recortada aquí a veredicto, sitio y función, nombra diez sitios de match en cuatro archivos.
         </p>
         <div class="code">
-          <span class="cap">glyph_variants { name: "Value" }</span>
-<pre>10 match sites across 4 files
- <span class="del">8 will fail compilation</span>
- <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
-          <span class="cap">después añade el caso y ejecuta glyph check</span>
-<pre>8 errors, E0200 non-exhaustive match. The same eight.
-The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+          <span class="cap">glyph_impact { entity: "value::Value", change: { kind: "add_variant", variant: "Date" } }</span>
+<pre>WILL_FAIL  bind.glyph:148    bind::literal_kind
+<span class="del">ABSORBS    exec.glyph:130    exec::total</span>
+<span class="del">ABSORBS    render.glyph:128  render::literal_text</span>
+WILL_FAIL  value.glyph:18    value::render
+WILL_FAIL  value.glyph:32    value::key
+WILL_FAIL  value.glyph:44    value::is_null
+WILL_FAIL  value.glyph:53    value::is_num
+WILL_FAIL  value.glyph:62    value::rank
+WILL_FAIL  value.glyph:71    value::num_of
+WILL_FAIL  value.glyph:83    value::text_of</pre>
+          <span class="cap">el cambio en un sitio ABSORBS: el catch-all pasa a ser brazos con nombre</span>
+<pre> fn literal_text(v: Value) -> string {
+   return match v {
+     Text({ text }) => "'${text}'",
+<span class="del">-    else => value.render(v),</span>
+<span class="add">+    Date({ iso }) => "'${iso}'",</span>
+<span class="add">+    Num({ n }) => value.render(v),</span>
+<span class="add">+    Bool({ flag }) => value.render(v),</span>
+<span class="add">+    Null => value.render(v),</span>
+   }
+ }</pre>
+          <span class="cap">glyph check, después de los diez sitios</span>
+<pre><span class="add">glyph check: 21 example(s) passed.
+glyph check: 11 module(s) checked, no diagnostics.
+glyph check: tsc --strict passed.</span></pre>
         </div>
         <p class="friction-intro h-after">
-          La predicción acertó en los ocho. Los otros dos, <code>exec::total</code> y <code>render::literal_text</code>, siguen compilando y mandan el caso nuevo adonde apunte su catch-all. Un agente que corrige los ocho errores y se detiene tiene una build en verde y dos bugs vivos, y es la consulta la que los señala.
+          Cada entrada <code>WILL_FAIL</code> trae el error que va a producir, y añadir solo el caso dio exactamente esos ocho errores <code>E0200</code>. Los dos sitios <code>ABSORBS</code> no producen nada: <code>render::literal_text</code> habría impreso un literal de fecha sin comillas, y <code>exec::total</code> habría contado cada fecha como cero. Un agente que trabaja solo con los errores del compilador corrige ocho sitios y se detiene con una build en verde. Si se le vuelve a preguntar después del arreglo, el compilador responde <code>WILL_FAIL</code> en los diez, así que el próximo caso tampoco se cuela.
         </p>
       </div>
     </section>

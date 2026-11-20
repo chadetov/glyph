@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches_home.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://glyphlang.io/#website","url":"https://glyphlang.io/","name":"Glyph","inLanguage":["en","pt-BR","es","ja","tr","zh-Hans","ko","de","ru","th"],"publisher":{"@id":"https://glyphlang.io/#project"}},{"@type":"Organization","@id":"https://glyphlang.io/#project","name":"The Glyph project","url":"https://glyphlang.io/","logo":{"@type":"ImageObject","url":"https://glyphlang.io/apple-touch-icon.png","width":180,"height":180},"sameAs":["https://github.com/chadetov/glyph","https://www.npmjs.com/package/@glyphlang/glyph"]},{"@type":"SoftwareApplication","@id":"https://glyphlang.io/#software","name":"Glyph","url":"https://glyphlang.io/","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","softwareRequirements":"Node.js 18 or later","softwareVersion":"0.1.153","downloadUrl":"https://www.npmjs.com/package/@glyphlang/glyph","installUrl":"https://glyphlang.io/start/","releaseNotes":"https://glyphlang.io/versions/","license":["https://opensource.org/licenses/MIT","https://www.apache.org/licenses/LICENSE-2.0"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://glyphlang.io/#project"}},{"@type":"SoftwareSourceCode","@id":"https://glyphlang.io/#source","name":"Glyph compiler","codeRepository":"https://github.com/chadetov/glyph","programmingLanguage":"Rust","license":["https://opensource.org/licenses/MIT","https://www.apache.org/licenses/LICENSE-2.0"],"targetProduct":{"@id":"https://glyphlang.io/#software"},"publisher":{"@id":"https://glyphlang.io/#project"}},{"@type":"WebPage","@id":"https://glyphlang.io/#webpage","url":"https://glyphlang.io/","name":"Glyph: typed, compiles to TypeScript, built for AI agents","description":"Glyph is a statically typed language that compiles to TypeScript, built so code an AI agent writes can be read, checked and changed without guessing.","inLanguage":"en","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"dateModified":"2026-11-20"}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://glyphlang.io/#website","url":"https://glyphlang.io/","name":"Glyph","inLanguage":["en","pt-BR","es","ja","tr","zh-Hans","ko","de","ru","th"],"publisher":{"@id":"https://glyphlang.io/#project"}},{"@type":"Organization","@id":"https://glyphlang.io/#project","name":"The Glyph project","url":"https://glyphlang.io/","logo":{"@type":"ImageObject","url":"https://glyphlang.io/apple-touch-icon.png","width":180,"height":180},"sameAs":["https://github.com/chadetov/glyph","https://www.npmjs.com/package/@glyphlang/glyph"]},{"@type":"SoftwareApplication","@id":"https://glyphlang.io/#software","name":"Glyph","url":"https://glyphlang.io/","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","softwareRequirements":"Node.js 18 or later","softwareVersion":"0.1.152","downloadUrl":"https://www.npmjs.com/package/@glyphlang/glyph","installUrl":"https://glyphlang.io/start/","releaseNotes":"https://glyphlang.io/versions/","license":["https://opensource.org/licenses/MIT","https://www.apache.org/licenses/LICENSE-2.0"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://glyphlang.io/#project"}},{"@type":"SoftwareSourceCode","@id":"https://glyphlang.io/#source","name":"Glyph compiler","codeRepository":"https://github.com/chadetov/glyph","programmingLanguage":"Rust","license":["https://opensource.org/licenses/MIT","https://www.apache.org/licenses/LICENSE-2.0"],"targetProduct":{"@id":"https://glyphlang.io/#software"},"publisher":{"@id":"https://glyphlang.io/#project"}},{"@type":"WebPage","@id":"https://glyphlang.io/#webpage","url":"https://glyphlang.io/","name":"Glyph: typed, compiles to TypeScript, built for AI agents","description":"Glyph is a statically typed language that compiles to TypeScript, built so code an AI agent writes can be read, checked and changed without guessing.","inLanguage":"en","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"dateModified":"2026-11-21"}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/" />
@@ -92,7 +92,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.153</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.152</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -427,7 +427,7 @@
     <div class="wrap">
       <header class="hero">
         <div>
-          <a class="pill" href="/versions/" title="See what's new"><span class="dot"></span>v0.1.153 · early preview →</a>
+          <a class="pill" href="/versions/" title="See what's new"><span class="dot"></span>v0.1.152 · early preview →</a>
           <h1>Your AI agent writes it. <span class="accent">The compiler checks it.</span></h1>
           <p class="sub">
             Glyph reads like TypeScript, with the escape hatches removed: no
@@ -528,27 +528,52 @@
 
     <section>
       <div class="wrap">
-        <h2 class="section-head">One change, on a real application</h2>
+        <h2 class="section-head">Your agent can ask the compiler first</h2>
         <p class="friction-intro">
           <code>examples/apps/csvql</code> is a CSV query engine in this
           repository, with a <code>Value</code> union at its centre. Before
-          adding a case to it, ask the compiler which places it reaches.
+          adding a <code>Date</code> case to it, an agent asks the compiler's
+          MCP server what that edit breaks. The answer, trimmed here to
+          verdict, site and function, names ten match sites across four files.
         </p>
         <div class="code">
-          <span class="cap">glyph_variants { name: "Value" }</span>
-<pre class="wraps">10 match sites across 4 files
- <span class="del">8 will fail compilation</span>
- <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
-          <span class="cap">then add the case and run glyph check</span>
-<pre class="wraps">8 errors, E0200 non-exhaustive match. The same eight.
-The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+          <span class="cap">glyph_impact { entity: "value::Value", change: { kind: "add_variant", variant: "Date" } }</span>
+<pre>WILL_FAIL  bind.glyph:148    bind::literal_kind
+<span class="del">ABSORBS    exec.glyph:130    exec::total</span>
+<span class="del">ABSORBS    render.glyph:128  render::literal_text</span>
+WILL_FAIL  value.glyph:18    value::render
+WILL_FAIL  value.glyph:32    value::key
+WILL_FAIL  value.glyph:44    value::is_null
+WILL_FAIL  value.glyph:53    value::is_num
+WILL_FAIL  value.glyph:62    value::rank
+WILL_FAIL  value.glyph:71    value::num_of
+WILL_FAIL  value.glyph:83    value::text_of</pre>
+          <span class="cap">the change at an ABSORBS site: the catch-all becomes named arms</span>
+<pre> <span class="k">fn</span> literal_text(v: <span class="t">Value</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+   <span class="k">return</span> <span class="k">match</span> v {
+     <span class="t">Text</span>({ text }) <span class="op">=&gt;</span> <span class="s">"'</span><span class="ip">${</span>text<span class="ip">}</span><span class="s">'"</span>,
+<span class="del">-    <span class="k">else</span> <span class="op">=&gt;</span> value.render(v),</span>
+<span class="add">+    <span class="t">Date</span>({ iso }) <span class="op">=&gt;</span> <span class="s">"'</span><span class="ip">${</span>iso<span class="ip">}</span><span class="s">'"</span>,</span>
+<span class="add">+    <span class="t">Num</span>({ n }) <span class="op">=&gt;</span> value.render(v),</span>
+<span class="add">+    <span class="t">Bool</span>({ flag }) <span class="op">=&gt;</span> value.render(v),</span>
+<span class="add">+    <span class="t">Null</span> <span class="op">=&gt;</span> value.render(v),</span>
+   }
+ }</pre>
+          <span class="cap">glyph check, after all ten sites</span>
+<pre><span class="add"><span class="f">glyph</span> check: 21 example(s) passed.
+<span class="f">glyph</span> check: 11 module(s) checked, no diagnostics.
+<span class="f">glyph</span> check: tsc <span class="fl">--strict</span> passed.</span></pre>
         </div>
         <p class="friction-intro h-after">
-          The prediction was right on all eight. The other two,
-          <code>exec::total</code> and <code>render::literal_text</code>, keep
-          compiling and send the new case wherever their catch-all points. An
-          agent that fixes the eight errors and stops has a green build and two
-          live bugs, and the query is what names them.
+          Each <code>WILL_FAIL</code> entry comes with the error it will raise,
+          and adding the case alone gave exactly those eight
+          <code>E0200</code> errors. The two <code>ABSORBS</code> sites raise
+          nothing: <code>render::literal_text</code> would have printed a date
+          literal without its quotes, and <code>exec::total</code> would have
+          counted every date as zero. An agent working from compiler errors
+          alone fixes eight sites and stops with a green build. Asked again
+          after the fix, the compiler answers <code>WILL_FAIL</code> at all
+          ten, so the next case cannot slip past either.
         </p>
       </div>
     </section>

@@ -1,7 +1,7 @@
 ---
 title: Glyph：一门编译到 TypeScript 的类型化语言，为 AI 智能体设计
 description: Glyph 是一门编译到 TypeScript 的静态类型语言，目的是让 AI 智能体写出的代码可以被阅读、检查和修改，不用靠猜。
-source_hash: 2146f3700ce690e1
+source_hash: 3a419cdee3b04e4b
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, 编程语言, typescript, 转译器, AI 智能体, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -66,21 +66,40 @@ head: |
 
     <section>
       <div class="wrap">
-        <h2 class="section-head">在真实应用里做一次改动</h2>
+        <h2 class="section-head">你的智能体可以先问编译器</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code> 是本仓库里的一个 CSV 查询引擎，核心是一个 <code>Value</code> 联合类型。给它加一个新 case 之前，先问编译器这会影响到哪些地方。
+          <code>examples/apps/csvql</code> 是本仓库里的一个 CSV 查询引擎，核心是一个 <code>Value</code> 联合类型。给它加一个 <code>Date</code> case 之前，智能体先问编译器的 MCP 服务器：这次修改会弄坏什么。回答（这里只保留判定、位置和函数）列出了四个文件中的十处 match。
         </p>
         <div class="code">
-          <span class="cap">glyph_variants { name: "Value" }</span>
-<pre>10 match sites across 4 files
- <span class="del">8 will fail compilation</span>
- <span class="add">2 contain a catch-all and will silently absorb it</span></pre>
-          <span class="cap">然后加上这个 case，运行 glyph check</span>
-<pre>8 errors, E0200 non-exhaustive match. The same eight.
-The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+          <span class="cap">glyph_impact { entity: "value::Value", change: { kind: "add_variant", variant: "Date" } }</span>
+<pre>WILL_FAIL  bind.glyph:148    bind::literal_kind
+<span class="del">ABSORBS    exec.glyph:130    exec::total</span>
+<span class="del">ABSORBS    render.glyph:128  render::literal_text</span>
+WILL_FAIL  value.glyph:18    value::render
+WILL_FAIL  value.glyph:32    value::key
+WILL_FAIL  value.glyph:44    value::is_null
+WILL_FAIL  value.glyph:53    value::is_num
+WILL_FAIL  value.glyph:62    value::rank
+WILL_FAIL  value.glyph:71    value::num_of
+WILL_FAIL  value.glyph:83    value::text_of</pre>
+          <span class="cap">在 ABSORBS 处的修改：catch-all 换成逐个命名的分支</span>
+<pre> fn literal_text(v: Value) -> string {
+   return match v {
+     Text({ text }) => "'${text}'",
+<span class="del">-    else => value.render(v),</span>
+<span class="add">+    Date({ iso }) => "'${iso}'",</span>
+<span class="add">+    Num({ n }) => value.render(v),</span>
+<span class="add">+    Bool({ flag }) => value.render(v),</span>
+<span class="add">+    Null => value.render(v),</span>
+   }
+ }</pre>
+          <span class="cap">glyph check，十处全部改完之后</span>
+<pre><span class="add">glyph check: 21 example(s) passed.
+glyph check: 11 module(s) checked, no diagnostics.
+glyph check: tsc --strict passed.</span></pre>
         </div>
         <p class="friction-intro h-after">
-          预测的八处全部命中。另外两处，<code>exec::total</code> 和 <code>render::literal_text</code>，仍然能编译通过，并把新的 case 交给各自的 catch-all 分支处理。一个修完这八个错误就停手的智能体，会得到一个通过的构建和两个仍然存在的 bug，而指出这两处的正是那次查询。
+          每条 <code>WILL_FAIL</code> 都附带它会触发的错误；只加这个 case 时，得到的正好是这八个 <code>E0200</code> 错误。两处 <code>ABSORBS</code> 什么都不报：<code>render::literal_text</code> 会把日期字面量打印成不带引号的样子，<code>exec::total</code> 会把每个日期都算作零。只看编译器错误工作的智能体会修好八处，然后带着通过的构建停手。修完之后再问一次，编译器在全部十处都回答 <code>WILL_FAIL</code>，所以下一个 case 也漏不过去。
         </p>
       </div>
     </section>

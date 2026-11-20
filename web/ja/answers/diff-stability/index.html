@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="メイン">
         <div class="nav-brand">
           <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.150</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.151</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -618,7 +618,7 @@
           <h3 class="h">限界と、次にやること</h3>
           <p>コメントは常に独立した行に出力されるので、コード行の末尾に書いたコメント（<code>w: int, // width in cells</code>）は次の要素の上の行に移動します。宣言の境界を越えることはもうありませんが、移動はします。行末に残すには、コメントがどの行を共有しているかをプリンタが追跡する必要があります。インデックスの中、チェーンの途中にある呼び出しの引数の後、<code>!</code> や <code>await</code> のオペランドの前など、レイアウト上置き場所のないコメントは、もう動かされません。<code>glyph fmt</code> はそのファイルを拒否して元のまま残し、行番号とコメントを置くべき場所を示します。<code>glyph check</code> も同じ内容を警告 E0500 として報告します。JSX の属性の間や、オブジェクトパターンのフィールドの間にあるコメントも拒否されます。これらは 1 行に 1 つのレイアウトなら置ける場所なので、対応予定のリストに入っています。また、プリンタには長いメソッドチェーンや <code>+</code> の連鎖を折り返すルールがまだないため、長すぎるチェーンは代わりに最も内側の引数リストで折り返されます。これは誤った位置です。同じ編集を TypeScript で行った場合と比べる差分サイズのベンチマークも作っているところなので、この柱は確認できる数値になる予定です。</p>
         </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.150 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.151 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/verifiability/">

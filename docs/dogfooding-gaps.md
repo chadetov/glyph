@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-393 entries, 303 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-71 are open. G144, the D28 boundary cast that never reached the returns a
+397 entries, 304 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+74 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12245,6 +12245,8 @@ and is the owner's to confirm.
   `u: unknown` is `glyph check: 1 module(s) checked, no diagnostics.` under
   `--no-tsc`.*
 
+  *Reproduced against 0.1.151 (the release build): `let s: string = u` with `u: unknown` is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, and TS2322 with `tsc`.*
+
 - **G326. [FIXED] `json.parse` does not follow a sibling's alias into a third module.**
   `type Rows = Array<User>` in `rows`, where `rows` imports `User`, is refused
   with E0304 by `json.parse<Rows>` in a module importing `Rows`, as is a body
@@ -12318,6 +12320,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.145 (the release build): `const s = "a"` in a
   function body is ``[E0008] Error: parse: assignment requires `mut` ``.*
+
+  *Reproduced against 0.1.151 (the release build): `const s = "a"` in a function body is ``[E0008] Error: parse: assignment requires `mut` ``.*
 
 - **G329. A lex error inside a generic-call lookahead is replaced by an E0003
   on valid code.** `let x = f<a, "\q">(x)` reports ``unexpected token: Comma``
@@ -12603,6 +12607,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.145 (the release build): `let r = Ok(x)` then `let
   v = r.value` draws only E0107 (unused) under `--no-tsc`.*
 
+  *Reproduced against 0.1.151 (the release build): `let r = Ok(x)` then `let v = r.value` draws only E0107 (unused) under `--no-tsc`.*
+
 - **G345. An `Option` or a `Result` read through an index, a spread, an array
   element or an untyped lambda parameter is not checked.** `r["value"]`,
   `o["tag"]` and `{ ...r }` pass with `tsc` as well; `rs[0].value` on an
@@ -12615,6 +12621,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.145 (the release build): `r["value"]` on a
   `Result<Note, string>` draws only E0107 (unused) under `--no-tsc`.*
+
+  *Reproduced against 0.1.151 (the release build): `r["value"]` on a `Result<Note, string>` draws only E0107 (unused) under `--no-tsc`, and `rs[0].value` on an `Array<Result<Note, string>>` passes with only unused-import warnings.*
 
 - **G346. E0210's help on an `Option` and its catalogue fix are wrong for the
   member set.** For `o.map(f)` the help suggests `match o { Some(n) =>
@@ -12631,6 +12639,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.145 (the release build): the `o.map(keep)` help
   still reads ``Open it with `match o { Some(n) => n.map(...), None =>
   <default> }` `` and mentions `Nullable<Note>`.*
+
+  *Reproduced against 0.1.151 (the release build): the `o.map(keep)` help still reads ``Open it with `match o { Some(n) => n.map(...), None => <default> }` `` and mentions `Nullable<Note>`. Following it is ``E0210 type `Note` has no field `map` ``.*
 
 - **G347. [FIXED] A generic record's own fields get no runtime check.** With `type
   Page<T> = { items: Array<T>, h: H }` and `H = extern_ts(...)`,
@@ -13169,6 +13179,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.145 and 0.1.146 (the release build) by record
   112's probes `q/a_nextline_let` and `q/a_bare`.*
 
+  *Reproduced against 0.1.151 (the release build) by record 112's probes `q/a_nextline_let` and `q/a_bare`: each is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`.*
+
 - **G376. A lambda parameter annotated `unknown` is emitted without its
   type.** `let f = fn(w: unknown) -> string { return "x" }` emits `let f =
   (w): string => {`, which `tsc --strict` refuses (TS7006, implicit `any`), so
@@ -13178,6 +13190,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.145 and 0.1.147 (the release build) by record
   114's probe (`/private/tmp/claude-501/linus114/`).*
+
+  *Reproduced against 0.1.151 (the release build) by record 114's probe `lam_unknown`: it emits `let f = (w): string => {`, and full `check` is TS7006 while `check --no-tsc` exits 0.*
 
 - **G372. Glyph's checker does not read a `Record`'s key type.** Under
   `check --no-tsc`, `let r: Record<Tier, int> = { a: 1, }`, `{}`, `{ a: 1, b:
@@ -13252,7 +13266,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.148 (the release build) by record 115's probes `k2`
   and `k2t` (`/private/tmp/claude-501/linus115/`).*
 
-  Planned for 0.1.153 (record 115); moved to 0.1.152 by record 119.
+  Planned for 0.1.153 (record 115); moved to 0.1.152 by record 119; shipped as 0.1.151 (record 122).
 
   Decided in record 119, option (d): D39 already limited a `where` to a
   primitive base, and the refusal had drifted from it. The same record found
@@ -13261,7 +13275,7 @@ and is the owner's to confirm.
   `string`). The numeric key spellings are kept as they are and written into
   D30 and D31.
 
-  Fixed in 0.1.152. A `where` whose base resolves to a string-literal union,
+  Fixed in 0.1.151. A `where` whose base resolves to a string-literal union,
   a single literal included, is E0300 at the declaration: written inline,
   through a local alias or an alias chain, imported by name, through a
   namespace, through a second name a sibling module declares, and across
@@ -13277,7 +13291,7 @@ and is the owner's to confirm.
   probes `a`, `d` and `g` exit 0 under `check --no-tsc` and full `check` on
   the published 0.1.149 and 1 on this build. No tracked `.glyph` file and
   none of the 32 apps changed exit code. The canonical-key table is pinned
-  by one test. *Verified on the 0.1.152 branch build by
+  by one test. *Verified on the 0.1.151 branch build by
   `tests/negative/where_over_literal_union.glyph` and the G377 tests in
   `glyph-emit` and `glyph-cli`, which go red with the refusal disabled, and
   the two-hop record and tagged-union tests, which go red with the walk cut

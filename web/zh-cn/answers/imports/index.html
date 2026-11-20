@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="主导航">
         <div class="nav-brand">
           <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="版本说明">v0.1.150</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.151</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -682,7 +682,7 @@ exist in type 'WebResponse'.
           <h3 class="h">正在进行</h3>
           <p>实化现在可以处理真实 SDK 中出现的各种形状（命名空间、跨文件以及别名/命名空间形式的重导出、子路径 <code>exports</code>、一等泛型），由值派生的类型（<code>z.infer&lt;typeof s&gt;</code>）也是一等的。剩下的主要 gap 是：未实化的包，其输出会对照它的 <code>.d.ts</code> 做类型检查，但除非你把它实化，否则不会做运行时校验。在 <code>extern/</code> 这一边，两个命令的源码根目录不同：<code>glyph run app.glyph</code> 以文件自己所在的目录为根，<code>glyph build src/</code> 以你指定的目录为根。因此位于子目录中的程序会在两个不同的位置寻找它的适配层，在我们确定使用哪一个根目录之前，这样布局的项目需要让两个位置都能找到适配层。找不到时会明确报错。</p>
         </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.150 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.151 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/upgrades/">

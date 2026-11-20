@@ -55,4 +55,4 @@ A language server (`glyph lsp` over stdio, any editor; VS Code extension bundled
 
 Caching the cross-file index instead of rebuilding it per request (a speed win on large trees), and remapping `glyph run`'s own crash stack, since `tsx` does not chain the emitted map through its transform, so that stack still names the emitted `.ts` rather than your `.glyph`.
 
-Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 19 Nov 2026.

@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="主导航">
         <div class="nav-brand">
           <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="版本说明">v0.1.150</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.151</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -606,7 +606,7 @@
           <h3 class="h">它的边界</h3>
           <p>这里的工具都不写入：不能重命名，也不能应用编辑。写入功能是命令行上的 <code>glyph fix</code>，它只修复三类问题，而不是你要求的任何修改：未使用的导入；检查器恰好只有一个建议的分支头；以及与恰好一个已声明字段只差一个字符的字段名。对于编译器既没有声明也没有签名模型的标准库导出，会回答 <code>kind: null</code> 并附上原因：<code>std/result::all</code> 和 <code>std/io::println</code> 的类型写在编译器放置的 TypeScript 中，没有任何 Glyph 阶段会去读。<code>glyph_diagnostics</code> 会跳过 <code>glyph check</code> 做的三项检查：<code>tsc</code>；<code>E0104</code> 检查（导入了不存在的模块），它需要构建所看到的 <code>node_modules</code>；以及针对失败的 <code>@example</code> 的 <code>E0400</code>，它需要运行生成的项目。它会在 <code>not_run</code> 中列出这三项，而不是假装做过。</p>
         </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.150 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.151 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/impact/">

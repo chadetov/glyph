@@ -105,4 +105,4 @@ No `any`/`as`, exhaustive `match` (`E0200`/`E0218`), discarded-`Result` warning 
 
 The claim that agents produce fewer escaped defects in Glyph than in *well-configured* strict TS is the benchmark we're building, against tooled TS, not naive TS. See the [benchmarks](https://glyphlang.io/benchmarks/).
 
-Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 19 Nov 2026.

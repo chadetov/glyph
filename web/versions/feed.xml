@@ -8,6 +8,13 @@
   <updated>2026-11-20T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.151 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.151" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.151</id>
+    <updated>2026-11-20T00:00:00Z</updated>
+    <summary>A where refinement over a string-literal union is refused, with help built from your own types</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.150 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.150" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.150</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-09/#0.1.122</id>
     <updated>2026-09-15T00:00:00Z</updated>
     <summary>A type that lists its legal strings now rejects the illegal ones</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.121 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-09/#0.1.121" />
-    <id>https://glyphlang.io/versions/2026-09/#0.1.121</id>
-    <updated>2026-09-11T00:00:00Z</updated>
-    <summary>Three programs that used to build clean now don't</summary>
   </entry>
 </feed>

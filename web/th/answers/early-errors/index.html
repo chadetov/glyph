@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="เมนูหลัก">
         <div class="nav-brand">
           <a href="/th/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="บันทึกประจำรุ่น">v0.1.150</a>
+          <a href="/versions/" class="nav-version" title="บันทึกประจำรุ่น">v0.1.151</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -896,7 +896,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <h3 class="h">กำลังคมขึ้น</h3>
           <p><code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น และคืน array ของค่าที่ยังค้างอยู่ ซึ่งพิมพ์ออกมาเป็น <code>[object Promise]</code> ฟังก์ชัน array ห้าตัวที่รับ predicate หยุดมันได้ ด้วย <code>E0211</code> ที่ callback การ model อีกสามตัวแบบเดียวกันจะปฏิเสธ <code>par.all(array.map(items, async fn ...))</code> ด้วย ซึ่งเป็นวิธีที่ Glyph รันงานพร้อมกัน เพราะ array ของค่าที่ยังค้างไม่มีวิธีเขียนในภาษา นั่นเป็นการตัดสินใจเรื่อง type system ไม่ใช่รายการที่ขาด จึงยังเปิดอยู่ initializer ของ <code>const</code> ระดับ module ไม่มีสิ่งที่เรียกได้ครอบอยู่ <code>await</code> ระดับบนสุดจึงได้รับอนุญาต และ ESM ที่ emit ก็รันมัน Glyph ต้องการการเริ่ม module แบบ async โดยนัยหรือไม่ยังเป็นคำถามในสเปกที่เปิดอยู่ <code>E0223</code> ตัดสิน <code>match</code> ท้ายฟังก์ชันได้ก็ต่อเมื่อฟังก์ชันประกาศ return type arm ภายใน lambda ที่ไม่มี annotation จึงยังไปถึง <code>tsc</code> ฝั่งชื่อที่บังกัน มีสองอย่างที่ทำไปได้แค่ครึ่ง <code>E0110</code> บอกให้คุณเปลี่ยนชื่อแทนที่จะให้เก็บชื่อไว้ <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> และ <code>Promise</code> จึงยังใช้เป็นชื่อ type หรือ variant ไม่ได้ และ <code>E0111</code> หยุด <code>type Key = string | number</code> ไม่ให้มีความหมายผิด โดยไม่ได้ให้วิธีเขียนสิ่งที่ตั้งใจ: union ของ primitive สอง type ไม่มีวิธีเขียนใน Glyph นอกจาก <code>extern_ts</code> ซึ่งตัวตรวจของมันเองมองเนื้อหาเป็นของทึบ union ที่ไม่มี tag แตะเรื่องความครบถ้วน runtime descriptor และ <code>is</code> ข้อนั้นจึงเป็นการตัดสินใจเรื่อง type system และยังไม่ได้กำหนดเวลา <code>E0104</code> ไปถึง <code>glyph build</code> และ <code>glyph check</code> แต่ไม่ถึง editor: LSP วิเคราะห์ข้อความของเอกสารโดยไม่มี build root และโฟลเดอร์ของ workspace ก็ไม่ใช่ build root การเดาจะทำให้เกิดการเตือนผิดที่การตรวจนี้ออกแบบมาให้หลีกเลี่ยง และ parameter ที่เป็นคำสงวนยังซ่อนอยู่หลัง error ที่ไม่เกี่ยวข้องในไฟล์เดียวกัน เพราะความล้มเหลวใน pass รวบรวมจะข้าม pass resolve ที่จะเจอมัน อีกเรื่องหนึ่ง การตรึงที่จุดอ่านซึ่งทำให้ binding แบบ <code>bool</code> หรือ union ของ string literal ยัง match ได้ ตาม type alias เฉพาะภายใน module ที่กำลัง emit <code>pub type Ready = bool</code> ใน module หนึ่ง และ <code>let r: catalog.Ready = false</code> ในอีก module จึงยังไปถึง <code>tsc</code> เป็น <code>TS2678</code> union ของ string literal ถูกครอบคลุมข้าม module ในการ import ทั้งสามแบบ และตั้งแต่ 0.1.123 diagnostic ระบุ declaration (expected <code>Mode</code>) ในทุกแบบ แทนที่จะพิมพ์ชุด literal ในแบบใดแบบหนึ่ง</p>
         </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.150 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.151 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
       </div>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/tooling/">

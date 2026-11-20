@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="主导航">
         <div class="nav-brand">
           <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="版本说明">v0.1.150</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.151</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -618,7 +618,7 @@
           <h3 class="h">边界，以及接下来的工作</h3>
           <p>注释总是单独输出在一行上，所以写在代码行末尾的注释（<code>w: int, // width in cells</code>）会被移到下一项的上方一行。它不再跨越声明边界，但确实会移动；要让它保持在行尾，打印器需要记录注释和哪一行共享。如果注释所在的位置在排版中无处安放，比如在索引内部、在方法链中间某个调用的实参之后，或者在 <code>!</code> 或 <code>await</code> 的操作数之前，它不会再被挪动：<code>glyph fmt</code> 会拒绝这个文件，保持原样，并指出所在行以及注释应该放在哪里，<code>glyph check</code> 也会以警告 E0500 报告同样的问题。JSX 属性之间、对象模式的字段之间的注释也会被拒绝，而这些地方本可以用每行一个的排版放下它；这些排版已经列入计划。打印器目前也还没有拆分长方法链或长 <code>+</code> 链的规则，所以过长的链会改为拆开最内层的实参列表，而那是错误的位置。我们还在构建一个 diff 大小的基准测试，对比在 TypeScript 中做同样编辑的结果，这样这根支柱就成了一个你可以核对的数字。</p>
         </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.150 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.151 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/verifiability/">

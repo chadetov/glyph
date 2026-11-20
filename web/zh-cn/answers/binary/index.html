@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="主导航">
         <div class="nav-brand">
           <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="版本说明">v0.1.150</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.151</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -585,7 +585,7 @@ buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD
           <h3 class="h">正在改进</h3>
           <p>目前还没有整数编解码器，所以从头部读取大端 <code>u32</code> 需要你自己写算术：超过 32 位时移位本来就不是合适的工具，所以用的是除法。十六进制字面量仍然无法解析，这让用十进制写的 256 项 CRC32 表很难读。<code>std/websocket</code> 仍然把二进制帧解码为 UTF-8 文本；它需要的类型现在已经有了，接下来就处理帧。<code>std/encoding</code> 中较早的六个字符串到字符串的函数遇到格式错误的输入仍然不报错，所以凡是必须正确的地方，都请使用 <code>std/bytes</code> 的编解码器。这些编解码器用 TypeScript 编写，而不是委托给 Node 的 <code>Buffer</code>，正因如此它们才能在 Web Worker 中运行；处理 1 MB 数据时，它们比平台实现慢 1 到 35 倍。编码一个密钥或令牌，两者的开销都小到无法测量；如果你要处理几十 MB 的数据，性能指南里有对比表。</p>
         </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.150 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.151 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/long-running/">

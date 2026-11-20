@@ -195,7 +195,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 
 | Code | Meaning |
 |------|---------|
-| `E0300` | Construct not supported by the v1 TypeScript emitter. This includes a `where` refinement (D39) whose base resolves, by any spelling, to a record, a tagged union or a string-literal union (a single literal included): v1 refines primitives only |
+| `E0300` | Either a construct the v1 TypeScript emitter does not handle yet, or a `where` refinement (D39) whose base resolves, by any spelling, to a string-literal union, a single string literal, a record or a tagged union: a `where` refines only `string`, `int`, `number`, `bool` and `bigint`. The refusal names the declaration, its base as written, the members a literal base resolves to and the predicate |
 | `E0301` | An `<else>` that is not the immediate sibling of its `<if>` (D6) |
 | `E0302` | `?` in an arm of a `match` nested inside a larger expression (bind the match first) |
 | `E0303` | `?` in a position with nothing to hoist the unwrap into, such as a `match` scrutinee (bind the operand first) |

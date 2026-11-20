@@ -300,7 +300,7 @@ type User = { name: string; age: number };
           <thead><tr><th>Key type</th><th>What <code>parse</code> checks on each key</th></tr></thead>
           <tbody>
             <tr><td>A string-literal union</td><td>exactly the listed keys, none missing, none extra</td></tr>
-            <tr><td>A <code>where</code>-refined type</td><td>the predicate</td></tr>
+            <tr><td>A <code>where</code>-refined <code>string</code> or number</td><td>the predicate</td></tr>
             <tr><td><code>int</code></td><td>the plain spelling of a whole number; <code>"01"</code> and <code>"1.5"</code> fail</td></tr>
             <tr><td><code>string</code></td><td>nothing new</td></tr>
           </tbody>
@@ -311,7 +311,10 @@ type User = { name: string; age: number };
           A <code>where</code>-refined key type runs its predicate on every key, and
           an <code>int</code> key has to be the plain spelling of a whole number, so
           <code>"01"</code> and <code>"1.5"</code> are refused. A <code>Record&lt;string, V&gt;</code>
-          is checked exactly as before. Glyph's own checker still leaves the keys of a value you
+          is checked exactly as before. A <code>where</code> cannot refine a string-literal union
+          (<code>type T2 = Tier where value != "pro"</code> is <code>E0300</code> since 0.1.152);
+          write the members you mean as their own union, <code>type T2 = "free"</code>, and it
+          keys a <code>Record</code> with the same exact-keys check. Glyph's own checker still leaves the keys of a value you
           write in code to <code>tsc</code>, and a generic record keyed by its own type parameter
           is refused unless that parameter is <code>string</code>.
         </p>

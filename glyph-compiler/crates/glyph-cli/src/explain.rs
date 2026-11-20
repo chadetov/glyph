@@ -1033,8 +1033,19 @@ pub fn explain(code: &str) -> Option<&'static str> {
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
             does not handle yet.\n\n\
-            Rewrite using a supported form; see `docs/language/spec.md` for what \
-            v1 emits.",
+            One case is a deliberate refusal: a `where` refinement (D39) whose \
+            base resolves to a record, a tagged union or a string-literal union \
+            (a single literal included), however the base is spelled (inline, an \
+            alias, an import, a namespace). v1 refines primitives only. A refined \
+            literal union would emit as its whole base for `tsc` while its \
+            run-time check refused some members, so the two disagree on every \
+            value.\n\n\
+            Before:  type Tier = \"a\" | \"b\" | \"c\"\n         \
+            type T2 = Tier where value != \"c\"\n\
+            After:   type T2 = \"a\" | \"b\"\n\n\
+            The subset union stands wherever `Tier` is declared (D30 compares \
+            literal sets). Otherwise, rewrite using a supported form; see \
+            `docs/language/spec.md` for what v1 emits.",
         "E0301" => "E0301: misplaced `<else>`\n\n\
             An `<else>` is paired with its `<if>` only when it is the \
             immediately following sibling (D6). Anything between them — even a \
@@ -2120,8 +2131,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0300",
         phase: "emitter",
-        meaning: "Construct not supported by the v1 TypeScript emitter",
-        fix: "Use a supported form",
+        meaning: "Construct not supported by the v1 TypeScript emitter. This includes a `where` refinement (D39) whose base resolves, by any spelling, to a record, a tagged union or a string-literal union (a single literal included): v1 refines primitives only",
+        fix: "Use a supported form. For a refined literal union, write the members you mean as their own union (`type T2 = \"a\" | \"b\"`)",
     },
     CodeEntry {
         code: "E0301",

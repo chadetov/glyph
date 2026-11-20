@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>헬퍼 안에 숨은 변경 in TypeScript · Glyph</title>
+    <title>TypeScript의 헬퍼 안에 숨은 변경 · Glyph</title>
     <meta name="description" content="전달받은 객체를 수정하는 함수. 호출한 쪽의 user 이름이 바뀝니다. 호출 지점에는 그런 표시가 전혀 없습니다." />
     <link rel="canonical" href="https://glyphlang.io/ko/catches/change-hidden-in-a-helper/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ko/catches/change-hidden-in-a-helper/" />
-    <meta property="og:title" content="헬퍼 안에 숨은 변경 in TypeScript" />
+    <meta property="og:title" content="TypeScript의 헬퍼 안에 숨은 변경" />
     <meta property="og:description" content="전달받은 객체를 수정하는 함수. 호출한 쪽의 user 이름이 바뀝니다. 호출 지점에는 그런 표시가 전혀 없습니다." />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"헬퍼 안에 숨은 변경 in TypeScript","item":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/#article","headline":"헬퍼 안에 숨은 변경 in TypeScript","description":"전달받은 객체를 수정하는 함수. 호출한 쪽의 user 이름이 바뀝니다. 호출 지점에는 그런 표시가 전혀 없습니다.","url":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript의 헬퍼 안에 숨은 변경","item":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/#article","headline":"TypeScript의 헬퍼 안에 숨은 변경","description":"전달받은 객체를 수정하는 함수. 호출한 쪽의 user 이름이 바뀝니다. 호출 지점에는 그런 표시가 전혀 없습니다.","url":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/change-hidden-in-a-helper/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/change-hidden-in-a-helper/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/change-hidden-in-a-helper/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ko/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 24 of 37</span></p>
+      <p class="c-crumb"><a href="/ko/catches/">모든 TypeScript 사례</a><span class="sep" aria-hidden="true">/</span><span>사례 24 / 37</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="build">
         <div class="c-head">
           <span class="c-num">24</span>
@@ -446,15 +446,15 @@
           </div>
         </div>
         <p class="c-note">Glyph는 변경을 금지하지 않습니다. 변경을 드러나게 합니다. <code>mut</code>를 검색하면 함수가 쓰는 모든 필드가 나옵니다.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=change-hidden-in-a-helper">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=change-hidden-in-a-helper">플레이그라운드에서 열기</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">점수에 동의하지 않나요?</a></p>
       </article>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/catches/comparing-records-with-triple-equals/">
-          <span class="dir">Previous case</span>
+          <span class="dir">이전 사례</span>
           <span class="t">두 레코드를 <code>===</code>로 비교하기</span>
         </a>
         <a href="/ko/catches/negative-age/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">다음 사례</span>
           <span class="t">음수 나이</span>
         </a>
       </nav>

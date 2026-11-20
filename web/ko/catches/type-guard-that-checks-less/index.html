@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>주장하는 것보다 덜 검사하는 타입 가드 in TypeScript · Glyph</title>
+    <title>TypeScript의 주장하는 것보다 덜 검사하는 타입 가드 · Glyph</title>
     <meta name="description" content="요청 본문을 직접 검증하는 경우. 가드는 필드 하나만 확인하고 &quot;User&quot;라고 말합니다." />
     <link rel="canonical" href="https://glyphlang.io/ko/catches/type-guard-that-checks-less/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ko/catches/type-guard-that-checks-less/" />
-    <meta property="og:title" content="주장하는 것보다 덜 검사하는 타입 가드 in TypeScript" />
+    <meta property="og:title" content="TypeScript의 주장하는 것보다 덜 검사하는 타입 가드" />
     <meta property="og:description" content="요청 본문을 직접 검증하는 경우. 가드는 필드 하나만 확인하고 &quot;User&quot;라고 말합니다." />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"주장하는 것보다 덜 검사하는 타입 가드 in TypeScript","item":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/#article","headline":"주장하는 것보다 덜 검사하는 타입 가드 in TypeScript","description":"요청 본문을 직접 검증하는 경우. 가드는 필드 하나만 확인하고 \"User\"라고 말합니다.","url":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript의 주장하는 것보다 덜 검사하는 타입 가드","item":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/#article","headline":"TypeScript의 주장하는 것보다 덜 검사하는 타입 가드","description":"요청 본문을 직접 검증하는 경우. 가드는 필드 하나만 확인하고 \"User\"라고 말합니다.","url":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/type-guard-that-checks-less/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/type-guard-that-checks-less/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/type-guard-that-checks-less/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ko/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 7 of 37</span></p>
+      <p class="c-crumb"><a href="/ko/catches/">모든 TypeScript 사례</a><span class="sep" aria-hidden="true">/</span><span>사례 7 / 37</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="data">
         <div class="c-head">
           <span class="c-num">7</span>
@@ -451,11 +451,11 @@
       </article>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/catches/filter-that-keeps-everyone/">
-          <span class="dir">Previous case</span>
+          <span class="dir">이전 사례</span>
           <span class="t">모두를 통과시키는 필터</span>
         </a>
         <a href="/ko/catches/as-unknown-as/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">다음 사례</span>
           <span class="t"><code>as unknown as T</code></span>
         </a>
       </nav>

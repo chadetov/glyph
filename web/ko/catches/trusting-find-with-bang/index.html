@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>!로 find를 믿기 in TypeScript · Glyph</title>
+    <title>TypeScript의 !로 find를 믿기 · Glyph</title>
     <meta name="description" content="id로 레코드를 찾는 경우. !는 컴파일러에게 &quot;나를 믿어&quot;라고 말합니다. 실행 시에는 아무것도 하지 않습니다." />
     <link rel="canonical" href="https://glyphlang.io/ko/catches/trusting-find-with-bang/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ko/catches/trusting-find-with-bang/" />
-    <meta property="og:title" content="!로 find를 믿기 in TypeScript" />
+    <meta property="og:title" content="TypeScript의 !로 find를 믿기" />
     <meta property="og:description" content="id로 레코드를 찾는 경우. !는 컴파일러에게 &quot;나를 믿어&quot;라고 말합니다. 실행 시에는 아무것도 하지 않습니다." />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/trusting-find-with-bang/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"!로 find를 믿기 in TypeScript","item":"https://glyphlang.io/ko/catches/trusting-find-with-bang/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/trusting-find-with-bang/#article","headline":"!로 find를 믿기 in TypeScript","description":"id로 레코드를 찾는 경우. !는 컴파일러에게 \"나를 믿어\"라고 말합니다. 실행 시에는 아무것도 하지 않습니다.","url":"https://glyphlang.io/ko/catches/trusting-find-with-bang/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/trusting-find-with-bang/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/trusting-find-with-bang/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript의 !로 find를 믿기","item":"https://glyphlang.io/ko/catches/trusting-find-with-bang/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/trusting-find-with-bang/#article","headline":"TypeScript의 !로 find를 믿기","description":"id로 레코드를 찾는 경우. !는 컴파일러에게 \"나를 믿어\"라고 말합니다. 실행 시에는 아무것도 하지 않습니다.","url":"https://glyphlang.io/ko/catches/trusting-find-with-bang/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/trusting-find-with-bang/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/trusting-find-with-bang/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/trusting-find-with-bang/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ko/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 3 of 37</span></p>
+      <p class="c-crumb"><a href="/ko/catches/">모든 TypeScript 사례</a><span class="sep" aria-hidden="true">/</span><span>사례 3 / 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">3</span>
@@ -443,15 +443,15 @@
           </div>
         </div>
         <p class="c-note"><code>!</code>가 없으면 <code>tsc --strict</code>는 이 줄을 거부합니다. 그 검사를 끄는 것이 <code>!</code>이고, 실행 시에는 아무것도 하지 않습니다. Glyph에는 <code>!</code>가 없습니다.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=trusting-find-with-bang">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=trusting-find-with-bang">플레이그라운드에서 열기</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">점수에 동의하지 않나요?</a></p>
       </article>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/catches/non-exhaustive-match/">
-          <span class="dir">Previous case</span>
+          <span class="dir">이전 사례</span>
           <span class="t">아무도 처리하지 않은 case</span>
         </a>
         <a href="/ko/catches/error-the-signature-hides/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">다음 사례</span>
           <span class="t">시그니처가 숨기는 오류</span>
         </a>
       </nav>

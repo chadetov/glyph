@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>主張する内容を検査できないバリデータ in TypeScript · Glyph</title>
+    <title>TypeScript の主張する内容を検査できないバリデータ · Glyph</title>
     <meta name="description" content="ソケットを持つレコードを、手書きのガードで検査する。 ガードは sock が存在することを確かめただけで Conn だと言います。文字列がソケットとして通ってしまいます。" />
     <link rel="canonical" href="https://glyphlang.io/ja/catches/unverifiable-parse/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ja/catches/unverifiable-parse/" />
-    <meta property="og:title" content="主張する内容を検査できないバリデータ in TypeScript" />
+    <meta property="og:title" content="TypeScript の主張する内容を検査できないバリデータ" />
     <meta property="og:description" content="ソケットを持つレコードを、手書きのガードで検査する。 ガードは sock が存在することを確かめただけで Conn だと言います。文字列がソケットとして通ってしまいます。" />
     <meta property="og:locale" content="ja_JP" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/catches/unverifiable-parse/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"TypeScript が通してしまい、Glyph が検出するもの","item":"https://glyphlang.io/ja/catches/"},{"@type":"ListItem","position":3,"name":"主張する内容を検査できないバリデータ in TypeScript","item":"https://glyphlang.io/ja/catches/unverifiable-parse/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/catches/unverifiable-parse/#article","headline":"主張する内容を検査できないバリデータ in TypeScript","description":"ソケットを持つレコードを、手書きのガードで検査する。 ガードは sock が存在することを確かめただけで Conn だと言います。文字列がソケットとして通ってしまいます。","url":"https://glyphlang.io/ja/catches/unverifiable-parse/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/catches/unverifiable-parse/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/catches/unverifiable-parse/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"TypeScript が通してしまい、Glyph が検出するもの","item":"https://glyphlang.io/ja/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript の主張する内容を検査できないバリデータ","item":"https://glyphlang.io/ja/catches/unverifiable-parse/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/catches/unverifiable-parse/#article","headline":"TypeScript の主張する内容を検査できないバリデータ","description":"ソケットを持つレコードを、手書きのガードで検査する。 ガードは sock が存在することを確かめただけで Conn だと言います。文字列がソケットとして通ってしまいます。","url":"https://glyphlang.io/ja/catches/unverifiable-parse/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/catches/unverifiable-parse/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/unverifiable-parse/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/unverifiable-parse/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ja/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 34 of 37</span></p>
+      <p class="c-crumb"><a href="/ja/catches/">TypeScript のケース一覧</a><span class="sep" aria-hidden="true">/</span><span>ケース 34 / 37</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="build">
         <div class="c-head">
           <span class="c-num">34</span>
@@ -450,15 +450,15 @@
           </div>
         </div>
         <p class="c-note">通信用の型とドメインの型を分けてください。検査できるフィールドをパースしてから、ソケットを含めてレコードを組み立てます。</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=unverifiable-parse">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=unverifiable-parse">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">この評価に異論がありますか？</a></p>
       </article>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/catches/two-types-same-shape/">
-          <span class="dir">Previous case</span>
+          <span class="dir">前のケース</span>
           <span class="t">同じ形をした 2 つの型</span>
         </a>
         <a href="/ja/catches/method-forgets-its-object/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">次のケース</span>
           <span class="t">自分のオブジェクトを忘れるメソッド</span>
         </a>
       </nav>

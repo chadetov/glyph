@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>การอัปเดตที่หายไประหว่าง await in TypeScript · Glyph</title>
+    <title>การอัปเดตที่หายไประหว่าง await ใน TypeScript · Glyph</title>
     <meta name="description" content="สอง request ตัดเงินจากบัญชีเดียวกันพร้อมกัน การตัดเงินครั้งหนึ่งหายไป ไม่มีเทสต์ไหนจับได้อย่างสม่ำเสมอ" />
     <link rel="canonical" href="https://glyphlang.io/th/catches/lost-update-across-await/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/th/catches/lost-update-across-await/" />
-    <meta property="og:title" content="การอัปเดตที่หายไประหว่าง await in TypeScript" />
+    <meta property="og:title" content="การอัปเดตที่หายไประหว่าง await ใน TypeScript" />
     <meta property="og:description" content="สอง request ตัดเงินจากบัญชีเดียวกันพร้อมกัน การตัดเงินครั้งหนึ่งหายไป ไม่มีเทสต์ไหนจับได้อย่างสม่ำเสมอ" />
     <meta property="og:locale" content="th_TH" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/lost-update-across-await/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"การอัปเดตที่หายไประหว่าง await in TypeScript","item":"https://glyphlang.io/th/catches/lost-update-across-await/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/lost-update-across-await/#article","headline":"การอัปเดตที่หายไประหว่าง await in TypeScript","description":"สอง request ตัดเงินจากบัญชีเดียวกันพร้อมกัน การตัดเงินครั้งหนึ่งหายไป ไม่มีเทสต์ไหนจับได้อย่างสม่ำเสมอ","url":"https://glyphlang.io/th/catches/lost-update-across-await/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/lost-update-across-await/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/lost-update-across-await/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"การอัปเดตที่หายไประหว่าง await ใน TypeScript","item":"https://glyphlang.io/th/catches/lost-update-across-await/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/lost-update-across-await/#article","headline":"การอัปเดตที่หายไประหว่าง await ใน TypeScript","description":"สอง request ตัดเงินจากบัญชีเดียวกันพร้อมกัน การตัดเงินครั้งหนึ่งหายไป ไม่มีเทสต์ไหนจับได้อย่างสม่ำเสมอ","url":"https://glyphlang.io/th/catches/lost-update-across-await/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/lost-update-across-await/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/lost-update-across-await/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/lost-update-across-await/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/th/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 10 of 37</span></p>
+      <p class="c-crumb"><a href="/th/catches/">กรณีของ TypeScript ทั้งหมด</a><span class="sep" aria-hidden="true">/</span><span>กรณีที่ 10 จาก 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">10</span>
@@ -447,15 +447,15 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">ระหว่างที่การเรียกหนึ่งรอ <code>fee()</code> อีกการเรียกหนึ่งอาจอัปเดตยอดเงินไปแล้ว จากนั้นการเรียกแรกก็เขียนค่าเก่าทับกลับลงไป</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=lost-update-across-await">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=lost-update-across-await">เปิดใน Playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/catches/unvalidated-boundary-read/">
-          <span class="dir">Previous case</span>
+          <span class="dir">กรณีก่อนหน้า</span>
           <span class="t">body ที่ parse แล้วได้ type โดยไม่มีการตรวจ</span>
         </a>
         <a href="/th/catches/split-into-a-pair/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">กรณีถัดไป</span>
           <span class="t">การ destructure ผลของ <code>split</code></span>
         </a>
       </nav>

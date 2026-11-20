@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>method ที่ลืม object ของตัวเอง in TypeScript · Glyph</title>
+    <title>method ที่ลืม object ของตัวเอง ใน TypeScript · Glyph</title>
     <meta name="description" content="ส่ง method ไปมาเหมือนเป็นค่า method ถูกดึงออกจาก string ของมัน แล้วไม่รู้ว่าต้องทำงานกับอะไร" />
     <link rel="canonical" href="https://glyphlang.io/th/catches/method-forgets-its-object/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/th/catches/method-forgets-its-object/" />
-    <meta property="og:title" content="method ที่ลืม object ของตัวเอง in TypeScript" />
+    <meta property="og:title" content="method ที่ลืม object ของตัวเอง ใน TypeScript" />
     <meta property="og:description" content="ส่ง method ไปมาเหมือนเป็นค่า method ถูกดึงออกจาก string ของมัน แล้วไม่รู้ว่าต้องทำงานกับอะไร" />
     <meta property="og:locale" content="th_TH" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/method-forgets-its-object/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"method ที่ลืม object ของตัวเอง in TypeScript","item":"https://glyphlang.io/th/catches/method-forgets-its-object/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/method-forgets-its-object/#article","headline":"method ที่ลืม object ของตัวเอง in TypeScript","description":"ส่ง method ไปมาเหมือนเป็นค่า method ถูกดึงออกจาก string ของมัน แล้วไม่รู้ว่าต้องทำงานกับอะไร","url":"https://glyphlang.io/th/catches/method-forgets-its-object/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/method-forgets-its-object/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/method-forgets-its-object/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"method ที่ลืม object ของตัวเอง ใน TypeScript","item":"https://glyphlang.io/th/catches/method-forgets-its-object/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/method-forgets-its-object/#article","headline":"method ที่ลืม object ของตัวเอง ใน TypeScript","description":"ส่ง method ไปมาเหมือนเป็นค่า method ถูกดึงออกจาก string ของมัน แล้วไม่รู้ว่าต้องทำงานกับอะไร","url":"https://glyphlang.io/th/catches/method-forgets-its-object/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/method-forgets-its-object/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/method-forgets-its-object/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/method-forgets-its-object/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/th/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 35 of 37</span></p>
+      <p class="c-crumb"><a href="/th/catches/">กรณีของ TypeScript ทั้งหมด</a><span class="sep" aria-hidden="true">/</span><span>กรณีที่ 35 จาก 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">35</span>
@@ -443,15 +443,15 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
           </div>
         </div>
         <p class="c-note">method ใน TypeScript ขึ้นกับ object ที่มันถูกเรียกด้วย (<code>this</code>) เมื่อถูกดึงออกจาก <code>name.toUpperCase()</code> มาเป็นค่า มันก็ไม่รู้แล้วว่าต้องใช้ string ตัวไหน</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=method-forgets-its-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=method-forgets-its-object">เปิดใน Playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/catches/unverifiable-parse/">
-          <span class="dir">Previous case</span>
+          <span class="dir">กรณีก่อนหน้า</span>
           <span class="t">validator ที่ตรวจสิ่งที่อ้างไม่ได้</span>
         </a>
         <a href="/th/catches/quantity-of-one-and-a-half/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">กรณีถัดไป</span>
           <span class="t">จำนวน 1.5 ชิ้น</span>
         </a>
       </nav>

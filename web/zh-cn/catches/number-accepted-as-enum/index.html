@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>被当作枚举接受的数字 in TypeScript · Glyph</title>
+    <title>TypeScript 中的被当作枚举接受的数字 · Glyph</title>
     <meta name="description" content="从数据库读出的状态码。 未知的状态码变成了一个真实的状态。" />
     <link rel="canonical" href="https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/" />
-    <meta property="og:title" content="被当作枚举接受的数字 in TypeScript" />
+    <meta property="og:title" content="TypeScript 中的被当作枚举接受的数字" />
     <meta property="og:description" content="从数据库读出的状态码。 未知的状态码变成了一个真实的状态。" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"被当作枚举接受的数字 in TypeScript","item":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/#article","headline":"被当作枚举接受的数字 in TypeScript","description":"从数据库读出的状态码。 未知的状态码变成了一个真实的状态。","url":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript 中的被当作枚举接受的数字","item":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/#article","headline":"TypeScript 中的被当作枚举接受的数字","description":"从数据库读出的状态码。 未知的状态码变成了一个真实的状态。","url":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/number-accepted-as-enum/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/number-accepted-as-enum/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/number-accepted-as-enum/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/zh-cn/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 14 of 37</span></p>
+      <p class="c-crumb"><a href="/zh-cn/catches/">全部 TypeScript 案例</a><span class="sep" aria-hidden="true">/</span><span>第 14 个，共 37 个</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">14</span>
@@ -445,15 +445,15 @@ print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">在 TypeScript 中，任何数字都能赋给数字枚举，即使没有对应的成员。</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=number-accepted-as-enum">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">不同意这个评分？</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=number-accepted-as-enum">在 Playground 中打开</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">不同意这个评分？</a></p>
       </article>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/catches/config-with-a-setting-missing/">
-          <span class="dir">Previous case</span>
+          <span class="dir">上一个案例</span>
           <span class="t">缺了一项设置的配置</span>
         </a>
         <a href="/zh-cn/catches/connection-left-open/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">下一个案例</span>
           <span class="t">没关闭的连接</span>
         </a>
       </nav>

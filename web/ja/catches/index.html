@@ -509,7 +509,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">TypeScript が <code>switch</code> ですべてのケースが扱われているかを検査するのは、関数がすべての分岐から値を返す場合か、<code>assertNever</code> のイディオムを使った場合だけです。何も返さないハンドラはどちらにも当てはまりません。Glyph ではすべての <code>match</code> がすべてのケースを扱わなければならないので、バリアントを追加すると、変更が必要な箇所がすべて一覧されます。</p>
-        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">リンクをコピー</a><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">リンクをコピー</a><a class="c-play" href="/playground/#example=non-exhaustive-match">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="trusting-find-with-bang" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -533,7 +533,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note"><code>!</code> がなければ、<code>tsc --strict</code> はこの行を拒否します。その検査を無効にしているのが <code>!</code> で、実行時には何もしません。Glyph には <code>!</code> がありません。</p>
-        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">リンクをコピー</a><a class="c-play" href="/playground/#example=trusting-find-with-bang">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">リンクをコピー</a><a class="c-play" href="/playground/#example=trusting-find-with-bang">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="error-the-signature-hides" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -565,7 +565,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">TypeScript の関数の型には、何を返すかは書かれますが、何を throw するかは書かれません。Glyph では失敗が戻り値の型の一部なので、どの呼び出し側からも見えます。</p>
-        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">リンクをコピー</a><a class="c-play" href="/playground/#example=error-the-signature-hides">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">リンクをコピー</a><a class="c-play" href="/playground/#example=error-the-signature-hides">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="error-nobody-looked-at" data-ts="none" data-glyph="warned">
         <div class="c-head">
@@ -616,7 +616,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">async 関数は Promise を返し、Promise はどれも true とみなされます。こうして作った権限フィルタは全員を通してしまいます。</p>
-        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">リンクをコピー</a><a class="c-play" href="/playground/#example=filter-that-keeps-everyone">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">リンクをコピー</a><a class="c-play" href="/playground/#example=filter-that-keeps-everyone">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="type-guard-that-checks-less" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -668,7 +668,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
           </div>
         </div>
         <p class="c-note"><code>as unknown as T</code> は、エージェントが直せない型エラーを黙らせるときに使う手です。</p>
-        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">リンクをコピー</a><a class="c-play" href="/playground/#example=as-unknown-as">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">リンクをコピー</a><a class="c-play" href="/playground/#example=as-unknown-as">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="unvalidated-boundary-read" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -692,7 +692,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
           </div>
         </div>
         <p class="c-note"><code>const user: User</code> と書くと検査のように見えますが、検査ではありません。Glyph では <code>json.parse&lt;User&gt;(body)</code> がボディを検査し、match で扱う <code>Result</code> を返します。</p>
-        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">リンクをコピー</a><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">リンクをコピー</a><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="lost-update-across-await" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -720,7 +720,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">ある呼び出しが <code>fee()</code> を待っている間に、別の呼び出しが残高を更新できます。そのあと最初の呼び出しが古い値を書き戻します。</p>
-        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">リンクをコピー</a><a class="c-play" href="/playground/#example=lost-update-across-await">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">リンクをコピー</a><a class="c-play" href="/playground/#example=lost-update-across-await">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="split-into-a-pair" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -746,7 +746,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note"><code>split</code> は要素を 1 つしか返さないことがあります。それでも TypeScript は <code>host</code> を <code>string</code> と型付けします。</p>
-        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">リンクをコピー</a><a class="c-play" href="/playground/#example=split-into-a-pair">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">リンクをコピー</a><a class="c-play" href="/playground/#example=split-into-a-pair">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="value-outside-the-list" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -830,7 +830,7 @@ print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">TypeScript では、数値の enum にはどんな数値でも代入できます。対応するメンバーがない数値でもです。</p>
-        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">リンクをコピー</a><a class="c-play" href="/playground/#example=number-accepted-as-enum">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">リンクをコピー</a><a class="c-play" href="/playground/#example=number-accepted-as-enum">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="connection-left-open" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -860,7 +860,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
         </div>
         <p class="c-note">この検査は <code>owned</code> と宣言された値に適用されます。宣言のないリソースは追跡されません。</p>
-        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">リンクをコピー</a><a class="c-play" href="/playground/#example=connection-left-open">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">リンクをコピー</a><a class="c-play" href="/playground/#example=connection-left-open">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="typo-nobody-sees" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -916,7 +916,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
         </div>
         <p class="c-note">TypeScript の <code>Record&lt;string, string&gt;</code> は、あらゆるキーに文字列があると主張します。Glyph はこれをマップとして扱い、検索が何も見つけない場合があるとみなすので、正しく綴った <code>row.name</code> も拒否します。</p>
-        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">リンクをコピー</a><a class="c-play" href="/playground/#example=absent-map-key">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">リンクをコピー</a><a class="c-play" href="/playground/#example=absent-map-key">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="typo-in-an-options-object" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -942,7 +942,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">TypeScript が未知のキーを検査するのは、呼び出しに直接書いたリテラルだけです。先に変数に組み立てたものは検査しません。</p>
-        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">リンクをコピー</a><a class="c-play" href="/playground/#example=typo-in-an-options-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">リンクをコピー</a><a class="c-play" href="/playground/#example=typo-in-an-options-object">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="invalid-date" data-ts="none" data-glyph="design">
         <div class="c-head">
@@ -1020,7 +1020,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note"><code>?.</code> でクラッシュは防げますが、それが生む <code>undefined</code> はそのまま出力されます。</p>
-        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">リンクをコピー</a><a class="c-play" href="/playground/#example=template-prints-undefined">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">リンクをコピー</a><a class="c-play" href="/playground/#example=template-prints-undefined">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="number-that-is-not-a-number" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1050,7 +1050,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">エラーは <code>total</code> が呼ばれるより前に、この行を指します。コンパイルを通すには、不正な入力が何を意味するかをコードに書く必要があります：<code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code></p>
-        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">リンクをコピー</a><a class="c-play" href="/playground/#example=number-that-is-not-a-number">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">リンクをコピー</a><a class="c-play" href="/playground/#example=number-that-is-not-a-number">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="comparing-records-with-triple-equals" data-ts="none" data-glyph="design">
         <div class="c-head">
@@ -1106,7 +1106,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">Glyph は変更そのものを禁止しません。変更を見えるようにします。<code>mut</code> を検索すれば、関数が書き込むフィールドがすべて一覧できます。</p>
-        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">リンクをコピー</a><a class="c-play" href="/playground/#example=change-hidden-in-a-helper">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">リンクをコピー</a><a class="c-play" href="/playground/#example=change-hidden-in-a-helper">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="negative-age" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -1292,7 +1292,7 @@ sum = sum * (<span class="n">1</span> + taxRate);</pre><span class="cap">$ tsx t
           </div>
         </div>
         <p class="c-note">TypeScript のアロー関数でオブジェクトを返すには、波括弧を丸括弧で囲む必要があります：<code>u =&gt; ({ ... })</code>。</p>
-        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">リンクをコピー</a><a class="c-play" href="/playground/#example=arrow-function-returns-nothing">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">リンクをコピー</a><a class="c-play" href="/playground/#example=arrow-function-returns-nothing">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="array-covariance" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1320,7 +1320,7 @@ adopt(dogs);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span c
           </div>
         </div>
         <p class="c-note">TypeScript では、関数がその配列に要素を追加する場合でも、<code>Dog[]</code> を <code>Animal[]</code> の代わりに渡せます。</p>
-        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">リンクをコピー</a><a class="c-play" href="/playground/#example=array-covariance">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">リンクをコピー</a><a class="c-play" href="/playground/#example=array-covariance">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="two-types-same-shape" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1347,7 +1347,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
           </div>
         </div>
         <p class="c-note">TypeScript はオブジェクト型を形で比較するので、同じ形の型は名前が何であれ互いに置き換えられます。</p>
-        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">リンクをコピー</a><a class="c-play" href="/playground/#example=two-types-same-shape">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">リンクをコピー</a><a class="c-play" href="/playground/#example=two-types-same-shape">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="unverifiable-parse" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1378,7 +1378,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
           </div>
         </div>
         <p class="c-note">通信用の型とドメインの型を分けてください。検査できるフィールドをパースしてから、ソケットを含めてレコードを組み立てます。</p>
-        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">リンクをコピー</a><a class="c-play" href="/playground/#example=unverifiable-parse">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">リンクをコピー</a><a class="c-play" href="/playground/#example=unverifiable-parse">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="method-forgets-its-object" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -1402,7 +1402,7 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
           </div>
         </div>
         <p class="c-note">TypeScript のメソッドは、呼び出されたオブジェクト（<code>this</code>）に依存します。<code>name.toUpperCase()</code> から値として取り出すと、どの文字列を使えばよいかがわからなくなります。</p>
-        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">リンクをコピー</a><a class="c-play" href="/playground/#example=method-forgets-its-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">リンクをコピー</a><a class="c-play" href="/playground/#example=method-forgets-its-object">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">この評価に異論がありますか？</a></p>
       </article>
       <article class="catch" id="quantity-of-one-and-a-half" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -1461,7 +1461,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           </div>
         </div>
         <p class="c-note">tsc は、同じ <code>case</code> ラベルが 2 回現れても指摘しません。</p>
-        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">リンクをコピー</a><a class="c-play" href="/playground/#example=duplicate-case">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">リンクをコピー</a><a class="c-play" href="/playground/#example=duplicate-case">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">この評価に異論がありますか？</a></p>
       </article>
       </div>
 
@@ -1472,11 +1472,11 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           昔からある落とし穴ですが、エージェントは今でもときどきはまります。Glyph はどのプログラムも拒否しますが、ミスを見つけるからではありません。その原因となる機能が言語になく、代わりに使うものが示されるからです。
         </p>
       <ul class="c-traps">
-        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> は <code>[10, NaN, NaN]</code> になります。<code>map</code> がインデックスを基数として渡すからです。Glyph には <code>Result</code> を返す <code>number.parse</code> があります。 <a class="c-play" href="/playground/#example=trap-map-parseint">Open in playground</a></li>
-        <li id="trap-regex-lastindex"><code>/g</code> 付きの正規表現を <code>.test</code> で使い回すと、<code>lastIndex</code> を覚えているせいで 1 回おきにマッチに失敗します。Glyph には正規表現オブジェクトがなく、<code>regex.matches(pattern, text)</code> は状態を持ちません。 <a class="c-play" href="/playground/#example=trap-regex-lastindex">Open in playground</a></li>
-        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code> は、メソッドをそのオブジェクトなしで実行します。Glyph にはクラスも <code>this</code> もありません。 <a class="c-play" href="/playground/#example=trap-foreach-method-this">Open in playground</a></li>
-        <li id="trap-math-max-empty"><code>Math.max(...[])</code> は <code>-Infinity</code> です。Glyph の <code>array.max</code> は <code>Option</code> を返し、空のリストでは空になります。 <a class="c-play" href="/playground/#example=trap-math-max-empty">Open in playground</a></li>
-        <li id="trap-array-holes"><code>Array(3).map(...)</code> は穴が 3 つの配列を返します。<code>map</code> が穴を飛ばすからです。Glyph には <code>Array(n)</code> がなく、配列はリテラルで書きます。 <a class="c-play" href="/playground/#example=trap-array-holes">Open in playground</a></li>
+        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> は <code>[10, NaN, NaN]</code> になります。<code>map</code> がインデックスを基数として渡すからです。Glyph には <code>Result</code> を返す <code>number.parse</code> があります。 <a class="c-play" href="/playground/#example=trap-map-parseint">Playground で開く</a></li>
+        <li id="trap-regex-lastindex"><code>/g</code> 付きの正規表現を <code>.test</code> で使い回すと、<code>lastIndex</code> を覚えているせいで 1 回おきにマッチに失敗します。Glyph には正規表現オブジェクトがなく、<code>regex.matches(pattern, text)</code> は状態を持ちません。 <a class="c-play" href="/playground/#example=trap-regex-lastindex">Playground で開く</a></li>
+        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code> は、メソッドをそのオブジェクトなしで実行します。Glyph にはクラスも <code>this</code> もありません。 <a class="c-play" href="/playground/#example=trap-foreach-method-this">Playground で開く</a></li>
+        <li id="trap-math-max-empty"><code>Math.max(...[])</code> は <code>-Infinity</code> です。Glyph の <code>array.max</code> は <code>Option</code> を返し、空のリストでは空になります。 <a class="c-play" href="/playground/#example=trap-math-max-empty">Playground で開く</a></li>
+        <li id="trap-array-holes"><code>Array(3).map(...)</code> は穴が 3 つの配列を返します。<code>map</code> が穴を飛ばすからです。Glyph には <code>Array(n)</code> がなく、配列はリテラルで書きます。 <a class="c-play" href="/playground/#example=trap-array-holes">Playground で開く</a></li>
       </ul>
 
       </section>

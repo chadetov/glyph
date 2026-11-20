@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>body ที่ parse แล้วได้ type โดยไม่มีการตรวจ in TypeScript · Glyph</title>
+    <title>body ที่ parse แล้วได้ type โดยไม่มีการตรวจ ใน TypeScript · Glyph</title>
     <meta name="description" content="อ่าน request body ใส่ตัวแปรที่มี type annotation เป็นสัญญาที่ไม่มีอะไรรักษา JSON.parse คืนค่า any body รูปร่างไหนก็ผ่านได้" />
     <link rel="canonical" href="https://glyphlang.io/th/catches/unvalidated-boundary-read/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/th/catches/unvalidated-boundary-read/" />
-    <meta property="og:title" content="body ที่ parse แล้วได้ type โดยไม่มีการตรวจ in TypeScript" />
+    <meta property="og:title" content="body ที่ parse แล้วได้ type โดยไม่มีการตรวจ ใน TypeScript" />
     <meta property="og:description" content="อ่าน request body ใส่ตัวแปรที่มี type annotation เป็นสัญญาที่ไม่มีอะไรรักษา JSON.parse คืนค่า any body รูปร่างไหนก็ผ่านได้" />
     <meta property="og:locale" content="th_TH" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/unvalidated-boundary-read/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"body ที่ parse แล้วได้ type โดยไม่มีการตรวจ in TypeScript","item":"https://glyphlang.io/th/catches/unvalidated-boundary-read/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/unvalidated-boundary-read/#article","headline":"body ที่ parse แล้วได้ type โดยไม่มีการตรวจ in TypeScript","description":"อ่าน request body ใส่ตัวแปรที่มี type annotation เป็นสัญญาที่ไม่มีอะไรรักษา JSON.parse คืนค่า any body รูปร่างไหนก็ผ่านได้","url":"https://glyphlang.io/th/catches/unvalidated-boundary-read/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/unvalidated-boundary-read/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/unvalidated-boundary-read/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"body ที่ parse แล้วได้ type โดยไม่มีการตรวจ ใน TypeScript","item":"https://glyphlang.io/th/catches/unvalidated-boundary-read/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/unvalidated-boundary-read/#article","headline":"body ที่ parse แล้วได้ type โดยไม่มีการตรวจ ใน TypeScript","description":"อ่าน request body ใส่ตัวแปรที่มี type annotation เป็นสัญญาที่ไม่มีอะไรรักษา JSON.parse คืนค่า any body รูปร่างไหนก็ผ่านได้","url":"https://glyphlang.io/th/catches/unvalidated-boundary-read/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/unvalidated-boundary-read/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/unvalidated-boundary-read/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/unvalidated-boundary-read/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/th/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 9 of 37</span></p>
+      <p class="c-crumb"><a href="/th/catches/">กรณีของ TypeScript ทั้งหมด</a><span class="sep" aria-hidden="true">/</span><span>กรณีที่ 9 จาก 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">9</span>
@@ -443,15 +443,15 @@
           </div>
         </div>
         <p class="c-note">การเขียน <code>const user: User</code> ดูเหมือนการตรวจ แต่ไม่ใช่ ใน Glyph <code>json.parse&lt;User&gt;(body)</code> ตรวจ body และคืนค่าเป็น <code>Result</code> ให้ match ต่อ</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=unvalidated-boundary-read">เปิดใน Playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/catches/as-unknown-as/">
-          <span class="dir">Previous case</span>
+          <span class="dir">กรณีก่อนหน้า</span>
           <span class="t"><code>as unknown as T</code></span>
         </a>
         <a href="/th/catches/lost-update-across-await/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">กรณีถัดไป</span>
           <span class="t">การอัปเดตที่หายไประหว่าง <code>await</code></span>
         </a>
       </nav>

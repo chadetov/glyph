@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ตัวเลขที่ถูกรับเป็น enum in TypeScript · Glyph</title>
+    <title>ตัวเลขที่ถูกรับเป็น enum ใน TypeScript · Glyph</title>
     <meta name="description" content="รหัสสถานะที่อ่านมาจากฐานข้อมูล รหัสที่ไม่รู้จักกลายเป็นสถานะจริง" />
     <link rel="canonical" href="https://glyphlang.io/th/catches/number-accepted-as-enum/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/th/catches/number-accepted-as-enum/" />
-    <meta property="og:title" content="ตัวเลขที่ถูกรับเป็น enum in TypeScript" />
+    <meta property="og:title" content="ตัวเลขที่ถูกรับเป็น enum ใน TypeScript" />
     <meta property="og:description" content="รหัสสถานะที่อ่านมาจากฐานข้อมูล รหัสที่ไม่รู้จักกลายเป็นสถานะจริง" />
     <meta property="og:locale" content="th_TH" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/number-accepted-as-enum/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"ตัวเลขที่ถูกรับเป็น enum in TypeScript","item":"https://glyphlang.io/th/catches/number-accepted-as-enum/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/number-accepted-as-enum/#article","headline":"ตัวเลขที่ถูกรับเป็น enum in TypeScript","description":"รหัสสถานะที่อ่านมาจากฐานข้อมูล รหัสที่ไม่รู้จักกลายเป็นสถานะจริง","url":"https://glyphlang.io/th/catches/number-accepted-as-enum/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/number-accepted-as-enum/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/number-accepted-as-enum/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"ตัวเลขที่ถูกรับเป็น enum ใน TypeScript","item":"https://glyphlang.io/th/catches/number-accepted-as-enum/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/number-accepted-as-enum/#article","headline":"ตัวเลขที่ถูกรับเป็น enum ใน TypeScript","description":"รหัสสถานะที่อ่านมาจากฐานข้อมูล รหัสที่ไม่รู้จักกลายเป็นสถานะจริง","url":"https://glyphlang.io/th/catches/number-accepted-as-enum/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/number-accepted-as-enum/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/number-accepted-as-enum/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/number-accepted-as-enum/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/th/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 14 of 37</span></p>
+      <p class="c-crumb"><a href="/th/catches/">กรณีของ TypeScript ทั้งหมด</a><span class="sep" aria-hidden="true">/</span><span>กรณีที่ 14 จาก 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">14</span>
@@ -445,15 +445,15 @@ print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">ใน TypeScript ตัวเลขใดๆ assign ให้ numeric enum ได้ แม้จะไม่มี member ที่ตรงกันก็ตาม</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=number-accepted-as-enum">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=number-accepted-as-enum">เปิดใน Playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/catches/config-with-a-setting-missing/">
-          <span class="dir">Previous case</span>
+          <span class="dir">กรณีก่อนหน้า</span>
           <span class="t">config ที่ขาดค่าตั้งไปหนึ่งค่า</span>
         </a>
         <a href="/th/catches/connection-left-open/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">กรณีถัดไป</span>
           <span class="t">connection ที่ไม่ได้ปิด</span>
         </a>
       </nav>

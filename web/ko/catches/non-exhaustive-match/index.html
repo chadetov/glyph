@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>아무도 처리하지 않은 case in TypeScript · Glyph</title>
+    <title>TypeScript의 아무도 처리하지 않은 case · Glyph</title>
     <meta name="description" content="에이전트가 &quot;archived&quot; 상태를 추가합니다. 각 상태를 알리는 핸들러는 이 상태가 생기기 전에 작성되었습니다. 항목을 보관해도 아무 로그가 남지 않습니다. switch가 낡았다고 알려 주는 것이 없습니다." />
     <link rel="canonical" href="https://glyphlang.io/ko/catches/non-exhaustive-match/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ko/catches/non-exhaustive-match/" />
-    <meta property="og:title" content="아무도 처리하지 않은 case in TypeScript" />
+    <meta property="og:title" content="TypeScript의 아무도 처리하지 않은 case" />
     <meta property="og:description" content="에이전트가 &quot;archived&quot; 상태를 추가합니다. 각 상태를 알리는 핸들러는 이 상태가 생기기 전에 작성되었습니다. 항목을 보관해도 아무 로그가 남지 않습니다. switch가 낡았다고 알려 주는 것이 없습니다." />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"아무도 처리하지 않은 case in TypeScript","item":"https://glyphlang.io/ko/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/non-exhaustive-match/#article","headline":"아무도 처리하지 않은 case in TypeScript","description":"에이전트가 \"archived\" 상태를 추가합니다. 각 상태를 알리는 핸들러는 이 상태가 생기기 전에 작성되었습니다. 항목을 보관해도 아무 로그가 남지 않습니다. switch가 낡았다고 알려 주는 것이 없습니다.","url":"https://glyphlang.io/ko/catches/non-exhaustive-match/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript의 아무도 처리하지 않은 case","item":"https://glyphlang.io/ko/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/non-exhaustive-match/#article","headline":"TypeScript의 아무도 처리하지 않은 case","description":"에이전트가 \"archived\" 상태를 추가합니다. 각 상태를 알리는 핸들러는 이 상태가 생기기 전에 작성되었습니다. 항목을 보관해도 아무 로그가 남지 않습니다. switch가 낡았다고 알려 주는 것이 없습니다.","url":"https://glyphlang.io/ko/catches/non-exhaustive-match/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/non-exhaustive-match/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/non-exhaustive-match/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ko/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 2 of 37</span></p>
+      <p class="c-crumb"><a href="/ko/catches/">모든 TypeScript 사례</a><span class="sep" aria-hidden="true">/</span><span>사례 2 / 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">2</span>
@@ -458,15 +458,15 @@
           </div>
         </div>
         <p class="c-note">TypeScript는 함수가 모든 분기에서 값을 반환하거나 <code>assertNever</code> 관용구를 쓸 때만 <code>switch</code>가 모든 case를 다루는지 검사합니다. 아무것도 반환하지 않는 핸들러는 둘 다 해당하지 않습니다. Glyph에서는 모든 <code>match</code>가 모든 case를 다뤄야 하므로, variant를 추가하면 바꿔야 할 곳이 모두 나열됩니다.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">플레이그라운드에서 열기</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">점수에 동의하지 않나요?</a></p>
       </article>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/catches/data-from-outside-the-program/">
-          <span class="dir">Previous case</span>
+          <span class="dir">이전 사례</span>
           <span class="t">프로그램 외부에서 온 데이터</span>
         </a>
         <a href="/ko/catches/trusting-find-with-bang/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">다음 사례</span>
           <span class="t"><code>!</code>로 <code>find</code>를 믿기</span>
         </a>
       </nav>

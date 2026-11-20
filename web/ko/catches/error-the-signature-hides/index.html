@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>시그니처가 숨기는 오류 in TypeScript · Glyph</title>
+    <title>TypeScript의 시그니처가 숨기는 오류 · Glyph</title>
     <meta name="description" content="실패할 수 있는 함수를, 그 사실을 모르는 코드가 호출하는 경우. 타입은 Config라고만 말합니다. 예외를 던질 수 있다는 표시는 어디에도 없습니다." />
     <link rel="canonical" href="https://glyphlang.io/ko/catches/error-the-signature-hides/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ko/catches/error-the-signature-hides/" />
-    <meta property="og:title" content="시그니처가 숨기는 오류 in TypeScript" />
+    <meta property="og:title" content="TypeScript의 시그니처가 숨기는 오류" />
     <meta property="og:description" content="실패할 수 있는 함수를, 그 사실을 모르는 코드가 호출하는 경우. 타입은 Config라고만 말합니다. 예외를 던질 수 있다는 표시는 어디에도 없습니다." />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/error-the-signature-hides/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"시그니처가 숨기는 오류 in TypeScript","item":"https://glyphlang.io/ko/catches/error-the-signature-hides/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/error-the-signature-hides/#article","headline":"시그니처가 숨기는 오류 in TypeScript","description":"실패할 수 있는 함수를, 그 사실을 모르는 코드가 호출하는 경우. 타입은 Config라고만 말합니다. 예외를 던질 수 있다는 표시는 어디에도 없습니다.","url":"https://glyphlang.io/ko/catches/error-the-signature-hides/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/error-the-signature-hides/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/error-the-signature-hides/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript의 시그니처가 숨기는 오류","item":"https://glyphlang.io/ko/catches/error-the-signature-hides/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/error-the-signature-hides/#article","headline":"TypeScript의 시그니처가 숨기는 오류","description":"실패할 수 있는 함수를, 그 사실을 모르는 코드가 호출하는 경우. 타입은 Config라고만 말합니다. 예외를 던질 수 있다는 표시는 어디에도 없습니다.","url":"https://glyphlang.io/ko/catches/error-the-signature-hides/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/error-the-signature-hides/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/error-the-signature-hides/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/error-the-signature-hides/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ko/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 4 of 37</span></p>
+      <p class="c-crumb"><a href="/ko/catches/">모든 TypeScript 사례</a><span class="sep" aria-hidden="true">/</span><span>사례 4 / 37</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="build">
         <div class="c-head">
           <span class="c-num">4</span>
@@ -451,15 +451,15 @@
           </div>
         </div>
         <p class="c-note">TypeScript 함수의 타입은 무엇을 반환하는지만 나열하고, 무엇을 던지는지는 나열하지 않습니다. Glyph에서는 실패가 반환 타입의 일부이므로 모든 호출자가 이를 볼 수 있습니다.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=error-the-signature-hides">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=error-the-signature-hides">플레이그라운드에서 열기</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">점수에 동의하지 않나요?</a></p>
       </article>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/catches/trusting-find-with-bang/">
-          <span class="dir">Previous case</span>
+          <span class="dir">이전 사례</span>
           <span class="t"><code>!</code>로 <code>find</code>를 믿기</span>
         </a>
         <a href="/ko/catches/error-nobody-looked-at/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">다음 사례</span>
           <span class="t">아무도 확인하지 않은 오류</span>
         </a>
       </nav>

@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Потерянное обновление через await in TypeScript · Glyph</title>
+    <title>Потерянное обновление через await в TypeScript · Glyph</title>
     <meta name="description" content="Два запроса одновременно списывают деньги с одного счёта. Одно списание пропадает. Ни один тест надёжно это не ловит." />
     <link rel="canonical" href="https://glyphlang.io/ru/catches/lost-update-across-await/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ru/catches/lost-update-across-await/" />
-    <meta property="og:title" content="Потерянное обновление через await in TypeScript" />
+    <meta property="og:title" content="Потерянное обновление через await в TypeScript" />
     <meta property="og:description" content="Два запроса одновременно списывают деньги с одного счёта. Одно списание пропадает. Ни один тест надёжно это не ловит." />
     <meta property="og:locale" content="ru_RU" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/catches/lost-update-across-await/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Что TypeScript пропускает, а Glyph ловит","item":"https://glyphlang.io/ru/catches/"},{"@type":"ListItem","position":3,"name":"Потерянное обновление через await in TypeScript","item":"https://glyphlang.io/ru/catches/lost-update-across-await/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/catches/lost-update-across-await/#article","headline":"Потерянное обновление через await in TypeScript","description":"Два запроса одновременно списывают деньги с одного счёта. Одно списание пропадает. Ни один тест надёжно это не ловит.","url":"https://glyphlang.io/ru/catches/lost-update-across-await/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/catches/lost-update-across-await/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/catches/lost-update-across-await/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Что TypeScript пропускает, а Glyph ловит","item":"https://glyphlang.io/ru/catches/"},{"@type":"ListItem","position":3,"name":"Потерянное обновление через await в TypeScript","item":"https://glyphlang.io/ru/catches/lost-update-across-await/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/catches/lost-update-across-await/#article","headline":"Потерянное обновление через await в TypeScript","description":"Два запроса одновременно списывают деньги с одного счёта. Одно списание пропадает. Ни один тест надёжно это не ловит.","url":"https://glyphlang.io/ru/catches/lost-update-across-await/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/catches/lost-update-across-await/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/lost-update-across-await/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/lost-update-across-await/" />
@@ -418,7 +418,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ru/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 10 of 37</span></p>
+      <p class="c-crumb"><a href="/ru/catches/">Все случаи в TypeScript</a><span class="sep" aria-hidden="true">/</span><span>Случай 10 из 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">10</span>
@@ -445,15 +445,15 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">Пока один вызов ждёт <code>fee()</code>, другой может обновить баланс. Первый затем записывает устаревшее значение.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=lost-update-across-await">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">Воспроизвести</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">Не согласны с оценкой?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=lost-update-across-await">Открыть в песочнице</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">Воспроизвести</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">Не согласны с оценкой?</a></p>
       </article>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/catches/unvalidated-boundary-read/">
-          <span class="dir">Previous case</span>
+          <span class="dir">Предыдущий случай</span>
           <span class="t">Разобранному телу дан тип без проверки</span>
         </a>
         <a href="/ru/catches/split-into-a-pair/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">Следующий случай</span>
           <span class="t">Деструктуризация <code>split</code></span>
         </a>
       </nav>

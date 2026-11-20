@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Kontrol edilmeden tip verilmiş, parse edilmiş bir gövde in TypeScript · Glyph</title>
+    <title>TypeScript'te Kontrol edilmeden tip verilmiş, parse edilmiş bir gövde · Glyph</title>
     <meta name="description" content="Bir istek gövdesini tipli bir değişkene okumak. Tip anotasyonu, hiçbir şeyin tutmadığı bir sözdür. JSON.parse any döndürür, bu yüzden her yapıdaki gövde geçer." />
     <link rel="canonical" href="https://glyphlang.io/tr/catches/unvalidated-boundary-read/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/tr/catches/unvalidated-boundary-read/" />
-    <meta property="og:title" content="Kontrol edilmeden tip verilmiş, parse edilmiş bir gövde in TypeScript" />
+    <meta property="og:title" content="TypeScript&#x27;te Kontrol edilmeden tip verilmiş, parse edilmiş bir gövde" />
     <meta property="og:description" content="Bir istek gövdesini tipli bir değişkene okumak. Tip anotasyonu, hiçbir şeyin tutmadığı bir sözdür. JSON.parse any döndürür, bu yüzden her yapıdaki gövde geçer." />
     <meta property="og:locale" content="tr_TR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"TypeScript'in geçirdikleri ve Glyph'in yakaladıkları","item":"https://glyphlang.io/tr/catches/"},{"@type":"ListItem","position":3,"name":"Kontrol edilmeden tip verilmiş, parse edilmiş bir gövde in TypeScript","item":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/#article","headline":"Kontrol edilmeden tip verilmiş, parse edilmiş bir gövde in TypeScript","description":"Bir istek gövdesini tipli bir değişkene okumak. Tip anotasyonu, hiçbir şeyin tutmadığı bir sözdür. JSON.parse any döndürür, bu yüzden her yapıdaki gövde geçer.","url":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"TypeScript'in geçirdikleri ve Glyph'in yakaladıkları","item":"https://glyphlang.io/tr/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript'te Kontrol edilmeden tip verilmiş, parse edilmiş bir gövde","item":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/#article","headline":"TypeScript'te Kontrol edilmeden tip verilmiş, parse edilmiş bir gövde","description":"Bir istek gövdesini tipli bir değişkene okumak. Tip anotasyonu, hiçbir şeyin tutmadığı bir sözdür. JSON.parse any döndürür, bu yüzden her yapıdaki gövde geçer.","url":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/catches/unvalidated-boundary-read/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/unvalidated-boundary-read/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/unvalidated-boundary-read/" />
@@ -418,7 +418,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/tr/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 9 of 37</span></p>
+      <p class="c-crumb"><a href="/tr/catches/">Tüm TypeScript vakaları</a><span class="sep" aria-hidden="true">/</span><span>Vaka 9 / 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">9</span>
@@ -441,15 +441,15 @@
           </div>
         </div>
         <p class="c-note"><code>const user: User</code> yazmak bir kontrol gibi görünür ama değildir. Glyph'te <code>json.parse&lt;User&gt;(body)</code> gövdeyi kontrol eder ve üzerinde match yapılacak bir <code>Result</code> döndürür.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">Yeniden üret</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">Puanlamaya katılmıyor musunuz?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Playground'da aç</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">Yeniden üret</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">Puanlamaya katılmıyor musunuz?</a></p>
       </article>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/catches/as-unknown-as/">
-          <span class="dir">Previous case</span>
+          <span class="dir">Önceki vaka</span>
           <span class="t"><code>as unknown as T</code></span>
         </a>
         <a href="/tr/catches/lost-update-across-await/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">Sonraki vaka</span>
           <span class="t"><code>await</code> boyunca kaybolan bir güncelleme</span>
         </a>
       </nav>

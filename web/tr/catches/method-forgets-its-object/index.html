@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nesnesini unutan bir metot in TypeScript · Glyph</title>
+    <title>TypeScript'te Nesnesini unutan bir metot · Glyph</title>
     <meta name="description" content="Bir metodu değer olarak başka yere geçirmek. Metot string&#x27;inden koparılır ve onu kaybeder." />
     <link rel="canonical" href="https://glyphlang.io/tr/catches/method-forgets-its-object/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/tr/catches/method-forgets-its-object/" />
-    <meta property="og:title" content="Nesnesini unutan bir metot in TypeScript" />
+    <meta property="og:title" content="TypeScript&#x27;te Nesnesini unutan bir metot" />
     <meta property="og:description" content="Bir metodu değer olarak başka yere geçirmek. Metot string&#x27;inden koparılır ve onu kaybeder." />
     <meta property="og:locale" content="tr_TR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/catches/method-forgets-its-object/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"TypeScript'in geçirdikleri ve Glyph'in yakaladıkları","item":"https://glyphlang.io/tr/catches/"},{"@type":"ListItem","position":3,"name":"Nesnesini unutan bir metot in TypeScript","item":"https://glyphlang.io/tr/catches/method-forgets-its-object/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/catches/method-forgets-its-object/#article","headline":"Nesnesini unutan bir metot in TypeScript","description":"Bir metodu değer olarak başka yere geçirmek. Metot string'inden koparılır ve onu kaybeder.","url":"https://glyphlang.io/tr/catches/method-forgets-its-object/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/catches/method-forgets-its-object/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/catches/method-forgets-its-object/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"TypeScript'in geçirdikleri ve Glyph'in yakaladıkları","item":"https://glyphlang.io/tr/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript'te Nesnesini unutan bir metot","item":"https://glyphlang.io/tr/catches/method-forgets-its-object/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/catches/method-forgets-its-object/#article","headline":"TypeScript'te Nesnesini unutan bir metot","description":"Bir metodu değer olarak başka yere geçirmek. Metot string'inden koparılır ve onu kaybeder.","url":"https://glyphlang.io/tr/catches/method-forgets-its-object/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/catches/method-forgets-its-object/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/method-forgets-its-object/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/method-forgets-its-object/" />
@@ -418,7 +418,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/tr/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 35 of 37</span></p>
+      <p class="c-crumb"><a href="/tr/catches/">Tüm TypeScript vakaları</a><span class="sep" aria-hidden="true">/</span><span>Vaka 35 / 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">35</span>
@@ -441,15 +441,15 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
           </div>
         </div>
         <p class="c-note">Bir TypeScript metodu, üzerinde çağrıldığı nesneye (<code>this</code>) bağlıdır. <code>name.toUpperCase()</code>'tan değer olarak çıkarıldığında, hangi string'i kullanacağını artık bilmez.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=method-forgets-its-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">Yeniden üret</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">Puanlamaya katılmıyor musunuz?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=method-forgets-its-object">Playground'da aç</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">Yeniden üret</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">Puanlamaya katılmıyor musunuz?</a></p>
       </article>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/catches/unverifiable-parse/">
-          <span class="dir">Previous case</span>
+          <span class="dir">Önceki vaka</span>
           <span class="t">İddia ettiğini kontrol edemeyen bir validator</span>
         </a>
         <a href="/tr/catches/quantity-of-one-and-a-half/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">Sonraki vaka</span>
           <span class="t">1.5 adetlik bir miktar</span>
         </a>
       </nav>

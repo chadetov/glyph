@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>자기 객체를 잊는 메서드 in TypeScript · Glyph</title>
+    <title>TypeScript의 자기 객체를 잊는 메서드 · Glyph</title>
     <meta name="description" content="메서드를 값으로 넘기는 경우. 메서드를 문자열에서 떼어 내면 그 문자열을 잃어버립니다." />
     <link rel="canonical" href="https://glyphlang.io/ko/catches/method-forgets-its-object/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ko/catches/method-forgets-its-object/" />
-    <meta property="og:title" content="자기 객체를 잊는 메서드 in TypeScript" />
+    <meta property="og:title" content="TypeScript의 자기 객체를 잊는 메서드" />
     <meta property="og:description" content="메서드를 값으로 넘기는 경우. 메서드를 문자열에서 떼어 내면 그 문자열을 잃어버립니다." />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/method-forgets-its-object/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"자기 객체를 잊는 메서드 in TypeScript","item":"https://glyphlang.io/ko/catches/method-forgets-its-object/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/method-forgets-its-object/#article","headline":"자기 객체를 잊는 메서드 in TypeScript","description":"메서드를 값으로 넘기는 경우. 메서드를 문자열에서 떼어 내면 그 문자열을 잃어버립니다.","url":"https://glyphlang.io/ko/catches/method-forgets-its-object/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/method-forgets-its-object/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/method-forgets-its-object/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript의 자기 객체를 잊는 메서드","item":"https://glyphlang.io/ko/catches/method-forgets-its-object/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/method-forgets-its-object/#article","headline":"TypeScript의 자기 객체를 잊는 메서드","description":"메서드를 값으로 넘기는 경우. 메서드를 문자열에서 떼어 내면 그 문자열을 잃어버립니다.","url":"https://glyphlang.io/ko/catches/method-forgets-its-object/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/method-forgets-its-object/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/method-forgets-its-object/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/method-forgets-its-object/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ko/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 35 of 37</span></p>
+      <p class="c-crumb"><a href="/ko/catches/">모든 TypeScript 사례</a><span class="sep" aria-hidden="true">/</span><span>사례 35 / 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">35</span>
@@ -443,15 +443,15 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
           </div>
         </div>
         <p class="c-note">TypeScript 메서드는 자신이 호출된 객체(<code>this</code>)에 의존합니다. <code>name.toUpperCase()</code>에서 값으로 떼어 내면 어떤 문자열을 써야 하는지 더 이상 알지 못합니다.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=method-forgets-its-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=method-forgets-its-object">플레이그라운드에서 열기</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">점수에 동의하지 않나요?</a></p>
       </article>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/catches/unverifiable-parse/">
-          <span class="dir">Previous case</span>
+          <span class="dir">이전 사례</span>
           <span class="t">주장하는 것을 검사할 수 없는 검증기</span>
         </a>
         <a href="/ko/catches/quantity-of-one-and-a-half/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">다음 사례</span>
           <span class="t">수량 1.5</span>
         </a>
       </nav>

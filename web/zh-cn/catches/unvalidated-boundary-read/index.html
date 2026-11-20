@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>未经检查就被赋予类型的解析结果 in TypeScript · Glyph</title>
+    <title>TypeScript 中的未经检查就被赋予类型的解析结果 · Glyph</title>
     <meta name="description" content="把请求体读进一个有类型的变量。 类型标注是一个没人兑现的承诺。JSON.parse 返回 any，所以任何结构的请求体都能通过。" />
     <link rel="canonical" href="https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/" />
-    <meta property="og:title" content="未经检查就被赋予类型的解析结果 in TypeScript" />
+    <meta property="og:title" content="TypeScript 中的未经检查就被赋予类型的解析结果" />
     <meta property="og:description" content="把请求体读进一个有类型的变量。 类型标注是一个没人兑现的承诺。JSON.parse 返回 any，所以任何结构的请求体都能通过。" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"未经检查就被赋予类型的解析结果 in TypeScript","item":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/#article","headline":"未经检查就被赋予类型的解析结果 in TypeScript","description":"把请求体读进一个有类型的变量。 类型标注是一个没人兑现的承诺。JSON.parse 返回 any，所以任何结构的请求体都能通过。","url":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript 中的未经检查就被赋予类型的解析结果","item":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/#article","headline":"TypeScript 中的未经检查就被赋予类型的解析结果","description":"把请求体读进一个有类型的变量。 类型标注是一个没人兑现的承诺。JSON.parse 返回 any，所以任何结构的请求体都能通过。","url":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/unvalidated-boundary-read/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/unvalidated-boundary-read/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/unvalidated-boundary-read/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/zh-cn/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 9 of 37</span></p>
+      <p class="c-crumb"><a href="/zh-cn/catches/">全部 TypeScript 案例</a><span class="sep" aria-hidden="true">/</span><span>第 9 个，共 37 个</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">9</span>
@@ -443,15 +443,15 @@
           </div>
         </div>
         <p class="c-note">写 <code>const user: User</code> 看起来像检查，其实不是。在 Glyph 中，<code>json.parse&lt;User&gt;(body)</code> 会检查请求体，并返回一个可以 match 的 <code>Result</code>。</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">不同意这个评分？</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=unvalidated-boundary-read">在 Playground 中打开</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">不同意这个评分？</a></p>
       </article>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/catches/as-unknown-as/">
-          <span class="dir">Previous case</span>
+          <span class="dir">上一个案例</span>
           <span class="t"><code>as unknown as T</code></span>
         </a>
         <a href="/zh-cn/catches/lost-update-across-await/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">下一个案例</span>
           <span class="t">跨 <code>await</code> 的丢失更新</span>
         </a>
       </nav>

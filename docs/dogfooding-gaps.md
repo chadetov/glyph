@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-400 entries, 305 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+401 entries, 306 are fixed, 8 are partly fixed, 11 are decided or resolved, and
 76 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -13216,7 +13216,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.147 by record 113's probes s1 to s7, t1 to t6, u1,
   u4 and v2 (`/private/tmp/claude-501/linus113/`).*
 
-- **G373. A `Record<string, V>` stands where a `Record<K, V>` with a narrower
+- **G373. [FIXED] A `Record<string, V>` stands where a `Record<K, V>` with a narrower
   key is declared.** `fn f(r: Record<string, int>) -> Record<Tier, int> {
   return r }`, a `record.set` or `record.remove` result, and record 113's t5
   pass both the checker and `tsc`, so a value the 0.1.148 validator refuses
@@ -13236,6 +13236,34 @@ and is the owner's to confirm.
   record 119's probe `c/t` wrote a stray key into a caller's
   `Record<Tier, int>` through `let wide: Record<string, int> = r`. The
   `int`/`number` half waits for G395 (G373b).
+
+  Fixed in 0.1.153 (D30). A `Record`'s key is compared by key domain and
+  invariantly, wherever two maps meet, written out or through a `type`
+  whose body is one (`type Scores = Record<Tier, int>`). `string` and its
+  second names are one domain, two literal unions are one when their
+  member sets are equal, a refined type is its own declaration, a type
+  parameter is itself inside its body, and an undecidable key refuses
+  nothing. `fn narrow(r: Record<string, int>) -> Record<Tier, int>` is
+  E0204 with the note ``a `Record`'s key type must match exactly. A
+  `Record` keyed by `string` may hold keys outside `Tier` or lack one of
+  its members, and a `Record` keyed by `Tier` passed on as one keyed by
+  `string` can be written a key outside `Tier`.`` and the help ``Check it
+  with `is Record<Tier, int>` or `json.parse<Record<Tier, int>>`.``, the
+  names computed from the program. The widening, the refined key both
+  ways, `Tier` into `Tier3` and a type parameter widened to `string` are
+  refused the same way, by every spelling of the key (local, an alias of
+  an alias, imported by name, namespaced, a sibling's second name).
+  `std/record` takes the record's own key: `record.set(r, "zzz", 9)` is
+  E0211 at the key, `record.set(r, "a", 9)` returns a `Record<Tier, int>`,
+  `keys` is `Array<Tier>` (an `Array<string>` for a numeric key), and
+  `record.remove` on a literal-union key is E0211 at the record. The
+  runtime `record.ts` is generic in `K`, with the key argument
+  `NoInfer<K>` so `tsc` binds `K` from the record as Glyph does. Record
+  119's probes `c/t` (narrow, widen, `set`, `remove`, `Slug`) and `c/w`
+  (the generic key) exit 0 on 0.1.151 and 1 on this build, with five and
+  one refusals. `c/u`, the `int`/`number` pair, still exits 0, and the
+  pair is still printed as `number`: that is G395, planned as G373b.
+  E0224 is unchanged and waits for G372.
 
 - **G374. A generic record whose `Record` field is keyed by a type parameter
   cannot be checked.** With `type Idx<K: string> = { m: Record<K, int>, }`,
@@ -13625,3 +13653,20 @@ and is the owner's to confirm.
   *Reproduced against 0.1.151 (the release build, carrying the 0.1.152
   branch's G391 change) by record 125's probe `r124/q`: R1 and R2 each print
   ``[{"path":["t"],"message":"field `t` is null, and its type does not accept null","code":"type"}]``.*
+
+- **G401. `record.keys`'s published signature says `Array<K>` for every key.**
+  Since 0.1.153 the checker types `record.keys(r)` as `Array<K>` for a
+  string-like key and `Array<string>` for an `int` or `number` key, and the
+  runtime declares the same thing as `Array<K extends string ? K : string>`.
+  The stdlib row can only say `fn(Record<K, V>) -> Array<K>`: the numeric
+  case is applied at the call site, so `glyph llms --json` publishes a
+  signature that is wrong for a numeric key, and
+  `scripts/check_stdlib_signatures.py` records the row against the runtime
+  as a known mismatch in both directions. Give the row a way to say it (a
+  key-shaped return, or a second row), or render the signature with the
+  case spelled out. Not breaking. Found while landing G373.
+
+  *Reproduced against 0.1.151 (the 0.1.153 branch build, which still reports
+  0.1.151 before the version bump): `check_stdlib_signatures.py`
+  reports `std/record::keys` in both directions, `Type 'K' is not assignable
+  to type 'K extends string ? K : string'`.*

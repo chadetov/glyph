@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="メイン">
         <div class="nav-brand">
           <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.152</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.153</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -639,7 +639,7 @@ pub component App() {
           <h3 class="h">予定</h3>
           <p>Glyph の型検査はフックの戻り値を型付けしないので、数値の state に対する <code>set_count("x")</code> は、エディタでの Glyph のエラーではなく、ビルド中の <code>tsc</code> のエラーになります。<code>std/dom</code> にできるのはページの読み取りとタイトルの設定までです。React がレンダリングする DOM は React のものなので、要素のセッターやイベントリスナーはありません。エフェクトは <code>fn() -&gt; void { ... }</code> と書く必要があります。ラムダは最後の式を返すので、React がそれをクリーンアップとして呼んでしまうからです。インラインで書いた props の型は、これらのメッセージでは今も <code>record</code> と表示されます。名前付きの型ならその名前が表示されます。UI を TypeScript で書いた既存の Vite アプリに Glyph の出力を組み込む方法は、<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">デプロイのガイド</a>にあります。</p>
         </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.152 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/codegen/">

@@ -37,4 +37,4 @@ A TypeScript-shaped syntax, errors with a stable code that name the fix, and `ll
 
 A success-rate benchmark (tries-to-correct against TypeScript on the same task) to turn “it held up” into a measured number.
 
-Code examples on this page are checked against Glyph 0.1.152 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed 19 Nov 2026.

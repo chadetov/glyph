@@ -116,4 +116,4 @@ Eleven read tools over MCP, each with a `glyph query` verb. `glyph_symbol` answe
 
 No tool here writes: no rename, no applied edit. The write side is `glyph fix` on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field. A stdlib export the compiler models neither a declaration nor a signature for answers `kind: null` with the reason: `std/result::all` and `std/io::println` are typed in TypeScript the compiler stages and no Glyph pass reads. `glyph_diagnostics` skips three checks `glyph check` makes: `tsc`, the `E0104` check for an import naming no module, which needs the build's view of `node_modules`, and `E0400` for a failing `@example`, which needs the emitted project run. It names all three in `not_run` instead of answering as though it had.
 
-Code examples on this page are checked against Glyph 0.1.152 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed 19 Nov 2026.

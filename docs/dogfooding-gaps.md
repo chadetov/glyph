@@ -12371,6 +12371,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.147 (the release build): `return <p>abc` then the
   function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text``.*
 
+  *Reproduced against 0.1.153 (the release build): `return <p>abc` then the function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text``.*
+
 - **G332. An entity in a JSX attribute string is emitted as written.**
   `<p title="&amp;">x</p>` compiles and emits the five characters `&amp;`,
   where TSX decodes it to `&`. Record 93 refused entities in JSX text for this
@@ -12406,6 +12408,8 @@ and is the owner's to confirm.
   ``[E0002] Error: parse: expected JSX element or attribute name, found
   LAngle``.*
 
+  *Reproduced against 0.1.153 (the release build): `<p>a < b</p>` is ``[E0002] Error: parse: expected JSX element or attribute name, found LAngle``.*
+
 - **G334. An invisible character outside a string is named raw, and a BOM is
   refused.** `unexpected character` prints a no-break space, U+200B, a lone
   combining mark or a byte-order mark between backticks as it is, so the
@@ -12425,6 +12429,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.147 (the release build): a BOM at offset 0 is
   ``[E0001] Error: parse: lex error: unexpected character`` with the BOM
   printed raw.*
+
+  *Reproduced against 0.1.153 (the release build): a BOM at offset 0 is ``[E0001] Error: parse: lex error: unexpected character`` with the BOM printed raw, and a no-break space inside `let a = 1` is the same E0001 with the character printed raw.*
 
 - **G335. [FIXED] `glyph fmt` writes a statement starting with `(` after one that
   absorbs it as a call.** In a block, `let a = 1` followed by `load()?` and an
@@ -12889,6 +12895,8 @@ and is the owner's to confirm.
   `k/`: `glyph fix` prints "removed 2 unused import(s)" and then declines the
   E0200, listing `Paid` and `Cancelled`.*
 
+  *Reproduced against 0.1.153 (the release build) by record 106's probe `k/`: `glyph fix` prints "removed 2 unused import(s)", rewrites the import to `{ OrderStatus, Pending }`, and then declines the E0200, listing `Paid` and `Cancelled`.*
+
 - **G360. `glyph fix`'s decline names a catch-all that comes before the head
   as the arm a rename would take from.** With `other => 2` before `Loadd(n)
   => n`, the decline says "its arm `other` handles `Loaded` now, so renaming
@@ -12923,6 +12931,8 @@ and is the owner's to confirm.
   `g/h1_lcvariant`: `glyph fix` applies the E0220 rename and still declines
   the E0200 it read before the rename.*
 
+  *Reproduced against 0.1.153 (the release build) by record 106's probe `g/h1_lcvariant`: `glyph fix` applies the E0220 rename to `Loaded` and still declines the E0200 listing `Loaded`, though `check` on the fixed file reports no diagnostics.*
+
 - **G356. A namespaced `is m.T` or `is m.G<X>` pattern has no lowering.** With
   `import w`, `match v { is w.P => … }` is E0300 ("an `is` check on an
   unsupported type"), while `w.P.is(v)` compiles and `import w { P }` with
@@ -12946,6 +12956,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.147 (the release build): `is w.P` with `import w`
   and a checkable `w.P` is ``[E0300] Error: emit: TS emission for an `is`
   check on an unsupported type is not implemented``.*
+
+  *Reproduced against 0.1.153 (the release build) by record 107's probes `a`, `b` and `d`: `is w.P` with `import w` and a checkable `w.P` is ``[E0300] Error: emit: TS emission for an `is` check on an unsupported type is not implemented yet``, while `w.P.is(v)` in the same module checks clean.*
 
 - **G357. [FIXED] `is Record<K, V>` and `is Array<X>` narrow on the container's shape
   alone.** `match v { is Record<string, int> => … }` takes the arm for `{ a:
@@ -13216,6 +13228,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.147 by record 113's probes s1 to s7, t1 to t6, u1,
   u4 and v2 (`/private/tmp/claude-501/linus113/`).*
 
+  *Reproduced against 0.1.153 (the release build): under `check --no-tsc`, `let r: Record<Tier, int> = { a: 1, }`, `{}`, `{ a: 1, b: 2, c: 3, }`, `mut r["zzz"] = 3`, `Record<bool, int>`, `Record<Doc, int>` and `Record<Nullable<Tier>, int>` exit 0, while full `check` refuses them through `tsc` (TS2741, TS7053, TS2344). Record 113's s6, t5 and t6 are now refused by G373's key rules and no longer show this gap.*
+
 - **G373. [FIXED] A `Record<string, V>` stands where a `Record<K, V>` with a narrower
   key is declared.** `fn f(r: Record<string, int>) -> Record<Tier, int> {
   return r }`, a `record.set` or `record.remove` result, and record 113's t5
@@ -13277,6 +13291,8 @@ and is the owner's to confirm.
   beside its checker. Not breaking. Found by record 113.
 
   *Reproduced against 0.1.147 by record 113's probe v3.*
+
+  *Reproduced against 0.1.153 (the release build) by record 113's probe v3: `json.parse<Idx<Tier>>` with `type Idx<K: string> = { m: Record<K, int>, }` is ``[E0304] Error: emit: cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`, and a key type given by a type parameter is not checked at run time``.*
 
 - **G375. A `Record` check reports the whole map, not the entry.** A bad
   value, a stray key and a missing member all report ``field `m` must be

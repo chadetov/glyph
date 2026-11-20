@@ -44,7 +44,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.152</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.153</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -406,7 +406,7 @@
       </div>
 
       <nav class="month-nav" aria-label="Releases by month">
-        <a href="/versions/2026-11/" class="active" aria-current="true"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 25 releases · 21 breaking</span></a>
+        <a href="/versions/2026-11/" class="active" aria-current="true"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 26 releases · 22 breaking</span></a>
         <a href="/versions/2026-10/"><span class="mn-month">Oct 2026</span> <span class="mn-count">· 3 releases · 3 breaking</span></a>
         <a href="/versions/2026-09/"><span class="mn-month">Sep 2026</span> <span class="mn-count">· 25 releases · 10 breaking</span></a>
         <a href="/versions/2026-08/"><span class="mn-month">Aug 2026</span> <span class="mn-count">· 66 releases · 1 breaking</span></a>
@@ -415,17 +415,48 @@
       </nav>
       <div class="month-head">
         <h2 class="month-title">November 2026</h2>
-        <p class="month-sum">25 releases, 21 breaking, 0.1.128 to 0.1.152</p>
+        <p class="month-sum">26 releases, 22 breaking, 0.1.128 to 0.1.153</p>
         <label class="breaking-only" hidden><input type="checkbox" /> Breaking only</label>
       </div>
 
       <div class="releases">
+        <article class="release" id="0.1.153" data-hl="fm" data-breaking>
+          <div class="rel-head">
+            <h3 class="rel-ver">0.1.153</h3>
+            <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <time class="rel-date" datetime="2026-11-21">21 Nov 2026</time>
+            <a class="rel-link" href="/versions/2026-11/#0.1.153" data-url="https://glyphlang.io/versions/2026-11/#0.1.153" aria-label="Link to 0.1.153">Link</a>
+          </div>
+          <details class="rel-details" open>
+            <summary><span class="rel-headline">A Record's key type has to match exactly</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <p>A <code>Record&lt;string, int&gt;</code> used to stand wherever a <code>Record&lt;Tier, int&gt;</code> was declared, with <code>type Tier = "a" | "b"</code>, and the reverse worked too. Either direction lets a key outside <code>Tier</code> into a map whose type promises none: <code>fn narrow(r: Record&lt;string, int&gt;) -&gt; Record&lt;Tier, int&gt; { return r }</code> compiled, and so did passing a <code>Record&lt;Tier, int&gt;</code> on as a <code>Record&lt;string, int&gt;</code> and writing <code>"zzz"</code> into it. Since 0.1.148 the run-time check refuses such a map, so the type and the check disagreed.</p>
+
+            <p>Now a <code>Record</code>'s key type has to match. <code>string</code> matches <code>string</code> and its aliases, two string-literal unions match when they have the same members, a refined type matches only itself, and a type parameter only itself. The value type stays covariant, as for <code>Array</code>. The error explains the direction it found:</p>
+
+<pre class="wraps"><code><span class="e">[E0204]</span> type mismatch: expected <span class="q">`Record&lt;Tier, number&gt;`</span>, found <span class="q">`Record&lt;string, number&gt;`</span>
+<span class="f">Help:</span> Check it with <span class="q">`is Record&lt;Tier, int&gt;`</span> or <span class="q">`json.parse&lt;Record&lt;Tier, int&gt;&gt;`</span>.
+<span class="f">Note:</span> a <span class="q">`Record`</span>'s key type must match exactly. A <span class="q">`Record`</span> keyed by <span class="q">`string`</span> may hold keys outside <span class="q">`Tier`</span> or lack one of its members, and a <span class="q">`Record`</span> keyed by <span class="q">`Tier`</span> <span class="o">passed</span> on as one keyed by <span class="q">`string`</span> can be written a key outside <span class="q">`Tier`</span>.</code></pre>
+
+            <p>The headline still prints <code>int</code> as <code>number</code>; giving <code>int</code> its own identity in the checker is the next piece of this work (G373b).</p>
+
+            <h4>std/record keeps the key</h4>
+            <p><code>record.get</code>, <code>set</code> and <code>remove</code> take a key of the record's own key type, <code>set</code> and <code>remove</code> return a <code>Record</code> with the same key, and <code>keys</code> returns <code>Array&lt;Tier&gt;</code> for a <code>Tier</code> key. <code>record.remove</code> on a map keyed by a string-literal union is refused, because removing a member leaves a map of no declared type; the help suggests a record with optional fields instead, and that suggestion compiles.</p>
+
+            <h4>Breaking</h4>
+            <p>Each of these exits 0 under 0.1.152 and 1 here, under <code>check --no-tsc</code> and full <code>check</code>: <code>Record&lt;string, V&gt;</code> into <code>Record&lt;Tier, V&gt;</code> and back; the same against a refined string key; a generic key widened to <code>string</code>; an alias of a <code>Record&lt;Tier, V&gt;</code> passed on as <code>Record&lt;string, V&gt;</code>; <code>record.set</code> or <code>record.get</code> with a key outside the record's key type; and <code>record.remove</code> on a literal-union key. No tracked <code>.glyph</code> file and none of the 32 example apps changed exit code. A map keyed by <code>int</code> against one keyed by <code>number</code> is still accepted until G373b.</p>
+
+            <h4>Fixed</h4>
+            <p><code>std/http</code> now compiles on TypeScript 5.x in a project without <code>@types/node</code>. Its query and form parsing iterated a <code>URLSearchParams</code> in a way that needs <code>dom.iterable</code> before TypeScript 6. A new release gate compiles the whole runtime on TypeScript 4.9, with and without <code>@types/node</code>, so this kind of break is caught before it ships.</p>
+          </div>
+          </details>
+        </article>
         <article class="release" id="0.1.152" data-hl="fm" data-breaking>
           <div class="rel-head">
             <h3 class="rel-ver">0.1.152</h3>
-            <span class="rel-tag latest">Latest</span>
             <span class="rel-tag breaking">Breaking</span>
-            <time class="rel-date" datetime="2026-11-20">20 Nov 2026</time>
+            <time class="rel-date" datetime="2026-11-21">21 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.152" data-url="https://glyphlang.io/versions/2026-11/#0.1.152" aria-label="Link to 0.1.152">Link</a>
           </div>
           <details class="rel-details" open>
@@ -490,7 +521,7 @@
             <time class="rel-date" datetime="2026-11-20">20 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.150" data-url="https://glyphlang.io/versions/2026-11/#0.1.150" aria-label="Link to 0.1.150">Link</a>
           </div>
-          <details class="rel-details" open>
+          <details class="rel-details">
             <summary><span class="rel-headline">A check refuses a value nested more than 1000 deep instead of crashing</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
             <p>A generated check walked its input with plain recursion, so a value nested a few thousand levels deep threw <code>RangeError: Maximum call stack size exceeded</code> out of <code>is</code>, <code>T.parse</code> or <code>json.parse&lt;T&gt;</code>, taking the process down with it. A request body is enough to do that.</p>
@@ -1203,7 +1234,7 @@
     <script>
       (function () {
         // An anchor for a release that lives on another month's page goes there.
-        var where = {"0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
+        var where = {"0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
         var id = decodeURIComponent(location.hash.slice(1));
         if (id && !document.getElementById(id) && where[id]) {
           location.replace("/versions/" + where[id] + "/" + location.search + "#" + id);

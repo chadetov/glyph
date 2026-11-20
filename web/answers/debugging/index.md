@@ -61,4 +61,4 @@ Readable committed TS, a v3 `.ts.map` per file, `tsc` errors remapped onto `.gly
 
 Remapping the `glyph run` crash stack itself (so the local run loop shows `.glyph` frames too), a decision on whether a sibling module's error should make `glyph run` exit non-zero, and richer editor debugging via the LSP.
 
-Code examples on this page are checked against Glyph 0.1.152 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed 19 Nov 2026.

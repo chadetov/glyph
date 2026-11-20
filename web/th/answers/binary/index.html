@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="เมนูหลัก">
         <div class="nav-brand">
           <a href="/th/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="บันทึกประจำรุ่น">v0.1.152</a>
+          <a href="/versions/" class="nav-version" title="บันทึกประจำรุ่น">v0.1.153</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -585,7 +585,7 @@ buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD
           <h3 class="h">กำลังคมขึ้น</h3>
           <p>ยังไม่มี codec สำหรับจำนวนเต็ม การอ่าน <code>u32</code> แบบ big-endian จาก header จึงเป็นการคำนวณที่คุณเขียนเอง: เกิน 32 บิต shift ก็เป็นเครื่องมือที่ผิดอยู่แล้ว จึงใช้การหาร hex literal ยัง parse ไม่ได้ ตาราง CRC32 256 ช่องที่เขียนเป็นเลขฐานสิบจึงอ่านยาก <code>std/websocket</code> ยัง decode frame ไบนารีเป็นข้อความ UTF-8 type ที่มันต้องการมีแล้ว และ frame คือสิ่งถัดไป และฟังก์ชัน string-to-string รุ่นเก่าหกตัวของ <code>std/encoding</code> ยังเงียบเมื่อเจอ input ที่ผิดรูป จึงควรใช้ codec ของ <code>std/bytes</code> กับทุกอย่างที่ต้องถูกต้อง codec เขียนด้วย TypeScript แทนที่จะส่งต่อให้ <code>Buffer</code> ของ node ซึ่งเป็นสิ่งที่ทำให้มันรันใน Web Worker ได้ และช้ากว่าของแพลตฟอร์ม 1 ถึง 35 เท่าบนข้อมูลหนึ่งเมกะไบต์ การเข้ารหัส key หรือ token ไม่มีต้นทุนที่วัดได้ไม่ว่าทางไหน คู่มือเรื่องประสิทธิภาพมีตารางถ้าคุณย้ายข้อมูลหลายสิบเมกะไบต์</p>
         </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.152 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
       </div>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/long-running/">

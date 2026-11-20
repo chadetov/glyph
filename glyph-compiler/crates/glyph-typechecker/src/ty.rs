@@ -175,6 +175,13 @@ pub struct ImportedTypeDecl {
     /// where that matters to the relation: an `@open` record where a
     /// `Record<string, V>` map is declared holds values no validator checked.
     pub open: bool,
+    /// Whether the declaration carries a `where` refinement (D39). Its `body`
+    /// is the base type the refinement narrows, so without this a refined
+    /// `pub type Slug = string where ...` reads as `pub type Id = string`
+    /// across a file edge. A `Record`'s key compares a refined type as its
+    /// own key domain (G373), and that has to hold through every import
+    /// spelling.
+    pub refined: bool,
 }
 
 /// Which declaration a union's variant set came from: the module it is
@@ -437,6 +444,7 @@ pub fn builtin_string_literal_union_decl(module: &str, name: &str) -> Option<Imp
         generics: Vec::new(),
         body: Ty::StringLiteralUnion(values.iter().map(|v| v.to_string()).collect()),
         open: false,
+        refined: false,
     })
 }
 

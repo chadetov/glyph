@@ -1313,9 +1313,21 @@ pub(crate) fn fs_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Opti
 /// that, a `for i, hop in p` reads an `Unknown` iterable and silently takes
 /// the `Object.entries` lowering, binding `i` to the string `"0"`.
 ///
-/// The key is always `string`, so it is not a parameter. Every parameter
-/// slot that is not `V` stays `Unknown`, per this table's rule, so modeling
-/// `std/record` introduces no new argument-type diagnostic.
+/// The key travels as `Ty::Param("K")` (G373). A `Record`'s key is invariant,
+/// so a signature keyed by `string` would refuse every `Record<Tier, V>`
+/// passed to it. The call site binds `K` from the record argument alone,
+/// through aliases (`bind_record_key`), so a key argument is checked against
+/// the record's key and never widens it: `record.set(r, "zzz", 9)` on a
+/// `Record<Tier, int>` is refused at `"zzz"`, and `record.set(r, "a", 9)`
+/// returns a `Record<Tier, int>`.
+///
+/// - `has` asks about any `string`, so its key stays `string`.
+/// - `keys` answers `Array<K>`, except for a numeric key, where it answers
+///   `Array<string>` because `Object.keys` yields strings; the call site makes
+///   that substitution.
+/// - `remove` on a key with a fixed member set is refused at the call site
+///   (E0211): removing a member leaves a value that is no `Record<K, V>`.
+/// - `set`'s stored value stays `unknown`, see the note on that row.
 pub(crate) fn record_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
     if module_key != "std/record" {
         return None;
@@ -1324,7 +1336,11 @@ pub(crate) fn record_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
         name: Ident::from("V"),
         owner: ParamOwner::Unresolved,
     };
-    let rec = record_ty(prelude, Ty::Prim(Primitive::String), value())?;
+    let key_ty = || Ty::Param {
+        name: Ident::from("K"),
+        owner: ParamOwner::Unresolved,
+    };
+    let rec = record_ty(prelude, key_ty(), value())?;
     let unknown = || FnParam {
         name: None,
         owned: false,
@@ -1346,20 +1362,14 @@ pub(crate) fn record_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
         ty,
         optional: true,
     };
-    // Every key in this module is a `string`: `Record<string, V>` is the only
-    // map shape Glyph has. It was `unknown` in all six, so `record.get(m, 1)`
-    // was silent under `glyph check --no-tsc`.
-    let key = || required(Ty::Prim(Primitive::String));
+    let key = || required(key_ty());
     let (params, ret): (Vec<FnParam>, Ty) = match field {
         "get" => (vec![of(rec), key()], option_ty(prelude, value())?),
         "has" => (
-            vec![of(rec), key()],
+            vec![of(rec), required(Ty::Prim(Primitive::String))],
             Ty::Prim(Primitive::Bool),
         ),
-        "keys" => (
-            vec![of(rec)],
-            array_ty(prelude, Ty::Prim(Primitive::String))?,
-        ),
+        "keys" => (vec![of(rec)], array_ty(prelude, key_ty())?),
         "values" => (vec![of(rec)], array_ty(prelude, value())?),
         // The stored value stays `unknown`. `runtime/std/record.ts` declares
         // it `V`, the same `V` as the map's, and a second slot for a name the

@@ -502,7 +502,7 @@ pub fn from_type_error(
         "typecheck",
         format!("{err}"),
         err.help().as_deref(),
-        err.note(),
+        err.note().as_deref(),
         // A checker that knew the declaration when it raised the error says
         // so on the error itself (`decl_name`), because some diagnostics are
         // reported at a span no declaration contains: an annotation is parsed
@@ -633,6 +633,7 @@ fn type_subject(err: &TypeError) -> Option<String> {
         | T::MatchArmProducesNoValue { .. }
         | T::DestructureUnproven { .. }
         | T::PatternNotRecord { .. }
+        | T::RecordRemoveFiniteKey { .. }
         | T::CaseBind { .. } => None,
     }
 }

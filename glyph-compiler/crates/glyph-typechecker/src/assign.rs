@@ -83,6 +83,9 @@ struct EnclosingReturn {
     /// Whether the callable was declared `async` (for the `await` rule,
     /// E0222). A `component` is never async.
     is_async: bool,
+    /// The return type as written, when there is one, for a diagnostic that
+    /// suggests code in the program's own spelling.
+    written: Option<TypeExpr>,
 }
 
 /// Source of per-declaration `Ty` answers. The Assigner queries the resolver
@@ -358,6 +361,8 @@ pub fn assign_types_with_relations(
             stdlib_values: HashMap::new(),
             local_stdlib_values: HashMap::new(),
             null_chains: NullChains::default(),
+            key_generics: Vec::new(),
+            local_type_exprs: HashMap::new(),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
@@ -455,6 +460,8 @@ pub fn assignability(
         stdlib_values: HashMap::new(),
         local_stdlib_values: HashMap::new(),
         null_chains: NullChains::default(),
+        key_generics: Vec::new(),
+        local_type_exprs: HashMap::new(),
     };
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
@@ -504,6 +511,8 @@ pub fn declared_record_fields(
         stdlib_values: HashMap::new(),
         local_stdlib_values: HashMap::new(),
         null_chains: NullChains::default(),
+        key_generics: Vec::new(),
+        local_type_exprs: HashMap::new(),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
@@ -1255,6 +1264,19 @@ struct Assigner<'a> {
     /// The optional chains over a `Nullable` whose value has not yet been
     /// handled (G304, D45). See `NullChains`.
     null_chains: NullChains,
+    /// The type parameters of the `fn` or `component` whose body is being
+    /// walked. A `Record` keyed by one of them is keyed by exactly that
+    /// parameter (G373): `Record<K, V>` is not a `Record<string, V>` inside
+    /// the body. A parameter that is not one of these, such as a stdlib
+    /// signature's own `K` left unbound at a call, is not decidable and
+    /// stays permissive.
+    key_generics: Vec<Ident>,
+    /// The written annotation of each parameter and annotated `let`, keyed
+    /// the way `local_tys` is. A diagnostic that suggests code reads the
+    /// type the program spelled from here: the checker's `Ty` has erased
+    /// `int` to `number`, and a suggestion built from it would not say what
+    /// the author wrote.
+    local_type_exprs: HashMap<u32, TypeExpr>,
 }
 
 /// The optional chains over a `Nullable` (G304, D45), tracked by span.
@@ -1554,6 +1576,7 @@ impl Assigner<'_> {
                 let er = self.enclosing_return(f.return_ty.as_ref(), f.is_async);
                 let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
+                self.key_generics = f.generics.iter().map(|g| g.name.clone()).collect();
                 self.bind_param_tys(&f.params);
                 self.walk_block(&f.body);
                 // Inside the callable's own return context: the check reads
@@ -1562,6 +1585,7 @@ impl Assigner<'_> {
                 if wants_value {
                     self.check_value_match_tail(&f.body);
                 }
+                self.key_generics.clear();
                 self.return_stack.pop();
             }
             Decl::Component(c) => {
@@ -1600,11 +1624,13 @@ impl Assigner<'_> {
                 };
                 let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
+                self.key_generics = c.generics.iter().map(|g| g.name.clone()).collect();
                 self.bind_param_tys(&c.params);
                 self.walk_block(&c.body);
                 if wants_value {
                     self.check_value_match_tail(&c.body);
                 }
+                self.key_generics.clear();
                 self.return_stack.pop();
             }
             Decl::Const(c) => {
@@ -1620,7 +1646,8 @@ impl Assigner<'_> {
                 if let Some(te) = &c.ty {
                     let expected = self.lowerer.lower(te);
                     let found = self.tm.get(c.value.span()).clone();
-                    if let Some(r) = self.value_refusal(&c.value, &found, &expected) {
+                    if let Some(mut r) = self.value_refusal(&c.value, &found, &expected) {
+                        self.spell_declared(&mut r, Some(te));
                         let accepted = self.accepted_values(&r.expected);
                         self.errors.push(TypeError::TypeMismatch {
                             expected: ty_display(&r.expected),
@@ -1628,6 +1655,7 @@ impl Assigner<'_> {
                             accepted,
                             missing_fields: r.missing_fields,
                             no_common_field: r.no_common_field,
+                            record_key: r.record_key,
                             span: r.span,
                         });
                     }
@@ -1743,6 +1771,7 @@ impl Assigner<'_> {
         for p in params {
             let ty = self.lowerer.lower(&p.ty);
             self.local_tys.insert(p.span.start, ty);
+            self.local_type_exprs.insert(p.span.start, p.ty.clone());
         }
     }
 
@@ -1810,7 +1839,8 @@ impl Assigner<'_> {
                 // value, not the annotation.
                 if l.ty.is_some() {
                     let found = self.tm.get(l.value.span()).clone();
-                    if let Some(r) = self.value_refusal(&l.value, &found, &ty) {
+                    if let Some(mut r) = self.value_refusal(&l.value, &found, &ty) {
+                        self.spell_declared(&mut r, l.ty.as_ref());
                         let accepted = self.accepted_values(&r.expected);
                         self.errors.push(TypeError::TypeMismatch {
                             expected: ty_display(&r.expected),
@@ -1818,12 +1848,16 @@ impl Assigner<'_> {
                             accepted,
                             missing_fields: r.missing_fields,
                             no_common_field: r.no_common_field,
+                            record_key: r.record_key,
                             span: r.span,
                         });
                     }
                 }
                 if l.ty.is_some() || !ty.is_unknown() {
                     self.local_tys.insert(l.span.start, ty);
+                }
+                if let Some(te) = &l.ty {
+                    self.local_type_exprs.insert(l.span.start, te.clone());
                 }
                 if let Some(f) = self.stdlib_values.get(&l.value.span()).cloned() {
                     self.local_stdlib_values.insert(l.span.start, f);
@@ -2573,13 +2607,35 @@ impl Assigner<'_> {
                             }
                         }
                     }
+                    // G373. A `std/record` function's key is the record
+                    // argument's key and nothing else: bound from that argument
+                    // through aliases, so a key argument is checked against it
+                    // rather than widening it, and left undecided (refusing
+                    // nothing) when the record's type is not readable.
+                    let mut return_override: Option<Ty> = None;
+                    if let Some((key, field)) = self.stdlib_callee(callee) {
+                        if key == "std/record" {
+                            let k = self.record_arg_key(args.first());
+                            if field == "keys" && self.key_is_numeric(&k) {
+                                return_override = Some(self.array_ty(Ty::Prim(Primitive::String)));
+                            }
+                            if field == "remove" {
+                                if let Some(e) = self.record_remove_refusal(args.first(), &k) {
+                                    self.errors.push(e);
+                                }
+                            }
+                            subst.insert(Ident::from("K"), k);
+                        }
+                    }
                     // Check each argument against its parameter type (with any
                     // inferred generics substituted in). Reports only a provable
                     // mismatch; an undecidable argument or parameter is silent.
-                    for (p, a) in params.iter().zip(args.iter()) {
+                    for (i, (p, a)) in params.iter().zip(args.iter()).enumerate() {
                         let expected = substitute_type_params(&p.ty, &subst);
                         let found = self.tm.get(a.span()).clone();
-                        if let Some(r) = self.value_refusal(a, &found, &expected) {
+                        if let Some(mut r) = self.value_refusal(a, &found, &expected) {
+                            let written = self.callee_param_written(callee, i);
+                            self.spell_declared(&mut r, written);
                             let accepted = self.accepted_values(&r.expected);
                             self.errors.push(TypeError::ArgumentTypeMismatch {
                                 expected: ty_display(&r.expected),
@@ -2588,11 +2644,12 @@ impl Assigner<'_> {
                                 missing_fields: r.missing_fields,
                                 no_common_field: r.no_common_field,
                                 children_between_tags: false,
+                                record_key: r.record_key,
                                 span: r.span,
                             });
                         }
                     }
-                    substitute_type_params(return_ty, &subst)
+                    return_override.unwrap_or_else(|| substitute_type_params(return_ty, &subst))
                 } else {
                     Ty::Unknown
                 };
@@ -3165,6 +3222,7 @@ impl Assigner<'_> {
                     missing_fields: r.missing_fields,
                     no_common_field: r.no_common_field,
                     children_between_tags: false,
+                    record_key: r.record_key,
                     span: r.span,
                 });
             }
@@ -3213,6 +3271,7 @@ impl Assigner<'_> {
             missing_fields,
             no_common_field: false,
             children_between_tags,
+            record_key: None,
             span: j.name_span,
         });
     }
@@ -4017,6 +4076,114 @@ impl Assigner<'_> {
     /// list is read off the value's `Ty::Fn` instead (`type_params`, where a
     /// declaration, a lambda and a written function type all carry it); and a
     /// name this compile cannot see.
+    /// The key of the `Record` a `std/record` call's first argument is,
+    /// through aliases, or `Unknown` when the argument is missing or its type
+    /// is not a readable `Record`.
+    fn record_arg_key(&self, arg: Option<&Expr>) -> Ty {
+        let Some(a) = arg else { return Ty::Unknown };
+        match self.container_through_aliases(self.tm.get(a.span()), 0) {
+            Some(("Record", args)) => args.first().cloned().unwrap_or(Ty::Unknown),
+            _ => Ty::Unknown,
+        }
+    }
+
+    /// Whether a `Record` key is numeric: `number` (with `int` and `bigint`,
+    /// which the checker does not tell apart), or a refinement of one.
+    /// `Object.keys` yields strings for such a map, so `record.keys` answers
+    /// `Array<string>` for it rather than `Array<K>`.
+    fn key_is_numeric(&self, k: &Ty) -> bool {
+        match self.key_domain(k) {
+            KeyDomain::Number => true,
+            KeyDomain::Refined(_) => match self.resolve_alias_chain(k) {
+                end @ Ty::Named { .. } => self
+                    .direct_type_decl(&end)
+                    .is_some_and(|td| self.key_domain(&self.lowerer.lower(&td.body)) == KeyDomain::Number),
+                Ty::Imported { module, name } => {
+                    imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())
+                        .is_some_and(|(_, _, d)| matches!(d.body, Ty::Prim(Primitive::Number)))
+                }
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+
+    /// E0211 for `record.remove` on a `Record` whose key has a fixed member
+    /// set (G373), reported at the record argument. Removing a member leaves a
+    /// value that holds no value for it, which is not a `Record<K, V>` under
+    /// the validator's totality rule, and no other declared type either.
+    fn record_remove_refusal(&self, arg: Option<&Expr>, k: &Ty) -> Option<TypeError> {
+        let a = arg?;
+        let KeyDomain::Literals(_) = self.key_domain(k) else {
+            return None;
+        };
+        let members = self.string_literal_union_values(k)?;
+        let written = self.written_type_of(a);
+        let written_args = written.and_then(|te| self.written_record_args(te));
+        let key = written_args
+            .map(|(k, _)| type_expr_source(k))
+            .unwrap_or_else(|| ty_display(k));
+        // The value type as written, else as displayed unless the display
+        // shows a `number` that may be an erased `int`. A suggestion built
+        // from an erased type would accept values the declaration refuses.
+        let value = match written_args {
+            Some((_, v)) => Some(type_expr_source(v)),
+            None => match self.container_through_aliases(self.tm.get(a.span()), 0) {
+                Some(("Record", args)) => args
+                    .get(1)
+                    .filter(|v| ty_is_decidable(v))
+                    .map(ty_display)
+                    .filter(|v| !v.contains("number") && !v.contains('?')),
+                _ => None,
+            },
+        };
+        let is_field_name = |m: &str| {
+            let mut cs = m.chars();
+            cs.next().is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+                && cs.all(|c| c.is_ascii_alphanumeric() || c == '_')
+        };
+        let partial = value.filter(|_| members.iter().all(|m| is_field_name(m))).map(|v| {
+            let fields = members
+                .iter()
+                .map(|m| format!("{m}?: {v}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{{ {fields} }}")
+        });
+        Some(TypeError::RecordRemoveFiniteKey {
+            key,
+            record: written.map(type_expr_source),
+            partial,
+            span: a.span(),
+        })
+    }
+
+    /// The type the `i`th parameter of a module-local, non-generic `fn` or
+    /// `component` is written with, when `callee` names one. A generic one
+    /// answers `None`: its written parameter names a type parameter the call
+    /// has substituted, so the written form is not the type the argument was
+    /// compared against.
+    fn callee_param_written(&self, callee: &Expr, i: usize) -> Option<&TypeExpr> {
+        let Expr::Ident { span, .. } = callee else { return None };
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(*span)? else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(id)?;
+        let (SymbolKind::Function { decl_idx } | SymbolKind::Component { decl_idx }) = sym.kind
+        else {
+            return None;
+        };
+        let (generics, params) = match self.module.items.get(decl_idx as usize)? {
+            Decl::Fn(fd) => (&fd.generics, &fd.params),
+            Decl::Component(cd) => (&cd.generics, &cd.params),
+            _ => return None,
+        };
+        if !generics.is_empty() {
+            return None;
+        }
+        params.get(i).map(|p| &p.ty)
+    }
+
     fn callee_generics(&self, callee: &Expr) -> Option<Vec<Ident>> {
         let (span, field) = match callee {
             Expr::Member {
@@ -4109,12 +4276,17 @@ impl Assigner<'_> {
         } else {
             ReturnClass::Unknown
         };
-        EnclosingReturn { class, ty, is_async }
+        EnclosingReturn { class, ty, is_async, written: None }
     }
 
     fn enclosing_return(&self, return_ty: Option<&TypeExpr>, is_async: bool) -> EnclosingReturn {
         let Some(te) = return_ty else {
-            return EnclosingReturn { class: ReturnClass::Unknown, ty: Ty::Unknown, is_async };
+            return EnclosingReturn {
+                class: ReturnClass::Unknown,
+                ty: Ty::Unknown,
+                is_async,
+                written: None,
+            };
         };
         let ty = self.lowerer.lower(te);
         let class = if self.type_expr_is_result(te) {
@@ -4128,7 +4300,12 @@ impl Assigner<'_> {
         } else {
             ReturnClass::Unknown
         };
-        EnclosingReturn { class, ty, is_async }
+        EnclosingReturn {
+            class,
+            ty,
+            is_async,
+            written: Some(te.clone()),
+        }
     }
 
     /// True if `te` names the `Result` type, applied (`Result<T, E>`) or
@@ -4270,11 +4447,14 @@ impl Assigner<'_> {
     /// so it never fires on a type it can't decide — including every
     /// `Unknown`, generic, named, or structural type.
     fn check_return_type(&mut self, value: &Expr) {
-        let Some(expected) = self.return_stack.last().map(|e| e.ty.clone()) else {
+        let Some((expected, written)) =
+            self.return_stack.last().map(|e| (e.ty.clone(), e.written.clone()))
+        else {
             return;
         };
         let found = self.tm.get(value.span()).clone();
-        if let Some(r) = self.value_refusal(value, &found, &expected) {
+        if let Some(mut r) = self.value_refusal(value, &found, &expected) {
+            self.spell_declared(&mut r, written.as_ref());
             let accepted = self.accepted_values(&r.expected);
             self.errors.push(TypeError::TypeMismatch {
                 expected: ty_display(&r.expected),
@@ -4282,6 +4462,7 @@ impl Assigner<'_> {
                 accepted,
                 missing_fields: r.missing_fields,
                 no_common_field: r.no_common_field,
+                record_key: r.record_key,
                 span: r.span,
             });
         }
@@ -6535,9 +6716,15 @@ impl Assigner<'_> {
             return Some(inner);
         }
         if self.assign_incompatible(found, expected) {
-            let mut r = self.refusal(expected, self.found_display(found, expected), value.span());
+            let shown_found = self.named_params(found);
+            let mut r = self.refusal(
+                &self.named_params(expected),
+                self.found_display(&shown_found, expected),
+                value.span(),
+            );
             r.missing_fields = self.missing_required_fields(found, expected);
             r.no_common_field = self.shares_no_field_with_weak_record(found, expected);
+            r.record_key = self.record_key_mismatch(value, found, expected);
             return Some(r);
         }
         // The walk records `Ty::Unknown` for an object literal, so the type
@@ -6549,12 +6736,151 @@ impl Assigner<'_> {
         None
     }
 
+    /// The facts of a refusal made by the `Record` key rule (G373): both
+    /// types are maps and their keys are different key domains. `None` for
+    /// every other refusal, including a map refused for its value type alone.
+    ///
+    /// The keys are spelled as the program writes them where the checker holds
+    /// the annotation (a parameter or an annotated `let`), because the `Ty`
+    /// has erased `int` to `number`. The declared side's spelling is filled by
+    /// the caller, which holds the declared annotation (`spell_declared`).
+    fn record_key_mismatch(
+        &self,
+        value: &Expr,
+        found: &Ty,
+        expected: &Ty,
+    ) -> Option<Box<crate::RecordKeyMismatch>> {
+        let (fk, ek) = self.map_keys(found, expected)?;
+        if !self.record_keys_differ(&fk, &ek) {
+            return None;
+        }
+        let kind = |d: KeyDomain| match d {
+            KeyDomain::String => Some(crate::KeyKind::String),
+            KeyDomain::Number => Some(crate::KeyKind::Number),
+            KeyDomain::Literals(_) => Some(crate::KeyKind::Literals),
+            KeyDomain::Refined(_) => Some(crate::KeyKind::Refined),
+            KeyDomain::Param(_) => Some(crate::KeyKind::Param),
+            KeyDomain::Undecided => None,
+        };
+        let found_kind = kind(self.key_domain(&fk))?;
+        let expected_kind = kind(self.key_domain(&ek))?;
+        let found_key = self
+            .written_type_of(value)
+            .and_then(|te| self.written_record_args(te))
+            .map(|(k, _)| type_expr_source(k))
+            .unwrap_or_else(|| ty_display(&fk));
+        let (mut extra, mut missing) = (Vec::new(), Vec::new());
+        if let (Some(f), Some(e)) = (
+            self.string_literal_union_values(&fk),
+            self.string_literal_union_values(&ek),
+        ) {
+            extra = f.iter().filter(|v| !e.contains(v)).cloned().collect();
+            missing = e.iter().filter(|v| !f.contains(v)).cloned().collect();
+        }
+        // An `is` arm or `json.parse` can check a closed key, and only when no
+        // type parameter is in the way. The display stands in for the written
+        // annotation until the caller supplies it, except where it shows a
+        // `number`, which may be an `int` the checker erased: a check built
+        // from it would accept values the declaration refuses.
+        let checkable = matches!(
+            expected_kind,
+            crate::KeyKind::Literals | crate::KeyKind::Refined
+        ) && !ty_has_param(expected);
+        let shown = ty_display(expected);
+        let declared = (checkable && !shown.contains("number")).then_some(shown);
+        Some(Box::new(crate::RecordKeyMismatch {
+            found_key,
+            expected_key: ty_display(&ek),
+            found_kind,
+            expected_kind,
+            extra,
+            missing,
+            declared,
+            checkable,
+            declared_with_found_key: None,
+        }))
+    }
+
+    /// Fill a `Record` key refusal's declared side from the annotation the
+    /// site holds: the declared key as written, the declared type for an `is`
+    /// check, and the declared `Record` rewritten with the value's key.
+    fn spell_declared(&self, r: &mut Refusal, written: Option<&TypeExpr>) {
+        let (Some(k), Some(te)) = (r.record_key.as_mut(), written) else {
+            return;
+        };
+        if k.checkable {
+            k.declared = Some(type_expr_source(te));
+        }
+        if let Some((key, value)) = self.written_record_args(te) {
+            k.expected_key = type_expr_source(key);
+            k.declared_with_found_key =
+                Some(format!("Record<{}, {}>", k.found_key, type_expr_source(value)));
+        }
+    }
+
+    /// The annotation the program wrote for the binding `e` names, when `e` is
+    /// a name for a parameter or an annotated `let`.
+    fn written_type_of(&self, e: &Expr) -> Option<&TypeExpr> {
+        let Expr::Ident { span, .. } = e else { return None };
+        let ResolvedRef::Local(def) = self.resolved.resolutions.get(*span)? else {
+            return None;
+        };
+        self.local_type_exprs.get(&def)
+    }
+
+    /// The key and value a written `Record<K, V>` names, when `te` is the
+    /// prelude `Record` applied to two arguments.
+    fn written_record_args<'t>(&self, te: &'t TypeExpr) -> Option<(&'t TypeExpr, &'t TypeExpr)> {
+        let TypeExpr::Generic { base, args, .. } = te else {
+            return None;
+        };
+        let TypeExpr::Path { span, .. } = base.as_ref() else {
+            return None;
+        };
+        let Some(ResolvedRef::Prelude(id)) = self.resolved.resolutions.get(*span) else {
+            return None;
+        };
+        if self.lowerer.prelude.lookup("Record") != Some(id) {
+            return None;
+        }
+        match args.as_slice() {
+            [k, v] => Some((k, v)),
+            _ => None,
+        }
+    }
+
+    /// `ty` with each type parameter of the body being walked written as the
+    /// name the program gave it, for display only: `Record<K, number>`, where
+    /// the shared display prints a parameter as `?`. A parameter of anything
+    /// else (a stdlib signature's own `T`, left unbound) keeps the `?`, since
+    /// its name is not one the program wrote.
+    fn named_params(&self, ty: &Ty) -> Ty {
+        if self.key_generics.is_empty() || !ty_has_param(ty) {
+            return ty.clone();
+        }
+        let subst: HashMap<Ident, Ty> = self
+            .key_generics
+            .iter()
+            .map(|g| {
+                (
+                    g.clone(),
+                    Ty::Named {
+                        symbol: SymbolRef(u32::MAX),
+                        path: vec![g.clone()],
+                    },
+                )
+            })
+            .collect();
+        substitute_type_params(ty, &subst)
+    }
+
     fn refusal(&self, expected: &Ty, found: String, span: Span) -> Refusal {
         Refusal {
             expected: expected.clone(),
             found,
             missing_fields: Vec::new(),
             no_common_field: false,
+            record_key: None,
             span,
         }
     }
@@ -6823,16 +7149,11 @@ impl Assigner<'_> {
     /// and `return xs` against an `Array<Mode>` is `TS2322` under `tsc` and
     /// `E0204` here.
     ///
-    /// The one position that still declines is the key argument of a
-    /// `Record`, where TypeScript's index signature accepts a `string` key
-    /// against a literal-union key in both directions. See
-    /// `Position::RecordKey`.
-    fn string_literal_union_verdict(
-        &self,
-        found: &Ty,
-        expected: &Ty,
-        position: Position,
-    ) -> Option<bool> {
+    /// The key argument of a `Record` never reaches here: a key is compared
+    /// by key domain, invariantly, in `record_keys_differ` (G373), and
+    /// `assign_incompatible_at` answers `Position::RecordKey` there before any
+    /// rule below it runs.
+    fn string_literal_union_verdict(&self, found: &Ty, expected: &Ty) -> Option<bool> {
         let f = self.string_literal_union_values(found);
         let e = self.string_literal_union_values(expected);
         match (f, e) {
@@ -6850,14 +7171,119 @@ impl Assigner<'_> {
             .then_some(true),
             (None, Some(_)) => {
                 if matches!(found, Ty::Prim(Primitive::String)) {
-                    // Refused everywhere but a `Record`'s key. See the doc
-                    // comment above.
-                    return (position != Position::RecordKey).then_some(true);
+                    return Some(true);
                 }
                 self.assign_incompatible(found, &Ty::Prim(Primitive::String))
                     .then_some(true)
             }
             (None, None) => None,
+        }
+    }
+
+    /// The keys of two `Record` maps, when both `found` and `expected` are
+    /// one: written out, or reached through aliases (`type Scores =
+    /// Record<Tier, int>`, local or a sibling's). `None` when either side is
+    /// anything else.
+    fn map_keys(&self, found: &Ty, expected: &Ty) -> Option<(Ty, Ty)> {
+        let may_be_map = |t: &Ty| matches!(t, Ty::App { .. } | Ty::Named { .. } | Ty::Imported { .. });
+        if !may_be_map(found) || !may_be_map(expected) {
+            return None;
+        }
+        let Some(("Record", ea)) = self.container_through_aliases(expected, 0) else {
+            return None;
+        };
+        let Some(("Record", fa)) = self.container_through_aliases(found, 0) else {
+            return None;
+        };
+        Some((fa.first()?.clone(), ea.first()?.clone()))
+    }
+
+    /// Whether two `Record` keys are decidably different key domains (G373).
+    ///
+    /// A `Record`'s key is invariant: `Record<K1, V1>` stands where
+    /// `Record<K2, V2>` is declared only when `K1` and `K2` are the same key
+    /// domain (`KeyDomain`). Assignability would not do, in either direction.
+    /// A `Record<string, V>` where a `Record<Tier, V>` is declared may hold
+    /// keys outside `Tier` and lack a member of it, which the type's
+    /// validator refuses. A `Record<Tier, V>` passed on as a `Record<string,
+    /// V>` is the same object under a wider name, and a write through that
+    /// name puts a stray key into the caller's `Record<Tier, V>`.
+    ///
+    /// A key the checker cannot decide (an `extern_ts` type, a package type
+    /// it does not read, a type parameter of something other than the body
+    /// being walked) answers `false`, as every undecidable pairing does.
+    fn record_keys_differ(&self, found: &Ty, expected: &Ty) -> bool {
+        match (self.key_domain(found), self.key_domain(expected)) {
+            (KeyDomain::Undecided, _) | (_, KeyDomain::Undecided) => false,
+            (f, e) => f != e,
+        }
+    }
+
+    /// The key domain `ty` is, read through every second name (D46) and
+    /// across a file edge.
+    fn key_domain(&self, ty: &Ty) -> KeyDomain {
+        self.key_domain_at(ty, 0)
+    }
+
+    fn key_domain_at(&self, ty: &Ty, depth: usize) -> KeyDomain {
+        // A chain of names can cross modules, where the per-module cycle
+        // guard cannot see it; the bound stops a cycle there.
+        if depth > 16 {
+            return KeyDomain::Undecided;
+        }
+        match ty {
+            Ty::Prim(Primitive::String) => KeyDomain::String,
+            // `int` and `bigint` are erased to `number` by the lowerer, so the
+            // three are one domain here until `int` has an identity of its own
+            // (G373b, G395).
+            Ty::Prim(Primitive::Number) => KeyDomain::Number,
+            Ty::StringLiteralUnion(values) => KeyDomain::Literals(values.iter().cloned().collect()),
+            Ty::Param { name, .. } if self.key_generics.contains(name) => KeyDomain::Param(name.clone()),
+            Ty::Named { .. } => {
+                let end = self.resolve_alias_chain(ty);
+                if !matches!(end, Ty::Named { .. }) {
+                    return self.key_domain_at(&end, depth + 1);
+                }
+                let Some(td) = self.direct_type_decl(&end) else {
+                    return KeyDomain::Undecided;
+                };
+                if !td.generics.is_empty() {
+                    return KeyDomain::Undecided;
+                }
+                // D39: a refined type is its own domain, never its base and
+                // never another refinement over the same base.
+                if td.refinement.is_some() {
+                    return KeyDomain::Refined(format!("::{}", td.name));
+                }
+                match &td.body {
+                    TypeExpr::StringLiteralUnion { values, .. } => {
+                        KeyDomain::Literals(values.iter().cloned().collect())
+                    }
+                    // `type Id = string`: a name for a primitive, which
+                    // `resolve_alias_chain` does not follow, is the domain of
+                    // the primitive it names.
+                    TypeExpr::Path { .. } => self.key_domain_at(&self.lowerer.lower(&td.body), depth + 1),
+                    _ => KeyDomain::Undecided,
+                }
+            }
+            Ty::Imported { module, name } => {
+                let Some((module, name, decl)) =
+                    imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())
+                else {
+                    return KeyDomain::Undecided;
+                };
+                if !decl.generics.is_empty() {
+                    return KeyDomain::Undecided;
+                }
+                if decl.refined {
+                    return KeyDomain::Refined(format!("{module}::{name}"));
+                }
+                match &decl.body {
+                    Ty::Prim(_) | Ty::StringLiteralUnion(_) => self.key_domain_at(&decl.body, depth + 1),
+                    _ => KeyDomain::Undecided,
+                }
+            }
+            _ => KeyDomain::Undecided,
         }
     }
 
@@ -6867,15 +7293,29 @@ impl Assigner<'_> {
 
     /// `assign_incompatible`, plus where in a type the pairing sits.
     ///
-    /// One rule reads `position` and no other does: a bare `string` where a
-    /// string-literal union is declared, which is refused everywhere except
-    /// the key argument of a `Record`, where TypeScript's index signature
-    /// accepts it (see `Position::RecordKey` and
-    /// `string_literal_union_verdict`). Every other refusal the relation makes
-    /// is made at every depth, so a `number`, a `bool`, a record, a tagged
-    /// union and a literal outside the declared set are refused inside
-    /// `Array<Mode>` exactly as they are against `Mode`.
+    /// One position changes the rule: the key argument of a `Record`, which
+    /// is compared by key domain and invariantly (`record_keys_differ`,
+    /// G373) where every other position is compared by assignability. Every
+    /// other refusal the relation makes is made at every depth, so a
+    /// `number`, a `bool`, a record, a tagged union and a literal outside the
+    /// declared set are refused inside `Array<Mode>` exactly as they are
+    /// against `Mode`.
     fn assign_incompatible_at(&self, found: &Ty, expected: &Ty, position: Position) -> bool {
+        if position == Position::RecordKey {
+            return self.record_keys_differ(found, expected);
+        }
+        // G373. Two `Record` maps compare their keys invariantly, however
+        // either map is spelled: written out, or through a `type` whose body
+        // is one (`type Scores = Record<Tier, int>`), local or a sibling's.
+        // Two written applications are also caught by the argument walk
+        // below; the alias spelling reaches nothing else, so without this a
+        // `Scores` passed on as `Record<string, int>` would be the hole the
+        // written spelling closes.
+        if let Some((fk, ek)) = self.map_keys(found, expected) {
+            if self.record_keys_differ(&fk, &ek) {
+                return true;
+            }
+        }
         if let Some(members) = self.interface_member_fields(expected) {
             return match self.record_fields_of(found) {
                 // A value carries its members structurally, and they are
@@ -6925,8 +7365,9 @@ impl Assigner<'_> {
         if let (Ty::App { base: fb, args: fa }, Ty::App { base: eb, args: ea }) = (found, expected) {
             // The base is the constructor, not an argument, so it is asked
             // under `Ordinary`. So is every argument, with one exception: the
-            // key of a `Record` on both sides, which TypeScript compares
-            // through an index signature rather than by assignability.
+            // key of a `Record` on both sides, which is compared by key
+            // domain and invariantly (G373). The value stays covariant, the
+            // way an `Array`'s element is.
             let both_records = self.resolves_to_map(found) && self.resolves_to_map(expected);
             return fa.len() != ea.len()
                 || self.assign_incompatible_at(fb, eb, Position::Ordinary)
@@ -7006,7 +7447,7 @@ impl Assigner<'_> {
         // G230. A declared string-literal union refused nothing at all: a
         // `number`, a record and a tagged union all passed where `Mode` was
         // declared, on every surface that runs without tsc.
-        if let Some(verdict) = self.string_literal_union_verdict(&found, &expected, position) {
+        if let Some(verdict) = self.string_literal_union_verdict(&found, &expected) {
             return verdict;
         }
         // G232. A structural record where a *named* record is declared.
@@ -8128,11 +8569,40 @@ struct Refusal {
     missing_fields: Vec<String>,
     /// The refusal is the weak-type rule's (see `weak_record_disjoint`).
     no_common_field: bool,
+    /// Both types are `Record` maps whose keys differ in key domain (G373).
+    record_key: Option<Box<crate::RecordKeyMismatch>>,
     span: Span,
 }
 
-/// One rule turns on it (the `string` half of `string_literal_union_verdict`),
-/// and it exists rather than a `bool` so the two ends of the distinction are
+/// What a `Record`'s key can hold, for the invariance rule (G373, D30). Two
+/// keys are the same domain when they compare equal here.
+///
+/// - `string` and every second name of it (D46, `type Id = string`) are
+///   `String`.
+/// - A string-literal union is its member set, so two unions with the same
+///   members are one domain however they are spelled and in whatever order,
+///   and a single literal is a one-member set.
+/// - A refined type (D39) is its own domain, identified by its declaration:
+///   the module it is declared in and its name, reached through any chain of
+///   second names. It is never its base, and never another refinement.
+/// - A type parameter of the body being walked is equal only to itself. At a
+///   call site the comparison is made after inference, so the parameter has
+///   been replaced by what the call bound.
+/// - `number`, which includes `int` and `bigint` until `int` survives
+///   lowering (G373b).
+/// - Everything else is `Undecided`, and an undecided key refuses nothing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum KeyDomain {
+    String,
+    Number,
+    Literals(std::collections::BTreeSet<String>),
+    Refined(String),
+    Param(Ident),
+    Undecided,
+}
+
+/// One rule turns on it (a `Record`'s key is compared by key domain,
+/// `record_keys_differ`), and it exists rather than a `bool` so the two ends of the distinction are
 /// named at every call site.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Position {
@@ -8140,15 +8610,15 @@ enum Position {
     /// caller asked about, a generic argument, a record field, a payload.
     Ordinary,
     /// The key argument of a `Record<K, V>` against the key argument of
-    /// another `Record<K, V>`.
+    /// another `Record<K, V>`, which is compared by key domain, in both
+    /// directions (G373, D30). See `record_keys_differ`.
     ///
-    /// TypeScript writes `Record<string, V>` as an index signature, which
-    /// covers every key a `Record<Mode, V>` declares, so it accepts the
-    /// pairing in both directions; refusing it here would refuse a program
-    /// `tsc --strict` compiles. Established by running both compilers:
-    /// `Record<string, number>` into a `Record<Mode, number>` and back are
-    /// each clean under `tsc --strict`, while `Array<string>` into an
-    /// `Array<Mode>` is `TS2322`.
+    /// TypeScript writes `Record<string, V>` as an index signature and
+    /// accepts the pairing with a `Record<Mode, V>` both ways. Glyph does
+    /// not, for D49's reason: a `Record<Mode, V>` holds every `Mode` and no
+    /// other key, which is what its validator checks, and a `Record<string,
+    /// V>` standing in for one, or one passed on as a `Record<string, V>` and
+    /// written a stray key, would give the type two answers.
     RecordKey,
 }
 
@@ -8855,6 +9325,22 @@ fn weak_record_disjoint(found: &Ty, declared: &[RecordField]) -> bool {
         Ty::Record { fields } => {
             !fields.is_empty() && !fields.iter().any(|f| declared.iter().any(|d| d.name == f.name))
         }
+        _ => false,
+    }
+}
+
+/// Whether a type parameter appears anywhere in `ty`.
+fn ty_has_param(ty: &Ty) -> bool {
+    match ty {
+        Ty::Param { .. } => true,
+        Ty::App { base, args } => ty_has_param(base) || args.iter().any(ty_has_param),
+        Ty::Record { fields } => fields.iter().any(|f| ty_has_param(&f.ty)),
+        Ty::Fn { params, return_ty, .. } => {
+            params.iter().any(|p| ty_has_param(&p.ty)) || ty_has_param(return_ty)
+        }
+        Ty::Union { variants } => variants
+            .iter()
+            .any(|v| v.payload.as_ref().is_some_and(ty_has_param)),
         _ => false,
     }
 }
@@ -12978,6 +13464,7 @@ fn outer() -> string {
                         "real".to_string(),
                     ]),
                     open: false,
+                    refined: false,
                 })
             }
             fn module_exports_name(&self, module_path: &str, name: &str) -> Option<bool> {
@@ -13944,6 +14431,7 @@ fn main(r: PaymentResult) -> string {
                 generics: generics.into_iter().map(Ident::from).collect(),
                 body,
                 open: false,
+                refined: false,
             };
             let union = |names: &[&str]| Ty::Union {
                 variants: names
@@ -13985,6 +14473,7 @@ fn main(r: PaymentResult) -> string {
                 // `@open pub type Meta = { id: string }` in the sibling.
                 ("lib", "Meta") => Some(ImportedTypeDecl {
                     open: true,
+                    refined: false,
                     ..decl(
                         "Meta",
                         vec![],
@@ -15940,6 +16429,7 @@ component View(props: { s: Status }) -> Component {
                     ],
                 },
                 open: false,
+                refined: false,
             })
         }
     }
@@ -15982,6 +16472,8 @@ component View(props: { s: Status }) -> Component {
             stdlib_values: HashMap::new(),
             local_stdlib_values: HashMap::new(),
             null_chains: NullChains::default(),
+            key_generics: Vec::new(),
+            local_type_exprs: HashMap::new(),
         };
         f(&assigner)
     }
@@ -17316,6 +17808,7 @@ fn f(a: Answer) -> number {
                         }],
                     },
                     open: false,
+                    refined: false,
                 })
             }
         }
@@ -17840,6 +18333,7 @@ fn f(a: Answer) -> number {
                     generics: Vec::new(),
                     body: Ty::StringLiteralUnion(vec!["read".to_string(), "write".to_string()]),
                     open: false,
+                    refined: false,
                 })
             }
         }
@@ -18050,13 +18544,13 @@ fn f(a: Answer) -> number {
         assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
     }
 
-    /// The `Record` key. TypeScript writes `Record<string, V>` as an index
-    /// signature, which covers every key a `Record<Mode, V>` declares, so it
-    /// accepts the pairing in both directions; `Array<string>` against
-    /// `Array<Mode>` is `TS2322` in the same file. Established by running
-    /// both, which is why the carve-out is this narrow.
+    /// G373. A `Record`'s key is invariant. TypeScript writes `Record<string,
+    /// V>` as an index signature and accepts both directions; Glyph refuses
+    /// both, because a `Record<string, V>` standing for a `Record<Mode, V>`
+    /// may hold keys outside `Mode` and lack a member, and a `Record<Mode, V>`
+    /// passed on as a `Record<string, V>` can be written a stray key.
     #[test]
-    fn a_record_key_accepts_a_string_where_a_literal_union_is_declared() {
+    fn a_record_key_is_invariant_in_both_directions() {
         let errs = errors_of(&format!(
             "{MODE}\
              fn keys(r: Record<string, number>) -> Record<Mode, number> {{\n  return r\n}}\n\
@@ -18065,9 +18559,282 @@ fn f(a: Answer) -> number {
         ));
         assert_eq!(
             mismatch_found(&errs),
-            vec!["Array<string>"],
-            "only the array is refused: {errs:?}"
+            vec!["Record<string, number>", "Record<Mode, number>", "Array<string>"],
+            "both record directions and the array are refused: {errs:?}"
         );
+        assert!(errs.iter().all(|e| e.code() == "E0204"), "{errs:?}");
+    }
+
+    /// The `Record` key refusals of the record 119 probes, each with the code
+    /// its site reports: E0204 at a `return` or `let`, E0211 at an argument.
+    fn key_refusals(src: &str) -> Vec<(String, String, String)> {
+        errors_of(src)
+            .iter()
+            .filter(|e| matches!(e, TypeError::TypeMismatch { .. } | TypeError::ArgumentTypeMismatch { .. } | TypeError::RecordRemoveFiniteKey { .. }))
+            .map(|e| {
+                (
+                    e.code().to_string(),
+                    e.to_string(),
+                    e.note().map(|n| n.into_owned()).unwrap_or_default(),
+                )
+            })
+            .collect()
+    }
+
+    const TIERS: &str = "module m\nimport std/record\ntype Tier = \"a\" | \"b\"\ntype Tier3 = \"a\" | \"b\" | \"c\"\ntype Slug = string where value.length > 1\n";
+
+    #[test]
+    fn a_string_keyed_record_is_refused_where_a_literal_union_key_is_declared() {
+        let r = key_refusals(&format!(
+            "{TIERS}fn narrow(r: Record<string, int>) -> Record<Tier, int> {{\n  return r\n}}\n"
+        ));
+        assert_eq!(r.len(), 1, "{r:?}");
+        assert_eq!(r[0].0, "E0204");
+        assert_eq!(
+            r[0].2,
+            "a `Record`'s key type must match exactly. A `Record` keyed by `string` may hold keys outside `Tier` or lack one of its members, and a `Record` keyed by `Tier` passed on as one keyed by `string` can be written a key outside `Tier`."
+        );
+        let help = errors_of(&format!(
+            "{TIERS}fn narrow(r: Record<string, int>) -> Record<Tier, int> {{\n  return r\n}}\n"
+        ))[0]
+            .help()
+            .unwrap()
+            .into_owned();
+        assert_eq!(help, "Check it with `is Record<Tier, int>` or `json.parse<Record<Tier, int>>`.");
+    }
+
+    #[test]
+    fn a_literal_union_keyed_record_widened_to_string_is_refused_even_before_a_write() {
+        let src = format!(
+            "{TIERS}fn widen(r: Record<Tier, int>) -> void {{\n  let wide: Record<string, int> = r\n  mut wide[\"zzz\"] = 3\n  return void\n}}\n"
+        );
+        let errs = errors_of(&src);
+        let r = key_refusals(&src);
+        assert_eq!(r.len(), 1, "{r:?}");
+        assert_eq!(r[0].0, "E0204");
+        assert_eq!(
+            errs[0].help().unwrap(),
+            "Keep the key `Tier`: declare this position `Record<Tier, int>`, or make the function generic over its key (`<K: string>`) and key the `Record` by `K`."
+        );
+    }
+
+    #[test]
+    fn two_literal_union_keys_with_different_members_are_refused_both_ways() {
+        let src = format!(
+            "{TIERS}fn down(r: Record<Tier3, int>) -> Record<Tier, int> {{\n  return r\n}}\n\
+             fn up(r: Record<Tier, int>) -> Record<Tier3, int> {{\n  return r\n}}\n"
+        );
+        let r = key_refusals(&src);
+        assert_eq!(r.len(), 2, "{r:?}");
+        assert!(r[0].2.contains("`Tier3` has `\"c\"`, which `Tier` does not"), "{r:?}");
+        assert!(r[1].2.contains("`Tier3` has `\"c\"`, which `Tier` does not"), "{r:?}");
+        let help = errors_of(&src)[1].help().unwrap().into_owned();
+        assert_eq!(
+            help,
+            "Give the value a key for every member of `Tier3`, or declare this position `Record<Tier, int>`."
+        );
+    }
+
+    #[test]
+    fn a_refined_key_is_its_own_domain_in_both_directions() {
+        let r = key_refusals(&format!(
+            "{TIERS}type Slug2 = string where value.length > 1\n\
+             fn to_slug(r: Record<string, int>) -> Record<Slug, int> {{\n  return r\n}}\n\
+             fn from_slug(r: Record<Slug, int>) -> Record<string, int> {{\n  return r\n}}\n\
+             fn other(r: Record<Slug, int>) -> Record<Slug2, int> {{\n  return r\n}}\n"
+        ));
+        assert_eq!(r.len(), 3, "{r:?}");
+        assert!(r[0].2.contains("may hold keys outside `Slug`, and"), "{r:?}");
+        assert!(!r[0].2.contains("lack one of its members"), "{r:?}");
+        assert!(r[2].2.contains("`Slug` and `Slug2` are different key types"), "{r:?}");
+    }
+
+    #[test]
+    fn a_type_parameter_key_is_equal_only_to_itself_in_its_body() {
+        let src = format!(
+            "{TIERS}fn generic_keys<K: string>(r: Record<K, int>) -> Record<string, int> {{\n  return r\n}}\n\
+             fn same<K: string>(r: Record<K, int>) -> Record<K, int> {{\n  return r\n}}\n"
+        );
+        let errs = errors_of(&src);
+        let r = key_refusals(&src);
+        assert_eq!(r.len(), 1, "{r:?}");
+        assert!(r[0].1.contains("found `Record<K, number>`"), "{r:?}");
+        assert_eq!(errs[0].help().unwrap(), "Keep the key `K`: declare this position `Record<K, int>`.");
+    }
+
+    #[test]
+    fn a_call_compares_a_generic_key_after_inference() {
+        let r = key_refusals(&format!(
+            "{TIERS}fn g<K: string>(r: Record<K, int>) -> int {{\n  return 0\n}}\n\
+             fn call(r: Record<Tier, int>) -> int {{\n  return g(r)\n}}\n"
+        ));
+        assert!(r.is_empty(), "{r:?}");
+    }
+
+    #[test]
+    fn a_key_argument_is_refused_at_the_argument() {
+        let r = key_refusals(&format!(
+            "{TIERS}fn via_set(r: Record<Tier, int>) -> Record<Tier, int> {{\n  return record.set(r, \"zzz\", 9)\n}}\n\
+             fn via_get(r: Record<Tier, int>, k: string) -> Option<int> {{\n  return record.get(r, k)\n}}\n"
+        ));
+        assert_eq!(r.len(), 2, "{r:?}");
+        assert!(r.iter().all(|x| x.0 == "E0211"), "{r:?}");
+        assert!(r[0].1.contains("expected `Tier`, found `\"zzz\"`"), "{r:?}");
+        assert!(r[1].1.contains("expected `Tier`, found `string`"), "{r:?}");
+    }
+
+    #[test]
+    fn record_remove_on_a_finite_key_is_e0211_naming_the_program_s_types() {
+        let src = format!(
+            "{TIERS}type One = \"only\"\n\
+             fn via_remove(r: Record<Tier, int>) -> Record<Tier, int> {{\n  return record.remove(r, \"a\")\n}}\n\
+             fn one(r: Record<One, string>) -> Record<One, string> {{\n  return record.remove(r, \"only\")\n}}\n\
+             fn open(r: Record<string, int>) -> Record<string, int> {{\n  return record.remove(r, \"a\")\n}}\n"
+        );
+        let errs: Vec<TypeError> = errors_of(&src)
+            .into_iter()
+            .filter(|e| matches!(e, TypeError::RecordRemoveFiniteKey { .. }))
+            .collect();
+        assert_eq!(errs.len(), 2, "{errs:?}");
+        assert_eq!(errs[0].code(), "E0211");
+        assert_eq!(
+            errs[0].to_string(),
+            "record.remove takes a Record whose key type has no fixed member set; `Record<Tier, int>` holds every `Tier`, so removing one leaves a value of no declared type"
+        );
+        assert_eq!(
+            errs[0].help().unwrap(),
+            "For a partial map over `Tier`, declare a record with optional fields (`{ a?: int, b?: int }`); to replace a value, use `record.set`."
+        );
+        assert!(errs[1].to_string().contains("`Record<One, string>` holds every `One`"), "{errs:?}");
+        assert!(errs[1].help().unwrap().contains("`{ only?: string }`"), "{errs:?}");
+    }
+
+    /// Every record `record.remove`'s help suggests compiles: the suggestion
+    /// is pasted into a declaration and checked. A suggestion that cannot
+    /// compile fails here whatever new key shape produces it.
+    #[test]
+    fn record_remove_s_suggested_record_compiles() {
+        let src = format!(
+            "{TIERS}type Kw = \"type\" | \"match\" | \"x_1\"\n\
+             fn a(r: Record<Tier, int>) -> Record<Tier, int> {{\n  return record.remove(r, \"a\")\n}}\n\
+             fn b(r: Record<Kw, Array<Tier>>) -> Record<Kw, Array<Tier>> {{\n  return record.remove(r, \"x_1\")\n}}\n\
+             fn c(r: Record<Tier, Option<string>>) -> Record<Tier, Option<string>> {{\n  return record.remove(r, \"b\")\n}}\n"
+        );
+        let helps: Vec<String> = errors_of(&src)
+            .iter()
+            .filter(|e| matches!(e, TypeError::RecordRemoveFiniteKey { .. }))
+            .map(|e| e.help().unwrap().into_owned())
+            .collect();
+        assert_eq!(helps.len(), 3, "{helps:?}");
+        for h in helps {
+            let start = h.find("(`").expect("a suggested record") + 2;
+            let end = h[start..].find("`)").unwrap() + start;
+            let probe = format!(
+                "module m\ntype Tier = \"a\" | \"b\"\ntype Probe = {}\nfn use_it(p: Probe) -> Probe {{\n  return p\n}}\n",
+                &h[start..end]
+            );
+            let m = glyph_parser::parse(&probe).unwrap_or_else(|e| panic!("`{probe}` parses: {e:?}"));
+            let syms = collect_module_symbols(&m).unwrap();
+            let prelude = build_prelude();
+            let (resolved, rerrs) = resolve_module(&m, syms, &prelude);
+            assert!(rerrs.is_empty(), "`{probe}` resolves: {rerrs:?}");
+            let (_tm, errs) = assign_types(&m, &resolved, &prelude);
+            assert!(errs.is_empty(), "`{probe}` checks clean: {errs:?}");
+        }
+    }
+
+    /// The help's record suggestion is offered only when it compiles: every
+    /// member has to be a field name. A member that is not one gets prose.
+    #[test]
+    fn record_remove_offers_no_record_whose_members_are_not_field_names() {
+        let src = format!(
+            "{TIERS}type Odd = \"a-b\" | \"c\"\n\
+             fn odd(r: Record<Odd, int>) -> Record<Odd, int> {{\n  return record.remove(r, \"c\")\n}}\n"
+        );
+        let e = errors_of(&src)
+            .into_iter()
+            .find(|e| matches!(e, TypeError::RecordRemoveFiniteKey { .. }))
+            .expect("refused");
+        assert_eq!(
+            e.help().unwrap(),
+            "For a partial map over `Odd`, declare a record with an optional field for each member; to replace a value, use `record.set`."
+        );
+    }
+
+    #[test]
+    fn the_same_key_domain_is_accepted_by_every_spelling() {
+        let r = key_refusals(&format!(
+            "{TIERS}type Alias = Tier\ntype AliasAlias = Alias\ntype Id = string\ntype Scores = Record<Tier, int>\n\
+             fn al(r: Record<Tier, int>) -> Record<AliasAlias, int> {{\n  return r\n}}\n\
+             fn inline(r: Record<Tier, int>) -> Record<\"b\" | \"a\", int> {{\n  return r\n}}\n\
+             fn ids(r: Record<string, int>) -> Record<Id, int> {{\n  return r\n}}\n\
+             fn scores(r: Record<Tier, int>) -> Scores {{\n  return r\n}}\n\
+             fn set_a(r: Record<Tier, int>) -> Record<Tier, int> {{\n  return record.set(r, \"a\", 9)\n}}\n\
+             fn ks(r: Record<Tier, int>) -> Array<Tier> {{\n  return record.keys(r)\n}}\n\
+             fn nks(r: Record<int, int>) -> Array<string> {{\n  return record.keys(r)\n}}\n\
+             fn has_any(r: Record<Tier, int>, k: string) -> bool {{\n  return record.has(r, k)\n}}\n\
+             fn get_a(r: Scores) -> Option<int> {{\n  return record.get(r, \"a\")\n}}\n\
+             fn remove_open(r: Record<string, int>) -> Record<string, int> {{\n  return record.remove(r, \"a\")\n}}\n\
+             fn tighten(r: Record<string, int>) -> Option<Record<Tier, int>> {{\n  return match r {{\n    is Record<Tier, int> => Some(r),\n    else => None,\n  }}\n}}\n\
+             fn lit() -> Record<Tier, int> {{\n  let r: Record<Tier, int> = {{ a: 1, b: 2, }}\n  return r\n}}\n"
+        ));
+        assert!(r.is_empty(), "{r:?}");
+    }
+
+    /// `record.keys` is `Array<K>` for a string-like key, so a literal-union
+    /// map's keys are not a `Array<string>` to the checker's eye only by
+    /// accident: they are refused where an `Array<Tier3>` is declared and the
+    /// numeric map's keys are refused where an `Array<int>` is.
+    #[test]
+    fn record_keys_follows_the_key() {
+        let r = key_refusals(&format!(
+            "{TIERS}fn nks(r: Record<int, int>) -> Array<int> {{\n  return record.keys(r)\n}}\n\
+             fn ks(r: Record<string, int>) -> Array<Tier> {{\n  return record.keys(r)\n}}\n"
+        ));
+        assert_eq!(r.len(), 2, "{r:?}");
+    }
+
+    /// G373b is a later release: `int` and `number` are one key domain until
+    /// `int` survives lowering, so neither direction is refused yet.
+    #[test]
+    fn an_int_and_a_number_key_are_not_refused_before_g373b() {
+        let r = key_refusals(
+            "module m\nfn a(r: Record<int, int>) -> Record<number, int> {\n  return r\n}\n\
+             fn b(r: Record<number, int>) -> Record<int, int> {\n  return r\n}\n",
+        );
+        assert!(r.is_empty(), "{r:?}");
+    }
+
+    /// An undecidable key stays permissive.
+    #[test]
+    fn an_extern_key_stays_permissive() {
+        let r = key_refusals(
+            "module m\ntype H = extern_ts(\"string\")\n\
+             fn a(r: Record<string, int>) -> Record<H, int> {\n  return r\n}\n",
+        );
+        assert!(r.is_empty(), "{r:?}");
+    }
+
+    /// The value stays covariant: G373 touches the key only.
+    #[test]
+    fn a_record_value_stays_covariant() {
+        let r = key_refusals(&format!(
+            "{TIERS}fn vals(r: Record<string, Tier>) -> Record<string, string> {{\n  return r\n}}\n"
+        ));
+        assert!(r.is_empty(), "{r:?}");
+    }
+
+    /// A refusal at an argument names the parameter's written type.
+    #[test]
+    fn an_argument_refusal_spells_the_parameter() {
+        let src = format!(
+            "{TIERS}fn takes(r: Record<Tier, int>) -> int {{\n  return 0\n}}\n\
+             fn call(r: Record<string, int>) -> int {{\n  return takes(r)\n}}\n"
+        );
+        let errs = errors_of(&src);
+        let e = errs.iter().find(|e| e.code() == "E0211").expect("refused");
+        assert_eq!(e.help().unwrap(), "Check it with `is Record<Tier, int>` or `json.parse<Record<Tier, int>>`.");
+        assert!(e.note().unwrap().contains("keyed by `string` may hold keys outside `Tier`"));
     }
 
     /// The review's `asym`, both halves in one program. Both are decided now
@@ -20385,6 +21152,7 @@ fn main(p: Point, m: Meta, s: Status) -> number {
                     generics: Vec::new(),
                     body: Ty::StringLiteralUnion(vec!["manual".to_string(), "auto".to_string()]),
                     open: false,
+                    refined: false,
                 })
             }
         }

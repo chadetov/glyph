@@ -79,6 +79,160 @@ impl Accepted {
 
 use std::borrow::Cow;
 pub use builtin_members::BuiltinReceiver;
+
+/// What a `Record` key is, for the note and help of a refusal made by the key
+/// invariance rule (G373). Mirrors the checker's key domains, without the
+/// identities.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyKind {
+    /// `string`, or a second name for it.
+    String,
+    /// `number`, `int` or `bigint`, which the checker does not tell apart yet.
+    Number,
+    /// A string-literal union, or a single literal.
+    Literals,
+    /// A refined type (D39).
+    Refined,
+    /// A type parameter of the enclosing declaration.
+    Param,
+}
+
+/// The facts a `Record`-against-`Record` refusal carries when the two keys are
+/// different key domains (G373), so its note and help are computed from the
+/// program rather than from example names.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecordKeyMismatch {
+    /// The value's key, as the program spells it where the checker can read
+    /// the annotation, else as the checker displays it.
+    pub found_key: String,
+    /// The declared key, spelled the same way.
+    pub expected_key: String,
+    pub found_kind: KeyKind,
+    pub expected_kind: KeyKind,
+    /// For two literal sets: the members the value's key has that the
+    /// declared key does not, in the value's order.
+    pub extra: Vec<String>,
+    /// For two literal sets: the members the declared key has that the
+    /// value's key does not, in the declared order.
+    pub missing: Vec<String>,
+    /// The declared type, written so an `is` arm or `json.parse` can check it,
+    /// when it can be checked and the checker knows how the program spells it.
+    pub declared: Option<String>,
+    /// Whether the declared type can be checked by an `is` arm or
+    /// `json.parse` at all: its key is closed and no type parameter is in it.
+    pub checkable: bool,
+    /// The declared `Record` with the value's key in place of its own, when the
+    /// declared type is written out as `Record<K, V>`: what the position
+    /// would say to keep the value's key.
+    pub declared_with_found_key: Option<String>,
+}
+
+impl RecordKeyMismatch {
+    /// One side is `string` (or a second name for it) and the other is not.
+    /// Answers the string side's key and the other side's, in that order.
+    fn open_and_closed(&self) -> Option<(&str, &str, KeyKind)> {
+        match (self.found_kind, self.expected_kind) {
+            (KeyKind::String, k @ (KeyKind::Literals | KeyKind::Refined | KeyKind::Param)) => {
+                Some((&self.found_key, &self.expected_key, k))
+            }
+            (k @ (KeyKind::Literals | KeyKind::Refined | KeyKind::Param), KeyKind::String) => {
+                Some((&self.expected_key, &self.found_key, k))
+            }
+            _ => None,
+        }
+    }
+
+    /// The note: why the two keys are refused, in the program's names.
+    pub fn note(&self) -> String {
+        let head = "a `Record`'s key type must match exactly.";
+        if let Some((open, closed, kind)) = self.open_and_closed() {
+            let lack = if kind == KeyKind::Literals {
+                " or lack one of its members"
+            } else {
+                ""
+            };
+            return format!(
+                "{head} A `Record` keyed by `{open}` may hold keys outside `{closed}`{lack}, and a `Record` keyed by `{closed}` passed on as one keyed by `{open}` can be written a key outside `{closed}`."
+            );
+        }
+        if self.found_kind == KeyKind::Literals && self.expected_kind == KeyKind::Literals {
+            let list = |xs: &[String]| {
+                xs.iter()
+                    .map(|v| format!("`{v:?}`"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            };
+            let mut parts = Vec::new();
+            if !self.extra.is_empty() {
+                parts.push(format!(
+                    "`{}` has {}, which `{}` does not",
+                    self.found_key,
+                    list(&self.extra),
+                    self.expected_key
+                ));
+            }
+            if !self.missing.is_empty() {
+                parts.push(format!(
+                    "`{}` has {}, which `{}` does not",
+                    self.expected_key,
+                    list(&self.missing),
+                    self.found_key
+                ));
+            }
+            return format!(
+                "{head} A `Record` keyed by a string-literal union holds a value for every member and no other key, and {}.",
+                parts.join(", and ")
+            );
+        }
+        format!(
+            "{head} `{}` and `{}` are different key types, so a `Record` keyed by one is not a `Record` keyed by the other.",
+            self.found_key, self.expected_key
+        )
+    }
+
+    /// The help, when the checker can say what to write. `None` falls back to
+    /// the mismatch's ordinary help.
+    pub fn help(&self) -> Option<String> {
+        let check = self
+            .declared
+            .as_ref()
+            .map(|d| format!("Check it with `is {d}` or `json.parse<{d}>`."));
+        match (self.found_kind, self.expected_kind) {
+            // Narrowing to a closed key: the value has to be checked.
+            (KeyKind::String, KeyKind::Literals | KeyKind::Refined) => check,
+            (KeyKind::String, KeyKind::Param) => Some(format!(
+                "A `Record` keyed by `{}` cannot be checked against the type parameter `{}`. Take the value as a `Record` keyed by `{}` where it comes in.",
+                self.found_key, self.expected_key, self.expected_key
+            )),
+            // Widening a closed key: keep it.
+            (k @ (KeyKind::Literals | KeyKind::Refined | KeyKind::Param), KeyKind::String) => {
+                let keep = match &self.declared_with_found_key {
+                    Some(d) => format!("Keep the key `{}`: declare this position `{d}`", self.found_key),
+                    None => format!(
+                        "Keep the key `{}`: declare this position as a `Record` keyed by `{}`",
+                        self.found_key, self.found_key
+                    ),
+                };
+                Some(if k == KeyKind::Param {
+                    format!("{keep}.")
+                } else {
+                    format!(
+                        "{keep}, or make the function generic over its key (`<K: string>`) and key the `Record` by `K`."
+                    )
+                })
+            }
+            (KeyKind::Literals, KeyKind::Literals) if self.missing.is_empty() => check,
+            (KeyKind::Literals, KeyKind::Literals) => Some(match &self.declared_with_found_key {
+                Some(d) => format!(
+                    "Give the value a key for every member of `{}`, or declare this position `{d}`.",
+                    self.expected_key
+                ),
+                None => format!("Give the value a key for every member of `{}`.", self.expected_key),
+            }),
+            _ => None,
+        }
+    }
+}
 use glyph_ast::Span;
 
 /// Render a `Ty` for human display (LSP hover, diagnostics). Structural where
@@ -352,6 +506,9 @@ pub enum TypeError {
         /// none of them, which is TypeScript's weak-type rule (TS2559) and the
         /// whole of the reason for the refusal. False everywhere else.
         no_common_field: bool,
+        /// Both types are `Record` maps whose keys are different key domains
+        /// (G373). `None` everywhere else.
+        record_key: Option<Box<RecordKeyMismatch>>,
         span: Span,
     },
 
@@ -506,6 +663,8 @@ pub enum TypeError {
         /// fill the field; the help says so and names the two spellings that
         /// compile. False everywhere else.
         children_between_tags: bool,
+        /// Same rule as `TypeMismatch::record_key`.
+        record_key: Option<Box<RecordKeyMismatch>>,
         span: Span,
     },
 
@@ -877,6 +1036,25 @@ pub enum TypeError {
     #[error("`{ty}` is not a record, so an object pattern cannot destructure it")]
     PatternNotRecord { ty: String, span: Span },
 
+    /// `record.remove` on a `Record` whose key is a string-literal union, by
+    /// any spelling (G373). A `Record<Tier, V>` holds a value for every `Tier`
+    /// (the validator's totality rule), so removing one leaves a value that is
+    /// no `Record<Tier, V>`, and no other declared type either. E0211, at the
+    /// record argument.
+    #[error("record.remove takes a Record whose key type has no fixed member set; {} holds every `{key}`, so removing one leaves a value of no declared type", remove_subject(.record, .key))]
+    RecordRemoveFiniteKey {
+        /// The key, as the program spells it where the checker can read it.
+        key: String,
+        /// The record argument's type as the program wrote it, when the
+        /// argument is a name whose annotation the checker holds.
+        record: Option<String>,
+        /// The record with an optional field per member that the help offers,
+        /// when every member is a field name and the value type is known as
+        /// written.
+        partial: Option<String>,
+        span: Span,
+    },
+
     /// `bind={x}` on a JSX `<case>` (D6). A `<case>` takes the pattern a
     /// `match` arm takes, so `bind` is not an attribute of it: the payload is
     /// bound by the pattern, `<case Loaded(items)>` for one value and
@@ -1156,6 +1334,16 @@ fn no_common_field_suffix(no_common_field: bool, expected: &str) -> String {
     }
 }
 
+/// The subject of E0211's `record.remove` sentence: the record's own type when
+/// the program wrote one the checker read, else the `Record` described by its
+/// key.
+fn remove_subject(record: &Option<String>, key: &str) -> String {
+    match record {
+        Some(r) => format!("`{r}`"),
+        None => format!("a `Record` keyed by `{key}`"),
+    }
+}
+
 fn missing_fields_suffix(missing: &[String]) -> String {
     match missing {
         [] => String::new(),
@@ -1222,6 +1410,7 @@ impl TypeError {
             TypeError::MatchArmProducesNoValue { span } => *span,
             TypeError::DestructureUnproven { span, .. } => *span,
             TypeError::PatternNotRecord { span, .. } => *span,
+            TypeError::RecordRemoveFiniteKey { span, .. } => *span,
             TypeError::CaseBind { span, .. } => *span,
         }
     }
@@ -1268,12 +1457,29 @@ impl TypeError {
             TypeError::MatchArmProducesNoValue { .. } => "E0223",
             TypeError::DestructureUnproven { .. } => "E0230",
             TypeError::PatternNotRecord { .. } => "E0204",
+            TypeError::RecordRemoveFiniteKey { .. } => "E0211",
             TypeError::CaseBind { .. } => "E0231",
         }
     }
 
     /// A one-line, actionable fix (the Elm-quality bar): what to change.
     pub fn help(&self) -> Option<Cow<'static, str>> {
+        if let TypeError::TypeMismatch { record_key: Some(k), .. }
+        | TypeError::ArgumentTypeMismatch { record_key: Some(k), .. } = self
+        {
+            if let Some(h) = k.help() {
+                return Some(Cow::Owned(h));
+            }
+        }
+        if let TypeError::RecordRemoveFiniteKey { key, partial, .. } = self {
+            let partial = match partial {
+                Some(p) => format!("declare a record with optional fields (`{p}`)"),
+                None => "declare a record with an optional field for each member".to_string(),
+            };
+            return Some(Cow::Owned(format!(
+                "For a partial map over `{key}`, {partial}; to replace a value, use `record.set`."
+            )));
+        }
         if let TypeError::CaseBind {
             variant,
             name,
@@ -1499,11 +1705,24 @@ impl TypeError {
             TypeError::UnseenMatchType { .. } => unreachable!("answered above with the module it names"),
             TypeError::UncalledBuiltinMethod { .. } => unreachable!("answered above with the method it names"),
             TypeError::OptionalChainOnTagged { .. } => unreachable!("answered above with the receiver it names"),
+            TypeError::RecordRemoveFiniteKey { .. } => unreachable!("answered above with the key it names"),
         }))
     }
 
     /// An optional background note (the "why").
-    pub fn note(&self) -> Option<&'static str> {
+    ///
+    /// Computed where the reason is in the program's own names: a `Record`
+    /// key refusal (G373) names both keys. Every other note is fixed text.
+    pub fn note(&self) -> Option<Cow<'static, str>> {
+        if let TypeError::TypeMismatch { record_key: Some(k), .. }
+        | TypeError::ArgumentTypeMismatch { record_key: Some(k), .. } = self
+        {
+            return Some(Cow::Owned(k.note()));
+        }
+        self.fixed_note().map(Cow::Borrowed)
+    }
+
+    fn fixed_note(&self) -> Option<&'static str> {
         match self {
             TypeError::NonExhaustiveMatch { .. } => Some(
                 "Tagged unions are sealed (D9): adding a variant forces every match to be updated. \

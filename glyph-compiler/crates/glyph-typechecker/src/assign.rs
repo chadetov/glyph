@@ -26,6 +26,7 @@ use glyph_resolver::{
 };
 
 mod sql_query;
+mod text;
 
 use crate::lower::Lowerer;
 use crate::ty::{
@@ -2269,6 +2270,13 @@ impl Assigner<'_> {
     // ----- expressions -----
 
     fn walk_expr(&mut self, e: &Expr) {
+        self.walk_expr_node(e);
+        // D51: each implicit conversion to text is judged once its operands
+        // are typed, by one rule, whichever of the three spellings it takes.
+        self.check_text_conversions(e);
+    }
+
+    fn walk_expr_node(&mut self, e: &Expr) {
         match e {
             Expr::Number { span, .. } => self.tm.insert(*span, Ty::Prim(Primitive::Number)),
             // A written string literal is typed as the one-literal union it

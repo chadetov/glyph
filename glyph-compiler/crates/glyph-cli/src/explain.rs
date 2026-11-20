@@ -1050,6 +1050,47 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `Option`, or on a `Result` naming anything but `map` or `map_err`, \
             is E0210.",
 
+        "E0237" => "E0237: a value with no text form is converted to text\n\n\
+            A value becomes text in three places, and one rule (D51) judges \
+            all three: a `${}` inside a `\"...\"` or `\"\"\"...\"\"\"` literal, \
+            an operand of `+` whose other operand is a string, and the \
+            argument of `string.from`. Only a string, a number or a bool has \
+            a text form. Anything else prints JavaScript's default: \
+            `[object Object]` for a record, `1,2` for an array, `null` for a \
+            null `Nullable`, the source code for a function. `tsc` accepts all \
+            three spellings.\n\n\
+            type User = { id: number, name: string }\n\
+            print(\"Welcome back, ${user}!\")   // prints: Welcome back, [object Object]!\n\n\
+            Text-like is an allowlist: `string`, a string-literal union, \
+            `number`, `int`, `bigint`, `bool`, any alias or `where` \
+            refinement of one of these, and `never`. Every other type is \
+            refused, so a type the checker learns later is refused until it \
+            is added. The help is computed from the value's type, in the \
+            program's own names:\n\n\
+            - a record: interpolate a field, the first one that is text-like, \
+            as in `${user.id}`\n\
+            - `Option<T>`: `let o_text = match o { Some(v) => \"${v}\", None => \"none\", }`, \
+            then `${o_text}`\n\
+            - `Result<T, E>`: `let r_text = match r { Ok(v) => \"${v}\", Err(e) => e, }`, \
+            then `${r_text}`\n\
+            - `Array<string>`: `let names_text = string.join(names, \", \")`; for \
+            numbers, `string.join(array.map(xs, fn(x: number) -> string { return \"${x}\" }), \", \")`\n\
+            - `Nullable<string>`: `let n_text = n ?? \"\"` (`?? 0` for a number)\n\
+            - `Decimal`: `${d.to_string()}`\n\
+            - a function with no parameters: call it, `${greet()}`\n\
+            - `unknown`: `let v_text = match v { is string => v, else => \"?\", }`\n\
+            - a type parameter `T`: a `T` could be a record, so take a \
+            `fn(T) -> string` that formats it\n\
+            - a tagged union: `match` on it with an arm per variant\n\
+            - `Bytes`: `bytes.to_text` or `bytes.to_hex`\n\n\
+            Every snippet binds the text with `let` before the `${}`, because \
+            a string literal cannot stand inside `${}` (D22).\n\n\
+            The message names the conversion as written: `${user}`, \
+            `+` joins a `User` to a string, or `string.from(user)`. A value \
+            the checker cannot type (an arithmetic result such as `${a + b}`, \
+            an npm value with no materialized types) is not judged; `tsc` \
+            and the run are what see it. JSX children are not covered: \
+            React's types check those.",
         "E0238" => "E0238: a pending value nothing waits for\n\n\
             Calling an async function starts it and gives back a pending value \
             (D51): the `Promise<T>` the emitted TypeScript holds. Only `await` \
@@ -2260,6 +2301,10 @@ pub static CODES: &[CodeEntry] = &[
         fix: "On an `Option`, `match` on it; on a `Result`, propagate first (`let n = f()?`, then `n.name`), or drop the `?` before a method (`r.map(f)`). A JSON `null` from the wire is a `Nullable<T>`",
     },
     CodeEntry {
+        code: "E0237",
+        phase: "typechecker",
+        meaning: "A value with no text form converted to text (G385, D51): in a `${}` (in `\"...\"` or `\"\"\"...\"\"\"`), as an operand of `+` beside a string, or as the argument of `string.from`. Text-like is an allowlist: `string`, a string-literal union, `number`, `int`, `bigint`, `bool`, an alias or `where` refinement of these, and `never`. A record, tagged union, `Option`, `Result`, `Array`, `Record` map, `Nullable`, `Decimal`, `Bytes`, function, `void`, `unknown` or type parameter is refused: these print `[object Object]`, `1,2`, `null`, `undefined` or source code. A value the checker cannot type is not judged. `tsc` accepts all three spellings",
+        fix: "Convert it yourself first: a field (`${user.name}`), a `match` bound with `let` for an `Option` or `Result`, `string.join` for an array, `??` for a `Nullable`, `to_string()` for a `Decimal`; the help computes the snippet",
         code: "E0238",
         phase: "typechecker",
         meaning: "A pending value nothing waits for (G384, D51): a call to a function the checker knows is async (an `async fn`, an async lambda, an `async fn(...)` value, a stdlib function modeled async) used anywhere but the operand of `await`, the return or tail value of an async function, a named `let` that is read, or an argument to a function with no Glyph signature. A statement (the last one in a block included), `let _ =`, a never-read `let`, a typed `let`, a `match` scrutinee, an operand, a `${}`, a field, an element, a member read, a Glyph-typed argument and a `return` or tail value of a sync function or lambda (with or without a written return type) are refused. A pending `Result` is E0238, not E0217. A call whose callee the checker types `Unknown` is not judged. `tsc` accepts most of these",
@@ -2651,6 +2696,21 @@ mod tests {
         let e0233 = explain("E0233").expect("E0233 is documented");
         assert!(!e0233.contains("not counted yet"), "{e0233}");
         assert!(e0233.contains("A `json.parse` value takes none"), "{e0233}");
+    }
+
+    /// E0237 has a wrong program in `tests/negative/` (an `Option` joined to a
+    /// string with `+`), so `--explain E0237 --json` shows one, with the help
+    /// computed for it, and the explanation carries the per-type table.
+    #[test]
+    fn e0237_has_a_counter_example_and_the_per_type_help() {
+        let answer = explain_json("E0237").expect("E0237 is documented");
+        for kind in ["a record", "`Option<T>`", "`Decimal`", "`unknown`", "a type parameter"] {
+            assert!(answer.explanation.contains(kind), "{kind}: {}", answer.explanation);
+        }
+        let example = answer.counter_example.expect("a negative case for E0237");
+        assert_eq!(example.diagnostic.map(|d| d.code), Some("E0237".to_string()));
+        let help = answer.help.expect("the E0237 counter-example carries a help");
+        assert!(help.starts_with("Give each case its text with a `match` first"), "{help}");
     }
 
     /// E0233 has a wrong program in `tests/negative/`, so `--explain E0233

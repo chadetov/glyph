@@ -875,6 +875,24 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// G385, record 129 (D51): a value with no text form converted to text.
+    /// One rule covers the three implicit conversions: a `${}` in a `"..."`
+    /// or `"""..."""` literal, an operand of `+` whose other operand is a
+    /// string, and the argument of `string.from`. Text-like is an allowlist
+    /// (`string`, a string-literal union, `number`, `int`, `bigint`, `bool`,
+    /// an alias or `where` refinement of one, and `never`), so a type the
+    /// checker learns later is refused here by default. A value the checker
+    /// types as its internal `Unknown` is not judged.
+    ///
+    /// `message` and `help` are computed where the value is, in the program's
+    /// own names, so neither is rebuilt here.
+    #[error("{message}")]
+    NoTextForm {
+        message: String,
+        help: String,
+        span: Span,
+    },
+
     /// G217. A type's name standing where a value is wanted. `return Order {
     /// id: "a", total: 1 }` is the TypeScript-adjacent guess for constructing a
     /// record, and Glyph has no such form: the value is the record literal on
@@ -1439,6 +1457,7 @@ impl TypeError {
             TypeError::NullableRead { span, .. } => *span,
             TypeError::OptionalChainOnTagged { span, .. } => *span,
             TypeError::SqlFromRuntimeValue { span, .. } => *span,
+            TypeError::NoTextForm { span, .. } => *span,
             TypeError::TypeNameAsValue { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
             TypeError::UnknownAnnotation { span, .. } => *span,
@@ -1488,6 +1507,7 @@ impl TypeError {
             TypeError::NullableRead { .. } => "E0235",
             TypeError::OptionalChainOnTagged { .. } => "E0236",
             TypeError::SqlFromRuntimeValue { .. } => "E0239",
+            TypeError::NoTextForm { .. } => "E0237",
             TypeError::TypeNameAsValue { .. } => "E0228",
             TypeError::RedactUnknownField { .. } => "E0219",
             TypeError::UnknownAnnotation { .. } => "E0221",
@@ -1621,6 +1641,9 @@ impl TypeError {
                 builtin.std_module(),
                 builtin.runtime_name(),
             )));
+        }
+        if let TypeError::NoTextForm { help, .. } = self {
+            return Some(Cow::Owned(help.clone()));
         }
         if let TypeError::OptionalChainOnTagged {
             container,
@@ -1807,6 +1830,7 @@ impl TypeError {
             TypeError::UnseenMatchType { .. } => unreachable!("answered above with the module it names"),
             TypeError::UncalledBuiltinMethod { .. } => unreachable!("answered above with the method it names"),
             TypeError::OptionalChainOnTagged { .. } => unreachable!("answered above with the receiver it names"),
+            TypeError::NoTextForm { .. } => unreachable!("answered above with the value it names"),
             TypeError::RecordRemoveFiniteKey { .. } => unreachable!("answered above with the key it names"),
             TypeError::SqlFromRuntimeValue { .. } => unreachable!("answered above with its computed help"),
         }))
@@ -1848,6 +1872,9 @@ impl TypeError {
             ),
             TypeError::UncalledBuiltinMethod { .. } => Some(
                 "A method reads its receiver from `this`, which a call through the member supplies. Read alone, the method is a bare function, and an ES module is strict, so calling it later runs it with `this` undefined and throws a TypeError. `tsc` accepts the read.",
+            ),
+            TypeError::NoTextForm { .. } => Some(
+                "A value becomes text in three places: a `${}`, a `+` with a string, and `string.from`. Only a string, a number or a bool has a text form; anything else prints JavaScript's default, such as `[object Object]`, and `tsc` accepts all three.",
             ),
             TypeError::OptionalChainOnTagged { .. } => Some(
                 "`Option` and `Result` are tagged values at run time and never null, so `?.` never short-circuits on one: it reads the member off the tag object. `match` is the one place either is opened, and `?` is the one way a `Result` propagates.",

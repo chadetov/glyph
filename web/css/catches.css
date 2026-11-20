@@ -4042,8 +4042,9 @@ body {
 /* site/catches.css */
 /* glyphlang.io: the catch components.
    Source: site/catches.css, copied to web/catches.css by scripts/build_site.py.
-   Linked from the pages that show cases from catches/ (/catches/, the home
-   page, /hardening/); the markup comes from scripts/site_catches.py. Uses the
+   Linked from the pages that show cases from catches/ (/catches/, each
+   case's own page under /catches/, the home page, /hardening/); the markup
+   comes from scripts/site_catches.py. Uses the
    tokens in site/style.css, so light and dark follow the site's toggle. */
 
 .sr {
@@ -4192,6 +4193,15 @@ body {
   flex: 1 1 18ch;
   min-width: 0;
 }
+.c-head h1 {
+  margin: 0;
+  font-size: var(--h1-article);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  flex: 1 1 18ch;
+  min-width: 0;
+}
 .c-anchor {
   color: inherit;
 }
@@ -4304,6 +4314,33 @@ pre .h {
 }
 .c-links a:hover {
   color: var(--accent);
+}
+
+.c-ecode {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* ============ one case's own page ============ */
+.c-crumb {
+  margin: var(--s6) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.c-crumb a {
+  color: var(--muted);
+}
+.c-crumb a:hover {
+  color: var(--accent);
+}
+.c-crumb .sep {
+  color: var(--line-2);
+}
+.catch.c-page {
+  padding-top: var(--s4);
 }
 
 /* ============ the lists after the mistakes ============ */

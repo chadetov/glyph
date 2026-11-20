@@ -10,8 +10,8 @@ site points at, each with a stable @id:
 
 Every other page carries a BreadcrumbList built from its URL path and the
 titles of the pages along it. Articles (the answers, the pages for TypeScript
-developers, teams and agent builders, the design and pillar pages, and
-/start/) add a TechArticle whose dateModified is the page's date from
+developers, teams and agent builders, the design and pillar pages,
+/start/, and each TypeScript case's page under /catches/) add a TechArticle whose dateModified is the page's date from
 site/lastmod.json, and /answers/ adds a CollectionPage listing every answer
 in sub-nav order. A page's references to the four entities resolve to the
 home page's graph; scripts/check_site.py checks that every @id a page
@@ -42,7 +42,8 @@ LICENSES = ["https://opensource.org/licenses/MIT", "https://www.apache.org/licen
 OPERATING_SYSTEMS = "macOS, Linux, Windows"
 
 # URL prefixes whose pages are articles.
-ARTICLES = ("/answers/", "/from-typescript/", "/teams/", "/agents/", "/design/", "/pillars/", "/start/")
+ARTICLES = ("/answers/", "/from-typescript/", "/teams/", "/agents/", "/design/", "/pillars/", "/start/",
+            "/catches/")
 
 
 def plain(text: str) -> str:
@@ -51,7 +52,7 @@ def plain(text: str) -> str:
 
 
 def is_article(url: str) -> bool:
-    return url != "/answers/" and url.startswith(ARTICLES)
+    return url not in ("/answers/", "/catches/") and url.startswith(ARTICLES)
 
 
 def site_nodes(version: str, languages: list[str]) -> list[dict]:

@@ -61,6 +61,14 @@ gets the class `wraps`, so a phone wraps it; see mark_wrapping_blocks().
 {{icon:NAME}} is the line icon NAME from site/site.json `icons`, the set the
 menu draws from.
 
+Each TypeScript case in catches/ also gets a page with no source file:
+/catches/<slug>/, whose front matter and body scripts/site_catches.py
+generates (`case_pages()`). It renders in English and in every language
+/catches/ is translated into, from that language's case texts, and goes into
+the sitemap and site/lastmod.json like any other page. Its "Edit this page"
+link goes to the case's case.toml, or on a translation to the language's
+catches.json.
+
 The release notes are the one source page that renders as several.
 site/pages/versions/index.html carries {{versions:...}} placeholders, and
 scripts/site_versions.py fills them from site/releases/<version>.html, one
@@ -135,6 +143,8 @@ STATIC = SITE / "static"
 LASTMOD = SITE / "lastmod.json"
 ORIGIN = "https://glyphlang.io"
 EDIT_BASE = "https://github.com/chadetov/glyph/blob/main/site/pages/"
+BLOB = "https://github.com/chadetov/glyph/blob/main/"
+CATCHES_PAGE = PAGES / "catches" / "index.html"
 
 LAYOUTS = {"home", "article", "wide", "index"}
 KEYS = {"title", "description", "canonical", "layout", "article_class", "nav",
@@ -718,11 +728,13 @@ def with_next_steps(site: dict, fm: dict, body: str, where: str) -> str:
 
 def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str,
            ctx: site_i18n.Ctx, lastmod: LastMod, titles: dict[str, str],
-           anchor_ids: list[str] | None = None) -> tuple[str, str, str | None]:
+           anchor_ids: list[str] | None = None, edit: str | None = None) -> tuple[str, str, str | None]:
     """One page, the date its content last changed, and its Markdown copy
     when it has one. `url` is the page's English URL; `ctx` says which
     language this rendering is in and which others the page has. A
-    translation passes `anchor_ids`, its English page's section ids."""
+    translation passes `anchor_ids`, its English page's section ids. A page
+    with no source under site/pages/ passes `edit`, where "Edit this page"
+    goes."""
     where = str(path.relative_to(ROOT))
     t = ctx.s
     body = with_next_steps(site, fm, body, where)
@@ -791,7 +803,8 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
         "github_label": t.nav(actions["github"]["label"]),
         "lang_switcher": site_i18n.switcher(ctx),
     }, where)
-    edit = site_i18n.edit_url(ctx, EDIT_BASE + path.relative_to(ROOT).as_posix().removeprefix("site/pages/"))
+    if edit is None:
+        edit = site_i18n.edit_url(ctx, EDIT_BASE + path.relative_to(ROOT).as_posix().removeprefix("site/pages/"))
     footer = fill(site_i18n.apply_strings(partial("footer.html"), t), {"edit_url": edit}, where)
     side = ""
     if fm.get("subnav") == "answers" and fm["layout"] == "article":
@@ -878,6 +891,10 @@ def build(locales: list[str] | None = None) -> dict[str, str | bytes]:
     memory this way, without reading the other languages' files."""
     global LASTMOD_TEXT
     BUNDLES.clear()
+    try:
+        site_catches.reload()
+    except site_catches.CatchesError as e:
+        raise SiteError(str(e)) from None
     site = json.loads((SITE / "site.json").read_text())
     version = workspace_version()
     lastmod = LastMod.load()
@@ -893,14 +910,27 @@ def build(locales: list[str] | None = None) -> dict[str, str | bytes]:
         for loc in by_loc:
             translated_urls.setdefault(loc, set()).add("/404.html" if eng == NOT_FOUND else page_url(eng))
     pages = [(path, expand_pages(path)) for path in page_files()]
+    # Each TypeScript case's own page, in English and in each language
+    # /catches/ is translated into: {locale: [(url, fm, body, slug)]}.
+    case_locales = ["en"] + [loc for loc in site_i18n.TRANSLATED if loc in translations.get(CATCHES_PAGE, {})]
+    try:
+        case_pages = {loc: site_catches.case_pages(loc) for loc in case_locales}
+    except site_catches.CatchesError as e:
+        raise SiteError(str(e)) from None
+    for loc in case_locales[1:]:
+        translated_urls.setdefault(loc, set()).update(url for url, _, _, _ in case_pages[loc])
     # Every English page's title, for breadcrumbs and the answers list, and
     # each language's titles over them where a page is translated.
     titles = {url: short_title(fm["title"]) for _, expanded in pages for url, fm, _ in expanded}
+    titles.update({url: short_title(fm["title"]) for url, fm, _, _ in case_pages["en"]})
     loc_titles: dict[str, dict[str, str]] = {}
     for eng, by_loc in translations.items():
         for loc, tr in by_loc.items():
             if eng != NOT_FOUND:
                 loc_titles.setdefault(loc, dict(titles))[page_url(eng)] = short_title(tr.fm["title"])
+    for loc in case_locales[1:]:
+        loc_titles.setdefault(loc, dict(titles)).update(
+            {url: short_title(fm["title"]) for url, fm, _, _ in case_pages[loc]})
     md_pages: list[tuple[str, str, str]] = []
     for path, expanded in pages:
         for url, fm, body in expanded:
@@ -928,6 +958,20 @@ def build(locales: list[str] | None = None) -> dict[str, str | bytes]:
                 # Only a page that is its own canonical belongs in the sitemap.
                 if vfm.get("canonical", ORIGIN + here) == ORIGIN + here:
                     entries.append({"loc": here, "lastmod": date, "alternates": alternates})
+    for loc in case_locales:
+        for url, vfm, vbody, slug in case_pages[loc]:
+            src = site_catches.CASES / slug / "case.toml"
+            edit = (f"{BLOB}catches/{slug}/case.toml" if loc == "en"
+                    else f"{BLOB}site/i18n/{loc}/catches.json")
+            try:
+                ctx = site_i18n.Ctx(loc, url, case_locales, None, translated_urls)
+                here = ctx.here
+                date, _, files[here.strip("/") + "/index.html"] = render(
+                    src, site, version, vfm, vbody, url, ctx, lastmod, loc_titles.get(loc, titles), edit=edit)
+            except site_i18n.I18nError as e:
+                raise SiteError(str(e)) from None
+            entries.append({"loc": here, "lastmod": date,
+                            "alternates": site_i18n.sitemap_alternates(url, case_locales)})
     # GitHub Pages serves web/404.html for any address with no file. It has
     # the site's chrome, is noindex, and is not in the sitemap. A translated
     # 404 renders to web/<locale>/404.html; Pages never serves it directly,

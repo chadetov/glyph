@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Principal">
         <div class="nav-brand">
           <a href="/pt-br/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Notas de versão">v0.1.149</a>
+          <a href="/versions/" class="nav-version" title="Notas de versão">v0.1.150</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -583,7 +583,7 @@ buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD
           <h3 class="h">Ficando mais preciso</h3>
           <p>Ainda não há codec de inteiros, então ler um <code>u32</code> big-endian de um cabeçalho é uma conta que você escreve: acima de 32 bits, shift é a ferramenta errada de qualquer jeito, então se usa divisão. Literais hexadecimais ainda não passam no parse, o que deixa difícil de ler uma tabela de CRC32 com 256 entradas escrita em decimal. O <code>std/websocket</code> ainda decodifica um frame binário como texto UTF-8; o tipo de que ele precisava agora existe, e os frames são o próximo passo. E as seis funções mais antigas de string para string do <code>std/encoding</code> continuam silenciosas diante de entrada malformada, então use os codecs do <code>std/bytes</code> para tudo o que precisa estar certo. Os codecs são escritos em TypeScript em vez de delegar ao <code>Buffer</code> do Node, e é isso que permite rodá-los num Web Worker; eles são entre 1x e 35x mais lentos que os da plataforma num megabyte. Codificar uma chave ou um token não custa nada mensurável em nenhum dos dois casos; o guia de desempenho tem a tabela se você estiver movendo dezenas de megabytes.</p>
         </div>
-        <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.149 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+        <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.150 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/answers/long-running/">

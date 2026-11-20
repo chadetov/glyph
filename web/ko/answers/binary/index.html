@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="주 메뉴">
         <div class="nav-brand">
           <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.149</a>
+          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.150</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -585,7 +585,7 @@ buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD
           <h3 class="h">개선 중</h3>
           <p>아직 정수 코덱이 없으므로 헤더에서 빅엔디언 <code>u32</code>를 읽으려면 산술 연산을 직접 써야 합니다. 32비트를 넘으면 어차피 시프트는 맞는 도구가 아니므로 나눗셈을 씁니다. 16진수 리터럴은 아직 파싱되지 않으므로, 10진수로 쓴 256개 항목짜리 CRC32 테이블은 읽기 어렵습니다. <code>std/websocket</code>은 여전히 바이너리 프레임을 UTF-8 텍스트로 디코딩합니다. 필요했던 타입이 이제 생겼으니 프레임이 다음 차례입니다. 그리고 <code>std/encoding</code>의 오래된 문자열 대 문자열 함수 여섯 개는 여전히 잘못된 입력에 아무 말도 하지 않으므로, 정확해야 하는 것에는 <code>std/bytes</code> 코덱을 쓰세요. 코덱은 node의 <code>Buffer</code>에 맡기지 않고 TypeScript로 작성되었는데, 그래서 Web Worker에서 실행될 수 있으며, 1메가바이트 기준으로 플랫폼 구현보다 1배에서 35배 느립니다. 키나 토큰 인코딩에서는 어느 쪽이든 측정할 만한 비용이 없습니다. 수십 메가바이트를 다룬다면 성능 가이드에 표가 있습니다.</p>
         </div>
-        <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.149으로 검사합니다. 마지막 변경: <time datetime="2026-11-20">2026년 11월 20일</time>.</p>
+        <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.150으로 검사합니다. 마지막 변경: <time datetime="2026-11-20">2026년 11월 20일</time>.</p>
       </div>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/answers/long-running/">

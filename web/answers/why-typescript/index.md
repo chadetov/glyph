@@ -34,4 +34,4 @@ Clean TypeScript output, bidirectional imports with your existing `.ts`, and a s
 
 The cross-language benchmark (Glyph, TS, Go, Python, Rust) grows as the corpus does, so the “small surface” claim stays a number, not an assertion.
 
-Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.

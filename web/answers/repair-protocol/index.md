@@ -137,4 +137,4 @@ Every diagnostic carries `expected`, `actual`, `cause`, `alternatives` (with `al
 
 `cause` on `E0211` is `null`: the symbol at fault at a call argument is a parameter, and `module::fn.param` is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. `corrected` on a counter-example is always `null`, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all. `glyph fix` writes three rules and nothing else, and it writes no arm for a non-exhaustive `match`: those are left for you or your agent, with the cases and their patterns in the diagnostic. Everything it declines, it declines out loud.
 
-Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.

@@ -68,4 +68,4 @@ One sharp edge, shared with TypeScript: an empty collection can't infer its elem
 
 Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.
 
-Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.

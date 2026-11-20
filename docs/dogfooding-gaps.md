@@ -10834,6 +10834,8 @@ and is the owner's to confirm.
   "b", extra: 1 }` is `glyph check: 1 module(s) checked, no diagnostics.`
   under `--no-tsc`; the `tsc` half was not re-run.*
 
+  *Reproduced against 0.1.150 (the release build): `let b: Opt = { name: "b", extra: 1, }` is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, and ``[TS2353] Error: tsc: Object literal may only specify known properties, and 'extra' does not exist in type 'Opt'.`` with `tsc`.*
+
 - **G274. [FIXED] Four more positions compared loosely: an optional field, a
   declared record against a structural one, a function's return, and an
   interface member.** Found checking G270's premise, all the same hole: each
@@ -12003,6 +12005,8 @@ and is the owner's to confirm.
   Array<string> { return x }` is `no diagnostics` under `--no-tsc`; the
   `tsc` half was not re-run.*
 
+  *Reproduced against 0.1.150 (the release build): `fn g<T>(x: Array<T>) -> Array<string> { return x }` is `no diagnostics` under `--no-tsc` and ``[TS2322] Error: tsc: Type 'T[]' is not assignable to type 'string[]'.`` with `tsc`.*
+
 - **G315. A second name for `unknown`, a type parameter or a `Nullable` is
   refused where the plain spelling is accepted.** With `type Any = unknown`, a
   `Box<T>` where `Record<string, Any>` is declared is E0204, and the same
@@ -12025,6 +12029,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.144 (the release build): ``[E0204] Error:
   typecheck: type mismatch: expected `Record<string, Any>`, found
   `Box<?>` `` under `--no-tsc`.*
+
+  *Reproduced against 0.1.150 (the release build): a `Box<T>` returned where `Record<string, Any>` is declared (`type Any = unknown`) is ``[E0204] Error: typecheck: type mismatch: expected `Record<string, Any>`, found `Box<?>` `` under `--no-tsc`; the same program with `Record<string, unknown>` checks clean.*
 
 - **G316. [FIXED] `glyph fmt` cuts a run of edge spaces in JSX text to one.**
   In a child list that holds an element, a text child goes on a line of its
@@ -12581,6 +12587,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.144 (the release build): the first pass prints
   `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`.*
 
+  *Reproduced against 0.1.150 (the release build): the first pass prints `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`.*
+
 - **G344. A value built with `Some(x)` or `Ok(x)` is not typed as an
   `Option` or a `Result`, so its members are not checked.** `let r = Ok(x)`
   then `r.value`, and inline `Ok(x).value` or `Some(x).tag`, pass `glyph
@@ -13085,6 +13093,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.144 and 0.1.145 (the release build) by record
   111's probes `g/A` and `g/Afix` (`/private/tmp/claude-501/linus111/`).*
+
+  *Reproduced against 0.1.150 (the release build) with record 111's probe `g/A` (copy in `~/Documents/Jarvis/glyph-wt/probes-archive/linus111/g/`): `Page` draws ``[E0106] Warning: lint: unused import `Page` ``, `glyph fix` removes it, and the program is then ``[E0304] Error: emit: cannot validate `m.Page<int>` ``.*
 
 - **G369. [FIXED] A descriptor check recurses without bound, so a deeply nested value
   overflows the stack.** A `Tree` nested 20000 deep throws `RangeError:

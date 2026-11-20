@@ -3,6 +3,7 @@
   "private": true,
   "description": "The JavaScript toolchain CI needs, pinned by a lockfile so every run installs the same bytes. A global `npm install -g` resolves a version, not a hash, which is a weaker guarantee and one Scorecard is right to flag.",
   "dependencies": {
+    "types-node-ts4.9": "npm:@types/node@22.9.3",
     "tsx": "4.23.13",
     "typescript": "6.0.3"
   }

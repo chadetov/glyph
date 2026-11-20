@@ -1102,13 +1102,17 @@ process.cwd() -> string
 ### std/record
 
 ```
-record.get<V>(r, key) -> Option<V>           // absence-aware read
-record.has<V>(r, key) -> bool
-record.keys<V>(r) -> Array<string>
-record.values<V>(r) -> Array<V>
-record.set<V>(r, key, value) -> Record<string, V>   // returns a new record
-record.remove<V>(r, key) -> Record<string, V>
+record.get<V, K>(r, key: K) -> Option<V>      // absence-aware read
+record.has<V, K>(r, key: string) -> bool
+record.keys<V, K>(r) -> Array<K>              // Array<string> for an int or number key
+record.values<V, K>(r) -> Array<V>
+record.set<V, K>(r, key: K, value) -> Record<K, V>   // returns a new record
+record.remove<V, K>(r, key: K) -> Record<K, V>       // E0211 when K is a literal union
 ```
+
+A `Record`'s key is invariant: `Record<string, V>` and `Record<Tier, V>` do not
+stand for each other in either direction (E0204, E0211). Go from an open map to
+a closed one with `is Record<Tier, V>` or `json.parse<Record<Tier, V>>`.
 
 ### std/random
 
@@ -2019,14 +2023,14 @@ written. The full catalogue:
 | E0201 | `?` used outside a `Result`-returning function | Return `Result`, or handle with `match` |
 | E0202 | `?` applied to a non-`Result` operand | Drop the `?`, or return a `Result` |
 | E0203 | `?` error type does not match the function's `E` (no `From` in v1) | `.map_err(...)` to line the error types up |
-| E0204 | Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), a declared record where a `Record<string, V>` is declared with a required field that is not a `V`, an `@open` record there unless `V` is `unknown`, a tagged union where any `Record<K, V>` is declared, and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` | Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)` |
+| E0204 | Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), a declared record where a `Record<string, V>` is declared with a required field that is not a `V`, an `@open` record there unless `V` is `unknown`, a tagged union where any `Record<K, V>` is declared, a `Record` whose key is not the same key domain as the declared one (`Record<string, V>` against `Record<Tier, V>` in either direction, two literal unions with different members, a refined key against its base, a type parameter against `string`), and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` | Make the value and the expected type agree; check an open map with `is Record<Tier, V>`; bind a non-record payload to one name, `Loaded(users)` |
 | E0205 | `owned` used on a non-`resource` type (D25) | Mark the type `resource`, or drop `owned` |
 | E0206 | `owned` resource not consumed on every path (D25) | Consume it (move to an `owned` param) on all paths |
 | E0207 | `owned` resource used after it was consumed (D25) | Reorder so uses precede the consume |
 | E0208 | Non-exhaustive `match` on an array (length not covered) | Cover the length, or add a catch-all |
 | E0209 | Non-exhaustive `match` on a `bool` | Cover `true` and `false`, or add `else` |
 | E0210 | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. The message also names the nearest declared field when one is close enough to be a typo (`did you mean`). Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member. Also a plain-dot member on the prelude `Option` or `Result`, through any alias: a `Result`'s only members are `map` and `map_err` and an `Option` has none, so `o.name`, `o.tag` and `r.value` are refused (`tag` and `value` are the runtime encoding, D49, not members); the message names the member set | Fix the field name / add it to the type |
-| E0211 | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name | Pass a value of the expected type |
+| E0211 | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record | Pass a value of the expected type |
 | E0212 | `mut` reassigns a `const` binding (D20) | Use a function-level `let` |
 | E0213 | Wrong number of call arguments | One argument per parameter |
 | E0214 | Component declared with multiple parameters (use a props record) | Take a single props record |

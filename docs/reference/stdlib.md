@@ -795,24 +795,37 @@ itself, so these are for failures the program detects and decides about.
 
 ## std/record
 
-Helpers over `Record<string, V>`. Reads are absence-aware; updates return a new
+Helpers over `Record<K, V>`. Reads are absence-aware; updates return a new
 record and never mutate the input.
 
 ```
-record.get<V>(r, key: string) -> Option<V>
-record.has<V>(r, key: string) -> bool
-record.keys<V>(r) -> Array<string>
-record.values<V>(r) -> Array<V>
-record.set<V>(r, key: string, value: V) -> Record<string, V>
-record.remove<V>(r, key: string) -> Record<string, V>
+record.get<V, K>(r: Record<K, V>, key: K) -> Option<V>
+record.has<V, K>(r: Record<K, V>, key: string) -> bool
+record.keys<V, K>(r: Record<K, V>) -> Array<K>     // Array<string> when K is numeric
+record.values<V, K>(r: Record<K, V>) -> Array<V>
+record.set<V, K>(r: Record<K, V>, key: K, value: V) -> Record<K, V>
+record.remove<V, K>(r: Record<K, V>, key: K) -> Record<K, V>
 ```
 
-All six are modeled in the checker, and `V` is read off the record you pass. So
-`record.get(t, k)` over a `Record<string, Array<string>>` is an
+All six are modeled in the checker, and `K` and `V` are read off the record you
+pass. `V` comes first, so a call written with one type argument,
+`record.set<Message>(m, key, v)`, names the value type as it did before the key
+was a parameter. So `record.get(t, k)` over a `Record<string, Array<string>>` is an
 `Option<Array<string>>`, the `Some(p)` arm of a `match` over it binds an
 `Array<string>`, and `for i, hop in p` binds `i` as a number without an
 annotation. `record.keys(t)` is an `Array<string>`, which is what lets
 `array.sort(record.keys(t), cmp)` keep its element type.
+
+The key is the record's own. A `Record`'s key is invariant (D30), so on a
+`Record<Tier, int>`, `record.set(r, "a", 9)` returns a `Record<Tier, int>` and
+`record.keys(r)` is an `Array<Tier>`, while `record.set(r, "zzz", 9)` and
+`record.get(r, k)` with `k: string` are E0211 at the key. `has` answers a
+question about any string, so it takes a `string`. For an `int` or `number` key
+`keys` is an `Array<string>`, because that is what `Object.keys` returns.
+`record.remove` on a key with a fixed member set (a string-literal union, by any
+spelling) is E0211: a `Record<Tier, int>` holds every `Tier`, so removing one
+leaves a value of no declared type. Use a record with optional fields for a
+partial map, and `record.set` to replace a value.
 
 ## std/time
 

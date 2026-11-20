@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-401 entries, 306 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-76 are open. G144, the D28 boundary cast that never reached the returns a
+402 entries, 306 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+77 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13257,8 +13257,11 @@ and is the owner's to confirm.
   E0211 at the key, `record.set(r, "a", 9)` returns a `Record<Tier, int>`,
   `keys` is `Array<Tier>` (an `Array<string>` for a numeric key), and
   `record.remove` on a literal-union key is E0211 at the record. The
-  runtime `record.ts` is generic in `K`, with the key argument
-  `NoInfer<K>` so `tsc` binds `K` from the record as Glyph does. Record
+  runtime `record.ts` is generic in `K`, with the key argument typed
+  `KeyOf<K>` so `tsc` binds `K` from the record as Glyph does, on every
+  TypeScript from the 4.9 floor up (`check_runtime_ts_floor.py`). The
+  `remove` refusal was break-tested: with it disabled the three unit tests
+  and the five-spelling integration test go red. Record
   119's probes `c/t` (narrow, widen, `set`, `remove`, `Slug`) and `c/w`
   (the generic key) exit 0 on 0.1.151 and 1 on this build, with five and
   one refusals. `c/u`, the `int`/`number` pair, still exits 0, and the
@@ -13670,3 +13673,21 @@ and is the owner's to confirm.
   0.1.151 before the version bump): `check_stdlib_signatures.py`
   reports `std/record::keys` in both directions, `Type 'K' is not assignable
   to type 'K extends string ? K : string'`.*
+
+- **G402. `record.set`'s value is not checked without `tsc`.** The checker
+  types `record.set`'s third argument as `unknown`, so
+  `record.set(r, "a", "oops")` on a `Record<Tier, int>` passes `check
+  --no-tsc`, and only `tsc` refuses it (`TS2345: Argument of type 'string'
+  is not assignable to parameter of type 'number'`). The editor, MCP and
+  the applyEdit gate run without `tsc`, so they accept it: the G393 family.
+  The slot stays `unknown` on purpose for now. Binding it to the `V` the
+  record argument already bound pins that `V` to the first candidate, and
+  a literal value would then be refused against a wider `V` that `tsc`
+  accepts (the note above `array_fn_ty` in `stdlib.rs`). It takes `V` once
+  the unifier joins candidates, as TypeScript's does. Not breaking under
+  full `check`. Found by the 0.1.153 review (record 126).
+
+  *Reproduced against 0.1.152 (the published package, `npx -y
+  @glyphlang/glyph@0.1.152`): `check --no-tsc` exits 0 with no
+  diagnostics, and full `check` reports `[TS2345] Error: tsc: Argument of
+  type 'string' is not assignable to parameter of type 'number'`.*

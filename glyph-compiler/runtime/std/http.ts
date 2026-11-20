@@ -257,9 +257,13 @@ export function query(req: Request): Record<string, string> {
   if (q < 0) {
     return out;
   }
-  for (const [key, value] of new URLSearchParams(req.url.slice(q + 1))) {
+  // `forEach`, not `for...of`: iterating a `URLSearchParams` needs
+  // `dom.iterable` on TypeScript before 6, which a project without
+  // `@types/node` does not have. Same order, and a repeated key keeps the
+  // last value.
+  new URLSearchParams(req.url.slice(q + 1)).forEach((value, key) => {
     out[key] = value;
-  }
+  });
   return out;
 }
 
@@ -284,9 +288,10 @@ export function raw(req: Request): string {
 /// program that wants the raw bytes or a JSON body still gets them unchanged.
 export function form(req: Request): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const [key, value] of new URLSearchParams(req.raw)) {
+  // `forEach` for the reason `query` gives.
+  new URLSearchParams(req.raw).forEach((value, key) => {
     out[key] = value;
-  }
+  });
   return out;
 }
 

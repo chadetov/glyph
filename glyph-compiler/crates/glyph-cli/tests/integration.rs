@@ -19661,3 +19661,323 @@ fn a_record_keyed_by_a_generic_type_parameter_is_e0304_unless_the_argument_is_st
     );
     assert_eq!(run_main_lines(&src), vec!["OkOkOkOk", "ErrErrErrErr"]);
 }
+
+// G391 (record 119). An optional field is an absent own key or a `T`. A key
+// holding JSON `null`, or a host `undefined`, is a `type` issue unless `T` is
+// `Nullable`. Until 0.1.152 the presence test read `null` as absence, so every
+// route below returned `Ok` holding a `null` where the type said `number`.
+// Each route runs the four inputs in one order: a key holding `null`, a key
+// holding `undefined`, the key absent, the key holding a number.
+const OPTIONAL_PARITY_SIDE: &str = "module side\npub type SOpts = { timeout_ms?: number, }\n";
+const OPTIONAL_PARITY_MAIN: &str = r#"module main
+
+import std/io
+import std/json
+import std/json { parse }
+import side { SOpts }
+import side
+
+type Opts = { timeout_ms?: number, }
+type Wrap = { o: Opts, }
+type Many = { xs: Array<Opts>, }
+type M = { m: Record<string, Opts>, }
+type Shape = On(Opts) | Off
+type Box<T> = { v: T, }
+type Deep = { o?: Opts, }
+type OW = { x: Option<Opts>, }
+
+fn ok<T>(r: Result<T, Array<Issue>>) -> string {
+  return match r { Ok(_) => "Ok", Err(_) => "Err", }
+}
+
+fn yes(b: bool) -> string {
+  return match b { true => "Ok", false => "Err", }
+}
+
+fn is_opts(v: unknown) -> bool {
+  return match v { is Opts => true, else => false, }
+}
+
+fn is_box(v: unknown) -> bool {
+  return match v { is Box<Opts> => true, else => false, }
+}
+
+fn host(js: string) -> unknown {
+  return extern_ts("eval(js)")
+}
+
+fn raw(text: string) -> unknown {
+  return match json.parse(text) { Ok(v) => v, Err(_) => "unparseable", }
+}
+
+fn row(name: string, a: string, b: string, c: string, d: string) {
+  io.println(name + " " + a + " " + b + " " + c + " " + d)
+}
+
+fn main(argv: Array<string>) -> number {
+  // The four inputs: a JSON null, a host undefined, the key absent, a number.
+  // JSON text cannot carry `undefined`, so a text route's undefined column
+  // runs the entry the text route rewrites to on the host value.
+  let n = "{\"timeout_ms\":null}"
+  let a = "{}"
+  let f = "{\"timeout_ms\":5}"
+  let u = host("({ timeout_ms: undefined })")
+  row(
+    "json.parse<Opts>",
+    ok(json.parse<Opts>(n)),
+    ok(Opts.schema.parse(u)),
+    ok(json.parse<Opts>(a)),
+    ok(json.parse<Opts>(f)),
+  )
+  row(
+    "parse<Opts>",
+    ok(parse<Opts>(n)),
+    ok(Opts.schema.parse(u)),
+    ok(parse<Opts>(a)),
+    ok(parse<Opts>(f)),
+  )
+  row(
+    "Opts.parse",
+    ok(Opts.parse(raw(n))),
+    ok(Opts.parse(u)),
+    ok(Opts.parse(raw(a))),
+    ok(Opts.parse(raw(f))),
+  )
+  row(
+    "Opts.is",
+    yes(Opts.is(raw(n))),
+    yes(Opts.is(u)),
+    yes(Opts.is(raw(a))),
+    yes(Opts.is(raw(f))),
+  )
+  row(
+    "is Opts",
+    yes(is_opts(raw(n))),
+    yes(is_opts(u)),
+    yes(is_opts(raw(a))),
+    yes(is_opts(raw(f))),
+  )
+  row(
+    "parse_with",
+    ok(json.parse_with(n, Opts.schema)),
+    ok(Opts.schema.parse(u)),
+    ok(json.parse_with(a, Opts.schema)),
+    ok(json.parse_with(f, Opts.schema)),
+  )
+  row(
+    "Wrap",
+    ok(json.parse<Wrap>("{\"o\":" + n + "}")),
+    ok(Wrap.parse(host("({ o: { timeout_ms: undefined } })"))),
+    ok(json.parse<Wrap>("{\"o\":" + a + "}")),
+    ok(json.parse<Wrap>("{\"o\":" + f + "}")),
+  )
+  row(
+    "Many",
+    ok(json.parse<Many>("{\"xs\":[" + n + "]}")),
+    ok(Many.parse(host("({ xs: [{ timeout_ms: undefined }] })"))),
+    ok(json.parse<Many>("{\"xs\":[" + a + "]}")),
+    ok(json.parse<Many>("{\"xs\":[" + f + "]}")),
+  )
+  row(
+    "M",
+    ok(json.parse<M>("{\"m\":{\"k\":" + n + "}}")),
+    ok(M.parse(host("({ m: { k: { timeout_ms: undefined } } })"))),
+    ok(json.parse<M>("{\"m\":{\"k\":" + a + "}}")),
+    ok(json.parse<M>("{\"m\":{\"k\":" + f + "}}")),
+  )
+  row(
+    "Box<Opts>",
+    ok(json.parse<Box<Opts>>("{\"v\":" + n + "}")),
+    yes(is_box(host("({ v: { timeout_ms: undefined } })"))),
+    ok(json.parse<Box<Opts>>("{\"v\":" + a + "}")),
+    ok(json.parse<Box<Opts>>("{\"v\":" + f + "}")),
+  )
+  row(
+    "Deep",
+    ok(json.parse<Deep>("{\"o\":null}")),
+    ok(Deep.parse(host("({ o: undefined })"))),
+    ok(json.parse<Deep>("{}")),
+    ok(json.parse<Deep>("{\"o\":" + f + "}")),
+  )
+  row(
+    "Shape",
+    ok(json.parse<Shape>("{\"tag\":\"On\",\"value\":" + n + "}")),
+    ok(Shape.parse(host("({ tag: \"On\", value: { timeout_ms: undefined } })"))),
+    ok(json.parse<Shape>("{\"tag\":\"On\",\"value\":" + a + "}")),
+    ok(json.parse<Shape>("{\"tag\":\"On\",\"value\":" + f + "}")),
+  )
+  row(
+    "Option<Opts>",
+    ok(json.parse<Option<Opts>>("{\"tag\":\"Some\",\"value\":" + n + "}")),
+    ok(OW.parse(host("({ x: { tag: \"Some\", value: { timeout_ms: undefined } } })"))),
+    ok(json.parse<Option<Opts>>("{\"tag\":\"Some\",\"value\":" + a + "}")),
+    ok(json.parse<Option<Opts>>("{\"tag\":\"Some\",\"value\":" + f + "}")),
+  )
+  row(
+    "sibling by name",
+    ok(json.parse<SOpts>(n)),
+    ok(SOpts.parse(u)),
+    ok(json.parse<SOpts>(a)),
+    ok(json.parse<SOpts>(f)),
+  )
+  row(
+    "sibling by namespace",
+    ok(json.parse<side.SOpts>(n)),
+    ok(side.SOpts.parse(u)),
+    ok(json.parse<side.SOpts>(a)),
+    ok(json.parse<side.SOpts>(f)),
+  )
+  return 0
+}
+"#;
+
+const OPTIONAL_ROUTES_MAIN: &str = r#"module main
+
+import std/io
+import std/json
+
+type Opts = { t?: number, }
+type U = On({ t?: number }) | Off
+type In = { o: { t?: number }, }
+type G<T> = { t?: T, }
+@open
+type Op = { t?: number, }
+type A = Opts
+type NS = { t?: Nullable<int>, }
+type O2 = { t?: Option<number>, }
+type R = { t: Option<number>, }
+
+fn ok<T>(r: Result<T, Array<Issue>>) -> string {
+  return match r { Ok(_) => "Ok", Err(_) => "Err", }
+}
+
+fn yes(b: bool) -> string {
+  return match b { true => "Ok", false => "Err", }
+}
+
+fn is_g(v: unknown) -> bool {
+  return match v { is G<number> => true, else => false, }
+}
+
+fn issues<T>(r: Result<T, Array<Issue>>) -> string {
+  return match r { Ok(_) => "Ok", Err(e) => json.stringify(e), }
+}
+
+fn host(js: string) -> unknown {
+  return extern_ts("eval(js)")
+}
+
+fn row(name: string, a: string, b: string, c: string, d: string) {
+  io.println(name + " " + a + " " + b + " " + c + " " + d)
+}
+
+fn main(argv: Array<string>) -> number {
+  let n = "{\"t\":null}"
+  let a = "{}"
+  let f = "{\"t\":5}"
+  let u = host("({ t: undefined })")
+  row(
+    "union inline payload",
+    ok(json.parse<U>("{\"tag\":\"On\",\"t\":null}")),
+    ok(U.parse(host("({ tag: \"On\", t: undefined })"))),
+    ok(json.parse<U>("{\"tag\":\"On\"}")),
+    ok(json.parse<U>("{\"tag\":\"On\",\"t\":5}")),
+  )
+  row(
+    "inline record field",
+    ok(json.parse<In>("{\"o\":" + n + "}")),
+    ok(In.parse(host("({ o: { t: undefined } })"))),
+    ok(json.parse<In>("{\"o\":" + a + "}")),
+    ok(json.parse<In>("{\"o\":" + f + "}")),
+  )
+  row(
+    "generic record",
+    ok(json.parse<G<number>>(n)),
+    yes(is_g(u)),
+    ok(json.parse<G<number>>(a)),
+    ok(json.parse<G<number>>(f)),
+  )
+  row("open record", ok(json.parse<Op>(n)), ok(Op.parse(u)), ok(json.parse<Op>(a)), ok(json.parse<Op>(f)))
+  row("alias", ok(json.parse<A>(n)), ok(Opts.parse(u)), ok(json.parse<A>(a)), ok(json.parse<A>(f)))
+  row("nullable", ok(json.parse<NS>(n)), ok(NS.parse(u)), ok(json.parse<NS>(a)), ok(json.parse<NS>("{\"t\":3}")))
+  match json.parse<NS>(n) {
+    Ok(_) => io.println("nullable null Ok"),
+    Err(e) => io.println("nullable null " + json.stringify(e)),
+  }
+  match json.parse<O2>(n) {
+    Ok(o) => {
+      let r: R = { t: Some(1), ...o }
+      let s = match r.t { Some(x) => "some ${x}", None => "none", }
+      io.println("n5 " + s)
+    },
+    Err(e) => io.println("n5 refused " + json.stringify(e)),
+  }
+  io.println("null " + issues(Opts.parse(host("({ t: null })"))))
+  io.println("undefined " + issues(Opts.parse(u)))
+  io.println("wrong " + issues(json.parse<Opts>("{\"t\":\"x\"}")))
+  return 0
+}
+"#;
+
+/// One verdict per input on every route a `?` field is checked by: the two
+/// `json.parse` spellings, `T.parse`, `T.is`, `is T`, `parse_with`, a field,
+/// an array element, a `Record` value, a generic argument, an optional field
+/// of the record's own type, a union payload, an `Option` payload, and a
+/// sibling's record by name and by namespace. `is` and `parse` agree because
+/// they share one presence test.
+#[test]
+fn an_optional_field_has_one_verdict_per_input_on_every_route() {
+    let root = unique_tmp("g391-parity");
+    let src = root.join("src");
+    write_file(&src, "side.glyph", OPTIONAL_PARITY_SIDE);
+    write_file(&src, "main.glyph", OPTIONAL_PARITY_MAIN);
+    let routes = [
+        "json.parse<Opts>",
+        "parse<Opts>",
+        "Opts.parse",
+        "Opts.is",
+        "is Opts",
+        "parse_with",
+        "Wrap",
+        "Many",
+        "M",
+        "Box<Opts>",
+        "Deep",
+        "Shape",
+        "Option<Opts>",
+        "sibling by name",
+        "sibling by namespace",
+    ];
+    let expected: Vec<String> = routes.iter().map(|r| format!("{r} Err Err Ok Ok")).collect();
+    assert_eq!(run_main_lines(&src), expected);
+}
+
+/// The declaration forms a `?` field can sit in, the `Nullable` spelling
+/// that takes null, the `Option` field that crashed a later `match` (b/n5),
+/// and the three issue messages.
+#[test]
+fn an_optional_field_refuses_null_in_every_declaration_form() {
+    let root = unique_tmp("g391-routes");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", OPTIONAL_ROUTES_MAIN);
+    assert_eq!(
+        run_main_lines(&src),
+        vec![
+            "union inline payload Err Err Ok Ok",
+            "inline record field Err Err Ok Ok",
+            "generic record Err Err Ok Ok",
+            "open record Err Err Ok Ok",
+            "alias Err Err Ok Ok",
+            // `t?: Nullable<int>`: null, absent and 3 are each `Ok`, and a
+            // key holding `undefined` is refused.
+            "nullable Ok Err Ok Ok",
+            "nullable null Ok",
+            // b/n5: refused at the decode, so the `match` never reads `.tag`
+            // off a null.
+            "n5 refused [{\"path\":[\"t\"],\"message\":\"field `t` is null; declare it `t?: Nullable<number>` to accept null\",\"code\":\"type\"}]",
+            "null [{\"path\":[\"t\"],\"message\":\"field `t` is null; declare it `t?: Nullable<number>` to accept null\",\"code\":\"type\"}]",
+            "undefined [{\"path\":[\"t\"],\"message\":\"field `t` is undefined; omit the key\",\"code\":\"type\"}]",
+            "wrong [{\"path\":[\"t\"],\"message\":\"field `t` must be number\",\"code\":\"type\"}]",
+        ]
+    );
+}

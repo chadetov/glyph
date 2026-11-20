@@ -3188,7 +3188,9 @@ impl<'a> Emitter<'a> {
     /// A required field is tested in order: absent first (`code: "missing"`),
     /// then wrong (`code: "type"`, naming the declared type). An optional field
     /// (`f?: T`) skips the absence test entirely, so absence stays legal exactly
-    /// where the type says it is. When the field's type has its own emitted
+    /// where the type says it is; a key that is there must hold a `T`, so a
+    /// `null` (unless `T` is `Nullable`) or an `undefined` in it is a `type`
+    /// issue (D45). When the field's type has its own emitted
     /// descriptor the check becomes `T.parse(...)` and its issues are spliced in
     /// with this field's name prepended to each `path`, which is what makes a
     /// nested rejection reportable as `["body", "password"]` and what carries a
@@ -3196,17 +3198,20 @@ impl<'a> Emitter<'a> {
     fn emit_field_parse_check(&mut self, index: usize, field: &RecordTypeField) {
         let fname = field.name.to_string();
         let access = format!("(value as Record<string, unknown>).{fname}");
-        // An optional field is absent in either of JSON's two spellings for it:
-        // the key is omitted, or the key is there holding `null`. Every real
-        // payload uses the second (a Discord gateway frame carries `"s": null`),
-        // and `glyph gen openapi` already maps a `nullable` schema field to an
-        // optional one and documents that a literal null is treated as absent —
-        // the generator said so and the descriptor did not implement it, so a
-        // generated type rejected the payload it was generated from.
-        //
-        // Treating null as absent is the only coherent reading: the field's type
-        // is `T`, and `null` is not a value of `T`.
-        let present = format!("{access} !== undefined && {access} !== null");
+        // An optional field (D45) is an absent key or a `T`. Present means an
+        // own key, whatever it holds: a key holding `null` is refused unless
+        // `T` itself takes null (`f?: Nullable<T>` is the spelling for that),
+        // and a key holding `undefined` is refused always. `is` and every
+        // other route use the same presence test, so they agree on each input.
+        let present = self.field_present("value", &fname);
+        let undefined_issue = format!(
+            "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"type\" }});",
+            escape_double_quoted(&format!("field `{fname}` is undefined; omit the key"))
+        );
+        let null_message = escape_double_quoted(&format!(
+            "field `{fname}` is null; declare it `{fname}?: {}` to accept null",
+            nullable_spelling(&field.ty)
+        ));
         let missing_issue = format!(
             "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"missing\" }});",
             escape_double_quoted(&format!("field `{fname}` is required"))
@@ -3220,9 +3225,6 @@ impl<'a> Emitter<'a> {
                 let depth = self.depth().render();
                 let depth_issue = self.depth_name("depth_issue");
                 let splice = |this: &mut Self| {
-                    this.line(&format!("const {res} = {desc}.__parse({access}, {depth});"));
-                    this.line(&format!("if ({res}.tag === \"Err\") {{"));
-                    this.indent += 1;
                     this.line(&format!("for (const {issue} of {res}.value) {{"));
                     this.indent += 1;
                     this.line(&format!(
@@ -3233,13 +3235,41 @@ impl<'a> Emitter<'a> {
                     ));
                     this.indent -= 1;
                     this.line("}");
+                };
+                let delegate = |this: &mut Self| {
+                    this.line(&format!("const {res} = {desc}.__parse({access}, {depth});"));
+                    this.line(&format!("if ({res}.tag === \"Err\") {{"));
+                    this.indent += 1;
+                    splice(this);
                     this.indent -= 1;
                     this.line("}");
                 };
                 if field.optional {
+                    // A present key is checked by the field's descriptor. A
+                    // `null` it refuses is reported as the optional-field rule,
+                    // not as the descriptor's "expected an object".
                     self.line(&format!("if ({present}) {{"));
                     self.indent += 1;
+                    self.line(&format!("if ({access} === undefined) {{"));
+                    self.indent += 1;
+                    self.line(&undefined_issue);
+                    self.indent -= 1;
+                    self.line("} else {");
+                    self.indent += 1;
+                    self.line(&format!("const {res} = {desc}.__parse({access}, {depth});"));
+                    self.line(&format!("if ({res}.tag === \"Err\" && {access} === null) {{"));
+                    self.indent += 1;
+                    self.line(&format!(
+                        "__issues.push({{ path: [\"{fname}\"], message: {null_message}, code: \"type\" }});"
+                    ));
+                    self.indent -= 1;
+                    self.line(&format!("}} else if ({res}.tag === \"Err\") {{"));
+                    self.indent += 1;
                     splice(self);
+                    self.indent -= 1;
+                    self.line("}");
+                    self.indent -= 1;
+                    self.line("}");
                     self.indent -= 1;
                     self.line("}");
                 } else {
@@ -3249,7 +3279,7 @@ impl<'a> Emitter<'a> {
                     self.indent -= 1;
                     self.line("} else {");
                     self.indent += 1;
-                    splice(self);
+                    delegate(self);
                     self.indent -= 1;
                     self.line("}");
                 }
@@ -3268,13 +3298,27 @@ impl<'a> Emitter<'a> {
                 self.depth_throws.set(false);
                 let check = self.field_value_check(&field.ty, &access);
                 let throws = self.depth_throws.replace(false);
-                let type_issue = format!(
-                    "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"type\" }});",
-                    escape_double_quoted(&format!(
-                        "field `{fname}` must be {}",
-                        type_label(&field.ty)
-                    ))
-                );
+                let type_message =
+                    escape_double_quoted(&format!("field `{fname}` must be {}", type_label(&field.ty)));
+                // A present optional field that fails its check names the
+                // optional-field rule when what it holds is `null`.
+                let type_issue = if field.optional {
+                    format!(
+                        "__issues.push({{ path: [\"{fname}\"], message: {access} === null ? {null_message} : {type_message}, code: \"type\" }});"
+                    )
+                } else {
+                    format!("__issues.push({{ path: [\"{fname}\"], message: {type_message}, code: \"type\" }});")
+                };
+                // An optional field's present-key prologue: the key is there,
+                // so an `undefined` in it is refused before `T` is consulted.
+                let open_present = |this: &mut Self| {
+                    this.line(&format!("if ({present}) {{"));
+                    this.indent += 1;
+                    this.line(&format!("if ({access} === undefined) {{"));
+                    this.indent += 1;
+                    this.line(&undefined_issue);
+                    this.indent -= 1;
+                };
                 if throws {
                     // The check can be refused for depth (D50): run it in a
                     // `try` that catches only the sentinel, and report the
@@ -3300,28 +3344,40 @@ impl<'a> Emitter<'a> {
                         this.line("}");
                     };
                     if field.optional {
-                        self.line(&format!("if ({present}) {{"));
+                        open_present(self);
+                        self.line("} else {");
+                        self.indent += 1;
+                        run(self);
+                        self.indent -= 1;
+                        self.line("}");
+                        self.indent -= 1;
+                        self.line("}");
                     } else {
                         self.line(&format!("if ({access} === undefined) {{"));
                         self.indent += 1;
                         self.line(&missing_issue);
                         self.indent -= 1;
                         self.line("} else {");
+                        self.indent += 1;
+                        run(self);
+                        self.indent -= 1;
+                        self.line("}");
                     }
-                    self.indent += 1;
-                    run(self);
-                    self.indent -= 1;
-                    self.line("}");
                 } else if field.optional {
-                    // An optional field with nothing to check needs no branch
-                    // at all: absent is fine and present is unconstrained.
-                    if !presence_only {
-                        self.line(&format!("if ({present} && !({check})) {{"));
+                    // A present key holding `undefined` is refused; past that,
+                    // a field with nothing to check is unconstrained.
+                    open_present(self);
+                    if presence_only {
+                        self.line("}");
+                    } else {
+                        self.line(&format!("}} else if (!({check})) {{"));
                         self.indent += 1;
                         self.line(&type_issue);
                         self.indent -= 1;
                         self.line("}");
                     }
+                    self.indent -= 1;
+                    self.line("}");
                 } else if presence_only {
                     self.line(&format!("if ({access} === undefined) {{"));
                     self.indent += 1;
@@ -7382,17 +7438,31 @@ impl<'a> Emitter<'a> {
         format!("__is_{param}")
     }
 
+    /// "Field `field` is present on `obj`" (D45): an own key, whatever it
+    /// holds. The one presence test every optional-field route uses, in
+    /// `parse` and in `is`, so the two cannot disagree. An inherited key
+    /// (`toString`) is not present, and a key holding `null` or `undefined`
+    /// is.
+    fn field_present(&self, obj: &str, field: &str) -> String {
+        format!("{}.prototype.hasOwnProperty.call({obj}, \"{field}\")", self.g("Object"))
+    }
+
+    /// The `is` check of an optional field: absent, or present holding a
+    /// value that is not `undefined` and passes the field type's `check`.
+    /// `null` passes only when `check` takes it (`f?: Nullable<T>`).
+    fn optional_field_check(present: &str, access: &str, check: &str) -> String {
+        format!("(!{present} || ({access} !== undefined && {check}))")
+    }
+
     /// One field's runtime check inside a record descriptor's `is` predicate. A
     /// required field must match its type (a missing field reads as `undefined`,
-    /// which every check below rejects); an optional field also passes when it is
-    /// absent.
+    /// which every check below rejects); an optional field also passes when its
+    /// key is absent, and only then (D45, the rule `parse` applies too).
     fn record_field_check(&self, field: &RecordTypeField) -> String {
         let access = format!("(value as Record<string, unknown>).{}", field.name);
         let check = self.field_value_check(&field.ty, &access);
         if field.optional {
-            // Same rule as `emit_field_parse_check`: null is absence.
-            let present = format!("{access} !== undefined && {access} !== null");
-            format!("(!({present}) || {check})")
+            Self::optional_field_check(&self.field_present("value", &field.name), &access, &check)
         } else {
             check
         }
@@ -8026,8 +8096,8 @@ impl<'a> Emitter<'a> {
                         Err(cause) => return FieldCheck::Unverifiable(cause),
                     };
                     if f.optional {
-                        let present = format!("\"{}\" in ({access} as object)", f.name);
-                        checks.push(format!("(!({present}) || {c})"));
+                        let present = self.field_present(&format!("{access} as object"), &f.name);
+                        checks.push(Self::optional_field_check(&present, &sub, &c));
                     } else {
                         checks.push(c);
                     }
@@ -10417,6 +10487,57 @@ fn escape_marker_plane(raw: &str) -> String {
 /// caller reads greps back to the source line that imposed the rule. A shape
 /// with no useful short spelling reads as a noun phrase instead (`a function`,
 /// `an object`).
+/// The declaration that accepts `null` where a field of type `te` holds one,
+/// written as Glyph source, for the optional-field null issue (D45). An
+/// `Option<T>` field becomes `Nullable<T>`, since `Nullable<Option<T>>` is
+/// refused (E0227) and `Nullable<T>` is the wire's spelling of the same
+/// absence; anything else is wrapped as it stands.
+fn nullable_spelling(te: &TypeExpr) -> String {
+    if let TypeExpr::Generic { base, args, .. } = te {
+        if args.len() == 1 && matches!(&**base, TypeExpr::Path { segments, .. } if segments.len() == 1 && segments[0].as_ref() == "Option") {
+            return format!("Nullable<{}>", type_source(&args[0]));
+        }
+    }
+    format!("Nullable<{}>", type_source(te))
+}
+
+/// `te` written back as Glyph source, close enough to paste into a
+/// declaration. [`type_label`] reads better in prose ("an object") and is
+/// what the other issues use; this one is for a message that tells the
+/// reader what to write.
+fn type_source(te: &TypeExpr) -> String {
+    match te {
+        TypeExpr::Generic { base, args, .. } => format!(
+            "{}<{}>",
+            type_source(base),
+            args.iter().map(type_source).collect::<Vec<_>>().join(", ")
+        ),
+        TypeExpr::Record { fields, .. } => {
+            let fields = fields
+                .iter()
+                .map(|f| format!("{}{}: {}", f.name, if f.optional { "?" } else { "" }, type_source(&f.ty)))
+                .collect::<Vec<_>>();
+            format!("{{ {} }}", fields.join(", "))
+        }
+        TypeExpr::Fn { params, return_ty, is_async, .. } => {
+            let params = params
+                .iter()
+                .map(|p| match &p.name {
+                    Some(n) => format!("{n}: {}", type_source(&p.ty)),
+                    None => type_source(&p.ty),
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            let ret = return_ty
+                .as_ref()
+                .map(|r| format!(" -> {}", type_source(r)))
+                .unwrap_or_default();
+            format!("{}fn({params}){ret}", if *is_async { "async " } else { "" })
+        }
+        _ => type_label(te),
+    }
+}
+
 fn type_label(te: &TypeExpr) -> String {
     match te {
         TypeExpr::Path { segments, .. } => segments
@@ -11578,10 +11699,11 @@ mod tests {
             ts.contains("typeof (value as Record<string, unknown>).age === \"number\""),
             "{ts}"
         );
-        // Optional field: passes when absent, where absent is either JSON
-        // spelling — the key omitted, or the key holding `null`.
+        // Optional field: passes when its key is absent, and otherwise must
+        // hold a `boolean`. Present is an own key, whatever it holds (D45), so
+        // a key holding `null` or `undefined` fails here.
         assert!(
-            ts.contains("(!((value as Record<string, unknown>).admin !== undefined && (value as Record<string, unknown>).admin !== null) || typeof (value as Record<string, unknown>).admin === \"boolean\")"),
+            ts.contains("(!Object.prototype.hasOwnProperty.call(value, \"admin\") || ((value as Record<string, unknown>).admin !== undefined && typeof (value as Record<string, unknown>).admin === \"boolean\"))"),
             "{ts}"
         );
         // Nested record field: recurses through the field type's descriptor
@@ -11687,22 +11809,40 @@ mod tests {
         assert_eq!(ts.matches("from \"./.glyph-runtime/std/result\"").count(), 1, "{ts}");
     }
 
-    /// A JSON `null` is absence for an optional field.
+    /// A JSON `null` in an optional field is refused unless the field's type
+    /// takes null (D45, G391).
     ///
-    /// This is the whole of G91's practical half. Every real payload spells a
-    /// missing value as `null` rather than by omitting the key — a Discord
-    /// gateway frame carries `"s": null` in every HELLO — and the descriptor
-    /// rejected it, so the natural spelling of a wire record was unparseable.
-    /// `glyph gen openapi` had documented this exact mapping (`nullable` to an
-    /// optional field, a literal null treated as absent) while the runtime did
-    /// not implement it, so a generated type rejected the payload it was
-    /// generated from.
+    /// This pins the rule that replaced 0.1.68's "null is absence". That rule
+    /// let `json.parse<Opts>("{\"timeout_ms\": null}")` return `Ok` holding a
+    /// `null` the type said was a `number`, on every route, `is` included.
+    /// Present now means an own key whatever it holds, so a key holding `null`
+    /// is checked as a value of `T` and fails; `f?: Nullable<T>` is the
+    /// spelling that takes it. A key holding `undefined` is refused always.
     #[test]
-    fn an_optional_field_accepts_a_json_null_as_absent() {
+    fn an_optional_field_refuses_a_json_null_unless_its_type_is_nullable() {
         let ts = emit("module x\npub type P = { id: string, nick?: string }\n");
         assert!(
-            ts.contains("(value as Record<string, unknown>).nick !== null"),
-            "absence must include an explicit null, got: {ts}"
+            !ts.contains("(value as Record<string, unknown>).nick !== null"),
+            "null must no longer read as absence, got: {ts}"
+        );
+        assert!(
+            ts.contains("Object.prototype.hasOwnProperty.call(value, \"nick\")"),
+            "presence is an own-key test, got: {ts}"
+        );
+        assert!(
+            ts.contains("\"field `nick` is null; declare it `nick?: Nullable<string>` to accept null\""),
+            "a null names the spelling that accepts it, got: {ts}"
+        );
+        assert!(
+            ts.contains("\"field `nick` is undefined; omit the key\""),
+            "an undefined is refused, got: {ts}"
+        );
+        // A `Nullable` field takes null through its own check, with no
+        // special case: the presence test is the same.
+        let nullable = emit("module x\npub type P = { nick?: Nullable<string> }\n");
+        assert!(
+            nullable.contains("(!Object.prototype.hasOwnProperty.call(value, \"nick\") || ((value as Record<string, unknown>).nick !== undefined && ((value as Record<string, unknown>).nick === null || "),
+            "{nullable}"
         );
         // And a required field is unaffected: null there is still a value of the
         // wrong type, not a licence to omit it.
@@ -11713,19 +11853,42 @@ mod tests {
         );
     }
 
+    /// The null issue names a declaration the reader can paste: an `Option`
+    /// field's hint is `Nullable` of its inner type, since
+    /// `Nullable<Option<T>>` is refused (E0227), and an inline record is
+    /// written as source rather than as "an object".
+    #[test]
+    fn the_optional_null_issue_names_a_legal_declaration() {
+        let ts = emit("module x\npub type P = { t?: Option<number>, o?: { a: string, b?: int } }\n");
+        assert!(
+            ts.contains("\"field `t` is null; declare it `t?: Nullable<number>` to accept null\""),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("\"field `o` is null; declare it `o?: Nullable<{ a: string, b?: int }>` to accept null\""),
+            "{ts}"
+        );
+    }
+
     #[test]
     fn optional_field_is_never_reported_as_missing() {
         // `f?: T` says absence is legal, so `parse` tests the value only when the
         // key is present and never emits the `"missing"` branch for it.
         //
-        // Present means neither omitted nor `null`: JSON spells absence both
-        // ways, and a real payload uses the second. `null` is not a value of
-        // `T`, so reading it as absence is the only coherent option.
+        // Present means an own key, whatever it holds (D45): `undefined` in it
+        // is refused first, and anything else must be a `T`, so a `null` fails
+        // the `string` check and is reported as the optional-field rule.
         let ts = emit("module x\npub type P = { id: string, nick?: string }\n");
         assert!(
-            ts.contains(
-                "if ((value as Record<string, unknown>).nick !== undefined && (value as Record<string, unknown>).nick !== null && !(typeof (value as Record<string, unknown>).nick === \"string\")) {"
-            ),
+            ts.contains("if (Object.prototype.hasOwnProperty.call(value, \"nick\")) {"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("if ((value as Record<string, unknown>).nick === undefined) {"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("} else if (!(typeof (value as Record<string, unknown>).nick === \"string\")) {"),
             "{ts}"
         );
         assert!(

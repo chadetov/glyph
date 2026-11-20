@@ -13445,13 +13445,55 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.149 (the release build): no diagnostics (an unrelated unused-import warning only).*
 
-- **G391. An optional field decoded from `null` keeps the `null`, so a spread erases a default.** With `type Opts = { timeout_ms?: number }`, `json.parse<Opts>("{\"timeout_ms\": null}")`
+- **G391. [FIXED] An optional field decoded from `null` keeps the `null`, so a spread erases a default.** With `type Opts = { timeout_ms?: number }`, `json.parse<Opts>("{\"timeout_ms\": null}")`
   is `Ok` (null is absence, by decision), but the decoded object still holds
   the key with `null`. `{ timeout_ms: 5000, ...opts }` then sets it to `null`,
   and `cfg.timeout_ms * 2` is `0`, all typed as `number`. The decoder should
   drop the key, so the value matches what the type says.
 
   *Reproduced against 0.1.149 (the release build): no diagnostics; `glyph run` prints `timeout x2 = 0`.*
+
+  Decided in record 119, against the fix proposed above: refuse, do not
+  drop. Dropping the key would need a decoder that copies or mutates the
+  value on every route, `is` could not drop at all, and the two would then
+  disagree on what they accept. Record 119 also found it worse than written:
+  a host `{ timeout_ms: undefined }` took the same path (`x2 = NaN`), and
+  `t?: Option<number>` holding `null` decoded `Ok` and then threw
+  `TypeError: Cannot read properties of null (reading 'tag')` in a later
+  `match`.
+
+  This supersedes 0.1.68's decision that a `null` in an optional field is
+  absence. That decision was right when Glyph had no way to say "or null",
+  and both of its premises are gone: `glyph gen openapi`, `gen dts` and
+  `gen zod` now write `Nullable<T>` for a nullable field, and
+  `f?: Nullable<T>` is the spelling for absent, null or a value (D45). Left
+  in place, the rule was a second, silent spelling of `Nullable` that lied
+  to `tsc`. 0.1.68's entry in the release roadmap stays as history.
+
+  Fixed in 0.1.152 (D45). An optional field is an absent own key or a `T`.
+  One presence helper in the emitter renders "present" as
+  `Object.prototype.hasOwnProperty.call(v, "f")`, and every optional-field
+  site uses it: a record's `parse` and `is`, a union's inline record
+  payload, an anonymous inline record field and a generic record. A key
+  holding `null` fails `T`'s check unless `T` is `Nullable`, with
+  ``field `timeout_ms` is null; declare it `timeout_ms?: Nullable<number>`
+  to accept null`` (an `Option<T>` field's hint is `Nullable<T>`, since
+  `Nullable<Option<T>>` is E0227); a key holding `undefined` is refused
+  always, with ``field `timeout_ms` is undefined; omit the key``. No value is
+  copied or mutated. The parity test
+  `an_optional_field_has_one_verdict_per_input_on_every_route` drives a
+  `null`, a host `undefined`, an absent key and `5` through 15 routes
+  (both `json.parse` spellings, `T.parse`, `T.is`, `is T`, `parse_with`, a
+  field, an array element, a `Record` value, a generic argument, an optional
+  field of the record's type, a union payload, an `Option` payload, and a
+  sibling's record by name and by namespace) and gets `Err Err Ok Ok` on
+  each; 0.1.149 gave `Ok Ok Ok Ok` on all 15.
+  `an_optional_field_refuses_null_in_every_declaration_form` covers an
+  inline union payload, an inline record field, a generic record, an
+  `@open` record, an alias, `t?: Nullable<int>` (`Ok Err Ok Ok`) and the
+  `Option` field, now refused at the decode. Reverting the helper to the old
+  `!== undefined && !== null` predicate turns both red, the second on the
+  `TypeError` again.
 
 - **G392. `xs.find(...)` as a method is not an `Option` to Glyph's checker.** `users.find(fn(u: User) -> bool { u.id == id }).name` passes `--no-tsc`; only
   `tsc` refuses it (TS2532). The `std/array` form `array.find(users, ...)` is

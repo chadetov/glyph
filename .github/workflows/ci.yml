@@ -280,6 +280,15 @@ jobs:
           GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
         run: python3 scripts/check_runtime_against_types_node.py
 
+      # The runtime is copied into a user's build and checked with the user's
+      # own TypeScript, and the documented floor is 4.9. CI's TypeScript is
+      # newer, so it cannot see a runtime file that needs a later release:
+      # `NoInfer` (5.4) in `std/record.ts` passed every other check and broke
+      # every project on 4.9 to 5.3 (record 126). This compiles the whole
+      # runtime under typescript@4.9.5.
+      - name: Check the runtime compiles on the TypeScript floor
+        run: python3 scripts/check_runtime_ts_floor.py
+
       # The checker types a stdlib call from its own table, and the function
       # that runs is the TypeScript under runtime/std/. Nothing else compares
       # them. For every row `glyph llms --json` calls complete, this binds the

@@ -59,6 +59,7 @@ GATES = [
     ("check_builtin_members", "the checker's array and string members are TypeScript's"),
     ("check_doc_claims", "test counts and promises match reality"),
     ("check_runtime_against_types_node", "the runtime matches its declarations"),
+    ("check_runtime_ts_floor", "the runtime compiles on the documented TypeScript floor, 4.9"),
     ("check_stdlib_signatures", "every complete stdlib signature agrees with the runtime"),
 ]
 

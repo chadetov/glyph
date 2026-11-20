@@ -9,7 +9,7 @@
 // argument and refuses `remove` on a key with a fixed member set; `has` asks
 // about any string. `keys` is `Array<K>` for a string-like key and
 // `Array<string>` for a numeric one, since `Object.keys` yields strings, and
-// Glyph's checker types it the same way. The key argument is `NoInfer<K>`, so
+// Glyph's checker types it the same way. The key argument is `KeyOf<K>`, so
 // `K` is the record's key, as Glyph binds it: a written `"a"` would otherwise
 // narrow `K` to `"a"` and `set` would return a `Record<"a", V>`.
 //
@@ -20,7 +20,11 @@
 
 import { type Option, Some, None } from "./option";
 
-export function get<V, K extends PropertyKey = string>(record: Record<K, V>, key: NoInfer<K>): Option<V> {
+// Blocks inference from the key argument, so K is the record's key
+// (`NoInfer<K>` needs TypeScript 5.4; the runtime's floor is 4.9).
+type KeyOf<K> = [K][K extends unknown ? 0 : never];
+
+export function get<V, K extends PropertyKey = string>(record: Record<K, V>, key: KeyOf<K>): Option<V> {
   return Object.prototype.hasOwnProperty.call(record, key) ? Some(record[key]) : None;
 }
 
@@ -38,11 +42,11 @@ export function values<V, K extends PropertyKey = string>(record: Record<K, V>):
   return Object.values(record);
 }
 
-export function set<V, K extends PropertyKey = string>(record: Record<K, V>, key: NoInfer<K>, value: V): Record<K, V> {
+export function set<V, K extends PropertyKey = string>(record: Record<K, V>, key: KeyOf<K>, value: V): Record<K, V> {
   return { ...record, [key]: value } as Record<K, V>;
 }
 
-export function remove<V, K extends PropertyKey = string>(record: Record<K, V>, key: NoInfer<K>): Record<K, V> {
+export function remove<V, K extends PropertyKey = string>(record: Record<K, V>, key: KeyOf<K>): Record<K, V> {
   const out = { ...record } as Record<K, V>;
   // A `Record<K, V>` declares every key required, so `delete` needs the index
   // signature view. Glyph never calls this with a key that has a fixed member

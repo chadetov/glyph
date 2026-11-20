@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>可能不存在的键 in TypeScript · Glyph</title>
+    <title>TypeScript 中的可能不存在的键 · Glyph</title>
     <meta name="description" content="从一行字符串里读取字段，字段名拼错了。 任何键读出来都是 string，即使键根本不存在，所以拼错的字段打印出 undefined。" />
     <link rel="canonical" href="https://glyphlang.io/zh-cn/catches/absent-map-key/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/zh-cn/catches/absent-map-key/" />
-    <meta property="og:title" content="可能不存在的键 in TypeScript" />
+    <meta property="og:title" content="TypeScript 中的可能不存在的键" />
     <meta property="og:description" content="从一行字符串里读取字段，字段名拼错了。 任何键读出来都是 string，即使键根本不存在，所以拼错的字段打印出 undefined。" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/absent-map-key/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"可能不存在的键 in TypeScript","item":"https://glyphlang.io/zh-cn/catches/absent-map-key/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/absent-map-key/#article","headline":"可能不存在的键 in TypeScript","description":"从一行字符串里读取字段，字段名拼错了。 任何键读出来都是 string，即使键根本不存在，所以拼错的字段打印出 undefined。","url":"https://glyphlang.io/zh-cn/catches/absent-map-key/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/absent-map-key/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/absent-map-key/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript 中的可能不存在的键","item":"https://glyphlang.io/zh-cn/catches/absent-map-key/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/absent-map-key/#article","headline":"TypeScript 中的可能不存在的键","description":"从一行字符串里读取字段，字段名拼错了。 任何键读出来都是 string，即使键根本不存在，所以拼错的字段打印出 undefined。","url":"https://glyphlang.io/zh-cn/catches/absent-map-key/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/absent-map-key/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/absent-map-key/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/absent-map-key/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/zh-cn/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 17 of 37</span></p>
+      <p class="c-crumb"><a href="/zh-cn/catches/">全部 TypeScript 案例</a><span class="sep" aria-hidden="true">/</span><span>第 17 个，共 37 个</span></p>
       <article class="catch c-page" data-ts="flag" data-glyph="build">
         <div class="c-head">
           <span class="c-num">17</span>
@@ -447,15 +447,15 @@
           </div>
         </div>
         <p class="c-note">TypeScript 的 <code>Record&lt;string, string&gt;</code> 声称每个可能的键都有一个字符串。Glyph 把它当作 map，查找可能什么都找不到，所以连拼写正确的 <code>row.name</code> 也会被拒绝。</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=absent-map-key">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">不同意这个评分？</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=absent-map-key">在 Playground 中打开</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">不同意这个评分？</a></p>
       </article>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/catches/typo-nobody-sees/">
-          <span class="dir">Previous case</span>
+          <span class="dir">上一个案例</span>
           <span class="t">没人发现的拼写错误</span>
         </a>
         <a href="/zh-cn/catches/typo-in-an-options-object/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">下一个案例</span>
           <span class="t">选项对象里的拼写错误</span>
         </a>
       </nav>

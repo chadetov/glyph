@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>connection ที่ไม่ได้ปิด in TypeScript · Glyph</title>
+    <title>connection ที่ไม่ได้ปิด ใน TypeScript · Glyph</title>
     <meta name="description" content="return ก่อนจะ cleanup ทุก request ที่ถูกปฏิเสธทำให้ connection รั่วหนึ่งตัว" />
     <link rel="canonical" href="https://glyphlang.io/th/catches/connection-left-open/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/th/catches/connection-left-open/" />
-    <meta property="og:title" content="connection ที่ไม่ได้ปิด in TypeScript" />
+    <meta property="og:title" content="connection ที่ไม่ได้ปิด ใน TypeScript" />
     <meta property="og:description" content="return ก่อนจะ cleanup ทุก request ที่ถูกปฏิเสธทำให้ connection รั่วหนึ่งตัว" />
     <meta property="og:locale" content="th_TH" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/connection-left-open/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"connection ที่ไม่ได้ปิด in TypeScript","item":"https://glyphlang.io/th/catches/connection-left-open/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/connection-left-open/#article","headline":"connection ที่ไม่ได้ปิด in TypeScript","description":"return ก่อนจะ cleanup ทุก request ที่ถูกปฏิเสธทำให้ connection รั่วหนึ่งตัว","url":"https://glyphlang.io/th/catches/connection-left-open/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/connection-left-open/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/connection-left-open/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"connection ที่ไม่ได้ปิด ใน TypeScript","item":"https://glyphlang.io/th/catches/connection-left-open/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/connection-left-open/#article","headline":"connection ที่ไม่ได้ปิด ใน TypeScript","description":"return ก่อนจะ cleanup ทุก request ที่ถูกปฏิเสธทำให้ connection รั่วหนึ่งตัว","url":"https://glyphlang.io/th/catches/connection-left-open/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/connection-left-open/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/connection-left-open/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/connection-left-open/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/th/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 15 of 37</span></p>
+      <p class="c-crumb"><a href="/th/catches/">กรณีของ TypeScript ทั้งหมด</a><span class="sep" aria-hidden="true">/</span><span>กรณีที่ 15 จาก 37</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="build">
         <div class="c-head">
           <span class="c-num">15</span>
@@ -449,15 +449,15 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
         </div>
         <p class="c-note">การตรวจนี้ใช้กับค่าที่ประกาศเป็น <code>owned</code> resource ที่ไม่ได้ประกาศแบบนั้นจะไม่ถูกติดตาม</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=connection-left-open">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=connection-left-open">เปิดใน Playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/catches/number-accepted-as-enum/">
-          <span class="dir">Previous case</span>
+          <span class="dir">กรณีก่อนหน้า</span>
           <span class="t">ตัวเลขที่ถูกรับเป็น enum</span>
         </a>
         <a href="/th/catches/typo-nobody-sees/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">กรณีถัดไป</span>
           <span class="t">คำผิดที่ไม่มีใครเห็น</span>
         </a>
       </nav>

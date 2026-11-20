@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>split 결과를 구조 분해하기 in TypeScript · Glyph</title>
+    <title>TypeScript의 split 결과를 구조 분해하기 · Glyph</title>
     <meta name="description" content="주소를 사용자와 호스트로 나누는 경우. TypeScript는 두 번째 부분이 있다고 가정합니다. @가 없으면 텍스트는 &quot;nobody at undefined&quot;가 됩니다." />
     <link rel="canonical" href="https://glyphlang.io/ko/catches/split-into-a-pair/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ko/catches/split-into-a-pair/" />
-    <meta property="og:title" content="split 결과를 구조 분해하기 in TypeScript" />
+    <meta property="og:title" content="TypeScript의 split 결과를 구조 분해하기" />
     <meta property="og:description" content="주소를 사용자와 호스트로 나누는 경우. TypeScript는 두 번째 부분이 있다고 가정합니다. @가 없으면 텍스트는 &quot;nobody at undefined&quot;가 됩니다." />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/split-into-a-pair/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"split 결과를 구조 분해하기 in TypeScript","item":"https://glyphlang.io/ko/catches/split-into-a-pair/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/split-into-a-pair/#article","headline":"split 결과를 구조 분해하기 in TypeScript","description":"주소를 사용자와 호스트로 나누는 경우. TypeScript는 두 번째 부분이 있다고 가정합니다. @가 없으면 텍스트는 \"nobody at undefined\"가 됩니다.","url":"https://glyphlang.io/ko/catches/split-into-a-pair/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/split-into-a-pair/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/split-into-a-pair/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript의 split 결과를 구조 분해하기","item":"https://glyphlang.io/ko/catches/split-into-a-pair/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/split-into-a-pair/#article","headline":"TypeScript의 split 결과를 구조 분해하기","description":"주소를 사용자와 호스트로 나누는 경우. TypeScript는 두 번째 부분이 있다고 가정합니다. @가 없으면 텍스트는 \"nobody at undefined\"가 됩니다.","url":"https://glyphlang.io/ko/catches/split-into-a-pair/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/split-into-a-pair/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/split-into-a-pair/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/split-into-a-pair/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ko/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 11 of 37</span></p>
+      <p class="c-crumb"><a href="/ko/catches/">모든 TypeScript 사례</a><span class="sep" aria-hidden="true">/</span><span>사례 11 / 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">11</span>
@@ -445,15 +445,15 @@
           </div>
         </div>
         <p class="c-note"><code>split</code>은 조각 하나만 반환할 수 있습니다. 그런데도 TypeScript는 <code>host</code>의 타입을 <code>string</code>으로 지정합니다.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=split-into-a-pair">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=split-into-a-pair">플레이그라운드에서 열기</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">점수에 동의하지 않나요?</a></p>
       </article>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/catches/lost-update-across-await/">
-          <span class="dir">Previous case</span>
+          <span class="dir">이전 사례</span>
           <span class="t"><code>await</code>를 사이에 둔 갱신 손실</span>
         </a>
         <a href="/ko/catches/value-outside-the-list/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">다음 사례</span>
           <span class="t">목록에 없는 값</span>
         </a>
       </nav>

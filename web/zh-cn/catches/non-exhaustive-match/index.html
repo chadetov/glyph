@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>没人处理的情况 in TypeScript · Glyph</title>
+    <title>TypeScript 中的没人处理的情况 · Glyph</title>
     <meta name="description" content="智能体新增了 &quot;archived&quot; 状态。负责通报每种状态的处理函数写于它出现之前。 归档一个条目时什么日志都没有。没有任何提示说这个 switch 已经过时。" />
     <link rel="canonical" href="https://glyphlang.io/zh-cn/catches/non-exhaustive-match/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/zh-cn/catches/non-exhaustive-match/" />
-    <meta property="og:title" content="没人处理的情况 in TypeScript" />
+    <meta property="og:title" content="TypeScript 中的没人处理的情况" />
     <meta property="og:description" content="智能体新增了 &quot;archived&quot; 状态。负责通报每种状态的处理函数写于它出现之前。 归档一个条目时什么日志都没有。没有任何提示说这个 switch 已经过时。" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"没人处理的情况 in TypeScript","item":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/#article","headline":"没人处理的情况 in TypeScript","description":"智能体新增了 \"archived\" 状态。负责通报每种状态的处理函数写于它出现之前。 归档一个条目时什么日志都没有。没有任何提示说这个 switch 已经过时。","url":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript 中的没人处理的情况","item":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/#article","headline":"TypeScript 中的没人处理的情况","description":"智能体新增了 \"archived\" 状态。负责通报每种状态的处理函数写于它出现之前。 归档一个条目时什么日志都没有。没有任何提示说这个 switch 已经过时。","url":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/non-exhaustive-match/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/non-exhaustive-match/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/zh-cn/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 2 of 37</span></p>
+      <p class="c-crumb"><a href="/zh-cn/catches/">全部 TypeScript 案例</a><span class="sep" aria-hidden="true">/</span><span>第 2 个，共 37 个</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">2</span>
@@ -458,15 +458,15 @@
           </div>
         </div>
         <p class="c-note">只有当函数在每个分支都返回值，或者使用 <code>assertNever</code> 惯用法时，TypeScript 才会检查 <code>switch</code> 是否覆盖了每种情况。不返回任何值的处理函数两者都得不到。在 Glyph 中每个 <code>match</code> 都必须覆盖所有情况，所以新增一个变体就会列出每个需要修改的地方。</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">不同意这个评分？</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">在 Playground 中打开</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">不同意这个评分？</a></p>
       </article>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/catches/data-from-outside-the-program/">
-          <span class="dir">Previous case</span>
+          <span class="dir">上一个案例</span>
           <span class="t">来自程序外部的数据</span>
         </a>
         <a href="/zh-cn/catches/trusting-find-with-bang/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">下一个案例</span>
           <span class="t">用 <code>!</code> 信任 <code>find</code> 的结果</span>
         </a>
       </nav>

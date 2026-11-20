@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>숫자가 아닌 숫자 in TypeScript · Glyph</title>
+    <title>TypeScript의 숫자가 아닌 숫자 · Glyph</title>
     <meta name="description" content="사용자 입력, 쿼리 문자열, CSV 셀. NaN이 퍼집니다. 닿는 모든 합계로 번집니다." />
     <link rel="canonical" href="https://glyphlang.io/ko/catches/number-that-is-not-a-number/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ko/catches/number-that-is-not-a-number/" />
-    <meta property="og:title" content="숫자가 아닌 숫자 in TypeScript" />
+    <meta property="og:title" content="TypeScript의 숫자가 아닌 숫자" />
     <meta property="og:description" content="사용자 입력, 쿼리 문자열, CSV 셀. NaN이 퍼집니다. 닿는 모든 합계로 번집니다." />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"숫자가 아닌 숫자 in TypeScript","item":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/#article","headline":"숫자가 아닌 숫자 in TypeScript","description":"사용자 입력, 쿼리 문자열, CSV 셀. NaN이 퍼집니다. 닿는 모든 합계로 번집니다.","url":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript의 숫자가 아닌 숫자","item":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/#article","headline":"TypeScript의 숫자가 아닌 숫자","description":"사용자 입력, 쿼리 문자열, CSV 셀. NaN이 퍼집니다. 닿는 모든 합계로 번집니다.","url":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/number-that-is-not-a-number/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/number-that-is-not-a-number/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/number-that-is-not-a-number/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ko/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 22 of 37</span></p>
+      <p class="c-crumb"><a href="/ko/catches/">모든 TypeScript 사례</a><span class="sep" aria-hidden="true">/</span><span>사례 22 / 37</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="build">
         <div class="c-head">
           <span class="c-num">22</span>
@@ -449,15 +449,15 @@
           </div>
         </div>
         <p class="c-note">오류는 <code>total</code>이 호출되기도 전에 이 줄을 가리킵니다. 컴파일하려면 잘못된 입력이 무엇을 뜻하는지 코드에 적어야 합니다: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code></p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=number-that-is-not-a-number">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=number-that-is-not-a-number">플레이그라운드에서 열기</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">점수에 동의하지 않나요?</a></p>
       </article>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/catches/template-prints-undefined/">
-          <span class="dir">Previous case</span>
+          <span class="dir">이전 사례</span>
           <span class="t">"undefined"를 출력하는 템플릿</span>
         </a>
         <a href="/ko/catches/comparing-records-with-triple-equals/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">다음 사례</span>
           <span class="t">두 레코드를 <code>===</code>로 비교하기</span>
         </a>
       </nav>

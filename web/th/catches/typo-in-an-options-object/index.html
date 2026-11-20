@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>พิมพ์ผิดใน options object in TypeScript · Glyph</title>
+    <title>พิมพ์ผิดใน options object ใน TypeScript · Glyph</title>
     <meta name="description" content="สร้าง options ไว้ในตัวแปรก่อน แล้วค่อยส่งเข้าไป option ที่สะกดผิดถูกทิ้งไปเงียบๆ" />
     <link rel="canonical" href="https://glyphlang.io/th/catches/typo-in-an-options-object/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/th/catches/typo-in-an-options-object/" />
-    <meta property="og:title" content="พิมพ์ผิดใน options object in TypeScript" />
+    <meta property="og:title" content="พิมพ์ผิดใน options object ใน TypeScript" />
     <meta property="og:description" content="สร้าง options ไว้ในตัวแปรก่อน แล้วค่อยส่งเข้าไป option ที่สะกดผิดถูกทิ้งไปเงียบๆ" />
     <meta property="og:locale" content="th_TH" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/typo-in-an-options-object/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"พิมพ์ผิดใน options object in TypeScript","item":"https://glyphlang.io/th/catches/typo-in-an-options-object/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/typo-in-an-options-object/#article","headline":"พิมพ์ผิดใน options object in TypeScript","description":"สร้าง options ไว้ในตัวแปรก่อน แล้วค่อยส่งเข้าไป option ที่สะกดผิดถูกทิ้งไปเงียบๆ","url":"https://glyphlang.io/th/catches/typo-in-an-options-object/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/typo-in-an-options-object/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/typo-in-an-options-object/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"พิมพ์ผิดใน options object ใน TypeScript","item":"https://glyphlang.io/th/catches/typo-in-an-options-object/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/typo-in-an-options-object/#article","headline":"พิมพ์ผิดใน options object ใน TypeScript","description":"สร้าง options ไว้ในตัวแปรก่อน แล้วค่อยส่งเข้าไป option ที่สะกดผิดถูกทิ้งไปเงียบๆ","url":"https://glyphlang.io/th/catches/typo-in-an-options-object/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/typo-in-an-options-object/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/typo-in-an-options-object/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/typo-in-an-options-object/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/th/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 18 of 37</span></p>
+      <p class="c-crumb"><a href="/th/catches/">กรณีของ TypeScript ทั้งหมด</a><span class="sep" aria-hidden="true">/</span><span>กรณีที่ 18 จาก 37</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="build">
         <div class="c-head">
           <span class="c-num">18</span>
@@ -445,15 +445,15 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">TypeScript ตรวจ key ที่ไม่รู้จักเฉพาะใน literal ที่เขียนลงไปในการเรียกโดยตรง ไม่ตรวจ literal ที่สร้างไว้ในตัวแปรก่อน</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=typo-in-an-options-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=typo-in-an-options-object">เปิดใน Playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/catches/absent-map-key/">
-          <span class="dir">Previous case</span>
+          <span class="dir">กรณีก่อนหน้า</span>
           <span class="t">key ที่อาจไม่มีอยู่</span>
         </a>
         <a href="/th/catches/invalid-date/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">กรณีถัดไป</span>
           <span class="t">วันที่ที่ไม่ถูกต้อง</span>
         </a>
       </nav>

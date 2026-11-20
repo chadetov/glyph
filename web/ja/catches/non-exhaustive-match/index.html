@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>誰も扱わなかったケース in TypeScript · Glyph</title>
+    <title>TypeScript の誰も扱わなかったケース · Glyph</title>
     <meta name="description" content="エージェントが &quot;archived&quot; というステータスを追加する。各ステータスを通知するハンドラは、それが存在する前に書かれていた。 アイテムをアーカイブしても何もログに出ません。switch が古くなっていることを示すものは何もありません。" />
     <link rel="canonical" href="https://glyphlang.io/ja/catches/non-exhaustive-match/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ja/catches/non-exhaustive-match/" />
-    <meta property="og:title" content="誰も扱わなかったケース in TypeScript" />
+    <meta property="og:title" content="TypeScript の誰も扱わなかったケース" />
     <meta property="og:description" content="エージェントが &quot;archived&quot; というステータスを追加する。各ステータスを通知するハンドラは、それが存在する前に書かれていた。 アイテムをアーカイブしても何もログに出ません。switch が古くなっていることを示すものは何もありません。" />
     <meta property="og:locale" content="ja_JP" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"TypeScript が通してしまい、Glyph が検出するもの","item":"https://glyphlang.io/ja/catches/"},{"@type":"ListItem","position":3,"name":"誰も扱わなかったケース in TypeScript","item":"https://glyphlang.io/ja/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/catches/non-exhaustive-match/#article","headline":"誰も扱わなかったケース in TypeScript","description":"エージェントが \"archived\" というステータスを追加する。各ステータスを通知するハンドラは、それが存在する前に書かれていた。 アイテムをアーカイブしても何もログに出ません。switch が古くなっていることを示すものは何もありません。","url":"https://glyphlang.io/ja/catches/non-exhaustive-match/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"TypeScript が通してしまい、Glyph が検出するもの","item":"https://glyphlang.io/ja/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript の誰も扱わなかったケース","item":"https://glyphlang.io/ja/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/catches/non-exhaustive-match/#article","headline":"TypeScript の誰も扱わなかったケース","description":"エージェントが \"archived\" というステータスを追加する。各ステータスを通知するハンドラは、それが存在する前に書かれていた。 アイテムをアーカイブしても何もログに出ません。switch が古くなっていることを示すものは何もありません。","url":"https://glyphlang.io/ja/catches/non-exhaustive-match/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/non-exhaustive-match/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/non-exhaustive-match/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ja/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 2 of 37</span></p>
+      <p class="c-crumb"><a href="/ja/catches/">TypeScript のケース一覧</a><span class="sep" aria-hidden="true">/</span><span>ケース 2 / 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">2</span>
@@ -458,15 +458,15 @@
           </div>
         </div>
         <p class="c-note">TypeScript が <code>switch</code> ですべてのケースが扱われているかを検査するのは、関数がすべての分岐から値を返す場合か、<code>assertNever</code> のイディオムを使った場合だけです。何も返さないハンドラはどちらにも当てはまりません。Glyph ではすべての <code>match</code> がすべてのケースを扱わなければならないので、バリアントを追加すると、変更が必要な箇所がすべて一覧されます。</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">この評価に異論がありますか？</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">Playground で開く</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">再現する</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">この評価に異論がありますか？</a></p>
       </article>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/catches/data-from-outside-the-program/">
-          <span class="dir">Previous case</span>
+          <span class="dir">前のケース</span>
           <span class="t">プログラムの外から来るデータ</span>
         </a>
         <a href="/ja/catches/trusting-find-with-bang/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">次のケース</span>
           <span class="t"><code>!</code> で <code>find</code> を信用する</span>
         </a>
       </nav>

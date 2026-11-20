@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>await를 사이에 둔 갱신 손실 in TypeScript · Glyph</title>
+    <title>TypeScript의 await를 사이에 둔 갱신 손실 · Glyph</title>
     <meta name="description" content="두 요청이 같은 계정에 동시에 요금을 부과하는 경우. 요금 하나가 사라집니다. 어떤 테스트도 이를 안정적으로 잡지 못합니다." />
     <link rel="canonical" href="https://glyphlang.io/ko/catches/lost-update-across-await/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ko/catches/lost-update-across-await/" />
-    <meta property="og:title" content="await를 사이에 둔 갱신 손실 in TypeScript" />
+    <meta property="og:title" content="TypeScript의 await를 사이에 둔 갱신 손실" />
     <meta property="og:description" content="두 요청이 같은 계정에 동시에 요금을 부과하는 경우. 요금 하나가 사라집니다. 어떤 테스트도 이를 안정적으로 잡지 못합니다." />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/lost-update-across-await/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"await를 사이에 둔 갱신 손실 in TypeScript","item":"https://glyphlang.io/ko/catches/lost-update-across-await/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/lost-update-across-await/#article","headline":"await를 사이에 둔 갱신 손실 in TypeScript","description":"두 요청이 같은 계정에 동시에 요금을 부과하는 경우. 요금 하나가 사라집니다. 어떤 테스트도 이를 안정적으로 잡지 못합니다.","url":"https://glyphlang.io/ko/catches/lost-update-across-await/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/lost-update-across-await/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/catches/lost-update-across-await/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript가 통과시키고 Glyph가 잡아내는 것","item":"https://glyphlang.io/ko/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript의 await를 사이에 둔 갱신 손실","item":"https://glyphlang.io/ko/catches/lost-update-across-await/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/catches/lost-update-across-await/#article","headline":"TypeScript의 await를 사이에 둔 갱신 손실","description":"두 요청이 같은 계정에 동시에 요금을 부과하는 경우. 요금 하나가 사라집니다. 어떤 테스트도 이를 안정적으로 잡지 못합니다.","url":"https://glyphlang.io/ko/catches/lost-update-across-await/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/catches/lost-update-across-await/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/lost-update-across-await/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/lost-update-across-await/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ko/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 10 of 37</span></p>
+      <p class="c-crumb"><a href="/ko/catches/">모든 TypeScript 사례</a><span class="sep" aria-hidden="true">/</span><span>사례 10 / 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">10</span>
@@ -447,15 +447,15 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">한 호출이 <code>fee()</code>를 기다리는 동안 다른 호출이 잔액을 갱신할 수 있습니다. 그러면 첫 번째 호출이 오래된 값을 다시 씁니다.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=lost-update-across-await">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=lost-update-across-await">플레이그라운드에서 열기</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">점수에 동의하지 않나요?</a></p>
       </article>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/catches/unvalidated-boundary-read/">
-          <span class="dir">Previous case</span>
+          <span class="dir">이전 사례</span>
           <span class="t">검사 없이 타입이 붙은 파싱된 본문</span>
         </a>
         <a href="/ko/catches/split-into-a-pair/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">다음 사례</span>
           <span class="t"><code>split</code> 결과를 구조 분해하기</span>
         </a>
       </nav>

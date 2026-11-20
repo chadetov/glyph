@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>การแก้ไขที่ซ่อนอยู่ใน helper in TypeScript · Glyph</title>
+    <title>การแก้ไขที่ซ่อนอยู่ใน helper ใน TypeScript · Glyph</title>
     <meta name="description" content="ฟังก์ชันที่แก้ object ที่ได้รับมา user ของผู้เรียกถูกเปลี่ยนชื่อ โดยไม่มีอะไรที่จุดเรียกบอกไว้เลย" />
     <link rel="canonical" href="https://glyphlang.io/th/catches/change-hidden-in-a-helper/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/th/catches/change-hidden-in-a-helper/" />
-    <meta property="og:title" content="การแก้ไขที่ซ่อนอยู่ใน helper in TypeScript" />
+    <meta property="og:title" content="การแก้ไขที่ซ่อนอยู่ใน helper ใน TypeScript" />
     <meta property="og:description" content="ฟังก์ชันที่แก้ object ที่ได้รับมา user ของผู้เรียกถูกเปลี่ยนชื่อ โดยไม่มีอะไรที่จุดเรียกบอกไว้เลย" />
     <meta property="og:locale" content="th_TH" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"การแก้ไขที่ซ่อนอยู่ใน helper in TypeScript","item":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/#article","headline":"การแก้ไขที่ซ่อนอยู่ใน helper in TypeScript","description":"ฟังก์ชันที่แก้ object ที่ได้รับมา user ของผู้เรียกถูกเปลี่ยนชื่อ โดยไม่มีอะไรที่จุดเรียกบอกไว้เลย","url":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"การแก้ไขที่ซ่อนอยู่ใน helper ใน TypeScript","item":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/#article","headline":"การแก้ไขที่ซ่อนอยู่ใน helper ใน TypeScript","description":"ฟังก์ชันที่แก้ object ที่ได้รับมา user ของผู้เรียกถูกเปลี่ยนชื่อ โดยไม่มีอะไรที่จุดเรียกบอกไว้เลย","url":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/change-hidden-in-a-helper/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/change-hidden-in-a-helper/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/change-hidden-in-a-helper/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/th/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 24 of 37</span></p>
+      <p class="c-crumb"><a href="/th/catches/">กรณีของ TypeScript ทั้งหมด</a><span class="sep" aria-hidden="true">/</span><span>กรณีที่ 24 จาก 37</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="build">
         <div class="c-head">
           <span class="c-num">24</span>
@@ -446,15 +446,15 @@
           </div>
         </div>
         <p class="c-note">Glyph ไม่ได้ห้ามการแก้ไข แต่ทำให้มองเห็นได้: ค้นหา <code>mut</code> แล้วจะได้รายการทุก field ที่ฟังก์ชันเขียนทับ</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=change-hidden-in-a-helper">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=change-hidden-in-a-helper">เปิดใน Playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/catches/comparing-records-with-triple-equals/">
-          <span class="dir">Previous case</span>
+          <span class="dir">กรณีก่อนหน้า</span>
           <span class="t">เปรียบเทียบ record สองตัวด้วย <code>===</code></span>
         </a>
         <a href="/th/catches/negative-age/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">กรณีถัดไป</span>
           <span class="t">อายุติดลบ</span>
         </a>
       </nav>

@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>不是数字的数字 in TypeScript · Glyph</title>
+    <title>TypeScript 中的不是数字的数字 · Glyph</title>
     <meta name="description" content="用户输入、查询字符串、CSV 单元格。 NaN 会扩散到它碰到的每一个求和里。" />
     <link rel="canonical" href="https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/" />
-    <meta property="og:title" content="不是数字的数字 in TypeScript" />
+    <meta property="og:title" content="TypeScript 中的不是数字的数字" />
     <meta property="og:description" content="用户输入、查询字符串、CSV 单元格。 NaN 会扩散到它碰到的每一个求和里。" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"不是数字的数字 in TypeScript","item":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/#article","headline":"不是数字的数字 in TypeScript","description":"用户输入、查询字符串、CSV 单元格。 NaN 会扩散到它碰到的每一个求和里。","url":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"TypeScript 放过、Glyph 能发现的问题","item":"https://glyphlang.io/zh-cn/catches/"},{"@type":"ListItem","position":3,"name":"TypeScript 中的不是数字的数字","item":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/#article","headline":"TypeScript 中的不是数字的数字","description":"用户输入、查询字符串、CSV 单元格。 NaN 会扩散到它碰到的每一个求和里。","url":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/catches/number-that-is-not-a-number/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/number-that-is-not-a-number/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/number-that-is-not-a-number/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/zh-cn/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 22 of 37</span></p>
+      <p class="c-crumb"><a href="/zh-cn/catches/">全部 TypeScript 案例</a><span class="sep" aria-hidden="true">/</span><span>第 22 个，共 37 个</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="build">
         <div class="c-head">
           <span class="c-num">22</span>
@@ -449,15 +449,15 @@
           </div>
         </div>
         <p class="c-note">错误指向这一行，那时 <code>total</code> 还根本没被调用。要通过编译，代码必须写明错误输入意味着什么：<code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code></p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=number-that-is-not-a-number">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">不同意这个评分？</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=number-that-is-not-a-number">在 Playground 中打开</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">不同意这个评分？</a></p>
       </article>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/catches/template-prints-undefined/">
-          <span class="dir">Previous case</span>
+          <span class="dir">上一个案例</span>
           <span class="t">打印出“undefined”的模板</span>
         </a>
         <a href="/zh-cn/catches/comparing-records-with-triple-equals/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">下一个案例</span>
           <span class="t">用 <code>===</code> 比较两个记录</span>
         </a>
       </nav>

@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>เปรียบเทียบ record สองตัวด้วย === in TypeScript · Glyph</title>
+    <title>เปรียบเทียบ record สองตัวด้วย === ใน TypeScript · Glyph</title>
     <meta name="description" content="ข้ามการบันทึกเมื่อไม่มีอะไรเปลี่ยน ข้อมูลเหมือนกัน แต่ === ถามว่าเป็น object ตัวเดียวกันหรือไม่ การบันทึกจึงรันทุกครั้ง" />
     <link rel="canonical" href="https://glyphlang.io/th/catches/comparing-records-with-triple-equals/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/th/catches/comparing-records-with-triple-equals/" />
-    <meta property="og:title" content="เปรียบเทียบ record สองตัวด้วย === in TypeScript" />
+    <meta property="og:title" content="เปรียบเทียบ record สองตัวด้วย === ใน TypeScript" />
     <meta property="og:description" content="ข้ามการบันทึกเมื่อไม่มีอะไรเปลี่ยน ข้อมูลเหมือนกัน แต่ === ถามว่าเป็น object ตัวเดียวกันหรือไม่ การบันทึกจึงรันทุกครั้ง" />
     <meta property="og:locale" content="th_TH" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"เปรียบเทียบ record สองตัวด้วย === in TypeScript","item":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/#article","headline":"เปรียบเทียบ record สองตัวด้วย === in TypeScript","description":"ข้ามการบันทึกเมื่อไม่มีอะไรเปลี่ยน ข้อมูลเหมือนกัน แต่ === ถามว่าเป็น object ตัวเดียวกันหรือไม่ การบันทึกจึงรันทุกครั้ง","url":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"เปรียบเทียบ record สองตัวด้วย === ใน TypeScript","item":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/#article","headline":"เปรียบเทียบ record สองตัวด้วย === ใน TypeScript","description":"ข้ามการบันทึกเมื่อไม่มีอะไรเปลี่ยน ข้อมูลเหมือนกัน แต่ === ถามว่าเป็น object ตัวเดียวกันหรือไม่ การบันทึกจึงรันทุกครั้ง","url":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/comparing-records-with-triple-equals/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/comparing-records-with-triple-equals/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/comparing-records-with-triple-equals/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/th/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 23 of 37</span></p>
+      <p class="c-crumb"><a href="/th/catches/">กรณีของ TypeScript ทั้งหมด</a><span class="sep" aria-hidden="true">/</span><span>กรณีที่ 23 จาก 37</span></p>
       <article class="catch c-page" data-ts="none" data-glyph="design">
         <div class="c-head">
           <span class="c-num">23</span>
@@ -452,11 +452,11 @@
       </article>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/catches/number-that-is-not-a-number/">
-          <span class="dir">Previous case</span>
+          <span class="dir">กรณีก่อนหน้า</span>
           <span class="t">ตัวเลขที่ไม่ใช่ตัวเลข</span>
         </a>
         <a href="/th/catches/change-hidden-in-a-helper/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">กรณีถัดไป</span>
           <span class="t">การแก้ไขที่ซ่อนอยู่ใน helper</span>
         </a>
       </nav>

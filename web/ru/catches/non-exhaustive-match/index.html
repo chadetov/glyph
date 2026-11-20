@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Необработанный вариант in TypeScript · Glyph</title>
+    <title>Необработанный вариант в TypeScript · Glyph</title>
     <meta name="description" content="Агент добавляет статус &quot;archived&quot;. Обработчик, который сообщает о каждом статусе, был написан до его появления. Архивирование ничего не пишет в лог. Ничто не говорит, что switch устарел." />
     <link rel="canonical" href="https://glyphlang.io/ru/catches/non-exhaustive-match/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/ru/catches/non-exhaustive-match/" />
-    <meta property="og:title" content="Необработанный вариант in TypeScript" />
+    <meta property="og:title" content="Необработанный вариант в TypeScript" />
     <meta property="og:description" content="Агент добавляет статус &quot;archived&quot;. Обработчик, который сообщает о каждом статусе, был написан до его появления. Архивирование ничего не пишет в лог. Ничто не говорит, что switch устарел." />
     <meta property="og:locale" content="ru_RU" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Что TypeScript пропускает, а Glyph ловит","item":"https://glyphlang.io/ru/catches/"},{"@type":"ListItem","position":3,"name":"Необработанный вариант in TypeScript","item":"https://glyphlang.io/ru/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/catches/non-exhaustive-match/#article","headline":"Необработанный вариант in TypeScript","description":"Агент добавляет статус \"archived\". Обработчик, который сообщает о каждом статусе, был написан до его появления. Архивирование ничего не пишет в лог. Ничто не говорит, что switch устарел.","url":"https://glyphlang.io/ru/catches/non-exhaustive-match/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Что TypeScript пропускает, а Glyph ловит","item":"https://glyphlang.io/ru/catches/"},{"@type":"ListItem","position":3,"name":"Необработанный вариант в TypeScript","item":"https://glyphlang.io/ru/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/catches/non-exhaustive-match/#article","headline":"Необработанный вариант в TypeScript","description":"Агент добавляет статус \"archived\". Обработчик, который сообщает о каждом статусе, был написан до его появления. Архивирование ничего не пишет в лог. Ничто не говорит, что switch устарел.","url":"https://glyphlang.io/ru/catches/non-exhaustive-match/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/non-exhaustive-match/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/non-exhaustive-match/" />
@@ -418,7 +418,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/ru/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 2 of 37</span></p>
+      <p class="c-crumb"><a href="/ru/catches/">Все случаи в TypeScript</a><span class="sep" aria-hidden="true">/</span><span>Случай 2 из 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">2</span>
@@ -456,15 +456,15 @@
           </div>
         </div>
         <p class="c-note">TypeScript проверяет, что <code>switch</code> покрывает все варианты, только если функция возвращает значение из каждой ветки, или с идиомой <code>assertNever</code>. Обработчик, который ничего не возвращает, не получает ни того, ни другого. В Glyph каждый <code>match</code> обязан покрыть все варианты, поэтому добавление нового варианта перечисляет все места, которые нужно изменить.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">Воспроизвести</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">Не согласны с оценкой?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">Открыть в песочнице</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">Воспроизвести</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">Не согласны с оценкой?</a></p>
       </article>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/catches/data-from-outside-the-program/">
-          <span class="dir">Previous case</span>
+          <span class="dir">Предыдущий случай</span>
           <span class="t">Данные извне программы</span>
         </a>
         <a href="/ru/catches/trusting-find-with-bang/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">Следующий случай</span>
           <span class="t">Доверие к <code>find</code> через <code>!</code></span>
         </a>
       </nav>

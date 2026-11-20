@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Um caso que ninguém tratou in TypeScript · Glyph</title>
+    <title>Um caso que ninguém tratou em TypeScript · Glyph</title>
     <meta name="description" content="Um agente adiciona um status &quot;archived&quot;. O handler que anuncia cada status foi escrito antes de ele existir. Arquivar um item não loga nada. Nada diz que o switch está desatualizado." />
     <link rel="canonical" href="https://glyphlang.io/pt-br/catches/non-exhaustive-match/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/pt-br/catches/non-exhaustive-match/" />
-    <meta property="og:title" content="Um caso que ninguém tratou in TypeScript" />
+    <meta property="og:title" content="Um caso que ninguém tratou em TypeScript" />
     <meta property="og:description" content="Um agente adiciona um status &quot;archived&quot;. O handler que anuncia cada status foi escrito antes de ele existir. Arquivar um item não loga nada. Nada diz que o switch está desatualizado." />
     <meta property="og:locale" content="pt_BR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"O que o TypeScript deixa passar e o Glyph detecta","item":"https://glyphlang.io/pt-br/catches/"},{"@type":"ListItem","position":3,"name":"Um caso que ninguém tratou in TypeScript","item":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/#article","headline":"Um caso que ninguém tratou in TypeScript","description":"Um agente adiciona um status \"archived\". O handler que anuncia cada status foi escrito antes de ele existir. Arquivar um item não loga nada. Nada diz que o switch está desatualizado.","url":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"O que o TypeScript deixa passar e o Glyph detecta","item":"https://glyphlang.io/pt-br/catches/"},{"@type":"ListItem","position":3,"name":"Um caso que ninguém tratou em TypeScript","item":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/#article","headline":"Um caso que ninguém tratou em TypeScript","description":"Um agente adiciona um status \"archived\". O handler que anuncia cada status foi escrito antes de ele existir. Arquivar um item não loga nada. Nada diz que o switch está desatualizado.","url":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/non-exhaustive-match/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/non-exhaustive-match/" />
@@ -418,7 +418,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/pt-br/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 2 of 37</span></p>
+      <p class="c-crumb"><a href="/pt-br/catches/">Todos os casos de TypeScript</a><span class="sep" aria-hidden="true">/</span><span>Caso 2 de 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">2</span>
@@ -456,15 +456,15 @@
           </div>
         </div>
         <p class="c-note">O TypeScript só verifica se um <code>switch</code> cobre todos os casos quando a função retorna um valor em todo branch, ou com o idioma <code>assertNever</code>. Um handler que não retorna nada não tem nenhum dos dois. Em Glyph, todo <code>match</code> precisa cobrir todos os casos, então adicionar uma variante lista cada lugar que precisa mudar.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">Reproduzir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">Discorda da nota?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">Abrir no playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">Reproduzir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">Discorda da nota?</a></p>
       </article>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/catches/data-from-outside-the-program/">
-          <span class="dir">Previous case</span>
+          <span class="dir">Caso anterior</span>
           <span class="t">Dados de fora do programa</span>
         </a>
         <a href="/pt-br/catches/trusting-find-with-bang/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">Próximo caso</span>
           <span class="t">Confiar em <code>find</code> com <code>!</code></span>
         </a>
       </nav>

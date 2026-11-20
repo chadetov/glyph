@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>case ที่ไม่มีใครจัดการ in TypeScript · Glyph</title>
+    <title>case ที่ไม่มีใครจัดการ ใน TypeScript · Glyph</title>
     <meta name="description" content="เอเจนต์เพิ่มสถานะ &quot;archived&quot; แต่ handler ที่ประกาศแต่ละสถานะถูกเขียนก่อนที่สถานะนี้จะมี การ archive รายการไม่ log อะไรเลย ไม่มีอะไรบอกว่า switch ล้าสมัยแล้ว" />
     <link rel="canonical" href="https://glyphlang.io/th/catches/non-exhaustive-match/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/th/catches/non-exhaustive-match/" />
-    <meta property="og:title" content="case ที่ไม่มีใครจัดการ in TypeScript" />
+    <meta property="og:title" content="case ที่ไม่มีใครจัดการ ใน TypeScript" />
     <meta property="og:description" content="เอเจนต์เพิ่มสถานะ &quot;archived&quot; แต่ handler ที่ประกาศแต่ละสถานะถูกเขียนก่อนที่สถานะนี้จะมี การ archive รายการไม่ log อะไรเลย ไม่มีอะไรบอกว่า switch ล้าสมัยแล้ว" />
     <meta property="og:locale" content="th_TH" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"case ที่ไม่มีใครจัดการ in TypeScript","item":"https://glyphlang.io/th/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/non-exhaustive-match/#article","headline":"case ที่ไม่มีใครจัดการ in TypeScript","description":"เอเจนต์เพิ่มสถานะ \"archived\" แต่ handler ที่ประกาศแต่ละสถานะถูกเขียนก่อนที่สถานะนี้จะมี การ archive รายการไม่ log อะไรเลย ไม่มีอะไรบอกว่า switch ล้าสมัยแล้ว","url":"https://glyphlang.io/th/catches/non-exhaustive-match/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/catches/non-exhaustive-match/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"สิ่งที่ TypeScript ปล่อยผ่านแต่ Glyph จับได้","item":"https://glyphlang.io/th/catches/"},{"@type":"ListItem","position":3,"name":"case ที่ไม่มีใครจัดการ ใน TypeScript","item":"https://glyphlang.io/th/catches/non-exhaustive-match/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/catches/non-exhaustive-match/#article","headline":"case ที่ไม่มีใครจัดการ ใน TypeScript","description":"เอเจนต์เพิ่มสถานะ \"archived\" แต่ handler ที่ประกาศแต่ละสถานะถูกเขียนก่อนที่สถานะนี้จะมี การ archive รายการไม่ log อะไรเลย ไม่มีอะไรบอกว่า switch ล้าสมัยแล้ว","url":"https://glyphlang.io/th/catches/non-exhaustive-match/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/catches/non-exhaustive-match/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/non-exhaustive-match/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/non-exhaustive-match/" />
@@ -420,7 +420,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/th/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 2 of 37</span></p>
+      <p class="c-crumb"><a href="/th/catches/">กรณีของ TypeScript ทั้งหมด</a><span class="sep" aria-hidden="true">/</span><span>กรณีที่ 2 จาก 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">2</span>
@@ -458,15 +458,15 @@
           </div>
         </div>
         <p class="c-note">TypeScript ตรวจว่า <code>switch</code> ครอบคลุมทุก case ก็ต่อเมื่อฟังก์ชันคืนค่าจากทุก branch หรือใช้ idiom <code>assertNever</code> เท่านั้น handler ที่ไม่คืนค่าอะไรไม่ได้ทั้งสองอย่าง ใน Glyph ทุก <code>match</code> ต้องครอบคลุมทุก case การเพิ่ม variant จึงแสดงรายการทุกจุดที่ต้องแก้</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=non-exhaustive-match">เปิดใน Playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/catches/data-from-outside-the-program/">
-          <span class="dir">Previous case</span>
+          <span class="dir">กรณีก่อนหน้า</span>
           <span class="t">ข้อมูลจากนอกโปรแกรม</span>
         </a>
         <a href="/th/catches/trusting-find-with-bang/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">กรณีถัดไป</span>
           <span class="t">เชื่อผลของ <code>find</code> ด้วย <code>!</code></span>
         </a>
       </nav>

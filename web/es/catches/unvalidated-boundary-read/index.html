@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Un cuerpo parseado al que se le da un tipo sin comprobarlo in TypeScript · Glyph</title>
+    <title>Un cuerpo parseado al que se le da un tipo sin comprobarlo en TypeScript · Glyph</title>
     <meta name="description" content="Leer el cuerpo de una petición en una variable tipada. La anotación es una promesa que nada cumple. JSON.parse devuelve any, así que pasa un cuerpo con cualquier forma." />
     <link rel="canonical" href="https://glyphlang.io/es/catches/unvalidated-boundary-read/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/es/catches/unvalidated-boundary-read/" />
-    <meta property="og:title" content="Un cuerpo parseado al que se le da un tipo sin comprobarlo in TypeScript" />
+    <meta property="og:title" content="Un cuerpo parseado al que se le da un tipo sin comprobarlo en TypeScript" />
     <meta property="og:description" content="Leer el cuerpo de una petición en una variable tipada. La anotación es una promesa que nada cumple. JSON.parse devuelve any, así que pasa un cuerpo con cualquier forma." />
     <meta property="og:locale" content="es_ES" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/catches.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/catches/unvalidated-boundary-read/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Lo que TypeScript deja pasar y Glyph detecta","item":"https://glyphlang.io/es/catches/"},{"@type":"ListItem","position":3,"name":"Un cuerpo parseado al que se le da un tipo sin comprobarlo in TypeScript","item":"https://glyphlang.io/es/catches/unvalidated-boundary-read/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/catches/unvalidated-boundary-read/#article","headline":"Un cuerpo parseado al que se le da un tipo sin comprobarlo in TypeScript","description":"Leer el cuerpo de una petición en una variable tipada. La anotación es una promesa que nada cumple. JSON.parse devuelve any, así que pasa un cuerpo con cualquier forma.","url":"https://glyphlang.io/es/catches/unvalidated-boundary-read/","inLanguage":"es","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/catches/unvalidated-boundary-read/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/catches/unvalidated-boundary-read/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Lo que TypeScript deja pasar y Glyph detecta","item":"https://glyphlang.io/es/catches/"},{"@type":"ListItem","position":3,"name":"Un cuerpo parseado al que se le da un tipo sin comprobarlo en TypeScript","item":"https://glyphlang.io/es/catches/unvalidated-boundary-read/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/catches/unvalidated-boundary-read/#article","headline":"Un cuerpo parseado al que se le da un tipo sin comprobarlo en TypeScript","description":"Leer el cuerpo de una petición en una variable tipada. La anotación es una promesa que nada cumple. JSON.parse devuelve any, así que pasa un cuerpo con cualquier forma.","url":"https://glyphlang.io/es/catches/unvalidated-boundary-read/","inLanguage":"es","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/catches/unvalidated-boundary-read/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/catches/unvalidated-boundary-read/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/catches/unvalidated-boundary-read/" />
@@ -418,7 +418,7 @@
     </script>
     <main id="main">
     <div class="wrap">
-      <p class="c-crumb"><a href="/es/catches/">All TypeScript cases</a><span class="sep" aria-hidden="true">/</span><span>Case 9 of 37</span></p>
+      <p class="c-crumb"><a href="/es/catches/">Todos los casos de TypeScript</a><span class="sep" aria-hidden="true">/</span><span>Caso 9 de 37</span></p>
       <article class="catch c-page" data-ts="lint" data-glyph="build">
         <div class="c-head">
           <span class="c-num">9</span>
@@ -441,15 +441,15 @@
           </div>
         </div>
         <p class="c-note">Escribir <code>const user: User</code> parece una comprobación y no lo es. En Glyph, <code>json.parse&lt;User&gt;(body)</code> comprueba el cuerpo y devuelve un <code>Result</code> sobre el que hacer match.</p>
-        <p class="c-links"><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Abrir en el playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <a href="/es/catches/as-unknown-as/">
-          <span class="dir">Previous case</span>
+          <span class="dir">Caso anterior</span>
           <span class="t"><code>as unknown as T</code></span>
         </a>
         <a href="/es/catches/lost-update-across-await/" class="nx cta">
-          <span class="dir">Next case</span>
+          <span class="dir">Caso siguiente</span>
           <span class="t">Una actualización perdida a través de <code>await</code></span>
         </a>
       </nav>

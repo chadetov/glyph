@@ -1488,7 +1488,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code>은 실제 값인 <code>0</code>을 <code>3</code>으로 바꿉니다. <span>G386</span></li>
-        <li>레코드를 넣은 <code>"Welcome back, ${user}!"</code>는 <code>[object Object]</code>를 출력합니다. <span>G385</span></li>
         <li><code>forEach(async ...)</code>는 모든 promise를 버리므로, 작업이 그 결과에 의존하는 코드보다 늦게 끝나는데도 아무 경고가 없습니다. <span>G384</span></li>
         <li>헬퍼 안의 <code>xs.sort(...)</code>는 호출한 쪽의 배열 순서를 바꾸는데, 이를 표시하는 <code>mut</code>가 없습니다. <span>G380</span></li>
         <li>숫자에 대한 <code>.sort()</code>는 숫자를 텍스트로 정렬합니다: <code>100,25,9</code>. <span>G388</span></li>

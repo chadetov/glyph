@@ -1488,7 +1488,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> 会把真实的 <code>0</code> 变成 <code>3</code>。 <span>G386</span></li>
-        <li>把记录放进 <code>"Welcome back, ${user}!"</code> 会打印出 <code>[object Object]</code>。 <span>G385</span></li>
         <li><code>forEach(async ...)</code> 会丢掉每个 promise，于是这些工作在依赖它的代码之后才完成，而且没有任何警告。 <span>G384</span></li>
         <li>辅助函数里的 <code>xs.sort(...)</code> 会重排调用方的数组，却没有 <code>mut</code> 标记。 <span>G380</span></li>
         <li>对数字调用 <code>.sort()</code> 会按文本排序：<code>100,25,9</code>。 <span>G388</span></li>

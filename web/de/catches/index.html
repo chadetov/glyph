@@ -1486,7 +1486,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> macht aus einer echten <code>0</code> eine <code>3</code>. <span>G386</span></li>
-        <li><code>"Welcome back, ${user}!"</code> mit einem Record gibt <code>[object Object]</code> aus. <span>G385</span></li>
         <li><code>forEach(async ...)</code> verwirft jedes Promise, also wird die Arbeit erst nach dem Code fertig, der davon abhängt, und nichts warnt. <span>G384</span></li>
         <li><code>xs.sort(...)</code> in einem Helper sortiert das Array des Aufrufers um, und kein <code>mut</code> markiert das. <span>G380</span></li>
         <li><code>.sort()</code> auf Zahlen sortiert sie als Text: <code>100,25,9</code>. <span>G388</span></li>

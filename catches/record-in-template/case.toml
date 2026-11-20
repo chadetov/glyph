@@ -1,0 +1,6 @@
+code = "E0237"
+pillar = "verifiability"
+title = "A record interpolated into a string"
+kind = "refused"
+ts_output = "Welcome back, [object Object]!"
+fullconfig = "lint:restrict-template-expressions"

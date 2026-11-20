@@ -1486,7 +1486,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> transforma um <code>0</code> legítimo em <code>3</code>. <span>G386</span></li>
-        <li><code>"Welcome back, ${user}!"</code> com um record imprime <code>[object Object]</code>. <span>G385</span></li>
         <li><code>forEach(async ...)</code> descarta todas as promises, então o trabalho termina depois do código que depende dele, e nada avisa. <span>G384</span></li>
         <li><code>xs.sort(...)</code> dentro de um helper reordena o array de quem chamou, e nenhum <code>mut</code> marca isso. <span>G380</span></li>
         <li><code>.sort()</code> em números ordena como texto: <code>100,25,9</code>. <span>G388</span></li>

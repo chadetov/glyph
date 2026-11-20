@@ -1488,7 +1488,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> は、正当な <code>0</code> を <code>3</code> に変えてしまいます。 <span>G386</span></li>
-        <li>レコードを入れた <code>"Welcome back, ${user}!"</code> は <code>[object Object]</code> を出力します。 <span>G385</span></li>
         <li><code>forEach(async ...)</code> はすべての Promise を捨てるので、処理はそれに依存するコードより後に終わり、何も警告しません。 <span>G384</span></li>
         <li>ヘルパー内の <code>xs.sort(...)</code> が呼び出し元の配列を並べ替えますが、<code>mut</code> による印がありません。 <span>G380</span></li>
         <li>数値に対する <code>.sort()</code> は数値を文字列として並べ替えます：<code>100,25,9</code>。 <span>G388</span></li>

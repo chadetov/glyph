@@ -1,0 +1,21 @@
+module main
+
+type Payment =
+  | Pending
+  | Paid
+  | Failed
+  | Refunded
+
+fn ship(p: Payment) -> string {
+  return match p {
+    Pending => "hold: waiting for the money",
+    Paid => "ship it",
+    Failed => "hold: payment failed",
+    Refunded => "hold: refunded, nothing to ship",
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  print(ship(Paid))
+  return 0
+}

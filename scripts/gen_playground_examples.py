@@ -19,11 +19,22 @@ Glyph's own checker on one module and never runs `tsc`, so a case is shown when
 
 An unknown `kind` is an error, as it is in the compiler build.
 
-A case the rule leaves out is still listed, by title and code, so the page can
-say which refusals need `glyph build` to see. Whether each included case really
-reproduces in the playground is checked by a test in `crates/glyph-wasm`, which
-applies the same rule and compiles every included case through the same
-`compile` the page calls.
+Whether each included case really reproduces in the playground is checked by
+a test in `crates/glyph-wasm`, which applies the same rule and compiles every
+included case through the same `compile` the page calls.
+
+Each case carries what the page shows beside the Glyph: its one-sentence
+`why`, the `// show` excerpt of `ts.ts` (the same excerpt /catches/ shows, read
+with the same function), the command and output `observed.json` recorded when
+`scripts/check_catches.py` ran the TypeScript, and `ts_verdict`. These are
+recorded facts about the case; the page runs neither `tsc` nor the program.
+The Glyph in the editor is the whole `glyph.glyph`, with the `// show` and
+`// end show` marker lines taken out (they are comments, so the program is the
+one the test compiles).
+
+The page's highlighter uses the keyword sets `scripts/site_highlight.py` reads
+(the Glyph ones from the lexer's KEYWORDS table), written out here so the page
+and the rest of the site colour code from one list.
 
 The plain programs live in `playground/examples/`, one `.glyph` file each, and
 `PROGRAMS` below gives each its label. A file with no entry, or an entry with no
@@ -39,11 +50,14 @@ import pathlib
 import sys
 import tomllib
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import site_catches  # noqa: E402  (the /catches/ excerpt rule, shared)
+import site_highlight  # noqa: E402  (the site's keyword sets, shared)
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CATCHES = ROOT / "catches"
 PROGRAMS_DIR = ROOT / "playground" / "examples"
 OUT = ROOT / "playground" / "examples.js"
-REPO_BLOB = "https://github.com/chadetov/glyph/blob/main"
 
 # The program the page opens with when the URL names none. It has to be a case
 # the picker includes, so the first thing a visitor sees is a refusal.
@@ -51,11 +65,9 @@ DEFAULT = "non-exhaustive-match"
 
 # slug -> (picker label, one-line caption). Order is picker order.
 PROGRAMS = {
+    "ship": ("Ship an order", "Whether to ship an order, given where its payment stands."),
+    "pricing": ("A tagged union", "A union with payloads and an exhaustive `match`."),
     "hello": ("Hello", "The program `glyph init` scaffolds."),
-    "pricing": (
-        "A tagged union",
-        "A union with payloads and an exhaustive `match`. The diff-stability pane edits this one.",
-    ),
 }
 
 
@@ -73,24 +85,49 @@ def playground_case(d: pathlib.Path, meta: dict) -> bool:
     )
 
 
+def editor_source(text: str) -> str:
+    """A case's Glyph as the editor shows it: the `// show` marker lines taken
+    out, and the blank lines they leave behind folded to one."""
+    marks = {site_catches.MARK_OPEN, site_catches.MARK_CLOSE}
+    out: list[str] = []
+    for line in text.splitlines():
+        if line.strip() in marks:
+            continue
+        if not line.strip() and (not out or not out[-1].strip()):
+            continue
+        out.append(line)
+    while out and not out[-1].strip():
+        out.pop()
+    return "\n".join(out) + "\n"
+
+
 def build() -> str:
     shown: list[dict] = []
-    tsc_only: list[dict] = []
+    cases = 0
     for d in sorted(p for p in CATCHES.iterdir() if p.is_dir()):
         meta = tomllib.loads((d / "case.toml").read_text())
+        if "section" in meta:
+            cases += 1
         if not playground_case(d, meta):
-            tsc_only.append({"slug": d.name, "title": meta.get("title", ""), "code": meta.get("code", "")})
             continue
+        observed = json.loads((d / "observed.json").read_text())
+        try:
+            ts_code = site_catches.excerpt(d / "ts.ts")
+        except site_catches.CatchesError as e:
+            raise SystemExit(str(e)) from None
         shown.append(
             {
                 "slug": d.name,
                 "kind": "catch",
-                "label": d.name,
+                "label": meta.get("title", d.name),
                 "title": meta.get("title", ""),
                 "code": meta["code"],
-                "note": meta.get("note", ""),
-                "ts_url": f"{REPO_BLOB}/catches/{d.name}/ts.ts",
-                "source": (d / "glyph.glyph").read_text(),
+                "why": meta.get("why", ""),
+                "ts_code": ts_code,
+                "ts_command": observed["ts"]["command"],
+                "ts_output": observed["ts"]["output"],
+                "ts_verdict": meta.get("ts_verdict", ""),
+                "source": editor_source((d / "glyph.glyph").read_text()),
             }
         )
 
@@ -118,12 +155,18 @@ def build() -> str:
             }
         )
 
+    words = {
+        "glyph": sorted(site_highlight.GLYPH_KEYWORDS),
+        "ts": sorted(site_highlight.TS_KEYWORDS),
+        "primitives": sorted(site_highlight.PRIMITIVES),
+    }
     return (
         "// Generated by scripts/gen_playground_examples.py from catches/ and\n"
         "// playground/examples/. Do not edit; run playground/build.sh.\n"
         f"export const DEFAULT_EXAMPLE = {json.dumps(DEFAULT)};\n"
+        f"export const CASE_COUNT = {cases};\n"
+        f"export const KEYWORDS = {json.dumps(words)};\n"
         f"export const EXAMPLES = {json.dumps(shown, indent=2)};\n"
-        f"export const TSC_ONLY = {json.dumps(tsc_only, indent=2)};\n"
     )
 
 

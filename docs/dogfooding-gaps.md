@@ -12342,6 +12342,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.146 (the release build): `let x = f<a,
   "\q">(1)` is ``[E0003] Error: parse: unexpected token: Comma``.*
 
+  *Reproduced against 0.1.152 (the release build): `let x = f<a, "\q">(1)` is ``[E0003] Error: parse: unexpected token: Comma``.*
+
 - **G330. [FIXED] A non-ASCII character in code crashes `glyph check`.**
   `let s = 1 é` exits 101 with a panic in the diagnostic renderer ("end byte
   index 13 is not a char boundary"). The lexer turned the first byte of a
@@ -12385,6 +12387,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.146 (the release build): `<p
   title="&amp;">x</p>` is `no diagnostics`, and the emitted TypeScript
   holds `title: "&amp;"`.*
+
+  *Reproduced against 0.1.152 (the release build): `<p title="&amp;">x</p>` is `no diagnostics`, and the emitted TypeScript holds `title: "&amp;"`.*
 
 - **G333. A `<` in JSX text is E0002 "expected JSX element or attribute name".**
   `<p>a < b</p>` reads the `<` as the start of an element. The four E0012
@@ -12767,6 +12771,8 @@ and is the owner's to confirm.
   through `import model as m`, every field checkable, is ``[E0304] ...
   `json.parse<m.Box<int>>` has no runtime check to run for it``.*
 
+  *Reproduced against 0.1.152 (the release build): `json.parse<m.Box<int>>` through `import model as m`, every field checkable, is ``[E0304] ... `json.parse<m.Box<int>>` has no runtime check to run for it``, while `json.parse<Box<int>>` imported by name is `no diagnostics`.*
+
 - **G355. `Page.is<U>(v)` passes Glyph's checker and fails `tsc`.** A type
   argument on a generic descriptor's `is` is accepted by the checker, and the
   emitted call is refused by `tsc` with TS2554 (wrong number of arguments).
@@ -12787,6 +12793,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.146 (the release build): `Page.is<U>(v)` is `no
   diagnostics` under `--no-tsc`, and full `check` reports ``TS2554:
   Expected 2 arguments, but got 1``.*
+
+  *Reproduced against 0.1.152 (the release build): `Page.is<U>(v)` is `no diagnostics` under `--no-tsc`, and full `check` reports ``TS2554: Expected 2 arguments, but got 1``. Since 0.1.150's depth parameter, `glyph run --no-tsc` on record 105's `a12e-union-is-gen` throws `TypeError: check is not a function` in `every_at` instead of returning; full `check` still refuses the program.*
 
 - **G351. [FIXED] An expression followed by `{` on the same line is split into a
   value and an unreachable block.** `return h() { k: 2 }` parses as `return
@@ -12844,6 +12852,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.146 (the release build) by record 104's LSP client:
   adding one of two missing arms answers `ok: false` with E0200 counted as
   introduced; adding both answers `ok: true`.*
+
+  *Reproduced against 0.1.152 (the release build) by record 104's LSP client: adding one of two missing arms answers `ok: false` with E0200 counted as introduced; adding both answers `ok: true`.*
 
 - **G358. `glyph fmt` does not sort imports, though the manifesto said it
   did.** Two `import` lines in the wrong order are left as they are, and

@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="主导航">
         <div class="nav-brand">
           <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="版本说明">v0.1.151</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.152</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -637,7 +637,7 @@
           <h3 class="h">它的边界</h3>
           <p>本页中出现了两个错误程序的数量，它们统计的东西不同：77 个错误码中有 51 个带有来自 <code>tests/negative/</code> 的反例，而 0.1.149 中 <code>glyph llms --negative</code> 列出覆盖 53 个错误码的 117 个案例，因为它还会读取 <code>catches/</code> 中被拒绝的程序；下一个版本会加入此后新增到 <code>catches/</code> 的 22 个被拒绝程序，共计覆盖 55 个错误码的 139 个案例。在 0.1.149 中，有 24 个错误码在两个语料库中都没有错误程序，答案会列出它们，而不是编造一个。340 个标准库导出中有 165 个没有签名：它们的实现是由 <code>tsc</code> 检查的 TypeScript，编译器自己的表没有为它们建模任何东西，所以对 <code>std/result::all</code> 或 <code>std/io::println</code> 调用 <code>glyph_symbol</code> 会报告 <code>kind: null</code> 并附上这个原因。在有签名的 175 个中，仍有 46 个在参数类型的位置带有 <code>?</code>。另外，这份文档是你获取的一个快照，而不是一项服务：它没有检索层，没有向量嵌入，也没有基于它的对话界面。</p>
         </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.151 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.152 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/repair-protocol/">

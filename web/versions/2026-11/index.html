@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>November 2026 releases · Glyph</title>
-    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.151, 24 releases, 20 breaking. Each one with its ship date and its notes." />
+    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.152, 25 releases, 21 breaking. Each one with its ship date and its notes." />
     <link rel="canonical" href="https://glyphlang.io/versions/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/versions/" />
     <meta property="og:title" content="November 2026 releases" />
-    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.151, 24 releases, 20 breaking. Each one with its ship date and its notes." />
+    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.152, 25 releases, 21 breaking. Each one with its ship date and its notes." />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -44,7 +44,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.151</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.152</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -406,7 +406,7 @@
       </div>
 
       <nav class="month-nav" aria-label="Releases by month">
-        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 24 releases · 20 breaking</span></a>
+        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 25 releases · 21 breaking</span></a>
         <a href="/versions/2026-10/"><span class="mn-month">Oct 2026</span> <span class="mn-count">· 3 releases · 3 breaking</span></a>
         <a href="/versions/2026-09/"><span class="mn-month">Sep 2026</span> <span class="mn-count">· 25 releases · 10 breaking</span></a>
         <a href="/versions/2026-08/"><span class="mn-month">Aug 2026</span> <span class="mn-count">· 66 releases · 1 breaking</span></a>
@@ -415,15 +415,42 @@
       </nav>
       <div class="month-head">
         <h2 class="month-title">November 2026</h2>
-        <p class="month-sum">24 releases, 20 breaking, 0.1.128 to 0.1.151</p>
+        <p class="month-sum">25 releases, 21 breaking, 0.1.128 to 0.1.152</p>
         <label class="breaking-only" hidden><input type="checkbox" /> Breaking only</label>
       </div>
 
       <div class="releases">
+        <article class="release" id="0.1.152" data-hl="fm" data-breaking>
+          <div class="rel-head">
+            <h3 class="rel-ver">0.1.152</h3>
+            <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <time class="rel-date" datetime="2026-11-20">20 Nov 2026</time>
+            <a class="rel-link" href="/versions/2026-11/#0.1.152" data-url="https://glyphlang.io/versions/2026-11/#0.1.152" aria-label="Link to 0.1.152">Link</a>
+          </div>
+          <details class="rel-details" open>
+            <summary><span class="rel-headline">A null in an optional field is refused, and the error names the type that accepts it</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <p>An optional field <code>f?: T</code> now means an absent key or a <code>T</code>. A key holding <code>null</code> is refused unless <code>T</code> is <code>Nullable</code>, and so is a key holding <code>undefined</code> from host code.</p>
+
+            <p>Before this release a <code>null</code> there passed the check and stayed in the value, while the type said <code>number</code>. With <code>type Opts = { timeout_ms?: number }</code>, decoding <code>{"timeout_ms": null}</code> succeeded, <code>{ timeout_ms: 5000, ...opts }</code> overwrote the default with <code>null</code>, and <code>cfg.timeout_ms * 2</code> came out as <code>0</code>. An <code>Option</code> field holding <code>null</code> decoded and then crashed in the first <code>match</code>. Now the decode fails at the field:</p>
+
+<pre><code>[{<span class="pk">"path"</span>:[<span class="s">"timeout_ms"</span>],<span class="pk">"message"</span>:<span class="s">"field `timeout_ms` is null; declare it `timeout_ms?: Nullable&lt;number&gt;` to accept null"</span>,<span class="pk">"code"</span>:<span class="s">"type"</span>}]</code></pre>
+
+            <p>The suggested type always compiles. It follows aliases, so a field typed <code>MaybeInt</code> with <code>type MaybeInt = Option&lt;int&gt;</code> is told <code>Nullable&lt;int&gt;</code>, not the <code>Nullable&lt;MaybeInt&gt;</code> that Glyph would refuse. Where no spelling would work, the message says so instead of guessing. A test compiles every suggestion the suite produces.</p>
+
+            <p>Every way of checking a value gives the same answer: <code>json.parse&lt;T&gt;</code>, <code>T.parse</code>, <code>T.is</code>, an <code>is T</code> pattern, <code>T.schema</code> and <code>json.parse_with</code>, at any depth, in arrays, maps, generics and union payloads. To accept null, declare the field <code>f?: Nullable&lt;T&gt;</code>.</p>
+
+            <p>This reverses the 0.1.68 rule that read a <code>null</code> in an optional field as absence. Both reasons for it are gone: no generator writes a <code>?</code> field expecting null any more, and <code>Nullable</code> is the spelling for "absent, null or a value".</p>
+
+            <h4>Breaking</h4>
+            <p>At run time only. <code>json.parse&lt;Opts&gt;("{\"timeout_ms\": null}")</code> is <code>Ok</code> in 0.1.151 and an <code>Err</code> at <code>["timeout_ms"]</code> here, and <code>is</code> answers <code>false</code> on the same input. <code>glyph check</code> gives the same exit code on every program. No file in the repository, none of the 32 example apps and neither outside app we test against decodes a null into an optional field.</p>
+          </div>
+          </details>
+        </article>
         <article class="release" id="0.1.151" data-hl="fm" data-breaking>
           <div class="rel-head">
             <h3 class="rel-ver">0.1.151</h3>
-            <span class="rel-tag latest">Latest</span>
             <span class="rel-tag breaking">Breaking</span>
             <time class="rel-date" datetime="2026-11-20">20 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.151" data-url="https://glyphlang.io/versions/2026-11/#0.1.151" aria-label="Link to 0.1.151">Link</a>
@@ -491,7 +518,7 @@
             <time class="rel-date" datetime="2026-11-19">19 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.149" data-url="https://glyphlang.io/versions/2026-11/#0.1.149" aria-label="Link to 0.1.149">Link</a>
           </div>
-          <details class="rel-details" open>
+          <details class="rel-details">
             <summary><span class="rel-headline">A statement can no longer start on the line where the one before it ended.</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
             <p>A statement can no longer start on the line where the one before it ended. <code>let s = "a" "b"</code> used to bind <code>"a"</code> and drop <code>"b"</code>, <code>let x = h() g</code> bound <code>h()</code>, and <code>return x as User</code> was three statements, since Glyph has no cast. All of them compiled, and <code>tsc</code> accepted them.</p>
@@ -1176,7 +1203,7 @@
     <script>
       (function () {
         // An anchor for a release that lives on another month's page goes there.
-        var where = {"0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
+        var where = {"0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
         var id = decodeURIComponent(location.hash.slice(1));
         if (id && !document.getElementById(id) && where[id]) {
           location.replace("/versions/" + where[id] + "/" + location.search + "#" + id);

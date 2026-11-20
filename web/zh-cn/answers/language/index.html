@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="主导航">
         <div class="nav-brand">
           <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="版本说明">v0.1.151</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.152</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -813,7 +813,7 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
           <h3 class="h">边界在哪里</h3>
           <p>导入私有名字时报告的是 &ldquo;not exported by M&rdquo;，和名字不存在时的报错相同；区分 &ldquo;私有，请标记为 <code>pub</code>&rdquo; 和 &ldquo;没有这个名字&rdquo; 是一项已排队的改进。可见性在类型注解上检查，而不检查通过命名空间读取的值：<code>helper</code> 是私有的时候，<code>lib.helper()</code> 仍然是 <code>tsc</code> 错误，而不是 Glyph 错误。异步上下文现在会检查（<code>E0222</code>），只有一处例外：模块级 <code>const</code> 初始化表达式没有外围可调用体，所以那里允许顶层 <code>await</code>，生成的 ESM 会执行它。分支类型合并仍然要求各分支的类型头部一致：当它们产生不同类型时，结果对 Glyph 来说是未知的，只有 <code>tsc</code> 会检查你怎样使用它。九个标准库函数处于同样的境地。其中六个接受一个可选的末尾参数（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>），而参数个数检查只是拿一个数字和一个数字比较，所以为它们建模会在每个省略最后一个参数的调用上报出误报；<code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 的元素类型来自回调，而检查器不会深入回调。直接从这九个函数得到的值，在按索引遍历之前需要加注解，对 <code>string.index_of</code> 的 <code>match</code> 如果没有 <code>None</code> 分支，仍然能干净地构建，并在运行时抛出异常。<code>array.index_of</code> 已经建模，确实会报告 <code>E0200</code>。对检查器无法确定类型的值，成员和调用参数个数在这个边界上仍不检查，而不是报错。在库这一侧，<code>string</code> 按 UTF-16 码元索引，和 <code>len</code> 与 <code>split</code> 一直以来的做法一样，这一点已经定下来：没有 <code>chars</code> 或 <code>char_at</code>，也不打算提供，因为返回的半个代理对在被写出之前看起来都像一个字符。用 <code>encoding.hex_encode</code> 编码，然后每次读取两个十六进制数字。<code>captures_all</code> 只返回捕获组，不返回偏移量，所以需要知道匹配从行中哪个位置开始的扫描器仍然要自己写循环；<code>fs.read_dir</code> 按操作系统的顺序返回条目，当输出需要可复现时请自行排序。嵌套字段模式还剩一个边界情况：通过命名空间导入访问的联合类型上，位于字段中、携带负载的构造函数。<code>import tree { Node }</code> 之后写 <code>Node({ left: Node({ key: k }) })</code> 能编译，而 <code>import tree</code> 之后写 <code>tree.Node({ left: tree.Node({ key: k }) })</code> 在同一个联合类型上报告 <code>E0300</code>。另一个边界情况已经解决：对自身类型参数泛型的联合类型（<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>）以前会拒绝不带参数的同一联合类型所接受的嵌套分支，现在无论是开放的类型参数还是具体的实例化都能接受。同一个查找过程还决定着 match 是否会检查缺少的变体，所以在这个版本之前，对 <code>Tree&lt;K&gt;</code> 的 <code>match</code> 可以省略 <code>Leaf</code>，干净地构建，通过 <code>tsc --strict</code>，然后在运行时抛出异常，而非泛型写法会报告 <code>E0200</code>。现在两种写法都会报告，而且把联合类型移到另一个模块再导入也不会改变答案：对导入的 <code>Tree&lt;string&gt;</code> 做 <code>match</code> 而省略 <code>Leaf</code>，会报告指出 <code>Leaf</code> 的 <code>E0200</code>，和导入的非泛型 <code>Tree</code> 一样。那是另一条代码路径，单独检查，在这个版本之前结果正好相反：干净地构建，在运行时抛出异常。关于导入的联合类型的覆盖检查，在依赖它之前还有一点值得了解：它的变体负载也从不检查，所以当 <code>X</code> 是负载自身联合类型的一个变体时，<code>B(X)</code> 会匹配每个 <code>B</code>，而不是报告缺少 <code>Y</code>，这一点与泛型无关。绑定字段，或者在字段中匹配不带负载的标签，在所有情况下都能工作。</p>
         </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.151 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.152 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/state/">

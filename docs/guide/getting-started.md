@@ -67,9 +67,10 @@ llms` prints.
 
 To have `glyph` on your `PATH` everywhere, install it globally. Running a file
 outside a project also needs `tsx` and `typescript` where Glyph can find them,
-so install those too. TypeScript 5 or later is what `glyph doctor` checks for;
-the floor the emitted code itself needs is 4.9, for the `satisfies` a
-destructuring `let` writes.
+so install those too. TypeScript 5 or later is what `glyph doctor` checks for,
+and what `glyph build` itself needs; the floor the emitted code and its runtime
+need, compiled in your own project, is 4.9, for the `satisfies` a destructuring
+`let` writes.
 
 ```sh
 npm install -g @glyphlang/glyph

@@ -1,7 +1,7 @@
 ---
 title: Warum findet Glyph, was tsc findet, nur früher? · Glyph
 description: Glyph meldet await außerhalb einer async fn, einen match-Arm, der keinen Wert erzeugt, und ein fehlendes mut an deinem Quellcode, mit der Regel und dem Fix, vor tsc.
-source_hash: 117852a982fffaf4
+source_hash: 0f97abca4b650947
 prev: /answers/tooling/ | &larr; Zurück | Wie sieht es mit Editor, Debugging und Fehlermeldungen aus?
 next: /answers/parse-errors/ | Weiter &rarr; | Wenn das Parsen fehlschlägt, erfahre ich warum?
 ---
@@ -240,7 +240,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           <code>r?.label</code> auf einem <code>Result</code> liest sich wie "den Fehler weiterreichen, dann das Feld lesen". Es ist Optional Chaining, und ein <code>Result</code> ist nie null, also liest es das Feld vom <code>Result</code>-Objekt und reicht nichts weiter. Ein Agent hat genau das beim Bau eines CSV-Abfrage-Tools geschrieben. Jetzt ist es <code>E0236</code>, auch bei einem <code>Option</code>, und die Hilfe sagt, dass du zuerst mit <code>?</code> binden sollst.
         </p>
         <p>
-          <code>json.parse(body)</code> ohne Typargument ist das ungeprüfte Lesen, ein <code>Result&lt;unknown, ...&gt;</code>. Dort geschrieben, wo ein <code>Result&lt;User, ...&gt;</code> deklariert war, leitete <code>tsc</code> früher <code>User</code> aus der Deklaration ab, und das Programm stürzte beim ersten Feldzugriff ab. Der Emitter schreibt das <code>unknown</code> jetzt aus, also lehnt <code>glyph check</code> es über <code>tsc</code> ab. Glyphs eigener Checker erkennt noch kein <code>unknown</code>, das innerhalb eines deklarierten Typs landet, also übersehen <code>--no-tsc</code> und der Editor weiterhin <code>Result&lt;unknown, ...&gt;</code>, wo <code>Result&lt;User, ...&gt;</code> deklariert ist. (Ein bloßes <code>let user: User = json.parse(body)</code> ist <code>E0204</code> von Glyphs eigenem Checker, weil schon der äußere Typ falsch ist.) <code>unknown</code> in jeder Tiefe abzulehnen ist G325, geplant für 0.1.158.
+          <code>json.parse(body)</code> ohne Typargument ist das ungeprüfte Lesen, ein <code>Result&lt;unknown, ...&gt;</code>. Dort geschrieben, wo ein <code>Result&lt;User, ...&gt;</code> deklariert war, leitete <code>tsc</code> früher <code>User</code> aus der Deklaration ab, und das Programm stürzte beim ersten Feldzugriff ab. Der Emitter schreibt das <code>unknown</code> jetzt aus, also lehnt <code>glyph check</code> es über <code>tsc</code> ab. Glyphs eigener Checker erkennt noch kein <code>unknown</code>, das innerhalb eines deklarierten Typs landet, also übersehen <code>--no-tsc</code> und der Editor weiterhin <code>Result&lt;unknown, ...&gt;</code>, wo <code>Result&lt;User, ...&gt;</code> deklariert ist. (Ein bloßes <code>let user: User = json.parse(body)</code> ist <code>E0204</code> von Glyphs eigenem Checker, weil schon der äußere Typ falsch ist.) <code>unknown</code> in jeder Tiefe abzulehnen ist als G325 auf der <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">Release-Roadmap</a> geplant.
         </p>
       </div>
 

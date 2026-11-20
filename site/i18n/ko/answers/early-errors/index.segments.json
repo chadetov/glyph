@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "ko",
-  "source_hash": "117852a982fffaf4",
+  "source_hash": "0f97abca4b650947",
   "segments": [
     {
       "id": "title",
@@ -317,10 +317,10 @@
       "tr": "<code>Result</code>에 대한 <code>r?.label</code>은 \"오류를 전달한 다음 필드를 읽는다\"처럼 읽힙니다. 하지만 이는 optional chaining이고 <code>Result</code>는 절대 null이 아니므로, <code>Result</code> 객체에서 필드를 읽고 아무것도 전달하지 않습니다. CSV 쿼리 도구를 만들던 에이전트가 정확히 이렇게 썼습니다. 이제 <code>Option</code>에서도 <code>E0236</code>이며, 도움말은 먼저 <code>?</code>로 바인딩하라고 안내합니다."
     },
     {
-      "id": "h-fb62cc51",
+      "id": "h-2b56a26c",
       "kind": "html",
-      "en": "<code>json.parse(body)</code> with no type argument is the unchecked read, a <code>Result&lt;unknown, ...&gt;</code>. Written where a <code>Result&lt;User, ...&gt;</code> was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and the program crashed on its first field read. The emitter now writes the <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>. Glyph's own checker does not yet catch an <code>unknown</code> landing inside a declared type, so <code>--no-tsc</code> and the editor still miss <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code> is declared. (A bare <code>let user: User = json.parse(body)</code> is <code>E0204</code> from Glyph's own checker, because the outer type is already wrong.) Refusing <code>unknown</code> at every depth is G325, planned for 0.1.158.",
-      "tr": "타입 인자 없는 <code>json.parse(body)</code>는 검사하지 않은 읽기이며 <code>Result&lt;unknown, ...&gt;</code>입니다. <code>Result&lt;User, ...&gt;</code>가 선언된 곳에 쓰면, 예전에는 <code>tsc</code>가 선언에서 <code>User</code>를 추론했고 프로그램은 첫 필드를 읽을 때 충돌했습니다. 이제 emitter가 <code>unknown</code>을 명시적으로 쓰므로 <code>glyph check</code>가 <code>tsc</code>를 통해 이를 거부합니다. Glyph 자체 검사기는 선언된 타입 안에 <code>unknown</code>이 들어가는 것을 아직 잡지 못하므로, <code>--no-tsc</code>와 에디터는 <code>Result&lt;User, ...&gt;</code>가 선언된 곳에 쓴 <code>Result&lt;unknown, ...&gt;</code>를 여전히 놓칩니다. (그냥 <code>let user: User = json.parse(body)</code>는 바깥 타입이 이미 틀렸으므로 Glyph 자체 검사기의 <code>E0204</code>입니다.) 모든 깊이에서 <code>unknown</code>을 거부하는 것은 G325이며, 0.1.158에 계획되어 있습니다."
+      "en": "<code>json.parse(body)</code> with no type argument is the unchecked read, a <code>Result&lt;unknown, ...&gt;</code>. Written where a <code>Result&lt;User, ...&gt;</code> was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and the program crashed on its first field read. The emitter now writes the <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>. Glyph's own checker does not yet catch an <code>unknown</code> landing inside a declared type, so <code>--no-tsc</code> and the editor still miss <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code> is declared. (A bare <code>let user: User = json.parse(body)</code> is <code>E0204</code> from Glyph's own checker, because the outer type is already wrong.) Refusing <code>unknown</code> at every depth is planned as G325, on the <a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">release roadmap</a>.",
+      "tr": "타입 인자 없는 <code>json.parse(body)</code>는 검사하지 않은 읽기이며 <code>Result&lt;unknown, ...&gt;</code>입니다. <code>Result&lt;User, ...&gt;</code>가 선언된 곳에 쓰면, 예전에는 <code>tsc</code>가 선언에서 <code>User</code>를 추론했고 프로그램은 첫 필드를 읽을 때 충돌했습니다. 이제 emitter가 <code>unknown</code>을 명시적으로 쓰므로 <code>glyph check</code>가 <code>tsc</code>를 통해 이를 거부합니다. Glyph 자체 검사기는 선언된 타입 안에 <code>unknown</code>이 들어가는 것을 아직 잡지 못하므로, <code>--no-tsc</code>와 에디터는 <code>Result&lt;User, ...&gt;</code>가 선언된 곳에 쓴 <code>Result&lt;unknown, ...&gt;</code>를 여전히 놓칩니다. (그냥 <code>let user: User = json.parse(body)</code>는 바깥 타입이 이미 틀렸으므로 Glyph 자체 검사기의 <code>E0204</code>입니다.) 모든 깊이에서 <code>unknown</code>을 거부하는 것은 G325로 <a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">릴리스 로드맵</a>에 계획되어 있습니다."
     },
     {
       "id": "h-41090fb8",

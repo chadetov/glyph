@@ -534,9 +534,10 @@ pub(crate) fn string_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
     let string = || Ty::Prim(Primitive::String);
     let count = || Ty::Prim(Primitive::Number);
     let (params, ret): (Vec<FnParam>, Ty) = match field {
-        // The one parameter in this module that is `unknown` because the
-        // function really does take anything: `string.from` is the renderer,
-        // and `runtime/std/string.ts` declares it `(value: unknown)`.
+        // The one parameter in this module that is `unknown`:
+        // `runtime/std/string.ts` declares it `(value: unknown)`. The row
+        // does not decide what may be rendered; D51 does, at the call, by
+        // the rule that judges a `${}` (E0237).
         "from" => (vec![required(Ty::Unknown)], string()),
         // The element type is deliberately left off. `string.join` is where
         // an `array.map` result lands, and an un-annotated callable's return

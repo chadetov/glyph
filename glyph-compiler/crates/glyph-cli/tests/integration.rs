@@ -2032,7 +2032,8 @@ async fn main(argv: Array<string>) -> number {
   io.println("${await nested(false)}")
   io.println("${toggled([1, 2, 3])}")
   let words = ["a", "b"]
-  io.println("${tail(words)}")
+  let rest = tail(words)
+  io.println(rest[0])
   return 0
 }
 "#,
@@ -14321,7 +14322,7 @@ pub async fn main() -> void {{
       websocket.send_bytes(peer, b)
     }})
   }}) {{
-    Err(why) => io.eprintln("cannot bind: ${{why}}"),
+    Err(why) => io.eprintln("cannot bind: ${{why.message}}"),
     Ok(server) => {{
       io.println("bound")
       drive(server)
@@ -20441,6 +20442,191 @@ fn g387_an_imported_constant_reads_the_same_by_name_and_through_the_namespace() 
         .filter(|d| d["code"] == "E0239")
         .map(|d| {
             (
+/// G385 (record 129, D51): one function per refused conversion. Each marked
+/// line holds exactly one conversion of a value with no text form.
+const NO_TEXT_FORM_MAIN: &str = r#"module main
+
+import std/string
+import std/decimal
+
+type User = { id: number, name: string, }
+type Shape = Circle(number) | Square(number)
+
+fn greet() -> string {
+  return "hi"
+}
+
+fn rec(user: User) -> string {
+  return "user: ${user}"
+}
+
+fn rec_plus(user: User) -> string {
+  return "user: " + user
+}
+
+fn rec_from(user: User) -> string {
+  return string.from(user)
+}
+
+fn rec_raw(user: User) -> string {
+  return """user: ${user}"""
+}
+
+fn opt(o: Option<number>) -> string {
+  return "opt: ${o}"
+}
+
+fn opt_plus(o: Option<string>) -> string {
+  return "opt: " + o
+}
+
+fn res(r: Result<number, string>) -> string {
+  return "res: ${r}"
+}
+
+fn shape(s: Shape) -> string {
+  return "shape: ${s}"
+}
+
+fn names(names: Array<string>) -> string {
+  return "names: ${names}"
+}
+
+fn nums(xs: Array<number>) -> string {
+  return "nums: ${xs}"
+}
+
+fn dec(d: decimal.Decimal) -> string {
+  return "dec: ${d}"
+}
+
+fn nul(n: Nullable<string>) -> string {
+  return "nul: ${n}"
+}
+
+fn nul_num(n: Nullable<number>) -> string {
+  return "count: ${n}"
+}
+
+fn func() -> string {
+  return "fn: ${greet}"
+}
+
+fn unk(v: unknown) -> string {
+  return "unk: ${v}"
+}
+
+fn gen<T>(x: T) -> string {
+  return "gen: ${x}"
+}
+"#;
+
+/// The E0237 each marked line draws, keyed by the line's text: the message,
+/// then the help, exactly as the checker computes them.
+fn no_text_form_expected() -> Vec<(&'static str, &'static str, &'static str)> {
+    vec![
+        (
+            "return \"user: ${user}\"",
+            "`${user}` turns a `User` into text, and a record has no text form: it prints `[object Object]`",
+            "Interpolate a field, such as `${user.id}`.",
+        ),
+        (
+            "return \"user: \" + user",
+            "`+` joins a `User` to a string, and a record has no text form: it prints `[object Object]`",
+            "Join a field, such as `user.id`.",
+        ),
+        (
+            "return string.from(user)",
+            "`string.from(user)` turns a `User` into text, and a record has no text form: it prints `[object Object]`",
+            "Convert a field, such as `string.from(user.id)`.",
+        ),
+        (
+            "return \"\"\"user: ${user}\"\"\"",
+            "`${user}` turns a `User` into text, and a record has no text form: it prints `[object Object]`",
+            "Interpolate a field, such as `${user.id}`.",
+        ),
+        (
+            "return \"opt: ${o}\"",
+            "`${o}` turns an `Option<number>` into text, and an `Option` has no text form: it prints `[object Object]`",
+            "Give each case its text with a `match` first, `let o_text = match o { Some(v) => \"${v}\", None => \"none\", }`, then interpolate `${o_text}`.",
+        ),
+        (
+            "return \"opt: \" + o",
+            "`+` joins an `Option<string>` to a string, and an `Option` has no text form: it prints `[object Object]`",
+            "Give each case its text with a `match` first, `let o_text = match o { Some(v) => \"${v}\", None => \"none\", }`, then join `o_text`.",
+        ),
+        (
+            "return \"res: ${r}\"",
+            "`${r}` turns a `Result<number, string>` into text, and a `Result` has no text form: it prints `[object Object]`",
+            "Give each case its text with a `match` first, `let r_text = match r { Ok(v) => \"${v}\", Err(e) => e, }`, then interpolate `${r_text}`.",
+        ),
+        (
+            "return \"shape: ${s}\"",
+            "`${s}` turns a `Shape` into text, and a tagged union has no text form: it prints `[object Object]`",
+            "`match` on it with an arm for each variant (`Circle`, `Square`), and give each arm its text.",
+        ),
+        (
+            "return \"names: ${names}\"",
+            "`${names}` turns an `Array<string>` into text, and an array has no text form: it prints its elements joined by commas, with no spaces",
+            "Join the elements first, `let names_text = string.join(names, \", \")`, then interpolate `${names_text}`.",
+        ),
+        (
+            "return \"nums: ${xs}\"",
+            "`${xs}` turns an `Array<number>` into text, and an array has no text form: it prints its elements joined by commas, with no spaces",
+            "Join the elements first, `let xs_text = string.join(array.map(xs, fn(x: number) -> string { return \"${x}\" }), \", \")` (with `import std/array`), then interpolate `${xs_text}`.",
+        ),
+        (
+            "return \"dec: ${d}\"",
+            "`${d}` turns a `decimal.Decimal` into text, and a `Decimal` is an object with no text form: it prints `[object Object]`",
+            "Call its `to_string`, `${d.to_string()}`.",
+        ),
+        (
+            "return \"nul: ${n}\"",
+            "`${n}` turns a `Nullable<string>` into text, and a `Nullable` has no text form when it is null: it prints `null`",
+            "Give the null a value with `??` first, `let n_text = n ?? \"\"`, then interpolate `${n_text}`.",
+        ),
+        (
+            "return \"count: ${n}\"",
+            "`${n}` turns a `Nullable<number>` into text, and a `Nullable` has no text form when it is null: it prints `null`",
+            "Give the null a value with `??` first, `let n_value = n ?? 0`, then interpolate `${n_value}`.",
+        ),
+        (
+            "return \"fn: ${greet}\"",
+            "`${greet}` turns a `fn() -> string` into text, and a function has no text form: it prints the function's source code",
+            "Call it, `${greet()}`.",
+        ),
+        (
+            "return \"unk: ${v}\"",
+            "`${v}` turns an `unknown` into text, and an `unknown` may hold a record, which has no text form: it prints `[object Object]`",
+            "Narrow it first, `let v_text = match v { is string => v, else => \"?\", }`, then interpolate `${v_text}`.",
+        ),
+        (
+            "return \"gen: ${x}\"",
+            "`${x}` turns a `T` into text, and a `T` may be a record, which has no text form: it prints `[object Object]`",
+            "A `T` could be a record. Take a `fn(T) -> string` that formats it, and call that.",
+        ),
+    ]
+}
+
+/// The E0237 diagnostics `check --no-tsc --json` reports for `text`, as
+/// `(line text, message, help)`.
+fn no_text_form_diagnostics(label: &str, text: &str) -> Vec<(String, String, String)> {
+    let root = unique_tmp(label);
+    let src = root.join("src");
+    write_file(&src, "main.glyph", text);
+    let (_, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--no-test", "--json", "{src}"]);
+    let v: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("{label}: check --json prints JSON ({e}):\n{stdout}\n{stderr}"));
+    let lines: Vec<&str> = text.lines().collect();
+    v["diagnostics"]
+        .as_array()
+        .expect("a diagnostics array")
+        .iter()
+        .filter(|d| d["code"] == "E0237")
+        .map(|d| {
+            let line = d["range"]["start"]["line"].as_u64().expect("a line") as usize;
+            (
+                lines[line - 1].trim().to_string(),
                 d["message"].as_str().unwrap_or_default().to_string(),
                 d["help"].as_str().unwrap_or_default().to_string(),
             )
@@ -20618,4 +20804,164 @@ fn main(argv: Array<string>) -> number {
         assert_eq!(field("benign"), field("const"), "{case}: same rows as the constant query:\n{fixed}\n{stdout}");
         assert_eq!(field("payload"), "0", "{case}: the payload matches nothing:\n{fixed}\n{stdout}");
     }
+        .collect()
+}
+
+/// Every `${...}` in `help` holds no string literal: D22's lexer limit means
+/// one there does not compile, so a help may only bind text with `let` first.
+fn assert_no_literal_inside_interpolation(help: &str) {
+    let mut rest = help;
+    while let Some(i) = rest.find("${") {
+        let after = &rest[i + 2..];
+        let end = after.find('}').unwrap_or(after.len());
+        assert!(
+            !after[..end].contains('"'),
+            "a help puts a string literal inside `${{}}`: {help}"
+        );
+        rest = &after[end..];
+    }
+}
+
+/// `line` with its last `from` replaced: the conversion is the last thing on
+/// each probe line, and an earlier match is the literal text before it.
+fn replace_last(line: &str, from: &str, to: &str) -> String {
+    let i = line.rfind(from).expect("the conversion is on the line");
+    format!("{}{to}{}", &line[..i], &line[i + from.len()..])
+}
+
+/// Apply one E0237 help to the module: a `let` the help names goes on the
+/// line before, and the conversion is rewritten the way the help says. A help
+/// with no snippet (prose) leaves the line alone and answers `false`.
+fn apply_no_text_help(text: &str, line_text: &str, help: &str) -> (String, bool) {
+    let snippets: Vec<&str> = help.split('`').skip(1).step_by(2).collect();
+    let mut lines: Vec<String> = text.lines().map(str::to_string).collect();
+    let at = lines
+        .iter()
+        .position(|l| l.trim() == line_text)
+        .unwrap_or_else(|| panic!("no line `{line_text}`"));
+    let indent: String = lines[at].chars().take_while(|c| c.is_whitespace()).collect();
+    // The value as written and the conversion it stands in.
+    let (value, conversion) = if let Some(i) = line_text.find("${") {
+        let v = &line_text[i + 2..i + 2 + line_text[i + 2..].find('}').unwrap()];
+        (v.to_string(), format!("${{{v}}}"))
+    } else if let Some(i) = line_text.find("string.from(") {
+        let v = &line_text[i + 12..line_text.rfind(')').unwrap()];
+        (v.to_string(), format!("string.from({v})"))
+    } else {
+        let v = line_text.rsplit("+ ").next().unwrap().to_string();
+        (v.clone(), v)
+    };
+    if let Some(binding) = snippets.iter().find(|s| s.starts_with("let ")) {
+        let name = binding[4..].split(' ').next().unwrap().to_string();
+        let replacement = if conversion.starts_with("${") {
+            format!("${{{name}}}")
+        } else {
+            name.clone()
+        };
+        lines.insert(at, format!("{indent}{binding}"));
+        lines[at + 1] = replace_last(&lines[at + 1], &conversion, &replacement);
+        let mut out = lines.join("\n");
+        out.push('\n');
+        // `std/array` is named in the help when the module lacks it.
+        if help.contains("`import std/array`") {
+            out = out.replacen("import std/string\n", "import std/string\nimport std/array\n", 1);
+        }
+        return (out, true);
+    }
+    let Some(snippet) = snippets.iter().rev().find(|s| {
+        s.contains(&format!("{value}.")) || s.contains(&format!("{value}("))
+    }) else {
+        return (text.to_string(), false);
+    };
+    lines[at] = replace_last(&lines[at], &conversion, snippet);
+    let mut out = lines.join("\n");
+    out.push('\n');
+    (out, true)
+}
+
+/// G385. Each conversion of a value with no text form is E0237 with the
+/// message and help computed from the program, in all three spellings and in
+/// a `"""` literal. Then every help with a snippet is applied to its line and
+/// the result passes the full check, `tsc` included, so a suggestion cannot
+/// name code that does not compile.
+#[test]
+fn a_value_with_no_text_form_is_refused_and_every_help_compiles() {
+    let got = no_text_form_diagnostics("g385-refused", NO_TEXT_FORM_MAIN);
+    let expected = no_text_form_expected();
+    for (line, message, help) in &expected {
+        let hits: Vec<_> = got.iter().filter(|(l, ..)| l == line).collect();
+        assert_eq!(hits.len(), 1, "one E0237 on `{line}`: {got:#?}");
+        assert_eq!(hits[0].1, *message, "message on `{line}`");
+        assert_eq!(hits[0].2, *help, "help on `{line}`");
+        assert_no_literal_inside_interpolation(help);
+    }
+    assert_eq!(got.len(), expected.len(), "no other E0237: {got:#?}");
+
+    let mut fixed = NO_TEXT_FORM_MAIN.to_string();
+    let mut applied = 0;
+    for (line, _, help) in &expected {
+        let (next, did) = apply_no_text_help(&fixed, line, help);
+        if did {
+            applied += 1;
+            fixed = next;
+        } else {
+            // A prose help: the case keeps its refusal, so drop the function
+            // from the program that has to compile.
+            let start = fixed.find(line).expect("the line is still there");
+            let fn_start = fixed[..start].rfind("\nfn ").expect("its function") + 1;
+            let fn_end = start + fixed[start..].find("\n}\n").expect("its end") + 3;
+            fixed.replace_range(fn_start..fn_end, "");
+        }
+    }
+    assert_eq!(applied, 14, "the helps with a snippet:\n{fixed}");
+    let root = unique_tmp("g385-applied");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", &fixed);
+    let main = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        std::ffi::OsStr::new("--no-test"),
+        main.as_os_str(),
+    ]);
+    assert_eq!(code, 0, "an applied help does not compile:\n{fixed}\n{stdout}\n{stderr}");
+    // "Compiles" means under `tsc` too, wherever this machine has it.
+    if tsc_available() {
+        assert!(
+            stderr.contains("tsc --strict passed"),
+            "the applied helps were not type-checked by tsc:\n{stderr}"
+        );
+    }
+}
+
+/// G385. Text-like values convert in every spelling: a `string`, a literal
+/// union, a second name and a `where` refinement of `string`, `int`,
+/// `number`, `bigint`, `bool`, a field read, `never`, and an inline
+/// `string | number`. A value Glyph's checker does not type (`a + b`, whose
+/// result is `Unknown` until G382) is not judged, and that edge is pinned here
+/// so it stays a documented gap rather than drifting either way.
+#[test]
+fn a_text_like_value_converts_and_an_untyped_one_is_not_judged() {
+    let text = r#"module main
+
+import std/string
+
+type Tier = "free" | "pro"
+type UserId = string
+type Name = string where value.length > 0
+type User = { id: number, name: string, }
+
+fn show(s: string, t: Tier, id: UserId, n: Name, i: int, x: number, b: bigint, ok: bool, user: User, p: string | number) -> string {
+  let one = "${s} ${t} ${id} ${n} ${i} ${x} ${b} ${ok} ${user.name} ${p}"
+  let two = """${s} ${t} ${user.id}"""
+  let three = "a " + s + " " + t + " " + id + " " + i + " " + ok + " " + user.name
+  let four = string.from(i) + string.from(ok) + string.from(t)
+  return one + two + three + four
+}
+
+fn untyped(a: number, c: number) -> string {
+  return "sum: ${a + c}" + string.from(a * c)
+}
+"#;
+    let got = no_text_form_diagnostics("g385-accepted", text);
+    assert!(got.is_empty(), "a text-like or untyped value is refused: {got:#?}");
 }

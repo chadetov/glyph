@@ -1,0 +1,9 @@
+module neg
+
+// E0237. `+` beside a string turns its other operand into text, the same as a
+// `${}` does, and an `Option` has no text form: this prints
+// `Hello, [object Object]` for `Some("ada")` and for `None` alike. The help
+// binds the text with a `match` first.
+pub fn greet(name: Option<string>) -> string {
+  return "Hello, " + name
+}

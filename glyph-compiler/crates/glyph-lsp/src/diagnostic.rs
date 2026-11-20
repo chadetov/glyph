@@ -622,6 +622,7 @@ fn type_subject(err: &TypeError) -> Option<String> {
         | T::NullableRead { .. }
         | T::OptionalChainOnTagged { .. }
         | T::SqlFromRuntimeValue { .. }
+        | T::NoTextForm { .. }
         | T::TypeNameAsValue { .. }
         | T::RedactUnknownField { .. }
         | T::UnknownAnnotation { .. }

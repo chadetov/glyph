@@ -1550,8 +1550,10 @@ used: a record field typed `Amount`, an `Array<Amount>` element, an
 So does the descriptor of a type imported from another Glyph module, so a field
 typed by an imported record is checked against that record and not just for
 presence. v1 refines primitive base types only
-(`int`/`number`/`string`/`bool`/`bigint`); a `where` on a record or union is a
-compile error, not a silent drop.
+(`int`/`number`/`string`/`bool`/`bigint`); a `where` on a record, a tagged
+union or a string-literal union is a compile error (E0300), not a silent drop.
+For a subset of a literal union, write the members as their own union
+(`type T2 = "a" | "b"`), which stands wherever the full union is declared.
 
 ### std/taint (untrusted-input discipline as types)
 
@@ -2047,7 +2049,7 @@ written. The full catalogue:
 | E0234 | A method of an `Array<T>`, a `string` or a `number` read without being called: `let up = s.toUpperCase`, or `xs.map(s.trim)`. The read hands on a bare function, and an ES module is strict, so calling it later runs it with `this` undefined and throws a TypeError. `tsc` accepts the read. A call is never refused (`s.toUpperCase()`, `mut xs.push(x)`), and neither is a data property (`xs.length`). The methods are the ones in the table generated from TypeScript's library, which also types each call's arguments and result (G312). `.bind`, `.call` and `.apply` on the read are refused too: their results are untyped in Glyph, and `tsc` accepts them | Call the method where it is read, `s.toUpperCase()`; to hand it on as a value, wrap the call in a lambda, `fn() -> string { return s.toUpperCase() }`, or pass the `std/array`, `std/string` or `std/math` function. Not `.bind` or `.call` |
 | E0235 | A member read through a `Nullable` that does not handle the null (D45). `n.f` on a `Nullable<R>` (the value may be null), or the value of an optional chain over one (`n?.f`, `n?.a.b`) used anywhere but the left of `??` or an operand of `==`/`!=` (a binding, an argument, a `return`, a field value, an interpolation, a JSX child or attribute, a `match` scrutinee): that value is `F` or `undefined`, and Glyph has no type for `undefined`. TypeScript's TS18047; the escaping forms `tsc` accepts (a JSX child among them) and Glyph does not | Give the absent case a value with `??` (`n?.name ?? "none"`), or convert the whole value with `nullable.to_option(n)` and `match` on it |
 | E0236 | `?.` on a receiver that resolves to an `Option` or a `Result` (G311, D18), through any alias. Neither is ever null, so `?.` never short-circuits: it reads the member off the tag object. On a `Result` it is also not `?` followed by `.`, and propagates no `Err` (csvql's `bind_agg(...)?.label`). A method called through `?.` (`r?.map(f)`) is refused too. Reported once, where the chain starts. `tsc` accepts `o?.tag`, `r?.tag`, `r?.value`, `r?.map(..)` and `r?.map_err(..)` | On an `Option`, `match` on it; on a `Result`, propagate first (`let n = f()?`, then `n.name`), or drop the `?` before a method (`r.map(f)`). A JSON `null` from the wire is a `Nullable<T>` |
-| E0300 | Construct not supported by the v1 TypeScript emitter | Use a supported form |
+| E0300 | Construct not supported by the v1 TypeScript emitter. This includes a `where` refinement (D39) whose base resolves, by any spelling, to a record, a tagged union or a string-literal union (a single literal included): v1 refines primitives only | Use a supported form. For a refined literal union, write the members you mean as their own union (`type T2 = "a" \| "b"`) |
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
 | E0302 | `?` in an arm of a `match` nested inside a larger expression (bind the match first) | Bind the match first (`let x = match ...`), then use `?` |
 | E0303 | `?` in a position with nothing to hoist the unwrap into, such as a `match` scrutinee (bind the operand first) | Bind the operand first (`let r = f(x)?`), then use `r` |

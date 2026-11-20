@@ -9194,6 +9194,7 @@ pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
             | ("sqlite", "Sql")
             | ("taint", "Trusted")
             | ("taint", "Tainted")
+            | ("decimal", "Decimal")
     )
     .then(|| stdlib_named(module, name))
 }
@@ -9336,6 +9337,44 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
             ("message", Ty::Prim(Primitive::String)),
             ("index", Ty::Prim(Primitive::Number)),
         ],
+        // A `Decimal` is an object of methods (`runtime/std/decimal.ts`):
+        // Glyph has no operator overloading, so `price.add(tax)` is how it
+        // computes. Each member is its method's signature, so a call is
+        // checked and `d.to_string()` is a `string`.
+        ("decimal", "Decimal") => {
+            let d = || stdlib_named("decimal", "Decimal");
+            let n = || Ty::Prim(Primitive::Number);
+            let method = |params: Vec<Ty>, ret: Ty| Ty::Fn {
+                params: params
+                    .into_iter()
+                    .map(|ty| FnParam {
+                        name: None,
+                        owned: false,
+                        ty,
+                        optional: false,
+                    })
+                    .collect(),
+                return_ty: Arc::new(ret),
+                is_async: false,
+                type_params: Some(Vec::new()),
+            };
+            vec![
+                ("add", method(vec![d()], d())),
+                ("sub", method(vec![d()], d())),
+                ("mul", method(vec![d()], d())),
+                ("div", method(vec![d(), n()], d())),
+                ("round", method(vec![n()], d())),
+                ("neg", method(vec![], d())),
+                ("abs", method(vec![], d())),
+                ("cmp", method(vec![d()], n())),
+                ("eq", method(vec![d()], Ty::Prim(Primitive::Bool))),
+                ("is_zero", method(vec![], Ty::Prim(Primitive::Bool))),
+                ("is_negative", method(vec![], Ty::Prim(Primitive::Bool))),
+                ("scale", method(vec![], n())),
+                ("to_string", method(vec![], Ty::Prim(Primitive::String))),
+                ("to_number", method(vec![], n())),
+            ]
+        }
         // `kind` is a string-literal union rather than a tagged one, so it
         // needs no variant table: D30 exhaustiveness reads the members off
         // `HttpErrorKind`'s entry in `BUILTIN_STRING_LITERAL_UNIONS`. Without this a caller matching `e.kind` gets E0218

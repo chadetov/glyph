@@ -1030,22 +1030,28 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `Option`, or on a `Result` naming anything but `map` or `map_err`, \
             is E0210.",
 
-        "E0300" => "E0300: construct not supported by the emitter\n\n\
-            The program type-checks but uses a construct the v1 TypeScript emitter \
-            does not handle yet.\n\n\
-            One case is a deliberate refusal: a `where` refinement (D39) whose \
-            base resolves to a record, a tagged union or a string-literal union \
-            (a single literal included), however the base is spelled (inline, an \
-            alias, an import, a namespace). v1 refines primitives only. A refined \
-            literal union would emit as its whole base for `tsc` while its \
-            run-time check refused some members, so the two disagree on every \
-            value.\n\n\
+        "E0300" => "E0300: construct the emitter does not handle, or a refined non-primitive base\n\n\
+            E0300 covers two things. One is a construct the v1 TypeScript \
+            emitter does not handle yet; rewrite it using a supported form \
+            (see `docs/language/spec.md` for what v1 emits). The other is a \
+            deliberate D39 refusal: a `where` refinement whose base resolves, \
+            however it is spelled (inline, an alias, an import, a namespace, a \
+            second name in another module), to a string-literal union, a \
+            single string literal, a record or a tagged union. A `where` \
+            refines only `string`, `int`, `number`, `bool` and `bigint`.\n\n\
+            A refined literal union would emit as its whole base for `tsc` \
+            while its run-time check refused some members, so the two would \
+            disagree on every value. The diagnostic names the declaration, \
+            its base as written, the members the base resolves to and the \
+            predicate, and leaves the choice of members to you.\n\n\
             Before:  type Tier = \"a\" | \"b\" | \"c\"\n         \
             type T2 = Tier where value != \"c\"\n\
             After:   type T2 = \"a\" | \"b\"\n\n\
-            The subset union stands wherever `Tier` is declared (D30 compares \
-            literal sets). Otherwise, rewrite using a supported form; see \
-            `docs/language/spec.md` for what v1 emits.",
+            The union of some of `Tier`'s members stands wherever `Tier` is \
+            declared (D30 compares literal sets). For a record, put the \
+            `where` on the field it constrains; for a tagged union, refine the \
+            payload's primitive type inside the variant, or validate after a \
+            `match`.",
         "E0301" => "E0301: misplaced `<else>`\n\n\
             An `<else>` is paired with its `<if>` only when it is the \
             immediately following sibling (D6). Anything between them — even a \
@@ -2131,8 +2137,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0300",
         phase: "emitter",
-        meaning: "Construct not supported by the v1 TypeScript emitter. This includes a `where` refinement (D39) whose base resolves, by any spelling, to a record, a tagged union or a string-literal union (a single literal included): v1 refines primitives only",
-        fix: "Use a supported form. For a refined literal union, write the members you mean as their own union (`type T2 = \"a\" | \"b\"`)",
+        meaning: "Either a construct the v1 TypeScript emitter does not handle yet, or a `where` refinement (D39) whose base resolves, by any spelling, to a string-literal union, a single string literal, a record or a tagged union: a `where` refines only `string`, `int`, `number`, `bool` and `bigint`. The refusal names the declaration, its base as written, the members a literal base resolves to and the predicate",
+        fix: "Use a supported form. For a refined literal union, declare the members you mean as a union of their own; for a record, put the `where` on the field it constrains",
     },
     CodeEntry {
         code: "E0301",

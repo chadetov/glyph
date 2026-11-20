@@ -21,81 +21,90 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Glyph. Your AI agent writes it. The compiler checks it. Compiles to TypeScript." />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // The theme the reader picked on the site (same key as the site's header
+      // toggle); with none, the system preference decides.
+      (function () {
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preload" href="/fonts/IBMPlexMono-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <header class="site-header">
-      <div class="title">
-        <h1>Glyph<span class="dot">.</span> Playground</h1>
-        <p class="tagline">
-          A statically typed language that compiles to TypeScript, built so code
-          an AI agent writes can be read, checked and changed without guessing.
-        </p>
-      </div>
-      <nav class="links">
-        <a href="https://github.com/chadetov/glyph">GitHub</a>
+    <header class="bar">
+      <a class="logo" href="/"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+      <span class="badge"><span class="badge-word">playground</span><span id="version"></span></span>
+      <label class="picker">
+        <span class="visually-hidden">Example</span>
+        <select id="example"></select>
+      </label>
+      <span class="spacer"></span>
+      <nav class="links" aria-label="Glyph">
         <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Tour</a>
-        <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/for-typescript-developers.md">For TS devs</a>
-        <span id="version" class="version" title="compiler version"></span>
+        <a href="/catches/">Cases</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
       </nav>
+      <button id="share" class="btn primary" type="button" title="Copy a link to the program in the editor">Share</button>
+      <span id="share-status" class="share-status" aria-live="polite"></span>
     </header>
 
-    <main class="grid" id="app" aria-busy="true">
-      <section class="pane" id="pane-glyph">
-        <h2>Glyph</h2>
-        <div class="toolbar">
-          <label for="example">Example</label>
-          <select id="example"></select>
-          <button id="share" type="button" title="Copy a link to the program in the editor">Share</button>
-          <span id="share-status" class="share-status" aria-live="polite"></span>
-        </div>
-        <p id="example-caption" class="example-caption" hidden></p>
+    <p id="caption" class="caption" aria-live="polite"></p>
+
+    <main class="work" id="app" aria-busy="true">
+      <section class="pane pane-glyph" aria-label="Glyph">
+        <div class="phead"><span class="file">main.glyph</span></div>
         <div class="editor">
           <div id="gutter" class="gutter" aria-hidden="true"></div>
-          <textarea
-            id="source"
-            spellcheck="false"
-            wrap="off"
-            autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
-            aria-label="Glyph source"
-          ></textarea>
+          <div class="code">
+            <pre id="highlight" class="hl" aria-hidden="true"></pre>
+            <textarea
+              id="source"
+              spellcheck="false"
+              wrap="off"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              aria-label="Glyph source"
+            ></textarea>
+          </div>
         </div>
         <div id="diagnostics" class="diagnostics" aria-live="polite"></div>
       </section>
 
-      <section class="pane" id="pane-ts">
-        <h2>TypeScript <span class="sub">compiled output</span></h2>
-        <div id="project-note" class="project-note" hidden></div>
-        <pre id="ts" class="code-out"><code></code></pre>
-      </section>
-
-      <section class="pane" id="pane-diff">
-        <h2>Diff stability <span class="sub">an agent edit</span></h2>
-        <p class="diff-caption" id="diff-caption">
-          An agent changes one line of Glyph&hellip;
-        </p>
-        <pre id="diff" class="diff-out"></pre>
-        <p class="diff-note" id="diff-note"></p>
+      <section class="pane pane-out" aria-label="Output">
+        <div class="phead" role="tablist" aria-label="Output">
+          <button class="tab on" id="tab-ts" role="tab" aria-selected="true" aria-controls="body-ts" data-tab="ts" type="button">TypeScript</button>
+          <button class="tab" id="tab-edit" role="tab" aria-selected="false" aria-controls="body-edit" data-tab="edit" type="button">Your edit<span class="n" id="edit-count">none yet</span></button>
+        </div>
+        <div class="tab-body" id="body-ts" role="tabpanel" aria-labelledby="tab-ts"></div>
+        <div class="tab-body" id="body-edit" role="tabpanel" aria-labelledby="tab-edit" hidden></div>
       </section>
     </main>
 
-    <footer class="site-footer">
-      <p>
-        The compiler runs entirely in your browser (WebAssembly), and it compiles
-        the one module in the editor. <code>glyph build</code> compiles your whole
-        project, so anything it reads from a sibling <code>.glyph</code> file is
-        missing here: the specifier for an import of one of your own modules, and
-        the runtime check for a type one of them declares. A module that imports
-        only <code>std/*</code> compiles here to what <code>glyph build</code>
-        writes for it at your project root, with the <code>std/*</code> specifiers
-        pointing into the runtime the build bundles beside its output. This page
-        also shows the TypeScript for a module that still has errors, which
-        <code>glyph build</code> will not write. Share puts the program in the
-        part of the link after <code>#</code>, which your browser does not send
-        to any server.
-      </p>
+    <footer class="foot">
+      <details>
+        <summary>What this page compiles</summary>
+        <p>
+          The compiler runs entirely in your browser (WebAssembly), and it compiles
+          the one module in the editor. <code>glyph build</code> compiles your whole
+          project, so anything it reads from a sibling <code>.glyph</code> file is
+          missing here: the specifier for an import of one of your own modules, and
+          the runtime check for a type one of them declares. A module that imports
+          only <code>std/*</code> compiles here to what <code>glyph build</code>
+          writes for it at your project root, with the <code>std/*</code> specifiers
+          pointing into the runtime the build bundles beside its output. This page
+          also shows the TypeScript for a module that still has errors, which
+          <code>glyph build</code> will not write. Share puts the program in the
+          part of the link after <code>#</code>, which your browser does not send
+          to any server.
+        </p>
+      </details>
     </footer>
 
     <noscript>The Glyph playground needs JavaScript and WebAssembly.</noscript>

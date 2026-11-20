@@ -1,9 +1,9 @@
 # Glyph Playground
 
-A zero-backend web playground: write Glyph on the left, watch the TypeScript it
-compiles to on the right, and see the diff-stability pillar demonstrated by an
-agent edit. The compiler runs entirely in the browser as WebAssembly, with no
-server and no API.
+A zero-backend web playground: write Glyph on the left, and on the right see
+either the TypeScript it compiles to or, under "Your edit", a line diff of your
+change in Glyph and in the compiled TypeScript. The compiler runs entirely in
+the browser as WebAssembly, with no server and no API.
 
 ## How it works
 
@@ -13,15 +13,18 @@ compiler front end (parse, resolve, typecheck, emit) in memory over one module.
 It is built to `wasm32-unknown-unknown` and wrapped with `wasm-bindgen` into
 `pkg/`. The page (`index.html` + `playground.js` + `style.css`) loads that
 module, compiles on every debounced keystroke, and renders the output and
-diagnostics. No framework and no bundler; the one generated file besides
+diagnostics. The editor is a `<textarea>` over a highlighted `<pre>`, so the
+code is coloured and each diagnostic is underlined where it starts. "Your edit"
+compiles the program you loaded and the one in the editor and diffs both the
+Glyph and the TypeScript with a small LCS line diff. No framework and no bundler; the one generated file besides
 `pkg/` is the example picker.
 
 ```
 playground/
-  index.html       three panes: Glyph | TypeScript | diff stability
-  style.css
-  playground.js    loads the wasm, debounced compile, diagnostics, diff demo,
-                   example picker, share links
+  index.html       Glyph editor | TypeScript and "Your edit" tabs
+  style.css        the site's tokens and IBM Plex fonts (served from /fonts/)
+  playground.js    loads the wasm, debounced compile, highlighting,
+                   diagnostics, edit diff, example picker, share links
   examples/        the plain programs in the picker, one .glyph file each
   examples.js      the picker data (generated; gitignored)
   build.sh         writes examples.js, then rebuilds pkg/ from the Rust crate
@@ -34,9 +37,12 @@ The picker opens on a `catches/` case, so the first thing on screen is a
 program Glyph refuses and `tsc --strict` accepts. `build.sh` runs
 `scripts/gen_playground_examples.py`, which reads the cases and
 `playground/examples/*.glyph` from disk on every build, so the page has no copy
-of a case to fall out of date. A case is shown when its code is an `E` code and
-it is one module: this page compiles one module and never runs `tsc`, so a case
-refused with a `TS` code is listed by name instead. A test in
+of a case to fall out of date. A case is shown when it is a refusal, its code
+is an `E` code and it is one module: this page compiles one module and never
+runs `tsc`. For a case, the TypeScript tab shows the `// show` excerpt of its
+`ts.ts` (the one /catches/ shows), the command and output recorded in its
+`observed.json`, and its `ts_verdict`; these are recorded when
+`scripts/check_catches.py` checks the case, and the page says so. A test in
 `crates/glyph-wasm` applies the same rule and compiles every shown case through
 `compile`, failing if one is not refused with its code, and checks that each
 program in `examples/` compiles without an error.

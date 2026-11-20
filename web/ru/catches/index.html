@@ -130,7 +130,7 @@
                       <li><a href="/ru/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Что пока не ловится</span><span class="nav-desc">Известные дыры, у каждой есть воспроизведение</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/ru/catches/"><span class="nav-feature-big">21 из 37</span><span class="nav-feature-text">ошибок в TypeScript, которые не ловит ничто даже в максимально настроенном проекте</span><span class="nav-feature-cta">Посмотреть, что он ловит <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/ru/catches/"><span class="nav-feature-big">21 из 37</span><span class="nav-feature-text">случаев в TypeScript, которые не ловит ничто даже в максимально настроенном проекте</span><span class="nav-feature-cta">Посмотреть, что он ловит <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -421,7 +421,7 @@
       <header class="page-hero">
         <p class="eyebrow">Случаи, которые пропускает TypeScript</p>
         <h1>Поймано до продакшена</h1>
-        <p class="lede">Всего проверенных случаев: 53. Из них ошибок в TypeScript: 37, ловушек JavaScript, которых нет в Glyph: 5, и дыр, которые Glyph пока не закрывает: 11. При сборке Glyph отклоняет 28 из них (ошибок: 23, ловушек: 5).</p>
+        <p class="lede">Всего проверенных случаев: 53. Из них случаев в TypeScript: 37, ловушек JavaScript, которых нет в Glyph: 5, и дыр, которые Glyph пока не закрывает: 11. При сборке Glyph отклоняет 28 из них (случаев TypeScript: 23, ловушек: 5).</p>
         <p class="lede">Все примеры на TypeScript из списка проходят <code>tsc --strict</code> без ошибок. Каждый из них дополнительно проверяется на проекте с максимально строгой настройкой: все флаги компилятора строже <code>--strict</code> плюс typescript-eslint <code>strictTypeChecked</code>. Из 37 случаев такая настройка не ловит 21. Флаг компилятора, выключенный по умолчанию, ловит 5, правило линтера ловит 11. Каждый из них проект должен включить сам, и агент может снова его выключить. В Glyph ни одна из этих проверок не является настройкой.</p>
         <p class="lede">
           Каждая запись это две программы в <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>, а вывод под каждой из них напечатан самими инструментами. Проверка при сборке, <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>, перезапускает каждый случай и падает, если какая-то из половин перестаёт делать то, что написано на странице. Полная конфигурация TypeScript, с которой идёт сравнение, лежит в этом скрипте.
@@ -429,7 +429,7 @@
       </header>
 
       <section class="c-cases" id="cases">
-        <h2 class="group-head">Ошибки в TypeScript: 37</h2>
+        <h2 class="group-head">Случаи в TypeScript: 37</h2>
       <div class="c-legend">
         <span class="c-score likely"><b>Вероятность</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> как часто это пишет ИИ-агент</span>
         <span class="c-score severe"><b>Тяжесть</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> насколько это вредит, попав в продакшен</span>

@@ -130,7 +130,7 @@
                       <li><a href="/pt-br/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">O que ainda não detecta</span><span class="nav-desc">Falhas conhecidas, cada uma com sua reprodução</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/pt-br/catches/"><span class="nav-feature-big">21 de 37</span><span class="nav-feature-text">erros de TypeScript que nada detecta em um projeto configurado no máximo</span><span class="nav-feature-cta">Veja o que detecta <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/pt-br/catches/"><span class="nav-feature-big">21 de 37</span><span class="nav-feature-text">casos de TypeScript que nada detecta em um projeto configurado no máximo</span><span class="nav-feature-cta">Veja o que detecta <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -428,7 +428,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">As fixtures<a class="h-anchor" href="#the-fixtures" aria-label="Link para esta seção">#</a></h2>
         <p>
-          Cada diretório em <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> contém <code>ts.ts</code>, <code>glyph.glyph</code> e um <code>case.toml</code> dizendo o que cada um faz. <code>scripts/check_catches.py</code> roda na CI. Ele exige que todo <code>ts.ts</code> passe no <code>tsc --strict</code>, já que um programa TypeScript que não compila não prova nada, e verifica a metade Glyph de acordo com o tipo do caso. No total são 53 casos verificados: 37 erros de TypeScript, 5 armadilhas de JavaScript que não existem em Glyph e 11 brechas que o Glyph ainda não fecha. O Glyph recusa 28 deles no build (23 erros e 5 armadilhas). Pelo tipo que o gate verifica:
+          Cada diretório em <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> contém <code>ts.ts</code>, <code>glyph.glyph</code> e um <code>case.toml</code> dizendo o que cada um faz. <code>scripts/check_catches.py</code> roda na CI. Ele exige que todo <code>ts.ts</code> passe no <code>tsc --strict</code>, já que um programa TypeScript que não compila não prova nada, e verifica a metade Glyph de acordo com o tipo do caso. No total são 53 casos verificados: 37 casos de TypeScript, 5 armadilhas de JavaScript que não existem em Glyph e 11 brechas que o Glyph ainda não fecha. O Glyph recusa 28 deles no build (23 casos de TypeScript e 5 armadilhas). Pelo tipo que o gate verifica:
         </p>
       </div>
 

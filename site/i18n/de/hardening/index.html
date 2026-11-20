@@ -1,7 +1,7 @@
 ---
 title: Härtung · wie Glyph unter Belastung getestet wird und was dabei herauskam
 description: KI-Agenten spielen skeptische Entwickler, bauen Apps in Glyph und versuchen, seine Garantien zu brechen. Die Schleife und die Bugs, die sie gefunden hat.
-source_hash: 39150fb233f95dbe
+source_hash: fff86bb3cc3ec145
 ---
       <header class="page-hero">
         <p class="eyebrow">Wie Glyph gehärtet wird</p>
@@ -15,7 +15,7 @@ source_hash: 39150fb233f95dbe
       <section>
         <h2 class="group-head">Fälle, die <code>tsc --strict</code> bestehen und in Glyph nicht kompilieren</h2>
         <p class="group-sub">
-          Jeder besteht aus zwei Dateien: einer <code>.ts</code>, die unter <code>tsc --strict</code> sauber durch die Typprüfung kommt, und demselben Programm in Glyph, das nicht kompiliert. Ein Build-Gate, <code>scripts/check_catches.py</code>, führt jeden erneut aus und schlägt fehl, wenn sich eine der beiden Hälften anders verhält, also reißt eine Garantie, die stillschweigend verschwindet, den Build mit. Die Tabelle listet die {{catches:refused}} der {{catches:count}} TypeScript-Fehler auf <a href="/catches/">der Seite mit den Fällen</a>, die so abgelehnt werden; die Seite hat den Rest, den Glyph beim Eintreffen der Daten prüft, mit einer Warnung meldet oder zur Laufzeit stoppt. {{catches:breakdown}}
+          Jeder besteht aus zwei Dateien: einer <code>.ts</code>, die unter <code>tsc --strict</code> sauber durch die Typprüfung kommt, und demselben Programm in Glyph, das nicht kompiliert. Ein Build-Gate, <code>scripts/check_catches.py</code>, führt jeden erneut aus und schlägt fehl, wenn sich eine der beiden Hälften anders verhält, also reißt eine Garantie, die stillschweigend verschwindet, den Build mit. Die Tabelle listet die {{catches:refused}} der {{catches:count}} TypeScript-Fälle auf <a href="/catches/">der Seite mit den Fällen</a>, die so abgelehnt werden; die Seite hat den Rest, den Glyph beim Eintreffen der Daten prüft, mit einer Warnung meldet oder zur Laufzeit stoppt. {{catches:breakdown}}
         </p>
 {{catches:refused-table}}
         <p class="group-sub" style="margin-top:24px">

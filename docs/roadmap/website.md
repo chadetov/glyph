@@ -55,6 +55,12 @@ the home page became a numbered list with hairline rules, the whole row as the
 link, and trying it moved to a dark strip with two buttons. Same text, so every
 translation carried over unchanged.
 
+**2026-11-20 · A payment example on the start page; "cases", not
+"mistakes".** The first-program walkthrough breaks a payment `match` by adding
+`Refunded`, the way an agent would, instead of deleting an arm, and the fix no
+longer suggests an `else`. The checked TypeScript examples are called "cases"
+everywhere they are counted.
+
 ## Next
 
 1. **Launch readiness.** An "Open in playground" link on each case on

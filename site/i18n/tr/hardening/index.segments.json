@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "hardening/index.html",
   "locale": "tr",
-  "source_hash": "39150fb233f95dbe",
+  "source_hash": "fff86bb3cc3ec145",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "<code>tsc --strict</code>'ten geçen ve Glyph'te derlenmeyen vakalar"
     },
     {
-      "id": "h-4b26fd30",
+      "id": "h-c31e98f1",
       "kind": "html",
-      "en": "Each is two files: a <code>.ts</code> that type-checks clean under <code>tsc --strict</code>, and the same program in Glyph that does not compile. A build gate, <code>scripts/check_catches.py</code>, re-runs every one and fails if either half stops behaving, so a guarantee that quietly disappears takes the build with it. The table lists the {{catches:refused}} of the {{catches:count}} TypeScript mistakes on <a href=\"/catches/\">the catches page</a> that are refused this way; the page has the rest, which Glyph checks when the data arrives, warns about, or stops at run time. {{catches:breakdown}}",
-      "tr": "Her biri iki dosyadan oluşur: <code>tsc --strict</code> altında temiz tip kontrolünden geçen bir <code>.ts</code> ve aynı programın derlenmeyen Glyph hâli. Bir build kontrolü, <code>scripts/check_catches.py</code>, her birini yeniden çalıştırır ve iki yarıdan biri beklenen davranışı bırakırsa başarısız olur; böylece sessizce kaybolan bir garanti build'i de beraberinde götürür. Tablo, <a href=\"/catches/\">yakaladıkları sayfasındaki</a> {{catches:count}} TypeScript hatasından bu şekilde reddedilen {{catches:refused}} tanesini listeler; Glyph'in veri geldiğinde kontrol ettiği, uyardığı ya da çalışırken durdurduğu geri kalanlar o sayfada. {{catches:breakdown}}"
+      "en": "Each is two files: a <code>.ts</code> that type-checks clean under <code>tsc --strict</code>, and the same program in Glyph that does not compile. A build gate, <code>scripts/check_catches.py</code>, re-runs every one and fails if either half stops behaving, so a guarantee that quietly disappears takes the build with it. The table lists the {{catches:refused}} of the {{catches:count}} TypeScript cases on <a href=\"/catches/\">the catches page</a> that are refused this way; the page has the rest, which Glyph checks when the data arrives, warns about, or stops at run time. {{catches:breakdown}}",
+      "tr": "Her biri iki dosyadan oluşur: <code>tsc --strict</code> altında temiz tip kontrolünden geçen bir <code>.ts</code> ve aynı programın derlenmeyen Glyph hâli. Bir build kontrolü, <code>scripts/check_catches.py</code>, her birini yeniden çalıştırır ve iki yarıdan biri beklenen davranışı bırakırsa başarısız olur; böylece sessizce kaybolan bir garanti build'i de beraberinde götürür. Tablo, <a href=\"/catches/\">yakaladıkları sayfasındaki</a> {{catches:count}} TypeScript vakasından bu şekilde reddedilen {{catches:refused}} tanesini listeler; Glyph'in veri geldiğinde kontrol ettiği, uyardığı ya da çalışırken durdurduğu geri kalanlar o sayfada. {{catches:breakdown}}"
     },
     {
       "id": "h-e8999e82",

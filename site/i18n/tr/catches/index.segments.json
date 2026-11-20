@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "catches/index.html",
   "locale": "tr",
-  "source_hash": "09d8897c06eb2254",
+  "source_hash": "307ca95d5b6fa9af",
   "segments": [
     {
       "id": "title",
@@ -35,10 +35,10 @@
       "tr": "Her girdi <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> içindeki iki programdan oluşur; her birinin altındaki çıktı, araçların yazdırdığı çıktının kendisidir. Bir build kontrolü, <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a>, her vakayı yeniden çalıştırır ve iki taraftan biri sayfanın söylediğini yapmayı bırakırsa başarısız olur. Karşılaştırmada kullanılan TypeScript yapılandırmasının tamamı bu script'in içindedir."
     },
     {
-      "id": "h-edf64e1e",
+      "id": "h-9c884da7",
       "kind": "html",
-      "en": "{{catches:count}} TypeScript mistakes",
-      "tr": "{{catches:count}} TypeScript hatası"
+      "en": "{{catches:count}} TypeScript cases",
+      "tr": "{{catches:count}} TypeScript vakası"
     },
     {
       "id": "h-792e25f6",

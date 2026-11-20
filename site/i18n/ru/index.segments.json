@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "ru",
-  "source_hash": "279adbc0d99f057c",
+  "source_hash": "2146f3700ce690e1",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "<span>{{catches:none}}</span> из {{catches:count}}"
     },
     {
-      "id": "h-fa646db9",
+      "id": "h-19744fc5",
       "kind": "html",
-      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript mistakes, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} mistakes and {{catches:traps-refused}} traps).",
-      "tr": "{{catches:measured}} Всего проверенных случаев: {{catches:total}}. Из них ошибок в TypeScript: {{catches:count}}, ловушек JavaScript, которых нет в Glyph: {{catches:trap-count}}, и дыр, которые Glyph пока не закрывает: {{catches:gap-cases}}. При сборке Glyph отклоняет {{catches:refused-all}} из них (ошибок: {{catches:refused}}, ловушек: {{catches:traps-refused}})."
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps).",
+      "tr": "{{catches:measured}} Всего проверенных случаев: {{catches:total}}. Из них случаев в TypeScript: {{catches:count}}, ловушек JavaScript, которых нет в Glyph: {{catches:trap-count}}, и дыр, которые Glyph пока не закрывает: {{catches:gap-cases}}. При сборке Glyph отклоняет {{catches:refused-all}} из них (случаев TypeScript: {{catches:refused}}, ловушек: {{catches:traps-refused}})."
     },
     {
       "id": "h-cda6f98d",

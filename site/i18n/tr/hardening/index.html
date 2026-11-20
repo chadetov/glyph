@@ -1,7 +1,7 @@
 ---
 title: Sağlamlaştırma · Glyph nasıl zorlanarak test ediliyor ve bu neler buldu
 description: Yapay zekâ ajanları şüpheci mühendis rolüne giriyor, Glyph'te uygulamalar geliştiriyor ve garantilerini bozmaya çalışıyor. Döngü ve bulduğu bug'lar.
-source_hash: 39150fb233f95dbe
+source_hash: fff86bb3cc3ec145
 ---
       <header class="page-hero">
         <p class="eyebrow">Glyph nasıl sağlamlaştırılıyor</p>
@@ -15,7 +15,7 @@ source_hash: 39150fb233f95dbe
       <section>
         <h2 class="group-head"><code>tsc --strict</code>'ten geçen ve Glyph'te derlenmeyen vakalar</h2>
         <p class="group-sub">
-          Her biri iki dosyadan oluşur: <code>tsc --strict</code> altında temiz tip kontrolünden geçen bir <code>.ts</code> ve aynı programın derlenmeyen Glyph hâli. Bir build kontrolü, <code>scripts/check_catches.py</code>, her birini yeniden çalıştırır ve iki yarıdan biri beklenen davranışı bırakırsa başarısız olur; böylece sessizce kaybolan bir garanti build'i de beraberinde götürür. Tablo, <a href="/catches/">yakaladıkları sayfasındaki</a> {{catches:count}} TypeScript hatasından bu şekilde reddedilen {{catches:refused}} tanesini listeler; Glyph'in veri geldiğinde kontrol ettiği, uyardığı ya da çalışırken durdurduğu geri kalanlar o sayfada. {{catches:breakdown}}
+          Her biri iki dosyadan oluşur: <code>tsc --strict</code> altında temiz tip kontrolünden geçen bir <code>.ts</code> ve aynı programın derlenmeyen Glyph hâli. Bir build kontrolü, <code>scripts/check_catches.py</code>, her birini yeniden çalıştırır ve iki yarıdan biri beklenen davranışı bırakırsa başarısız olur; böylece sessizce kaybolan bir garanti build'i de beraberinde götürür. Tablo, <a href="/catches/">yakaladıkları sayfasındaki</a> {{catches:count}} TypeScript vakasından bu şekilde reddedilen {{catches:refused}} tanesini listeler; Glyph'in veri geldiğinde kontrol ettiği, uyardığı ya da çalışırken durdurduğu geri kalanlar o sayfada. {{catches:breakdown}}
         </p>
 {{catches:refused-table}}
         <p class="group-sub" style="margin-top:24px">

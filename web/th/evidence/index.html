@@ -132,7 +132,7 @@
                       <li><a href="/th/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">สิ่งที่ยังจับไม่ได้</span><span class="nav-desc">ช่องโหว่ที่รู้แล้ว แต่ละจุดมีโค้ดสำหรับทำซ้ำ</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/th/catches/"><span class="nav-feature-big">21 จาก 37</span><span class="nav-feature-text">ข้อผิดพลาดใน TypeScript ที่ไม่มีอะไรในโปรเจกต์ที่ตั้งค่าเต็มที่จับได้</span><span class="nav-feature-cta">ดูว่าจับอะไรได้บ้าง <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/th/catches/"><span class="nav-feature-big">21 จาก 37</span><span class="nav-feature-text">กรณีของ TypeScript ที่ไม่มีอะไรในโปรเจกต์ที่ตั้งค่าเต็มที่จับได้</span><span class="nav-feature-cta">ดูว่าจับอะไรได้บ้าง <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">fixture<a class="h-anchor" href="#the-fixtures" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          แต่ละไดเรกทอรีใต้ <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> มี <code>ts.ts</code>, <code>glyph.glyph</code> และ <code>case.toml</code> ที่บอกว่าแต่ละตัวทำอะไร <code>scripts/check_catches.py</code> รันใน CI มันกำหนดให้ <code>ts.ts</code> ทุกตัวต้องผ่าน <code>tsc --strict</code> เพราะโปรแกรม TypeScript ที่คอมไพล์ไม่ผ่านไม่ได้พิสูจน์อะไร และตรวจฝั่ง Glyph ตามชนิดของกรณี รวมทั้งหมดมี 53 กรณีที่ตรวจแล้ว ได้แก่ ข้อผิดพลาดใน TypeScript 37 กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph 5 กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ 11 กรณี Glyph ปฏิเสธ 28 กรณีในจำนวนนี้ตอน build (ข้อผิดพลาด 23 กรณี และกับดัก 5 กรณี) แยกตามชนิดที่ gate ตรวจ:
+          แต่ละไดเรกทอรีใต้ <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> มี <code>ts.ts</code>, <code>glyph.glyph</code> และ <code>case.toml</code> ที่บอกว่าแต่ละตัวทำอะไร <code>scripts/check_catches.py</code> รันใน CI มันกำหนดให้ <code>ts.ts</code> ทุกตัวต้องผ่าน <code>tsc --strict</code> เพราะโปรแกรม TypeScript ที่คอมไพล์ไม่ผ่านไม่ได้พิสูจน์อะไร และตรวจฝั่ง Glyph ตามชนิดของกรณี รวมทั้งหมดมี 53 กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript 37 กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph 5 กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ 11 กรณี Glyph ปฏิเสธ 28 กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript 23 กรณี และกับดัก 5 กรณี) แยกตามชนิดที่ gate ตรวจ:
         </p>
       </div>
 

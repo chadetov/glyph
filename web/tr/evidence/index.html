@@ -130,7 +130,7 @@
                       <li><a href="/tr/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Henüz yakalanmayanlar</span><span class="nav-desc">Bilinen açıklar, her biri bir reprodüksiyonla</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/tr/catches/"><span class="nav-feature-big">21 / 37</span><span class="nav-feature-text">tamamen yapılandırılmış bir kurulumda hiçbir şeyin yakalamadığı TypeScript hatası</span><span class="nav-feature-cta">Neleri yakaladığını gör <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/tr/catches/"><span class="nav-feature-big">21 / 37</span><span class="nav-feature-text">tamamen yapılandırılmış bir kurulumda hiçbir şeyin yakalamadığı TypeScript vakası</span><span class="nav-feature-cta">Neleri yakaladığını gör <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -428,7 +428,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">Fixture'lar<a class="h-anchor" href="#the-fixtures" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> altındaki her dizin <code>ts.ts</code>, <code>glyph.glyph</code> ve her birinin ne yaptığını söyleyen bir <code>case.toml</code> içerir. <code>scripts/check_catches.py</code> CI'da çalışır. Her <code>ts.ts</code>'in <code>tsc --strict</code>'ten geçmesini şart koşar, çünkü derlenmeyen bir TypeScript programı hiçbir şey kanıtlamaz; Glyph tarafını ise vakanın türüne göre kontrol eder. Toplam 53 doğrulanmış vaka var: 37 TypeScript hatası, Glyph'te var olmayan 5 JavaScript tuzağı ve Glyph'in henüz kapatmadığı 11 açık. Glyph bunların 28 tanesini derleme sırasında reddeder (23 hata ve 5 tuzak). Kontrolün baktığı türe göre:
+          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> altındaki her dizin <code>ts.ts</code>, <code>glyph.glyph</code> ve her birinin ne yaptığını söyleyen bir <code>case.toml</code> içerir. <code>scripts/check_catches.py</code> CI'da çalışır. Her <code>ts.ts</code>'in <code>tsc --strict</code>'ten geçmesini şart koşar, çünkü derlenmeyen bir TypeScript programı hiçbir şey kanıtlamaz; Glyph tarafını ise vakanın türüne göre kontrol eder. Toplam 53 doğrulanmış vaka var: 37 TypeScript vakası, Glyph'te var olmayan 5 JavaScript tuzağı ve Glyph'in henüz kapatmadığı 11 açık. Glyph bunların 28 tanesini derleme sırasında reddeder (23 TypeScript vakası ve 5 tuzak). Kontrolün baktığı türe göre:
         </p>
       </div>
 

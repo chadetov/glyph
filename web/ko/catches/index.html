@@ -132,7 +132,7 @@
                       <li><a href="/ko/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">아직 잡아내지 못하는 것</span><span class="nav-desc">알려진 구멍과 각각의 재현 코드</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/ko/catches/"><span class="nav-feature-big">37개 중 21개</span><span class="nav-feature-text">최대한 엄격하게 설정한 환경의 어떤 도구도 잡지 못하는 TypeScript 실수</span><span class="nav-feature-cta">무엇을 잡아내는지 보기 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/ko/catches/"><span class="nav-feature-big">37개 중 21개</span><span class="nav-feature-text">최대한 엄격하게 설정한 환경의 어떤 도구도 잡지 못하는 TypeScript 사례</span><span class="nav-feature-cta">무엇을 잡아내는지 보기 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -423,7 +423,7 @@
       <header class="page-hero">
         <p class="eyebrow">TypeScript가 통과시키는 사례</p>
         <h1>배포되기 전에 잡아냅니다</h1>
-        <p class="lede">확인된 사례는 모두 53건입니다. TypeScript 실수 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 11건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(실수 23건, 함정 5건).</p>
+        <p class="lede">확인된 사례는 모두 53건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 11건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건).</p>
         <p class="lede">목록에 있는 TypeScript 예제는 모두 <code>tsc --strict</code>를 오류 없이 통과합니다. 각 예제는 최대한 엄격하게 설정한 프로젝트에서도 다시 검사합니다. <code>--strict</code>보다 엄격한 컴파일러 플래그를 모두 켜고, typescript-eslint <code>strictTypeChecked</code>까지 적용한 설정입니다. 37개의 사례 중 21개는 이 설정의 어떤 것도 잡아내지 못합니다. 기본값이 꺼져 있는 컴파일러 플래그가 5개를, lint 규칙이 11개를 잡아냅니다. 이 플래그와 규칙은 프로젝트에서 하나하나 켜야 하고, 에이전트가 다시 끌 수도 있습니다. Glyph에서는 이 중 어느 것도 설정 옵션이 아닙니다.</p>
         <p class="lede">
           각 항목은 <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>에 있는 두 프로그램이고, 각 프로그램 아래의 출력은 도구가 실제로 출력한 내용입니다. 빌드 게이트인 <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>가 모든 사례를 다시 실행하고, 어느 한쪽이라도 페이지에 적힌 대로 동작하지 않으면 실패합니다. 검사에 쓰는 전체 TypeScript 설정은 이 스크립트에 있습니다.
@@ -431,7 +431,7 @@
       </header>
 
       <section class="c-cases" id="cases">
-        <h2 class="group-head">TypeScript 실수 37건</h2>
+        <h2 class="group-head">TypeScript 사례 37건</h2>
       <div class="c-legend">
         <span class="c-score likely"><b>발생 가능성</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> AI 에이전트가 이런 코드를 얼마나 자주 작성하는가</span>
         <span class="c-score severe"><b>심각도</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> 프로덕션에 배포되었을 때 얼마나 큰 피해를 주는가</span>

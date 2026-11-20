@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "catches/index.html",
   "locale": "ko",
-  "source_hash": "09d8897c06eb2254",
+  "source_hash": "307ca95d5b6fa9af",
   "segments": [
     {
       "id": "title",
@@ -35,10 +35,10 @@
       "tr": "각 항목은 <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a>에 있는 두 프로그램이고, 각 프로그램 아래의 출력은 도구가 실제로 출력한 내용입니다. 빌드 게이트인 <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a>가 모든 사례를 다시 실행하고, 어느 한쪽이라도 페이지에 적힌 대로 동작하지 않으면 실패합니다. 검사에 쓰는 전체 TypeScript 설정은 이 스크립트에 있습니다."
     },
     {
-      "id": "h-edf64e1e",
+      "id": "h-9c884da7",
       "kind": "html",
-      "en": "{{catches:count}} TypeScript mistakes",
-      "tr": "TypeScript 실수 {{catches:count}}건"
+      "en": "{{catches:count}} TypeScript cases",
+      "tr": "TypeScript 사례 {{catches:count}}건"
     },
     {
       "id": "h-792e25f6",

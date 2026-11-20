@@ -1,7 +1,7 @@
 ---
 title: 堅牢化 · Glyph の負荷テストの方法と、そこで見つかったもの
 description: AI エージェントが懐疑的なエンジニアを演じて Glyph でアプリを作り、その保証を壊そうとします。そのループと、見つかったバグを紹介します。
-source_hash: 39150fb233f95dbe
+source_hash: fff86bb3cc3ec145
 ---
       <header class="page-hero">
         <p class="eyebrow">Glyph を堅牢にする方法</p>
@@ -15,7 +15,7 @@ source_hash: 39150fb233f95dbe
       <section>
         <h2 class="group-head"><code>tsc --strict</code> を通過し、Glyph ではコンパイルできないケース</h2>
         <p class="group-sub">
-          各ケースは 2 つのファイルです。<code>tsc --strict</code> で問題なく型検査を通る <code>.ts</code> と、コンパイルできない同じ内容の Glyph のプログラムです。ビルドのゲートである <code>scripts/check_catches.py</code> がすべてを再実行し、どちらかが期待どおりに動かなくなると失敗するので、保証が気づかないうちに消えればビルドも止まります。表には、<a href="/catches/">検出できるもののページ</a>にある TypeScript のミス {{catches:count}} 件のうち、このように拒否される {{catches:refused}} 件を載せています。残りは、Glyph がデータの到着時に検査するもの、警告するもの、実行時に止めるもので、そのページに載っています。{{catches:breakdown}}
+          各ケースは 2 つのファイルです。<code>tsc --strict</code> で問題なく型検査を通る <code>.ts</code> と、コンパイルできない同じ内容の Glyph のプログラムです。ビルドのゲートである <code>scripts/check_catches.py</code> がすべてを再実行し、どちらかが期待どおりに動かなくなると失敗するので、保証が気づかないうちに消えればビルドも止まります。表には、<a href="/catches/">検出できるもののページ</a>にある TypeScript のケース {{catches:count}} 件のうち、このように拒否される {{catches:refused}} 件を載せています。残りは、Glyph がデータの到着時に検査するもの、警告するもの、実行時に止めるもので、そのページに載っています。{{catches:breakdown}}
         </p>
 {{catches:refused-table}}
         <p class="group-sub" style="margin-top:24px">

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "hardening/index.html",
   "locale": "th",
-  "source_hash": "39150fb233f95dbe",
+  "source_hash": "fff86bb3cc3ec145",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "กรณีที่ผ่าน <code>tsc --strict</code> แต่คอมไพล์ไม่ผ่านใน Glyph"
     },
     {
-      "id": "h-4b26fd30",
+      "id": "h-c31e98f1",
       "kind": "html",
-      "en": "Each is two files: a <code>.ts</code> that type-checks clean under <code>tsc --strict</code>, and the same program in Glyph that does not compile. A build gate, <code>scripts/check_catches.py</code>, re-runs every one and fails if either half stops behaving, so a guarantee that quietly disappears takes the build with it. The table lists the {{catches:refused}} of the {{catches:count}} TypeScript mistakes on <a href=\"/catches/\">the catches page</a> that are refused this way; the page has the rest, which Glyph checks when the data arrives, warns about, or stops at run time. {{catches:breakdown}}",
-      "tr": "แต่ละกรณีมีสองไฟล์: <code>.ts</code> ที่ตรวจ type ผ่านสะอาดภายใต้ <code>tsc --strict</code> และโปรแกรมเดียวกันใน Glyph ที่คอมไพล์ไม่ผ่าน build gate ชื่อ <code>scripts/check_catches.py</code> รันทุกกรณีซ้ำ และจะ fail ถ้าฝั่งใดฝั่งหนึ่งไม่ทำงานตามที่ควร การรับประกันที่หายไปเงียบๆ จึงทำให้ build พังไปด้วย ตารางแสดง {{catches:refused}} ข้อจากข้อผิดพลาดใน TypeScript {{catches:count}} ข้อใน<a href=\"/catches/\">หน้าสิ่งที่จับได้</a>ที่ถูกปฏิเสธด้วยวิธีนี้ หน้านั้นมีส่วนที่เหลือ ซึ่ง Glyph ตรวจเมื่อข้อมูลเข้ามา เตือน หรือหยุดตอนรัน {{catches:breakdown}}"
+      "en": "Each is two files: a <code>.ts</code> that type-checks clean under <code>tsc --strict</code>, and the same program in Glyph that does not compile. A build gate, <code>scripts/check_catches.py</code>, re-runs every one and fails if either half stops behaving, so a guarantee that quietly disappears takes the build with it. The table lists the {{catches:refused}} of the {{catches:count}} TypeScript cases on <a href=\"/catches/\">the catches page</a> that are refused this way; the page has the rest, which Glyph checks when the data arrives, warns about, or stops at run time. {{catches:breakdown}}",
+      "tr": "แต่ละกรณีมีสองไฟล์: <code>.ts</code> ที่ตรวจ type ผ่านสะอาดภายใต้ <code>tsc --strict</code> และโปรแกรมเดียวกันใน Glyph ที่คอมไพล์ไม่ผ่าน build gate ชื่อ <code>scripts/check_catches.py</code> รันทุกกรณีซ้ำ และจะ fail ถ้าฝั่งใดฝั่งหนึ่งไม่ทำงานตามที่ควร การรับประกันที่หายไปเงียบๆ จึงทำให้ build พังไปด้วย ตารางแสดง {{catches:refused}} ข้อจากกรณีของ TypeScript {{catches:count}} ข้อใน<a href=\"/catches/\">หน้าสิ่งที่จับได้</a>ที่ถูกปฏิเสธด้วยวิธีนี้ หน้านั้นมีส่วนที่เหลือ ซึ่ง Glyph ตรวจเมื่อข้อมูลเข้ามา เตือน หรือหยุดตอนรัน {{catches:breakdown}}"
     },
     {
       "id": "h-e8999e82",

@@ -104,7 +104,7 @@
     "catches.table.let": "What TypeScript let through",
     "catches.table.files": "Files",
     "catches.measured": "Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For {none} of the {count} cases, nothing in that setup catches it. A compiler flag that is off by default catches {flag}, and a lint rule catches {lint}. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting.",
-    "catches.breakdown": "There are {total} checked cases: {count} TypeScript mistakes, {trap_count} JavaScript traps that do not exist in Glyph, and {gap_cases} holes Glyph does not close yet. Glyph refuses {refused_all} of them when you build ({refused} mistakes and {traps_refused} traps).",
+    "catches.breakdown": "There are {total} checked cases: {count} TypeScript cases, {trap_count} JavaScript traps that do not exist in Glyph, and {gap_cases} holes Glyph does not close yet. Glyph refuses {refused_all} of them when you build ({refused} TypeScript cases and {traps_refused} traps).",
     "versions.no_quote": "The note does not say."
   }
 }

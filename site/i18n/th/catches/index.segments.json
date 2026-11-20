@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "catches/index.html",
   "locale": "th",
-  "source_hash": "09d8897c06eb2254",
+  "source_hash": "307ca95d5b6fa9af",
   "segments": [
     {
       "id": "title",
@@ -35,10 +35,10 @@
       "tr": "แต่ละรายการคือโปรแกรมสองตัวใน <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> และ output ใต้แต่ละตัวคือสิ่งที่เครื่องมือพิมพ์ออกมาจริง build gate ชื่อ <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a> รันทุกกรณีซ้ำ และจะ fail ถ้าฝั่งใดฝั่งหนึ่งไม่ทำตามที่หน้านี้บอก การตั้งค่า TypeScript ฉบับเต็มที่ใช้ตรวจอยู่ในสคริปต์นั้น"
     },
     {
-      "id": "h-edf64e1e",
+      "id": "h-9c884da7",
       "kind": "html",
-      "en": "{{catches:count}} TypeScript mistakes",
-      "tr": "ข้อผิดพลาดใน TypeScript {{catches:count}} ข้อ"
+      "en": "{{catches:count}} TypeScript cases",
+      "tr": "กรณีของ TypeScript {{catches:count}} ข้อ"
     },
     {
       "id": "h-792e25f6",

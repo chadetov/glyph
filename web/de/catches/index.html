@@ -130,7 +130,7 @@
                       <li><a href="/de/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Noch nicht erkannt</span><span class="nav-desc">Bekannte Lücken, jede mit einer Reproduktion</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/de/catches/"><span class="nav-feature-big">21 von 37</span><span class="nav-feature-text">TypeScript-Fehler, die in einem maximal konfigurierten Setup nichts findet</span><span class="nav-feature-cta">Sehen, was es findet <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/de/catches/"><span class="nav-feature-big">21 von 37</span><span class="nav-feature-text">TypeScript-Fälle, die in einem maximal konfigurierten Setup nichts findet</span><span class="nav-feature-cta">Sehen, was es findet <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -421,7 +421,7 @@
       <header class="page-hero">
         <p class="eyebrow">Fälle, die TypeScript durchlässt</p>
         <h1>Gefunden, bevor es ausgeliefert wird</h1>
-        <p class="lede">Insgesamt gibt es 53 geprüfte Fälle: 37 TypeScript-Fehler, 5 JavaScript-Fallen, die es in Glyph nicht gibt, und 11 Lücken, die Glyph noch nicht schließt. Glyph lehnt 28 davon beim Build ab (23 Fehler und 5 Fallen).</p>
+        <p class="lede">Insgesamt gibt es 53 geprüfte Fälle: 37 TypeScript-Fälle, 5 JavaScript-Fallen, die es in Glyph nicht gibt, und 11 Lücken, die Glyph noch nicht schließt. Glyph lehnt 28 davon beim Build ab (23 TypeScript-Fälle und 5 Fallen).</p>
         <p class="lede">Jedes TypeScript-Beispiel in der Liste besteht <code>tsc --strict</code> ohne Fehler. Jedes wird außerdem gegen ein maximal konfiguriertes Projekt geprüft: alle Compiler-Flags, die strenger als <code>--strict</code> sind, dazu typescript-eslint <code>strictTypeChecked</code>. Von den 37 Fällen erkennt dieses Setup 21 überhaupt nicht. Ein standardmäßig deaktiviertes Compiler-Flag findet 5, eine Lint-Regel 11. Ein Projekt muss jedes davon einschalten, und ein Agent kann es wieder ausschalten. In Glyph ist keins davon eine Konfigurationsoption.</p>
         <p class="lede">
           Jeder Eintrag besteht aus zwei Programmen in <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>, und die Ausgabe unter jedem ist das, was die Tools ausgegeben haben. Ein Build-Gate, <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>, führt jeden Fall erneut aus und schlägt fehl, wenn eine der beiden Hälften nicht mehr tut, was die Seite sagt. Die vollständige TypeScript-Konfiguration, gegen die es prüft, steht in diesem Skript.
@@ -429,7 +429,7 @@
       </header>
 
       <section class="c-cases" id="cases">
-        <h2 class="group-head">37 TypeScript-Fehler</h2>
+        <h2 class="group-head">37 TypeScript-Fälle</h2>
       <div class="c-legend">
         <span class="c-score likely"><b>Wahrscheinlichkeit</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> wie oft ein KI-Agent das schreibt</span>
         <span class="c-score severe"><b>Schwere</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> wie viel Schaden es anrichtet, wenn es in Produktion landet</span>

@@ -1,7 +1,7 @@
 ---
 title: การทดสอบความแข็งแรง · Glyph ถูกทดสอบหนักอย่างไร และเจออะไรบ้าง
 description: เอเจนต์ AI สวมบทวิศวกรขี้สงสัย สร้างแอปด้วย Glyph และพยายามทำลายการรับประกันของมัน loop ทั้งหมด และบั๊กที่มันเจอ
-source_hash: 39150fb233f95dbe
+source_hash: fff86bb3cc3ec145
 ---
       <header class="page-hero">
         <p class="eyebrow">Glyph ถูกทำให้แข็งแรงอย่างไร</p>
@@ -15,7 +15,7 @@ source_hash: 39150fb233f95dbe
       <section>
         <h2 class="group-head">กรณีที่ผ่าน <code>tsc --strict</code> แต่คอมไพล์ไม่ผ่านใน Glyph</h2>
         <p class="group-sub">
-          แต่ละกรณีมีสองไฟล์: <code>.ts</code> ที่ตรวจ type ผ่านสะอาดภายใต้ <code>tsc --strict</code> และโปรแกรมเดียวกันใน Glyph ที่คอมไพล์ไม่ผ่าน build gate ชื่อ <code>scripts/check_catches.py</code> รันทุกกรณีซ้ำ และจะ fail ถ้าฝั่งใดฝั่งหนึ่งไม่ทำงานตามที่ควร การรับประกันที่หายไปเงียบๆ จึงทำให้ build พังไปด้วย ตารางแสดง {{catches:refused}} ข้อจากข้อผิดพลาดใน TypeScript {{catches:count}} ข้อใน<a href="/catches/">หน้าสิ่งที่จับได้</a>ที่ถูกปฏิเสธด้วยวิธีนี้ หน้านั้นมีส่วนที่เหลือ ซึ่ง Glyph ตรวจเมื่อข้อมูลเข้ามา เตือน หรือหยุดตอนรัน {{catches:breakdown}}
+          แต่ละกรณีมีสองไฟล์: <code>.ts</code> ที่ตรวจ type ผ่านสะอาดภายใต้ <code>tsc --strict</code> และโปรแกรมเดียวกันใน Glyph ที่คอมไพล์ไม่ผ่าน build gate ชื่อ <code>scripts/check_catches.py</code> รันทุกกรณีซ้ำ และจะ fail ถ้าฝั่งใดฝั่งหนึ่งไม่ทำงานตามที่ควร การรับประกันที่หายไปเงียบๆ จึงทำให้ build พังไปด้วย ตารางแสดง {{catches:refused}} ข้อจากกรณีของ TypeScript {{catches:count}} ข้อใน<a href="/catches/">หน้าสิ่งที่จับได้</a>ที่ถูกปฏิเสธด้วยวิธีนี้ หน้านั้นมีส่วนที่เหลือ ซึ่ง Glyph ตรวจเมื่อข้อมูลเข้ามา เตือน หรือหยุดตอนรัน {{catches:breakdown}}
         </p>
 {{catches:refused-table}}
         <p class="group-sub" style="margin-top:24px">

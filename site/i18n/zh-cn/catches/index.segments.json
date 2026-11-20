@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "catches/index.html",
   "locale": "zh-cn",
-  "source_hash": "09d8897c06eb2254",
+  "source_hash": "307ca95d5b6fa9af",
   "segments": [
     {
       "id": "title",
@@ -35,10 +35,10 @@
       "tr": "每个条目都是 <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> 中的两个程序，每个程序下方的输出就是工具实际打印的内容。构建检查 <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a> 会重新运行每个案例，只要任何一半不再符合页面的描述就会失败。它用来对照的完整 TypeScript 配置就在这个脚本里。"
     },
     {
-      "id": "h-edf64e1e",
+      "id": "h-9c884da7",
       "kind": "html",
-      "en": "{{catches:count}} TypeScript mistakes",
-      "tr": "{{catches:count}} 个 TypeScript 错误"
+      "en": "{{catches:count}} TypeScript cases",
+      "tr": "{{catches:count}} 个 TypeScript 案例"
     },
     {
       "id": "h-792e25f6",

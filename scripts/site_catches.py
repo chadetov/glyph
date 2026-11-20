@@ -42,7 +42,7 @@ the English it was translated from. A text whose English has changed since,
 or that nobody translated, shows in English marked lang="en". Code, observed
 output and error codes are English everywhere.
 
-The section names are fixed here, once: "TypeScript mistakes", "JavaScript
+The section names are fixed here, once: "TypeScript cases", "JavaScript
 traps that do not exist in Glyph" and "holes Glyph does not close yet". A page
 that cites a count uses these names, so a reader adding up the numbers on two
 pages gets the same total.

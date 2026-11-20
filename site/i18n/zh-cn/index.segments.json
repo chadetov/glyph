@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "zh-cn",
-  "source_hash": "279adbc0d99f057c",
+  "source_hash": "2146f3700ce690e1",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "{{catches:count}} 个中有 <span>{{catches:none}}</span> 个"
     },
     {
-      "id": "h-fa646db9",
+      "id": "h-19744fc5",
       "kind": "html",
-      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript mistakes, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} mistakes and {{catches:traps-refused}} traps).",
-      "tr": "{{catches:measured}}共有 {{catches:total}} 个经过检验的案例：{{catches:count}} 个 TypeScript 错误、{{catches:trap-count}} 个在 Glyph 中不存在的 JavaScript 陷阱，以及 {{catches:gap-cases}} 个 Glyph 尚未堵上的漏洞。其中 {{catches:refused-all}} 个在构建时就被 Glyph 拒绝（{{catches:refused}} 个错误和 {{catches:traps-refused}} 个陷阱）。"
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps).",
+      "tr": "{{catches:measured}}共有 {{catches:total}} 个经过检验的案例：{{catches:count}} 个 TypeScript 案例、{{catches:trap-count}} 个在 Glyph 中不存在的 JavaScript 陷阱，以及 {{catches:gap-cases}} 个 Glyph 尚未堵上的漏洞。其中 {{catches:refused-all}} 个在构建时就被 Glyph 拒绝（{{catches:refused}} 个 TypeScript 案例和 {{catches:traps-refused}} 个陷阱）。"
     },
     {
       "id": "h-cda6f98d",

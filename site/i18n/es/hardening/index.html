@@ -1,7 +1,7 @@
 ---
 title: Endurecimiento · cómo se somete Glyph a pruebas de estrés, y qué se encontró
 description: Agentes de IA hacen de ingenieros escépticos, construyen apps en Glyph e intentan romper sus garantías. El ciclo, y los bugs que encontró.
-source_hash: 39150fb233f95dbe
+source_hash: fff86bb3cc3ec145
 ---
       <header class="page-hero">
         <p class="eyebrow">Cómo se endurece Glyph</p>
@@ -15,7 +15,7 @@ source_hash: 39150fb233f95dbe
       <section>
         <h2 class="group-head">Casos que pasan <code>tsc --strict</code> y no compilan en Glyph</h2>
         <p class="group-sub">
-          Cada uno son dos archivos: un <code>.ts</code> que pasa la comprobación de tipos sin errores con <code>tsc --strict</code>, y el mismo programa en Glyph, que no compila. Una comprobación en el build, <code>scripts/check_catches.py</code>, vuelve a ejecutar cada uno y falla si alguna de las mitades deja de comportarse así, de modo que una garantía que desaparece sin avisar se lleva el build con ella. La tabla lista los {{catches:refused}} de los {{catches:count}} errores de TypeScript de <a href="/catches/">la página de casos</a> que se rechazan de esta forma; la página tiene el resto, que Glyph comprueba cuando llegan los datos, avisa o detiene en tiempo de ejecución. {{catches:breakdown}}
+          Cada uno son dos archivos: un <code>.ts</code> que pasa la comprobación de tipos sin errores con <code>tsc --strict</code>, y el mismo programa en Glyph, que no compila. Una comprobación en el build, <code>scripts/check_catches.py</code>, vuelve a ejecutar cada uno y falla si alguna de las mitades deja de comportarse así, de modo que una garantía que desaparece sin avisar se lleva el build con ella. La tabla lista los {{catches:refused}} de los {{catches:count}} casos de TypeScript de <a href="/catches/">la página de casos</a> que se rechazan de esta forma; la página tiene el resto, que Glyph comprueba cuando llegan los datos, avisa o detiene en tiempo de ejecución. {{catches:breakdown}}
         </p>
 {{catches:refused-table}}
         <p class="group-sub" style="margin-top:24px">

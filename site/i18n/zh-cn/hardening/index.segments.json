@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "hardening/index.html",
   "locale": "zh-cn",
-  "source_hash": "39150fb233f95dbe",
+  "source_hash": "fff86bb3cc3ec145",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "能通过 <code>tsc --strict</code>、在 Glyph 中却无法编译的案例"
     },
     {
-      "id": "h-4b26fd30",
+      "id": "h-c31e98f1",
       "kind": "html",
-      "en": "Each is two files: a <code>.ts</code> that type-checks clean under <code>tsc --strict</code>, and the same program in Glyph that does not compile. A build gate, <code>scripts/check_catches.py</code>, re-runs every one and fails if either half stops behaving, so a guarantee that quietly disappears takes the build with it. The table lists the {{catches:refused}} of the {{catches:count}} TypeScript mistakes on <a href=\"/catches/\">the catches page</a> that are refused this way; the page has the rest, which Glyph checks when the data arrives, warns about, or stops at run time. {{catches:breakdown}}",
-      "tr": "每个案例都是两个文件：一个在 <code>tsc --strict</code> 下类型检查干净的 <code>.ts</code>，以及同一个程序的 Glyph 版本，它无法编译。构建检查 <code>scripts/check_catches.py</code> 会重新运行每个案例，只要任何一半的行为变了就会失败，所以一项悄悄消失的保证会连带让构建失败。下表列出了<a href=\"/catches/\">案例页面</a>上 {{catches:count}} 个 TypeScript 错误中以这种方式被拒绝的 {{catches:refused}} 个；其余的见那个页面，Glyph 会在数据到达时检查它们、给出警告，或者在运行时拦下。{{catches:breakdown}}"
+      "en": "Each is two files: a <code>.ts</code> that type-checks clean under <code>tsc --strict</code>, and the same program in Glyph that does not compile. A build gate, <code>scripts/check_catches.py</code>, re-runs every one and fails if either half stops behaving, so a guarantee that quietly disappears takes the build with it. The table lists the {{catches:refused}} of the {{catches:count}} TypeScript cases on <a href=\"/catches/\">the catches page</a> that are refused this way; the page has the rest, which Glyph checks when the data arrives, warns about, or stops at run time. {{catches:breakdown}}",
+      "tr": "每个案例都是两个文件：一个在 <code>tsc --strict</code> 下类型检查干净的 <code>.ts</code>，以及同一个程序的 Glyph 版本，它无法编译。构建检查 <code>scripts/check_catches.py</code> 会重新运行每个案例，只要任何一半的行为变了就会失败，所以一项悄悄消失的保证会连带让构建失败。下表列出了<a href=\"/catches/\">案例页面</a>上 {{catches:count}} 个 TypeScript 案例中以这种方式被拒绝的 {{catches:refused}} 个；其余的见那个页面，Glyph 会在数据到达时检查它们、给出警告，或者在运行时拦下。{{catches:breakdown}}"
     },
     {
       "id": "h-e8999e82",

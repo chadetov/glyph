@@ -1,7 +1,7 @@
 ---
 title: Hardening · como o Glyph é posto à prova, e o que isso encontrou
 description: Agentes de IA fazem o papel de engenheiros céticos, constroem apps em Glyph e tentam quebrar suas garantias. O ciclo, e os bugs que ele encontrou.
-source_hash: 39150fb233f95dbe
+source_hash: fff86bb3cc3ec145
 ---
       <header class="page-hero">
         <p class="eyebrow">Como é feito o hardening do Glyph</p>
@@ -15,7 +15,7 @@ source_hash: 39150fb233f95dbe
       <section>
         <h2 class="group-head">Casos que passam no <code>tsc --strict</code> e não compilam em Glyph</h2>
         <p class="group-sub">
-          Cada um são dois arquivos: um <code>.ts</code> que passa limpo na checagem de tipos do <code>tsc --strict</code>, e o mesmo programa em Glyph, que não compila. Um gate de build, <code>scripts/check_catches.py</code>, roda cada um de novo e falha se qualquer das metades deixar de se comportar como esperado, então uma garantia que some sem aviso derruba o build junto. A tabela lista os {{catches:refused}} dos {{catches:count}} erros de TypeScript da <a href="/catches/">página do que detecta</a> que são recusados dessa forma; a página tem o resto, que o Glyph verifica quando os dados chegam, avisa ou interrompe em runtime. {{catches:breakdown}}
+          Cada um são dois arquivos: um <code>.ts</code> que passa limpo na checagem de tipos do <code>tsc --strict</code>, e o mesmo programa em Glyph, que não compila. Um gate de build, <code>scripts/check_catches.py</code>, roda cada um de novo e falha se qualquer das metades deixar de se comportar como esperado, então uma garantia que some sem aviso derruba o build junto. A tabela lista os {{catches:refused}} dos {{catches:count}} casos de TypeScript da <a href="/catches/">página do que detecta</a> que são recusados dessa forma; a página tem o resto, que o Glyph verifica quando os dados chegam, avisa ou interrompe em runtime. {{catches:breakdown}}
         </p>
 {{catches:refused-table}}
         <p class="group-sub" style="margin-top:24px">

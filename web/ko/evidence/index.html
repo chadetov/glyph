@@ -132,7 +132,7 @@
                       <li><a href="/ko/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">아직 잡아내지 못하는 것</span><span class="nav-desc">알려진 구멍과 각각의 재현 코드</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/ko/catches/"><span class="nav-feature-big">37개 중 21개</span><span class="nav-feature-text">최대한 엄격하게 설정한 환경의 어떤 도구도 잡지 못하는 TypeScript 실수</span><span class="nav-feature-cta">무엇을 잡아내는지 보기 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/ko/catches/"><span class="nav-feature-big">37개 중 21개</span><span class="nav-feature-text">최대한 엄격하게 설정한 환경의 어떤 도구도 잡지 못하는 TypeScript 사례</span><span class="nav-feature-cta">무엇을 잡아내는지 보기 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">fixture<a class="h-anchor" href="#the-fixtures" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
         <p>
-          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 아래의 각 디렉터리에는 <code>ts.ts</code>, <code>glyph.glyph</code>, 그리고 각각이 무엇을 하는지 적은 <code>case.toml</code>이 있습니다. <code>scripts/check_catches.py</code>는 CI에서 실행됩니다. 컴파일되지 않는 TypeScript 프로그램은 아무것도 증명하지 못하므로 모든 <code>ts.ts</code>가 <code>tsc --strict</code>를 통과해야 하고, Glyph 쪽은 사례의 종류에 따라 검사합니다. 확인된 사례는 모두 53건입니다. TypeScript 실수 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 11건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(실수 23건, 함정 5건). 게이트가 검사하는 종류별로 보면 다음과 같습니다.
+          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 아래의 각 디렉터리에는 <code>ts.ts</code>, <code>glyph.glyph</code>, 그리고 각각이 무엇을 하는지 적은 <code>case.toml</code>이 있습니다. <code>scripts/check_catches.py</code>는 CI에서 실행됩니다. 컴파일되지 않는 TypeScript 프로그램은 아무것도 증명하지 못하므로 모든 <code>ts.ts</code>가 <code>tsc --strict</code>를 통과해야 하고, Glyph 쪽은 사례의 종류에 따라 검사합니다. 확인된 사례는 모두 53건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 11건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건). 게이트가 검사하는 종류별로 보면 다음과 같습니다.
         </p>
       </div>
 

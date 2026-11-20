@@ -132,7 +132,7 @@
                       <li><a href="/ja/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">まだ検出できないもの</span><span class="nav-desc">既知の穴と、それぞれの再現コード</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/ja/catches/"><span class="nav-feature-big">37 件中 21 件</span><span class="nav-feature-text">最も厳しく設定した環境でも何も検出できない TypeScript のミス</span><span class="nav-feature-cta">検出できるものを見る <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/ja/catches/"><span class="nav-feature-big">37 件中 21 件</span><span class="nav-feature-text">最も厳しく設定した環境でも何も検出できない TypeScript のケース</span><span class="nav-feature-cta">検出できるものを見る <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="what-it-guarantees">何を保証するか<a class="h-anchor" href="#what-it-guarantees" aria-label="このセクションへのリンク">#</a></h2>
         <p>
-          Glyph が何を検出するかについての主張は、どれもリポジトリの <code>catches/</code> ディレクトリにあるケースです。同じプログラムを TypeScript と Glyph で書いたもので、どちらも CI のゲートが実行します。チェック済みのケースは全部で 53 件です。TypeScript のミスが 37 件、Glyph には存在しない JavaScript の落とし穴が 5 件、Glyph がまだ塞いでいない穴が 11 件です。そのうち 28 件はビルド時に Glyph が拒否します（ミス 23 件と落とし穴 5 件）。 拒否しないミスのうち、3 件は警告が出て、9 件は実行時の境界での検査で止まる不正なデータで、2 件は実行時に止まります。エージェントが書いたコードをレビューする人が最も頼りにするのは次のものです。
+          Glyph が何を検出するかについての主張は、どれもリポジトリの <code>catches/</code> ディレクトリにあるケースです。同じプログラムを TypeScript と Glyph で書いたもので、どちらも CI のゲートが実行します。チェック済みのケースは全部で 53 件です。TypeScript のケースが 37 件、Glyph には存在しない JavaScript の落とし穴が 5 件、Glyph がまだ塞いでいない穴が 11 件です。そのうち 28 件はビルド時に Glyph が拒否します（TypeScript のケース 23 件と落とし穴 5 件）。 拒否しないミスのうち、3 件は警告が出て、9 件は実行時の境界での検査で止まる不正なデータで、2 件は実行時に止まります。エージェントが書いたコードをレビューする人が最も頼りにするのは次のものです。
         </p>
       </div>
 

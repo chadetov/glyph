@@ -1,7 +1,7 @@
 ---
 title: 加固 · Glyph 如何接受压力测试，以及发现了什么
 description: AI 智能体扮演多疑的工程师，用 Glyph 构建应用，并尝试打破它的保证。这个循环是怎样运作的，以及它发现的 bug。
-source_hash: 39150fb233f95dbe
+source_hash: fff86bb3cc3ec145
 ---
       <header class="page-hero">
         <p class="eyebrow">Glyph 如何加固</p>
@@ -15,7 +15,7 @@ source_hash: 39150fb233f95dbe
       <section>
         <h2 class="group-head">能通过 <code>tsc --strict</code>、在 Glyph 中却无法编译的案例</h2>
         <p class="group-sub">
-          每个案例都是两个文件：一个在 <code>tsc --strict</code> 下类型检查干净的 <code>.ts</code>，以及同一个程序的 Glyph 版本，它无法编译。构建检查 <code>scripts/check_catches.py</code> 会重新运行每个案例，只要任何一半的行为变了就会失败，所以一项悄悄消失的保证会连带让构建失败。下表列出了<a href="/catches/">案例页面</a>上 {{catches:count}} 个 TypeScript 错误中以这种方式被拒绝的 {{catches:refused}} 个；其余的见那个页面，Glyph 会在数据到达时检查它们、给出警告，或者在运行时拦下。{{catches:breakdown}}
+          每个案例都是两个文件：一个在 <code>tsc --strict</code> 下类型检查干净的 <code>.ts</code>，以及同一个程序的 Glyph 版本，它无法编译。构建检查 <code>scripts/check_catches.py</code> 会重新运行每个案例，只要任何一半的行为变了就会失败，所以一项悄悄消失的保证会连带让构建失败。下表列出了<a href="/catches/">案例页面</a>上 {{catches:count}} 个 TypeScript 案例中以这种方式被拒绝的 {{catches:refused}} 个；其余的见那个页面，Glyph 会在数据到达时检查它们、给出警告，或者在运行时拦下。{{catches:breakdown}}
         </p>
 {{catches:refused-table}}
         <p class="group-sub" style="margin-top:24px">

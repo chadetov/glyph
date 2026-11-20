@@ -1,7 +1,7 @@
 ---
 title: 하드닝 · Glyph를 스트레스 테스트하는 방법과 찾아낸 것
 description: AI 에이전트가 회의적인 엔지니어 역할을 맡아 Glyph로 앱을 만들고 보장을 깨뜨리려 시도합니다. 그 루프와 찾아낸 버그.
-source_hash: 39150fb233f95dbe
+source_hash: fff86bb3cc3ec145
 ---
       <header class="page-hero">
         <p class="eyebrow">Glyph를 단단하게 만드는 방법</p>
@@ -15,7 +15,7 @@ source_hash: 39150fb233f95dbe
       <section>
         <h2 class="group-head"><code>tsc --strict</code>를 통과하고 Glyph에서는 컴파일되지 않는 사례</h2>
         <p class="group-sub">
-          각 사례는 파일 두 개입니다. <code>tsc --strict</code>에서 깔끔하게 타입 검사를 통과하는 <code>.ts</code>와, Glyph로 쓴 같은 프로그램으로 컴파일되지 않는 것입니다. 빌드 게이트인 <code>scripts/check_catches.py</code>가 모든 사례를 다시 실행하고, 어느 한쪽이라도 동작이 달라지면 실패합니다. 그래서 보장이 조용히 사라지면 빌드도 함께 실패합니다. 표에는 <a href="/catches/">잡아내는 것 페이지</a>의 TypeScript 실수 {{catches:count}}건 중 이렇게 거부되는 {{catches:refused}}건이 나와 있고, 나머지(데이터가 들어올 때 검사하거나, 경고하거나, 실행 중에 멈추는 것)는 그 페이지에 있습니다. {{catches:breakdown}}
+          각 사례는 파일 두 개입니다. <code>tsc --strict</code>에서 깔끔하게 타입 검사를 통과하는 <code>.ts</code>와, Glyph로 쓴 같은 프로그램으로 컴파일되지 않는 것입니다. 빌드 게이트인 <code>scripts/check_catches.py</code>가 모든 사례를 다시 실행하고, 어느 한쪽이라도 동작이 달라지면 실패합니다. 그래서 보장이 조용히 사라지면 빌드도 함께 실패합니다. 표에는 <a href="/catches/">잡아내는 것 페이지</a>의 TypeScript 사례 {{catches:count}}건 중 이렇게 거부되는 {{catches:refused}}건이 나와 있고, 나머지(데이터가 들어올 때 검사하거나, 경고하거나, 실행 중에 멈추는 것)는 그 페이지에 있습니다. {{catches:breakdown}}
         </p>
 {{catches:refused-table}}
         <p class="group-sub" style="margin-top:24px">

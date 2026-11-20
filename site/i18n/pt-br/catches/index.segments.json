@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "catches/index.html",
   "locale": "pt-br",
-  "source_hash": "09d8897c06eb2254",
+  "source_hash": "307ca95d5b6fa9af",
   "segments": [
     {
       "id": "title",
@@ -35,10 +35,10 @@
       "tr": "Cada entrada são dois programas em <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a>, e a saída embaixo de cada um é o que as ferramentas imprimiram. Um gate do build, <a href=\"https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py\">scripts/check_catches.py</a>, roda cada caso de novo e falha se qualquer uma das metades deixar de fazer o que a página diz. A configuração completa de TypeScript usada na comparação está nesse script."
     },
     {
-      "id": "h-edf64e1e",
+      "id": "h-9c884da7",
       "kind": "html",
-      "en": "{{catches:count}} TypeScript mistakes",
-      "tr": "{{catches:count}} erros de TypeScript"
+      "en": "{{catches:count}} TypeScript cases",
+      "tr": "{{catches:count}} casos de TypeScript"
     },
     {
       "id": "h-792e25f6",

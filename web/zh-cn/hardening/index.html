@@ -132,7 +132,7 @@
                       <li><a href="/zh-cn/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">尚未覆盖的问题</span><span class="nav-desc">已知漏洞，每个都附复现示例</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/zh-cn/catches/"><span class="nav-feature-big">37 个中有 21 个</span><span class="nav-feature-text">TypeScript 错误，即使项目配置拉满，也没有任何工具能发现</span><span class="nav-feature-cta">看看它能发现什么 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/zh-cn/catches/"><span class="nav-feature-big">37 个中有 21 个</span><span class="nav-feature-text">TypeScript 案例，即使项目配置拉满，也没有任何工具能发现</span><span class="nav-feature-cta">看看它能发现什么 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -432,7 +432,7 @@
       <section>
         <h2 class="group-head">能通过 <code>tsc --strict</code>、在 Glyph 中却无法编译的案例</h2>
         <p class="group-sub">
-          每个案例都是两个文件：一个在 <code>tsc --strict</code> 下类型检查干净的 <code>.ts</code>，以及同一个程序的 Glyph 版本，它无法编译。构建检查 <code>scripts/check_catches.py</code> 会重新运行每个案例，只要任何一半的行为变了就会失败，所以一项悄悄消失的保证会连带让构建失败。下表列出了<a href="/zh-cn/catches/">案例页面</a>上 37 个 TypeScript 错误中以这种方式被拒绝的 23 个；其余的见那个页面，Glyph 会在数据到达时检查它们、给出警告，或者在运行时拦下。共有 53 个经过检验的案例：37 个 TypeScript 错误、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 11 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个错误和 5 个陷阱）。
+          每个案例都是两个文件：一个在 <code>tsc --strict</code> 下类型检查干净的 <code>.ts</code>，以及同一个程序的 Glyph 版本，它无法编译。构建检查 <code>scripts/check_catches.py</code> 会重新运行每个案例，只要任何一半的行为变了就会失败，所以一项悄悄消失的保证会连带让构建失败。下表列出了<a href="/zh-cn/catches/">案例页面</a>上 37 个 TypeScript 案例中以这种方式被拒绝的 23 个；其余的见那个页面，Glyph 会在数据到达时检查它们、给出警告，或者在运行时拦下。共有 53 个经过检验的案例：37 个 TypeScript 案例、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 11 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个 TypeScript 案例和 5 个陷阱）。
         </p>
         <table class="catches-table">
           <thead><tr><th>Glyph 的报错</th><th>TypeScript 放过的问题</th><th>文件</th></tr></thead>

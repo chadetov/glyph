@@ -102,7 +102,7 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
         <h2 class="block-label">Release cadence and the Breaking marker</h2>
         <p>
           The <a href="/versions/">versions page</a> has an entry for every release from 0.1.0
-          to {{releases:latest}}, {{releases:count}} in all, and 22 of them shipped in November 2026 up to the 19th. A
+          to {{releases:latest}}, {{releases:count}} in all, and {{releases:month-count}} of them shipped between {{releases:month-start}} and {{releases:latest-date}}. A
           release is marked Breaking when it rejects a program the previous version accepted,
           which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by
           running the smallest affected program under both versions, not by reading the diff, and

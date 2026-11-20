@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "ru",
-  "source_hash": "d4a38356fad5c816",
+  "source_hash": "f88e17b45c203ca8",
   "segments": [
     {
       "id": "title",
@@ -215,10 +215,10 @@
       "tr": "Частота выпусков и пометка Breaking"
     },
     {
-      "id": "h-228fec82",
+      "id": "h-f1666e03",
       "kind": "html",
-      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
-      "tr": "На <a href=\"/versions/\">странице версий</a> есть запись для каждого выпуска от 0.1.0 до {{releases:latest}}, всего {{releases:count}}, и 22 из них вышли в ноябре 2026 года по 19-е число. Выпуск помечается как Breaking, если он отклоняет программу, которую принимала предыдущая версия; так приходит большинство исправлений корректности. Пометку несут записей: {{releases:breaking}}. Её ставят, запуская самую маленькую затронутую программу под обеими версиями, а не читая дифф. Выпуски до 0.1.99 так не проверялись, поэтому старый выпуск без пометки не проверен, а не безопасен."
+      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and {{releases:month-count}} of them shipped between {{releases:month-start}} and {{releases:latest-date}}. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
+      "tr": "На <a href=\"/versions/\">странице версий</a> есть запись для каждого выпуска от 0.1.0 до {{releases:latest}}, всего {{releases:count}}, и {{releases:month-count}} из них вышли в период с {{releases:month-start}} по {{releases:latest-date}}. Выпуск помечается как Breaking, если он отклоняет программу, которую принимала предыдущая версия; так приходит большинство исправлений корректности. Пометку несут записей: {{releases:breaking}}. Её ставят, запуская самую маленькую затронутую программу под обеими версиями, а не читая дифф. Выпуски до 0.1.99 так не проверялись, поэтому старый выпуск без пометки не проверен, а не безопасен."
     },
     {
       "id": "h-5ee8f8ce",

@@ -46,6 +46,11 @@ build_site.py expands through expand_quotes():
   {{releases:count}}          how many releases have notes
   {{releases:breaking}}       how many are marked Breaking
   {{releases:latest}}         the newest version
+  {{releases:month-count}}    how many releases shipped in the newest
+                              release's month
+  {{releases:month-start}}    the first day of that month, as a date in the
+                              page's language
+  {{releases:latest-date}}    the day the newest release shipped, likewise
   {{releases:breaking-cost}}  the newest Breaking releases, each with the
                               sentence its own note gives about the example
                               apps, quoted as written
@@ -541,6 +546,9 @@ def expand_quotes(body: str, where: str, loc: str = "en") -> str:
         "count": lambda: str(len(releases)),
         "breaking": lambda: str(sum(r.breaking for r in releases)),
         "latest": lambda: releases[0].version,
+        "month-count": lambda: str(sum(r.month == releases[0].month for r in releases)),
+        "month-start": lambda: site_i18n.strings(loc).date(f"{releases[0].month}-01"),
+        "latest-date": lambda: site_i18n.strings(loc).date(releases[0].day),
         "breaking-cost": lambda: breaking_cost(releases, loc),
     }
 

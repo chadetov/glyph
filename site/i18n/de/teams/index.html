@@ -1,7 +1,7 @@
 ---
 title: Für Teams · was Glyph garantiert und was es kostet · Glyph
 description: Für Leads, die Glyph abwägen: was der Compiler garantiert und wo er aufhört, die Einführung in einer TypeScript-App, der Ausstiegsweg, Versions-Pinning und der Status vor 1.0.
-source_hash: d4a38356fad5c816
+source_hash: f88e17b45c203ca8
 next_steps: |
   Wie es weitergeht
   Empfohlen | /catches/ | catches | Sehen, was TypeScript durchlässt | Die Fälle, die ein striktes TypeScript-Projekt akzeptiert, nach Rang sortiert, jeder unter <code>tsc --strict</code> und unter Glyph ausgeführt. | Die Fälle ansehen
@@ -77,7 +77,7 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
 
         <h2 class="block-label">Release-Takt und die Breaking-Markierung</h2>
         <p>
-          Die <a href="/versions/">Versionsseite</a> hat einen Eintrag für jedes Release von 0.1.0 bis {{releases:latest}}, insgesamt {{releases:count}}, und 22 davon erschienen im November 2026 bis zum 19. Ein Release wird als Breaking markiert, wenn es ein Programm ablehnt, das die vorherige Version akzeptiert hat, und so landen die meisten Korrektheits-Fixes. {{releases:breaking}} Einträge tragen die Markierung. Sie wird gesetzt, indem das kleinste betroffene Programm unter beiden Versionen ausgeführt wird, nicht durch Lesen des Diffs, und Releases vor 0.1.99 wurden nicht so getestet, ein unmarkiertes altes Release ist also ungetestet und nicht sicher.
+          Die <a href="/versions/">Versionsseite</a> hat einen Eintrag für jedes Release von 0.1.0 bis {{releases:latest}}, insgesamt {{releases:count}}, und {{releases:month-count}} davon erschienen zwischen dem {{releases:month-start}} und dem {{releases:latest-date}}. Ein Release wird als Breaking markiert, wenn es ein Programm ablehnt, das die vorherige Version akzeptiert hat, und so landen die meisten Korrektheits-Fixes. {{releases:breaking}} Einträge tragen die Markierung. Sie wird gesetzt, indem das kleinste betroffene Programm unter beiden Versionen ausgeführt wird, nicht durch Lesen des Diffs, und Releases vor 0.1.99 wurden nicht so getestet, ein unmarkiertes altes Release ist also ungetestet und nicht sicher.
         </p>
         <p>
           Was ein Breaking-Release in der Praxis gekostet hat: Jede neuere Release Note sagt, was passiert ist, als die alte und die neue Version über die Beispiel-Apps des Repositorys liefen. Das sind die neuesten Breaking-Releases, zitiert aus ihren Release Notes:

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "zh-cn",
-  "source_hash": "d4a38356fad5c816",
+  "source_hash": "f88e17b45c203ca8",
   "segments": [
     {
       "id": "title",
@@ -215,10 +215,10 @@
       "tr": "发布节奏和 Breaking 标记"
     },
     {
-      "id": "h-228fec82",
+      "id": "h-f1666e03",
       "kind": "html",
-      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
-      "tr": "<a href=\"/versions/\">版本页面</a>为从 0.1.0 到 {{releases:latest}} 的每个版本都写了条目，共 {{releases:count}} 个，其中 22 个发布于 2026 年 11 月（截至 19 日）。如果一个版本拒绝了上一版本接受的程序，它就会被标记为 Breaking，大多数正确性修复都是这样落地的。共有 {{releases:breaking}} 个条目带有这个标记。标记的依据是在两个版本下分别运行受影响的最小程序，而不是阅读 diff；0.1.99 之前的版本没有这样测试过，所以没有标记的旧版本只是未经测试，并不代表安全。"
+      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and {{releases:month-count}} of them shipped between {{releases:month-start}} and {{releases:latest-date}}. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
+      "tr": "<a href=\"/versions/\">版本页面</a>为从 0.1.0 到 {{releases:latest}} 的每个版本都写了条目，共 {{releases:count}} 个，其中 {{releases:month-count}} 个发布于 {{releases:month-start}} 至 {{releases:latest-date}} 之间。如果一个版本拒绝了上一版本接受的程序，它就会被标记为 Breaking，大多数正确性修复都是这样落地的。共有 {{releases:breaking}} 个条目带有这个标记。标记的依据是在两个版本下分别运行受影响的最小程序，而不是阅读 diff；0.1.99 之前的版本没有这样测试过，所以没有标记的旧版本只是未经测试，并不代表安全。"
     },
     {
       "id": "h-5ee8f8ce",

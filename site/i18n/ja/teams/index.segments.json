@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "ja",
-  "source_hash": "d4a38356fad5c816",
+  "source_hash": "f88e17b45c203ca8",
   "segments": [
     {
       "id": "title",
@@ -215,10 +215,10 @@
       "tr": "リリースの頻度と Breaking の印"
     },
     {
-      "id": "h-228fec82",
+      "id": "h-f1666e03",
       "kind": "html",
-      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
-      "tr": "<a href=\"/versions/\">バージョンのページ</a>には、0.1.0 から {{releases:latest}} までのすべてのリリース、計 {{releases:count}} 件の項目があり、そのうち 22 件は 2026 年 11 月の 19 日までに出たものです。前のバージョンが受け入れていたプログラムを拒否するリリースには Breaking の印が付きます。正しさに関する修正の多くはこの形で入ります。印が付いている項目は {{releases:breaking}} 件です。印は差分を読んで付けるのではなく、影響を受ける最小のプログラムを両方のバージョンで実行して付けています。0.1.99 より前のリリースはこの方法で確認していないので、印のない古いリリースは安全なのではなく、未確認ということです。"
+      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and {{releases:month-count}} of them shipped between {{releases:month-start}} and {{releases:latest-date}}. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
+      "tr": "<a href=\"/versions/\">バージョンのページ</a>には、0.1.0 から {{releases:latest}} までのすべてのリリース、計 {{releases:count}} 件の項目があり、そのうち {{releases:month-count}} 件は {{releases:month-start}} から {{releases:latest-date}} までに出たものです。前のバージョンが受け入れていたプログラムを拒否するリリースには Breaking の印が付きます。正しさに関する修正の多くはこの形で入ります。印が付いている項目は {{releases:breaking}} 件です。印は差分を読んで付けるのではなく、影響を受ける最小のプログラムを両方のバージョンで実行して付けています。0.1.99 より前のリリースはこの方法で確認していないので、印のない古いリリースは安全なのではなく、未確認ということです。"
     },
     {
       "id": "h-5ee8f8ce",

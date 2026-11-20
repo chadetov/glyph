@@ -1,7 +1,7 @@
 ---
 title: Para times · o que o Glyph garante e quanto custa · Glyph
 description: Para quem lidera um time e está avaliando o Glyph: o que o compilador garante e onde para, como adotá-lo num app TypeScript, como sair, versão fixada e status pré-1.0.
-source_hash: d4a38356fad5c816
+source_hash: f88e17b45c203ca8
 next_steps: |
   Por onde seguir
   Recomendado | /catches/ | catches | Veja o que o TypeScript deixa passar | Os casos que um projeto TypeScript strict aceita, classificados, cada um rodado com <code>tsc --strict</code> e com Glyph. | Ver o que ele detecta
@@ -77,7 +77,7 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
 
         <h2 class="block-label">Frequência de releases e a marca Breaking</h2>
         <p>
-          A <a href="/versions/">página de versões</a> tem uma entrada para cada release da 0.1.0 à {{releases:latest}}, {{releases:count}} no total, e 22 delas saíram em novembro de 2026 até o dia 19. Uma release é marcada como Breaking quando recusa um programa que a versão anterior aceitava, que é como a maioria das correções de corretude chega. {{releases:breaking}} entradas têm a marca. Ela é aplicada rodando o menor programa afetado nas duas versões, não lendo o diff, e as releases anteriores à 0.1.99 não foram testadas assim, então uma release antiga sem marca não foi testada, o que não quer dizer que seja segura.
+          A <a href="/versions/">página de versões</a> tem uma entrada para cada release da 0.1.0 à {{releases:latest}}, {{releases:count}} no total, e {{releases:month-count}} delas saíram entre {{releases:month-start}} e {{releases:latest-date}}. Uma release é marcada como Breaking quando recusa um programa que a versão anterior aceitava, que é como a maioria das correções de corretude chega. {{releases:breaking}} entradas têm a marca. Ela é aplicada rodando o menor programa afetado nas duas versões, não lendo o diff, e as releases anteriores à 0.1.99 não foram testadas assim, então uma release antiga sem marca não foi testada, o que não quer dizer que seja segura.
         </p>
         <p>
           O que uma release Breaking custou na prática: cada nota recente diz o que aconteceu quando a versão antiga e a nova foram rodadas sobre os apps de exemplo do repositório. Estas são as releases Breaking mais recentes, citadas das próprias notas:

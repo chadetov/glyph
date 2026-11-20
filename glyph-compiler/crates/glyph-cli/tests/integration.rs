@@ -20198,3 +20198,42 @@ fn std_record_keeps_a_literal_union_key_under_tsc() {
         TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
+
+/// G373. `record.remove` on a `Record` whose key has a fixed member set is
+/// E0211 by every spelling of the key: local, imported by name, namespaced, a
+/// single literal, and through an alias of the map. A refined key and an open
+/// key are not refused.
+#[test]
+fn record_remove_on_a_finite_key_is_e0211_by_every_spelling() {
+    let root = unique_tmp("g373remove");
+    let src = root.join("src");
+    write_file(&src, "tiers.glyph", "module tiers\n\npub type Tier = \"a\" | \"b\"\n");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\nimport std/record\nimport tiers { Tier }\nimport tiers as t\n\n\
+         type Local = \"x\" | \"y\"\n\ntype One = \"only\"\n\ntype Scores = Record<Tier, int>\n\n\
+         type Slug = string where value.length > 1\n\n\
+         pub fn local(r: Record<Local, int>) -> Record<Local, int> {\n  return record.remove(r, \"x\")\n}\n\n\
+         pub fn named(r: Record<Tier, int>) -> Record<Tier, int> {\n  return record.remove(r, \"a\")\n}\n\n\
+         pub fn spaced(r: Record<t.Tier, int>) -> Record<t.Tier, int> {\n  return record.remove(r, \"a\")\n}\n\n\
+         pub fn one(r: Record<One, int>) -> Record<One, int> {\n  return record.remove(r, \"only\")\n}\n\n\
+         pub fn alias(r: Scores) -> Scores {\n  return record.remove(r, \"b\")\n}\n\n\
+         pub fn refined(r: Record<Slug, int>, k: Slug) -> Record<Slug, int> {\n  return record.remove(r, k)\n}\n\n\
+         pub fn open(r: Record<string, int>) -> Record<string, int> {\n  return record.remove(r, \"z\")\n}\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+    let d = &report.diagnostics;
+    let refused: Vec<&String> = d.iter().filter(|d| d.contains("[E0211]") && d.contains("record.remove takes a Record")).collect();
+    assert_eq!(refused.len(), 5, "five refusals: {d:?}");
+    for subject in [
+        "`Record<Local, int>` holds every `Local`",
+        "`Record<Tier, int>` holds every `Tier`",
+        "`Record<t.Tier, int>` holds every `t.Tier`",
+        "`Record<One, int>` holds every `One`",
+        "`Scores` holds every `Tier`",
+    ] {
+        assert!(refused.iter().any(|r| r.contains(subject)), "{subject}: {d:?}");
+    }
+    assert_eq!(d.len(), 5, "the refined and open keys are not refused: {d:?}");
+}

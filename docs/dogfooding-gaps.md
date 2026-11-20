@@ -13477,8 +13477,10 @@ and is the owner's to confirm.
   payload, an anonymous inline record field and a generic record. A key
   holding `null` fails `T`'s check unless `T` is `Nullable`, with
   ``field `timeout_ms` is null; declare it `timeout_ms?: Nullable<number>`
-  to accept null`` (an `Option<T>` field's hint is `Nullable<T>`, since
-  `Nullable<Option<T>>` is E0227); a key holding `undefined` is refused
+  to accept null`` (a field that is an `Option<X>`, inline or through
+  aliases, is told `Nullable<X>`, since `Nullable` of an `Option` under any
+  name is E0227; with no legal spelling the issue says so, and record 124's
+  test compiles every suggestion the tests print); a key holding `undefined` is refused
   always, with ``field `timeout_ms` is undefined; omit the key``. No value is
   copied or mutated. The parity test
   `an_optional_field_has_one_verdict_per_input_on_every_route` drives a
@@ -13566,3 +13568,20 @@ and is the owner's to confirm.
   *Reproduced against 0.1.149 (the published release) and the 0.1.150 branch
   build by record 122's probes `f4` (`--no-tsc`: no diagnostics, exit 0 on
   both) and `f4b` (three E0218s and nothing else, exit 1 on both).*
+
+- **G398. An inline record field reports `must be an object` for any inner
+  issue.** With `type A3 = { t?: { a: int, b?: string, }, }`,
+  `json.parse<A3>("{\"t\":{\"a\":\"x\"}}")` reports one issue,
+  ``field `t` must be an object`` at path `["t"]`. The value is an object;
+  the fault is the inner `a`. Since 0.1.152 the same message covers a `null`
+  inside the inline record (`{"t":{"a":1,"b":null}}`), so it names the wrong
+  fault and drops the `Nullable` hint the named-record path gives. An inline
+  record's check is one predicate where a named record delegates to its
+  `__parse`; it should splice the inner issues with their paths as a named
+  record's does. Sibling of G375 (a `Record` check reports the whole map).
+  Not breaking: issue text is not a contract. Found by the 0.1.152 review
+  (record 124).
+
+  *Reproduced against 0.1.149 (the published release) by record 124's probe
+  `a3old`: `check --no-tsc` reports no diagnostics, and `glyph run` prints
+  `[{"path":["t"],"message":"field `t` must be an object","code":"type"}]`.*

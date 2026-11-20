@@ -19981,3 +19981,148 @@ fn an_optional_field_refuses_null_in_every_declaration_form() {
         ]
     );
 }
+
+// Record 124. The null issue's suggestion is pasted by whoever reads it, so
+// it must compile. An `Option` reached through an alias, under any import
+// spelling, is suggested as `Nullable` of its argument, since `Nullable` of
+// an `Option` under any name is E0227; where that argument is itself an
+// `Option` there is no spelling, and where the chain names a sibling's own
+// type the suggestion is left out. (A generic alias of `Option` is E0304 at
+// `parse`, so no run reaches its hint.)
+const NULL_HINTS_SIDE: &str = r#"module side
+pub type SMaybe = Option<int>
+pub type SRec = { a: int, }
+pub type SMaybeRec = Option<SRec>
+
+"#;
+
+const NULL_HINTS_MAIN: &str = r#"module main
+
+import std/io
+import std/json
+import side { SMaybe, SMaybeRec }
+import side
+
+type MaybeInt = Option<int>
+type Maybe<T> = Option<T>
+type MaybeMaybe = Option<MaybeInt>
+type Inner = { a: int, }
+type Tier = "a" | "b"
+type L = side.SMaybe
+type A1 = { t?: Option<int>, }
+type A2 = { t?: MaybeInt, }
+type A4 = { t?: Option<Option<int>>, }
+type A5 = { t?: MaybeMaybe, }
+type A6 = { t?: Inner, }
+type A7 = { t?: Array<Tier>, }
+type A8 = { t?: Record<string, int>, }
+type A9 = { t?: { a: int, b?: string }, }
+type A10 = { t?: SMaybe, }
+type A11 = { t?: side.SMaybe, }
+type A12 = { t?: SMaybeRec, }
+type A13 = { t?: int, }
+type A15 = { t?: L, }
+
+fn hint<T>(name: string, r: Result<T, Array<Issue>>) {
+  let m = match r {
+    Ok(_) => "Ok",
+    Err(e) => e[0].message,
+  }
+  io.println(name + " " + m)
+}
+
+fn main(argv: Array<string>) -> number {
+  let n = "{\"t\":null}"
+  hint("A1", json.parse<A1>(n))
+  hint("A2", json.parse<A2>(n))
+  hint("A4", json.parse<A4>(n))
+  hint("A5", json.parse<A5>(n))
+  hint("A6", json.parse<A6>(n))
+  hint("A7", json.parse<A7>(n))
+  hint("A8", json.parse<A8>(n))
+  hint("A9", json.parse<A9>(n))
+  hint("A10", json.parse<A10>(n))
+  hint("A11", json.parse<A11>(n))
+  hint("A12", json.parse<A12>(n))
+  hint("A13", json.parse<A13>(n))
+  hint("A15", json.parse<A15>(n))
+  return 0
+}
+
+"#;
+
+/// The types `field `t` is null; declare it `t?: <T>` ...` lines suggest.
+fn suggested_null_types(lines: &[String]) -> Vec<String> {
+    lines
+        .iter()
+        .flat_map(|l| l.split("declare it `").skip(1))
+        .filter_map(|rest| rest.split('`').next())
+        .map(|decl| decl.split_once(": ").expect("a field declaration").1.to_string())
+        .collect()
+}
+
+/// Every suggestion compiles where it was printed: `type ProbeN = { t?: T, }`
+/// appended to the module that printed it checks clean under full `check`.
+fn assert_suggestions_compile(label: &str, files: &[(&str, &str)], suggestions: &[String]) {
+    assert!(!suggestions.is_empty(), "{label}: no suggestion to check");
+    let root = unique_tmp(&format!("g391-probe-{label}"));
+    let src = root.join("src");
+    for (name, text) in files {
+        let mut text = text.to_string();
+        if *name == "main.glyph" {
+            for (i, ty) in suggestions.iter().enumerate() {
+                text.push_str(&format!("\ntype Probe{i} = {{ t?: {ty}, }}\n"));
+            }
+        }
+        write_file(&src, name, &text);
+    }
+    let main = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        std::ffi::OsStr::new("--no-test"),
+        main.as_os_str(),
+    ]);
+    assert_eq!(code, 0, "{label}: a suggested type does not compile ({suggestions:?}):\n{stdout}\n{stderr}");
+}
+
+#[test]
+fn every_null_suggestion_names_a_type_that_compiles() {
+    let root = unique_tmp("g391-hints");
+    let src = root.join("src");
+    write_file(&src, "side.glyph", NULL_HINTS_SIDE);
+    write_file(&src, "main.glyph", NULL_HINTS_MAIN);
+    let lines = run_main_lines(&src);
+    let spell = |t: &str| format!("field `t` is null; declare it `t?: {t}` to accept null");
+    let none = "field `t` is null, and its type has no spelling that accepts null".to_string();
+    let omit = "field `t` is null, and its type does not accept null".to_string();
+    assert_eq!(
+        lines,
+        vec![
+            format!("A1 {}", spell("Nullable<int>")),
+            format!("A2 {}", spell("Nullable<int>")),
+            format!("A4 {none}"),
+            format!("A5 {none}"),
+            format!("A6 {}", spell("Nullable<Inner>")),
+            format!("A7 {}", spell("Nullable<Array<Tier>>")),
+            format!("A8 {}", spell("Nullable<Record<string, int>>")),
+            format!("A9 {}", spell("Nullable<{ a: int, b?: string }>")),
+            format!("A10 {}", spell("Nullable<int>")),
+            format!("A11 {}", spell("Nullable<int>")),
+            format!("A12 {omit}"),
+            format!("A13 {}", spell("Nullable<int>")),
+            format!("A15 {}", spell("Nullable<int>")),
+        ]
+    );
+    assert_suggestions_compile(
+        "hints",
+        &[("side.glyph", NULL_HINTS_SIDE), ("main.glyph", NULL_HINTS_MAIN)],
+        &suggested_null_types(&lines),
+    );
+
+    // The hints the declaration-forms test prints compile too.
+    let root = unique_tmp("g391-hints-routes");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", OPTIONAL_ROUTES_MAIN);
+    let lines = run_main_lines(&src);
+    assert_suggestions_compile("routes", &[("main.glyph", OPTIONAL_ROUTES_MAIN)], &suggested_null_types(&lines));
+}

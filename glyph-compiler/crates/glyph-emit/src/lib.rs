@@ -3208,10 +3208,7 @@ impl<'a> Emitter<'a> {
             "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"type\" }});",
             escape_double_quoted(&format!("field `{fname}` is undefined; omit the key"))
         );
-        let null_message = escape_double_quoted(&format!(
-            "field `{fname}` is null; declare it `{fname}?: {}` to accept null",
-            nullable_spelling(&field.ty)
-        ));
+        let null_message = escape_double_quoted(&self.null_issue_message(&fname, &field.ty));
         let missing_issue = format!(
             "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"missing\" }});",
             escape_double_quoted(&format!("field `{fname}` is required"))
@@ -7438,6 +7435,194 @@ impl<'a> Emitter<'a> {
         format!("__is_{param}")
     }
 
+    /// The issue for a key holding `null` in the optional field `fname` of
+    /// type `ty` (D45). It names the declaration that accepts null when that
+    /// declaration can be written and compiles: `Nullable<T>` for a plain
+    /// `T`, and `Nullable<X>` for a type that is an `Option<X>` written
+    /// inline or reached through any chain of aliases, a generic one with its
+    /// arguments substituted, since `Nullable` of an `Option`, under any
+    /// name, is E0227. When the only candidate would itself be E0227 (`X` is
+    /// an `Option` or a `Nullable`) there is no such spelling and the message
+    /// says so; when the chain leaves what this module can spell (a sibling's
+    /// generic alias, or an `X` naming a sibling's own type) the suggestion
+    /// is left out rather than guessed.
+    fn null_issue_message(&self, fname: &str, ty: &TypeExpr) -> String {
+        match self.null_hint(ty) {
+            NullHint::Spell(t) => {
+                format!("field `{fname}` is null; declare it `{fname}?: {t}` to accept null")
+            }
+            NullHint::NoSpelling => {
+                format!("field `{fname}` is null, and its type has no spelling that accepts null")
+            }
+            NullHint::Omit => format!("field `{fname}` is null, and its type does not accept null"),
+        }
+    }
+
+    fn null_hint(&self, ty: &TypeExpr) -> NullHint {
+        match self.null_shape(ty, Origin::Local, 0) {
+            NullShape::Option(inner, origin) => {
+                match self.null_shape(&inner, origin, 0) {
+                    NullShape::Option(..) | NullShape::Nullable => NullHint::NoSpelling,
+                    NullShape::Unknown => NullHint::Omit,
+                    NullShape::Other => match origin {
+                        Origin::Local => NullHint::Spell(format!("Nullable<{}>", type_source(&inner))),
+                        // The body is spelled in the sibling's scope; it is
+                        // only this module's spelling when it names nothing
+                        // but primitives and prelude containers.
+                        Origin::Sibling(_) if names_only_builtins(&inner) => {
+                            NullHint::Spell(format!("Nullable<{}>", type_source(&inner)))
+                        }
+                        Origin::Sibling(_) => NullHint::Omit,
+                    },
+                }
+            }
+            // A `Nullable` field takes null, so its check never reports one.
+            NullShape::Nullable => NullHint::NoSpelling,
+            NullShape::Other => NullHint::Spell(format!("Nullable<{}>", type_source(ty))),
+            NullShape::Unknown => NullHint::Omit,
+        }
+    }
+
+    /// Whether `ty`, read in `origin`'s scope, is an `Option` (with its
+    /// argument, in the scope that spells it), a `Nullable`, some other type,
+    /// or a type whose chain this module cannot follow. Aliases are followed
+    /// the way the descriptor follows them: a local one through its body,
+    /// a local generic one with its arguments substituted, and a sibling's
+    /// non-generic one, by name or through a namespace, through the body the
+    /// sibling exports, as many hops as the chain runs.
+    fn null_shape<'s>(&'s self, ty: &TypeExpr, origin: Origin<'s>, depth: usize) -> NullShape<'s> {
+        if depth > 16 {
+            return NullShape::Unknown;
+        }
+        match ty {
+            TypeExpr::Generic { base, args, .. } => {
+                let TypeExpr::Path { segments, .. } = &**base else {
+                    return NullShape::Other;
+                };
+                match (segments.len(), origin) {
+                    (1, _) => {
+                        let b = segments[0].as_ref();
+                        let local = match origin {
+                            Origin::Local => self.local_type_decl(b),
+                            Origin::Sibling(_) => None,
+                        };
+                        if let Some(td) = local {
+                            if td.generics.len() != args.len()
+                                || td.refinement.is_some()
+                                || matches!(td.body, TypeExpr::Record { .. } | TypeExpr::Union { .. })
+                            {
+                                return NullShape::Other;
+                            }
+                            let subst: Vec<(String, TypeExpr)> = td
+                                .generics
+                                .iter()
+                                .map(|g| g.name.to_string())
+                                .zip(args.iter().cloned())
+                                .collect();
+                            return self.null_shape(&substitute_type_params(&td.body, &subst), origin, depth + 1);
+                        }
+                        let imported = match origin {
+                            Origin::Local => self.import_named(b),
+                            Origin::Sibling(_) => None,
+                        };
+                        match (b, args.len(), imported) {
+                            (_, _, Some((m, name))) => self.imported_generic_shape(&m, &name),
+                            ("Option", 1, None) => NullShape::Option(args[0].clone(), origin),
+                            ("Nullable", 1, None) => NullShape::Nullable,
+                            (_, _, None) if matches!(origin, Origin::Sibling(_)) => {
+                                match b {
+                                    "Array" | "Record" => NullShape::Other,
+                                    _ => NullShape::Unknown,
+                                }
+                            }
+                            _ => NullShape::Other,
+                        }
+                    }
+                    (2, Origin::Local) => match self.namespace_module_path(segments[0].as_ref()) {
+                        Some(m) => self.imported_generic_shape(&m, segments[1].as_ref()),
+                        None => NullShape::Unknown,
+                    },
+                    _ => NullShape::Unknown,
+                }
+            }
+            TypeExpr::Path { segments, .. } if segments.len() == 1 => {
+                let b = segments[0].as_ref();
+                match origin {
+                    Origin::Local => {
+                        if let Some(td) = self.local_type_decl(b) {
+                            if !td.generics.is_empty()
+                                || td.refinement.is_some()
+                                || matches!(td.body, TypeExpr::Record { .. } | TypeExpr::Union { .. })
+                            {
+                                return NullShape::Other;
+                            }
+                            return self.null_shape(&td.body, origin, depth + 1);
+                        }
+                        match self.import_named(b) {
+                            Some((m, name)) => self.sibling_shape(m, name, depth),
+                            None => NullShape::Other,
+                        }
+                    }
+                    Origin::Sibling(m) => {
+                        if is_builtin_leaf(b) {
+                            NullShape::Other
+                        } else {
+                            self.sibling_shape(m.to_string(), b.to_string(), depth)
+                        }
+                    }
+                }
+            }
+            TypeExpr::Path { segments, .. } if segments.len() == 2 => match origin {
+                Origin::Local => match self.namespace_module_path(segments[0].as_ref()) {
+                    Some(m) => self.sibling_shape(m, segments[1].to_string(), depth),
+                    None => NullShape::Unknown,
+                },
+                Origin::Sibling(_) => NullShape::Unknown,
+            },
+            _ => NullShape::Other,
+        }
+    }
+
+    /// [`Self::null_shape`] of the type the sibling `module` exports as `name`.
+    fn sibling_shape<'s>(&'s self, module: String, name: String, depth: usize) -> NullShape<'s> {
+        let key = (module, name);
+        if self.ctx.plain_descriptors.contains(&key) {
+            return NullShape::Other;
+        }
+        if let Some((m, body)) = self.ctx.descriptorless_aliases.get_key_value(&key) {
+            return self.null_shape(body, Origin::Sibling(m.0.as_str()), depth + 1);
+        }
+        self.imported_generic_shape(&key.0, &key.1)
+    }
+
+    /// A sibling's type the emitter has no spelled body for (a generic
+    /// alias, or one it keeps private): a record or union is some other type,
+    /// and anything else is a chain this module does not follow.
+    fn imported_generic_shape<'s>(&'s self, module: &str, name: &str) -> NullShape<'s> {
+        match self.imported_type_decl(module, name).map(|d| d.body) {
+            Some(Ty::Record { .. } | Ty::Union { .. }) => NullShape::Other,
+            _ => NullShape::Unknown,
+        }
+    }
+
+    /// This module's own `type` declaration named `name`.
+    fn local_type_decl(&self, name: &str) -> Option<&glyph_ast::TypeDecl> {
+        self.module.items.iter().find_map(|d| match d {
+            Decl::Type(td) if td.name.as_ref() == name => Some(td),
+            _ => None,
+        })
+    }
+
+    /// The module path and original name of a type imported by name.
+    fn import_named(&self, name: &str) -> Option<(String, String)> {
+        let &sym_id = self.resolved.symbols.by_name.get(name)?;
+        let sym = self.resolved.symbols.table.get(sym_id)?;
+        let SymbolKind::ImportNamed { path, original } = &sym.kind else {
+            return None;
+        };
+        Some((glyph_resolver::path_key(path), original.to_string()))
+    }
+
     /// "Field `field` is present on `obj`" (D45): an own key, whatever it
     /// holds. The one presence test every optional-field route uses, in
     /// `parse` and in `is`, so the two cannot disagree. An inherited key
@@ -10487,18 +10672,69 @@ fn escape_marker_plane(raw: &str) -> String {
 /// caller reads greps back to the source line that imposed the rule. A shape
 /// with no useful short spelling reads as a noun phrase instead (`a function`,
 /// `an object`).
-/// The declaration that accepts `null` where a field of type `te` holds one,
-/// written as Glyph source, for the optional-field null issue (D45). An
-/// `Option<T>` field becomes `Nullable<T>`, since `Nullable<Option<T>>` is
-/// refused (E0227) and `Nullable<T>` is the wire's spelling of the same
-/// absence; anything else is wrapped as it stands.
-fn nullable_spelling(te: &TypeExpr) -> String {
-    if let TypeExpr::Generic { base, args, .. } = te {
-        if args.len() == 1 && matches!(&**base, TypeExpr::Path { segments, .. } if segments.len() == 1 && segments[0].as_ref() == "Option") {
-            return format!("Nullable<{}>", type_source(&args[0]));
+/// What the optional-field null issue suggests (see
+/// `Emitter::null_issue_message`).
+enum NullHint {
+    Spell(String),
+    NoSpelling,
+    Omit,
+}
+
+/// What a field type is, for the null issue: an `Option` of a type spelled
+/// in the given scope, a `Nullable`, any other type, or a chain the emitter
+/// cannot follow.
+enum NullShape<'s> {
+    Option(TypeExpr, Origin<'s>),
+    Nullable,
+    Other,
+    Unknown,
+}
+
+/// A name every module spells the same way: a primitive or `unknown`.
+fn is_builtin_leaf(name: &str) -> bool {
+    matches!(name, "int" | "number" | "string" | "bool" | "bigint" | "unknown")
+}
+
+/// Whether `te` names nothing but primitives, `unknown`, literal unions and
+/// the prelude's `Array` and `Record`, so its spelling means the same type
+/// in any module.
+fn names_only_builtins(te: &TypeExpr) -> bool {
+    match te {
+        TypeExpr::Path { segments, .. } => segments.len() == 1 && is_builtin_leaf(segments[0].as_ref()),
+        TypeExpr::Generic { base, args, .. } => {
+            matches!(&**base, TypeExpr::Path { segments, .. }
+                if segments.len() == 1 && matches!(segments[0].as_ref(), "Array" | "Record"))
+                && args.iter().all(names_only_builtins)
         }
+        TypeExpr::Record { fields, .. } => fields.iter().all(|f| names_only_builtins(&f.ty)),
+        TypeExpr::StringLiteralUnion { .. } => true,
+        _ => false,
     }
-    format!("Nullable<{}>", type_source(te))
+}
+
+/// `te` with each bare type-parameter name in `subst` replaced by its
+/// argument, for reading a generic alias's body at an application.
+fn substitute_type_params(te: &TypeExpr, subst: &[(String, TypeExpr)]) -> TypeExpr {
+    match te {
+        TypeExpr::Path { segments, .. } if segments.len() == 1 => subst
+            .iter()
+            .find(|(p, _)| p == segments[0].as_ref())
+            .map(|(_, a)| a.clone())
+            .unwrap_or_else(|| te.clone()),
+        TypeExpr::Generic { base, args, span } => TypeExpr::Generic {
+            base: Box::new(substitute_type_params(base, subst)),
+            args: args.iter().map(|a| substitute_type_params(a, subst)).collect(),
+            span: *span,
+        },
+        TypeExpr::Record { fields, span } => TypeExpr::Record {
+            fields: fields
+                .iter()
+                .map(|f| RecordTypeField { ty: substitute_type_params(&f.ty, subst), ..f.clone() })
+                .collect(),
+            span: *span,
+        },
+        _ => te.clone(),
+    }
 }
 
 /// `te` written back as Glyph source, close enough to paste into a

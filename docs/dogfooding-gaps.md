@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-392 entries, 303 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-70 are open. G144, the D28 boundary cast that never reached the returns a
+393 entries, 303 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+71 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13398,3 +13398,20 @@ and is the owner's to confirm.
   gate run without `tsc`. Same family as G381.
 
   *Reproduced against 0.1.149 (the release build): `--no-tsc` reports an unused-import warning only; full `check` reports `[TS2532] Error: tsc: Object is possibly 'undefined'`.*
+
+- **G397. An `Option` pattern against a scrutinee that is not an `Option`
+  passes Glyph's checker.** `match i.code { Some("missing") => "m", Some(c)
+  => c, None => "none" }` on the ambient `Issue.code` passes `check --no-tsc`
+  with no diagnostics; full `check` reports TS18048 and TS2339 (`Property
+  'tag' does not exist on type '"depth" | "missing" | ...'`). On a plain
+  `string` scrutinee, or a required or optional `string` field, the same
+  `Some(x)` and `None` arms draw only E0218 for the missing catch-all, and
+  nothing says that `Some` is not a pattern for a `string`. The checker should
+  refuse an `Option` constructor pattern whose scrutinee is not an `Option`.
+  Same family as G381 and G392: the editor, MCP and the applyEdit gate run
+  without `tsc`. Not breaking under full `check`. Found by the 0.1.150 review
+  (record 122).
+
+  *Reproduced against 0.1.149 (the published release) and the 0.1.150 branch
+  build by record 122's probes `f4` (`--no-tsc`: no diagnostics, exit 0 on
+  both) and `f4b` (three E0218s and nothing else, exit 1 on both).*

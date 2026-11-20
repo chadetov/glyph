@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/parse-errors/, generated from the same source as the page. Last changed 2026-11-19. -->
+<!-- Markdown copy of https://glyphlang.io/answers/parse-errors/, generated from the same source as the page. Last changed 2026-11-20. -->
 
 27 · Parse failures
 
@@ -55,7 +55,7 @@ A field whose type has its own descriptor is validated by that type's `parse`, a
 
 ## The code, not the string
 
-`Issue` carries an optional `code`: `"missing"`, `"type"`, `"refinement"`, or `"unexpected"`. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.
+`Issue` carries an optional `code`: `"missing"`, `"type"`, `"refinement"`, `"unexpected"`, or `"depth"`. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body. `"depth"` is the answer for a body nested more than 1000 objects and arrays deep (`MAX_DEPTH` in `std/schema`): one issue at the field where it happened, where before 0.1.150 the check threw `RangeError: Maximum call stack size exceeded` and took the handler with it.
 
 A 400/422 split that does not read the message
 
@@ -75,10 +75,10 @@ fn status_for(issues: Array<Issue>) -> number {
 
 ### Shipping today
 
-Records and `where` types report the failing rule, not just the failing field: `"missing"` for an absent required field, `"type"` for the wrong shape (including a non-object or an array), `"refinement"` for a value that passed its base type and failed the predicate, and `"unexpected"` for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (`f?: T`) are never reported as missing.
+Records and `where` types report the failing rule, not just the failing field: `"missing"` for an absent required field, `"type"` for the wrong shape (including a non-object or an array), `"refinement"` for a value that passed its base type and failed the predicate, `"unexpected"` for a key the type does not declare, and `"depth"` for a value nested more than 1000 deep. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (`f?: T`) are never reported as missing.
 
 ### Getting sharper
 
 Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written `.d.ts`, still gets the flat check and a `"type"` issue; the compiler does not synthesize a descriptor for those, and running `glyph gen dts` on the declaration is what gives them one. A module that declares its own type called `Issue` used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is `E0110` at the line that names the type, so you find out where the problem is instead of reading a `tsc` error about generated code.
 
-Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed 20 Nov 2026.

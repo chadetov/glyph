@@ -95,10 +95,14 @@ type        []            expected Signup (an object), got an array</pre>
         <h2 class="block-label">The code, not the string</h2>
         <p>
           <code>Issue</code> carries an optional <code>code</code>:
-          <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>, or
-          <code>"unexpected"</code>. Branch on that. Matching on message text is the
+          <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>,
+          <code>"unexpected"</code>, or <code>"depth"</code>. Branch on that. Matching on message text is the
           fragility Glyph exists to remove, and the message is for the human reading the
-          response body.
+          response body. <code>"depth"</code> is the answer for a body nested more than
+          1000 objects and arrays deep (<code>MAX_DEPTH</code> in <code>std/schema</code>):
+          one issue at the field where it happened, where before 0.1.150 the check threw
+          <code>RangeError: Maximum call stack size exceeded</code> and took the handler
+          with it.
         </p>
       </div>
 
@@ -124,7 +128,7 @@ type        []            expected Signup (an object), got an array</pre>
       <div class="status-row">
         <div class="status-card today">
           <h3 class="h">Shipping today</h3>
-          <p>Records and <code>where</code> types report the failing rule, not just the failing field: <code>"missing"</code> for an absent required field, <code>"type"</code> for the wrong shape (including a non-object or an array), <code>"refinement"</code> for a value that passed its base type and failed the predicate, and <code>"unexpected"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.</p>
+          <p>Records and <code>where</code> types report the failing rule, not just the failing field: <code>"missing"</code> for an absent required field, <code>"type"</code> for the wrong shape (including a non-object or an array), <code>"refinement"</code> for a value that passed its base type and failed the predicate, <code>"unexpected"</code> for a key the type does not declare, and <code>"depth"</code> for a value nested more than 1000 deep. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.</p>
         </div>
         <div class="status-card next">
           <h3 class="h">Getting sharper</h3>

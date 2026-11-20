@@ -306,9 +306,14 @@ impl StdlibStubs {
         s.add("std/storage", &["StorageError", "get", "set", "remove"]);
         // The host console, on any host: the browser-safe half of `std/io`.
         s.add("std/console", &["log", "warn", "error"]);
-        // The factory behind a record type's generated `T.schema`. Mostly
-        // internal, but documented, so an import of it is a real module.
-        s.add("std/schema", &["schema"]);
+        // The factory behind a record type's generated `T.schema`, and the
+        // depth limit the generated checks obey with the helpers they call
+        // (D50). Mostly internal, but documented, so an import of it is a
+        // real module.
+        s.add(
+            "std/schema",
+            &["schema", "MAX_DEPTH", "too_deep", "depth_refused", "within", "every_at", "depth_issue"],
+        );
         // TCP. The last raw host call in the examples tree: a chat daemon
         // imported node's `net` and held an opaque `Socket` that E0304 would
         // not validate. Events are individual functions, as in `std/websocket`.

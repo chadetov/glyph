@@ -6,22 +6,36 @@ import "./.glyph-runtime/glyph-bootstrap";
 
 import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from "./.glyph-runtime/std/result";
 
-import { schema as __glyph_schema } from "./.glyph-runtime/std/schema";
+import { schema as __glyph_schema, MAX_DEPTH as __glyph_MAX_DEPTH, depth_issue as __glyph_depth_issue, depth_refused as __glyph_depth_refused, too_deep as __glyph_too_deep } from "./.glyph-runtime/std/schema";
 
 export type Account = { id: bigint; balance: number };
 export const Account = {
   is(value: unknown): value is Account {
+    try {
+      return Account.__is(value, 1);
+    } catch (__caught) {
+      return __glyph_depth_refused(__caught);
+    }
+  },
+  __is(value: unknown, __d: number): value is Account {
     return typeof value === "object" && value !== null && !Array.isArray(value)
+      && (__d <= __glyph_MAX_DEPTH || __glyph_too_deep())
       && typeof (value as Record<string, unknown>).id === "bigint"
       && (typeof (value as Record<string, unknown>).balance === "number" && Number.isInteger((value as Record<string, unknown>).balance))
       && Object.keys(value as object).every((__k: string) => __k === "id" || __k === "balance");
   },
   parse(value: unknown): __GlyphResult<Account, Issue[]> {
+    return Account.__parse(value, 1);
+  },
+  __parse(value: unknown, __d: number): __GlyphResult<Account, Issue[]> {
     if (Array.isArray(value)) {
       return __glyph_err([{ path: [], message: "expected Account (an object), got an array", code: "type" }]);
     }
     if (typeof value !== "object" || value === null) {
       return __glyph_err([{ path: [], message: "expected Account (an object)", code: "type" }]);
+    }
+    if (__d > __glyph_MAX_DEPTH) {
+      return __glyph_err([__glyph_depth_issue([])]);
     }
     const __issues: Issue[] = [];
     if ((value as Record<string, unknown>).id === undefined) {
@@ -39,7 +53,7 @@ export const Account = {
     }
     return __issues.length === 0 ? __glyph_ok(value as Account) : __glyph_err(__issues);
   },
-  schema: __glyph_schema<Account>("Account", (v): v is Account => Account.is(v), (v: unknown): __GlyphResult<Account, Issue[]> => Account.parse(v)),
+  schema: __glyph_schema<Account>("Account", (v: unknown, d: number): v is Account => Account.__is(v, d), (v: unknown, d: number): __GlyphResult<Account, Issue[]> => Account.__parse(v, d)),
 };
 
 export function next_id(cur: bigint): bigint {

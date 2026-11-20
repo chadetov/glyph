@@ -331,6 +331,9 @@ json.discriminant(value: unknown, field: string) -> Option<string>  // read a st
   package type, an interface, `Result`, a generic tagged union, or an `Option`,
   `Nullable` or `Record` of one), the call is E0304 too, and the note names
   which. Take a `Schema<T>` and call `json.parse_with(text, schema)` instead.
+- A value nested more than 1000 objects and arrays deep is an `Err` with one
+  issue, `code: "depth"`, rather than a stack overflow (D50). Decoding itself
+  has no limit; only the check refuses.
 - `json.parse` validates only where it is called by name. A `json.parse` value
   (`let p = json.parse`) takes no type arguments, which is E0233, and returns
   `unknown`.
@@ -1762,11 +1765,33 @@ pub fn route(req: Request) -> Result<Response, string> {
 
 ## std/schema
 
-Mostly internal: the factory behind a record type's auto-generated `T.schema`.
+Mostly internal: the factory behind a record type's auto-generated `T.schema`,
+and the depth limit every generated check obeys (D50).
 
 ```
-schema<T>(name: string, is: fn(unknown) -> bool) -> Schema<T>
+schema<T>(name: string, is_at: fn(unknown, number) -> bool, parse_at?: fn(unknown, number) -> Result<T, Array<Issue>>) -> Schema<T>
+MAX_DEPTH: number                                    // 1000
 ```
+
+`is_at` and `parse_at` are handed the value and its depth, counted in objects
+and arrays from 1 at the root, so an `array()` schema checks its elements one
+level under the array.
+
+The generated checks also call five helpers from this module, which are not
+meant to be called by hand: `too_deep` throws the private sentinel a check
+throws past the limit, `depth_refused` turns that sentinel into `false` and
+rethrows anything else, `within` runs an `is` pattern's walk with the sentinel
+answered `false`, `every_at` walks an array's elements or a map's values
+handing each one its depth, and `depth_issue` builds the one `code: "depth"`
+issue a `parse` reports.
+
+No generated check walks a value nested more than `MAX_DEPTH` (1000) objects
+and arrays deep. `is T` and `T.is` answer `false` for one; `T.parse`,
+`T.schema.parse` and `json.parse<T>` answer `Err` with a single issue,
+`code: "depth"`, at the path where the type issue for that part would be.
+A cyclic value is refused the same way. The root object or array is depth 1,
+an `Option` or union `{ tag, value }` object counts like any other, and a part
+typed `unknown` is not entered, so it does not count.
 
 `Schema<T>` and `Issue` are ambient prelude types:
 
@@ -1774,7 +1799,7 @@ schema<T>(name: string, is: fn(unknown) -> bool) -> Schema<T>
 type Issue = {
   path: Array<string | number>,
   message: string,
-  code?: "missing" | "type" | "refinement" | "unexpected",
+  code?: "missing" | "type" | "refinement" | "unexpected" | "depth",
 }
 type Schema<T> = {
   name: string,
@@ -1787,8 +1812,9 @@ type Schema<T> = {
 matching the message text: `"missing"` for a required field that was absent,
 `"type"` for a value of the wrong shape (including a non-object or an array
 where a record was expected), `"refinement"` for a value that passed its base
-type but failed a `where` predicate, and `"unexpected"` for a key the type does
-not declare. It is optional, so an `Issue` you build by hand still checks.
+type but failed a `where` predicate, `"unexpected"` for a key the type does
+not declare, and `"depth"` for a value nested more than 1000 objects and arrays
+deep. It is optional, so an `Issue` you build by hand still checks.
 
 The `message` names the field and what it needed. A record field whose type has
 its own descriptor delegates to that type's `parse`, so nested failures arrive

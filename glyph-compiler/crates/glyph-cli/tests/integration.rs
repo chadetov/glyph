@@ -2590,7 +2590,7 @@ fn imported_generic_descriptor_parse_nested_type_argument_validates_deeply() {
         "nested parse threads a checker: {ts}"
     );
     assert!(
-        ts.contains("Box.is("),
+        ts.contains("Box.__is("),
         "the nested checker calls the inner descriptor's is (deep validation), not \
          the presence floor: {ts}"
     );
@@ -3003,6 +3003,295 @@ fn main() -> number {
         }
         other => panic!("boundary-issue program did not run: {other:?}"),
     }
+}
+
+/// G369 / D50: the program behind [`checks_refuse_a_value_past_the_depth_limit`].
+/// Each `edge` line is one path or shape: the deepest value the limit admits
+/// passes, and the first value past it and one twenty times deeper are
+/// refused with the same answer. `main` returns the count of wrong answers.
+const DEPTH_LIMIT_MAIN: &str = r#"module main
+
+import std/io
+import std/json
+import std/string
+import nodes { SNode, named }
+import nodes
+
+type Tree = { n: int, kids: Array<Tree>, }
+type Shape = | Leaf(int) | Wrap(Shape)
+type List = { v: int, next: Option<List>, }
+type NList = { v: int, next: Nullable<NList>, }
+type Gen<T> = { v: T, kids: Array<Gen<T>>, }
+type M = { m: Record<string, M>, }
+type K = "k"
+type MK = { m: Record<K, Array<MK>>, }
+type PosInt = int where value > 0
+type Pos = { n: PosInt, kids: Array<Pos>, }
+type RKids = Array<RT> where value.length < 3
+type RT = { kids: RKids, }
+type IR = { inner: { k: Array<IR>, }, }
+type ViaNs = { t: nodes.NNode, }
+
+fn rep(open: string, leaf: string, close: string, n: int) -> string {
+  return string.repeat(open, n) + leaf + string.repeat(close, n)
+}
+
+// Each generator nests `n` levels around a leaf; the comment is the JSON
+// depth of the deepest object or array it writes.
+fn tree(n: int) -> string { return rep("{\"n\":1,\"kids\":[", "{\"n\":1,\"kids\":[]}", "]}", n) }          // 2n + 2
+fn shape(n: int) -> string { return rep("{\"tag\":\"Wrap\",\"value\":", "{\"tag\":\"Leaf\",\"value\":1}", "}", n) } // n + 1
+fn list(n: int) -> string { return rep("{\"v\":1,\"next\":{\"tag\":\"Some\",\"value\":", "{\"v\":1,\"next\":{\"tag\":\"None\"}}", "}}", n) } // 2n + 2
+fn nlist(n: int) -> string { return rep("{\"v\":1,\"next\":", "{\"v\":1,\"next\":null}", "}", n) }    // n + 1
+fn gen(n: int) -> string { return rep("{\"v\":1,\"kids\":[", "{\"v\":1,\"kids\":[]}", "]}", n) }       // 2n + 2
+fn ms(n: int) -> string { return rep("{\"m\":{\"k\":", "{\"m\":{}}", "}}", n) }                         // 2n + 2
+fn mk(n: int) -> string { return rep("{\"m\":{\"k\":[", "{\"m\":{\"k\":[]}}", "]}}", n) }               // 3n + 3
+fn rt(n: int) -> string { return rep("{\"kids\":[", "{\"kids\":[]}", "]}", n) }                         // 2n + 2
+fn ir(n: int) -> string { return rep("{\"inner\":{\"k\":[", "{\"inner\":{\"k\":[]}}", "]}}", n) }      // 3n + 3
+
+fn raw(t: string) -> unknown {
+  return match json.parse(t) {
+    Ok(x) => x,
+    Err(_) => "unparsed",
+  }
+}
+
+fn show<T>(r: Result<T, Array<Issue>>) -> string {
+  return match r {
+    Ok(_) => "ok",
+    Err(issues) => json.stringify(issues),
+  }
+}
+
+fn bit(b: bool) -> string {
+  return match b {
+    true => "ok",
+    false => "no",
+  }
+}
+
+fn ist(v: unknown) -> bool { return match v { is Tree => true, _ => false, } }
+fn isa(v: unknown) -> bool { return match v { is Array<Tree> => true, _ => false, } }
+fn isr(v: unknown) -> bool { return match v { is Record<string, Tree> => true, _ => false, } }
+fn isg(v: unknown) -> bool { return match v { is Gen<int> => true, _ => false, } }
+fn iss(v: unknown) -> bool { return match v { is Shape => true, _ => false, } }
+fn issib(v: unknown) -> bool { return match v { is SNode => true, _ => false, } }
+
+fn depth_at(path: string) -> string {
+  return "[{\"path\":" + path + ",\"message\":\"nested more than 1000 objects and arrays deep\",\"code\":\"depth\"}]"
+}
+
+// One wrong answer per call that does not see `want`.
+fn expect(name: string, got: string, want: string) -> number {
+  return match got == want {
+    true => 0,
+    false => {
+      io.eprintln(name + ": got " + got + ", want " + want)
+      return 1
+    },
+  }
+}
+
+// The deepest value the limit admits passes; the first deeper one, and one
+// twenty times deeper, are refused with the same answer.
+fn edge(name: string, at: string, past: string, far: string, refused: string) -> number {
+  return expect(name + " at the limit", at, "ok") + expect(name + " past it", past, refused) + expect(name + " far past it", far, refused)
+}
+
+fn cyclic() -> unknown {
+  let kids: Array<unknown> = []
+  let t: unknown = { n: 1, kids: kids, }
+  mut kids.push(t)
+  return t
+}
+
+fn main() -> number {
+  let no = "no"
+  let f = 0
+  mut f = f + edge("is Tree", bit(ist(raw(tree(499)))), bit(ist(raw(tree(500)))), bit(ist(raw(tree(10000)))), no)
+  mut f = f + edge("is Array<Tree>", bit(isa(raw("[" + tree(498) + "]"))), bit(isa(raw("[" + tree(499) + "]"))), bit(isa(raw("[" + tree(10000) + "]"))), no)
+  mut f = f + edge("is Record<string, Tree>", bit(isr(raw("{\"a\":" + tree(498) + "}"))), bit(isr(raw("{\"a\":" + tree(499) + "}"))), bit(isr(raw("{\"a\":" + tree(10000) + "}"))), no)
+  mut f = f + edge("is Gen<int>", bit(isg(raw(gen(499)))), bit(isg(raw(gen(500)))), bit(isg(raw(gen(10000)))), no)
+  mut f = f + edge("is Shape", bit(iss(raw(shape(999)))), bit(iss(raw(shape(1000)))), bit(iss(raw(shape(20000)))), no)
+  mut f = f + edge("is SNode", bit(issib(raw(tree(499)))), bit(issib(raw(tree(500)))), bit(issib(raw(tree(10000)))), no)
+  mut f = f + edge("Tree.is", bit(Tree.is(raw(tree(499)))), bit(Tree.is(raw(tree(500)))), bit(Tree.is(raw(tree(10000)))), no)
+  mut f = f + edge("Shape.is", bit(Shape.is(raw(shape(999)))), bit(Shape.is(raw(shape(1000)))), bit(Shape.is(raw(shape(20000)))), no)
+
+  let kids = depth_at("[\"kids\"]")
+  let root = depth_at("[]")
+  mut f = f + edge("Tree.parse", show(Tree.parse(raw(tree(499)))), show(Tree.parse(raw(tree(500)))), show(Tree.parse(raw(tree(10000)))), kids)
+  mut f = f + edge("Tree.schema.parse", show(Tree.schema.parse(raw(tree(499)))), show(Tree.schema.parse(raw(tree(500)))), show(Tree.schema.parse(raw(tree(10000)))), kids)
+  mut f = f + edge("Tree.schema.array().parse", show(Tree.schema.array().parse(raw("[" + tree(498) + "]"))), show(Tree.schema.array().parse(raw("[" + tree(499) + "]"))), show(Tree.schema.array().parse(raw("[" + tree(10000) + "]"))), depth_at("[0,\"kids\"]"))
+  mut f = f + edge("json.parse<Tree>", show(json.parse<Tree>(tree(499))), show(json.parse<Tree>(tree(500))), show(json.parse<Tree>(tree(10000))), kids)
+  mut f = f + edge("json.parse_with", show(json.parse_with(tree(499), Tree.schema)), show(json.parse_with(tree(500), Tree.schema)), show(json.parse_with(tree(10000), Tree.schema)), kids)
+  mut f = f + edge("parse<SNode>", named(tree(499)), named(tree(500)), named(tree(10000)), "1|depth|1")
+  mut f = f + edge("json.parse<Array<Tree>>", show(json.parse<Array<Tree>>("[" + tree(498) + "]")), show(json.parse<Array<Tree>>("[" + tree(499) + "]")), show(json.parse<Array<Tree>>("[" + tree(10000) + "]")), depth_at("[0,\"kids\"]"))
+  mut f = f + edge("json.parse<Record<string, Tree>>", show(json.parse<Record<string, Tree>>("{\"a\":" + tree(498) + "}")), show(json.parse<Record<string, Tree>>("{\"a\":" + tree(499) + "}")), show(json.parse<Record<string, Tree>>("{\"a\":" + tree(10000) + "}")), root)
+  mut f = f + edge("json.parse<Option<Tree>>", show(json.parse<Option<Tree>>("{\"tag\":\"Some\",\"value\":" + tree(498) + "}")), show(json.parse<Option<Tree>>("{\"tag\":\"Some\",\"value\":" + tree(499) + "}")), show(json.parse<Option<Tree>>("{\"tag\":\"Some\",\"value\":" + tree(10000) + "}")), root)
+  mut f = f + edge("Shape.parse", show(Shape.parse(raw(shape(999)))), show(Shape.parse(raw(shape(1000)))), show(Shape.parse(raw(shape(20000)))), root)
+  mut f = f + edge("json.parse<Shape>", show(json.parse<Shape>(shape(999))), show(json.parse<Shape>(shape(1000))), show(json.parse<Shape>(shape(20000))), root)
+  mut f = f + edge("json.parse<List>", show(json.parse<List>(list(499))), show(json.parse<List>(list(500))), show(json.parse<List>(list(10000))), depth_at("[\"next\"]"))
+  mut f = f + edge("json.parse<NList>", show(json.parse<NList>(nlist(999))), show(json.parse<NList>(nlist(1000))), show(json.parse<NList>(nlist(20000))), depth_at("[\"next\"]"))
+  mut f = f + edge("json.parse<Gen<int>>", show(json.parse<Gen<int>>(gen(499))), show(json.parse<Gen<int>>(gen(500))), show(json.parse<Gen<int>>(gen(10000))), root)
+  mut f = f + edge("Gen.parse<int>", show(Gen.parse<int>(raw(gen(499)))), show(Gen.parse<int>(raw(gen(500)))), show(Gen.parse<int>(raw(gen(10000)))), kids)
+  mut f = f + edge("json.parse<M>", show(json.parse<M>(ms(499))), show(json.parse<M>(ms(500))), show(json.parse<M>(ms(10000))), depth_at("[\"m\"]"))
+  mut f = f + edge("json.parse<MK>", show(json.parse<MK>(mk(332))), show(json.parse<MK>(mk(333))), show(json.parse<MK>(mk(7000))), depth_at("[\"m\"]"))
+  mut f = f + edge("json.parse<Pos>", show(json.parse<Pos>(tree(499))), show(json.parse<Pos>(tree(500))), show(json.parse<Pos>(tree(10000))), kids)
+  mut f = f + edge("json.parse<RT>", show(json.parse<RT>(rt(499))), show(json.parse<RT>(rt(500))), show(json.parse<RT>(rt(10000))), kids)
+  mut f = f + edge("json.parse<IR>", show(json.parse<IR>(ir(332))), show(json.parse<IR>(ir(333))), show(json.parse<IR>(ir(7000))), depth_at("[\"inner\"]"))
+  mut f = f + edge("json.parse<SNode>", show(json.parse<SNode>(tree(499))), show(json.parse<SNode>(tree(500))), show(json.parse<SNode>(tree(10000))), kids)
+  mut f = f + edge("json.parse<ViaNs>", show(json.parse<ViaNs>("{\"t\":" + tree(498) + "}")), show(json.parse<ViaNs>("{\"t\":" + tree(499) + "}")), show(json.parse<ViaNs>("{\"t\":" + tree(10000) + "}")), depth_at("[\"t\",\"kids\"]"))
+
+  // A cyclic value is infinitely deep: refused the same way, never a throw.
+  let c = cyclic()
+  mut f = f + expect("is Tree on a cycle", bit(ist(c)), no)
+  mut f = f + expect("Tree.is on a cycle", bit(Tree.is(c)), no)
+  mut f = f + expect("Tree.parse on a cycle", show(Tree.parse(c)), kids)
+  return f
+}
+"#;
+
+const DEPTH_LIMIT_NODES: &str = r#"module nodes
+
+import std/json { parse }
+
+pub type SNode = {
+  n: int,
+  kids: Array<SNode>,
+}
+
+pub type NNode = {
+  n: int,
+  kids: Array<NNode>,
+}
+
+pub fn named(text: string) -> string {
+  return match parse<SNode>(text) {
+    Ok(_) => "ok",
+    Err(issues) => json_text(issues),
+  }
+}
+
+fn json_text(issues: Array<Issue>) -> string {
+  let first = issues[0]
+  return "${issues.length}|${first.code}|${first.path.length}"
+}
+"#;
+
+#[test]
+fn checks_refuse_a_value_past_the_depth_limit() {
+    // G369 / D50. A check refuses a value nested more than `MAX_DEPTH` (1000)
+    // objects and arrays deep: `is` answers false, a `parse` answers one
+    // `code: "depth"` issue at the path a type issue would carry. Before, every
+    // check recursed once per level and threw `RangeError` a few thousand
+    // levels down. Every check path and descriptor kind is driven exactly at
+    // the limit and past it, under `glyph run` (tsx), under tsx and plain node
+    // at half node's default stack, so the headroom is gated rather than
+    // assumed, and under plain node. Needs node, tsx and tsc.
+    if !js_toolchain_available() || !tsc_available() {
+        eprintln!("skipping depth-limit run: node/tsx/tsc not available");
+        return;
+    }
+    let root = unique_tmp("depth_limit");
+    write_file(&root, "package.json", "{\"name\":\"depth\",\"version\":\"0.0.0\",\"type\":\"module\",\"glyph\":{}}\n");
+    write_file(&root, "src/main.glyph", DEPTH_LIMIT_MAIN);
+    write_file(&root, "src/nodes.glyph", DEPTH_LIMIT_NODES);
+
+    match glyph_cli::run::run_file(&root.join("src/main.glyph"), &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "glyph run: {code} wrong answer(s) at the depth limit");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
+            tool_missing("tsx or tsc");
+            return;
+        }
+        other => panic!("depth-limit program did not run: {other:?}"),
+    }
+
+    let out = root.join("out");
+    let report = build_project(&root.join("src"), &out).expect("build_project ok");
+    assert!(!report.has_errors(), "{:?}", report.diagnostics);
+    write_file(
+        &out,
+        "__run.ts",
+        "import \"./.glyph-runtime/glyph-bootstrap.ts\";\nimport { main } from \"./main.ts\";\nprocess.exitCode = main();\n",
+    );
+    let tsx = std::process::Command::new("tsx")
+        .arg("--stack-size=492")
+        .arg("--tsconfig")
+        .arg(out.join("tsconfig.json"))
+        .arg(out.join("__run.ts"))
+        .output()
+        .expect("run tsx");
+    assert_eq!(
+        tsx.status.code(),
+        Some(0),
+        "tsx --stack-size=492: the exit code is the wrong-answer count:\n{}",
+        String::from_utf8_lossy(&tsx.stderr)
+    );
+
+    // Plain node runs the CommonJS that `tsc` emits from the same TypeScript.
+    std::fs::remove_file(out.join("__run.ts")).expect("remove tsx entry");
+    let js = root.join("js");
+    let tsc = std::process::Command::new("tsc")
+        .current_dir(&out)
+        .args(["-p", "tsconfig.json", "--noEmit", "false", "--outDir"])
+        .arg(&js)
+        .args(["--module", "commonjs", "--moduleResolution", "node10", "--ignoreDeprecations", "6.0"])
+        .output()
+        .expect("run tsc");
+    assert!(tsc.status.success(), "tsc emit: {}", String::from_utf8_lossy(&tsc.stdout));
+    write_file(&js, "package.json", "{\"type\":\"commonjs\"}\n");
+    write_file(
+        &js,
+        "__run.js",
+        "require(\"./.glyph-runtime/glyph-bootstrap\");\nprocess.exitCode = require(\"./main\").main();\n",
+    );
+    for stack in [None, Some("--stack-size=492")] {
+        let mut node = std::process::Command::new("node");
+        node.args(stack).arg(js.join("__run.js"));
+        let run = node.output().expect("run node");
+        assert_eq!(
+            run.status.code(),
+            Some(0),
+            "node {stack:?}: the exit code is the wrong-answer count:\n{}",
+            String::from_utf8_lossy(&run.stderr)
+        );
+    }
+}
+
+#[test]
+fn a_match_on_issue_code_needs_a_catch_all_before_and_after_depth() {
+    // D50 added `"depth"` to `Issue.code` in the TypeScript prelude. Glyph's
+    // checker types `code` as `string`, so a match listing the codes was
+    // already E0218 without a catch-all and adding a fifth code refuses no
+    // program that compiled. Pinned so a change to how Glyph types `code`
+    // is a decision, not a side effect.
+    let root = unique_tmp("issue_code_match");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main
+         pub fn label(i: Issue) -> string {
+         \x20 return match i.code {
+         \x20\x20\x20 \"missing\" => \"m\",
+         \x20\x20\x20 \"type\" => \"t\",
+         \x20\x20\x20 \"refinement\" => \"r\",
+         \x20\x20\x20 \"unexpected\" => \"u\",
+         \x20\x20\x20 \"depth\" => \"d\",
+         \x20 }
+         }
+",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0218")),
+        "a match on `Issue.code` with no catch-all: {:?}",
+        report.diagnostics
+    );
 }
 
 #[test]
@@ -8406,11 +8695,11 @@ fn imported_descriptors_are_called_from_a_record_field_check() {
     );
     let ts = std::fs::read_to_string(out.join("app.ts")).unwrap();
     assert!(
-        ts.contains("Inner.is((value as Record<string, unknown>).i)"),
+        ts.contains("Inner.__is((value as Record<string, unknown>).i, __d + 1)"),
         "imported record field calls its descriptor: {ts}"
     );
     assert!(
-        ts.contains("Instant.is((value as Record<string, unknown>).t)"),
+        ts.contains("Instant.__is((value as Record<string, unknown>).t, __d + 1)"),
         "imported refined field calls its descriptor: {ts}"
     );
     assert!(
@@ -8530,7 +8819,7 @@ fn namespaced_imported_descriptor_is_called_from_a_field_check() {
     );
     let ts = std::fs::read_to_string(out.join("app.ts")).unwrap();
     assert!(
-        ts.contains("types.Inner.is((value as Record<string, unknown>).i)"),
+        ts.contains("types.Inner.__is((value as Record<string, unknown>).i, __d + 1)"),
         "namespaced field calls the imported descriptor: {ts}"
     );
 }
@@ -12336,7 +12625,7 @@ fn json_parse_of_a_type_reports_the_same_field_paths_as_its_parse() {
 
     // The schema carries the descriptor's own parse, not just its guard.
     assert!(
-        ts.contains("(v: unknown): __GlyphResult<Cfg, Issue[]> => Cfg.parse(v)"),
+        ts.contains("(v: unknown, d: number): __GlyphResult<Cfg, Issue[]> => Cfg.__parse(v, d)"),
         "schema threads the deep parser: {ts}"
     );
     // And the rewrite still routes through the schema (G3's validation).
@@ -17823,8 +18112,8 @@ fn a_generic_record_whose_fields_are_all_checked_still_validates_on_every_path()
 }
 
 /// Declaring a record that holds an unchecked generic is fine, and its
-/// descriptor is emitted as before: `Doc.is` still calls `Page.is` on the
-/// field, which tests everything `Page` can check. Only a use that reports
+/// descriptor is emitted as before: `Doc`'s check still calls `Page`'s on the
+/// field (`Page.__is`, with the depth, D50), which tests everything `Page` can check. Only a use that reports
 /// the whole value checked is refused, so the refusal must not weaken the
 /// emitted check to a presence test.
 #[test]
@@ -17842,11 +18131,11 @@ fn declaring_a_record_over_an_unchecked_generic_emits_its_descriptor_unchanged()
     assert_eq!(code, 0, "{stderr}");
     let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts");
     assert!(
-        ts.contains("&& Page.is((value as Record<string, unknown>).p, (__cv: unknown) => User.is(__cv))"),
+        ts.contains("&& Page.__is((value as Record<string, unknown>).p, __d + 1, (__cv: unknown, __cd: number) => User.__is(__cv, __cd))"),
         "{ts}"
     );
     assert!(
-        ts.contains("} else if (!(Page.is((value as Record<string, unknown>).p, (__cv: unknown) => User.is(__cv)))) {"),
+        ts.contains("if (!(Page.__is((value as Record<string, unknown>).p, __d + 1, (__cv: unknown, __cd: number) => User.__is(__cv, __cd)))) {"),
         "{ts}"
     );
 }

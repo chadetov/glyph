@@ -74,13 +74,6 @@
       ]
     },
     {
-      "label": "What it catches",
-      "href": "/catches/",
-      "match": [
-        "catches"
-      ]
-    },
-    {
       "menu": "learn",
       "label": "Learn",
       "match": [
@@ -143,6 +136,13 @@
             }
           ]
         }
+      ]
+    },
+    {
+      "label": "What it catches",
+      "href": "/catches/",
+      "match": [
+        "catches"
       ]
     },
     {

@@ -132,7 +132,7 @@
                       <li><a href="/th/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">สิ่งที่ยังจับไม่ได้</span><span class="nav-desc">ช่องโหว่ที่รู้แล้ว แต่ละจุดมีโค้ดสำหรับทำซ้ำ</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/th/catches/"><span class="nav-feature-big">21 จาก 37</span><span class="nav-feature-text">ข้อผิดพลาดใน TypeScript ที่ไม่มีอะไรในโปรเจกต์ที่ตั้งค่าเต็มที่จับได้</span><span class="nav-feature-cta">ดูว่าจับอะไรได้บ้าง <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/th/catches/"><span class="nav-feature-big">21 จาก 37</span><span class="nav-feature-text">กรณีของ TypeScript ที่ไม่มีอะไรในโปรเจกต์ที่ตั้งค่าเต็มที่จับได้</span><span class="nav-feature-cta">ดูว่าจับอะไรได้บ้าง <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -487,74 +487,82 @@
 
         <h2 class="block-label" id="4-add-something-real">4 &middot; เพิ่มของจริงเข้าไป<a class="h-anchor" href="#4-add-something-real" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          ทีนี้แทนที่ body ด้วย logic เล็กๆ: สถานะของงาน และฟังก์ชันที่ติดป้ายให้สถานะนั้น นี่คือการแนะนำสองสิ่งที่คุณจะใช้ตลอด: <em>tagged union</em> (<code>type Status = ...</code>) และ <code>match</code> ซึ่งเป็นเงื่อนไขแบบเดียวที่ Glyph มี
+          ทีนี้แทนที่ body ด้วยการตัดสินใจที่สำคัญ: จะส่งคำสั่งซื้อหรือไม่ ตามสถานะการชำระเงิน นี่คือการแนะนำสองสิ่งที่คุณจะใช้ตลอด: <em>tagged union</em> (<code>type Payment = ...</code>) และ <code>match</code> ซึ่งเป็นเงื่อนไขแบบเดียวของ Glyph
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre><span class="k">module</span> main
 
-<span class="k">type</span> <span class="t">Status</span> = <span class="t">Todo</span> | <span class="t">Doing</span> | <span class="t">Done</span>
+<span class="k">type</span> <span class="t">Payment</span> = <span class="t">Pending</span> | <span class="t">Paid</span> | <span class="t">Failed</span>
 
-<span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
-  <span class="k">return</span> <span class="k">match</span> s {
-    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
-    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
-    <span class="t">Done</span> <span class="op">=&gt;</span> <span class="s">"finished"</span>,
+<span class="k">fn</span> ship(p: <span class="t">Payment</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Pending</span> <span class="op">=&gt;</span> <span class="s">"hold: waiting for the money"</span>,
+    <span class="t">Paid</span> <span class="op">=&gt;</span> <span class="s">"ship it"</span>,
+    <span class="t">Failed</span> <span class="op">=&gt;</span> <span class="s">"hold: payment failed"</span>,
   }
 }
 
 <span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
-  print(label(<span class="t">Done</span>))
+  print(ship(<span class="t">Paid</span>))
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
 <pre><span class="f">npx</span> glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label" id="5-break-it-on-purpose">5 &middot; ตั้งใจทำให้พัง<a class="h-anchor" href="#5-break-it-on-purpose" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          ส่วนนี้แสดงให้เห็นว่า Glyph มี<em>ไว้ทำอะไร</em> ลบ arm <code>Done</code> ออกจาก <code>match</code> (แบบที่เอเจนต์ทำเมื่อเพิ่ม case ที่ไหนสักแห่งแล้วลืมจัดการ) แล้วรันอีกครั้ง
+          ส่วนนี้แสดงให้เห็นว่า Glyph มีไว้<em>เพื่ออะไร</em> ticket หนึ่งบอกว่า "รองรับการคืนเงิน" ให้เพิ่มกรณี <code>Refunded</code> ใน <code>Payment</code> และไม่ต้องแตะ <code>ship</code> นี่คือสิ่งที่ agent ทำเมื่อแก้ type ในไฟล์หนึ่งแล้วไม่เคยเปิดโค้ดที่ตัดสินใจตาม type นั้น แล้วรันอีกครั้ง
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph (ลบ arm Done ออกแล้ว)</span>
-<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
-  <span class="k">return</span> <span class="k">match</span> s {
-    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
-    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
+        <span class="cap">src/main.glyph (เพิ่มหนึ่งคำ)</span>
+<pre><span class="k">type</span> <span class="t">Payment</span> = <span class="t">Pending</span> | <span class="t">Paid</span> | <span class="t">Failed</span> | <span class="t">Refunded</span></pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Payment`</span>: missing variants <span class="q">`Refunded`</span></span>
+    <span class="bx">╭─</span>[ main:6:10 ]
+    <span class="bx">│</span>
+  6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match p {
+    <span class="bx">┆</span> <span class="bx">┆</span>
+ 10 <span class="bx">│</span> <span class="bx">├─</span>▶   }
+    <span class="bx">│</span> <span class="bx">╰─────────</span> non-exhaustive match on <span class="q">`Payment`</span>: missing variants <span class="q">`Refunded`</span>
+    <span class="bx">│</span>
+    <span class="bx">│</span>     <span class="f">Help:</span> Add an arm for each missing variant.
+<span class="bx">────╯</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          มันไม่รัน TypeScript ที่โค้ดส่วนใหญ่เขียนด้วยกลับทำตรงกันข้าม: <code>switch</code> ที่จัดการสองกรณี "hold" แล้วจบด้วย <code>default: return "ship it"</code> ยังผ่าน <code>tsc --strict</code> หลังเพิ่มกรณีใหม่ และส่งทุกคำสั่งซื้อที่คืนเงินไปแล้ว ที่นี่ match ทุกตัวที่ขาดกรณีใดไปจะเป็น compile error พร้อมรหัสที่คงที่ (<code>E0200</code>) ตำแหน่งที่แน่นอน และชื่อของกรณีนั้น รัน <code>glyph --explain E0200</code> เมื่อใดก็ได้ที่อยากอ่านฉบับยาว
+        </p>
+
+        <h2 class="block-label" id="6-fix-it">6 &middot; แก้<a class="h-anchor" href="#6-fix-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <p>
+          compiler ตัดสินไม่ได้ว่าการคืนเงินมีความหมายอย่างไรต่อการส่งของ นั่นเป็นการตัดสินใจของคุณ เพิ่ม arm แล้วมันจะรันได้อีกครั้ง
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre><span class="k">fn</span> ship(p: <span class="t">Payment</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Pending</span> <span class="op">=&gt;</span> <span class="s">"hold: waiting for the money"</span>,
+    <span class="t">Paid</span> <span class="op">=&gt;</span> <span class="s">"ship it"</span>,
+    <span class="t">Failed</span> <span class="op">=&gt;</span> <span class="s">"hold: payment failed"</span>,
+    <span class="t">Refunded</span> <span class="op">=&gt;</span> <span class="s">"hold: refunded, nothing to ship"</span>,
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Done`</span></span>
-   <span class="bx">╭─</span>[main:6:10]
-   <span class="bx">│</span>
- 6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match s {
-   <span class="bx">┆</span> <span class="bx">┆</span>
- 9 <span class="bx">│</span> <span class="bx">├─</span>▶   }
-   <span class="bx">│</span> <span class="bx">╰─────────</span> missing variants <span class="q">`Done`</span>
-   <span class="bx">│</span>
-   <span class="bx">│</span>  <span class="f">Help:</span> Add an arm for each missing variant.
-<span class="bx">───╯</span></pre>
-      </div>
-      <div class="detail">
-        <p>
-          มันไม่รัน ใน TypeScript ฟังก์ชันแบบเดียวกันนี้ที่เขียน return type ไว้ก็ถูกปฏิเสธเช่นกัน (TS2366) แต่ <code>switch</code> ที่แค่ log หรืออัปเดต state หรือที่มี <code>default:</code> จะคอมไพล์ผ่านสะอาดและข้าม case ใหม่ไปเงียบๆ ที่นี่ match ทุกตัวที่ไม่ครบทุกกรณีเป็น compile error ที่มีรหัสคงที่ (<code>E0200</code>) ระบุตำแหน่งแน่นอน และมีวิธีแก้หนึ่งบรรทัด รัน <code>glyph --explain E0200</code> เมื่อไหร่ก็ได้ที่อยากอ่านฉบับยาว
-        </p>
-
-        <h2 class="block-label" id="6-fix-it">6 &middot; แก้<a class="h-anchor" href="#6-fix-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>ใส่ arm กลับเข้าไป (หรือเพิ่ม <code>else</code>) แล้วมันก็จะรันได้อีกครั้ง</p>
-      </div>
-      <div class="code">
-        <span class="cap">terminal</span>
-<pre><span class="f">npx</span> glyph run
-<span class="dim">finished</span></pre>
+        <span class="cap">terminal (เมื่อใช้ <code>print(ship(Refunded))</code>)</span>
+<pre>npx glyph run
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

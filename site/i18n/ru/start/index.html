@@ -1,7 +1,7 @@
 ---
 title: Начните здесь · первая программа на Glyph за 10 минут · Glyph
 description: Создайте проект Glyph через npx, запустите его, намеренно сломайте, прочитайте ошибку компилятора и исправьте её. Десять минут, ничего не устанавливается глобально.
-source_hash: 0967efaee1e51c6b
+source_hash: afa9668b9f2c7e17
 prev: / | &larr; Главная | TypeScript, который агенты не сломают незаметно
 next: /answers/verifiability/ | Далее &rarr; | Что мешает агенту незаметно сломать мой код?
 next_steps: |
@@ -77,74 +77,82 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
 
         <h2 class="block-label">4 &middot; Добавьте что-нибудь настоящее</h2>
         <p>
-          Теперь замените тело на немного логики: статус задачи и функцию, которая подписывает его. Здесь появляются две вещи, которыми вы будете пользоваться постоянно: <em>размеченное объединение</em> (<code>type Status = ...</code>) и <code>match</code>, единственная условная конструкция в Glyph.
+          Теперь замените тело решением, которое имеет значение: отправлять ли заказ в зависимости от состояния оплаты. Здесь появляются две вещи, которыми вы будете пользоваться постоянно: <em>размеченное объединение</em> (<code>type Payment = ...</code>) и <code>match</code>, единственная условная конструкция в Glyph.
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre>module main
 
-type Status = Todo | Doing | Done
+type Payment = Pending | Paid | Failed
 
-fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
-    Done =&gt; "finished",
+fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
   }
 }
 
 fn main(argv: Array&lt;string&gt;) -&gt; number {
-  print(label(Done))
+  print(ship(Paid))
   return 0
 }</pre>
       </div>
       <div class="code">
         <span class="cap">терминал</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label">5 &middot; Сломайте намеренно</h2>
         <p>
-          Вот часть, которая показывает, <em>для чего</em> нужен Glyph. Удалите ветку <code>Done</code> из <code>match</code> (агент делает так, когда добавляет где-то вариант и забывает его обработать) и запустите снова.
+          Эта часть показывает, <em>зачем</em> нужен Glyph. В задаче написано «поддержать возвраты», поэтому добавьте в <code>Payment</code> вариант <code>Refunded</code> и не трогайте <code>ship</code>. Так поступает агент, когда меняет тип в одном файле и не открывает код, который по этому типу принимает решение. Запустите снова.
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph (без ветки Done)</span>
-<pre>fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
+        <span class="cap">src/main.glyph (добавлено одно слово)</span>
+<pre>type Payment = Pending | Paid | Failed | Refunded</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Payment`: missing variants `Refunded`</span>
+    ╭─[ main:6:10 ]
+    │
+  6 │ ╭─▶   return match p {
+    ┆ ┆
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Payment`: missing variants `Refunded`
+    │
+    │     Help: Add an arm for each missing variant.
+────╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Не запустилось. TypeScript, на котором написана большая часть кода, ведёт себя наоборот: <code>switch</code>, который обрабатывает два случая "hold" и заканчивается на <code>default: return "ship it"</code>, проходит <code>tsc --strict</code> и после добавления нового варианта, а затем отправляет каждый возвращённый заказ. Здесь каждый match, в котором пропущен вариант, это ошибка компиляции со стабильным кодом (<code>E0200</code>), точным местом и названием варианта. Запускайте <code>glyph --explain E0200</code>, когда нужна подробная версия.
+        </p>
+
+        <h2 class="block-label">6 &middot; Исправьте</h2>
+        <p>
+          Что возврат означает для отправки, компилятор решить не может, это решаете вы. Добавьте ветку, и программа снова запустится.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
+    Refunded =&gt; "hold: refunded, nothing to ship",
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
-   ╭─[main:6:10]
-   │
- 6 │ ╭─▶   return match s {
-   ┆ ┆
- 9 │ ├─▶   }
-   │ ╰───────── missing variants `Done`
-   │
-   │  Help: Add an arm for each missing variant.
-───╯</pre>
-      </div>
-      <div class="detail">
-        <p>
-          Программа не запустилась. В TypeScript ровно эта функция с явно указанным возвращаемым типом тоже отклоняется (TS2366). Но <code>switch</code>, который только пишет в лог или обновляет состояние, или вариант с <code>default:</code> компилируется без ошибок и молча пропускает новый случай. Здесь любой неполный match это ошибка компиляции со стабильным кодом (<code>E0200</code>), точным местом и исправлением в одну строку. Запустите <code>glyph --explain E0200</code>, когда захотите подробное объяснение.
-        </p>
-
-        <h2 class="block-label">6 &middot; Исправьте</h2>
-        <p>Верните ветку (или добавьте <code>else</code>), и программа снова запустится.</p>
-      </div>
-      <div class="code">
-        <span class="cap">терминал</span>
+        <span class="cap">терминал (с <code>print(ship(Refunded))</code>)</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "start/index.html",
   "locale": "pt-br",
-  "source_hash": "0967efaee1e51c6b",
+  "source_hash": "afa9668b9f2c7e17",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "4 &middot; Adicione algo de verdade"
     },
     {
-      "id": "h-f1d8aa48",
+      "id": "h-37ace545",
       "kind": "html",
-      "en": "Now replace the body with a tiny bit of logic: a task status and a function that labels it. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
-      "tr": "Agora troque o corpo por um pouco de lógica: um status de tarefa e uma função que dá um rótulo a ele. Isso apresenta as duas coisas que você vai usar o tempo todo: uma <em>union etiquetada</em> (<code>type Status = ...</code>) e <code>match</code>, que é a única condicional do Glyph."
+      "en": "Now replace the body with a decision that matters: whether to ship an order, given where its payment stands. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Payment = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
+      "tr": "Agora troque o corpo por uma decisão que importa: enviar ou não um pedido, de acordo com a situação do pagamento. Isso apresenta as duas coisas que você vai usar o tempo todo: uma <em>tagged union</em> (<code>type Payment = ...</code>) e <code>match</code>, que é o único condicional do Glyph."
     },
     {
       "id": "h-227acdb7",
@@ -197,22 +197,22 @@
       "tr": "5 &middot; Quebre de propósito"
     },
     {
-      "id": "h-08f96fcf",
+      "id": "h-35ca4513",
       "kind": "html",
-      "en": "Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm from the <code>match</code> (the kind of thing an agent does when it adds a case somewhere and forgets to handle it), and run again.",
-      "tr": "Esta é a parte que mostra <em>para que</em> serve o Glyph. Apague o braço <code>Done</code> do <code>match</code> (o tipo de coisa que um agente faz quando adiciona um caso em algum lugar e esquece de tratá-lo) e rode de novo."
+      "en": "Here's the part that shows you what Glyph is <em>for</em>. A ticket says \"support refunds\", so add a <code>Refunded</code> case to <code>Payment</code> and leave <code>ship</code> alone. That is what an agent does when it changes a type in one file and never opens the code that decides on it. Run again.",
+      "tr": "Esta é a parte que mostra <em>para que</em> o Glyph serve. Um ticket pede \"suportar reembolsos\", então adicione um caso <code>Refunded</code> a <code>Payment</code> e não mexa em <code>ship</code>. É o que um agente faz quando muda um tipo em um arquivo e nunca abre o código que decide com base nele. Rode de novo."
     },
     {
-      "id": "h-4f6a6f0d",
+      "id": "h-960bc791",
       "kind": "html",
-      "en": "src/main.glyph (with the Done arm deleted)",
-      "tr": "src/main.glyph (com o braço Done apagado)"
+      "en": "src/main.glyph (one word added)",
+      "tr": "src/main.glyph (uma palavra a mais)"
     },
     {
-      "id": "h-31c09e63",
+      "id": "h-321c7ae4",
       "kind": "html",
-      "en": "It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A <code>switch</code> that only logs or updates state, or one with a <code>default:</code>, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run <code>glyph --explain E0200</code> any time you want the long version.",
-      "tr": "Não rodou. Em TypeScript, essa mesma função, com o tipo de retorno escrito, também é recusada (TS2366). Um <code>switch</code> que só registra log ou atualiza estado, ou um com <code>default:</code>, compila sem erro e pula o caso novo em silêncio. Aqui todo match não exaustivo é um erro de compilação com um código estável (<code>E0200</code>), o ponto exato e uma correção de uma linha. Rode <code>glyph --explain E0200</code> quando quiser a versão longa."
+      "en": "It didn't run. The TypeScript most code is written with goes the other way: a <code>switch</code> that handles the two \"hold\" cases and ends in <code>default: return \"ship it\"</code> passes <code>tsc --strict</code> after the new case is added, and ships every refunded order. Here every match that misses a case is a compile error with a stable code (<code>E0200</code>), the exact spot, and the name of the case. Run <code>glyph --explain E0200</code> any time you want the long version.",
+      "tr": "Não rodou. O TypeScript em que a maior parte do código é escrita faz o contrário: um <code>switch</code> que trata os dois casos de \"hold\" e termina em <code>default: return \"ship it\"</code> passa no <code>tsc --strict</code> depois que o novo caso é adicionado, e envia todo pedido reembolsado. Aqui, todo match que deixa um caso de fora é um erro de compilação com um código estável (<code>E0200</code>), o ponto exato e o nome do caso. Rode <code>glyph --explain E0200</code> sempre que quiser a versão longa."
     },
     {
       "id": "h-a205e0c5",
@@ -221,10 +221,16 @@
       "tr": "6 &middot; Corrija"
     },
     {
-      "id": "h-1995de51",
+      "id": "h-b1ea5492",
       "kind": "html",
-      "en": "Put the arm back (or add an <code>else</code>), and it runs again.",
-      "tr": "Coloque o braço de volta (ou adicione um <code>else</code>) e ele roda de novo."
+      "en": "The compiler can't decide what a refund means for shipping; that is your call. Add the arm, and it runs again.",
+      "tr": "O compilador não pode decidir o que um reembolso significa para o envio; essa decisão é sua. Adicione o braço e o programa volta a rodar."
+    },
+    {
+      "id": "h-9bf1b06f",
+      "kind": "html",
+      "en": "terminal (with <code>print(ship(Refunded))</code>)",
+      "tr": "terminal (com <code>print(ship(Refunded))</code>)"
     },
     {
       "id": "h-25ed8d45",

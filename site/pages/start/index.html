@@ -88,83 +88,94 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
 
         <h2 class="block-label">4 &middot; Add something real</h2>
         <p>
-          Now replace the body with a tiny bit of logic: a task status and a function that
-          labels it. This introduces the two things you'll use constantly: a <em>tagged union</em>
-          (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.
+          Now replace the body with a decision that matters: whether to ship an order, given
+          where its payment stands. This introduces the two things you'll use constantly: a
+          <em>tagged union</em> (<code>type Payment = ...</code>) and <code>match</code>, which
+          is Glyph's only conditional.
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre>module main
 
-type Status = Todo | Doing | Done
+type Payment = Pending | Paid | Failed
 
-fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
-    Done =&gt; "finished",
+fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
   }
 }
 
 fn main(argv: Array&lt;string&gt;) -&gt; number {
-  print(label(Done))
+  print(ship(Paid))
   return 0
 }</pre>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label">5 &middot; Break it on purpose</h2>
         <p>
-          Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm
-          from the <code>match</code> (the kind of thing an agent does when it adds a case
-          somewhere and forgets to handle it), and run again.
+          Here's the part that shows you what Glyph is <em>for</em>. A ticket says "support
+          refunds", so add a <code>Refunded</code> case to <code>Payment</code> and leave
+          <code>ship</code> alone. That is what an agent does when it changes a type in one file
+          and never opens the code that decides on it. Run again.
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph (with the Done arm deleted)</span>
-<pre>fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
+        <span class="cap">src/main.glyph (one word added)</span>
+<pre>type Payment = Pending | Paid | Failed | Refunded</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Payment`: missing variants `Refunded`</span>
+    ╭─[ main:6:10 ]
+    │
+  6 │ ╭─▶   return match p {
+    ┆ ┆
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Payment`: missing variants `Refunded`
+    │
+    │     Help: Add an arm for each missing variant.
+────╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          It didn't run. The TypeScript most code is written with goes the other way: a
+          <code>switch</code> that handles the two "hold" cases and ends in
+          <code>default: return "ship it"</code> passes <code>tsc --strict</code> after the new
+          case is added, and ships every refunded order. Here every match that misses a case is
+          a compile error with a stable code (<code>E0200</code>), the exact spot, and the name
+          of the case. Run <code>glyph --explain E0200</code> any time you want the long version.
+        </p>
+
+        <h2 class="block-label">6 &middot; Fix it</h2>
+        <p>
+          The compiler can't decide what a refund means for shipping; that is your call. Add the
+          arm, and it runs again.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
+    Refunded =&gt; "hold: refunded, nothing to ship",
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
-   ╭─[main:6:10]
-   │
- 6 │ ╭─▶   return match s {
-   ┆ ┆
- 9 │ ├─▶   }
-   │ ╰───────── missing variants `Done`
-   │
-   │  Help: Add an arm for each missing variant.
-───╯</pre>
-      </div>
-      <div class="detail">
-        <p>
-          It didn't run. In TypeScript this exact function, with its return type written
-          out, is refused too (TS2366). A <code>switch</code> that only logs or updates
-          state, or one with a <code>default:</code>, compiles clean and quietly skips the
-          new case. Here every non-exhaustive match is a compile error with a
-          stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run
-          <code>glyph --explain E0200</code> any time you want the long version.
-        </p>
-
-        <h2 class="block-label">6 &middot; Fix it</h2>
-        <p>Put the arm back (or add an <code>else</code>), and it runs again.</p>
-      </div>
-      <div class="code">
-        <span class="cap">terminal</span>
+        <span class="cap">terminal (with <code>print(ship(Refunded))</code>)</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

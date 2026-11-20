@@ -132,7 +132,7 @@
                       <li><a href="/ja/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">まだ検出できないもの</span><span class="nav-desc">既知の穴と、それぞれの再現コード</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/ja/catches/"><span class="nav-feature-big">37 件中 21 件</span><span class="nav-feature-text">最も厳しく設定した環境でも何も検出できない TypeScript のミス</span><span class="nav-feature-cta">検出できるものを見る <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/ja/catches/"><span class="nav-feature-big">37 件中 21 件</span><span class="nav-feature-text">最も厳しく設定した環境でも何も検出できない TypeScript のケース</span><span class="nav-feature-cta">検出できるものを見る <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -487,74 +487,82 @@
 
         <h2 class="block-label" id="4-add-something-real">4 &middot; 実際の処理を足す<a class="h-anchor" href="#4-add-something-real" aria-label="このセクションへのリンク">#</a></h2>
         <p>
-          本体を小さなロジックに置き換えます。タスクのステータスと、それにラベルを付ける関数です。ここで、これからずっと使う 2 つのものが登場します。<em>タグ付きユニオン</em>（<code>type Status = ...</code>）と、Glyph で唯一の条件分岐である <code>match</code> です。
+          本体を、意味のある判断に置き換えます。支払いの状態に応じて、注文を発送するかどうかを決める処理です。ここで、これからずっと使う 2 つのものが登場します。<em>タグ付きユニオン</em>（<code>type Payment = ...</code>）と、Glyph で唯一の条件分岐である <code>match</code> です。
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre><span class="k">module</span> main
 
-<span class="k">type</span> <span class="t">Status</span> = <span class="t">Todo</span> | <span class="t">Doing</span> | <span class="t">Done</span>
+<span class="k">type</span> <span class="t">Payment</span> = <span class="t">Pending</span> | <span class="t">Paid</span> | <span class="t">Failed</span>
 
-<span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
-  <span class="k">return</span> <span class="k">match</span> s {
-    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
-    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
-    <span class="t">Done</span> <span class="op">=&gt;</span> <span class="s">"finished"</span>,
+<span class="k">fn</span> ship(p: <span class="t">Payment</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Pending</span> <span class="op">=&gt;</span> <span class="s">"hold: waiting for the money"</span>,
+    <span class="t">Paid</span> <span class="op">=&gt;</span> <span class="s">"ship it"</span>,
+    <span class="t">Failed</span> <span class="op">=&gt;</span> <span class="s">"hold: payment failed"</span>,
   }
 }
 
 <span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
-  print(label(<span class="t">Done</span>))
+  print(ship(<span class="t">Paid</span>))
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
       <div class="code">
         <span class="cap">ターミナル</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label" id="5-break-it-on-purpose">5 &middot; わざと壊す<a class="h-anchor" href="#5-break-it-on-purpose" aria-label="このセクションへのリンク">#</a></h2>
         <p>
-          ここで Glyph が<em>何のためにあるのか</em>がわかります。<code>match</code> から <code>Done</code> のアームを削除して（エージェントがどこかにケースを追加して、その処理を忘れたときに起きることです）、もう一度実行してください。
+          ここが、Glyph が<em>何のため</em>にあるかを示す部分です。チケットに「返金に対応する」とあるので、<code>Payment</code> に <code>Refunded</code> を追加し、<code>ship</code> には手を付けません。あるファイルで型を変え、その型で判断しているコードを一度も開かないとき、エージェントがすることです。もう一度実行します。
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph（Done のアームを削除したもの）</span>
-<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
-  <span class="k">return</span> <span class="k">match</span> s {
-    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
-    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
+        <span class="cap">src/main.glyph（1 語追加）</span>
+<pre><span class="k">type</span> <span class="t">Payment</span> = <span class="t">Pending</span> | <span class="t">Paid</span> | <span class="t">Failed</span> | <span class="t">Refunded</span></pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Payment`</span>: missing variants <span class="q">`Refunded`</span></span>
+    <span class="bx">╭─</span>[ main:6:10 ]
+    <span class="bx">│</span>
+  6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match p {
+    <span class="bx">┆</span> <span class="bx">┆</span>
+ 10 <span class="bx">│</span> <span class="bx">├─</span>▶   }
+    <span class="bx">│</span> <span class="bx">╰─────────</span> non-exhaustive match on <span class="q">`Payment`</span>: missing variants <span class="q">`Refunded`</span>
+    <span class="bx">│</span>
+    <span class="bx">│</span>     <span class="f">Help:</span> Add an arm for each missing variant.
+<span class="bx">────╯</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          実行されませんでした。ほとんどのコードが書かれている TypeScript では逆になります。「hold」の 2 ケースを処理して <code>default: return "ship it"</code> で終わる <code>switch</code> は、新しいケースを追加した後も <code>tsc --strict</code> を通り、返金された注文をすべて発送します。Glyph では、ケースを取りこぼした match はすべてコンパイルエラーになり、安定したコード（<code>E0200</code>）、正確な位置、そのケースの名前が示されます。詳しい説明が欲しいときは、いつでも <code>glyph --explain E0200</code> を実行してください。
+        </p>
+
+        <h2 class="block-label" id="6-fix-it">6 &middot; 直す<a class="h-anchor" href="#6-fix-it" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          返金が発送にとって何を意味するかは、コンパイラには決められません。それはあなたが決めることです。アームを追加すれば、また実行できます。
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre><span class="k">fn</span> ship(p: <span class="t">Payment</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Pending</span> <span class="op">=&gt;</span> <span class="s">"hold: waiting for the money"</span>,
+    <span class="t">Paid</span> <span class="op">=&gt;</span> <span class="s">"ship it"</span>,
+    <span class="t">Failed</span> <span class="op">=&gt;</span> <span class="s">"hold: payment failed"</span>,
+    <span class="t">Refunded</span> <span class="op">=&gt;</span> <span class="s">"hold: refunded, nothing to ship"</span>,
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Done`</span></span>
-   <span class="bx">╭─</span>[main:6:10]
-   <span class="bx">│</span>
- 6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match s {
-   <span class="bx">┆</span> <span class="bx">┆</span>
- 9 <span class="bx">│</span> <span class="bx">├─</span>▶   }
-   <span class="bx">│</span> <span class="bx">╰─────────</span> missing variants <span class="q">`Done`</span>
-   <span class="bx">│</span>
-   <span class="bx">│</span>  <span class="f">Help:</span> Add an arm for each missing variant.
-<span class="bx">───╯</span></pre>
-      </div>
-      <div class="detail">
-        <p>
-          実行されませんでした。TypeScript でも、戻り値の型を書いたこの関数なら同じく拒否されます（TS2366）。しかし、ログを出すだけ、状態を更新するだけの <code>switch</code> や、<code>default:</code> を持つものは問題なくコンパイルが通り、新しいケースを黙って飛ばします。Glyph では、網羅的でない match はすべてコンパイルエラーになり、固定のエラーコード（<code>E0200</code>）、正確な位置、1 行の修正案が示されます。詳しい説明が見たいときは、いつでも <code>glyph --explain E0200</code> を実行してください。
-        </p>
-
-        <h2 class="block-label" id="6-fix-it">6 &middot; 直す<a class="h-anchor" href="#6-fix-it" aria-label="このセクションへのリンク">#</a></h2>
-        <p>アームを戻す（または <code>else</code> を追加する）と、また実行できます。</p>
-      </div>
-      <div class="code">
-        <span class="cap">ターミナル</span>
+        <span class="cap">ターミナル（<code>print(ship(Refunded))</code> にした場合）</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

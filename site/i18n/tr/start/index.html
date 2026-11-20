@@ -1,7 +1,7 @@
 ---
 title: Buradan başlayın · 10 dakikada ilk Glyph programınız · Glyph
 description: npx ile bir Glyph projesi oluşturun, çalıştırın, bilerek bozun, derleyici hatasını okuyun ve düzeltin. On dakika, global olarak hiçbir şey kurulmadan.
-source_hash: 0967efaee1e51c6b
+source_hash: afa9668b9f2c7e17
 prev: / | &larr; Ana sayfa | Ajanlarınızın siz fark etmeden bozamayacağı TypeScript
 next: /answers/verifiability/ | Sonraki &rarr; | Bir ajanın kodumu sessizce bozmasını ne engelliyor?
 next_steps: |
@@ -77,74 +77,82 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
 
         <h2 class="block-label">4 &middot; Gerçek bir şey ekleyin</h2>
         <p>
-          Şimdi gövdeyi küçük bir mantıkla değiştirin: bir görev durumu ve onu etiketleyen bir fonksiyon. Bu, sürekli kullanacağınız iki şeyi tanıtır: bir <em>tagged union</em> (<code>type Status = ...</code>) ve Glyph'in tek koşul yapısı olan <code>match</code>.
+          Şimdi gövdeyi önemli bir kararla değiştirin: ödemenin durumuna göre bir siparişin gönderilip gönderilmeyeceği. Bu, sürekli kullanacağınız iki şeyi tanıtır: bir <em>tagged union</em> (<code>type Payment = ...</code>) ve Glyph'in tek koşul yapısı olan <code>match</code>.
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre>module main
 
-type Status = Todo | Doing | Done
+type Payment = Pending | Paid | Failed
 
-fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
-    Done =&gt; "finished",
+fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
   }
 }
 
 fn main(argv: Array&lt;string&gt;) -&gt; number {
-  print(label(Done))
+  print(ship(Paid))
   return 0
 }</pre>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label">5 &middot; Bilerek bozun</h2>
         <p>
-          Glyph'in ne <em>için</em> olduğunu gösteren kısım burası. <code>match</code>'ten <code>Done</code> arm'ını silin (bir ajanın bir yere yeni bir case ekleyip onu ele almayı unuttuğunda yaptığı türden bir şey) ve tekrar çalıştırın.
+          Glyph'in <em>ne için</em> olduğunu gösteren kısım burası. Bir ticket "iadeleri destekle" diyor; <code>Payment</code>'a bir <code>Refunded</code> durumu ekleyin ve <code>ship</code>'e dokunmayın. Bir ajan bir dosyada tipi değiştirip o tipe göre karar veren koda hiç bakmadığında tam olarak bunu yapar. Tekrar çalıştırın.
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph (Done arm'ı silinmiş hâli)</span>
-<pre>fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
+        <span class="cap">src/main.glyph (bir kelime eklendi)</span>
+<pre>type Payment = Pending | Paid | Failed | Refunded</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Payment`: missing variants `Refunded`</span>
+    ╭─[ main:6:10 ]
+    │
+  6 │ ╭─▶   return match p {
+    ┆ ┆
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Payment`: missing variants `Refunded`
+    │
+    │     Help: Add an arm for each missing variant.
+────╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Çalışmadı. Kodun çoğunun yazıldığı TypeScript tersini yapar: iki "hold" durumunu ele alıp <code>default: return "ship it"</code> ile biten bir <code>switch</code>, yeni durum eklendikten sonra da <code>tsc --strict</code>'ten geçer ve iade edilen her siparişi gönderir. Burada bir durumu atlayan her match, kararlı bir kodla (<code>E0200</code>), tam yeriyle ve durumun adıyla birlikte bir derleme hatasıdır. Uzun açıklamayı istediğiniz zaman <code>glyph --explain E0200</code> çalıştırın.
+        </p>
+
+        <h2 class="block-label">6 &middot; Düzeltin</h2>
+        <p>
+          Bir iadenin gönderim için ne anlama geldiğine derleyici karar veremez; bu sizin kararınız. Kolu ekleyin, program yeniden çalışır.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
+    Refunded =&gt; "hold: refunded, nothing to ship",
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
-   ╭─[main:6:10]
-   │
- 6 │ ╭─▶   return match s {
-   ┆ ┆
- 9 │ ├─▶   }
-   │ ╰───────── missing variants `Done`
-   │
-   │  Help: Add an arm for each missing variant.
-───╯</pre>
-      </div>
-      <div class="detail">
-        <p>
-          Çalışmadı. TypeScript'te dönüş tipi açıkça yazılmış bu fonksiyonun aynısı da reddedilir (TS2366). Ama yalnızca log yazan ya da durumu güncelleyen bir <code>switch</code>, veya <code>default:</code> içeren bir tanesi temiz derlenir ve yeni case'i sessizce atlar. Burada kapsamı eksik her match, kararlı bir kodu (<code>E0200</code>), tam yeri ve tek satırlık bir düzeltmesi olan bir derleme hatasıdır. Uzun açıklamayı istediğiniz zaman <code>glyph --explain E0200</code> çalıştırın.
-        </p>
-
-        <h2 class="block-label">6 &middot; Düzeltin</h2>
-        <p>Arm'ı geri koyun (ya da bir <code>else</code> ekleyin), program yine çalışır.</p>
-      </div>
-      <div class="code">
-        <span class="cap">terminal</span>
+        <span class="cap">terminal (<code>print(ship(Refunded))</code> ile)</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

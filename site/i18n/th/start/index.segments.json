@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "start/index.html",
   "locale": "th",
-  "source_hash": "0967efaee1e51c6b",
+  "source_hash": "afa9668b9f2c7e17",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "4 &middot; เพิ่มของจริงเข้าไป"
     },
     {
-      "id": "h-f1d8aa48",
+      "id": "h-37ace545",
       "kind": "html",
-      "en": "Now replace the body with a tiny bit of logic: a task status and a function that labels it. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
-      "tr": "ทีนี้แทนที่ body ด้วย logic เล็กๆ: สถานะของงาน และฟังก์ชันที่ติดป้ายให้สถานะนั้น นี่คือการแนะนำสองสิ่งที่คุณจะใช้ตลอด: <em>tagged union</em> (<code>type Status = ...</code>) และ <code>match</code> ซึ่งเป็นเงื่อนไขแบบเดียวที่ Glyph มี"
+      "en": "Now replace the body with a decision that matters: whether to ship an order, given where its payment stands. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Payment = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
+      "tr": "ทีนี้แทนที่ body ด้วยการตัดสินใจที่สำคัญ: จะส่งคำสั่งซื้อหรือไม่ ตามสถานะการชำระเงิน นี่คือการแนะนำสองสิ่งที่คุณจะใช้ตลอด: <em>tagged union</em> (<code>type Payment = ...</code>) และ <code>match</code> ซึ่งเป็นเงื่อนไขแบบเดียวของ Glyph"
     },
     {
       "id": "h-227acdb7",
@@ -197,22 +197,22 @@
       "tr": "5 &middot; ตั้งใจทำให้พัง"
     },
     {
-      "id": "h-08f96fcf",
+      "id": "h-35ca4513",
       "kind": "html",
-      "en": "Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm from the <code>match</code> (the kind of thing an agent does when it adds a case somewhere and forgets to handle it), and run again.",
-      "tr": "ส่วนนี้แสดงให้เห็นว่า Glyph มี<em>ไว้ทำอะไร</em> ลบ arm <code>Done</code> ออกจาก <code>match</code> (แบบที่เอเจนต์ทำเมื่อเพิ่ม case ที่ไหนสักแห่งแล้วลืมจัดการ) แล้วรันอีกครั้ง"
+      "en": "Here's the part that shows you what Glyph is <em>for</em>. A ticket says \"support refunds\", so add a <code>Refunded</code> case to <code>Payment</code> and leave <code>ship</code> alone. That is what an agent does when it changes a type in one file and never opens the code that decides on it. Run again.",
+      "tr": "ส่วนนี้แสดงให้เห็นว่า Glyph มีไว้<em>เพื่ออะไร</em> ticket หนึ่งบอกว่า \"รองรับการคืนเงิน\" ให้เพิ่มกรณี <code>Refunded</code> ใน <code>Payment</code> และไม่ต้องแตะ <code>ship</code> นี่คือสิ่งที่ agent ทำเมื่อแก้ type ในไฟล์หนึ่งแล้วไม่เคยเปิดโค้ดที่ตัดสินใจตาม type นั้น แล้วรันอีกครั้ง"
     },
     {
-      "id": "h-4f6a6f0d",
+      "id": "h-960bc791",
       "kind": "html",
-      "en": "src/main.glyph (with the Done arm deleted)",
-      "tr": "src/main.glyph (ลบ arm Done ออกแล้ว)"
+      "en": "src/main.glyph (one word added)",
+      "tr": "src/main.glyph (เพิ่มหนึ่งคำ)"
     },
     {
-      "id": "h-31c09e63",
+      "id": "h-321c7ae4",
       "kind": "html",
-      "en": "It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A <code>switch</code> that only logs or updates state, or one with a <code>default:</code>, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run <code>glyph --explain E0200</code> any time you want the long version.",
-      "tr": "มันไม่รัน ใน TypeScript ฟังก์ชันแบบเดียวกันนี้ที่เขียน return type ไว้ก็ถูกปฏิเสธเช่นกัน (TS2366) แต่ <code>switch</code> ที่แค่ log หรืออัปเดต state หรือที่มี <code>default:</code> จะคอมไพล์ผ่านสะอาดและข้าม case ใหม่ไปเงียบๆ ที่นี่ match ทุกตัวที่ไม่ครบทุกกรณีเป็น compile error ที่มีรหัสคงที่ (<code>E0200</code>) ระบุตำแหน่งแน่นอน และมีวิธีแก้หนึ่งบรรทัด รัน <code>glyph --explain E0200</code> เมื่อไหร่ก็ได้ที่อยากอ่านฉบับยาว"
+      "en": "It didn't run. The TypeScript most code is written with goes the other way: a <code>switch</code> that handles the two \"hold\" cases and ends in <code>default: return \"ship it\"</code> passes <code>tsc --strict</code> after the new case is added, and ships every refunded order. Here every match that misses a case is a compile error with a stable code (<code>E0200</code>), the exact spot, and the name of the case. Run <code>glyph --explain E0200</code> any time you want the long version.",
+      "tr": "มันไม่รัน TypeScript ที่โค้ดส่วนใหญ่เขียนด้วยกลับทำตรงกันข้าม: <code>switch</code> ที่จัดการสองกรณี \"hold\" แล้วจบด้วย <code>default: return \"ship it\"</code> ยังผ่าน <code>tsc --strict</code> หลังเพิ่มกรณีใหม่ และส่งทุกคำสั่งซื้อที่คืนเงินไปแล้ว ที่นี่ match ทุกตัวที่ขาดกรณีใดไปจะเป็น compile error พร้อมรหัสที่คงที่ (<code>E0200</code>) ตำแหน่งที่แน่นอน และชื่อของกรณีนั้น รัน <code>glyph --explain E0200</code> เมื่อใดก็ได้ที่อยากอ่านฉบับยาว"
     },
     {
       "id": "h-a205e0c5",
@@ -221,10 +221,16 @@
       "tr": "6 &middot; แก้"
     },
     {
-      "id": "h-1995de51",
+      "id": "h-b1ea5492",
       "kind": "html",
-      "en": "Put the arm back (or add an <code>else</code>), and it runs again.",
-      "tr": "ใส่ arm กลับเข้าไป (หรือเพิ่ม <code>else</code>) แล้วมันก็จะรันได้อีกครั้ง"
+      "en": "The compiler can't decide what a refund means for shipping; that is your call. Add the arm, and it runs again.",
+      "tr": "compiler ตัดสินไม่ได้ว่าการคืนเงินมีความหมายอย่างไรต่อการส่งของ นั่นเป็นการตัดสินใจของคุณ เพิ่ม arm แล้วมันจะรันได้อีกครั้ง"
+    },
+    {
+      "id": "h-9bf1b06f",
+      "kind": "html",
+      "en": "terminal (with <code>print(ship(Refunded))</code>)",
+      "tr": "terminal (เมื่อใช้ <code>print(ship(Refunded))</code>)"
     },
     {
       "id": "h-25ed8d45",

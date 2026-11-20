@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "start/index.html",
   "locale": "ru",
-  "source_hash": "0967efaee1e51c6b",
+  "source_hash": "afa9668b9f2c7e17",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "4 &middot; Добавьте что-нибудь настоящее"
     },
     {
-      "id": "h-f1d8aa48",
+      "id": "h-37ace545",
       "kind": "html",
-      "en": "Now replace the body with a tiny bit of logic: a task status and a function that labels it. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
-      "tr": "Теперь замените тело на немного логики: статус задачи и функцию, которая подписывает его. Здесь появляются две вещи, которыми вы будете пользоваться постоянно: <em>размеченное объединение</em> (<code>type Status = ...</code>) и <code>match</code>, единственная условная конструкция в Glyph."
+      "en": "Now replace the body with a decision that matters: whether to ship an order, given where its payment stands. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Payment = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
+      "tr": "Теперь замените тело решением, которое имеет значение: отправлять ли заказ в зависимости от состояния оплаты. Здесь появляются две вещи, которыми вы будете пользоваться постоянно: <em>размеченное объединение</em> (<code>type Payment = ...</code>) и <code>match</code>, единственная условная конструкция в Glyph."
     },
     {
       "id": "h-227acdb7",
@@ -197,22 +197,22 @@
       "tr": "5 &middot; Сломайте намеренно"
     },
     {
-      "id": "h-08f96fcf",
+      "id": "h-35ca4513",
       "kind": "html",
-      "en": "Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm from the <code>match</code> (the kind of thing an agent does when it adds a case somewhere and forgets to handle it), and run again.",
-      "tr": "Вот часть, которая показывает, <em>для чего</em> нужен Glyph. Удалите ветку <code>Done</code> из <code>match</code> (агент делает так, когда добавляет где-то вариант и забывает его обработать) и запустите снова."
+      "en": "Here's the part that shows you what Glyph is <em>for</em>. A ticket says \"support refunds\", so add a <code>Refunded</code> case to <code>Payment</code> and leave <code>ship</code> alone. That is what an agent does when it changes a type in one file and never opens the code that decides on it. Run again.",
+      "tr": "Эта часть показывает, <em>зачем</em> нужен Glyph. В задаче написано «поддержать возвраты», поэтому добавьте в <code>Payment</code> вариант <code>Refunded</code> и не трогайте <code>ship</code>. Так поступает агент, когда меняет тип в одном файле и не открывает код, который по этому типу принимает решение. Запустите снова."
     },
     {
-      "id": "h-4f6a6f0d",
+      "id": "h-960bc791",
       "kind": "html",
-      "en": "src/main.glyph (with the Done arm deleted)",
-      "tr": "src/main.glyph (без ветки Done)"
+      "en": "src/main.glyph (one word added)",
+      "tr": "src/main.glyph (добавлено одно слово)"
     },
     {
-      "id": "h-31c09e63",
+      "id": "h-321c7ae4",
       "kind": "html",
-      "en": "It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A <code>switch</code> that only logs or updates state, or one with a <code>default:</code>, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run <code>glyph --explain E0200</code> any time you want the long version.",
-      "tr": "Программа не запустилась. В TypeScript ровно эта функция с явно указанным возвращаемым типом тоже отклоняется (TS2366). Но <code>switch</code>, который только пишет в лог или обновляет состояние, или вариант с <code>default:</code> компилируется без ошибок и молча пропускает новый случай. Здесь любой неполный match это ошибка компиляции со стабильным кодом (<code>E0200</code>), точным местом и исправлением в одну строку. Запустите <code>glyph --explain E0200</code>, когда захотите подробное объяснение."
+      "en": "It didn't run. The TypeScript most code is written with goes the other way: a <code>switch</code> that handles the two \"hold\" cases and ends in <code>default: return \"ship it\"</code> passes <code>tsc --strict</code> after the new case is added, and ships every refunded order. Here every match that misses a case is a compile error with a stable code (<code>E0200</code>), the exact spot, and the name of the case. Run <code>glyph --explain E0200</code> any time you want the long version.",
+      "tr": "Не запустилось. TypeScript, на котором написана большая часть кода, ведёт себя наоборот: <code>switch</code>, который обрабатывает два случая \"hold\" и заканчивается на <code>default: return \"ship it\"</code>, проходит <code>tsc --strict</code> и после добавления нового варианта, а затем отправляет каждый возвращённый заказ. Здесь каждый match, в котором пропущен вариант, это ошибка компиляции со стабильным кодом (<code>E0200</code>), точным местом и названием варианта. Запускайте <code>glyph --explain E0200</code>, когда нужна подробная версия."
     },
     {
       "id": "h-a205e0c5",
@@ -221,10 +221,16 @@
       "tr": "6 &middot; Исправьте"
     },
     {
-      "id": "h-1995de51",
+      "id": "h-b1ea5492",
       "kind": "html",
-      "en": "Put the arm back (or add an <code>else</code>), and it runs again.",
-      "tr": "Верните ветку (или добавьте <code>else</code>), и программа снова запустится."
+      "en": "The compiler can't decide what a refund means for shipping; that is your call. Add the arm, and it runs again.",
+      "tr": "Что возврат означает для отправки, компилятор решить не может, это решаете вы. Добавьте ветку, и программа снова запустится."
+    },
+    {
+      "id": "h-9bf1b06f",
+      "kind": "html",
+      "en": "terminal (with <code>print(ship(Refunded))</code>)",
+      "tr": "терминал (с <code>print(ship(Refunded))</code>)"
     },
     {
       "id": "h-25ed8d45",

@@ -7513,6 +7513,8 @@ impl<'a> Emitter<'a> {
                             {
                                 return NullShape::Other;
                             }
+                            // Unreachable at run time until G399 closes: a field typed by a
+                            // generic alias of `Option` is E0304 before any null reaches it.
                             let subst: Vec<(String, TypeExpr)> = td
                                 .generics
                                 .iter()

@@ -8432,6 +8432,10 @@ concrete follow-ups, in priority order:
 
 **G398, an inline record field reports `must be an object` for any inner issue** (record 124): `{"t":{"a":"x"}}` against `t?: { a: int, b?: string }` names the object rather than `t.a`, and since 0.1.152 a `null` inside it gets the same message without the `Nullable` hint. Splice the inner issues with their paths as a named record's `__parse` does, beside G375.
 
+**G399, a generic alias of `Option` or `Nullable` has no run-time check** (record 125): a field `t?: Maybe<int>` under `type Maybe<T> = Option<T>` is E0304 at `json.parse` and `is`. Fails safe; when it closes, the null hint's substitution path becomes reachable and joins the compile gate.
+
+**G400, the null hint suggests a spelling the consumer already has** (record 125): `Nullable<s.SRec>` instead of dropping the suggestion for a sibling's type, through the same compile gate, beside G398.
+
 **G376, a lambda parameter typed `unknown` is emitted untyped** (record 114): `fn(w: unknown)` emits `(w)`, which `tsc --strict` refuses (TS7006), so a valid program fails full `check`.
 
 **G371, an expression statement with no effect is silent** (record 112): `{ k: 2 }`, `"dead"` or `42` on a line of its own exit 0 with no diagnostic. Decide between a lint warning and a refusal of a literal, object-literal or bare-name expression statement.

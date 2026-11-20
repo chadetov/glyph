@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-398 entries, 305 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-74 are open. G144, the D28 boundary cast that never reached the returns a
+400 entries, 305 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+76 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13585,3 +13585,33 @@ and is the owner's to confirm.
   *Reproduced against 0.1.149 (the published release) by record 124's probe
   `a3old`: `check --no-tsc` reports no diagnostics, and `glyph run` prints
   `[{"path":["t"],"message":"field `t` must be an object","code":"type"}]`.*
+
+- **G399. A generic alias of `Option` or `Nullable` has no run-time check at a
+  record field, `json.parse` or `is`.** With `type Maybe<T> = Option<T>` and a
+  field `t?: Maybe<int>`, or `type MaybeN<T> = Nullable<T>` and a field
+  `t: MaybeN<int>`, `json.parse` on the record is E0304 (``field `t` has type
+  `Maybe<int>`, which has no runtime check``). D45's sentence that a generic
+  alias of `Nullable` is checked with its arguments substituted is the
+  checker's half only; the spec now says so. It fails safe and closing it is
+  not breaking. When it closes, `t?: Maybe<int>` (expecting the hint
+  `Nullable<int>`) and `t?: MaybeN<int>` (expecting `Ok` on a null) join
+  `every_null_suggestion_names_a_type_that_compiles`, since that is the first
+  moment the emitter's substitution path for the null hint can be reached.
+  Found by the 0.1.152 review (record 125).
+
+  *Reproduced against 0.1.149 (the published release) and 0.1.151 (the
+  0.1.152 branch build) by record 125's probe `r124/gn`: E0304 on both, for
+  both aliases.*
+
+- **G400. The null hint drops a suggestion the consumer could spell.** With
+  `side` declaring `pub type SRec = { a: int, }` and `pub type SMaybeRec =
+  Option<SRec>`, a field `t?: s.SMaybeRec` under `import side as s` gets
+  ``field `t` is null, and its type does not accept null``, though
+  `Nullable<s.SRec>` compiles there. Suggest `X` in a spelling the consumer
+  already has (an imported name, or a namespace binding of its module), or
+  name what to import when the sibling exports it, each through the same
+  compile gate. Not breaking. Found by the 0.1.152 review (record 125).
+
+  *Reproduced against 0.1.151 (the release build, carrying the 0.1.152
+  branch's G391 change) by record 125's probe `r124/q`: R1 and R2 each print
+  ``[{"path":["t"],"message":"field `t` is null, and its type does not accept null","code":"type"}]``.*

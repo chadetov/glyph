@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Основная навигация">
         <div class="nav-brand">
           <a href="/ru/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Примечания к выпуску">v0.1.152</a>
+          <a href="/versions/" class="nav-version" title="Примечания к выпуску">v0.1.153</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -604,7 +604,7 @@
           <h3 class="h">Где он останавливается</h3>
           <p>Ни один инструмент здесь не пишет: нет переименования, нет применяемых правок. Сторона записи это <code>glyph fix</code> в командной строке, и он исправляет три вещи, а не всё, что вы попросите: неиспользуемые импорты, заголовок ветки, для которого у проверки типов ровно одна подсказка, и имя поля, отличающееся на один символ ровно от одного объявленного поля. Экспорт стандартной библиотеки, для которого компилятор не моделирует ни объявления, ни сигнатуры, отвечает <code>kind: null</code> с причиной: <code>std/result::all</code> и <code>std/io::println</code> типизированы в TypeScript, который компилятор подкладывает в сборку и который не читает ни один проход Glyph. <code>glyph_diagnostics</code> пропускает три проверки, которые делает <code>glyph check</code>: <code>tsc</code>, проверку <code>E0104</code> на импорт, не называющий модуль (ей нужно представление сборки о <code>node_modules</code>), и <code>E0400</code> для упавшего <code>@example</code> (ей нужен запуск сгенерированного проекта). Он перечисляет все три в <code>not_run</code>, а не отвечает так, будто их выполнил.</p>
         </div>
-        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.152 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/impact/">

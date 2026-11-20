@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Hauptnavigation">
         <div class="nav-brand">
           <a href="/de/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release Notes">v0.1.152</a>
+          <a href="/versions/" class="nav-version" title="Release Notes">v0.1.153</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -616,7 +616,7 @@
           <h3 class="h">Die Grenze, und was als Nächstes kommt</h3>
           <p>Ein Kommentar wird immer in einer eigenen Zeile ausgegeben, also wandert einer, der am Ende einer Codezeile steht (<code>w: int, // width in cells</code>), in die Zeile über dem nächsten Element. Er überschreitet keine Deklarationsgrenze mehr, aber er bewegt sich; ihn am Zeilenende zu halten, verlangt, dass der Printer verfolgt, welche Zeile ein Kommentar sich teilt. Ein Kommentar, für den das Layout keinen Platz hat, etwa in einem Index, nach den Argumenten eines Aufrufs mitten in einer Kette oder vor einem Operanden von <code>!</code> oder <code>await</code>, wird nicht mehr verschoben: <code>glyph fmt</code> lehnt die Datei ab, lässt sie, wie sie war, und nennt die Zeile und wohin der Kommentar gehört, und <code>glyph check</code> meldet dasselbe als Warnung E0500. Ein Kommentar zwischen JSX-Attributen oder zwischen den Feldern eines Objekt-Patterns wird ebenfalls abgelehnt, wo ein Layout mit einem Element pro Zeile ihn unterbringen könnte; diese Layouts stehen auf der Liste. Der Printer hat auch noch keine Regel, um eine lange Methoden- oder <code>+</code>-Kette umzubrechen, also bricht eine zu lange Kette stattdessen die innerste Argumentliste um, was die falsche Stelle ist. Wir bauen außerdem einen Benchmark zur Diff-Größe gegen dieselben Änderungen in TypeScript, damit diese Säule eine Zahl wird, die du prüfen kannst.</p>
         </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.152 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/verifiability/">

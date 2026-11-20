@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Principal">
         <div class="nav-brand">
           <a href="/es/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Notas de la versión">v0.1.152</a>
+          <a href="/versions/" class="nav-version" title="Notas de la versión">v0.1.153</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -569,7 +569,7 @@ type        []            expected Signup (an object), got an array</pre>
           <h3 class="h">Mejorando</h3>
           <p>Dos límites. Un campo con un tipo que no tiene descriptor propio, un parámetro de tipo sin restricciones o un tipo importado de un <code>.d.ts</code> escrito a mano, sigue recibiendo la comprobación plana y un problema <code>"type"</code>; el compilador no sintetiza un descriptor para esos, y lo que les da uno es ejecutar <code>glyph gen dts</code> sobre la declaración. Un módulo que declaraba su propio tipo llamado <code>Issue</code> ocultaba el del preludio dentro del archivo generado y rompía todos los descriptores de ese módulo; desde la 0.1.60 esa declaración da <code>E0110</code> en la línea que nombra el tipo, así que sabes dónde está el problema en lugar de leer un error de <code>tsc</code> sobre código generado.</p>
         </div>
-        <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.152 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+        <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.153 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <a href="/es/answers/early-errors/">

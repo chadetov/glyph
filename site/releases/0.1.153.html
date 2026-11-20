@@ -1,0 +1,25 @@
+---
+version: 0.1.153
+month: 2026-11
+date: 2026-11-21
+tags: breaking
+headline: A Record's key type has to match exactly
+---
+            <p>A <code>Record&lt;string, int&gt;</code> used to stand wherever a <code>Record&lt;Tier, int&gt;</code> was declared, with <code>type Tier = "a" | "b"</code>, and the reverse worked too. Either direction lets a key outside <code>Tier</code> into a map whose type promises none: <code>fn narrow(r: Record&lt;string, int&gt;) -&gt; Record&lt;Tier, int&gt; { return r }</code> compiled, and so did passing a <code>Record&lt;Tier, int&gt;</code> on as a <code>Record&lt;string, int&gt;</code> and writing <code>"zzz"</code> into it. Since 0.1.148 the run-time check refuses such a map, so the type and the check disagreed.</p>
+
+            <p>Now a <code>Record</code>'s key type has to match. <code>string</code> matches <code>string</code> and its aliases, two string-literal unions match when they have the same members, a refined type matches only itself, and a type parameter only itself. The value type stays covariant, as for <code>Array</code>. The error explains the direction it found:</p>
+
+<pre><code>[E0204] type mismatch: expected `Record&lt;Tier, number&gt;`, found `Record&lt;string, number&gt;`
+Help: Check it with `is Record&lt;Tier, int&gt;` or `json.parse&lt;Record&lt;Tier, int&gt;&gt;`.
+Note: a `Record`'s key type must match exactly. A `Record` keyed by `string` may hold keys outside `Tier` or lack one of its members, and a `Record` keyed by `Tier` passed on as one keyed by `string` can be written a key outside `Tier`.</code></pre>
+
+            <p>The headline still prints <code>int</code> as <code>number</code>; giving <code>int</code> its own identity in the checker is the next piece of this work (G373b).</p>
+
+            <h3>std/record keeps the key</h3>
+            <p><code>record.get</code>, <code>set</code> and <code>remove</code> take a key of the record's own key type, <code>set</code> and <code>remove</code> return a <code>Record</code> with the same key, and <code>keys</code> returns <code>Array&lt;Tier&gt;</code> for a <code>Tier</code> key. <code>record.remove</code> on a map keyed by a string-literal union is refused, because removing a member leaves a map of no declared type; the help suggests a record with optional fields instead, and that suggestion compiles.</p>
+
+            <h3>Breaking</h3>
+            <p>Each of these exits 0 under 0.1.152 and 1 here, under <code>check --no-tsc</code> and full <code>check</code>: <code>Record&lt;string, V&gt;</code> into <code>Record&lt;Tier, V&gt;</code> and back; the same against a refined string key; a generic key widened to <code>string</code>; an alias of a <code>Record&lt;Tier, V&gt;</code> passed on as <code>Record&lt;string, V&gt;</code>; <code>record.set</code> or <code>record.get</code> with a key outside the record's key type; and <code>record.remove</code> on a literal-union key. No tracked <code>.glyph</code> file and none of the 32 example apps changed exit code. A map keyed by <code>int</code> against one keyed by <code>number</code> is still accepted until G373b.</p>
+
+            <h3>Fixed</h3>
+            <p><code>std/http</code> now compiles on TypeScript 5.x in a project without <code>@types/node</code>. Its query and form parsing iterated a <code>URLSearchParams</code> in a way that needs <code>dom.iterable</code> before TypeScript 6. A new release gate compiles the whole runtime on TypeScript 4.9, with and without <code>@types/node</code>, so this kind of break is caught before it ships.</p>

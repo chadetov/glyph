@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Hauptnavigation">
         <div class="nav-brand">
           <a href="/de/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release Notes">v0.1.152</a>
+          <a href="/versions/" class="nav-version" title="Release Notes">v0.1.153</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -583,7 +583,7 @@ buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD
           <h3 class="h">Wird schärfer</h3>
           <p>Es gibt noch keinen Integer-Codec, also ist das Lesen eines Big-Endian-<code>u32</code> aus einem Header Arithmetik, die du selbst schreibst: Jenseits von 32 Bit ist ein Shift ohnehin das falsche Werkzeug, also wird dividiert. Hex-Literale lassen sich weiterhin nicht parsen, was eine CRC32-Tabelle mit 256 Einträgen in Dezimalschreibweise schwer lesbar macht. <code>std/websocket</code> dekodiert einen Binär-Frame weiterhin als UTF-8-Text; der Typ, den es brauchte, existiert jetzt, und die Frames sind als Nächstes dran. Und die sechs älteren String-zu-String-Funktionen von <code>std/encoding</code> schweigen weiterhin bei fehlerhaften Eingaben, also nimm die Codecs aus <code>std/bytes</code> für alles, was stimmen muss. Die Codecs sind in TypeScript geschrieben, statt an Nodes <code>Buffer</code> zu delegieren, und deshalb laufen sie in einem Web Worker, und sie sind bei einem Megabyte zwischen 1x und 35x langsamer als die der Plattform. Einen Schlüssel oder ein Token zu kodieren kostet so oder so nichts Messbares; der Performance-Guide hat die Tabelle, falls du Dutzende Megabyte bewegst.</p>
         </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.152 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/long-running/">

@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="メイン">
         <div class="nav-brand">
           <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.152</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.153</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -897,7 +897,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <h3 class="h">改善中</h3>
           <p><code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、今も <code>async</code> コールバックを文句なく受け取り、保留中の値の配列を返します。これは <code>[object Promise]</code> と表示されます。述語を受け取る 5 つの配列関数は、コールバックに対する <code>E0211</code> でこれを止めます。残りの 3 つを同じようにモデル化すると、<code>par.all(array.map(items, async fn ...))</code> も拒否してしまいます。これは Glyph で処理を並行に実行する方法で、保留中の値の配列は言語の中で表す書き方がないからです。これは抜けているエントリではなく型システムの判断なので、未解決のままです。モジュールレベルの <code>const</code> の初期化式には外側の呼び出し可能なものがないので、トップレベルの <code>await</code> は許可され、出力される ESM がそれを実行します。Glyph が暗黙の非同期モジュール初期化を望むかどうかは、まだ仕様上の未解決の問いです。<code>E0223</code> が末尾の <code>match</code> を判定できるのは、関数が戻り値の型を宣言している場合だけなので、注釈のないラムダの中のアームは今も <code>tsc</code> まで届きます。隠蔽の側では、2 つのことが半分しか終わっていません。<code>E0110</code> は名前を残させるのではなく変更するよう伝えるので、<code>Error</code>、<code>Number</code>、<code>Object</code>、<code>Array</code>、<code>Promise</code> は今も型やバリアントの名前に使えません。また <code>E0111</code> は、<code>type Key = string | number</code> が間違った意味になるのを止めますが、それを表す方法を与えるわけではありません。2 つのプリミティブ型のユニオンは、Glyph では <code>extern_ts</code> 以外に書き方がなく、その中身は Glyph のチェッカーからは不透明として扱われます。タグなしユニオンは網羅性、実行時のディスクリプタ、<code>is</code> に関わるので、これは型システムの判断であり、予定は立っていません。<code>E0104</code> は <code>glyph build</code> と <code>glyph check</code> には届きますが、エディタには届きません。LSP はビルドルートなしでドキュメントのテキストを解析し、ワークスペースのフォルダもビルドルートではないので、推測するとこのチェックが避けるように設計された誤検出が出てしまうからです。また、予約語のパラメータは、同じファイル内の無関係なエラーの陰に今も隠れます。collect パスで失敗すると、それを見つけたはずの resolve パスがスキップされるからです。それとは別に、<code>bool</code> や文字列リテラルのユニオンの束縛をマッチ可能に保つための読み取り箇所での型の固定は、型エイリアスを出力中のモジュール内でしかたどりません。そのため、あるモジュールの <code>pub type Ready = bool</code> と、別のモジュールの <code>let r: catalog.Ready = false</code> は、今も <code>TS2678</code> として <code>tsc</code> まで届きます。文字列リテラルのユニオンは、3 つの import の書き方のすべてでモジュールをまたいでカバーされており、0.1.123 からは、どの書き方でも診断がリテラルの集合を表示するのではなく宣言（<code>Mode</code> を期待）を名指しします。</p>
         </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.152 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/tooling/">

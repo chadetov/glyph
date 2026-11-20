@@ -50,16 +50,16 @@ Details in [Will a new Glyph release break my build?](https://glyphlang.io/answe
 
 ## Release cadence and the Breaking marker
 
-The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.152, 151 in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 35 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.
+The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.153, 152 in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 36 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.
 
 What a Breaking release has cost in practice: each recent note says what happened when the old and new versions were run over the repository's example apps. These are the newest Breaking releases, quoted from their notes:
 
+- [0.1.153](https://glyphlang.io/versions/2026-11/#0.1.153): “No tracked `.glyph` file and none of the 32 example apps changed exit code.”
 - [0.1.152](https://glyphlang.io/versions/2026-11/#0.1.152): “No file in the repository, none of the 32 example apps and neither outside app we test against decodes a null into an optional field.”
 - [0.1.151](https://glyphlang.io/versions/2026-11/#0.1.151): “No tracked `.glyph` file and none of the 32 example apps changed exit code.”
 - [0.1.150](https://glyphlang.io/versions/2026-11/#0.1.150): The note does not say.
 - [0.1.149](https://glyphlang.io/versions/2026-11/#0.1.149): “On every `.glyph` file in the repository and all 32 example apps, the only changes are three files that were already refused (two test fixtures and a benchmark that demonstrates a refusal, which still passes), and the emitted TypeScript is identical.”
 - [0.1.148](https://glyphlang.io/versions/2026-11/#0.1.148): “On every `.glyph` file in the repository and all 32 example apps, `glyph check` and the emitted TypeScript are unchanged.”
-- [0.1.147](https://glyphlang.io/versions/2026-11/#0.1.147): “On every `.glyph` file in the repository and all 32 example apps, nothing changes.”
 
 The example apps are the project's own code, kept compiling release by release, so a newly refused shape is less likely to turn up in them than in yours. Each note names the shapes it refuses, so read it before upgrading.
 

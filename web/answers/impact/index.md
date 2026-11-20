@@ -92,4 +92,4 @@ Six closed change kinds (`add_variant`, `remove_variant`, `rename`, `change_arit
 
 Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with `next_query` naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. `UNDETERMINED` and `NOT_INDEXED` are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is `UNDETERMINED` (it looked and couldn't decide); a function read as a value instead of called is `NOT_INDEXED` (the question was never askable there). `ABSORBS` is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.
 
-Code examples on this page are checked against Glyph 0.1.152 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed 19 Nov 2026.

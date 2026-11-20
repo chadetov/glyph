@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "ko",
-  "source_hash": "d4a38356fad5c816",
+  "source_hash": "f88e17b45c203ca8",
   "segments": [
     {
       "id": "title",
@@ -215,10 +215,10 @@
       "tr": "릴리스 주기와 Breaking 표시"
     },
     {
-      "id": "h-228fec82",
+      "id": "h-f1666e03",
       "kind": "html",
-      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
-      "tr": "<a href=\"/versions/\">버전 페이지</a>에는 0.1.0부터 {{releases:latest}}까지 모든 릴리스, 총 {{releases:count}}개의 항목이 있고, 그중 22개는 2026년 11월 19일까지 11월에 나왔습니다. 이전 버전이 받아들이던 프로그램을 거부하는 릴리스에는 Breaking 표시를 붙이며, 대부분의 정확성 수정이 이렇게 들어옵니다. 이 표시가 붙은 항목은 {{releases:breaking}}개입니다. 표시는 diff를 읽어서가 아니라 영향받는 가장 작은 프로그램을 두 버전에서 실행해 보고 붙입니다. 0.1.99 이전 릴리스는 이렇게 검사하지 않았으므로, 표시가 없는 오래된 릴리스는 안전하다는 뜻이 아니라 검사하지 않았다는 뜻입니다."
+      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and {{releases:month-count}} of them shipped between {{releases:month-start}} and {{releases:latest-date}}. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
+      "tr": "<a href=\"/versions/\">버전 페이지</a>에는 0.1.0부터 {{releases:latest}}까지 모든 릴리스, 총 {{releases:count}}개의 항목이 있고, 그중 {{releases:month-count}}개는 {{releases:month-start}}부터 {{releases:latest-date}}까지 나왔습니다. 이전 버전이 받아들이던 프로그램을 거부하는 릴리스에는 Breaking 표시를 붙이며, 대부분의 정확성 수정이 이렇게 들어옵니다. 이 표시가 붙은 항목은 {{releases:breaking}}개입니다. 표시는 diff를 읽어서가 아니라 영향받는 가장 작은 프로그램을 두 버전에서 실행해 보고 붙입니다. 0.1.99 이전 릴리스는 이렇게 검사하지 않았으므로, 표시가 없는 오래된 릴리스는 안전하다는 뜻이 아니라 검사하지 않았다는 뜻입니다."
     },
     {
       "id": "h-5ee8f8ce",

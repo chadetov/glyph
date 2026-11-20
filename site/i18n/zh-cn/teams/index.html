@@ -1,7 +1,7 @@
 ---
 title: 面向团队 · Glyph 保证什么、成本是什么 · Glyph
 description: 写给正在评估 Glyph 的负责人：编译器保证什么、在哪里止步，如何在 TypeScript 应用中引入它，如何退出，版本固定，以及 1.0 之前的状态。
-source_hash: d4a38356fad5c816
+source_hash: f88e17b45c203ca8
 next_steps: |
   接下来去哪里
   推荐 | /catches/ | catches | 看看 TypeScript 放过了什么 | 严格模式的 TypeScript 项目会接受的案例，按排名列出，每个都分别在 <code>tsc --strict</code> 和 Glyph 下运行。 | 查看案例
@@ -77,7 +77,7 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
 
         <h2 class="block-label">发布节奏和 Breaking 标记</h2>
         <p>
-          <a href="/versions/">版本页面</a>为从 0.1.0 到 {{releases:latest}} 的每个版本都写了条目，共 {{releases:count}} 个，其中 22 个发布于 2026 年 11 月（截至 19 日）。如果一个版本拒绝了上一版本接受的程序，它就会被标记为 Breaking，大多数正确性修复都是这样落地的。共有 {{releases:breaking}} 个条目带有这个标记。标记的依据是在两个版本下分别运行受影响的最小程序，而不是阅读 diff；0.1.99 之前的版本没有这样测试过，所以没有标记的旧版本只是未经测试，并不代表安全。
+          <a href="/versions/">版本页面</a>为从 0.1.0 到 {{releases:latest}} 的每个版本都写了条目，共 {{releases:count}} 个，其中 {{releases:month-count}} 个发布于 {{releases:month-start}} 至 {{releases:latest-date}} 之间。如果一个版本拒绝了上一版本接受的程序，它就会被标记为 Breaking，大多数正确性修复都是这样落地的。共有 {{releases:breaking}} 个条目带有这个标记。标记的依据是在两个版本下分别运行受影响的最小程序，而不是阅读 diff；0.1.99 之前的版本没有这样测试过，所以没有标记的旧版本只是未经测试，并不代表安全。
         </p>
         <p>
           Breaking 版本在实践中造成了多少影响：最近的每条说明都写了用新旧两个版本运行仓库示例应用时发生了什么。下面是最新的几个 Breaking 版本，引自它们的说明：

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "de",
-  "source_hash": "d4a38356fad5c816",
+  "source_hash": "f88e17b45c203ca8",
   "segments": [
     {
       "id": "title",
@@ -215,10 +215,10 @@
       "tr": "Release-Takt und die Breaking-Markierung"
     },
     {
-      "id": "h-228fec82",
+      "id": "h-f1666e03",
       "kind": "html",
-      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
-      "tr": "Die <a href=\"/versions/\">Versionsseite</a> hat einen Eintrag für jedes Release von 0.1.0 bis {{releases:latest}}, insgesamt {{releases:count}}, und 22 davon erschienen im November 2026 bis zum 19. Ein Release wird als Breaking markiert, wenn es ein Programm ablehnt, das die vorherige Version akzeptiert hat, und so landen die meisten Korrektheits-Fixes. {{releases:breaking}} Einträge tragen die Markierung. Sie wird gesetzt, indem das kleinste betroffene Programm unter beiden Versionen ausgeführt wird, nicht durch Lesen des Diffs, und Releases vor 0.1.99 wurden nicht so getestet, ein unmarkiertes altes Release ist also ungetestet und nicht sicher."
+      "en": "The <a href=\"/versions/\">versions page</a> has an entry for every release from 0.1.0 to {{releases:latest}}, {{releases:count}} in all, and {{releases:month-count}} of them shipped between {{releases:month-start}} and {{releases:latest-date}}. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. {{releases:breaking}} entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.",
+      "tr": "Die <a href=\"/versions/\">Versionsseite</a> hat einen Eintrag für jedes Release von 0.1.0 bis {{releases:latest}}, insgesamt {{releases:count}}, und {{releases:month-count}} davon erschienen zwischen dem {{releases:month-start}} und dem {{releases:latest-date}}. Ein Release wird als Breaking markiert, wenn es ein Programm ablehnt, das die vorherige Version akzeptiert hat, und so landen die meisten Korrektheits-Fixes. {{releases:breaking}} Einträge tragen die Markierung. Sie wird gesetzt, indem das kleinste betroffene Programm unter beiden Versionen ausgeführt wird, nicht durch Lesen des Diffs, und Releases vor 0.1.99 wurden nicht so getestet, ein unmarkiertes altes Release ist also ungetestet und nicht sicher."
     },
     {
       "id": "h-5ee8f8ce",

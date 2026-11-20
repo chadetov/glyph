@@ -1,7 +1,7 @@
 ---
 title: Ekipler için · Glyph neyi garanti ediyor, maliyeti ne · Glyph
 description: Glyph'i değerlendiren bir lider için: derleyicinin neyi garanti ettiği ve nerede durduğu, bir TypeScript uygulamasında benimsenmesi, çıkış yolu, sürüm sabitleme ve 1.0 öncesi durum.
-source_hash: d4a38356fad5c816
+source_hash: f88e17b45c203ca8
 next_steps: |
   Buradan sonra nereye
   Önerilen | /catches/ | catches | TypeScript'in neleri geçirdiğini görün | Strict bir TypeScript projesinin kabul ettiği vakalar, sıralanmış, her biri <code>tsc --strict</code> altında ve Glyph altında çalıştırılmış. | Yakaladıklarını görün
@@ -77,7 +77,7 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
 
         <h2 class="block-label">Sürüm temposu ve Breaking işareti</h2>
         <p>
-          <a href="/versions/">Sürümler sayfasında</a> 0.1.0'dan {{releases:latest}}'e kadar her sürüm için bir girdi var, toplam {{releases:count}} tane; bunların 22'si Kasım 2026'da, ayın 19'una kadar çıktı. Bir sürüm, önceki sürümün kabul ettiği bir programı reddediyorsa Breaking olarak işaretlenir; doğruluk düzeltmelerinin çoğu bu şekilde gelir. {{releases:breaking}} girdi bu işareti taşıyor. İşaret, diff okunarak değil, etkilenen en küçük program iki sürümde de çalıştırılarak konur; 0.1.99'dan önceki sürümler bu şekilde test edilmedi, yani işaretsiz eski bir sürüm güvenli değil, test edilmemiş demektir.
+          <a href="/versions/">Sürümler sayfasında</a> 0.1.0'dan {{releases:latest}}'e kadar her sürüm için bir girdi var, toplam {{releases:count}} tane; bunların {{releases:month-count}} tanesi {{releases:month-start}} ile {{releases:latest-date}} arasında çıktı. Bir sürüm, önceki sürümün kabul ettiği bir programı reddediyorsa Breaking olarak işaretlenir; doğruluk düzeltmelerinin çoğu bu şekilde gelir. {{releases:breaking}} girdi bu işareti taşıyor. İşaret, diff okunarak değil, etkilenen en küçük program iki sürümde de çalıştırılarak konur; 0.1.99'dan önceki sürümler bu şekilde test edilmedi, yani işaretsiz eski bir sürüm güvenli değil, test edilmemiş demektir.
         </p>
         <p>
           Bir Breaking sürümün pratikte neye mal olduğu: son notların her biri, eski ve yeni sürümler repodaki örnek uygulamalar üzerinde çalıştırıldığında ne olduğunu söylüyor. Bunlar en yeni Breaking sürümler, notlarından alıntılandı:

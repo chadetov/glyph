@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "start/index.html",
   "locale": "zh-cn",
-  "source_hash": "0967efaee1e51c6b",
+  "source_hash": "afa9668b9f2c7e17",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "4 &middot; 加点真东西"
     },
     {
-      "id": "h-f1d8aa48",
+      "id": "h-37ace545",
       "kind": "html",
-      "en": "Now replace the body with a tiny bit of logic: a task status and a function that labels it. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
-      "tr": "现在把函数体换成一小段逻辑：一个任务状态，以及一个给它打标签的函数。这里引入了两个你会经常用到的东西：<em>标签联合</em>（<code>type Status = ...</code>）和 <code>match</code>，后者是 Glyph 唯一的条件分支结构。"
+      "en": "Now replace the body with a decision that matters: whether to ship an order, given where its payment stands. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Payment = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
+      "tr": "现在把函数体换成一个要紧的决定：根据付款状态，决定是否发货。这里引入了两个你会经常用到的东西：<em>标签联合</em>（<code>type Payment = ...</code>）和 <code>match</code>，后者是 Glyph 唯一的条件分支结构。"
     },
     {
       "id": "h-227acdb7",
@@ -197,22 +197,22 @@
       "tr": "5 &middot; 故意改错"
     },
     {
-      "id": "h-08f96fcf",
+      "id": "h-35ca4513",
       "kind": "html",
-      "en": "Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm from the <code>match</code> (the kind of thing an agent does when it adds a case somewhere and forgets to handle it), and run again.",
-      "tr": "这一部分会告诉你 Glyph 是<em>用来做什么的</em>。从 <code>match</code> 中删掉 <code>Done</code> 分支（智能体在某处新增了一种情况却忘了处理时，做的就是这种事），然后再运行一次。"
+      "en": "Here's the part that shows you what Glyph is <em>for</em>. A ticket says \"support refunds\", so add a <code>Refunded</code> case to <code>Payment</code> and leave <code>ship</code> alone. That is what an agent does when it changes a type in one file and never opens the code that decides on it. Run again.",
+      "tr": "这一部分说明 Glyph 是<em>为了什么</em>而存在的。一个工单写着“支持退款”，于是给 <code>Payment</code> 加上 <code>Refunded</code>，不去动 <code>ship</code>。智能体在一个文件里改了类型、却从没打开根据这个类型做判断的代码时，做的正是这件事。再运行一次。"
     },
     {
-      "id": "h-4f6a6f0d",
+      "id": "h-960bc791",
       "kind": "html",
-      "en": "src/main.glyph (with the Done arm deleted)",
-      "tr": "src/main.glyph（删掉了 Done 分支）"
+      "en": "src/main.glyph (one word added)",
+      "tr": "src/main.glyph（多了一个词）"
     },
     {
-      "id": "h-31c09e63",
+      "id": "h-321c7ae4",
       "kind": "html",
-      "en": "It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A <code>switch</code> that only logs or updates state, or one with a <code>default:</code>, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run <code>glyph --explain E0200</code> any time you want the long version.",
-      "tr": "它没有运行。在 TypeScript 中，写明了返回类型的同一个函数也会被拒绝（TS2366）。但只记日志或更新状态、或者带有 <code>default:</code> 的 <code>switch</code> 能顺利编译，并悄悄跳过新增的情况。在这里，每个不穷尽的 match 都是编译错误，带有稳定的错误码（<code>E0200</code>）、准确的位置和一行修复建议。想看详细说明时，随时运行 <code>glyph --explain E0200</code>。"
+      "en": "It didn't run. The TypeScript most code is written with goes the other way: a <code>switch</code> that handles the two \"hold\" cases and ends in <code>default: return \"ship it\"</code> passes <code>tsc --strict</code> after the new case is added, and ships every refunded order. Here every match that misses a case is a compile error with a stable code (<code>E0200</code>), the exact spot, and the name of the case. Run <code>glyph --explain E0200</code> any time you want the long version.",
+      "tr": "它没有运行。大多数代码所用的 TypeScript 则相反：一个处理了两种 \"hold\" 情况、以 <code>default: return \"ship it\"</code> 结尾的 <code>switch</code>，在加入新情况后依然能通过 <code>tsc --strict</code>，并把每一笔已退款的订单都发出去。在这里，任何漏掉情况的 match 都是编译错误，带有稳定的错误码（<code>E0200</code>）、确切的位置和漏掉的情况名。想看详细说明时，随时运行 <code>glyph --explain E0200</code>。"
     },
     {
       "id": "h-a205e0c5",
@@ -221,10 +221,16 @@
       "tr": "6 &middot; 修好它"
     },
     {
-      "id": "h-1995de51",
+      "id": "h-b1ea5492",
       "kind": "html",
-      "en": "Put the arm back (or add an <code>else</code>), and it runs again.",
-      "tr": "把分支加回去（或者加一个 <code>else</code>），它就又能运行了。"
+      "en": "The compiler can't decide what a refund means for shipping; that is your call. Add the arm, and it runs again.",
+      "tr": "退款对发货意味着什么，编译器无法替你决定，这由你来定。加上这个分支，程序就又能运行了。"
+    },
+    {
+      "id": "h-9bf1b06f",
+      "kind": "html",
+      "en": "terminal (with <code>print(ship(Refunded))</code>)",
+      "tr": "终端（改为 <code>print(ship(Refunded))</code> 时）"
     },
     {
       "id": "h-25ed8d45",

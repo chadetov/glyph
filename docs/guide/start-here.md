@@ -41,52 +41,67 @@ that started a server keeps serving.
 
 ## 3. Add something real
 
-Replace `src/main.glyph` with a tagged union and a `match` (Glyph's only
-conditional):
+Replace `src/main.glyph` with a decision that matters, whether to ship an
+order given where its payment stands. It uses a tagged union and a `match`
+(Glyph's only conditional):
 
 ```glyph
 module main
 
-type Status = Todo | Doing | Done
+type Payment = Pending | Paid | Failed
 
-fn label(s: Status) -> string {
-  return match s {
-    Todo => "not started",
-    Doing => "in progress",
-    Done => "finished",
+fn ship(p: Payment) -> string {
+  return match p {
+    Pending => "hold: waiting for the money",
+    Paid => "ship it",
+    Failed => "hold: payment failed",
   }
 }
 
 fn main(argv: Array<string>) -> number {
-  print(label(Done))
+  print(ship(Paid))
   return 0
 }
 ```
 
 ```sh
 glyph run
-# finished
+# ship it
 ```
 
 ## 4. Break it, and read the error
 
-Delete the `Done =>` arm — the mistake an agent makes when it adds a case and
-forgets to handle it — and run again:
+A ticket says "support refunds". Add a case to the type and leave `ship`
+alone, which is what an agent does when it changes a type in one file and
+never opens the code that decides on it:
+
+```glyph
+type Payment = Pending | Paid | Failed | Refunded
+```
 
 ```
-[E0200] non-exhaustive match on `Status`: missing variants `Done`
+[E0200] non-exhaustive match on `Payment`: missing variants `Refunded`
   Help: Add an arm for each missing variant.
 ```
 
-It doesn't run. The equivalent TypeScript `switch` compiles clean and returns
-`undefined`; here the missing case is a compile error with a stable code, the
-exact location, and a fix. `glyph --explain E0200` prints the long form.
+It doesn't run. A TypeScript `switch` that handles the two "hold" cases and
+ends in `default: return "ship it"` passes `tsc --strict` after the new case
+is added, and ships every refunded order. Here the missed case is a compile
+error with a stable code, the exact location, and the name of the case.
+`glyph --explain E0200` prints the long form.
 
-Put the arm back and it runs again. That's the loop: the
-compiler tells you what's wrong and how, before the code ships.
+Deciding what a refund means for shipping is your call, not the compiler's.
+Add the arm and it runs again:
+
+```glyph
+    Refunded => "hold: refunded, nothing to ship",
+```
+
+That's the loop: the compiler tells you what's wrong and where, before the
+code ships.
 
 ## Next
 
-- The five-minute [tour](tour.md) — the whole language, quickly.
-- [For TypeScript developers](for-typescript-developers.md) — the deltas.
-- The [answers](https://glyphlang.io/answers/) — React, typed APIs, why not tooled TS.
+- The five-minute [tour](tour.md): the whole language, quickly.
+- [For TypeScript developers](for-typescript-developers.md): the deltas.
+- The [answers](https://glyphlang.io/answers/): React, typed APIs, why not tooled TS.

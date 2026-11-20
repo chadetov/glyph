@@ -1,7 +1,7 @@
 ---
 title: เริ่มที่นี่ · โปรแกรม Glyph แรกของคุณใน 10 นาที · Glyph
 description: สร้างโปรเจกต์ Glyph ด้วย npx รัน ตั้งใจทำให้พัง อ่าน error จากคอมไพเลอร์ แล้วแก้ ใช้เวลาสิบนาที ไม่ต้องติดตั้งอะไรแบบ global
-source_hash: 0967efaee1e51c6b
+source_hash: afa9668b9f2c7e17
 prev: / | &larr; หน้าแรก | TypeScript ที่เอเจนต์ของคุณทำพังแบบเงียบๆ ไม่ได้
 next: /answers/verifiability/ | ถัดไป &rarr; | อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?
 next_steps: |
@@ -77,74 +77,82 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
 
         <h2 class="block-label">4 &middot; เพิ่มของจริงเข้าไป</h2>
         <p>
-          ทีนี้แทนที่ body ด้วย logic เล็กๆ: สถานะของงาน และฟังก์ชันที่ติดป้ายให้สถานะนั้น นี่คือการแนะนำสองสิ่งที่คุณจะใช้ตลอด: <em>tagged union</em> (<code>type Status = ...</code>) และ <code>match</code> ซึ่งเป็นเงื่อนไขแบบเดียวที่ Glyph มี
+          ทีนี้แทนที่ body ด้วยการตัดสินใจที่สำคัญ: จะส่งคำสั่งซื้อหรือไม่ ตามสถานะการชำระเงิน นี่คือการแนะนำสองสิ่งที่คุณจะใช้ตลอด: <em>tagged union</em> (<code>type Payment = ...</code>) และ <code>match</code> ซึ่งเป็นเงื่อนไขแบบเดียวของ Glyph
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre>module main
 
-type Status = Todo | Doing | Done
+type Payment = Pending | Paid | Failed
 
-fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
-    Done =&gt; "finished",
+fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
   }
 }
 
 fn main(argv: Array&lt;string&gt;) -&gt; number {
-  print(label(Done))
+  print(ship(Paid))
   return 0
 }</pre>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label">5 &middot; ตั้งใจทำให้พัง</h2>
         <p>
-          ส่วนนี้แสดงให้เห็นว่า Glyph มี<em>ไว้ทำอะไร</em> ลบ arm <code>Done</code> ออกจาก <code>match</code> (แบบที่เอเจนต์ทำเมื่อเพิ่ม case ที่ไหนสักแห่งแล้วลืมจัดการ) แล้วรันอีกครั้ง
+          ส่วนนี้แสดงให้เห็นว่า Glyph มีไว้<em>เพื่ออะไร</em> ticket หนึ่งบอกว่า "รองรับการคืนเงิน" ให้เพิ่มกรณี <code>Refunded</code> ใน <code>Payment</code> และไม่ต้องแตะ <code>ship</code> นี่คือสิ่งที่ agent ทำเมื่อแก้ type ในไฟล์หนึ่งแล้วไม่เคยเปิดโค้ดที่ตัดสินใจตาม type นั้น แล้วรันอีกครั้ง
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph (ลบ arm Done ออกแล้ว)</span>
-<pre>fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
+        <span class="cap">src/main.glyph (เพิ่มหนึ่งคำ)</span>
+<pre>type Payment = Pending | Paid | Failed | Refunded</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Payment`: missing variants `Refunded`</span>
+    ╭─[ main:6:10 ]
+    │
+  6 │ ╭─▶   return match p {
+    ┆ ┆
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Payment`: missing variants `Refunded`
+    │
+    │     Help: Add an arm for each missing variant.
+────╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          มันไม่รัน TypeScript ที่โค้ดส่วนใหญ่เขียนด้วยกลับทำตรงกันข้าม: <code>switch</code> ที่จัดการสองกรณี "hold" แล้วจบด้วย <code>default: return "ship it"</code> ยังผ่าน <code>tsc --strict</code> หลังเพิ่มกรณีใหม่ และส่งทุกคำสั่งซื้อที่คืนเงินไปแล้ว ที่นี่ match ทุกตัวที่ขาดกรณีใดไปจะเป็น compile error พร้อมรหัสที่คงที่ (<code>E0200</code>) ตำแหน่งที่แน่นอน และชื่อของกรณีนั้น รัน <code>glyph --explain E0200</code> เมื่อใดก็ได้ที่อยากอ่านฉบับยาว
+        </p>
+
+        <h2 class="block-label">6 &middot; แก้</h2>
+        <p>
+          compiler ตัดสินไม่ได้ว่าการคืนเงินมีความหมายอย่างไรต่อการส่งของ นั่นเป็นการตัดสินใจของคุณ เพิ่ม arm แล้วมันจะรันได้อีกครั้ง
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
+    Refunded =&gt; "hold: refunded, nothing to ship",
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
-   ╭─[main:6:10]
-   │
- 6 │ ╭─▶   return match s {
-   ┆ ┆
- 9 │ ├─▶   }
-   │ ╰───────── missing variants `Done`
-   │
-   │  Help: Add an arm for each missing variant.
-───╯</pre>
-      </div>
-      <div class="detail">
-        <p>
-          มันไม่รัน ใน TypeScript ฟังก์ชันแบบเดียวกันนี้ที่เขียน return type ไว้ก็ถูกปฏิเสธเช่นกัน (TS2366) แต่ <code>switch</code> ที่แค่ log หรืออัปเดต state หรือที่มี <code>default:</code> จะคอมไพล์ผ่านสะอาดและข้าม case ใหม่ไปเงียบๆ ที่นี่ match ทุกตัวที่ไม่ครบทุกกรณีเป็น compile error ที่มีรหัสคงที่ (<code>E0200</code>) ระบุตำแหน่งแน่นอน และมีวิธีแก้หนึ่งบรรทัด รัน <code>glyph --explain E0200</code> เมื่อไหร่ก็ได้ที่อยากอ่านฉบับยาว
-        </p>
-
-        <h2 class="block-label">6 &middot; แก้</h2>
-        <p>ใส่ arm กลับเข้าไป (หรือเพิ่ม <code>else</code>) แล้วมันก็จะรันได้อีกครั้ง</p>
-      </div>
-      <div class="code">
-        <span class="cap">terminal</span>
+        <span class="cap">terminal (เมื่อใช้ <code>print(ship(Refunded))</code>)</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

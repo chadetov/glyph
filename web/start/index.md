@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/start/, generated from the same source as the page. Last changed 2026-11-19. -->
+<!-- Markdown copy of https://glyphlang.io/start/, generated from the same source as the page. Last changed 2026-11-20. -->
 
 Start here · ~10 minutes
 
@@ -63,25 +63,25 @@ hello from glyph
 
 ## 4 · Add something real
 
-Now replace the body with a tiny bit of logic: a task status and a function that labels it. This introduces the two things you'll use constantly: a *tagged union* (`type Status = ...`) and `match`, which is Glyph's only conditional.
+Now replace the body with a decision that matters: whether to ship an order, given where its payment stands. This introduces the two things you'll use constantly: a *tagged union* (`type Payment = ...`) and `match`, which is Glyph's only conditional.
 
 src/main.glyph
 
 ```
 module main
 
-type Status = Todo | Doing | Done
+type Payment = Pending | Paid | Failed
 
-fn label(s: Status) -> string {
-  return match s {
-    Todo => "not started",
-    Doing => "in progress",
-    Done => "finished",
+fn ship(p: Payment) -> string {
+  return match p {
+    Pending => "hold: waiting for the money",
+    Paid => "ship it",
+    Failed => "hold: payment failed",
   }
 }
 
 fn main(argv: Array<string>) -> number {
-  print(label(Done))
+  print(ship(Paid))
   return 0
 }
 ```
@@ -90,50 +90,58 @@ terminal
 
 ```
 npx glyph run
-finished
+ship it
 ```
 
 ## 5 · Break it on purpose
 
-Here's the part that shows you what Glyph is *for*. Delete the `Done` arm from the `match` (the kind of thing an agent does when it adds a case somewhere and forgets to handle it), and run again.
+Here's the part that shows you what Glyph is *for*. A ticket says "support refunds", so add a `Refunded` case to `Payment` and leave `ship` alone. That is what an agent does when it changes a type in one file and never opens the code that decides on it. Run again.
 
-src/main.glyph (with the Done arm deleted)
+src/main.glyph (one word added)
 
 ```
-fn label(s: Status) -> string {
-  return match s {
-    Todo => "not started",
-    Doing => "in progress",
-  }
-}
+type Payment = Pending | Paid | Failed | Refunded
 ```
 
 $ npx glyph run
 
 ```
-[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`
-   ╭─[main:6:10]
-   │
- 6 │ ╭─▶   return match s {
-   ┆ ┆
- 9 │ ├─▶   }
-   │ ╰───────── missing variants `Done`
-   │
-   │  Help: Add an arm for each missing variant.
-───╯
+[E0200] Error: typecheck: non-exhaustive match on `Payment`: missing variants `Refunded`
+    ╭─[ main:6:10 ]
+    │
+  6 │ ╭─▶   return match p {
+    ┆ ┆
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Payment`: missing variants `Refunded`
+    │
+    │     Help: Add an arm for each missing variant.
+────╯
 ```
 
-It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A `switch` that only logs or updates state, or one with a `default:`, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (`E0200`), the exact spot, and a one-line fix. Run `glyph --explain E0200` any time you want the long version.
+It didn't run. The TypeScript most code is written with goes the other way: a `switch` that handles the two "hold" cases and ends in `default: return "ship it"` passes `tsc --strict` after the new case is added, and ships every refunded order. Here every match that misses a case is a compile error with a stable code (`E0200`), the exact spot, and the name of the case. Run `glyph --explain E0200` any time you want the long version.
 
 ## 6 · Fix it
 
-Put the arm back (or add an `else`), and it runs again.
+The compiler can't decide what a refund means for shipping; that is your call. Add the arm, and it runs again.
 
-terminal
+src/main.glyph
+
+```
+fn ship(p: Payment) -> string {
+  return match p {
+    Pending => "hold: waiting for the money",
+    Paid => "ship it",
+    Failed => "hold: payment failed",
+    Refunded => "hold: refunded, nothing to ship",
+  }
+}
+```
+
+terminal (with `print(ship(Refunded))`)
 
 ```
 npx glyph run
-finished
+hold: refunded, nothing to ship
 ```
 
 That's the core loop: write, run, and when something's wrong the compiler tells you exactly what and how, before your code ships, not after.

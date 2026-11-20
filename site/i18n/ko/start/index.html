@@ -1,7 +1,7 @@
 ---
 title: 여기서 시작하기 · 10분 만에 작성하는 첫 Glyph 프로그램 · Glyph
 description: npx로 Glyph 프로젝트를 만들고, 실행하고, 일부러 깨뜨린 뒤 컴파일러 오류를 읽고 고쳐 봅니다. 10분이면 되고, 전역으로 설치하는 것은 없습니다.
-source_hash: 0967efaee1e51c6b
+source_hash: afa9668b9f2c7e17
 prev: / | &larr; 홈 | 에이전트가 몰래 깨뜨릴 수 없는 TypeScript
 next: /answers/verifiability/ | 다음 &rarr; | 에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?
 next_steps: |
@@ -77,74 +77,82 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
 
         <h2 class="block-label">4 &middot; 실제 코드 추가하기</h2>
         <p>
-          이제 본문을 작은 로직으로 바꿔 봅니다. 작업 상태와 그 상태에 레이블을 붙이는 함수입니다. 여기서 계속 쓰게 될 두 가지가 등장합니다. <em>태그 유니언</em>(<code>type Status = ...</code>)과, Glyph의 유일한 조건문인 <code>match</code>입니다.
+          이제 본문을 중요한 결정으로 바꿔 봅니다. 결제 상태에 따라 주문을 발송할지 정하는 것입니다. 여기서 계속 쓰게 될 두 가지가 등장합니다. <em>태그 유니언</em>(<code>type Payment = ...</code>)과, Glyph의 유일한 조건문인 <code>match</code>입니다.
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre>module main
 
-type Status = Todo | Doing | Done
+type Payment = Pending | Paid | Failed
 
-fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
-    Done =&gt; "finished",
+fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
   }
 }
 
 fn main(argv: Array&lt;string&gt;) -&gt; number {
-  print(label(Done))
+  print(ship(Paid))
   return 0
 }</pre>
       </div>
       <div class="code">
         <span class="cap">터미널</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label">5 &middot; 일부러 깨뜨리기</h2>
         <p>
-          Glyph가 <em>무엇을 위한</em> 언어인지 보여 주는 부분입니다. <code>match</code>에서 <code>Done</code> arm을 지우고(에이전트가 어딘가에 case를 추가하고 처리하는 것을 잊을 때 하는 일입니다) 다시 실행해 보세요.
+          이 부분이 Glyph가 <em>무엇을 위해</em> 있는지 보여 줍니다. 티켓에 "환불 지원"이라고 적혀 있으니 <code>Payment</code>에 <code>Refunded</code>를 추가하고 <code>ship</code>은 그대로 둡니다. 에이전트가 한 파일에서 타입을 바꾸고, 그 타입으로 판단하는 코드는 열어 보지도 않을 때 하는 일이 바로 이것입니다. 다시 실행해 봅니다.
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph (Done arm을 지운 상태)</span>
-<pre>fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
+        <span class="cap">src/main.glyph (단어 하나 추가)</span>
+<pre>type Payment = Pending | Paid | Failed | Refunded</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Payment`: missing variants `Refunded`</span>
+    ╭─[ main:6:10 ]
+    │
+  6 │ ╭─▶   return match p {
+    ┆ ┆
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Payment`: missing variants `Refunded`
+    │
+    │     Help: Add an arm for each missing variant.
+────╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          실행되지 않았습니다. 대부분의 코드가 작성되는 TypeScript에서는 반대입니다. 두 가지 "hold" 경우를 처리하고 <code>default: return "ship it"</code>으로 끝나는 <code>switch</code>는 새 경우가 추가된 뒤에도 <code>tsc --strict</code>를 통과하고, 환불된 주문을 전부 발송합니다. 여기서는 경우를 빠뜨린 match가 모두 컴파일 오류가 되며, 안정적인 코드(<code>E0200</code>), 정확한 위치, 빠진 경우의 이름을 알려 줍니다. 자세한 설명이 필요하면 언제든 <code>glyph --explain E0200</code>을 실행하세요.
+        </p>
+
+        <h2 class="block-label">6 &middot; 고치기</h2>
+        <p>
+          환불이 발송에 어떤 의미인지는 컴파일러가 정할 수 없습니다. 그건 여러분이 정할 일입니다. 암을 추가하면 다시 실행됩니다.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
+    Refunded =&gt; "hold: refunded, nothing to ship",
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
-   ╭─[main:6:10]
-   │
- 6 │ ╭─▶   return match s {
-   ┆ ┆
- 9 │ ├─▶   }
-   │ ╰───────── missing variants `Done`
-   │
-   │  Help: Add an arm for each missing variant.
-───╯</pre>
-      </div>
-      <div class="detail">
-        <p>
-          실행되지 않았습니다. TypeScript에서도 반환 타입을 명시한 이 함수는 거부됩니다(TS2366). 하지만 로그만 남기거나 상태만 갱신하는 <code>switch</code>나 <code>default:</code>가 있는 경우는 깔끔하게 컴파일되고 새 case를 조용히 건너뜁니다. 여기서는 모든 비망라적 match가 고정된 코드(<code>E0200</code>), 정확한 위치, 한 줄짜리 수정 방법을 갖춘 컴파일 오류입니다. 자세한 설명이 필요하면 언제든 <code>glyph --explain E0200</code>을 실행하세요.
-        </p>
-
-        <h2 class="block-label">6 &middot; 고치기</h2>
-        <p>arm을 다시 넣으면(또는 <code>else</code>를 추가하면) 다시 실행됩니다.</p>
-      </div>
-      <div class="code">
-        <span class="cap">터미널</span>
+        <span class="cap">터미널 (<code>print(ship(Refunded))</code>로 바꾼 경우)</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

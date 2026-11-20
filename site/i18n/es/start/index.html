@@ -1,7 +1,7 @@
 ---
 title: Empieza aquí · tu primer programa en Glyph en 10 minutos · Glyph
 description: Crea un proyecto de Glyph con npx, ejecútalo, rómpelo a propósito, lee el error del compilador y corrígelo. Diez minutos, sin instalar nada globalmente.
-source_hash: 0967efaee1e51c6b
+source_hash: afa9668b9f2c7e17
 prev: / | &larr; Inicio | TypeScript que tus agentes no pueden romper sin que te enteres
 next: /answers/verifiability/ | Siguiente &rarr; | ¿Qué impide que un agente rompa mi código sin que nadie lo note?
 next_steps: |
@@ -77,74 +77,82 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
 
         <h2 class="block-label">4 &middot; Añade algo de verdad</h2>
         <p>
-          Ahora sustituye el cuerpo por un poco de lógica: el estado de una tarea y una función que le pone una etiqueta. Así aparecen las dos cosas que vas a usar todo el tiempo: una <em>unión etiquetada</em> (<code>type Status = ...</code>) y <code>match</code>, que es la única construcción condicional de Glyph.
+          Ahora sustituye el cuerpo por una decisión que importa: si enviar un pedido o no, según cómo esté su pago. Así aparecen las dos cosas que usarás todo el tiempo: una <em>unión etiquetada</em> (<code>type Payment = ...</code>) y <code>match</code>, que es el único condicional de Glyph.
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre>module main
 
-type Status = Todo | Doing | Done
+type Payment = Pending | Paid | Failed
 
-fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
-    Done =&gt; "finished",
+fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
   }
 }
 
 fn main(argv: Array&lt;string&gt;) -&gt; number {
-  print(label(Done))
+  print(ship(Paid))
   return 0
 }</pre>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label">5 &middot; Rómpelo a propósito</h2>
         <p>
-          Esta es la parte que muestra <em>para qué</em> sirve Glyph. Borra el brazo <code>Done</code> del <code>match</code> (lo que hace un agente cuando añade un caso en algún sitio y se olvida de tratarlo) y vuelve a ejecutar.
+          Esta es la parte que muestra <em>para qué</em> sirve Glyph. Un ticket pide "admitir reembolsos", así que añade un caso <code>Refunded</code> a <code>Payment</code> y no toques <code>ship</code>. Es lo que hace un agente cuando cambia un tipo en un archivo y nunca abre el código que decide según él. Vuelve a ejecutarlo.
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph (sin el brazo Done)</span>
-<pre>fn label(s: Status) -&gt; string {
-  return match s {
-    Todo =&gt; "not started",
-    Doing =&gt; "in progress",
+        <span class="cap">src/main.glyph (una palabra añadida)</span>
+<pre>type Payment = Pending | Paid | Failed | Refunded</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Payment`: missing variants `Refunded`</span>
+    ╭─[ main:6:10 ]
+    │
+  6 │ ╭─▶   return match p {
+    ┆ ┆
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Payment`: missing variants `Refunded`
+    │
+    │     Help: Add an arm for each missing variant.
+────╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          No se ejecutó. El TypeScript con el que se escribe casi todo el código hace lo contrario: un <code>switch</code> que trata los dos casos de "hold" y termina en <code>default: return "ship it"</code> pasa <code>tsc --strict</code> después de añadir el caso nuevo, y envía cada pedido reembolsado. Aquí, todo match al que le falta un caso es un error de compilación con un código estable (<code>E0200</code>), el punto exacto y el nombre del caso. Ejecuta <code>glyph --explain E0200</code> cuando quieras la versión larga.
+        </p>
+
+        <h2 class="block-label">6 &middot; Corrígelo</h2>
+        <p>
+          El compilador no puede decidir qué significa un reembolso para el envío; eso lo decides tú. Añade el brazo y vuelve a ejecutarse.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>fn ship(p: Payment) -&gt; string {
+  return match p {
+    Pending =&gt; "hold: waiting for the money",
+    Paid =&gt; "ship it",
+    Failed =&gt; "hold: payment failed",
+    Refunded =&gt; "hold: refunded, nothing to ship",
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
-   ╭─[main:6:10]
-   │
- 6 │ ╭─▶   return match s {
-   ┆ ┆
- 9 │ ├─▶   }
-   │ ╰───────── missing variants `Done`
-   │
-   │  Help: Add an arm for each missing variant.
-───╯</pre>
-      </div>
-      <div class="detail">
-        <p>
-          No se ejecutó. En TypeScript, esta misma función, con el tipo de retorno escrito, también se rechaza (TS2366). Pero un <code>switch</code> que solo registra algo o actualiza estado, o uno con <code>default:</code>, compila sin errores y se salta el caso nuevo sin decir nada. Aquí, cada match no exhaustivo es un error de compilación con un código estable (<code>E0200</code>), el lugar exacto y una corrección de una línea. Ejecuta <code>glyph --explain E0200</code> cuando quieras la versión larga.
-        </p>
-
-        <h2 class="block-label">6 &middot; Corrígelo</h2>
-        <p>Vuelve a poner el brazo (o añade un <code>else</code>) y se ejecuta de nuevo.</p>
-      </div>
-      <div class="code">
-        <span class="cap">terminal</span>
+        <span class="cap">terminal (con <code>print(ship(Refunded))</code>)</span>
 <pre>npx glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/start/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Start Here","item":"https://glyphlang.io/start/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/start/#article","headline":"Start Here · your first Glyph program in 10 minutes","description":"Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally.","url":"https://glyphlang.io/start/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/start/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/start/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Start Here","item":"https://glyphlang.io/start/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/start/#article","headline":"Start Here · your first Glyph program in 10 minutes","description":"Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally.","url":"https://glyphlang.io/start/","inLanguage":"en","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/start/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/start/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/start/" />
@@ -159,7 +159,7 @@
                       <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Not caught yet</span><span class="nav-desc">Known holes, each with a reproduction</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">TypeScript mistakes that nothing in a fully configured setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">TypeScript cases that nothing in a fully configured setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -502,83 +502,94 @@
 
         <h2 class="block-label" id="4-add-something-real">4 &middot; Add something real<a class="h-anchor" href="#4-add-something-real" aria-label="Link to this section">#</a></h2>
         <p>
-          Now replace the body with a tiny bit of logic: a task status and a function that
-          labels it. This introduces the two things you'll use constantly: a <em>tagged union</em>
-          (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.
+          Now replace the body with a decision that matters: whether to ship an order, given
+          where its payment stands. This introduces the two things you'll use constantly: a
+          <em>tagged union</em> (<code>type Payment = ...</code>) and <code>match</code>, which
+          is Glyph's only conditional.
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre><span class="k">module</span> main
 
-<span class="k">type</span> <span class="t">Status</span> = <span class="t">Todo</span> | <span class="t">Doing</span> | <span class="t">Done</span>
+<span class="k">type</span> <span class="t">Payment</span> = <span class="t">Pending</span> | <span class="t">Paid</span> | <span class="t">Failed</span>
 
-<span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
-  <span class="k">return</span> <span class="k">match</span> s {
-    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
-    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
-    <span class="t">Done</span> <span class="op">=&gt;</span> <span class="s">"finished"</span>,
+<span class="k">fn</span> ship(p: <span class="t">Payment</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Pending</span> <span class="op">=&gt;</span> <span class="s">"hold: waiting for the money"</span>,
+    <span class="t">Paid</span> <span class="op">=&gt;</span> <span class="s">"ship it"</span>,
+    <span class="t">Failed</span> <span class="op">=&gt;</span> <span class="s">"hold: payment failed"</span>,
   }
 }
 
 <span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
-  print(label(<span class="t">Done</span>))
+  print(ship(<span class="t">Paid</span>))
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
 <pre><span class="f">npx</span> glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label" id="5-break-it-on-purpose">5 &middot; Break it on purpose<a class="h-anchor" href="#5-break-it-on-purpose" aria-label="Link to this section">#</a></h2>
         <p>
-          Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm
-          from the <code>match</code> (the kind of thing an agent does when it adds a case
-          somewhere and forgets to handle it), and run again.
+          Here's the part that shows you what Glyph is <em>for</em>. A ticket says "support
+          refunds", so add a <code>Refunded</code> case to <code>Payment</code> and leave
+          <code>ship</code> alone. That is what an agent does when it changes a type in one file
+          and never opens the code that decides on it. Run again.
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph (with the Done arm deleted)</span>
-<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
-  <span class="k">return</span> <span class="k">match</span> s {
-    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
-    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
+        <span class="cap">src/main.glyph (one word added)</span>
+<pre><span class="k">type</span> <span class="t">Payment</span> = <span class="t">Pending</span> | <span class="t">Paid</span> | <span class="t">Failed</span> | <span class="t">Refunded</span></pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Payment`</span>: missing variants <span class="q">`Refunded`</span></span>
+    <span class="bx">╭─</span>[ main:6:10 ]
+    <span class="bx">│</span>
+  6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match p {
+    <span class="bx">┆</span> <span class="bx">┆</span>
+ 10 <span class="bx">│</span> <span class="bx">├─</span>▶   }
+    <span class="bx">│</span> <span class="bx">╰─────────</span> non-exhaustive match on <span class="q">`Payment`</span>: missing variants <span class="q">`Refunded`</span>
+    <span class="bx">│</span>
+    <span class="bx">│</span>     <span class="f">Help:</span> Add an arm for each missing variant.
+<span class="bx">────╯</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          It didn't run. The TypeScript most code is written with goes the other way: a
+          <code>switch</code> that handles the two "hold" cases and ends in
+          <code>default: return "ship it"</code> passes <code>tsc --strict</code> after the new
+          case is added, and ships every refunded order. Here every match that misses a case is
+          a compile error with a stable code (<code>E0200</code>), the exact spot, and the name
+          of the case. Run <code>glyph --explain E0200</code> any time you want the long version.
+        </p>
+
+        <h2 class="block-label" id="6-fix-it">6 &middot; Fix it<a class="h-anchor" href="#6-fix-it" aria-label="Link to this section">#</a></h2>
+        <p>
+          The compiler can't decide what a refund means for shipping; that is your call. Add the
+          arm, and it runs again.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre><span class="k">fn</span> ship(p: <span class="t">Payment</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Pending</span> <span class="op">=&gt;</span> <span class="s">"hold: waiting for the money"</span>,
+    <span class="t">Paid</span> <span class="op">=&gt;</span> <span class="s">"ship it"</span>,
+    <span class="t">Failed</span> <span class="op">=&gt;</span> <span class="s">"hold: payment failed"</span>,
+    <span class="t">Refunded</span> <span class="op">=&gt;</span> <span class="s">"hold: refunded, nothing to ship"</span>,
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Done`</span></span>
-   <span class="bx">╭─</span>[main:6:10]
-   <span class="bx">│</span>
- 6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match s {
-   <span class="bx">┆</span> <span class="bx">┆</span>
- 9 <span class="bx">│</span> <span class="bx">├─</span>▶   }
-   <span class="bx">│</span> <span class="bx">╰─────────</span> missing variants <span class="q">`Done`</span>
-   <span class="bx">│</span>
-   <span class="bx">│</span>  <span class="f">Help:</span> Add an arm for each missing variant.
-<span class="bx">───╯</span></pre>
-      </div>
-      <div class="detail">
-        <p>
-          It didn't run. In TypeScript this exact function, with its return type written
-          out, is refused too (TS2366). A <code>switch</code> that only logs or updates
-          state, or one with a <code>default:</code>, compiles clean and quietly skips the
-          new case. Here every non-exhaustive match is a compile error with a
-          stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run
-          <code>glyph --explain E0200</code> any time you want the long version.
-        </p>
-
-        <h2 class="block-label" id="6-fix-it">6 &middot; Fix it<a class="h-anchor" href="#6-fix-it" aria-label="Link to this section">#</a></h2>
-        <p>Put the arm back (or add an <code>else</code>), and it runs again.</p>
-      </div>
-      <div class="code">
-        <span class="cap">terminal</span>
-<pre><span class="f">npx</span> glyph run
-<span class="dim">finished</span></pre>
+        <span class="cap">terminal (with <code>print(ship(Refunded))</code>)</span>
+<pre>npx glyph run
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

@@ -130,7 +130,7 @@
                       <li><a href="/tr/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Henüz yakalanmayanlar</span><span class="nav-desc">Bilinen açıklar, her biri bir reprodüksiyonla</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/tr/catches/"><span class="nav-feature-big">21 / 37</span><span class="nav-feature-text">tamamen yapılandırılmış bir kurulumda hiçbir şeyin yakalamadığı TypeScript hatası</span><span class="nav-feature-cta">Neleri yakaladığını gör <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/tr/catches/"><span class="nav-feature-big">21 / 37</span><span class="nav-feature-text">tamamen yapılandırılmış bir kurulumda hiçbir şeyin yakalamadığı TypeScript vakası</span><span class="nav-feature-cta">Neleri yakaladığını gör <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -485,74 +485,82 @@
 
         <h2 class="block-label" id="4-add-something-real">4 &middot; Gerçek bir şey ekleyin<a class="h-anchor" href="#4-add-something-real" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          Şimdi gövdeyi küçük bir mantıkla değiştirin: bir görev durumu ve onu etiketleyen bir fonksiyon. Bu, sürekli kullanacağınız iki şeyi tanıtır: bir <em>tagged union</em> (<code>type Status = ...</code>) ve Glyph'in tek koşul yapısı olan <code>match</code>.
+          Şimdi gövdeyi önemli bir kararla değiştirin: ödemenin durumuna göre bir siparişin gönderilip gönderilmeyeceği. Bu, sürekli kullanacağınız iki şeyi tanıtır: bir <em>tagged union</em> (<code>type Payment = ...</code>) ve Glyph'in tek koşul yapısı olan <code>match</code>.
         </p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
 <pre><span class="k">module</span> main
 
-<span class="k">type</span> <span class="t">Status</span> = <span class="t">Todo</span> | <span class="t">Doing</span> | <span class="t">Done</span>
+<span class="k">type</span> <span class="t">Payment</span> = <span class="t">Pending</span> | <span class="t">Paid</span> | <span class="t">Failed</span>
 
-<span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
-  <span class="k">return</span> <span class="k">match</span> s {
-    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
-    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
-    <span class="t">Done</span> <span class="op">=&gt;</span> <span class="s">"finished"</span>,
+<span class="k">fn</span> ship(p: <span class="t">Payment</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Pending</span> <span class="op">=&gt;</span> <span class="s">"hold: waiting for the money"</span>,
+    <span class="t">Paid</span> <span class="op">=&gt;</span> <span class="s">"ship it"</span>,
+    <span class="t">Failed</span> <span class="op">=&gt;</span> <span class="s">"hold: payment failed"</span>,
   }
 }
 
 <span class="k">fn</span> main(argv: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
-  print(label(<span class="t">Done</span>))
+  print(ship(<span class="t">Paid</span>))
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
 <pre><span class="f">npx</span> glyph run
-<span class="dim">finished</span></pre>
+<span class="dim">ship it</span></pre>
       </div>
 
       <div class="detail">
         <h2 class="block-label" id="5-break-it-on-purpose">5 &middot; Bilerek bozun<a class="h-anchor" href="#5-break-it-on-purpose" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          Glyph'in ne <em>için</em> olduğunu gösteren kısım burası. <code>match</code>'ten <code>Done</code> arm'ını silin (bir ajanın bir yere yeni bir case ekleyip onu ele almayı unuttuğunda yaptığı türden bir şey) ve tekrar çalıştırın.
+          Glyph'in <em>ne için</em> olduğunu gösteren kısım burası. Bir ticket "iadeleri destekle" diyor; <code>Payment</code>'a bir <code>Refunded</code> durumu ekleyin ve <code>ship</code>'e dokunmayın. Bir ajan bir dosyada tipi değiştirip o tipe göre karar veren koda hiç bakmadığında tam olarak bunu yapar. Tekrar çalıştırın.
         </p>
       </div>
       <div class="code">
-        <span class="cap">src/main.glyph (Done arm'ı silinmiş hâli)</span>
-<pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
-  <span class="k">return</span> <span class="k">match</span> s {
-    <span class="t">Todo</span> <span class="op">=&gt;</span> <span class="s">"not started"</span>,
-    <span class="t">Doing</span> <span class="op">=&gt;</span> <span class="s">"in progress"</span>,
+        <span class="cap">src/main.glyph (bir kelime eklendi)</span>
+<pre><span class="k">type</span> <span class="t">Payment</span> = <span class="t">Pending</span> | <span class="t">Paid</span> | <span class="t">Failed</span> | <span class="t">Refunded</span></pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Payment`</span>: missing variants <span class="q">`Refunded`</span></span>
+    <span class="bx">╭─</span>[ main:6:10 ]
+    <span class="bx">│</span>
+  6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match p {
+    <span class="bx">┆</span> <span class="bx">┆</span>
+ 10 <span class="bx">│</span> <span class="bx">├─</span>▶   }
+    <span class="bx">│</span> <span class="bx">╰─────────</span> non-exhaustive match on <span class="q">`Payment`</span>: missing variants <span class="q">`Refunded`</span>
+    <span class="bx">│</span>
+    <span class="bx">│</span>     <span class="f">Help:</span> Add an arm for each missing variant.
+<span class="bx">────╯</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          Çalışmadı. Kodun çoğunun yazıldığı TypeScript tersini yapar: iki "hold" durumunu ele alıp <code>default: return "ship it"</code> ile biten bir <code>switch</code>, yeni durum eklendikten sonra da <code>tsc --strict</code>'ten geçer ve iade edilen her siparişi gönderir. Burada bir durumu atlayan her match, kararlı bir kodla (<code>E0200</code>), tam yeriyle ve durumun adıyla birlikte bir derleme hatasıdır. Uzun açıklamayı istediğiniz zaman <code>glyph --explain E0200</code> çalıştırın.
+        </p>
+
+        <h2 class="block-label" id="6-fix-it">6 &middot; Düzeltin<a class="h-anchor" href="#6-fix-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          Bir iadenin gönderim için ne anlama geldiğine derleyici karar veremez; bu sizin kararınız. Kolu ekleyin, program yeniden çalışır.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre><span class="k">fn</span> ship(p: <span class="t">Payment</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> <span class="k">match</span> p {
+    <span class="t">Pending</span> <span class="op">=&gt;</span> <span class="s">"hold: waiting for the money"</span>,
+    <span class="t">Paid</span> <span class="op">=&gt;</span> <span class="s">"ship it"</span>,
+    <span class="t">Failed</span> <span class="op">=&gt;</span> <span class="s">"hold: payment failed"</span>,
+    <span class="t">Refunded</span> <span class="op">=&gt;</span> <span class="s">"hold: refunded, nothing to ship"</span>,
   }
 }</pre>
       </div>
       <div class="code">
-        <span class="cap">$ npx glyph run</span>
-<pre class="wraps"><span class="del"><span class="e">[E0200]</span> <span class="e">Error:</span> typecheck: non-exhaustive match on <span class="q">`Status`</span>: missing variants <span class="q">`Done`</span></span>
-   <span class="bx">╭─</span>[main:6:10]
-   <span class="bx">│</span>
- 6 <span class="bx">│</span> <span class="bx">╭─</span>▶   return match s {
-   <span class="bx">┆</span> <span class="bx">┆</span>
- 9 <span class="bx">│</span> <span class="bx">├─</span>▶   }
-   <span class="bx">│</span> <span class="bx">╰─────────</span> missing variants <span class="q">`Done`</span>
-   <span class="bx">│</span>
-   <span class="bx">│</span>  <span class="f">Help:</span> Add an arm for each missing variant.
-<span class="bx">───╯</span></pre>
-      </div>
-      <div class="detail">
-        <p>
-          Çalışmadı. TypeScript'te dönüş tipi açıkça yazılmış bu fonksiyonun aynısı da reddedilir (TS2366). Ama yalnızca log yazan ya da durumu güncelleyen bir <code>switch</code>, veya <code>default:</code> içeren bir tanesi temiz derlenir ve yeni case'i sessizce atlar. Burada kapsamı eksik her match, kararlı bir kodu (<code>E0200</code>), tam yeri ve tek satırlık bir düzeltmesi olan bir derleme hatasıdır. Uzun açıklamayı istediğiniz zaman <code>glyph --explain E0200</code> çalıştırın.
-        </p>
-
-        <h2 class="block-label" id="6-fix-it">6 &middot; Düzeltin<a class="h-anchor" href="#6-fix-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>Arm'ı geri koyun (ya da bir <code>else</code> ekleyin), program yine çalışır.</p>
-      </div>
-      <div class="code">
-        <span class="cap">terminal</span>
-<pre><span class="f">npx</span> glyph run
-<span class="dim">finished</span></pre>
+        <span class="cap">terminal (<code>print(ship(Refunded))</code> ile)</span>
+<pre>npx glyph run
+<span class="dim">hold: refunded, nothing to ship</span></pre>
       </div>
 
       <div class="detail">

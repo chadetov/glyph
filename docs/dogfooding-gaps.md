@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-415 entries, 309 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-86 are open. G144, the D28 boundary cast that never reached the returns a
+415 entries, 310 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+85 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13572,7 +13572,7 @@ and is the owner's to confirm.
   `p384/b.glyph` exits 1 with E0238 on the scrutinee and on `let _ =`; the
   catch `gap-g384-dropped-async-call` (the `forEach` half) still exits 0.*
 
-- **G385. Interpolation accepts any type, so a record prints `[object Object]`.** `print("Welcome back, ${user}!")` with `user: User` checks clean and prints
+- **G385. [FIXED] Interpolation accepts any type, so a record prints `[object Object]`.** `print("Welcome back, ${user}!")` with `user: User` checks clean and prints
   `Welcome back, [object Object]!`; an `Option` and a pending async value do the
   same. G118 fixed one response-body case. Allow only text-like types inside
   `${}` (string, number, int, bool, Decimal) and refuse the rest with a help
@@ -13581,6 +13581,29 @@ and is the owner's to confirm.
   *Reproduced against 0.1.149 (the release build): no diagnostics; `glyph run` prints `Welcome back, [object Object]!`.*
 
   *Reproduced against 0.1.155 (the release build): no diagnostics; `glyph run` prints `Welcome back, [object Object]!`. An `Option` still prints `[object Object]`; a pending value in `${}` is now E0238 (G384, 0.1.154), so that part of this entry is closed.*
+
+  Decided in record 129, option (c), against the fix proposed above: one rule
+  for every implicit conversion to text, not `${}` alone, because `"x " + u`
+  and `string.from(u)` print the same `[object Object]` and fixing one
+  spelling teaches agents the other two. `Decimal` is not text-like either:
+  its runtime is an object, and `${d}` prints `[object Object]`. The pending
+  value moved to 0.1.156 (G384, E0238).
+
+  Fixed in 0.1.154 (D51, E0237). Text-like is an allowlist: `string`, a
+  string-literal union, `number`, `int`, `bigint`, `bool`, an alias or `where`
+  refinement of one, `never`, and an inline union of those (`string |
+  number`). A `${}` in `"..."` or `"""..."""`, an operand of `+` beside a
+  string, and the argument of `string.from` are refused with E0237 for
+  anything else, so a `Ty` variant added later is refused by default. A value
+  Glyph's checker types as its internal `Unknown` is not judged, and a test
+  pins that edge. The message and the help are computed from the program:
+  ``E0237: `${user}` turns a `User` into text, and a record has no text form:
+  it prints `[object Object]` `` with ``Interpolate a field, such as
+  `${user.id}`.`` A test applies every help that carries a snippet to its
+  line and passes the full check, `tsc` included. `std/decimal`'s
+  constructors and the `Decimal` methods are modeled so a `Decimal` is a type
+  the checker holds. On the catch case, `check --no-tsc` exits 0 under the
+  published 0.1.152 and 1 here, with E0237.
 
 - **G386. `||`, `&&` and `!` accept numbers and strings.** `return requested || 3` with `requested: number` returns `3` for a real `0`,
   and `match !discount_pct { ... }` treats `0` as false and gives `90`. Glyph has

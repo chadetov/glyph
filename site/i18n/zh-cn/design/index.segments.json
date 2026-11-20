@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "design/index.html",
   "locale": "zh-cn",
-  "source_hash": "28891a173ca9e4a0",
+  "source_hash": "b519aa42b5487ebc",
   "segments": [
     {
       "id": "title",
@@ -143,24 +143,6 @@
       "tr": "支柱 03"
     },
     {
-      "id": "h-93a58670",
-      "kind": "html",
-      "en": "Diff stability",
-      "tr": "稳定的 diff"
-    },
-    {
-      "id": "h-0a940571",
-      "kind": "html",
-      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
-      "tr": "改一行就是一行 diff。只有一种标准排版：列表放得下时写在一行，放不下时每个元素一行，从不重新打包，使用尾随逗号，没有 barrel 文件，也没有选项，所以同样的代码在每个项目里打印出来都一样。审查者看到的是改动本身，而不是无关的变动。"
-    },
-    {
-      "id": "h-80299b6d",
-      "kind": "html",
-      "en": "Pillar 04",
-      "tr": "支柱 04"
-    },
-    {
       "id": "h-6e4fdd69",
       "kind": "html",
       "en": "Abstraction",
@@ -171,6 +153,24 @@
       "kind": "html",
       "en": "Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.",
       "tr": "表达你的本意：用模式匹配代替一长串 switch，用 <code>Result</code> 代替抛出异常，用具名记录代替元组，建立在一个小而正交的核心之上，而不是 TypeScript 那样层层堆积的特性。"
+    },
+    {
+      "id": "h-80299b6d",
+      "kind": "html",
+      "en": "Pillar 04",
+      "tr": "支柱 04"
+    },
+    {
+      "id": "h-93a58670",
+      "kind": "html",
+      "en": "Diff stability",
+      "tr": "稳定的 diff"
+    },
+    {
+      "id": "h-0a940571",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
+      "tr": "改一行就是一行 diff。只有一种标准排版：列表放得下时写在一行，放不下时每个元素一行，从不重新打包，使用尾随逗号，没有 barrel 文件，也没有选项，所以同样的代码在每个项目里打印出来都一样。审查者看到的是改动本身，而不是无关的变动。"
     },
     {
       "id": "h-8bfd62a3",

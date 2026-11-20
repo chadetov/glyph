@@ -75,6 +75,8 @@ generates its count of the newest month's releases and the dates it covers from
 the release notes (`{{releases:month-count}}`, `{{releases:month-start}}`,
 `{{releases:latest-date}}`) instead of writing them by hand.
 
+**2026-11-21 · One pillar order everywhere.** The site's pillar menu, the pillar pages' numbering and previous/next links, the `/design/` cards and the README now follow the manifesto's order: verifiability, greppability, abstraction, diff stability.
+
 ## Next
 
 1. **Launch readiness.** An "Open in playground" link on each case on
@@ -92,10 +94,6 @@ the release notes (`{{releases:month-count}}`, `{{releases:month-start}}`,
 5. **Translation polish.** Shorten translated descriptions that run past search
    result length; one number format policy across languages; remove the unused
    `Reference` menu key.
-6. **One pillar order.** The manifesto lists abstraction third and diff
-   stability fourth; the site's pillar pages and the README list diff stability
-   third and abstraction fourth. Awaiting a decision on which order is the
-   canonical one, then applied to the other side.
-7. **Launch.** Show HN, then r/typescript and the other channels in the launch
+6. **Launch.** Show HN, then r/typescript and the other channels in the launch
    plan, posted by the author. Target: the week of 8 December 2026, or mid
    January.

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/greppability/index.html",
   "locale": "de",
-  "source_hash": "dc081d192bed2b9f",
+  "source_hash": "7d5d7e45736ff422",
   "segments": [
     {
       "id": "title",
@@ -37,7 +37,7 @@
     {
       "id": "next.title",
       "kind": "next.title",
-      "en": "Diff stability: a one-line change is a one-line diff",
+      "en": "Abstraction: a small, orthogonal core",
       "tr": "Stabile Diffs: Eine einzeilige Änderung ist ein einzeiliger Diff"
     },
     {

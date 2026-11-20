@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "design/index.html",
   "locale": "ja",
-  "source_hash": "28891a173ca9e4a0",
+  "source_hash": "b519aa42b5487ebc",
   "segments": [
     {
       "id": "title",
@@ -143,24 +143,6 @@
       "tr": "柱 03"
     },
     {
-      "id": "h-93a58670",
-      "kind": "html",
-      "en": "Diff stability",
-      "tr": "差分の安定性"
-    },
-    {
-      "id": "h-0a940571",
-      "kind": "html",
-      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
-      "tr": "1 行の変更は 1 行の差分になります。正規のレイアウトは 1 つだけです。リストは収まる間は 1 行に書き、収まらなければ 1 要素 1 行にして、詰め直すことはしません。末尾のカンマがあり、バレルファイルもオプションもないので、同じコードはどのプロジェクトでも同じように出力されます。レビュアーが読むのは変更そのもので、無関係な書き換えではありません。"
-    },
-    {
-      "id": "h-80299b6d",
-      "kind": "html",
-      "en": "Pillar 04",
-      "tr": "柱 04"
-    },
-    {
       "id": "h-6e4fdd69",
       "kind": "html",
       "en": "Abstraction",
@@ -171,6 +153,24 @@
       "kind": "html",
       "en": "Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.",
       "tr": "意図をそのまま書く：switch の連なりではなくパターンマッチ、throw される例外ではなく <code>Result</code>、タプルではなく名前付きのレコード。TypeScript のように積み重なった層ではなく、小さく直交したコアから組み立てます。"
+    },
+    {
+      "id": "h-80299b6d",
+      "kind": "html",
+      "en": "Pillar 04",
+      "tr": "柱 04"
+    },
+    {
+      "id": "h-93a58670",
+      "kind": "html",
+      "en": "Diff stability",
+      "tr": "差分の安定性"
+    },
+    {
+      "id": "h-0a940571",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
+      "tr": "1 行の変更は 1 行の差分になります。正規のレイアウトは 1 つだけです。リストは収まる間は 1 行に書き、収まらなければ 1 要素 1 行にして、詰め直すことはしません。末尾のカンマがあり、バレルファイルもオプションもないので、同じコードはどのプロジェクトでも同じように出力されます。レビュアーが読むのは変更そのもので、無関係な書き換えではありません。"
     },
     {
       "id": "h-8bfd62a3",

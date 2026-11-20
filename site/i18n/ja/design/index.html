@@ -1,7 +1,7 @@
 ---
 title: 設計 · 4 つの柱と設計判断 · Glyph
 description: Glyph の設計の考え方。すべての判断の基準となる 4 つの柱、仕様にある番号付きの設計判断、そして言語が意図的に入れなかったもの。
-source_hash: 28891a173ca9e4a0
+source_hash: b519aa42b5487ebc
 next_steps: |
   次に読むもの
   おすすめ | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | 仕様を読む | 番号付きの設計判断すべて。それぞれの最後に、どの柱に資するかが書かれています。 | 仕様を開く
@@ -25,8 +25,8 @@ next_steps: |
       <div class="ans-cards">
         <a class="a-card" href="/pillars/verifiability/"><span class="n">柱 01</span><span class="q">検証可能性</span><p><code>any</code> も、書ける <code>as</code> もありません。<code>match</code> はすべてのケースを扱わなければならず、レコード型とユニオン型からは厳密な実行時バリデータが生成されるので、境界を越える値は前提とされるのではなく検査されます。<code>tsc</code> の上に載った、無効にできない厳密な層です。<code>tsc --strict</code> が受け入れるミスの多くは、ここではコンパイルが通りません。まだ通ってしまうものは<a href="/catches/#not-yet">まだ検出できないもの</a>に載せています。</p></a>
         <a class="a-card" href="/pillars/greppability/"><span class="n">柱 02</span><span class="q">grep しやすさ</span><p>1 つの名前に 1 つの場所。すべてのシンボルは宣言の場所でただ 1 つの構文形式を持ち、オーバーロードも、デコレータも、暗黙の <code>this</code> も、namespace のマージもありません。<code>grep "fn parseUser"</code> で定義が見つかります。</p></a>
-        <a class="a-card" href="/pillars/diff-stability/"><span class="n">柱 03</span><span class="q">差分の安定性</span><p>1 行の変更は 1 行の差分になります。正規のレイアウトは 1 つだけです。リストは収まる間は 1 行に書き、収まらなければ 1 要素 1 行にして、詰め直すことはしません。末尾のカンマがあり、バレルファイルもオプションもないので、同じコードはどのプロジェクトでも同じように出力されます。レビュアーが読むのは変更そのもので、無関係な書き換えではありません。</p></a>
-        <a class="a-card" href="/pillars/abstraction/"><span class="n">柱 04</span><span class="q">抽象化</span><p>意図をそのまま書く：switch の連なりではなくパターンマッチ、throw される例外ではなく <code>Result</code>、タプルではなく名前付きのレコード。TypeScript のように積み重なった層ではなく、小さく直交したコアから組み立てます。</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">柱 03</span><span class="q">抽象化</span><p>意図をそのまま書く：switch の連なりではなくパターンマッチ、throw される例外ではなく <code>Result</code>、タプルではなく名前付きのレコード。TypeScript のように積み重なった層ではなく、小さく直交したコアから組み立てます。</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">柱 04</span><span class="q">差分の安定性</span><p>1 行の変更は 1 行の差分になります。正規のレイアウトは 1 つだけです。リストは収まる間は 1 行に書き、収まらなければ 1 要素 1 行にして、詰め直すことはしません。末尾のカンマがあり、バレルファイルもオプションもないので、同じコードはどのプロジェクトでも同じように出力されます。レビュアーが読むのは変更そのもので、無関係な書き換えではありません。</p></a>
       </div>
 
       <div class="detail">

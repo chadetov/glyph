@@ -111,14 +111,14 @@ harming the others, it ships.
 2. **Greppability.** Every symbol has one syntactic form at its declaration
    site: no overloads, no renaming decorators, no implicit `this`, no
    declaration merging. `grep` finds the definition.
-3. **Diff stability.** A one-line change produces a one-line diff. `glyph fmt`
-   has one layout and no options, and the layout depends only on the code, not
-   on how the input happened to be wrapped.
-4. **Abstraction.** Express intent at the level the writer is thinking: pattern
+3. **Abstraction.** Express intent at the level the writer is thinking: pattern
    matching over `if`/`else` ladders, `Result` over thrown exceptions, named
    records over positional tuples.
+4. **Diff stability.** A one-line change produces a one-line diff. `glyph fmt`
+   has one layout and no options, and the layout depends only on the code, not
+   on how the input happened to be wrapped.
 
-Verifiability and greppability are the wedge. Diff stability and abstraction are
+Verifiability and greppability are the wedge. Abstraction and diff stability are
 the polish.
 
 These are properties of the language rather than of a project's settings.

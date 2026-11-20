@@ -1,7 +1,7 @@
 ---
 title: Design · die vier Säulen und die Entscheidungen · Glyph
 description: Die Begründung hinter Glyph: vier Säulen, an denen jede Entscheidung gemessen wird, die nummerierten Entscheidungen in der Spezifikation und was die Sprache bewusst weglässt.
-source_hash: 28891a173ca9e4a0
+source_hash: b519aa42b5487ebc
 next_steps: |
   Wie es weitergeht
   Empfohlen | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | Die Spezifikation lesen | Jede nummerierte Entscheidung, jede endet mit der Säule, der sie dient. | Spezifikation öffnen
@@ -25,8 +25,8 @@ next_steps: |
       <div class="ans-cards">
         <a class="a-card" href="/pillars/verifiability/"><span class="n">Säule 01</span><span class="q">Überprüfbarkeit</span><p>Kein <code>any</code> und kein <code>as</code>, das du schreiben könntest; <code>match</code> muss jeden Fall abdecken; und deine Record- und Union-Typen erzeugen strikte Laufzeitvalidatoren, also wird ein Wert an der Systemgrenze geprüft statt angenommen. Eine strikte Schicht über <code>tsc</code>, die sich nicht abschalten lässt. Viele Fehler, die <code>tsc --strict</code> akzeptiert, kompilieren hier nicht; die, bei denen es noch geht, stehen unter <a href="/catches/#not-yet">noch nicht erkannt</a>.</p></a>
         <a class="a-card" href="/pillars/greppability/"><span class="n">Säule 02</span><span class="q">Durchsuchbarkeit</span><p>Ein Name, eine Stelle. Jedes Symbol hat an seiner Deklaration genau eine syntaktische Form, ohne Overloads, Decorators, implizites <code>this</code> oder zusammengeführte Namespaces. <code>grep "fn parseUser"</code> findet die Definition.</p></a>
-        <a class="a-card" href="/pillars/diff-stability/"><span class="n">Säule 03</span><span class="q">Stabile Diffs</span><p>Eine einzeilige Änderung ist ein einzeiliger Diff. Ein kanonisches Layout: Eine Liste steht in einer Zeile, solange sie passt, und ein Element pro Zeile, wenn nicht, wird nie neu umbrochen, mit Trailing Commas, ohne Barrel-Dateien und ohne Optionen, sodass derselbe Code in jedem Projekt gleich formatiert wird. Reviewer lesen die Änderung, nicht das Rauschen.</p></a>
-        <a class="a-card" href="/pillars/abstraction/"><span class="n">Säule 04</span><span class="q">Abstraktion</span><p>Sag, was du meinst: Pattern Matching statt switch-Kaskaden, <code>Result</code> statt geworfener Exceptions, benannte Records statt Tupel, aus einem kleinen, orthogonalen Kern statt aus den angesammelten Schichten von TypeScript.</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">Säule 03</span><span class="q">Abstraktion</span><p>Sag, was du meinst: Pattern Matching statt switch-Kaskaden, <code>Result</code> statt geworfener Exceptions, benannte Records statt Tupel, aus einem kleinen, orthogonalen Kern statt aus den angesammelten Schichten von TypeScript.</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">Säule 04</span><span class="q">Stabile Diffs</span><p>Eine einzeilige Änderung ist ein einzeiliger Diff. Ein kanonisches Layout: Eine Liste steht in einer Zeile, solange sie passt, und ein Element pro Zeile, wenn nicht, wird nie neu umbrochen, mit Trailing Commas, ohne Barrel-Dateien und ohne Optionen, sodass derselbe Code in jedem Projekt gleich formatiert wird. Reviewer lesen die Änderung, nicht das Rauschen.</p></a>
       </div>
 
       <div class="detail">

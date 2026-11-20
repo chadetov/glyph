@@ -81,4 +81,4 @@ Records and `where` types report the failing rule, not just the failing field: `
 
 Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written `.d.ts`, still gets the flat check and a `"type"` issue; the compiler does not synthesize a descriptor for those, and running `glyph gen dts` on the declaration is what gives them one. A module that declares its own type called `Issue` used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is `E0110` at the line that names the type, so you find out where the problem is instead of reading a `tsc` error about generated code.
 
-Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 20 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.152 on every build. Last changed 20 Nov 2026.

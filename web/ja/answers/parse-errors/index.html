@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="メイン">
         <div class="nav-brand">
           <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.151</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.152</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -571,7 +571,7 @@ type        []            expected Signup (an object), got an array</pre>
           <h3 class="h">改善中</h3>
           <p>限界が 2 つあります。独自のディスクリプタを持たないもの、つまり制約のない型パラメータや、手書きの <code>.d.ts</code> から import した型で型付けされたフィールドは、今も平坦な検査と <code>"type"</code> の問題になります。コンパイラはそれらのディスクリプタを合成しないので、その宣言に <code>glyph gen dts</code> を実行するとディスクリプタが得られます。また、<code>Issue</code> という名前の型を独自に宣言したモジュールは、以前は出力されたファイルの中で prelude の型を覆い隠し、そのモジュールのディスクリプタをすべて壊していました。0.1.60 以降、その宣言は型名を書いた行で <code>E0110</code> になるので、生成されたコードについての <code>tsc</code> エラーを読む代わりに、問題の場所がわかります。</p>
         </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.151 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.152 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/early-errors/">

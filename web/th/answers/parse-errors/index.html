@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="เมนูหลัก">
         <div class="nav-brand">
           <a href="/th/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="บันทึกประจำรุ่น">v0.1.151</a>
+          <a href="/versions/" class="nav-version" title="บันทึกประจำรุ่น">v0.1.152</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -571,7 +571,7 @@ type        []            expected Signup (an object), got an array</pre>
           <h3 class="h">กำลังคมขึ้น</h3>
           <p>มีสองขอบ field ที่ type ไม่มี descriptor ของตัวเอง เช่น type parameter ที่ไม่มีข้อจำกัด หรือ type ที่ import จาก <code>.d.ts</code> ที่เขียนเอง ยังได้การตรวจแบบแบนและปัญหา <code>"type"</code> คอมไพเลอร์ไม่สังเคราะห์ descriptor ให้สิ่งเหล่านั้น และการรัน <code>glyph gen dts</code> กับ declaration คือสิ่งที่ให้ descriptor แก่มัน module ที่ประกาศ type ของตัวเองชื่อ <code>Issue</code> เคยบังตัวใน prelude ภายในไฟล์ที่ emit และทำให้ทุก descriptor ใน module นั้นพัง ตั้งแต่ 0.1.60 declaration นั้นเป็น <code>E0110</code> ที่บรรทัดที่ตั้งชื่อ type คุณจึงรู้ว่าปัญหาอยู่ตรงไหน แทนที่จะต้องอ่าน error ของ <code>tsc</code> เกี่ยวกับโค้ดที่ generate</p>
         </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.151 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.152 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
       </div>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/early-errors/">

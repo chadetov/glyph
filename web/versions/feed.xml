@@ -8,6 +8,13 @@
   <updated>2026-11-20T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.152 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.152" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.152</id>
+    <updated>2026-11-20T00:00:00Z</updated>
+    <summary>A null in an optional field is refused, and the error names the type that accepts it</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.151 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.151" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.151</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-09/#0.1.123</id>
     <updated>2026-09-18T00:00:00Z</updated>
     <summary>A string literal now has the type it spells</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.122 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-09/#0.1.122" />
-    <id>https://glyphlang.io/versions/2026-09/#0.1.122</id>
-    <updated>2026-09-15T00:00:00Z</updated>
-    <summary>A type that lists its legal strings now rejects the illegal ones</summary>
   </entry>
 </feed>

@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Principal">
         <div class="nav-brand">
           <a href="/pt-br/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Notas de versão">v0.1.151</a>
+          <a href="/versions/" class="nav-version" title="Notas de versão">v0.1.152</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -616,7 +616,7 @@
           <h3 class="h">O limite, e o que vem depois</h3>
           <p>Um comentário é sempre emitido na própria linha, então um escrito no fim de uma linha de código (<code>w: int, // width in cells</code>) vai para a linha acima do próximo item. Ele não cruza mais uma fronteira de declaração, mas se move; mantê-lo no fim da linha exige que o printer saiba com qual linha o comentário divide espaço. Um comentário onde o layout não tem onde colocá-lo, como dentro de um índice, depois dos argumentos de uma chamada no meio de uma cadeia, ou antes de um operando de <code>!</code> ou <code>await</code>, não é mais movido: o <code>glyph fmt</code> recusa o arquivo, deixa como estava e diz a linha e onde pôr o comentário, e o <code>glyph check</code> reporta a mesma coisa como warning E0500. Um comentário entre atributos JSX ou entre os campos de um object pattern também é recusado, em casos em que um layout de um por linha poderia acomodá-lo; esses layouts estão na lista. O printer também ainda não tem regra para quebrar uma cadeia longa de métodos ou de <code>+</code>, então uma cadeia comprida demais quebra a lista de argumentos mais interna, que é o lugar errado. Também estamos montando um benchmark de tamanho de diff contra as mesmas edições em TypeScript, para que este pilar seja um número que você possa conferir.</p>
         </div>
-        <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.151 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+        <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.152 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/answers/verifiability/">

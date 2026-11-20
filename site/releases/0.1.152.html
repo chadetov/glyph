@@ -1,0 +1,21 @@
+---
+version: 0.1.152
+month: 2026-11
+date: 2026-11-20
+tags: breaking
+headline: A null in an optional field is refused, and the error names the type that accepts it
+---
+            <p>An optional field <code>f?: T</code> now means an absent key or a <code>T</code>. A key holding <code>null</code> is refused unless <code>T</code> is <code>Nullable</code>, and so is a key holding <code>undefined</code> from host code.</p>
+
+            <p>Before this release a <code>null</code> there passed the check and stayed in the value, while the type said <code>number</code>. With <code>type Opts = { timeout_ms?: number }</code>, decoding <code>{"timeout_ms": null}</code> succeeded, <code>{ timeout_ms: 5000, ...opts }</code> overwrote the default with <code>null</code>, and <code>cfg.timeout_ms * 2</code> came out as <code>0</code>. An <code>Option</code> field holding <code>null</code> decoded and then crashed in the first <code>match</code>. Now the decode fails at the field:</p>
+
+<pre><code>[{"path":["timeout_ms"],"message":"field `timeout_ms` is null; declare it `timeout_ms?: Nullable&lt;number&gt;` to accept null","code":"type"}]</code></pre>
+
+            <p>The suggested type always compiles. It follows aliases, so a field typed <code>MaybeInt</code> with <code>type MaybeInt = Option&lt;int&gt;</code> is told <code>Nullable&lt;int&gt;</code>, not the <code>Nullable&lt;MaybeInt&gt;</code> that Glyph would refuse. Where no spelling would work, the message says so instead of guessing. A test compiles every suggestion the suite produces.</p>
+
+            <p>Every way of checking a value gives the same answer: <code>json.parse&lt;T&gt;</code>, <code>T.parse</code>, <code>T.is</code>, an <code>is T</code> pattern, <code>T.schema</code> and <code>json.parse_with</code>, at any depth, in arrays, maps, generics and union payloads. To accept null, declare the field <code>f?: Nullable&lt;T&gt;</code>.</p>
+
+            <p>This reverses the 0.1.68 rule that read a <code>null</code> in an optional field as absence. Both reasons for it are gone: no generator writes a <code>?</code> field expecting null any more, and <code>Nullable</code> is the spelling for "absent, null or a value".</p>
+
+            <h3>Breaking</h3>
+            <p>At run time only. <code>json.parse&lt;Opts&gt;("{\"timeout_ms\": null}")</code> is <code>Ok</code> in 0.1.151 and an <code>Err</code> at <code>["timeout_ms"]</code> here, and <code>is</code> answers <code>false</code> on the same input. <code>glyph check</code> gives the same exit code on every program. No file in the repository, none of the 32 example apps and neither outside app we test against decodes a null into an optional field.</p>

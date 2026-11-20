@@ -20,58 +20,23 @@
 // It stays optional: a schema over a type with no descriptor still has a
 // guard and nothing deeper to report.
 //
-// Depth (D50, G369). A generated check refuses a value nested more than
-// `MAX_DEPTH` objects and arrays deep, counted as JSON nests them: the root
-// object or array is depth 1, an `Option` or union `{ tag, value }` object
-// counts like any other, and only the parts the type walks are counted (an
-// `unknown` field is not entered). Every generated check takes the depth of
-// the value it is handed as a parameter (`T.__is(value, depth)`,
-// `T.__parse(value, depth)`, a generic descriptor's checker
-// `(v, depth) => boolean`), and compares it once per object or array it
-// enters. Past the limit the check throws a private sentinel through
-// `too_deep()`. The sentinel is caught only where a check's answer leaves
-// the generated code: a public `T.is` / `is T` answers `false`
-// (`depth_refused`, `within`), and a `parse` answers one issue built by
-// `depth_issue`, at the path the part's `type` issue would carry, with
-// `code: "depth"`, and nothing else beside it. Nothing else is caught: a
-// `RangeError` or a host checker's own exception propagates unchanged. `JSON.parse` itself has no
-// limit; the untyped `json.parse(text)` decodes any depth and checks nothing.
+// Depth (D50, G369). Every generated check refuses a value nested more than
+// `MAX_DEPTH` objects and arrays deep. The limit is exported here, as the
+// public contract a program may read; the helpers the generated checks call
+// to enforce it, and the private sentinel they throw, live in
+// `../internal/depth`, which no Glyph program can import, so no Glyph code
+// can throw the sentinel or forge a depth refusal. The factory below hands
+// `is_at` and `parse_at` the depth of the value they check, 1 at the root,
+// and an `array()` schema checks its elements one level under the array.
 
 import { type Result, Ok, Err } from "./result";
 
+import { MAX_DEPTH as LIMIT, depth_issue, depth_refused, every_at, too_deep } from "../internal/depth";
+
 /// The deepest a value may nest, in objects and arrays, for a generated check
-/// to accept it (D50). Emitted code refers to it by this name.
-export const MAX_DEPTH = 1000;
-
-class TooDeep {}
-const TOO_DEEP = new TooDeep();
-
-/// Refuse the value being checked: it nests deeper than `MAX_DEPTH`. Throws
-/// the private sentinel that only `depth_refused` and the `parse` entries
-/// recognise.
-export function too_deep(): never {
-  throw TOO_DEEP;
-}
-
-/// The answer of a public `is` whose check threw `e`: `false` for the depth
-/// sentinel, and `e` rethrown for anything else.
-export function depth_refused(e: unknown): false {
-  if (e === TOO_DEEP) {
-    return false;
-  }
-  throw e;
-}
-
-/// Run `check` for a public `is` that walks deeper than its own entry (an
-/// `is Array<T>` or `is Record<K, V>` pattern): its answer, or `false` when
-/// it threw the depth sentinel.
-export function within(check: () => boolean): boolean {
-  try {
-    return check();
-  } catch (e: unknown) {
-    return depth_refused(e);
-  }
-}
+/// to accept it (D50). The value is defined once, in `../internal/depth`, and
+/// emitted code names it `MAX_DEPTH` too.
+export const MAX_DEPTH: number = LIMIT;
 
 /// Run a check for a schema built from a guard alone: its answer, or
 /// `undefined` when it threw the depth sentinel. Anything else it throws
@@ -80,41 +45,9 @@ function depth_checked(check: () => boolean): boolean | undefined {
   try {
     return check();
   } catch (e: unknown) {
-    if (e === TOO_DEEP) {
-      return undefined;
-    }
-    throw e;
+    depth_refused(e);
+    return undefined;
   }
-}
-
-/// Whether `check` holds for every one of `items`, each handed `depth`: the
-/// walk a generated check makes over an array's elements or a `Record`'s
-/// values when their depth is not a constant. The depth is an argument
-/// rather than captured by the per-part closure, which would allocate on
-/// every call of the check that holds it. A hole in a sparse array is
-/// skipped, as `Array.prototype.every` skips it, so the answer does not
-/// depend on which of the two walks a check was emitted with.
-export function every_at(
-  items: ReadonlyArray<unknown>,
-  depth: number,
-  check: (value: unknown, depth: number) => boolean,
-): boolean {
-  for (let i = 0; i < items.length; i++) {
-    if (!check(items[i], depth) && i in items) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/// The one issue a `parse` reports for a value nested deeper than
-/// `MAX_DEPTH`, at `path`.
-export function depth_issue(path: ReadonlyArray<string | number>): Issue {
-  return {
-    path,
-    message: `nested more than ${MAX_DEPTH} objects and arrays deep`,
-    code: "depth",
-  };
 }
 
 export function schema<T>(
@@ -141,7 +74,7 @@ export function schema<T>(
       const is_each = (value: unknown, depth: number): value is Array<T> =>
         Array.isArray(value) &&
         (depth <= MAX_DEPTH || too_deep()) &&
-        value.every((item) => is_at(item, depth + 1));
+        every_at(value, depth + 1, is_at);
       // Element failures keep their own paths, prefixed by the index, so a bad
       // third row reports `2.port` rather than `expected T[]`.
       const parse_each =

@@ -10,7 +10,8 @@ of `glyph build` against real types rather than `any`.
 |---|---|
 | `std/result.ts` | The `Result<T, E>` type + `Ok`/`Err`, with `map`/`map_err`. Real runtime: the flat `{ tag, value }` wire format the emitter targets. |
 | `std/option.ts` | The `Option<T>` type + `Some`/`None`, same wire format. |
-| `std/schema.ts` | The `schema()` factory behind a record type's auto-generated `T.schema` member (it carries the recursive `array()`). |
+| `std/schema.ts` | The `schema()` factory behind a record type's auto-generated `T.schema` member (it carries the recursive `array()`), and `MAX_DEPTH`, the depth limit every generated check obeys (D50). |
+| `internal/depth.ts` | The depth limit's enforcement: the private sentinel and the helpers emitted checks call. Not a `std` module, so no Glyph program can import it. |
 | `glyph-prelude.d.ts` | The names usable without an import: `par`, `print`, the `number` namespace, and the `Schema<T>` / `Issue` types. |
 | `glyph-stdlib.d.ts` | Type declarations for the v1 stdlib modules (`std/array`, `string`, `io`, `json`, `fs`, `process`, `http`, `time`). Higher-order functions are generic so callback parameters infer from the call site. |
 

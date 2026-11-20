@@ -918,6 +918,10 @@ const DEPTH_PARAM: &str = "__d";
 /// `(v, depth) => boolean`) takes the depth of its value in.
 const CHECKER_DEPTH_PARAM: &str = "__cd";
 
+/// The parameter the per-part check of an array or `Record` walk takes its
+/// depth in, when the walk goes through `std/schema`'s `every_at` (D50).
+const PART_DEPTH_PARAM: &str = "__pd";
+
 /// The depth (D50) of a value a check is built for: `base + offset`, where
 /// `base` is a depth parameter in scope (`__d`, `__cd`), or a literal
 /// `offset` when `base` is empty (the root of an `is` pattern is `1`).
@@ -2783,13 +2787,14 @@ impl<'a> Emitter<'a> {
         checker_params: &str,
         checker_args: &str,
     ) {
+        let v = Self::wrapper_param(name);
         self.line(&format!(
-            "is{decl_generics}(value: unknown{checker_params}): value is {name}{type_args} {{"
+            "is{decl_generics}({v}: unknown{checker_params}): {v} is {name}{type_args} {{"
         ));
         self.indent += 1;
         self.line("try {");
         self.indent += 1;
-        self.line(&format!("return {name}.__is{type_args}(value, 1{checker_args});"));
+        self.line(&format!("return {name}.__is{type_args}({v}, 1{checker_args});"));
         self.indent -= 1;
         self.line("} catch (__caught) {");
         self.indent += 1;
@@ -2811,13 +2816,25 @@ impl<'a> Emitter<'a> {
         checker_params: &str,
         checker_args: &str,
     ) {
+        let v = Self::wrapper_param(name);
         self.line(&format!(
-            "parse{decl_generics}(value: unknown{checker_params}): {RESULT_TY}<{self_ty}, Issue[]> {{"
+            "parse{decl_generics}({v}: unknown{checker_params}): {RESULT_TY}<{self_ty}, Issue[]> {{"
         ));
         self.indent += 1;
-        self.line(&format!("return {name}.__parse{type_args}(value, 1{checker_args});"));
+        self.line(&format!("return {name}.__parse{type_args}({v}, 1{checker_args});"));
         self.indent -= 1;
         self.line("},");
+    }
+
+    /// The parameter a descriptor's public `is` and `parse` take the value
+    /// in. Both call the descriptor by name, so a type named `value` would be
+    /// shadowed by the usual `value` parameter; it gets `__value` instead.
+    fn wrapper_param(name: &str) -> &'static str {
+        if name == "value" {
+            "__value"
+        } else {
+            "value"
+        }
     }
 
     /// Q8/Q40 `T.schema`: a `Schema<T>` built by the prelude factory (which
@@ -3134,22 +3151,26 @@ impl<'a> Emitter<'a> {
                     ))
                 );
                 if throws {
-                    // The check can be refused for depth (D50): run it where
-                    // the sentinel is caught, and report the refusal at this
-                    // field's path as the record's only issue.
-                    let ok = format!("__c{index}");
+                    // The check can be refused for depth (D50): run it in a
+                    // `try` that catches only the sentinel, and report the
+                    // refusal at this field's path as the record's only issue.
                     let run = |this: &mut Self| {
-                        this.line(&format!(
-                            "const {ok} = {}(() => {check});",
-                            this.depth_name("depth_checked")
-                        ));
-                        this.line(&format!(
-                            "if ({ok} === undefined) return {ERR_CTOR}([{}([\"{fname}\"])]);",
-                            this.depth_name("depth_issue")
-                        ));
-                        this.line(&format!("if (!{ok}) {{"));
+                        this.line("try {");
+                        this.indent += 1;
+                        this.line(&format!("if (!({check})) {{"));
                         this.indent += 1;
                         this.line(&type_issue);
+                        this.indent -= 1;
+                        this.line("}");
+                        this.indent -= 1;
+                        this.line("} catch (__caught) {");
+                        this.indent += 1;
+                        // Rethrows anything but the depth sentinel.
+                        this.line(&format!("{}(__caught);", this.depth_name("depth_refused")));
+                        this.line(&format!(
+                            "return {ERR_CTOR}([{}([\"{fname}\"])]);",
+                            this.depth_name("depth_issue")
+                        ));
                         this.indent -= 1;
                         this.line("}");
                     };
@@ -3420,25 +3441,30 @@ impl<'a> Emitter<'a> {
         // one. A depth refusal is reported as such, not as `expected Shape`.
         self.used_result.set(true);
         self.emit_public_parse(name, "", "", name, "", "");
+        let v = Self::wrapper_param(name);
         self.line(&format!(
-            "__parse(value: unknown, {DEPTH_PARAM}: number): {RESULT_TY}<{name}, Issue[]> {{"
+            "__parse({v}: unknown, {DEPTH_PARAM}: number): {RESULT_TY}<{name}, Issue[]> {{"
         ));
         self.indent += 1;
-        self.line(&format!(
-            "const __ok = {}(() => {name}.__is(value, {DEPTH_PARAM}));",
-            self.depth_name("depth_checked")
-        ));
-        self.line(&format!(
-            "if (__ok === undefined) return {ERR_CTOR}([{}([])]);",
-            self.depth_name("depth_issue")
-        ));
-        self.line("return __ok");
+        self.line("try {");
         self.indent += 1;
-        self.line(&format!("? {OK_CTOR}(value as {name})"));
+        self.line(&format!("return {name}.__is({v}, {DEPTH_PARAM})"));
+        self.indent += 1;
+        self.line(&format!("? {OK_CTOR}({v})"));
         self.line(&format!(
             ": {ERR_CTOR}([{{ path: [], message: \"expected {name}\" }}]);"
         ));
+        self.indent -= 2;
+        self.line("} catch (__caught) {");
+        self.indent += 1;
+        // Rethrows anything but the depth sentinel.
+        self.line(&format!("{}(__caught);", self.depth_name("depth_refused")));
+        self.line(&format!(
+            "return {ERR_CTOR}([{}([])]);",
+            self.depth_name("depth_issue")
+        ));
         self.indent -= 1;
+        self.line("}");
         self.indent -= 1;
         self.line("},");
         self.emit_schema_member(name);
@@ -7057,6 +7083,48 @@ impl<'a> Emitter<'a> {
         self.at_depth(self.depth().deeper(), f)
     }
 
+    /// The walk `items.every(...)` over a container's parts, each one level
+    /// under the container, with `part` building the check of one part
+    /// (bound to `var`). `items` is parenthesized before `.every` when
+    /// `paren` says it is an `as` expression.
+    ///
+    /// When the parts' depth is a parameter (`__d + 2`) and their check reads
+    /// it, the walk is `every_at(items, depth, (var, __pd) => check)` instead:
+    /// the depth is handed to the per-part check as an argument rather than
+    /// captured, because a closure capturing `__d` allocates a context on
+    /// every call of the check holding it, which cost a wide tree 10-25% of
+    /// its check time. A literal depth (an `is` pattern's root) and a part
+    /// check that never reads the depth (`Array<int>`) keep the plain
+    /// `.every`, whose closure captures nothing new.
+    fn every_part<E>(
+        &self,
+        items: &str,
+        paren: bool,
+        var: &str,
+        part: impl FnOnce() -> Result<String, E>,
+    ) -> Result<String, E> {
+        let member = if paren { format!("({items})") } else { items.to_string() };
+        let depth = self.depth().deeper();
+        if depth.base.is_empty() {
+            let check = self.at_depth(depth, part)?;
+            return Ok(format!("{member}.every(({var}: unknown) => {check})"));
+        }
+        let outer_throws = self.depth_throws.replace(false);
+        let check = self.at_depth(Depth::param(PART_DEPTH_PARAM), part);
+        let reads_depth = self.depth_throws.get();
+        self.depth_throws.set(outer_throws || reads_depth);
+        let check = check?;
+        if reads_depth || check.contains(PART_DEPTH_PARAM) {
+            Ok(format!(
+                "{}({items}, {}, ({var}: unknown, {PART_DEPTH_PARAM}: number) => {check})",
+                self.depth_name("every_at"),
+                depth.render()
+            ))
+        } else {
+            Ok(format!("{member}.every(({var}: unknown) => {check})"))
+        }
+    }
+
     /// The aliased name of `std/schema`'s depth-limit export `name`, recorded
     /// so the module imports it.
     fn depth_name(&self, name: &'static str) -> String {
@@ -7601,12 +7669,17 @@ impl<'a> Emitter<'a> {
                 // rendering that descriptor call.
                 match (shape, base_name, args.as_slice()) {
                     (TypeShape::Array, _, [elem]) => {
-                        let elem_check = match self.one_deeper(|| self.part_check(elem, "__e", origin)) {
+                        let walk = match self.every_part(
+                            &format!("{access} as ReadonlyArray<unknown>"),
+                            true,
+                            "__e",
+                            || self.part_check(elem, "__e", origin),
+                        ) {
                             Ok(c) => c,
                             Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
                         FieldCheck::Deep(format!(
-                            "{}.isArray({access}){} && ({access} as ReadonlyArray<unknown>).every((__e: unknown) => {elem_check})",
+                            "{}.isArray({access}){} && {walk}",
                             self.g("Array"),
                             self.depth_conjunct()
                         ))
@@ -7649,7 +7722,12 @@ impl<'a> Emitter<'a> {
                     // and check every key against `K` (G367), which for
                     // `string` adds nothing.
                     (TypeShape::Record, _, [key, value]) => {
-                        let value_check = match self.one_deeper(|| self.part_check(value, "__v", origin)) {
+                        let walk = match self.every_part(
+                            &format!("{}.values({access} as Record<string, unknown>)", self.g("Object")),
+                            false,
+                            "__v",
+                            || self.part_check(value, "__v", origin),
+                        ) {
                             Ok(c) => c,
                             Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
@@ -7658,9 +7736,8 @@ impl<'a> Emitter<'a> {
                             Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
                         FieldCheck::Deep(format!(
-                            "(typeof {access} === \"object\" && {access} !== null && !{arr}.isArray({access}){guard} && {obj}.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}){keys})",
+                            "(typeof {access} === \"object\" && {access} !== null && !{arr}.isArray({access}){guard} && {walk}{keys})",
                             arr = self.g("Array"),
-                            obj = self.g("Object"),
                             guard = self.depth_conjunct()
                         ))
                     }
@@ -11306,7 +11383,7 @@ mod tests {
         // Nested record field: recurses through the field type's descriptor
         // (G4), not a shallow presence check.
         assert!(
-            ts.contains("User.is((value as Record<string, unknown>).parent)"),
+            ts.contains("User.__is((value as Record<string, unknown>).parent, __d + 1)"),
             "{ts}"
         );
     }
@@ -11465,7 +11542,7 @@ mod tests {
             "module x\npub type Password = string where value.length >= 8\npub type Signup = { password: Password }\n",
         );
         assert!(
-            ts.contains("const __r0 = Password.parse((value as Record<string, unknown>).password);"),
+            ts.contains("const __r0 = Password.__parse((value as Record<string, unknown>).password, __d + 1);"),
             "{ts}"
         );
         assert!(ts.contains("if (__r0.tag === \"Err\") {"), "{ts}");
@@ -11491,7 +11568,10 @@ mod tests {
         // inline `field_value_check` and report `code: "type"`.
         let ts = emit("module x\npub type Box<T> = { item: T, label: string }\n");
         assert!(!ts.contains(".parse("), "{ts}");
-        assert!(ts.contains("!(__is_T((value as Record<string, unknown>).item))"), "{ts}");
+        assert!(
+            ts.contains("if (!(__is_T((value as Record<string, unknown>).item, __d + 1))) {"),
+            "{ts}"
+        );
         assert!(
             ts.contains("message: \"field `item` must be T\", code: \"type\""),
             "{ts}"
@@ -11571,14 +11651,14 @@ mod tests {
         // only answer yes or no and every failure read `expected User`.
         assert!(
             ts.contains(
-                "schema: __glyph_schema<User>(\"User\", (v): v is User => User.is(v), \
-                 (v: unknown): __GlyphResult<User, Issue[]> => User.parse(v)),"
+                "schema: __glyph_schema<User>(\"User\", (v: unknown, d: number): v is User => User.__is(v, d), \
+                 (v: unknown, d: number): __GlyphResult<User, Issue[]> => User.__parse(v, d)),"
             ),
             "{ts}"
         );
         // The module that emits a descriptor gets the aliased factory import.
         assert!(
-            ts.contains("import { schema as __glyph_schema } from \"./.glyph-runtime/std/schema\";"),
+            ts.contains("import { schema as __glyph_schema, "),
             "{ts}"
         );
     }
@@ -11595,6 +11675,13 @@ mod tests {
             "{ts}"
         );
         assert!(!ts.contains("value.is(value)"), "{ts}");
+        // The public entries call the internal check by the descriptor's
+        // name, so their parameter steps aside for it (D50).
+        assert!(ts.contains("is(__value: unknown): __value is value {"), "{ts}");
+        assert!(ts.contains("return value.__is(__value, 1);"), "{ts}");
+        assert!(ts.contains("return value.__parse(__value, 1);"), "{ts}");
+        assert!(!ts.contains("value.__is(value"), "{ts}");
+        assert!(!ts.contains("value.__parse(value"), "{ts}");
     }
 
     #[test]
@@ -11602,6 +11689,29 @@ mod tests {
         let ts = emit("module x\npub type Sku = string\n");
         assert!(ts.contains("export type Sku = string;"), "{ts}");
         assert!(!ts.contains("export const Sku"), "{ts}");
+    }
+
+    /// D50. The emitter reads its own `MAX_DEPTH` only to leave out a
+    /// comparison that cannot fail; the contract is the runtime's constant,
+    /// which every emitted check names. The two must agree, and the number
+    /// itself must never be written into a check, or a change to the runtime
+    /// would leave old literals behind.
+    #[test]
+    fn the_depth_limit_is_the_runtimes_constant_by_name() {
+        let schema = include_str!("../../../runtime/std/schema.ts");
+        assert!(
+            schema.contains(&format!("export const MAX_DEPTH = {MAX_DEPTH};")),
+            "the emitter's MAX_DEPTH ({MAX_DEPTH}) is not std/schema's"
+        );
+        let ts = emit(
+            "module x
+pub type Tree = { n: int, kids: Array<Tree>, tag: Option<Tree>, m: Record<string, Tree> }
+             pub type S = | Leaf(int) | Wrap(S)
+pub type Box<T> = { v: T, kids: Array<Box<T>> }
+",
+        );
+        assert!(ts.contains("__d <= __glyph_MAX_DEPTH || __glyph_too_deep()"), "{ts}");
+        assert!(!ts.contains(&MAX_DEPTH.to_string()), "the limit is written as a number: {ts}");
     }
 
     #[test]
@@ -11613,17 +11723,17 @@ mod tests {
         assert!(ts.contains("export type Box<T> = { value: T };"), "{ts}");
         assert!(ts.contains("export const Box = {"), "{ts}");
         assert!(
-            ts.contains("is<T>(value: unknown, __is_T: (v: unknown) => boolean): value is Box<T> {"),
+            ts.contains("is<T>(value: unknown, __is_T: (v: unknown, depth: number) => boolean): value is Box<T> {"),
             "{ts}"
         );
         assert!(
-            ts.contains("parse<T>(value: unknown, __is_T: (v: unknown) => boolean):"),
+            ts.contains("parse<T>(value: unknown, __is_T: (v: unknown, depth: number) => boolean):"),
             "{ts}"
         );
         // The `value: T` field is validated by the threaded checker, in both the
         // `is` guard and `parse`'s per-field issue check.
         assert!(
-            ts.contains("__is_T((value as Record<string, unknown>).value)"),
+            ts.contains("__is_T((value as Record<string, unknown>).value, __d + 1)"),
             "T-typed field uses the checker: {ts}"
         );
         assert!(
@@ -11641,7 +11751,7 @@ mod tests {
             "module x\npub type User = { name: string }\npub type Box<T> = { value: T }\npub fn f(v: unknown) -> string {\n  return match Box.parse<User>(v) {\n    Ok(_) => \"ok\",\n    Err(_) => \"no\",\n  }\n}\n",
         );
         assert!(
-            ts.contains("Box.parse<User>(v, (__cv: unknown) => User.is(__cv))"),
+            ts.contains("Box.parse<User>(v, (__cv: unknown, __cd: number) => User.__is(__cv, __cd))"),
             "{ts}"
         );
     }
@@ -11681,7 +11791,7 @@ mod tests {
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
-            ts.contains("Box.parse<User>(v, (__cv: unknown) => User.is(__cv))"),
+            ts.contains("Box.parse<User>(v, (__cv: unknown, __cd: number) => User.__is(__cv, __cd))"),
             "{ts}"
         );
     }
@@ -11693,7 +11803,7 @@ mod tests {
             "module x\npub type User = { name: string }\npub type Box<T> = { value: T }\npub fn f(v: unknown) -> string {\n  return match v {\n    is Box<User> => \"box\",\n    else => \"no\",\n  }\n}\n",
         );
         assert!(
-            ts.contains("Box.is<User>(") && ts.contains("(__cv: unknown) => User.is(__cv)"),
+            ts.contains("Box.is<User>(") && ts.contains("(__cv: unknown, __cd: number) => User.__is(__cv, __cd)"),
             "{ts}"
         );
     }
@@ -11901,7 +12011,10 @@ mod tests {
         let ts = emit(
             "module x\npub type Item = { name: string }\npub type Bag = { items: Array<Item>, note: Option<string> }\npub fn f(b: Bag) -> number {\n  return 0\n}\n",
         );
-        assert!(ts.contains(".every((__e: unknown) => Item.is(__e))"), "{ts}");
+        assert!(
+            ts.contains("__glyph_every_at((value as Record<string, unknown>).items as ReadonlyArray<unknown>, __d + 2, (__e: unknown, __pd: number) => Item.__is(__e, __pd))"),
+            "{ts}"
+        );
         assert!(ts.contains("Array.isArray("), "{ts}");
         // Option<string> payload validated by tag and value type.
         assert!(ts.contains(".tag === \"Some\""), "{ts}");
@@ -11958,7 +12071,7 @@ mod tests {
              pub fn rec(text: string) -> Result<Record<string, unknown>, Array<Issue>> {\n  return json.parse<Record<string, unknown>>(text)\n}\n",
         );
         assert!(
-            ts.contains("json.parse_with(text, __glyph_schema<Array<unknown>>(\"Array<unknown>\", (__x: unknown): __x is Array<unknown> => Array.isArray(__x)"),
+            ts.contains("json.parse_with(text, __glyph_schema<Array<unknown>>(\"Array<unknown>\", (__x: unknown, __d: number): __x is Array<unknown> => Array.isArray(__x) && (__d <= __glyph_MAX_DEPTH || __glyph_too_deep())"),
             "an `Array<unknown>` is checked by being an array: {ts}"
         );
         assert!(
@@ -13094,7 +13207,7 @@ mod tests {
             "module x\ntype Option<T> = { label: T }\ntype Poll = { pick: Option<string> }\nfn main() {}\n",
         );
         assert!(
-            ts.contains("Option.is((value as Record<string, unknown>).pick, (__cv: unknown) => typeof __cv === \"string\")"),
+            ts.contains("Option.__is((value as Record<string, unknown>).pick, __d + 1, (__cv: unknown, __cd: number) => typeof __cv === \"string\")"),
             "the user's descriptor checks the field:\n{ts}"
         );
         assert!(!ts.contains("=== \"None\""), "no prelude Option shape for a user type:\n{ts}");
@@ -13208,7 +13321,7 @@ mod tests {
     fn union_descriptor_emits_parse_and_schema() {
         let ts = emit("module x\npub type S = A | B\npub fn f() {}\n");
         assert!(ts.contains("parse(value: unknown):"), "{ts}");
-        assert!(ts.contains("return this.is(value)"), "{ts}");
+        assert!(ts.contains("return S.__is(value, __d)"), "{ts}");
         assert!(ts.contains("schema: __glyph_schema<S>(\"S\""), "{ts}");
     }
 
@@ -14712,7 +14825,7 @@ pub fn n() -> number {\n  return 1\n}
         let a = ts.find("const A = {").expect("A's descriptor");
         let b = ts.find("export const B = A;").expect("B's alias");
         assert!(b > a, "the alias follows the descriptor it names: {ts}");
-        assert!(ts.contains("B.is("), "a field typed by the alias checks through it: {ts}");
+        assert!(ts.contains("B.__is("), "a field typed by the alias checks through it: {ts}");
         // A generic application and a primitive alias have no descriptor to
         // alias, and get no value.
         let ts = emit("module x\ntype W<T> = { v: T, }\ntype Boxed<T> = W<T>\n");
@@ -14930,7 +15043,7 @@ pub fn n() -> number {\n  return 1\n}
         assert!(ts.contains("export type Page = Doc;"), "type alias: {ts}");
         assert!(ts.contains("export const Page = Doc;"), "value alias: {ts}");
         assert!(ts.contains("\nconst P2 = Doc;"), "two hops reach the import: {ts}");
-        assert!(ts.contains("P2.is("), "a field typed by the second name checks through it: {ts}");
+        assert!(ts.contains("P2.__is("), "a field typed by the second name checks through it: {ts}");
         // An alias of an imported type that has no descriptor gets no value.
         let ts = emit_beside(
             ("a", "module a\npub type Cents = int\n"),
@@ -14967,7 +15080,7 @@ pub fn n() -> number {\n  return 1\n}
             .unwrap_or_else(|e| panic!("`{q}.Doc` is a verifiable record: {e:?}"));
             assert!(ts.contains(&format!("export const Page = {q}.Doc;")), "value alias: {ts}");
             assert!(ts.contains(&format!("\nconst P2 = {q}.Doc;")), "two hops: {ts}");
-            assert!(ts.contains("P2.is("), "a field typed by the second name checks through it: {ts}");
+            assert!(ts.contains("P2.__is("), "a field typed by the second name checks through it: {ts}");
             // An unverifiable record is refused through the qualified name too.
             assert_g210_refused(
                 emit_beside(
@@ -15034,8 +15147,8 @@ pub fn n() -> number {\n  return 1\n}
             );
             let ts = emit_beside_all(&[("a", G296_A), ("b", G296_B)], &main)
                 .unwrap_or_else(|e| panic!("`{imports}` must be accepted: {e:?}"));
-            assert!(ts.contains(&format!("{page}.is(")), "`{page}` field checks through it: {ts}");
-            assert!(ts.contains(&format!("{d2}.is(")), "`{d2}` field checks through it: {ts}");
+            assert!(ts.contains(&format!("{page}.__is(")), "`{page}` field checks through it: {ts}");
+            assert!(ts.contains(&format!("{d2}.__is(")), "`{d2}` field checks through it: {ts}");
         }
     }
 
@@ -15291,8 +15404,8 @@ pub fn n() -> number {\n  return 1\n}
             ("string", "typeof __x === \"string\""),
             ("bool", "typeof __x === \"boolean\""),
             ("Tier", "__x === \"free\" || __x === \"pro\""),
-            ("Option<User>", "\"Some\" && User.is(((__x) as { value?: unknown }).value)"),
-            ("Nullable<User>", "(__x === null || User.is(__x))"),
+            ("Option<User>", "\"Some\" && User.__is(((__x) as { value?: unknown }).value, __d + 1)"),
+            ("Nullable<User>", "(__x === null || User.__is(__x, __d))"),
             ("Record<string, int>", ".values(__x as Record<string, unknown>).every("),
             ("Array<number>", "Array.isArray(__x)"),
         ] {
@@ -15309,7 +15422,7 @@ pub fn n() -> number {\n  return 1\n}
                 assert!(ts.contains(&format!("{with}s, __glyph_schema<")), "{callee}<{ty_arg}>: {ts}");
                 assert!(ts.contains(check), "{callee}<{ty_arg}> checks `{check}`: {ts}");
                 assert!(
-                    ts.contains("import { schema as __glyph_schema } from \"./.glyph-runtime/std/schema\";"),
+                    ts.contains("import { schema as __glyph_schema, "),
                     "{callee}<{ty_arg}> imports the schema factory: {ts}"
                 );
                 assert!(!ts.contains(&format!("{callee}<")), "{callee}<{ty_arg}> still casts: {ts}");
@@ -15457,16 +15570,16 @@ pub fn n() -> number {\n  return 1\n}
              pub type Block = {\n  start: Instant,\n  tags: Array<Instant>,\n  note: Option<Instant>,\n}\n",
         );
         assert!(
-            ts.contains("Instant.is((value as Record<string, unknown>).start)"),
+            ts.contains("Instant.__is((value as Record<string, unknown>).start, __d + 1)"),
             "refined field calls the descriptor: {ts}"
         );
         assert!(
-            ts.contains("(__e: unknown) => Instant.is(__e)"),
+            ts.contains("(__e: unknown, __pd: number) => Instant.__is(__e, __pd)"),
             "refined array element calls the descriptor: {ts}"
         );
         assert!(
             ts.contains(
-                "Instant.is((((value as Record<string, unknown>).note) as { value?: unknown }).value)"
+                "Instant.__is((((value as Record<string, unknown>).note) as { value?: unknown }).value, __d + 2)"
             ),
             "refined option payload calls the descriptor: {ts}"
         );
@@ -15517,7 +15630,7 @@ pub fn n() -> number {\n  return 1\n}
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
-            ts.contains("Inner.is((value as Record<string, unknown>).i)"),
+            ts.contains("Inner.__is((value as Record<string, unknown>).i, __d + 1)"),
             "imported record field calls the descriptor: {ts}"
         );
         assert!(
@@ -15825,7 +15938,7 @@ pub fn n() -> number {\n  return 1\n}
             "module x\ntype User = { name: string }\ntype Frame = { u: Nullable<User> }\n",
         );
         let access = "(value as Record<string, unknown>).u";
-        assert!(ts.contains(&format!("({access} === null || User.is({access}))")), "{ts}");
+        assert!(ts.contains(&format!("({access} === null || User.__is({access}, __d + 1))")), "{ts}");
     }
 
     // ----- D48: destructuring `let` -----

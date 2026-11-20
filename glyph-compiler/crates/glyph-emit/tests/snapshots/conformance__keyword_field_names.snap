@@ -6,23 +6,37 @@ import "./.glyph-runtime/glyph-bootstrap";
 
 import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from "./.glyph-runtime/std/result";
 
-import { schema as __glyph_schema } from "./.glyph-runtime/std/schema";
+import { schema as __glyph_schema, MAX_DEPTH as __glyph_MAX_DEPTH, depth_issue as __glyph_depth_issue, depth_refused as __glyph_depth_refused, too_deep as __glyph_too_deep } from "./.glyph-runtime/std/schema";
 
 export type Event = { type: "open" | "close"; is: boolean; id: number };
 export const Event = {
   is(value: unknown): value is Event {
+    try {
+      return Event.__is(value, 1);
+    } catch (__caught) {
+      return __glyph_depth_refused(__caught);
+    }
+  },
+  __is(value: unknown, __d: number): value is Event {
     return typeof value === "object" && value !== null && !Array.isArray(value)
+      && (__d <= __glyph_MAX_DEPTH || __glyph_too_deep())
       && ((value as Record<string, unknown>).type === "open" || (value as Record<string, unknown>).type === "close")
       && typeof (value as Record<string, unknown>).is === "boolean"
       && typeof (value as Record<string, unknown>).id === "number"
       && Object.keys(value as object).every((__k: string) => __k === "type" || __k === "is" || __k === "id");
   },
   parse(value: unknown): __GlyphResult<Event, Issue[]> {
+    return Event.__parse(value, 1);
+  },
+  __parse(value: unknown, __d: number): __GlyphResult<Event, Issue[]> {
     if (Array.isArray(value)) {
       return __glyph_err([{ path: [], message: "expected Event (an object), got an array", code: "type" }]);
     }
     if (typeof value !== "object" || value === null) {
       return __glyph_err([{ path: [], message: "expected Event (an object)", code: "type" }]);
+    }
+    if (__d > __glyph_MAX_DEPTH) {
+      return __glyph_err([__glyph_depth_issue([])]);
     }
     const __issues: Issue[] = [];
     if ((value as Record<string, unknown>).type === undefined) {
@@ -45,22 +59,36 @@ export const Event = {
     }
     return __issues.length === 0 ? __glyph_ok(value as Event) : __glyph_err(__issues);
   },
-  schema: __glyph_schema<Event>("Event", (v): v is Event => Event.is(v), (v: unknown): __GlyphResult<Event, Issue[]> => Event.parse(v)),
+  schema: __glyph_schema<Event>("Event", (v: unknown, d: number): v is Event => Event.__is(v, d), (v: unknown, d: number): __GlyphResult<Event, Issue[]> => Event.__parse(v, d)),
 };
 
 export type Note = { match: string };
 export const Note = {
   is(value: unknown): value is Note {
+    try {
+      return Note.__is(value, 1);
+    } catch (__caught) {
+      return __glyph_depth_refused(__caught);
+    }
+  },
+  __is(value: unknown, __d: number): value is Note {
     return typeof value === "object" && value !== null && !Array.isArray(value)
+      && (__d <= __glyph_MAX_DEPTH || __glyph_too_deep())
       && typeof (value as Record<string, unknown>).match === "string"
       && Object.keys(value as object).every((__k: string) => __k === "match");
   },
   parse(value: unknown): __GlyphResult<Note, Issue[]> {
+    return Note.__parse(value, 1);
+  },
+  __parse(value: unknown, __d: number): __GlyphResult<Note, Issue[]> {
     if (Array.isArray(value)) {
       return __glyph_err([{ path: [], message: "expected Note (an object), got an array", code: "type" }]);
     }
     if (typeof value !== "object" || value === null) {
       return __glyph_err([{ path: [], message: "expected Note (an object)", code: "type" }]);
+    }
+    if (__d > __glyph_MAX_DEPTH) {
+      return __glyph_err([__glyph_depth_issue([])]);
     }
     const __issues: Issue[] = [];
     if ((value as Record<string, unknown>).match === undefined) {
@@ -73,7 +101,7 @@ export const Note = {
     }
     return __issues.length === 0 ? __glyph_ok(value as Note) : __glyph_err(__issues);
   },
-  schema: __glyph_schema<Note>("Note", (v): v is Note => Note.is(v), (v: unknown): __GlyphResult<Note, Issue[]> => Note.parse(v)),
+  schema: __glyph_schema<Note>("Note", (v: unknown, d: number): v is Note => Note.__is(v, d), (v: unknown, d: number): __GlyphResult<Note, Issue[]> => Note.__parse(v, d)),
 };
 
 export function label(e: Event): string {

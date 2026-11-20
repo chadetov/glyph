@@ -6,7 +6,7 @@ import "./.glyph-runtime/glyph-bootstrap";
 
 import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from "./.glyph-runtime/std/result";
 
-import { schema as __glyph_schema } from "./.glyph-runtime/std/schema";
+import { schema as __glyph_schema, MAX_DEPTH as __glyph_MAX_DEPTH, depth_issue as __glyph_depth_issue, depth_refused as __glyph_depth_refused, too_deep as __glyph_too_deep } from "./.glyph-runtime/std/schema";
 
 export type Shape =
   | { tag: "Circle"; radius: number }
@@ -16,9 +16,17 @@ export function Circle(fields: { radius: number }): Shape { return { ...fields, 
 export function Square(fields: { side: number }): Shape { return { ...fields, tag: "Square" }; }
 export const Shape = {
   is(value: unknown): value is Shape {
+    try {
+      return Shape.__is(value, 1);
+    } catch (__caught) {
+      return __glyph_depth_refused(__caught);
+    }
+  },
+  __is(value: unknown, __d: number): value is Shape {
     if (typeof value !== "object" || value === null) {
       return false;
     }
+    if (__d > __glyph_MAX_DEPTH) __glyph_too_deep();
     switch ((value as { tag?: unknown }).tag) {
       case "Circle": return typeof (value as Record<string, unknown>).radius === "number";
       case "Square": return typeof (value as Record<string, unknown>).side === "number";
@@ -26,11 +34,19 @@ export const Shape = {
     }
   },
   parse(value: unknown): __GlyphResult<Shape, Issue[]> {
-    return this.is(value)
-      ? __glyph_ok(value)
-      : __glyph_err([{ path: [], message: "expected Shape" }]);
+    return Shape.__parse(value, 1);
   },
-  schema: __glyph_schema<Shape>("Shape", (v): v is Shape => Shape.is(v), (v: unknown): __GlyphResult<Shape, Issue[]> => Shape.parse(v)),
+  __parse(value: unknown, __d: number): __GlyphResult<Shape, Issue[]> {
+    try {
+      return Shape.__is(value, __d)
+        ? __glyph_ok(value)
+        : __glyph_err([{ path: [], message: "expected Shape" }]);
+    } catch (__caught) {
+      __glyph_depth_refused(__caught);
+      return __glyph_err([__glyph_depth_issue([])]);
+    }
+  },
+  schema: __glyph_schema<Shape>("Shape", (v: unknown, d: number): v is Shape => Shape.__is(v, d), (v: unknown, d: number): __GlyphResult<Shape, Issue[]> => Shape.__parse(v, d)),
 };
 
 export function area(s: Shape): number {

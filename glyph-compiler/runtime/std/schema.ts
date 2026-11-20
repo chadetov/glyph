@@ -33,8 +33,8 @@
 // the generated code: a public `T.is` / `is T` answers `false`
 // (`depth_refused`, `within`), and a `parse` answers one issue built by
 // `depth_issue`, at the path the part's `type` issue would carry, with
-// `code: "depth"` (`depth_checked`), and nothing else beside it. Nothing else is caught: a `RangeError` or a host
-// checker's own exception propagates unchanged. `JSON.parse` itself has no
+// `code: "depth"`, and nothing else beside it. Nothing else is caught: a
+// `RangeError` or a host checker's own exception propagates unchanged. `JSON.parse` itself has no
 // limit; the untyped `json.parse(text)` decodes any depth and checks nothing.
 
 import { type Result, Ok, Err } from "./result";
@@ -73,10 +73,10 @@ export function within(check: () => boolean): boolean {
   }
 }
 
-/// Run a part's check for a `parse`: its answer, or `undefined` when it threw
-/// the depth sentinel, which the `parse` reports as `depth_issue` at the
-/// part's path. Anything else it throws propagates.
-export function depth_checked(check: () => boolean): boolean | undefined {
+/// Run a check for a schema built from a guard alone: its answer, or
+/// `undefined` when it threw the depth sentinel. Anything else it throws
+/// propagates.
+function depth_checked(check: () => boolean): boolean | undefined {
   try {
     return check();
   } catch (e: unknown) {
@@ -85,6 +85,26 @@ export function depth_checked(check: () => boolean): boolean | undefined {
     }
     throw e;
   }
+}
+
+/// Whether `check` holds for every one of `items`, each handed `depth`: the
+/// walk a generated check makes over an array's elements or a `Record`'s
+/// values when their depth is not a constant. The depth is an argument
+/// rather than captured by the per-part closure, which would allocate on
+/// every call of the check that holds it. A hole in a sparse array is
+/// skipped, as `Array.prototype.every` skips it, so the answer does not
+/// depend on which of the two walks a check was emitted with.
+export function every_at(
+  items: ReadonlyArray<unknown>,
+  depth: number,
+  check: (value: unknown, depth: number) => boolean,
+): boolean {
+  for (let i = 0; i < items.length; i++) {
+    if (!check(items[i], depth) && i in items) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /// The one issue a `parse` reports for a value nested deeper than

@@ -61,29 +61,41 @@ translation carried over unchanged.
 longer suggests an `else`. The checked TypeScript examples are called "cases"
 everywhere they are counted.
 
+**2026-11-20 · The new playground** (PR #200). Two columns, the editor on the
+left and the result on the right; a TypeScript tab that shows each case's
+recorded result; a live "Your edit" diff against the example you started from.
+
+**2026-11-21 · "Your agent can ask the compiler first"; generated release
+counts.** The home page's `csvql` section became an agent's exchange with the
+MCP server: `glyph_impact` on adding `Date` to the `Value` union, the ten
+sites it names (eight `WILL_FAIL`, two `ABSORBS`), the change that turns a
+catch-all into named arms, and the passing `glyph check`, all quoted from a run
+against 0.1.152 and translated into the nine languages. `/teams/` now
+generates its count of the newest month's releases and the dates it covers from
+the release notes (`{{releases:month-count}}`, `{{releases:month-start}}`,
+`{{releases:latest-date}}`) instead of writing them by hand.
+
 ## Next
 
 1. **Launch readiness.** An "Open in playground" link on each case on
    `/catches/`; an FAQ that answers why the compiler is written in Rust and how
    Glyph was built; the README opening on a TypeScript-passes / Glyph-refuses
    pair; a 60 to 90 second demo.
-2. **"Your agent can ask the compiler first."** A home section after the catches
-   with a real MCP exchange: `glyph_impact` on a union change, the sites it
-   names, the fix, and a passing check.
-3. **One page per catch.** Each of the 37 cases as its own page, titled the way
+2. **One page per catch.** Each of the 37 cases as its own page, titled the way
    engineers search for the problem, generated from the case files.
-4. **The scannable answer format for the remaining answers and the pillars**,
-   as piloted on `/answers/verifiability/` and `/answers/typed-apis/`. Awaiting
-   a decision.
-5. **Search data.** The sitemap submitted to Search Console, indexing of all
+3. **The scannable answer format for the remaining answers and the pillars**,
+   as piloted on `/answers/verifiability/` and `/answers/typed-apis/`.
+   Approved by the owner on 2026-11-21; not started.
+4. **Search data.** The sitemap submitted to Search Console, indexing of all
    pages and languages checked, and the search queries that bring people in,
    read through seo-monster once its Google sign-in is set up.
-6. **Translation polish.** Shorten translated descriptions that run past search
+5. **Translation polish.** Shorten translated descriptions that run past search
    result length; one number format policy across languages; remove the unused
    `Reference` menu key.
-7. **Small corrections.** The manifesto's pillar order matches the site;
-   `/teams/` generates its count of November releases instead of writing it by
-   hand.
-8. **Launch.** Show HN, then r/typescript and the other channels in the launch
+6. **One pillar order.** The manifesto lists abstraction third and diff
+   stability fourth; the site's pillar pages and the README list diff stability
+   third and abstraction fourth. Awaiting a decision on which order is the
+   canonical one, then applied to the other side.
+7. **Launch.** Show HN, then r/typescript and the other channels in the launch
    plan, posted by the author. Target: the week of 8 December 2026, or mid
    January.

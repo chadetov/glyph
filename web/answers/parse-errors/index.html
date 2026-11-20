@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/parse-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"When a parse fails, do I find out why?","item":"https://glyphlang.io/answers/parse-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/parse-errors/#article","headline":"When a parse fails, do I find out why?","description":"A failing parse names the field, says which rule the value broke, quotes the where predicate it violated, and tags the issue with a code you can branch on.","url":"https://glyphlang.io/answers/parse-errors/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/parse-errors/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/parse-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"When a parse fails, do I find out why?","item":"https://glyphlang.io/answers/parse-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/parse-errors/#article","headline":"When a parse fails, do I find out why?","description":"A failing parse names the field, says which rule the value broke, quotes the where predicate it violated, and tags the issue with a code you can branch on.","url":"https://glyphlang.io/answers/parse-errors/","inLanguage":"en","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/parse-errors/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/parse-errors/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/parse-errors/" />
@@ -566,10 +566,14 @@ type        []            expected Signup (an object), got an array</pre>
         <h2 class="block-label" id="the-code-not-the-string">The code, not the string<a class="h-anchor" href="#the-code-not-the-string" aria-label="Link to this section">#</a></h2>
         <p>
           <code>Issue</code> carries an optional <code>code</code>:
-          <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>, or
-          <code>"unexpected"</code>. Branch on that. Matching on message text is the
+          <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>,
+          <code>"unexpected"</code>, or <code>"depth"</code>. Branch on that. Matching on message text is the
           fragility Glyph exists to remove, and the message is for the human reading the
-          response body.
+          response body. <code>"depth"</code> is the answer for a body nested more than
+          1000 objects and arrays deep (<code>MAX_DEPTH</code> in <code>std/schema</code>):
+          one issue at the field where it happened, where before 0.1.150 the check threw
+          <code>RangeError: Maximum call stack size exceeded</code> and took the handler
+          with it.
         </p>
       </div>
 
@@ -595,13 +599,13 @@ type        []            expected Signup (an object), got an array</pre>
       <div class="status-row">
         <div class="status-card today">
           <h3 class="h">Shipping today</h3>
-          <p>Records and <code>where</code> types report the failing rule, not just the failing field: <code>"missing"</code> for an absent required field, <code>"type"</code> for the wrong shape (including a non-object or an array), <code>"refinement"</code> for a value that passed its base type and failed the predicate, and <code>"unexpected"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.</p>
+          <p>Records and <code>where</code> types report the failing rule, not just the failing field: <code>"missing"</code> for an absent required field, <code>"type"</code> for the wrong shape (including a non-object or an array), <code>"refinement"</code> for a value that passed its base type and failed the predicate, <code>"unexpected"</code> for a key the type does not declare, and <code>"depth"</code> for a value nested more than 1000 deep. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.</p>
         </div>
         <div class="status-card next">
           <h3 class="h">Getting sharper</h3>
           <p>Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>"type"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.</p>
         </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
+        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed <time datetime="2026-11-20">20 Nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/early-errors/">

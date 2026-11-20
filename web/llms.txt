@@ -847,6 +847,13 @@ A record descriptor is strict by default: it confirms the declared fields *and*
 rejects a value carrying undeclared keys. Put `@open` above a `type` to allow
 extra keys (`@open` then the `type` line).
 
+Each `Issue` has an optional `code`: `"missing"`, `"type"`, `"refinement"`,
+`"unexpected"`, or `"depth"`. No generated check walks a value nested more
+than 1000 objects and arrays deep (`MAX_DEPTH` in `std/schema`, D50): `is` and
+`T.is` answer `false`, and `T.parse`, `T.schema.parse` and `json.parse<T>`
+return one issue with `code: "depth"`, never a stack overflow. A cyclic value
+is refused the same way.
+
 A **generic** record type (`Paginated<T>`) also gets a descriptor. Call it with
 the type argument: `Paginated.parse<User>(body)` validates the page deeply —
 each `items` entry is checked as a `User`, not just for presence. The `is`

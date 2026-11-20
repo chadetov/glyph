@@ -109,6 +109,12 @@ for a malformed request and a rejected value. Each `Issue` carries a `code`:
 | `"type"` | the value was the wrong shape | ``field `title` must be string`` |
 | `"refinement"` | it passed the base type and failed a `where` predicate | `expected Password (string where value.length >= 8)` |
 | `"unexpected"` | a key the type does not declare | ``unexpected field `role` `` |
+| `"depth"` | the value nests more than 1000 objects and arrays deep | `nested more than 1000 objects and arrays deep` |
+
+A body nested deeper than 1000 levels is refused with one `"depth"` issue
+instead of a stack overflow, so a hostile payload gets an answer like any other
+bad one. Real requests never come close; the limit is there so the check
+always returns.
 
 A refined type reports the two failures separately. `42` is not a `string` at
 all, so it comes back as `expected Password (string)` with `code: "type"`;

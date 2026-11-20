@@ -20,6 +20,12 @@
 // is a `T` the emitter has no check for at all (a type parameter, an
 // `extern_ts` type, a package type).
 //
+// The check has a depth limit and decoding does not (D50). `JSON.parse`
+// decodes a document of any depth; the schema then refuses a value nested
+// more than `MAX_DEPTH` (1000, `std/schema`) objects and arrays deep with one
+// issue, `code: "depth"`, instead of overflowing the stack. Nothing here
+// catches a `RangeError`.
+//
 // `parse` itself decodes without checking. The emitter leaves it in place only
 // for `parse(text)` with no type argument and for `parse<unknown>`, which claim
 // nothing about the value.

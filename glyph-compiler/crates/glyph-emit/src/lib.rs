@@ -504,6 +504,12 @@ macro_rules! sibling_alias_note {
     };
 }
 
+/// The E0300 construct for a `where` over a string-literal union, a single
+/// literal included (G377). Named so [`EmitError::help`] can give this
+/// refusal its own fix: the members wanted, written as their own union.
+const REFINED_LITERAL_UNION: &str =
+    "a `where` refinement on a string-literal union (v1 supports refinements on primitive base types)";
+
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum EmitError {
     /// A construct whose emission lands in a later week-4 day. Carries the
@@ -661,6 +667,9 @@ impl EmitError {
     /// A one-line, actionable fix.
     pub fn help(&self) -> Option<&'static str> {
         match self {
+            EmitError::Unsupported { construct, .. } if *construct == REFINED_LITERAL_UNION => Some(
+                "Write the members you mean as their own union: `type T2 = \"a\" | \"b\"`. It stands wherever `Tier` is declared (D30 compares literal sets).",
+            ),
             EmitError::Unsupported { .. } => {
                 Some("Rewrite using a construct the v1 emitter supports; see the spec for the supported forms.")
             }
@@ -6975,6 +6984,15 @@ impl<'a> Emitter<'a> {
     /// record the local spelling does, and are refused the same way. A base
     /// that is neither (a primitive, a prelude name, a cycle) is left to the
     /// refinement path, which is the existing D39 case.
+    ///
+    /// A string-literal union, a single literal included, is refused the same
+    /// way by every one of those spellings (G377). D39 always said so; the
+    /// refusal matched only tagged unions and records, and a refined literal
+    /// union emitted as its unrefined base: `tsc` read `Tier where value !=
+    /// "c"` as all of `Tier`, the run-time check refused `"c"`, and a
+    /// `Record` keyed by it had no value both would accept. A chain that
+    /// leaves the module is followed through the sibling's own second names
+    /// too, so where the literal set is declared does not change the verdict.
     fn refused_refinement_base(&self, t: &glyph_ast::TypeDecl) -> Option<&'static str> {
         const UNION: &str =
             "a `where` refinement on a union type (v1 supports refinements on primitive base types)";
@@ -6984,6 +7002,7 @@ impl<'a> Emitter<'a> {
         let start = match &t.body {
             TypeExpr::Union { .. } => return Some(UNION),
             TypeExpr::Record { .. } => return Some(RECORD),
+            TypeExpr::StringLiteralUnion { .. } => return Some(REFINED_LITERAL_UNION),
             TypeExpr::Path { .. } => self.lowerer.lower(&t.body),
             _ => return None,
         };
@@ -6991,13 +7010,25 @@ impl<'a> Emitter<'a> {
             end @ Ty::Named { .. } => match &direct_type_decl(self.module, self.resolved, &end)?.body {
                 TypeExpr::Union { .. } => Some(UNION),
                 TypeExpr::Record { .. } => Some(RECORD),
+                TypeExpr::StringLiteralUnion { .. } => Some(REFINED_LITERAL_UNION),
                 _ => None,
             },
             Ty::Imported { module, name } => {
-                match self.imported_type_decl(module.as_str(), name.as_ref())?.body {
-                    Ty::Union { .. } => Some(UNION),
-                    Ty::Record { .. } => Some(RECORD),
-                    _ => None,
+                let mut current = (module.as_str().to_string(), name.to_string());
+                let mut seen = std::collections::HashSet::new();
+                loop {
+                    if !seen.insert(current.clone()) {
+                        return None; // cyclic alias across modules
+                    }
+                    match self.imported_type_decl(&current.0, &current.1)?.body {
+                        Ty::Union { .. } => return Some(UNION),
+                        Ty::Record { .. } => return Some(RECORD),
+                        Ty::StringLiteralUnion(_) => return Some(REFINED_LITERAL_UNION),
+                        Ty::Imported { module, name } => {
+                            current = (module.as_str().to_string(), name.to_string());
+                        }
+                        _ => return None,
+                    }
                 }
             }
             _ => None,
@@ -15189,6 +15220,97 @@ pub fn n() -> number {\n  return 1\n}
                 );
             }
         }
+    }
+
+    /// The E0300 construct and help for a `where` over a string-literal union.
+    fn assert_refined_literal_union_refused(err: &EmitError, what: &str) {
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if *construct == REFINED_LITERAL_UNION),
+            "{what}: {err:?}"
+        );
+        assert_eq!(err.code(), "E0300", "{what}");
+        assert!(
+            err.to_string()
+                .contains("a `where` refinement on a string-literal union (v1 supports refinements on primitive base types)"),
+            "{what}: {err}"
+        );
+        assert!(
+            err.help().is_some_and(|h| h.starts_with("Write the members you mean as their own union")),
+            "{what}: {:?}",
+            err.help()
+        );
+    }
+
+    /// G377. D39 refuses a `where` whose base is a string-literal union, a
+    /// single literal included, by every spelling the checker's chain takes.
+    /// Through 0.1.151 the refusal matched only tagged unions and records,
+    /// and `Tier where value != "c"` emitted as `type T2 = Tier;`: `tsc`
+    /// typed a `Record<T2, int>` as requiring `c`, the run-time check
+    /// refused `c`, and no value passed both.
+    #[test]
+    fn where_over_a_string_literal_union_is_refused_by_every_local_spelling() {
+        for (decls, what) in [
+            ("type T = \"a\" | \"b\" where value != \"a\"\n", "inline union"),
+            ("type T = \"a\" where value.length > 0\n", "inline single literal"),
+            ("type One = \"a\"\ntype T = One where value.length > 0\n", "single-literal alias"),
+            ("type Tier = \"a\" | \"b\" | \"c\"\ntype T = Tier where value != \"c\"\n", "local alias"),
+            (
+                "type Tier = \"a\" | \"b\" | \"c\"\ntype T1 = Tier\ntype T2 = T1\ntype T = T2 where value != \"c\"\n",
+                "alias chain",
+            ),
+        ] {
+            let err = emit_err(&format!("module x\n{decls}"));
+            assert_refined_literal_union_refused(&err, what);
+        }
+    }
+
+    /// G377 across a module boundary: the literal union imported by name,
+    /// through a namespace, through a local second name of either, and
+    /// through a second name the sibling itself declares for a third
+    /// module's union. Each is the verdict the local spelling gets.
+    #[test]
+    fn where_over_an_imported_string_literal_union_is_refused_by_every_spelling() {
+        let a = "module a\npub type Tier = \"a\" | \"b\" | \"c\"\npub type One = \"a\"\n";
+        let b = "module b\nimport a { Tier }\npub type Tier2 = Tier\n";
+        for (import, q) in [("import a { Tier, One }", ""), ("import a", "a."), ("import a as aa", "aa.")] {
+            for decls in [
+                format!("type T = {q}Tier where value != \"c\"\n"),
+                format!("type T = {q}One where value.length > 0\n"),
+                format!("type L = {q}Tier\ntype T = L where value != \"c\"\n"),
+            ] {
+                let err = emit_beside(("a", a), &format!("module main\n{import}\n{decls}"))
+                    .expect_err(&format!("`{decls}` under `{import}` must be refused"));
+                assert_refined_literal_union_refused(&err, &format!("`{decls}` under `{import}`"));
+            }
+        }
+        for (import, q) in [("import b { Tier2 }", ""), ("import b", "b.")] {
+            let decls = format!("type T = {q}Tier2 where value != \"c\"\n");
+            let err = emit_beside_all(&[("a", a), ("b", b)], &format!("module main\n{import}\n{decls}"))
+                .expect_err(&format!("`{decls}` under `{import}` must be refused"));
+            assert_refined_literal_union_refused(&err, &format!("sibling hop `{decls}` under `{import}`"));
+        }
+    }
+
+    /// The controls for G377: a refinement of a primitive stays legal,
+    /// including a `string` whose predicate admits finitely many values,
+    /// and an unrefined literal union naming a subset of another is the
+    /// spelling the refusal points to.
+    #[test]
+    fn where_over_a_primitive_stays_legal_beside_the_literal_union_refusal() {
+        let ts = emit(
+            "module x\n\
+             type AB = string where value == \"a\" || value == \"b\"\n\
+             type Small = int where value < 10\n\
+             type Half = number where value < 0.5\n\
+             type Yes = bool where value\n\
+             type Big = bigint where value > 0n\n\
+             type Tier = \"a\" | \"b\" | \"c\"\n\
+             type T2 = \"a\" | \"b\"\n",
+        );
+        for name in ["AB", "Small", "Half", "Yes", "Big"] {
+            assert!(ts.contains(&format!("const {name} = {{")), "`{name}` keeps its descriptor: {ts}");
+        }
+        assert!(ts.contains("type T2 = \"a\" | \"b\";"), "the subset union emits as written: {ts}");
     }
 
     /// A second name exported from the module that declares it, or from a

@@ -1,0 +1,12 @@
+module neg
+
+// D39 admits a `where` on a primitive base only. `Tier` is a string-literal
+// union, so refining it is refused: `tsc` would read `T2` as all of `Tier`
+// while the run-time check refused `"c"`. Write the subset as its own union
+// (`type T2 = "a" | "b"`), which stands wherever `Tier` is declared.
+type Tier = "a" | "b" | "c"
+type T2 = Tier where value != "c"
+
+fn main() -> number {
+  return 0
+}

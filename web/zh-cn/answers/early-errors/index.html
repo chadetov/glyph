@@ -708,7 +708,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           <code>Result</code> 上的 <code>r?.label</code> 读起来像是“传播错误，然后读取字段”。实际上它是可选链，而 <code>Result</code> 永远不是 null，所以它从 <code>Result</code> 对象上读取字段，什么也没有传播。一个智能体在构建 CSV 查询工具时就写了这样的代码。现在它是 <code>E0236</code>，对 <code>Option</code> 也一样，帮助信息会提示先用 <code>?</code> 绑定。
         </p>
         <p>
-          不带类型参数的 <code>json.parse(body)</code> 是未经检查的读取，得到 <code>Result&lt;unknown, ...&gt;</code>。把它写在声明为 <code>Result&lt;User, ...&gt;</code> 的地方时，<code>tsc</code> 以前会根据声明推断出 <code>User</code>，程序在第一次读取字段时崩溃。代码生成器现在会把 <code>unknown</code> 写出来，所以 <code>glyph check</code> 会通过 <code>tsc</code> 拒绝它。Glyph 自己的检查器还发现不了出现在声明类型内部的 <code>unknown</code>，所以 <code>--no-tsc</code> 和编辑器仍然会漏掉写在声明为 <code>Result&lt;User, ...&gt;</code> 处的 <code>Result&lt;unknown, ...&gt;</code>。（单独的 <code>let user: User = json.parse(body)</code> 由 Glyph 自己的检查器报告为 <code>E0204</code>，因为外层类型已经不对了。）在任意深度拒绝 <code>unknown</code> 是 G325，计划在 0.1.158 中完成。
+          不带类型参数的 <code>json.parse(body)</code> 是未经检查的读取，得到 <code>Result&lt;unknown, ...&gt;</code>。把它写在声明为 <code>Result&lt;User, ...&gt;</code> 的地方时，<code>tsc</code> 以前会根据声明推断出 <code>User</code>，程序在第一次读取字段时崩溃。代码生成器现在会把 <code>unknown</code> 写出来，所以 <code>glyph check</code> 会通过 <code>tsc</code> 拒绝它。Glyph 自己的检查器还发现不了出现在声明类型内部的 <code>unknown</code>，所以 <code>--no-tsc</code> 和编辑器仍然会漏掉写在声明为 <code>Result&lt;User, ...&gt;</code> 处的 <code>Result&lt;unknown, ...&gt;</code>。（单独的 <code>let user: User = json.parse(body)</code> 由 Glyph 自己的检查器报告为 <code>E0204</code>，因为外层类型已经不对了。）在任意深度拒绝 <code>unknown</code> 已作为 G325 列入<a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">发布路线图</a>。
         </p>
       </div>
 

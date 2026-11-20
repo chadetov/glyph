@@ -1,7 +1,7 @@
 ---
 title: tsc が検出するものを、なぜ Glyph はより早く検出するのか · Glyph
 description: async fn の外での await、値を生まない match アーム、mut の書き忘れを、Glyph は tsc より前に、あなたのソースに対して、ルールと修正方法付きで報告します。
-source_hash: 117852a982fffaf4
+source_hash: 0f97abca4b650947
 prev: /answers/tooling/ | &larr; 前へ | エディタ、デバッグ、エラーの使い勝手はどうですか？
 next: /answers/parse-errors/ | 次へ &rarr; | パースが失敗したとき、その理由はわかるのか
 ---
@@ -240,7 +240,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           <code>Result</code> に対する <code>r?.label</code> は、「エラーを伝播してからフィールドを読む」と読めてしまいます。実際にはオプショナルチェーンで、<code>Result</code> は決して null にならないので、<code>Result</code> オブジェクトからフィールドを読み、何も伝播しません。CSV クエリツールを作っていたエージェントが、まさにこれを書きました。今は <code>Option</code> に対しても <code>E0236</code> になり、help が先に <code>?</code> で束縛するよう示します。
         </p>
         <p>
-          型引数のない <code>json.parse(body)</code> は検査されない読み取りで、<code>Result&lt;unknown, ...&gt;</code> を返します。<code>Result&lt;User, ...&gt;</code> と宣言された場所にこれを書くと、以前の <code>tsc</code> は宣言から <code>User</code> を推論し、プログラムは最初のフィールド読み取りでクラッシュしていました。今はエミッタが <code>unknown</code> を明示的に書き出すので、<code>glyph check</code> は <code>tsc</code> を通じてこれを拒否します。Glyph 自身のチェッカーは、宣言された型の内側に <code>unknown</code> が入り込むケースをまだ検出しないので、<code>--no-tsc</code> とエディタは、<code>Result&lt;User, ...&gt;</code> と宣言された場所に書かれた <code>Result&lt;unknown, ...&gt;</code> を今も見逃します。（素の <code>let user: User = json.parse(body)</code> は、外側の型がすでに違うので、Glyph 自身のチェッカーで <code>E0204</code> になります。）あらゆる深さで <code>unknown</code> を拒否するのが G325 で、0.1.158 で予定しています。
+          型引数のない <code>json.parse(body)</code> は検査されない読み取りで、<code>Result&lt;unknown, ...&gt;</code> を返します。<code>Result&lt;User, ...&gt;</code> と宣言された場所にこれを書くと、以前の <code>tsc</code> は宣言から <code>User</code> を推論し、プログラムは最初のフィールド読み取りでクラッシュしていました。今はエミッタが <code>unknown</code> を明示的に書き出すので、<code>glyph check</code> は <code>tsc</code> を通じてこれを拒否します。Glyph 自身のチェッカーは、宣言された型の内側に <code>unknown</code> が入り込むケースをまだ検出しないので、<code>--no-tsc</code> とエディタは、<code>Result&lt;User, ...&gt;</code> と宣言された場所に書かれた <code>Result&lt;unknown, ...&gt;</code> を今も見逃します。（素の <code>let user: User = json.parse(body)</code> は、外側の型がすでに違うので、Glyph 自身のチェッカーで <code>E0204</code> になります。）あらゆる深さで <code>unknown</code> を拒否することは G325 として<a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">リリースロードマップ</a>で予定しています。
         </p>
       </div>
 

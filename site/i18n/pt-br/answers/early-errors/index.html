@@ -1,7 +1,7 @@
 ---
 title: Por que o Glyph detecta o que o tsc detecta, só que antes? · Glyph
 description: O Glyph informa await fora de uma async fn, um braço de match que não produz valor e um mut faltando no seu fonte, com a regra e o conserto, antes do tsc.
-source_hash: 117852a982fffaf4
+source_hash: 0f97abca4b650947
 prev: /answers/tooling/ | &larr; Anterior | Como é a experiência de editor, depuração e erros?
 next: /answers/parse-errors/ | Próxima &rarr; | Quando um parse falha, eu descubro o motivo?
 ---
@@ -240,7 +240,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           <code>r?.label</code> num <code>Result</code> parece dizer "propague o erro e depois leia o campo". É optional chaining, e um <code>Result</code> nunca é null, então lê o campo do objeto <code>Result</code> e não propaga nada. Um agente escreveu exatamente isso ao construir uma ferramenta de consulta em CSV. Agora é <code>E0236</code>, num <code>Option</code> também, e a ajuda diz para fazer bind com <code>?</code> primeiro.
         </p>
         <p>
-          <code>json.parse(body)</code> sem argumento de tipo é a leitura não verificada, um <code>Result&lt;unknown, ...&gt;</code>. Escrito onde um <code>Result&lt;User, ...&gt;</code> estava declarado, o <code>tsc</code> inferia <code>User</code> a partir da declaração e o programa quebrava na primeira leitura de campo. Agora o emissor escreve o <code>unknown</code> explicitamente, então <code>glyph check</code> o recusa via <code>tsc</code>. O próprio verificador do Glyph ainda não pega um <code>unknown</code> que cai dentro de um tipo declarado, então <code>--no-tsc</code> e o editor ainda deixam passar <code>Result&lt;unknown, ...&gt;</code> escrito onde <code>Result&lt;User, ...&gt;</code> está declarado. (Um <code>let user: User = json.parse(body)</code> simples é <code>E0204</code> pelo próprio verificador do Glyph, porque o tipo externo já está errado.) Recusar <code>unknown</code> em qualquer profundidade é o G325, planejado para a 0.1.158.
+          <code>json.parse(body)</code> sem argumento de tipo é a leitura não verificada, um <code>Result&lt;unknown, ...&gt;</code>. Escrito onde um <code>Result&lt;User, ...&gt;</code> estava declarado, o <code>tsc</code> inferia <code>User</code> a partir da declaração e o programa quebrava na primeira leitura de campo. Agora o emissor escreve o <code>unknown</code> explicitamente, então <code>glyph check</code> o recusa via <code>tsc</code>. O próprio verificador do Glyph ainda não pega um <code>unknown</code> que cai dentro de um tipo declarado, então <code>--no-tsc</code> e o editor ainda deixam passar <code>Result&lt;unknown, ...&gt;</code> escrito onde <code>Result&lt;User, ...&gt;</code> está declarado. (Um <code>let user: User = json.parse(body)</code> simples é <code>E0204</code> pelo próprio verificador do Glyph, porque o tipo externo já está errado.) Recusar <code>unknown</code> em qualquer profundidade está planejado como G325, no <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">roadmap de releases</a>.
         </p>
       </div>
 

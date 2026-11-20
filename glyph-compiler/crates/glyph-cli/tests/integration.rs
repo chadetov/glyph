@@ -19400,6 +19400,118 @@ fn a_record_key_type_is_checked_with_one_verdict_on_every_path() {
     });
 }
 
+/// G377: a `where` over a string-literal union, a single literal included,
+/// is E0300 at the declaration under both `check` modes, by every spelling:
+/// inline, a local alias, an alias chain, imported by name, namespaced, and
+/// a second name a sibling declares. Through 0.1.151 each checked clean;
+/// `tsc` read `Tier where value != "c"` as all of `Tier`, the run-time
+/// check refused `"c"`, and `json.parse<Record<T2, int>>` had no document
+/// both would accept (record 119, probes `d/k`, `d/i`, `d/s`, `d/m`).
+#[test]
+fn a_where_over_a_string_literal_union_is_e0300_by_every_spelling() {
+    let tiers = "module tiers\npub type Tier = \"a\" | \"b\" | \"c\"\npub type One = \"a\"\n";
+    let hop = "module hop\nimport tiers { Tier }\npub type Tier2 = Tier\n";
+    let message = "a `where` refinement on a string-literal union (v1 supports refinements on primitive base types)";
+    let help = "Write the members you mean as their own union: `type T2 = \"a\" | \"b\"`. It stands wherever `Tier` is declared (D30 compares literal sets).";
+    let cases: Vec<(&str, String)> = vec![
+        ("inline", "type T2 = \"a\" | \"b\" where value != \"a\"\n".into()),
+        ("single-literal", "type One = \"a\"\ntype T2 = One where value.length > 0\n".into()),
+        ("local", "type Tier = \"a\" | \"b\" | \"c\"\ntype T2 = Tier where value != \"c\"\n".into()),
+        ("chain", "type Tier = \"a\" | \"b\" | \"c\"\ntype T1 = Tier\ntype T3 = T1\ntype T2 = T3 where value != \"c\"\n".into()),
+        ("by-name", "import tiers { Tier }\ntype T2 = Tier where value != \"c\"\n".into()),
+        ("namespaced", "import tiers as t\ntype T2 = t.Tier where value != \"c\"\n".into()),
+        ("imported-alias", "import tiers\ntype L = tiers.Tier\ntype T2 = L where value != \"c\"\n".into()),
+        ("sibling-hop", "import hop { Tier2 }\ntype T2 = Tier2 where value != \"c\"\n".into()),
+    ];
+    for (dir, decls) in cases {
+        let root = unique_tmp(&format!("g377-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "tiers.glyph", tiers);
+        write_file(&src, "hop.glyph", hop);
+        let main = format!("module main\n{decls}pub fn main() -> void {{ return void }}\n");
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_eq!(code, 1, "{dir}: refused under --no-tsc:\n{main}\n{stderr}");
+        assert!(stderr.contains("E0300") && stderr.contains(message), "{dir}: the message:\n{stderr}");
+        assert!(stderr.contains(help), "{dir}: the help:\n{stderr}");
+        let (code, _stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("check"), src.as_os_str()]);
+        assert_eq!(code, 1, "{dir}: refused under full check:\n{main}\n{stderr}");
+        assert!(stderr.contains("E0300"), "{dir}: E0300 under full check:\n{stderr}");
+    }
+}
+
+/// The controls for the test above: a refined `string` whose predicate
+/// admits finitely many strings, and the subset written as its own union,
+/// both check clean, and the subset stands where the full union is declared.
+#[test]
+fn a_where_over_a_primitive_and_a_subset_union_still_check_clean() {
+    let root = unique_tmp("g377-controls");
+    let src = root.join("src");
+    let main = "module main\nimport std/console\n\
+                type Tier = \"a\" | \"b\" | \"c\"\n\
+                type T2 = \"a\" | \"b\"\n\
+                type AB = string where value == \"a\" || value == \"b\"\n\
+                type Small = int where value < 10\n\
+                fn widen(t: T2) -> Tier { return t }\n\
+                fn label(t: T2) -> string { return match t { \"a\" => \"A\", \"b\" => \"B\", } }\n\
+                pub fn main() -> void {\n  console.log(label(\"b\") + widen(\"a\"))\n}\n";
+    write_file(&src, "main.glyph", main);
+    let (code, stderr) = check_no_tsc(&src);
+    assert_eq!(code, 0, "controls check clean:\n{stderr}");
+    assert_eq!(run_main_lines(&src), vec!["Ba"]);
+}
+
+/// Record 119: a numeric `Record` key is accepted exactly when it is a
+/// string `m[n] = v` can create for some `n` of the key type. `NaN` and
+/// `±Infinity` are `number` keys a program can write, `1e+21` is the
+/// canonical spelling of an integer D31 accepts as an `int`, and `1e21`,
+/// `-0`, `01` and `9007199254740993` are no number's spelling. This pins
+/// the whole table and the round trip of a map Glyph wrote, so the rule
+/// cannot drift without this test saying so.
+#[test]
+fn a_numeric_record_key_is_accepted_exactly_when_it_is_a_canonical_spelling() {
+    let root = unique_tmp("canonical-numeric-keys");
+    let src = root.join("src");
+    let main = "module main\nimport std/console\nimport std/json\n\
+                type Wrap = { x: int, }\n\
+                fn num(text: string) -> string { return match json.parse<Record<number, int>>(text) { Ok(r) => \"Ok\", Err(e) => \"Err\", } }\n\
+                fn int_key(text: string) -> string { return match json.parse<Record<int, int>>(text) { Ok(r) => \"Ok\", Err(e) => \"Err\", } }\n\
+                pub fn main() -> void {\n\
+                \x20 let ks = [\"NaN\", \"Infinity\", \"-Infinity\", \"1e+21\", \"1e21\", \"-0\", \"0\", \"9007199254740993\", \"1.5\", \"01\",]\n\
+                \x20 for k in ks {\n\
+                \x20\x20\x20 let q = \"\\\"\"\n\
+                \x20\x20\x20 let text = \"{\" + q + k + q + \":1}\"\n\
+                \x20\x20\x20 console.log(k + \" \" + num(text) + \" \" + int_key(text))\n\
+                \x20 }\n\
+                \x20 let w = match json.parse<Wrap>(\"{\\\"x\\\": 1e21}\") { Ok(v) => \"Ok\", Err(e) => \"Err\", }\n\
+                \x20 console.log(\"int-value-1e21 \" + w)\n\
+                \x20 let m: Record<number, int> = {}\n\
+                \x20 mut m[0 / 0] = 1\n\
+                \x20 mut m[1 / 0] = 2\n\
+                \x20 let back = json.stringify(m)\n\
+                \x20 console.log(back + \" \" + num(back))\n\
+                }\n";
+    write_file(&src, "main.glyph", main);
+    assert_eq!(
+        run_main_lines(&src),
+        vec![
+            "NaN Ok Err",
+            "Infinity Ok Err",
+            "-Infinity Ok Err",
+            "1e+21 Ok Ok",
+            "1e21 Err Err",
+            "-0 Err Err",
+            "0 Ok Ok",
+            "9007199254740993 Err Err",
+            "1.5 Ok Err",
+            "01 Err Err",
+            "int-value-1e21 Ok",
+            "{\"NaN\":1,\"Infinity\":2} Ok",
+        ],
+        "the canonical-key table:\n{main}"
+    );
+}
+
 /// G367: a check of a `Record` whose key type has no runtime check is
 /// E0304, naming the key type, at the top, as a record's field, inside an
 /// `Array`, as a generic's argument and in an `is` pattern. Through 0.1.147

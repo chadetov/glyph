@@ -509,7 +509,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">TypeScript는 함수가 모든 분기에서 값을 반환하거나 <code>assertNever</code> 관용구를 쓸 때만 <code>switch</code>가 모든 case를 다루는지 검사합니다. 아무것도 반환하지 않는 핸들러는 둘 다 해당하지 않습니다. Glyph에서는 모든 <code>match</code>가 모든 case를 다뤄야 하므로, variant를 추가하면 바꿔야 할 곳이 모두 나열됩니다.</p>
-        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">링크 복사</a><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="trusting-find-with-bang" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -533,7 +533,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note"><code>!</code>가 없으면 <code>tsc --strict</code>는 이 줄을 거부합니다. 그 검사를 끄는 것이 <code>!</code>이고, 실행 시에는 아무것도 하지 않습니다. Glyph에는 <code>!</code>가 없습니다.</p>
-        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">링크 복사</a><a class="c-play" href="/playground/#example=trusting-find-with-bang">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="error-the-signature-hides" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -565,7 +565,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">TypeScript 함수의 타입은 무엇을 반환하는지만 나열하고, 무엇을 던지는지는 나열하지 않습니다. Glyph에서는 실패가 반환 타입의 일부이므로 모든 호출자가 이를 볼 수 있습니다.</p>
-        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">링크 복사</a><a class="c-play" href="/playground/#example=error-the-signature-hides">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="error-nobody-looked-at" data-ts="none" data-glyph="warned">
         <div class="c-head">
@@ -616,7 +616,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">비동기 함수는 Promise를 반환하고, Promise는 무엇이든 참으로 취급됩니다. 이렇게 만든 권한 필터는 모두를 통과시킵니다.</p>
-        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">링크 복사</a><a class="c-play" href="/playground/#example=filter-that-keeps-everyone">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="type-guard-that-checks-less" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -668,7 +668,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
           </div>
         </div>
         <p class="c-note"><code>as unknown as T</code>는 에이전트가 고칠 수 없는 타입 오류를 덮을 때 쓰는 방법입니다.</p>
-        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">링크 복사</a><a class="c-play" href="/playground/#example=as-unknown-as">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="unvalidated-boundary-read" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -692,7 +692,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
           </div>
         </div>
         <p class="c-note"><code>const user: User</code>라고 쓰면 검사처럼 보이지만 검사가 아닙니다. Glyph에서는 <code>json.parse&lt;User&gt;(body)</code>가 본문을 검사하고, match할 수 있는 <code>Result</code>를 반환합니다.</p>
-        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">링크 복사</a><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="lost-update-across-await" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -720,7 +720,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">한 호출이 <code>fee()</code>를 기다리는 동안 다른 호출이 잔액을 갱신할 수 있습니다. 그러면 첫 번째 호출이 오래된 값을 다시 씁니다.</p>
-        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">링크 복사</a><a class="c-play" href="/playground/#example=lost-update-across-await">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="split-into-a-pair" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -746,7 +746,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note"><code>split</code>은 조각 하나만 반환할 수 있습니다. 그런데도 TypeScript는 <code>host</code>의 타입을 <code>string</code>으로 지정합니다.</p>
-        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">링크 복사</a><a class="c-play" href="/playground/#example=split-into-a-pair">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="value-outside-the-list" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -830,7 +830,7 @@ print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">TypeScript에서는 일치하는 멤버가 없는 숫자라도 모든 숫자를 숫자 enum에 대입할 수 있습니다.</p>
-        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">링크 복사</a><a class="c-play" href="/playground/#example=number-accepted-as-enum">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="connection-left-open" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -860,7 +860,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
         </div>
         <p class="c-note">이 검사는 <code>owned</code>로 선언한 값에 적용됩니다. 그렇게 선언하지 않은 리소스는 추적하지 않습니다.</p>
-        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">링크 복사</a><a class="c-play" href="/playground/#example=connection-left-open">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="typo-nobody-sees" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -916,7 +916,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
         </div>
         <p class="c-note">TypeScript의 <code>Record&lt;string, string&gt;</code>은 가능한 모든 키에 문자열이 있다고 주장합니다. Glyph는 이를 조회 결과가 없을 수도 있는 맵으로 다루므로, 철자가 맞는 <code>row.name</code>도 거부합니다.</p>
-        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">링크 복사</a><a class="c-play" href="/playground/#example=absent-map-key">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="typo-in-an-options-object" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -942,7 +942,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">TypeScript는 호출 안에 직접 작성한 리터럴에서만 알 수 없는 키를 검사하고, 변수에 먼저 만든 객체는 검사하지 않습니다.</p>
-        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">링크 복사</a><a class="c-play" href="/playground/#example=typo-in-an-options-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="invalid-date" data-ts="none" data-glyph="design">
         <div class="c-head">
@@ -1020,7 +1020,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note"><code>?.</code>는 충돌을 막지만, 그 결과로 나온 <code>undefined</code>는 그대로 출력됩니다.</p>
-        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">링크 복사</a><a class="c-play" href="/playground/#example=template-prints-undefined">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="number-that-is-not-a-number" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1050,7 +1050,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">오류는 <code>total</code>이 호출되기도 전에 이 줄을 가리킵니다. 컴파일하려면 잘못된 입력이 무엇을 뜻하는지 코드에 적어야 합니다: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code></p>
-        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">링크 복사</a><a class="c-play" href="/playground/#example=number-that-is-not-a-number">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="comparing-records-with-triple-equals" data-ts="none" data-glyph="design">
         <div class="c-head">
@@ -1106,7 +1106,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">Glyph는 변경을 금지하지 않습니다. 변경을 드러나게 합니다. <code>mut</code>를 검색하면 함수가 쓰는 모든 필드가 나옵니다.</p>
-        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">링크 복사</a><a class="c-play" href="/playground/#example=change-hidden-in-a-helper">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="negative-age" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -1292,7 +1292,7 @@ sum = sum * (<span class="n">1</span> + taxRate);</pre><span class="cap">$ tsx t
           </div>
         </div>
         <p class="c-note">TypeScript 화살표 함수에서 객체를 반환하려면 중괄호를 괄호로 감싸야 합니다: <code>u =&gt; ({ ... })</code>.</p>
-        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">링크 복사</a><a class="c-play" href="/playground/#example=arrow-function-returns-nothing">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="array-covariance" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1320,7 +1320,7 @@ adopt(dogs);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span c
           </div>
         </div>
         <p class="c-note">TypeScript는 함수가 배열에 값을 추가하는 경우에도 <code>Dog[]</code>를 <code>Animal[]</code> 대신 쓸 수 있게 허용합니다.</p>
-        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">링크 복사</a><a class="c-play" href="/playground/#example=array-covariance">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="two-types-same-shape" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1347,7 +1347,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
           </div>
         </div>
         <p class="c-note">TypeScript는 객체 타입을 모양으로 비교하므로, 모양이 같은 타입은 이름이 무엇이든 서로 바꿔 쓸 수 있습니다.</p>
-        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">링크 복사</a><a class="c-play" href="/playground/#example=two-types-same-shape">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="unverifiable-parse" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1378,7 +1378,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
           </div>
         </div>
         <p class="c-note">wire 타입과 도메인 타입을 분리하세요. 검사할 수 있는 필드를 파싱한 다음, 소켓을 포함해 레코드를 만듭니다.</p>
-        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">링크 복사</a><a class="c-play" href="/playground/#example=unverifiable-parse">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="method-forgets-its-object" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -1402,7 +1402,7 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
           </div>
         </div>
         <p class="c-note">TypeScript 메서드는 자신이 호출된 객체(<code>this</code>)에 의존합니다. <code>name.toUpperCase()</code>에서 값으로 떼어 내면 어떤 문자열을 써야 하는지 더 이상 알지 못합니다.</p>
-        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">링크 복사</a><a class="c-play" href="/playground/#example=method-forgets-its-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">점수에 동의하지 않나요?</a></p>
       </article>
       <article class="catch" id="quantity-of-one-and-a-half" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -1461,7 +1461,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           </div>
         </div>
         <p class="c-note">tsc는 두 번 나오는 <code>case</code> 레이블을 지적하지 않습니다.</p>
-        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">링크 복사</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">점수에 동의하지 않나요?</a></p>
+        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">링크 복사</a><a class="c-play" href="/playground/#example=duplicate-case">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">재현하기</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">점수에 동의하지 않나요?</a></p>
       </article>
       </div>
 
@@ -1472,11 +1472,11 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           에이전트가 지금도 가끔 빠지는 오래된 함정들입니다. Glyph는 각 프로그램을 거부하지만, 실수를 찾아내서가 아닙니다. 그 원인이 되는 기능이 언어에 없고, 대신 쓸 것을 알려 줍니다.
         </p>
       <ul class="c-traps">
-        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code>의 결과는 <code>[10, NaN, NaN]</code>입니다. <code>map</code>이 인덱스를 진법으로 넘기기 때문입니다. Glyph에는 <code>Result</code>를 반환하는 <code>number.parse</code>가 있습니다.</li>
-        <li id="trap-regex-lastindex"><code>/g</code> 정규식을 <code>.test</code>에 재사용하면 <code>lastIndex</code>를 기억하기 때문에 두 번에 한 번은 매칭에 실패합니다. Glyph에는 정규식 객체가 없고, <code>regex.matches(pattern, text)</code>에는 상태가 없습니다.</li>
-        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code>는 메서드를 객체 없이 실행합니다. Glyph에는 클래스도 <code>this</code>도 없습니다.</li>
-        <li id="trap-math-max-empty"><code>Math.max(...[])</code>는 <code>-Infinity</code>입니다. Glyph의 <code>array.max</code>는 <code>Option</code>을 반환하며, 빈 목록이면 비어 있습니다.</li>
-        <li id="trap-array-holes"><code>Array(3).map(...)</code>은 구멍 세 개를 반환합니다. <code>map</code>이 구멍을 건너뛰기 때문입니다. Glyph에는 <code>Array(n)</code>이 없고, 배열은 리터럴로 작성합니다.</li>
+        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code>의 결과는 <code>[10, NaN, NaN]</code>입니다. <code>map</code>이 인덱스를 진법으로 넘기기 때문입니다. Glyph에는 <code>Result</code>를 반환하는 <code>number.parse</code>가 있습니다. <a class="c-play" href="/playground/#example=trap-map-parseint">Open in playground</a></li>
+        <li id="trap-regex-lastindex"><code>/g</code> 정규식을 <code>.test</code>에 재사용하면 <code>lastIndex</code>를 기억하기 때문에 두 번에 한 번은 매칭에 실패합니다. Glyph에는 정규식 객체가 없고, <code>regex.matches(pattern, text)</code>에는 상태가 없습니다. <a class="c-play" href="/playground/#example=trap-regex-lastindex">Open in playground</a></li>
+        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code>는 메서드를 객체 없이 실행합니다. Glyph에는 클래스도 <code>this</code>도 없습니다. <a class="c-play" href="/playground/#example=trap-foreach-method-this">Open in playground</a></li>
+        <li id="trap-math-max-empty"><code>Math.max(...[])</code>는 <code>-Infinity</code>입니다. Glyph의 <code>array.max</code>는 <code>Option</code>을 반환하며, 빈 목록이면 비어 있습니다. <a class="c-play" href="/playground/#example=trap-math-max-empty">Open in playground</a></li>
+        <li id="trap-array-holes"><code>Array(3).map(...)</code>은 구멍 세 개를 반환합니다. <code>map</code>이 구멍을 건너뛰기 때문입니다. Glyph에는 <code>Array(n)</code>이 없고, 배열은 리터럴로 작성합니다. <a class="c-play" href="/playground/#example=trap-array-holes">Open in playground</a></li>
       </ul>
 
       </section>

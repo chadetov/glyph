@@ -507,7 +507,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">TypeScript comprueba que un <code>switch</code> cubre todos los casos solo cuando la función devuelve un valor desde cada rama, o con el idioma <code>assertNever</code>. Un handler que no devuelve nada no tiene ninguna de las dos cosas. En Glyph todo <code>match</code> tiene que cubrir todos los casos, así que añadir una variante lista cada sitio que hay que cambiar.</p>
-        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">Copiar enlace</a><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="trusting-find-with-bang" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -531,7 +531,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">Sin el <code>!</code>, <code>tsc --strict</code> rechaza esta línea. El <code>!</code> es lo que desactiva esa comprobación, y no hace nada en tiempo de ejecución. Glyph no tiene <code>!</code>.</p>
-        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">Copiar enlace</a><a class="c-play" href="/playground/#example=trusting-find-with-bang">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="error-the-signature-hides" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -563,7 +563,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">El tipo de una función de TypeScript dice qué devuelve, nunca qué lanza. En Glyph el fallo forma parte del tipo de retorno, así que todos los que llaman lo ven.</p>
-        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">Copiar enlace</a><a class="c-play" href="/playground/#example=error-the-signature-hides">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="error-nobody-looked-at" data-ts="none" data-glyph="warned">
         <div class="c-head">
@@ -614,7 +614,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">Una función async devuelve una Promise, y cualquier Promise cuenta como verdadera. Un filtro de permisos escrito así deja pasar a todo el mundo.</p>
-        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">Copiar enlace</a><a class="c-play" href="/playground/#example=filter-that-keeps-everyone">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="type-guard-that-checks-less" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -666,7 +666,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
           </div>
         </div>
         <p class="c-note"><code>as unknown as T</code> es como los agentes silencian un error de tipos que no saben corregir.</p>
-        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">Copiar enlace</a><a class="c-play" href="/playground/#example=as-unknown-as">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="unvalidated-boundary-read" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -690,7 +690,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
           </div>
         </div>
         <p class="c-note">Escribir <code>const user: User</code> parece una comprobación y no lo es. En Glyph, <code>json.parse&lt;User&gt;(body)</code> comprueba el cuerpo y devuelve un <code>Result</code> sobre el que hacer match.</p>
-        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">Copiar enlace</a><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="lost-update-across-await" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -718,7 +718,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">Mientras una llamada espera a <code>fee()</code>, otra puede actualizar el saldo. La primera escribe después un valor desactualizado.</p>
-        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">Copiar enlace</a><a class="c-play" href="/playground/#example=lost-update-across-await">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="split-into-a-pair" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -744,7 +744,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note"><code>split</code> puede devolver una sola pieza. TypeScript tipa <code>host</code> como <code>string</code> de todos modos.</p>
-        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">Copiar enlace</a><a class="c-play" href="/playground/#example=split-into-a-pair">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="value-outside-the-list" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -828,7 +828,7 @@ print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">En TypeScript cualquier número se puede asignar a un enum numérico, incluso uno sin miembro correspondiente.</p>
-        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">Copiar enlace</a><a class="c-play" href="/playground/#example=number-accepted-as-enum">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="connection-left-open" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -858,7 +858,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
         </div>
         <p class="c-note">Esta comprobación se aplica a los valores declarados <code>owned</code>. Un recurso sin él no se sigue.</p>
-        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">Copiar enlace</a><a class="c-play" href="/playground/#example=connection-left-open">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="typo-nobody-sees" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -914,7 +914,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
         </div>
         <p class="c-note">El <code>Record&lt;string, string&gt;</code> de TypeScript afirma que toda clave posible tiene un string. Glyph lo trata como un mapa, donde una búsqueda puede no encontrar nada, así que también rechaza <code>row.name</code> bien escrito.</p>
-        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">Copiar enlace</a><a class="c-play" href="/playground/#example=absent-map-key">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="typo-in-an-options-object" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -940,7 +940,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">TypeScript solo comprueba claves desconocidas en un literal escrito directamente en la llamada, no en uno construido antes en una variable.</p>
-        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">Copiar enlace</a><a class="c-play" href="/playground/#example=typo-in-an-options-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="invalid-date" data-ts="none" data-glyph="design">
         <div class="c-head">
@@ -1018,7 +1018,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note"><code>?.</code> evita el fallo, pero el <code>undefined</code> que produce se sigue imprimiendo.</p>
-        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">Copiar enlace</a><a class="c-play" href="/playground/#example=template-prints-undefined">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="number-that-is-not-a-number" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1048,7 +1048,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">El error señala esta línea, antes de que se llame a <code>total</code>. Para compilar, el código tiene que decir qué significa una entrada incorrecta: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code></p>
-        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">Copiar enlace</a><a class="c-play" href="/playground/#example=number-that-is-not-a-number">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="comparing-records-with-triple-equals" data-ts="none" data-glyph="design">
         <div class="c-head">
@@ -1104,7 +1104,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">Glyph no prohíbe el cambio. Lo hace visible: buscar <code>mut</code> lista cada campo que escribe una función.</p>
-        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">Copiar enlace</a><a class="c-play" href="/playground/#example=change-hidden-in-a-helper">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="negative-age" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -1290,7 +1290,7 @@ sum = sum * (<span class="n">1</span> + taxRate);</pre><span class="cap">$ tsx t
           </div>
         </div>
         <p class="c-note">Para devolver un objeto desde una arrow function de TypeScript, las llaves necesitan paréntesis: <code>u =&gt; ({ ... })</code>.</p>
-        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">Copiar enlace</a><a class="c-play" href="/playground/#example=arrow-function-returns-nothing">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="array-covariance" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1318,7 +1318,7 @@ adopt(dogs);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span c
           </div>
         </div>
         <p class="c-note">TypeScript deja que <code>Dog[]</code> ocupe el lugar de <code>Animal[]</code> incluso cuando la función le añade elementos.</p>
-        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">Copiar enlace</a><a class="c-play" href="/playground/#example=array-covariance">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="two-types-same-shape" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1345,7 +1345,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
           </div>
         </div>
         <p class="c-note">TypeScript compara los tipos de objeto por su forma, así que los tipos con la misma forma son intercambiables, se llamen como se llamen.</p>
-        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">Copiar enlace</a><a class="c-play" href="/playground/#example=two-types-same-shape">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="unverifiable-parse" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1376,7 +1376,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
           </div>
         </div>
         <p class="c-note">Separa el tipo de transporte del tipo de dominio: parsea los campos que se pueden comprobar y luego construye el record alrededor del socket.</p>
-        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">Copiar enlace</a><a class="c-play" href="/playground/#example=unverifiable-parse">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="method-forgets-its-object" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -1400,7 +1400,7 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
           </div>
         </div>
         <p class="c-note">Un método de TypeScript depende del objeto sobre el que se llama (<code>this</code>). Sacado de <code>name.toUpperCase()</code> como valor, ya no sabe qué string usar.</p>
-        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">Copiar enlace</a><a class="c-play" href="/playground/#example=method-forgets-its-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       <article class="catch" id="quantity-of-one-and-a-half" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -1459,7 +1459,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           </div>
         </div>
         <p class="c-note">tsc no marca una etiqueta <code>case</code> que aparece dos veces.</p>
-        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">Copiar enlace</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">¿No estás de acuerdo con la puntuación?</a></p>
+        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">Copiar enlace</a><a class="c-play" href="/playground/#example=duplicate-case">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">Reproducir</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">¿No estás de acuerdo con la puntuación?</a></p>
       </article>
       </div>
 
@@ -1470,11 +1470,11 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           Trampas más antiguas en las que los agentes todavía caen de vez en cuando. Glyph rechaza cada programa, pero no porque detecte el error: la característica que hay detrás no está en el lenguaje, y se indica qué usar en su lugar.
         </p>
       <ul class="c-traps">
-        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> es <code>[10, NaN, NaN]</code>, porque <code>map</code> pasa el índice como base numérica. Glyph tiene <code>number.parse</code>, que devuelve un <code>Result</code>.</li>
-        <li id="trap-regex-lastindex">Una regex <code>/g</code> reutilizada con <code>.test</code> falla una de cada dos coincidencias, porque recuerda <code>lastIndex</code>. Glyph no tiene objetos regex; <code>regex.matches(pattern, text)</code> no tiene estado.</li>
-        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code> ejecuta el método sin su objeto. Glyph no tiene clases ni <code>this</code>.</li>
-        <li id="trap-math-max-empty"><code>Math.max(...[])</code> es <code>-Infinity</code>. El <code>array.max</code> de Glyph devuelve un <code>Option</code>, vacío para una lista vacía.</li>
-        <li id="trap-array-holes"><code>Array(3).map(...)</code> devuelve tres huecos, porque <code>map</code> los salta. Glyph no tiene <code>Array(n)</code>; los arrays se escriben como literales.</li>
+        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> es <code>[10, NaN, NaN]</code>, porque <code>map</code> pasa el índice como base numérica. Glyph tiene <code>number.parse</code>, que devuelve un <code>Result</code>. <a class="c-play" href="/playground/#example=trap-map-parseint">Open in playground</a></li>
+        <li id="trap-regex-lastindex">Una regex <code>/g</code> reutilizada con <code>.test</code> falla una de cada dos coincidencias, porque recuerda <code>lastIndex</code>. Glyph no tiene objetos regex; <code>regex.matches(pattern, text)</code> no tiene estado. <a class="c-play" href="/playground/#example=trap-regex-lastindex">Open in playground</a></li>
+        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code> ejecuta el método sin su objeto. Glyph no tiene clases ni <code>this</code>. <a class="c-play" href="/playground/#example=trap-foreach-method-this">Open in playground</a></li>
+        <li id="trap-math-max-empty"><code>Math.max(...[])</code> es <code>-Infinity</code>. El <code>array.max</code> de Glyph devuelve un <code>Option</code>, vacío para una lista vacía. <a class="c-play" href="/playground/#example=trap-math-max-empty">Open in playground</a></li>
+        <li id="trap-array-holes"><code>Array(3).map(...)</code> devuelve tres huecos, porque <code>map</code> los salta. Glyph no tiene <code>Array(n)</code>; los arrays se escriben como literales. <a class="c-play" href="/playground/#example=trap-array-holes">Open in playground</a></li>
       </ul>
 
       </section>

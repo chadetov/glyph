@@ -447,7 +447,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">一个调用在等待 <code>fee()</code> 时，另一个调用可能更新了余额。随后第一个调用写回的是过期的值。</p>
-        <p class="c-links"><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">不同意这个评分？</a></p>
+        <p class="c-links"><a class="c-play" href="/playground/#example=lost-update-across-await">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">复现</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">不同意这个评分？</a></p>
       </article>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/catches/unvalidated-boundary-read/">

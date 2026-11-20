@@ -96,6 +96,7 @@
     "catches.copy_link": "Copy link",
     "catches.reproduce": "Reproduce",
     "catches.disagree": "Disagree with this score?",
+    "catches.playground": "Open in playground",
     "catches.page_title": "{title} in TypeScript",
     "catches.all": "All TypeScript cases",
     "catches.case_of": "Case {n} of {count}",

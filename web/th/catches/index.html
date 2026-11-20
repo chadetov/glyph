@@ -509,7 +509,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">TypeScript ตรวจว่า <code>switch</code> ครอบคลุมทุก case ก็ต่อเมื่อฟังก์ชันคืนค่าจากทุก branch หรือใช้ idiom <code>assertNever</code> เท่านั้น handler ที่ไม่คืนค่าอะไรไม่ได้ทั้งสองอย่าง ใน Glyph ทุก <code>match</code> ต้องครอบคลุมทุก case การเพิ่ม variant จึงแสดงรายการทุกจุดที่ต้องแก้</p>
-        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#non-exhaustive-match" data-slug="non-exhaustive-match">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=non-exhaustive-match">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/non-exhaustive-match">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=non-exhaustive-match&amp;title=Score%3A+A+case+nobody+handled">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="trusting-find-with-bang" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -533,7 +533,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">ถ้าไม่มี <code>!</code> แล้ว <code>tsc --strict</code> จะปฏิเสธบรรทัดนี้ <code>!</code> คือสิ่งที่ปิดการตรวจนั้น และมันไม่ทำอะไรเลยตอนรัน Glyph ไม่มี <code>!</code></p>
-        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#trusting-find-with-bang" data-slug="trusting-find-with-bang">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=trusting-find-with-bang">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/trusting-find-with-bang">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=trusting-find-with-bang&amp;title=Score%3A+Trusting+find+with+%21">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="error-the-signature-hides" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -565,7 +565,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">type ของฟังก์ชันใน TypeScript บอกว่าคืนอะไร แต่ไม่เคยบอกว่า throw อะไร ใน Glyph ความล้มเหลวเป็นส่วนหนึ่งของ return type ผู้เรียกทุกคนจึงมองเห็น</p>
-        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#error-the-signature-hides" data-slug="error-the-signature-hides">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=error-the-signature-hides">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/error-the-signature-hides">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=error-the-signature-hides&amp;title=Score%3A+An+error+the+signature+hides">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="error-nobody-looked-at" data-ts="none" data-glyph="warned">
         <div class="c-head">
@@ -616,7 +616,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           </div>
         </div>
         <p class="c-note">ฟังก์ชัน async คืนค่าเป็น Promise และ Promise ทุกตัวนับเป็น true filter ตรวจสิทธิ์ที่เขียนแบบนี้จึงปล่อยทุกคนผ่าน</p>
-        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#filter-that-keeps-everyone" data-slug="filter-that-keeps-everyone">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=filter-that-keeps-everyone">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/filter-that-keeps-everyone">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=filter-that-keeps-everyone&amp;title=Score%3A+A+filter+that+keeps+everyone">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="type-guard-that-checks-less" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -668,7 +668,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
           </div>
         </div>
         <p class="c-note"><code>as unknown as T</code> คือวิธีที่เอเจนต์ใช้ปิดปาก type error ที่แก้ไม่ได้</p>
-        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#as-unknown-as" data-slug="as-unknown-as">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=as-unknown-as">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/as-unknown-as">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=as-unknown-as&amp;title=Score%3A+as+unknown+as+T">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="unvalidated-boundary-read" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -692,7 +692,7 @@ console.log(cfg.hosts.length);</pre><span class="cap">$ tsx ts.ts</span><pre cla
           </div>
         </div>
         <p class="c-note">การเขียน <code>const user: User</code> ดูเหมือนการตรวจ แต่ไม่ใช่ ใน Glyph <code>json.parse&lt;User&gt;(body)</code> ตรวจ body และคืนค่าเป็น <code>Result</code> ให้ match ต่อ</p>
-        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#unvalidated-boundary-read" data-slug="unvalidated-boundary-read">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=unvalidated-boundary-read">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unvalidated-boundary-read">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unvalidated-boundary-read&amp;title=Score%3A+A+parsed+body+given+a+type+without+a+check">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="lost-update-across-await" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -720,7 +720,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">ระหว่างที่การเรียกหนึ่งรอ <code>fee()</code> อีกการเรียกหนึ่งอาจอัปเดตยอดเงินไปแล้ว จากนั้นการเรียกแรกก็เขียนค่าเก่าทับกลับลงไป</p>
-        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#lost-update-across-await" data-slug="lost-update-across-await">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=lost-update-across-await">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/lost-update-across-await">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=lost-update-across-await&amp;title=Score%3A+A+lost+update+across+await">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="split-into-a-pair" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -746,7 +746,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           </div>
         </div>
         <p class="c-note"><code>split</code> อาจคืนมาแค่ชิ้นเดียว แต่ TypeScript ก็ยังให้ type ของ <code>host</code> เป็น <code>string</code></p>
-        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#split-into-a-pair" data-slug="split-into-a-pair">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=split-into-a-pair">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/split-into-a-pair">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=split-into-a-pair&amp;title=Score%3A+Destructuring+a+split">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="value-outside-the-list" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -830,7 +830,7 @@ print(label(from_db))</pre><span class="cap">$ glyph build</span><pre class="c-o
           </div>
         </div>
         <p class="c-note">ใน TypeScript ตัวเลขใดๆ assign ให้ numeric enum ได้ แม้จะไม่มี member ที่ตรงกันก็ตาม</p>
-        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#number-accepted-as-enum" data-slug="number-accepted-as-enum">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=number-accepted-as-enum">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-accepted-as-enum">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-accepted-as-enum&amp;title=Score%3A+A+number+accepted+as+an+enum">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="connection-left-open" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -860,7 +860,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
         </div>
         <p class="c-note">การตรวจนี้ใช้กับค่าที่ประกาศเป็น <code>owned</code> resource ที่ไม่ได้ประกาศแบบนั้นจะไม่ถูกติดตาม</p>
-        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#connection-left-open" data-slug="connection-left-open">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=connection-left-open">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/connection-left-open">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=connection-left-open&amp;title=Score%3A+A+connection+left+open">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="typo-nobody-sees" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -916,7 +916,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           </div>
         </div>
         <p class="c-note"><code>Record&lt;string, string&gt;</code> ของ TypeScript อ้างว่าทุก key ที่เป็นไปได้มี string อยู่ Glyph มองว่ามันเป็น map ซึ่งการค้นหาอาจไม่เจออะไร จึงปฏิเสธ <code>row.name</code> ที่สะกดถูกด้วย</p>
-        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#absent-map-key" data-slug="absent-map-key">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=absent-map-key">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/absent-map-key">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=absent-map-key&amp;title=Score%3A+A+key+that+may+not+be+there">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="typo-in-an-options-object" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -942,7 +942,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">TypeScript ตรวจ key ที่ไม่รู้จักเฉพาะใน literal ที่เขียนลงไปในการเรียกโดยตรง ไม่ตรวจ literal ที่สร้างไว้ในตัวแปรก่อน</p>
-        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#typo-in-an-options-object" data-slug="typo-in-an-options-object">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=typo-in-an-options-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/typo-in-an-options-object">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=typo-in-an-options-object&amp;title=Score%3A+A+typo+in+an+options+object">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="invalid-date" data-ts="none" data-glyph="design">
         <div class="c-head">
@@ -1020,7 +1020,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note"><code>?.</code> ป้องกัน crash ได้ แต่ <code>undefined</code> ที่ได้ออกมาก็ยังถูกพิมพ์อยู่ดี</p>
-        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#template-prints-undefined" data-slug="template-prints-undefined">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=template-prints-undefined">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/template-prints-undefined">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=template-prints-undefined&amp;title=Score%3A+A+template+that+prints+%22undefined%22">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="number-that-is-not-a-number" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1050,7 +1050,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">error ชี้มาที่บรรทัดนี้ ก่อนที่ <code>total</code> จะถูกเรียกเสียอีก ถ้าจะคอมไพล์ผ่าน โค้ดต้องบอกว่า input ที่ผิดหมายถึงอะไร: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code></p>
-        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#number-that-is-not-a-number" data-slug="number-that-is-not-a-number">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=number-that-is-not-a-number">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/number-that-is-not-a-number">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=number-that-is-not-a-number&amp;title=Score%3A+A+number+that+is+not+a+number">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="comparing-records-with-triple-equals" data-ts="none" data-glyph="design">
         <div class="c-head">
@@ -1106,7 +1106,7 @@ print(<span class="s">"timeout </span><span class="ip">${</span>connect(opts)<sp
           </div>
         </div>
         <p class="c-note">Glyph ไม่ได้ห้ามการแก้ไข แต่ทำให้มองเห็นได้: ค้นหา <code>mut</code> แล้วจะได้รายการทุก field ที่ฟังก์ชันเขียนทับ</p>
-        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#change-hidden-in-a-helper" data-slug="change-hidden-in-a-helper">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=change-hidden-in-a-helper">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/change-hidden-in-a-helper">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=change-hidden-in-a-helper&amp;title=Score%3A+A+change+hidden+in+a+helper">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="negative-age" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -1292,7 +1292,7 @@ sum = sum * (<span class="n">1</span> + taxRate);</pre><span class="cap">$ tsx t
           </div>
         </div>
         <p class="c-note">ถ้าจะคืน object จาก arrow function ใน TypeScript ต้องครอบวงเล็บปีกกาด้วยวงเล็บ: <code>u =&gt; ({ ... })</code></p>
-        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#arrow-function-returns-nothing" data-slug="arrow-function-returns-nothing">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=arrow-function-returns-nothing">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/arrow-function-returns-nothing">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=arrow-function-returns-nothing&amp;title=Score%3A+An+arrow+function+that+returns+nothing">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="array-covariance" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1320,7 +1320,7 @@ adopt(dogs);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span c
           </div>
         </div>
         <p class="c-note">TypeScript ยอมให้ใช้ <code>Dog[]</code> แทน <code>Animal[]</code> แม้ฟังก์ชันจะเพิ่มของลงไปก็ตาม</p>
-        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#array-covariance" data-slug="array-covariance">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=array-covariance">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/array-covariance">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=array-covariance&amp;title=Score%3A+Array+covariance">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="two-types-same-shape" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1347,7 +1347,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
           </div>
         </div>
         <p class="c-note">TypeScript เปรียบเทียบ object type ตามรูปร่าง type ที่รูปร่างเหมือนกันจึงใช้แทนกันได้ ไม่ว่าจะชื่ออะไร</p>
-        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#two-types-same-shape" data-slug="two-types-same-shape">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=two-types-same-shape">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/two-types-same-shape">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=two-types-same-shape&amp;title=Score%3A+Two+types+with+the+same+shape">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="unverifiable-parse" data-ts="none" data-glyph="build">
         <div class="c-head">
@@ -1378,7 +1378,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
           </div>
         </div>
         <p class="c-note">แยก type สำหรับข้อมูลที่รับส่งออกจาก type ของโดเมน: parse field ที่ตรวจได้ แล้วจึงสร้าง record ครอบ socket</p>
-        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#unverifiable-parse" data-slug="unverifiable-parse">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=unverifiable-parse">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/unverifiable-parse">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=unverifiable-parse&amp;title=Score%3A+A+validator+that+cannot+check+what+it+claims">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="method-forgets-its-object" data-ts="lint" data-glyph="build">
         <div class="c-head">
@@ -1402,7 +1402,7 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
           </div>
         </div>
         <p class="c-note">method ใน TypeScript ขึ้นกับ object ที่มันถูกเรียกด้วย (<code>this</code>) เมื่อถูกดึงออกจาก <code>name.toUpperCase()</code> มาเป็นค่า มันก็ไม่รู้แล้วว่าต้องใช้ string ตัวไหน</p>
-        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#method-forgets-its-object" data-slug="method-forgets-its-object">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=method-forgets-its-object">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/method-forgets-its-object">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=method-forgets-its-object&amp;title=Score%3A+A+method+that+forgets+its+object">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       <article class="catch" id="quantity-of-one-and-a-half" data-ts="none" data-glyph="data">
         <div class="c-head">
@@ -1461,7 +1461,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           </div>
         </div>
         <p class="c-note">tsc ไม่เตือนเมื่อ label ของ <code>case</code> ซ้ำกันสองครั้ง</p>
-        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">คัดลอกลิงก์</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">ไม่เห็นด้วยกับคะแนน?</a></p>
+        <p class="c-links"><a class="c-copy" href="#duplicate-case" data-slug="duplicate-case">คัดลอกลิงก์</a><a class="c-play" href="/playground/#example=duplicate-case">Open in playground</a><a href="https://github.com/chadetov/glyph/tree/main/catches/duplicate-case">ทำซ้ำ</a><a class="c-disagree" href="https://github.com/chadetov/glyph/issues/new?template=score.yml&amp;case=duplicate-case&amp;title=Score%3A+A+duplicate+case">ไม่เห็นด้วยกับคะแนน?</a></p>
       </article>
       </div>
 
@@ -1472,11 +1472,11 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
           กับดักเก่าๆ ที่เอเจนต์ยังเจออยู่เป็นครั้งคราว Glyph ปฏิเสธทุกโปรแกรมในกลุ่มนี้ แต่ไม่ใช่เพราะจับความผิดพลาดได้ ฟีเจอร์ที่เป็นต้นเหตุไม่มีอยู่ในภาษา และมีการบอกชื่อสิ่งที่ใช้แทน
         </p>
       <ul class="c-traps">
-        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> ได้ <code>[10, NaN, NaN]</code> เพราะ <code>map</code> ส่ง index ไปเป็นฐานของตัวเลข Glyph มี <code>number.parse</code> ซึ่งคืนค่าเป็น <code>Result</code></li>
-        <li id="trap-regex-lastindex">regex แบบ <code>/g</code> ที่ใช้ซ้ำกับ <code>.test</code> จะพลาดทุกการจับคู่ครั้งที่สอง เพราะมันจำ <code>lastIndex</code> ไว้ Glyph ไม่มี regex object และ <code>regex.matches(pattern, text)</code> ไม่มี state</li>
-        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code> รัน method โดยไม่มี object ของมัน Glyph ไม่มี class และไม่มี <code>this</code></li>
-        <li id="trap-math-max-empty"><code>Math.max(...[])</code> ได้ <code>-Infinity</code> ส่วน <code>array.max</code> ของ Glyph คืนค่าเป็น <code>Option</code> ซึ่งว่างเมื่อ list ว่าง</li>
-        <li id="trap-array-holes"><code>Array(3).map(...)</code> คืนช่องว่างสามช่อง เพราะ <code>map</code> ข้ามมันไป Glyph ไม่มี <code>Array(n)</code> array เขียนเป็น literal</li>
+        <li id="trap-map-parseint"><code>"10,20,30".split(",").map(parseInt)</code> ได้ <code>[10, NaN, NaN]</code> เพราะ <code>map</code> ส่ง index ไปเป็นฐานของตัวเลข Glyph มี <code>number.parse</code> ซึ่งคืนค่าเป็น <code>Result</code> <a class="c-play" href="/playground/#example=trap-map-parseint">Open in playground</a></li>
+        <li id="trap-regex-lastindex">regex แบบ <code>/g</code> ที่ใช้ซ้ำกับ <code>.test</code> จะพลาดทุกการจับคู่ครั้งที่สอง เพราะมันจำ <code>lastIndex</code> ไว้ Glyph ไม่มี regex object และ <code>regex.matches(pattern, text)</code> ไม่มี state <a class="c-play" href="/playground/#example=trap-regex-lastindex">Open in playground</a></li>
+        <li id="trap-foreach-method-this"><code>[1, 2, 3].forEach(counter.increment)</code> รัน method โดยไม่มี object ของมัน Glyph ไม่มี class และไม่มี <code>this</code> <a class="c-play" href="/playground/#example=trap-foreach-method-this">Open in playground</a></li>
+        <li id="trap-math-max-empty"><code>Math.max(...[])</code> ได้ <code>-Infinity</code> ส่วน <code>array.max</code> ของ Glyph คืนค่าเป็น <code>Option</code> ซึ่งว่างเมื่อ list ว่าง <a class="c-play" href="/playground/#example=trap-math-max-empty">Open in playground</a></li>
+        <li id="trap-array-holes"><code>Array(3).map(...)</code> คืนช่องว่างสามช่อง เพราะ <code>map</code> ข้ามมันไป Glyph ไม่มี <code>Array(n)</code> array เขียนเป็น literal <a class="c-play" href="/playground/#example=trap-array-holes">Open in playground</a></li>
       </ul>
 
       </section>

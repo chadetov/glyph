@@ -319,6 +319,14 @@ pre .h {
   margin-bottom: var(--s2);
   font-size: var(--fs-body);
 }
+.c-traps .c-play {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.c-traps .c-play:hover {
+  color: var(--accent);
+}
 .c-gaps {
   margin: 0;
   padding: 0;

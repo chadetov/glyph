@@ -104,4 +104,4 @@ Returning from `main` sets the exit code without stopping the process, so server
 
 A listener that fails to bind after `main` has returned exits 0 unless the program says otherwise: `process.set_exit_code(1)` records the failure without tearing down work still in flight, and `process.exit(1)` stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's `main` carries a `return 0` that is never reached.
 
-Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 19 Nov 2026.

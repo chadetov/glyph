@@ -64,4 +64,4 @@ Two details you would otherwise get wrong by hand. Any character Node refuses to
 
 Percent encoding is the gap the snippet above shows: `form` decodes a form body, but there is no `encode_component` for building a URL, so the shortener writes its own. Also missing on the client side: a timeout, a redirect policy, `head`, and the final URL a redirect landed on. There is no static-file server and no template engine, and there is no plan for either.
 
-Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 19 Nov 2026.

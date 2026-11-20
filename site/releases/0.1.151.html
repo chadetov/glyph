@@ -1,0 +1,29 @@
+---
+version: 0.1.151
+month: 2026-11
+date: 2026-11-20
+tags: breaking
+headline: A where refinement over a string-literal union is refused, with help built from your own types
+---
+            <p>A <code>where</code> refinement now has to sit on a primitive base. <code>type Paid = Plan where value != "free"</code>, with <code>Plan</code> a string-literal union, used to compile, and it was broken three ways. <code>tsc</code> read <code>Paid</code> as all of <code>Plan</code> while the run-time check refused <code>"free"</code>, so <code>json.parse&lt;Record&lt;Paid, int&gt;&gt;</code> had no document both would accept. <code>let x: Paid = "free"</code> compiled. And a <code>match</code> on a <code>Paid</code> lost exhaustiveness checking. The spec (D39) always said refinements are for primitives; the compiler had only enforced it for records and tagged unions.</p>
+
+            <p>It is E0300 at the declaration, however the base is spelled: inline, through an alias or a chain of them, imported, namespaced, or declared in another module. The message is about your program, not a template:</p>
+
+<pre><code>[E0300] `Paid` refines `Plan`, a string-literal union, and a `where` refines only `string`, `int`, `number`, `bool` and `bigint` (D39)
+Help: Declare `Paid` as the members of `Plan` it keeps, written as a union of their own. `Plan` is `"free" | "pro" | "team"`, and `Paid` is meant to hold the ones that pass `value != "free"`. A union of some of `Plan`'s members stands wherever `Plan` is declared (D30 compares literal sets).</code></pre>
+
+            <p>The help lists every member the base resolves to, wherever they are declared, and quotes your predicate as you wrote it. It does not guess which members you meant to keep. The fix is to write them out, <code>type Paid = "pro" | "team"</code>, which stands wherever <code>Plan</code> is declared and keeps exhaustiveness and <code>tsc</code> in agreement.</p>
+
+            <p>The refusals for record and tagged-union bases now say the same kind of thing, instead of "not implemented yet". Refined <code>string</code>, <code>int</code>, <code>number</code>, <code>bool</code> and <code>bigint</code> types are unchanged.</p>
+
+            <h3>Breaking</h3>
+            <p>Each of these compiles under 0.1.149 (<code>check --no-tsc</code> and full <code>check</code> both exit 0) and is refused here (both exit 1):</p>
+            <ul>
+              <li>a <code>where</code> over a string-literal union or a single literal, by any spelling;</li>
+              <li>a <code>where</code> over a record reached through another module's second name for it (<code>pub type Rec2 = Rec</code> in a sibling);</li>
+              <li>the same over a tagged union.</li>
+            </ul>
+            <p>No tracked <code>.glyph</code> file and none of the 32 example apps changed exit code.</p>
+
+            <h3>Also recorded</h3>
+            <p>Which numeric strings a <code>Record&lt;number, V&gt;</code> or <code>Record&lt;int, V&gt;</code> accepts as keys is now written down in D30 and D31 and pinned by a test, with no behaviour change: a key is accepted when a Glyph program could have created it, so <code>NaN</code> and <code>Infinity</code> work for <code>number</code> keys and <code>1e+21</code> for both.</p>

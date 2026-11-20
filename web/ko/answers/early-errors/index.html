@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="주 메뉴">
         <div class="nav-brand">
           <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.150</a>
+          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.151</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -896,7 +896,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <h3 class="h">개선 중</h3>
           <p><code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받아 pending 값의 배열을 돌려주며, 이는 <code>[object Promise]</code>로 출력됩니다. 조건 함수를 받는 배열 함수 다섯 개는 콜백 위치에서 <code>E0211</code>로 이를 막습니다. 나머지 세 개를 같은 방식으로 모델링하면 Glyph가 작업을 동시에 실행하는 방법인 <code>par.all(array.map(items, async fn ...))</code>도 거부하게 됩니다. pending 값의 배열을 언어에서 표현할 방법이 없기 때문입니다. 이는 빠진 항목이 아니라 타입 시스템 차원의 결정이므로 열려 있습니다. 모듈 수준 <code>const</code> 초기값에는 둘러싼 호출 가능한 것이 없으므로 최상위 <code>await</code>가 허용되고 생성된 ESM이 이를 실행합니다. Glyph가 암묵적인 비동기 모듈 초기화를 원하는지는 아직 열린 명세 질문입니다. <code>E0223</code>은 함수가 반환 타입을 선언할 때만 끝의 <code>match</code>를 판정할 수 있으므로, 타입 표기 없는 람다 안의 arm은 여전히 <code>tsc</code>까지 갑니다. 가림 쪽에서는 두 가지가 절반만 되어 있습니다. <code>E0110</code>은 이름을 유지하게 해 주지 않고 바꾸라고 하므로, <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code>, <code>Promise</code>는 여전히 타입이나 variant 이름으로 쓸 수 없습니다. 그리고 <code>E0111</code>은 <code>type Key = string | number</code>가 엉뚱한 의미가 되는 것을 막지만 그것을 표현할 방법은 주지 않습니다. 원시 타입 두 개의 유니언은 Glyph에서 <code>extern_ts</code> 말고는 표현할 방법이 없고, 그 내용은 Glyph 자체 검사기가 불투명하게 다룹니다. 태그 없는 유니언은 망라성, 런타임 디스크립터, <code>is</code>에 영향을 주므로 타입 시스템 차원의 결정이며, 일정이 잡혀 있지 않습니다. <code>E0104</code>는 <code>glyph build</code>와 <code>glyph check</code>에는 닿지만 에디터에는 닿지 않습니다. LSP는 빌드 루트 없이 문서의 텍스트를 분석하고, 워크스페이스 폴더도 빌드 루트가 아니므로, 추측하면 이 검사가 피하려고 설계된 오탐이 생길 것입니다. 그리고 예약어 매개변수는 같은 파일의 관계없는 오류 뒤에 여전히 숨습니다. 수집 단계의 실패가 그것을 찾았을 해석 단계를 건너뛰게 하기 때문입니다. 이와 별도로, <code>bool</code>이나 문자열 리터럴 유니언 바인딩을 매칭 가능하게 유지하는 읽기 위치 고정은 생성 중인 모듈 안에서만 타입 별칭을 따라가므로, 한 모듈의 <code>pub type Ready = bool</code>과 다른 모듈의 <code>let r: catalog.Ready = false</code>는 여전히 <code>TS2678</code>로 <code>tsc</code>에 도달합니다. 문자열 리터럴 유니언은 세 가지 import 표기 모두에서 모듈 간에 다뤄지며, 0.1.123부터 진단은 표기 중 하나에서만 리터럴 집합을 출력하는 대신 모든 표기에서 선언(expected <code>Mode</code>)을 짚습니다.</p>
         </div>
-        <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.150으로 검사합니다. 마지막 변경: <time datetime="2026-11-20">2026년 11월 20일</time>.</p>
+        <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.151으로 검사합니다. 마지막 변경: <time datetime="2026-11-20">2026년 11월 20일</time>.</p>
       </div>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/answers/tooling/">

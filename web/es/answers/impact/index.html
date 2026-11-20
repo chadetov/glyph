@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Principal">
         <div class="nav-brand">
           <a href="/es/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Notas de la versión">v0.1.150</a>
+          <a href="/versions/" class="nav-version" title="Notas de la versión">v0.1.151</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -573,7 +573,7 @@
           <h3 class="h">Dónde se detiene</h3>
           <p>La profundidad es exacta a un salto y vacía más allá: Glyph nunca infiere el tipo de una declaración a partir de su cuerpo, así que el tipo de una función llamada no puede llegar a la firma de quien la llama, y un cambio en X solo puede invalidar expresiones que nombran X. Si pides profundidad 2, la respuesta vuelve con <code>next_query</code> nombrando la pregunta exacta en su lugar, porque lo que necesita un segundo salto es la reparación que alguien le dé al primer sitio, y esa reparación todavía no existe. <code>UNDETERMINED</code> y <code>NOT_INDEXED</code> son afirmaciones distintas: un argumento para el que el checker no tiene tipo, o un emparejamiento de record con un campo que ninguna regla lee, es <code>UNDETERMINED</code> (miró y no pudo decidir); una función leída como valor en lugar de llamada es <code>NOT_INDEXED</code> (la pregunta nunca se pudo hacer ahí). <code>ABSORBS</code> es el que hay que vigilar: el sitio sigue compilando y aun así se demuestra que está mal, algo que un build en verde nunca te va a mostrar.</p>
         </div>
-        <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.150 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+        <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.151 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <a href="/es/answers/binary/">

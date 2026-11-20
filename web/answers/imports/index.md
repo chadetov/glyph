@@ -195,4 +195,4 @@ Import any npm package (hyphenated and scoped names included). An installed pack
 
 Materialization now handles the shapes real SDKs ship (namespaces, cross-file and aliased/namespace re-exports, subpath `exports`, and first-class generics), and value-derived types (`z.infer<typeof s>`) are first-class. The main gap left is that an un-materialized package's outputs are type-checked against its `.d.ts` but not runtime-validated unless you materialize them. On the `extern/` side, the source root differs between the two commands: `glyph run app.glyph` roots at the file's own directory, `glyph build src/` roots at the directory you name. A program in a subdirectory therefore looks for its shim in two different places, and until we pick one root, a project laid out that way needs the shim reachable from both. It fails loudly when it does not.
 
-Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 19 Nov 2026.

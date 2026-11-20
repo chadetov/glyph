@@ -102,4 +102,4 @@ Two types that would be written under one Glyph name stop the generator instead 
 
 Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own `.d.ts` reads its `interface` and `type` declarations, so a library whose API is classes, or whose fields use computed types like `Omit`, leaves references the generator names in a note and `glyph build` reports as unresolved. Importing such a class and constructing it with `new` needs no generation and is checked by `tsc`, so that path is unaffected.
 
-Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 19 Nov 2026.

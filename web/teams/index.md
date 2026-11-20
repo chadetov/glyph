@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/teams/, generated from the same source as the page. Last changed 2026-11-20. -->
+<!-- Markdown copy of https://glyphlang.io/teams/, generated from the same source as the page. Last changed 2026-11-21. -->
 
 For teams
 

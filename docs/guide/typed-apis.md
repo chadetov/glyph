@@ -235,7 +235,7 @@ A `where`-refined key type runs its predicate on each key, and an `int` or
 is accepted when `m[n] = v` could have written it for some `n` of the key type.
 That makes `"NaN"` and `"Infinity"` valid `number` keys but not `int` keys, and
 `"1e+21"` valid for both, while `"1e21"` and `"-0"` are refused for both.
-`Record<string, V>` checks no key. A `where` cannot refine a literal union
+`Record<string, V>` checks no key. The checker holds the key the same way: a `Record<string, int>` does not stand where a `Record<Tier, int>` is declared, or the reverse, so going from an open map to a closed one is a `json.parse` like the ones above or an `is Record<Tier, int>` arm. A `where` cannot refine a literal union
 (`type T2 = Tier where value != "pro"` is E0300); write the members you mean as
 their own union, `type T2 = "free"`, and it keys a `Record` like any other. A generic record whose `Record` field is
 keyed by one of its type parameters is E0304 unless the argument is `string`,

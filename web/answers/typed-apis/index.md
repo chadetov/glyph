@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/typed-apis/, generated from the same source as the page. Last changed 2026-11-20. -->
+<!-- Markdown copy of https://glyphlang.io/answers/typed-apis/, generated from the same source as the page. Last changed 2026-11-21. -->
 
 11 · Data boundaries
 
@@ -214,9 +214,9 @@ Yes, since 0.1.148. A `Record<Tier, int>` with `type Tier = "free" | "pro"` pars
 | `int` | the plain spelling of a whole number; `"01"` and `"1.5"` fail |
 | `string` | nothing new |
 
-**Details refined and int keys, and what is still left to tsc **
+**Details refined and int keys, and what the checker holds **
 
-A `where`-refined key type runs its predicate on every key, and an `int` key has to be the plain spelling of a whole number, so `"01"` and `"1.5"` are refused. A `Record<string, V>` is checked exactly as before. A `where` cannot refine a string-literal union (`type T2 = Tier where value != "pro"` is `E0300` since 0.1.152); write the members you mean as their own union, `type T2 = "free"`, and it keys a `Record` with the same exact-keys check. Glyph's own checker still leaves the keys of a value you write in code to `tsc`, and a generic record keyed by its own type parameter is refused unless that parameter is `string`.
+A `where`-refined key type runs its predicate on every key, and an `int` key has to be the plain spelling of a whole number, so `"01"` and `"1.5"` are refused. A `Record<string, V>` is checked exactly as before. A `where` cannot refine a string-literal union (`type T2 = Tier where value != "pro"` is `E0300` since 0.1.152); write the members you mean as their own union, `type T2 = "free"`, and it keys a `Record` with the same exact-keys check. Since 0.1.153 Glyph's own checker holds the key of a value you write in code as well: a `Record<string, int>` does not stand where a `Record<Tier, int>` is declared, or the other way round, so the crossing is a `json.parse` or an `is Record<Tier, int>` arm, and `record.set` keeps the key it was given. A generic record keyed by its own type parameter is refused unless that parameter is `string`.
 
 ## If I parse a date, do I get a real date?
 
@@ -503,4 +503,4 @@ Boundaries
 
   On dates, the strictness is the whole feature and it stops at the parse: `parse_iso` hands back epoch milliseconds, so a timestamp and a duration are both `number` and nothing stops you adding one to the other. A distinct date type is a later decision, not a small one.
 
-Code examples on this page are checked against Glyph 0.1.152 on every build. Last changed 20 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed 21 Nov 2026.

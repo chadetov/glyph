@@ -529,10 +529,12 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           TypeScript rather than reasoned about.
         </p>
         <p>
-          One pairing is still declined: the key argument of a <code>Record</code> against another
-          <code>Record</code>'s. TypeScript writes <code>Record&lt;string, V&gt;</code> as an index
-          signature covering every key a <code>Record&lt;Mode, V&gt;</code> declares and accepts it
-          in both directions, so refusing it would refuse a program that compiles. Two more shapes
+          The key argument of a <code>Record</code> is held more strictly than <code>tsc</code>
+          holds it, since 0.1.153. TypeScript writes <code>Record&lt;string, V&gt;</code> as an index
+          signature and accepts it against a <code>Record&lt;Mode, V&gt;</code> in both directions.
+          Glyph refuses both: the open map may hold keys outside <code>Mode</code> or miss one, and a
+          <code>Record&lt;Mode, V&gt;</code> passed on as the open one can be written a stray key.
+          Going from one to the other is an <code>is</code> arm or a <code>json.parse</code>. Two shapes
           the checker still says nothing about: a literal inside <code>Some(...)</code>, because a
           prelude constructor has no type here yet, and a record literal bound to an unannotated
           <code>let</code>, because no record type is synthesized for an object literal.

@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Do I have to hand-write a validator for every API?","item":"https://glyphlang.io/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/typed-apis/#article","headline":"Do I have to hand-write a validator for every API?","description":"No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts.","url":"https://glyphlang.io/answers/typed-apis/","inLanguage":"en","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Do I have to hand-write a validator for every API?","item":"https://glyphlang.io/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/typed-apis/#article","headline":"Do I have to hand-write a validator for every API?","description":"No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts.","url":"https://glyphlang.io/answers/typed-apis/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/typed-apis/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/typed-apis/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/typed-apis/" />
@@ -92,7 +92,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.152</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.151</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -781,7 +781,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           </tbody>
         </table>
       </div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">refined and int keys, and what is still left to tsc</span></summary><div class="body">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">refined and int keys, and what the checker holds</span></summary><div class="body">
         <p>
           A <code>where</code>-refined key type runs its predicate on every key, and
           an <code>int</code> key has to be the plain spelling of a whole number, so
@@ -789,9 +789,13 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           is checked exactly as before. A <code>where</code> cannot refine a string-literal union
           (<code>type T2 = Tier where value != "pro"</code> is <code>E0300</code> since 0.1.152);
           write the members you mean as their own union, <code>type T2 = "free"</code>, and it
-          keys a <code>Record</code> with the same exact-keys check. Glyph's own checker still leaves the keys of a value you
-          write in code to <code>tsc</code>, and a generic record keyed by its own type parameter
-          is refused unless that parameter is <code>string</code>.
+          keys a <code>Record</code> with the same exact-keys check. Since 0.1.153 Glyph's own
+          checker holds the key of a value you write in code as well: a
+          <code>Record&lt;string, int&gt;</code> does not stand where a
+          <code>Record&lt;Tier, int&gt;</code> is declared, or the other way round, so the crossing is
+          a <code>json.parse</code> or an <code>is Record&lt;Tier, int&gt;</code> arm, and
+          <code>record.set</code> keeps the key it was given. A generic record keyed by its own type
+          parameter is refused unless that parameter is <code>string</code>.
         </p>
       </div></details>
 
@@ -1173,7 +1177,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.152 on every build. Last changed <time datetime="2026-11-20">20 Nov 2026</time>.</p>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.151 on every build. Last changed <time datetime="2026-11-21">21 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/embedding/">
           <span class="dir">&larr; Previous</span>

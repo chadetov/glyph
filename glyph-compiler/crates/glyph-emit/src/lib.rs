@@ -900,13 +900,13 @@ const ERR_CTOR: &str = "__glyph_err";
 const OK_CTOR: &str = "__glyph_ok";
 
 /// The deepest a value may nest, in objects and arrays, for a generated check
-/// to accept it (D50). The emitted code names `std/schema`'s `MAX_DEPTH`,
+/// to accept it (D50). The emitted code names the runtime's `MAX_DEPTH`,
 /// never this number; the emitter reads it only to leave out a comparison
 /// that cannot fail, and a test holds it equal to the runtime's.
 const MAX_DEPTH: u32 = 1000;
 
-/// The prefix of the local names a module binds `std/schema`'s depth-limit
-/// exports to (D50): `MAX_DEPTH` is `__glyph_MAX_DEPTH`, `too_deep` is
+/// The prefix of the local names a module binds the depth-limit helpers of
+/// the internal runtime module `internal/depth` to (D50): `MAX_DEPTH` is `__glyph_MAX_DEPTH`, `too_deep` is
 /// `__glyph_too_deep`. Aliased so no binding of the author's can capture them.
 const DEPTH_ALIAS_PREFIX: &str = "__glyph_";
 
@@ -919,7 +919,7 @@ const DEPTH_PARAM: &str = "__d";
 const CHECKER_DEPTH_PARAM: &str = "__cd";
 
 /// The parameter the per-part check of an array or `Record` walk takes its
-/// depth in, when the walk goes through `std/schema`'s `every_at` (D50).
+/// depth in, when the walk goes through the runtime's `every_at` (D50).
 const PART_DEPTH_PARAM: &str = "__pd";
 
 /// The depth (D50) of a value a check is built for: `base + offset`, where
@@ -2038,7 +2038,7 @@ struct Emitter<'a> {
     /// calls a descriptor's internal check or a threaded checker), so the
     /// public site holding it must catch the sentinel.
     depth_throws: Cell<bool>,
-    /// The depth-limit names of `std/schema` (D50) this module's output calls,
+    /// The depth-limit names of `internal/depth` (D50) this module's output calls,
     /// imported under their `__glyph_` aliases. Shared with sub-emitters.
     used_depth_names: Rc<RefCell<BTreeSet<&'static str>>>,
     /// The binding a value-position `match` lowered as a statement `switch`
@@ -2348,21 +2348,28 @@ impl<'a> Emitter<'a> {
             );
         }
         let depth_names = self.used_depth_names.borrow();
-        if self.used_schema.get() || !depth_names.is_empty() {
-            let spec = runtime_specifier(self.ctx.module_path, "std/schema");
-            let mut names: Vec<String> = Vec::new();
-            if self.used_schema.get() {
-                names.push(format!("schema as {SCHEMA_FACTORY}"));
-            }
-            for name in depth_names.iter() {
-                names.push(format!("{name} as {DEPTH_ALIAS_PREFIX}{name}"));
-            }
+        if !depth_names.is_empty() {
+            // The depth helpers come from the internal runtime module, which
+            // no Glyph program can import (D50), so no Glyph code can throw
+            // the sentinel they catch.
+            let spec = runtime_specifier(self.ctx.module_path, "internal/depth");
+            let names: Vec<String> = depth_names
+                .iter()
+                .map(|name| format!("{name} as {DEPTH_ALIAS_PREFIX}{name}"))
+                .collect();
             self.out.insert_str(
                 0,
                 &format!("import {{ {} }} from \"{spec}\";\n\n", names.join(", ")),
             );
         }
         drop(depth_names);
+        if self.used_schema.get() {
+            let spec = runtime_specifier(self.ctx.module_path, "std/schema");
+            self.out.insert_str(
+                0,
+                &format!("import {{ schema as {SCHEMA_FACTORY} }} from \"{spec}\";\n\n"),
+            );
+        }
         // One `std/result` import covers both consumers: `?` needs `Err` to
         // re-wrap a propagated failure, and a descriptor's `parse` needs
         // `Ok`/`Err` plus the `Result` type to return. They share `__glyph_err`,
@@ -7061,7 +7068,12 @@ impl<'a> Emitter<'a> {
         let throws = self.depth_throws.get();
         let check = self.at_depth(Depth::param(CHECKER_DEPTH_PARAM), check);
         self.depth_throws.set(throws);
-        format!("(__cv: unknown, {CHECKER_DEPTH_PARAM}: number) => {check}")
+        // A checker that is only a call `f(__cv, __cd)` is `f` itself, so a
+        // nested generic (`Box<Box<T>>`, `kids: Array<Box<T>>`) passes
+        // `__is_T` or `User.__is` along rather than wrapping it in a lambda
+        // rebuilt on every element.
+        Self::bare_call(&check, "__cv", CHECKER_DEPTH_PARAM)
+            .unwrap_or_else(|| format!("(__cv: unknown, {CHECKER_DEPTH_PARAM}: number) => {check}"))
     }
 
     /// The depth (D50) of the value at the access whose check is being built.
@@ -7115,8 +7127,14 @@ impl<'a> Emitter<'a> {
         self.depth_throws.set(outer_throws || reads_depth);
         let check = check?;
         if reads_depth || check.contains(PART_DEPTH_PARAM) {
+            // A part checked by a plain call `f(part, depth)` hands `every_at`
+            // the function itself (`Tree.__is`, `m.Tree.__is`, `__is_T`), so
+            // no closure is built at all. Anything that binds more arguments
+            // keeps its lambda, which `every_at` takes once per container.
+            let checker = Self::bare_part_checker(&check, var)
+                .unwrap_or_else(|| format!("({var}: unknown, {PART_DEPTH_PARAM}: number) => {check}"));
             Ok(format!(
-                "{}({items}, {}, ({var}: unknown, {PART_DEPTH_PARAM}: number) => {check})",
+                "{}({items}, {}, {checker})",
                 self.depth_name("every_at"),
                 depth.render()
             ))
@@ -7125,7 +7143,26 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// The aliased name of `std/schema`'s depth-limit export `name`, recorded
+    /// The function `f` when a part's check is exactly the call
+    /// `f(var, __pd)` and `f` is a plain dotted name: a descriptor's `__is`
+    /// (local, sibling or namespaced) or a generic parameter's checker. None
+    /// of these reads `this`, so the function can be passed unbound.
+    fn bare_part_checker(check: &str, var: &str) -> Option<String> {
+        Self::bare_call(check, var, PART_DEPTH_PARAM)
+    }
+
+    /// The function `f` when `check` is exactly `f(var, depth)` with `f` a
+    /// plain dotted name.
+    fn bare_call(check: &str, var: &str, depth: &str) -> Option<String> {
+        let callee = check.strip_suffix(&format!("({var}, {depth})"))?;
+        let plain = !callee.is_empty()
+            && callee.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.')
+            && !callee.starts_with('.')
+            && !callee.ends_with('.');
+        plain.then(|| callee.to_string())
+    }
+
+    /// The aliased name of `internal/depth`'s export `name`, recorded
     /// so the module imports it.
     fn depth_name(&self, name: &'static str) -> String {
         self.used_depth_names.borrow_mut().insert(name);
@@ -11658,7 +11695,13 @@ mod tests {
         );
         // The module that emits a descriptor gets the aliased factory import.
         assert!(
-            ts.contains("import { schema as __glyph_schema, "),
+            ts.contains("import { schema as __glyph_schema } from \"./.glyph-runtime/std/schema\";"),
+            "{ts}"
+        );
+        // Its depth helpers come from the internal module no Glyph program can
+        // import (D50), never from `std/schema`.
+        assert!(
+            ts.contains("import { MAX_DEPTH as __glyph_MAX_DEPTH, depth_issue as __glyph_depth_issue, depth_refused as __glyph_depth_refused, too_deep as __glyph_too_deep } from \"./.glyph-runtime/internal/depth\";"),
             "{ts}"
         );
     }
@@ -11698,10 +11741,10 @@ mod tests {
     /// would leave old literals behind.
     #[test]
     fn the_depth_limit_is_the_runtimes_constant_by_name() {
-        let schema = include_str!("../../../runtime/std/schema.ts");
+        let depth = include_str!("../../../runtime/internal/depth.ts");
         assert!(
-            schema.contains(&format!("export const MAX_DEPTH = {MAX_DEPTH};")),
-            "the emitter's MAX_DEPTH ({MAX_DEPTH}) is not std/schema's"
+            depth.contains(&format!("export const MAX_DEPTH = {MAX_DEPTH};")),
+            "the emitter's MAX_DEPTH ({MAX_DEPTH}) is not the runtime's"
         );
         let ts = emit(
             "module x
@@ -11712,6 +11755,32 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
         );
         assert!(ts.contains("__d <= __glyph_MAX_DEPTH || __glyph_too_deep()"), "{ts}");
         assert!(!ts.contains(&MAX_DEPTH.to_string()), "the limit is written as a number: {ts}");
+    }
+
+    /// A recursive record's element walk hands `every_at` its own `__is`, not
+    /// a lambda around it: a lambda there was allocated on every call of the
+    /// check, once per node of a tree, and cost more than the guards (record
+    /// 122). A generic parameter's checker is passed the same way, and a
+    /// generic descriptor applied to checkers keeps one lambda per container.
+    #[test]
+    fn a_recursive_walk_passes_the_descriptors_own_check() {
+        let ts = emit("module x\npub type Tree = { n: int, kids: Array<Tree>, m: Record<string, Tree> }\n");
+        assert!(
+            ts.contains("__glyph_every_at((value as Record<string, unknown>).kids as ReadonlyArray<unknown>, __d + 2, Tree.__is)"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("__glyph_every_at(Object.values((value as Record<string, unknown>).m as Record<string, unknown>), __d + 2, Tree.__is)"),
+            "{ts}"
+        );
+        // The one lambda left is `schema`'s, built once when the module loads
+        // because the descriptor is not initialised inside its own literal.
+        assert_eq!(ts.matches("=> Tree.__is(").count(), 1, "{ts}");
+        assert!(ts.contains("(v: unknown, d: number): v is Tree => Tree.__is(v, d)"), "{ts}");
+        let ts = emit("module x\npub type Box<T> = { v: Array<T>, kids: Array<Box<T>> }\n");
+        assert!(ts.contains("(value as Record<string, unknown>).v as ReadonlyArray<unknown>, __d + 2, __is_T)"), "{ts}");
+        assert!(ts.contains("(__e: unknown, __pd: number) => Box.__is(__e, __pd, __is_T))"), "{ts}");
+        assert!(!ts.contains("=> __is_T("), "{ts}");
     }
 
     #[test]
@@ -11751,7 +11820,7 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
             "module x\npub type User = { name: string }\npub type Box<T> = { value: T }\npub fn f(v: unknown) -> string {\n  return match Box.parse<User>(v) {\n    Ok(_) => \"ok\",\n    Err(_) => \"no\",\n  }\n}\n",
         );
         assert!(
-            ts.contains("Box.parse<User>(v, (__cv: unknown, __cd: number) => User.__is(__cv, __cd))"),
+            ts.contains("Box.parse<User>(v, User.__is)"),
             "{ts}"
         );
     }
@@ -11791,7 +11860,7 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
-            ts.contains("Box.parse<User>(v, (__cv: unknown, __cd: number) => User.__is(__cv, __cd))"),
+            ts.contains("Box.parse<User>(v, User.__is)"),
             "{ts}"
         );
     }
@@ -11803,7 +11872,7 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
             "module x\npub type User = { name: string }\npub type Box<T> = { value: T }\npub fn f(v: unknown) -> string {\n  return match v {\n    is Box<User> => \"box\",\n    else => \"no\",\n  }\n}\n",
         );
         assert!(
-            ts.contains("Box.is<User>(") && ts.contains("(__cv: unknown, __cd: number) => User.__is(__cv, __cd)"),
+            ts.contains("Box.is<User>(") && ts.contains("User.__is"),
             "{ts}"
         );
     }
@@ -12012,7 +12081,7 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
             "module x\npub type Item = { name: string }\npub type Bag = { items: Array<Item>, note: Option<string> }\npub fn f(b: Bag) -> number {\n  return 0\n}\n",
         );
         assert!(
-            ts.contains("__glyph_every_at((value as Record<string, unknown>).items as ReadonlyArray<unknown>, __d + 2, (__e: unknown, __pd: number) => Item.__is(__e, __pd))"),
+            ts.contains("__glyph_every_at((value as Record<string, unknown>).items as ReadonlyArray<unknown>, __d + 2, Item.__is)"),
             "{ts}"
         );
         assert!(ts.contains("Array.isArray("), "{ts}");
@@ -15422,7 +15491,7 @@ pub fn n() -> number {\n  return 1\n}
                 assert!(ts.contains(&format!("{with}s, __glyph_schema<")), "{callee}<{ty_arg}>: {ts}");
                 assert!(ts.contains(check), "{callee}<{ty_arg}> checks `{check}`: {ts}");
                 assert!(
-                    ts.contains("import { schema as __glyph_schema, "),
+                    ts.contains("import { schema as __glyph_schema } from \"./.glyph-runtime/std/schema\";"),
                     "{callee}<{ty_arg}> imports the schema factory: {ts}"
                 );
                 assert!(!ts.contains(&format!("{callee}<")), "{callee}<{ty_arg}> still casts: {ts}");
@@ -15574,7 +15643,7 @@ pub fn n() -> number {\n  return 1\n}
             "refined field calls the descriptor: {ts}"
         );
         assert!(
-            ts.contains("(__e: unknown, __pd: number) => Instant.__is(__e, __pd)"),
+            ts.contains("(value as Record<string, unknown>).tags as ReadonlyArray<unknown>, __d + 2, Instant.__is)"),
             "refined array element calls the descriptor: {ts}"
         );
         assert!(

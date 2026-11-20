@@ -43,6 +43,13 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         ".glyph-runtime/std/schema.ts",
         include_str!("../../../runtime/std/schema.ts"),
     ),
+    // The depth limit's enforcement (D50). Not a `std` module: the resolver
+    // does not seed it, so only emitted code and `std/schema` import it, and
+    // it is written into every build like the bootstrap.
+    (
+        ".glyph-runtime/internal/depth.ts",
+        include_str!("../../../runtime/internal/depth.ts"),
+    ),
     (
         ".glyph-runtime/std/array.ts",
         include_str!("../../../runtime/std/array.ts"),

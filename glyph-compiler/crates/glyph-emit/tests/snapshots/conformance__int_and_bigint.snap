@@ -6,7 +6,9 @@ import "./.glyph-runtime/glyph-bootstrap";
 
 import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from "./.glyph-runtime/std/result";
 
-import { schema as __glyph_schema, MAX_DEPTH as __glyph_MAX_DEPTH, depth_issue as __glyph_depth_issue, depth_refused as __glyph_depth_refused, too_deep as __glyph_too_deep } from "./.glyph-runtime/std/schema";
+import { schema as __glyph_schema } from "./.glyph-runtime/std/schema";
+
+import { MAX_DEPTH as __glyph_MAX_DEPTH, depth_issue as __glyph_depth_issue, depth_refused as __glyph_depth_refused, too_deep as __glyph_too_deep } from "./.glyph-runtime/internal/depth";
 
 export type Account = { id: bigint; balance: number };
 export const Account = {

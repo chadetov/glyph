@@ -1777,14 +1777,6 @@ MAX_DEPTH: number                                    // 1000
 and arrays from 1 at the root, so an `array()` schema checks its elements one
 level under the array.
 
-The generated checks also call five helpers from this module, which are not
-meant to be called by hand: `too_deep` throws the private sentinel a check
-throws past the limit, `depth_refused` turns that sentinel into `false` and
-rethrows anything else, `within` runs an `is` pattern's walk with the sentinel
-answered `false`, `every_at` walks an array's elements or a map's values
-handing each one its depth, and `depth_issue` builds the one `code: "depth"`
-issue a `parse` reports.
-
 No generated check walks a value nested more than `MAX_DEPTH` (1000) objects
 and arrays deep. `is T` and `T.is` answer `false` for one; `T.parse`,
 `T.schema.parse` and `json.parse<T>` answer `Err` with a single issue,

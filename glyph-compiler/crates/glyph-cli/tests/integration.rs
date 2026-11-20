@@ -3263,6 +3263,109 @@ fn checks_refuse_a_value_past_the_depth_limit() {
 }
 
 #[test]
+fn the_depth_sentinel_cannot_be_reached_from_glyph() {
+    // D50, record 122. The helpers that throw and catch the depth sentinel
+    // live in the internal runtime module, which the resolver does not seed.
+    // When `std/schema` exported `too_deep`, a refined field's predicate could
+    // call it, and `json.parse<Doc>` threw the private sentinel out of a
+    // public entry (the emitter does not wrap a part it proves can never go
+    // too deep). Both import spellings are refused at resolve; `MAX_DEPTH`,
+    // a number nothing can forge with, stays importable.
+    for (name, main) in [
+        (
+            "named",
+            "module main\nimport std/schema { too_deep }\npub fn f() -> number { return too_deep() }\n",
+        ),
+        (
+            "namespaced",
+            "module main\nimport std/json\nimport std/schema\n\
+             type Name = string where value.length > limit()\n\
+             type Doc = { name: Name, }\n\
+             fn limit() -> number { return schema.too_deep() }\n\
+             pub fn f() -> bool { return match json.parse<Doc>(\"{}\") { Ok(_) => true, Err(_) => false, } }\n",
+        ),
+    ] {
+        let root = unique_tmp(&format!("sentinel_{name}"));
+        let src = root.join("src");
+        write_file(&src, "main.glyph", main);
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.contains("E0105") && d.contains("too_deep")),
+            "{name}: `too_deep` must not resolve: {:?}",
+            report.diagnostics
+        );
+    }
+    let root = unique_tmp("sentinel_limit");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/schema { MAX_DEPTH }\npub fn f() -> number { return MAX_DEPTH }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("E0105")),
+        "`MAX_DEPTH` is the public contract: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn depth_helpers_resolve_in_a_host_project_without_the_generated_tsconfig() {
+    // G122's case for the internal runtime module (D50): emitted code imports
+    // the depth helpers by a relative specifier, so a host project that
+    // compiles the generated files under its own strict tsconfig, with no
+    // `paths`, resolves them, and the module carries its own reference to the
+    // prelude for `Issue`.
+    if !tsc_available() {
+        eprintln!("skipping host-project depth run: tsc not available");
+        return;
+    }
+    let root = unique_tmp("depth_host");
+    let src = root.join("src");
+    let out = root.join("out");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/json\n\
+         pub type Name = string where value.length > 0\n\
+         pub type Tree = { n: Name, kids: Array<Tree>, }\n\
+         pub fn read(text: string) -> bool { return match json.parse<Tree>(text) { Ok(_) => true, Err(_) => false, } }\n\
+         pub fn shape(v: unknown) -> bool { return match v { is Array<Tree> => true, _ => false, } }\n",
+    );
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(!report.has_errors(), "{:?}", report.diagnostics);
+    let emitted = std::fs::read_to_string(out.join("main.ts")).expect("main.ts");
+    assert!(emitted.contains("from \"./.glyph-runtime/internal/depth\";"), "{emitted}");
+
+    let host = root.join("host");
+    let gen = host.join("gen");
+    std::fs::create_dir_all(&gen).expect("mkdir gen");
+    std::fs::copy(out.join("main.ts"), gen.join("main.ts")).expect("copy main.ts");
+    copy_dir(&out.join(".glyph-runtime"), &gen.join(".glyph-runtime"));
+    write_file(
+        &host,
+        "tsconfig.json",
+        "{\"compilerOptions\":{\"strict\":true,\"noEmit\":true,\"target\":\"es2022\",\"module\":\"esnext\",\
+         \"moduleResolution\":\"bundler\",\"lib\":[\"es2022\",\"dom\"],\"skipLibCheck\":true,\"types\":[]},\
+         \"include\":[\"gen/*.ts\"]}\n",
+    );
+    let tsc = std::process::Command::new("tsc")
+        .current_dir(&host)
+        .args(["-p", "tsconfig.json"])
+        .output()
+        .expect("run tsc");
+    assert!(
+        tsc.status.success(),
+        "host tsc --strict: {}",
+        String::from_utf8_lossy(&tsc.stdout)
+    );
+}
+
+#[test]
 fn a_match_on_issue_code_needs_a_catch_all_before_and_after_depth() {
     // D50 added `"depth"` to `Issue.code` in the TypeScript prelude. Glyph's
     // checker types `code` as `string`, so a match listing the codes was
@@ -18131,11 +18234,11 @@ fn declaring_a_record_over_an_unchecked_generic_emits_its_descriptor_unchanged()
     assert_eq!(code, 0, "{stderr}");
     let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts");
     assert!(
-        ts.contains("&& Page.__is((value as Record<string, unknown>).p, __d + 1, (__cv: unknown, __cd: number) => User.__is(__cv, __cd))"),
+        ts.contains("&& Page.__is((value as Record<string, unknown>).p, __d + 1, User.__is)"),
         "{ts}"
     );
     assert!(
-        ts.contains("if (!(Page.__is((value as Record<string, unknown>).p, __d + 1, (__cv: unknown, __cd: number) => User.__is(__cv, __cd)))) {"),
+        ts.contains("if (!(Page.__is((value as Record<string, unknown>).p, __d + 1, User.__is))) {"),
         "{ts}"
     );
 }

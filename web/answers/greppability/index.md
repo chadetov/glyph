@@ -51,4 +51,4 @@ One canonical form per construct, mutation restricted to two greppable shapes (`
 
 The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.
 
-Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.

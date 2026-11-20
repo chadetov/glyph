@@ -92,7 +92,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.149</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.150</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -620,7 +620,7 @@
           <h3 class="h">Where it stops</h3>
           <p>Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. <code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there). <code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.</p>
         </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
+        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/binary/">

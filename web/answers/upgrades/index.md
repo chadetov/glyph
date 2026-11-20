@@ -95,4 +95,4 @@ Scaffolded projects pin exactly, so no release reaches a build by accident. `gly
 
 The release notes are one page for the whole line, so `glyph upgrade` links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between. `glyph --update` shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on `PATH` is the version you asked for; that is why it points at `glyph --version` instead of saying it worked.
 
-Code examples on this page are checked against Glyph 0.1.149 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.150 on every build. Last changed 19 Nov 2026.

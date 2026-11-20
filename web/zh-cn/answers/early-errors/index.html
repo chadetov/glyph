@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="主导航">
         <div class="nav-brand">
           <a href="/zh-cn/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="版本说明">v0.1.149</a>
+          <a href="/versions/" class="nav-version" title="版本说明">v0.1.150</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -896,7 +896,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <h3 class="h">正在改进</h3>
           <p><code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 仍然会毫无异议地接受 <code>async</code> 回调，并返回一个由待定值组成的数组，打印出来是 <code>[object Promise]</code>；五个接受谓词的数组函数确实会阻止这种情况，在回调处报告 <code>E0211</code>。用同样方式为另外三个建模，也会拒绝 <code>par.all(array.map(items, async fn ...))</code>，而这正是 Glyph 并发执行任务的方式，因为由待定值组成的数组在语言中没有写法。这是一个类型系统层面的决定，而不是少了一个条目，所以它仍是开放问题。模块级 <code>const</code> 初始化表达式没有外围可调用体，所以顶层 <code>await</code> 是允许的，生成的 ESM 会执行它；Glyph 是否需要隐式的异步模块初始化，仍是一个开放的规范问题。<code>E0223</code> 只有在函数声明了返回类型时才能判断末尾的 <code>match</code>，所以无注解 lambda 内的分支仍然会落到 <code>tsc</code>。在遮蔽这一边，有两件事只做了一半。<code>E0110</code> 让你改名，而不是让你保留这个名字，所以 <code>Error</code>、<code>Number</code>、<code>Object</code>、<code>Array</code> 和 <code>Promise</code> 仍然不能用作类型或变体名。<code>E0111</code> 阻止了 <code>type Key = string | number</code> 表达错误的意思，却没有给你正确表达的方法：两个原始类型的联合在 Glyph 中除了 <code>extern_ts</code> 之外没有写法，而它的内容对 Glyph 自己的检查器是不透明的。非标签联合涉及穷尽性、运行时描述符和 <code>is</code>，所以这是一个类型系统层面的决定，尚未排期。<code>E0104</code> 会出现在 <code>glyph build</code> 和 <code>glyph check</code> 中，但不会出现在编辑器中：LSP 分析文档文本时没有构建根目录，工作区文件夹也不是构建根目录，靠猜测只会产生这项检查本来要避免的误报。另外，保留字参数仍然会被同一文件中一个无关的错误掩盖，因为收集阶段的失败会跳过本可以发现它的解析阶段。此外，让 <code>bool</code> 或字符串字面量联合绑定保持可匹配的读取点类型固定，只在正在生成的模块内部追踪类型别名，所以一个模块中的 <code>pub type Ready = bool</code> 加上另一个模块中的 <code>let r: catalog.Ready = false</code>，仍然会以 <code>TS2678</code> 落到 <code>tsc</code>。字符串字面量联合在三种导入写法下都能跨模块覆盖，并且从 0.1.123 起，无论哪种写法，诊断都会指出声明（期望 <code>Mode</code>），而不是在其中一种写法下打印它的字面量集合。</p>
         </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.149 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.150 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
       </div>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/tooling/">

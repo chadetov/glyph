@@ -1,0 +1,22 @@
+---
+version: 0.1.150
+month: 2026-11
+date: 2026-11-20
+tags: breaking
+headline: A check refuses a value nested more than 1000 deep instead of crashing
+---
+            <p>A generated check walked its input with plain recursion, so a value nested a few thousand levels deep threw <code>RangeError: Maximum call stack size exceeded</code> out of <code>is</code>, <code>T.parse</code> or <code>json.parse&lt;T&gt;</code>, taking the process down with it. A request body is enough to do that.</p>
+
+            <p>Every check now counts the objects and arrays it enters and stops at 1000. Past that, <code>is</code> answers <code>false</code> and a <code>parse</code> returns one issue, <code>code: "depth"</code>, at the path a type issue for that part would have:</p>
+
+<pre><code>[{"path":["kids"],"message":"nested more than 1000 objects and arrays deep","code":"depth"}]</code></pre>
+
+            <p>The limit is <code>MAX_DEPTH</code> in <code>std/schema</code>. It is exact on all 29 paths and shapes we measured, under node and tsx, with the default stack and with half of it. A 10,000,000-level document returns the depth error, and a value that contains itself is refused the same way instead of throwing. <code>Issue.code</code> gains <code>"depth"</code>. The helpers that carry the refusal live in an internal runtime module Glyph code cannot import, so a program cannot fake one.</p>
+
+            <p>It costs nothing on the common case. On a 960k-node tree, <code>Tree.is</code> takes 117 ms against 126 ms in 0.1.149, because the array walk no longer builds a closure per node. <code>Tree.parse</code> is 5% slower (119 ms against 113).</p>
+
+            <h3>Breaking</h3>
+            <p>At run time only. <code>json.parse&lt;Tree&gt;</code> of a value 1202 levels deep returns <code>Ok</code> in 0.1.149 and the depth error here, and anything between 1001 levels and the depth where 0.1.149 used to overflow is refused where it was accepted. <code>glyph check</code> gives the same answer on every program as before. Every descriptor's emitted TypeScript changes; Glyph sources do not.</p>
+
+            <h3>Also in this release</h3>
+            <p>Four Rust dependency updates: proptest 1.12.0, serde_json 1.0.154, insta 1.49.0 and wasm-bindgen 0.2.130, with the playground's wasm-bindgen pin moved to match.</p>

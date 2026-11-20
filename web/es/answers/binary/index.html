@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Principal">
         <div class="nav-brand">
           <a href="/es/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Notas de la versión">v0.1.149</a>
+          <a href="/versions/" class="nav-version" title="Notas de la versión">v0.1.150</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -583,7 +583,7 @@ buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD
           <h3 class="h">Lo que se está afinando</h3>
           <p>Todavía no hay codec de enteros, así que leer un <code>u32</code> big-endian de una cabecera es aritmética que escribes tú: por encima de 32 bits un desplazamiento no es la herramienta adecuada de todos modos, así que se divide. Los literales hexadecimales todavía no se parsean, lo que hace difícil de leer una tabla CRC32 de 256 entradas escrita en decimal. <code>std/websocket</code> todavía decodifica un frame binario como texto UTF-8; el tipo que necesitaba ya existe, y los frames son lo siguiente. Y las seis funciones antiguas de string a string de <code>std/encoding</code> siguen sin decir nada ante una entrada mal formada, así que usa los codecs de <code>std/bytes</code> para cualquier cosa que tenga que estar bien. Los codecs están escritos en TypeScript en lugar de delegar en el <code>Buffer</code> de Node, que es lo que les permite funcionar en un Web Worker, y son entre 1x y 35x más lentos que los de la plataforma con un megabyte. Codificar una clave o un token no cuesta nada que se pueda medir en ningún caso; la guía de rendimiento tiene la tabla si mueves decenas de megabytes.</p>
         </div>
-        <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.149 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+        <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.150 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
       </div>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <a href="/es/answers/long-running/">

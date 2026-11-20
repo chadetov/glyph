@@ -13264,16 +13264,24 @@ and is the owner's to confirm.
   Fixed in 0.1.152. A `where` whose base resolves to a string-literal union,
   a single literal included, is E0300 at the declaration: written inline,
   through a local alias or an alias chain, imported by name, through a
-  namespace, and through a second name a sibling module declares. The help
-  says to write the members as their own union, which D30 already lets
-  stand wherever the full union is declared. Refinements of `string`, `int`,
-  `number`, `bool` and `bigint` are unchanged. Breaking: the smallest program
-  (`type T2 = Tier where value != "c"`) exits 0 under `check --no-tsc` and
-  full `check` on the published 0.1.149 and 1 on this build. No tracked
-  `.glyph` file and none of the 32 apps changed exit code. The canonical-key
-  table is pinned by one test. *Verified on the 0.1.152 branch build by
+  namespace, through a second name a sibling module declares, and across
+  three modules. The diagnostic is computed from the declaration (record
+  120): the headline names the declaration and its base as written and
+  states that a `where` refines only primitives, and the help lists every
+  member the base resolves to, wherever declared, and quotes the predicate
+  as written, without proposing a subset. The same walk closes the two-hop
+  record and tagged-union case: a `where` over a sibling's second name for
+  a third module's record or tagged union, which 0.1.149 accepted, is E0300
+  too (record 120, probes `d` and `g`). Refinements of `string`, `int`,
+  `number`, `bool` and `bigint` are unchanged. Breaking: record 120's
+  probes `a`, `d` and `g` exit 0 under `check --no-tsc` and full `check` on
+  the published 0.1.149 and 1 on this build. No tracked `.glyph` file and
+  none of the 32 apps changed exit code. The canonical-key table is pinned
+  by one test. *Verified on the 0.1.152 branch build by
   `tests/negative/where_over_literal_union.glyph` and the G377 tests in
-  `glyph-emit` and `glyph-cli`, which go red with the refusal disabled.*
+  `glyph-emit` and `glyph-cli`, which go red with the refusal disabled, and
+  the two-hop record and tagged-union tests, which go red with the walk cut
+  back to one hop.*
 
 - **G378. `==` on two deeply nested values overflows the stack.** `==` on
   two non-primitive values emits `__glyph_eq`, which recurses once per level
@@ -13472,6 +13480,19 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.149 (the published package) by record 119's probe
   `c/u`: no diagnostics, `{"1.5":7}` printed, the re-parse `Err`.*
+
+- **G396. A refinement's run-time issue prints emitted TypeScript instead of
+  the declared predicate.** With `type NotA = string where value != "a"`,
+  `json.parse<{ s: NotA }>` on `{"s":"a"}` returns the issue
+  `expected NotA (string where !__glyph_eq(value, "a"))`. D39 says the
+  rejection names the constraint so it greps back to the declaration, but
+  `!__glyph_eq(` is in no Glyph source, so the grep fails for every
+  predicate that uses `==` or `!=`. Embed the predicate's source text, or
+  its formatter printing, in the descriptor's message, using the same `glyph_formatter::format_expr` the E0300 help uses, so a predicate reads the same at compile time and in a run-time `Issue` (record 121). Not breaking. Found
+  by record 120 (probe `r120/h`).
+
+  *Reproduced against 0.1.149 (the published package) by record 120's probe
+  `r120/h`: the issue message above, verbatim.*
 
 - **G397. An `Option` pattern against a scrutinee that is not an `Option`
   passes Glyph's checker.** `match i.code { Some("missing") => "m", Some(c)

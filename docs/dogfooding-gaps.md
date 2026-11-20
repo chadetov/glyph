@@ -13203,7 +13203,15 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.147 by record 113's probe t5.*
 
-  Planned for 0.1.152 (record 113).
+  Planned for 0.1.153 (record 113; moved behind G377 by record 119).
+
+  Decided in record 119, option (3): a `Record`'s key is invariant, so
+  `Record<K1, V>` is assignable to `Record<K2, V>` only when the two keys
+  are the same domain, and `std/record` gets key-preserving signatures with
+  `record.remove` refused on a finite key set. Widening is refused too:
+  record 119's probe `c/t` wrote a stray key into a caller's
+  `Record<Tier, int>` through `let wide: Record<string, int> = r`. The
+  `int`/`number` half waits for G395 (G373b).
 
 - **G374. A generic record whose `Record` field is keyed by a type parameter
   cannot be checked.** With `type Idx<K: string> = { m: Record<K, int>, }`,
@@ -13226,7 +13234,7 @@ and is the owner's to confirm.
   ``field `m` must be Record<Tier, int>``; first seen by record 113's probe
   v4 on 0.1.146.*
 
-- **G377. A refined string-literal union key is checked by its predicate, not
+- **G377. [FIXED] A refined string-literal union key is checked by its predicate, not
   as an exact set.** With `type Tier = "a" | "b" | "c"` and `type T2 = Tier
   where value != "c"`, `json.parse<Record<T2, int>>` returns `Ok` for `{}` and
   `{"a":1}` and `Err` for `{"c":1}`, while `T2` is emitted as plain `Tier`, so
@@ -13244,7 +13252,28 @@ and is the owner's to confirm.
   *Reproduced against 0.1.148 (the release build) by record 115's probes `k2`
   and `k2t` (`/private/tmp/claude-501/linus115/`).*
 
-  Planned for 0.1.153 (record 115).
+  Planned for 0.1.153 (record 115); moved to 0.1.152 by record 119.
+
+  Decided in record 119, option (d): D39 already limited a `where` to a
+  primitive base, and the refusal had drifted from it. The same record found
+  two more defects in the declaration: `let x: T2 = "c"` compiled under both
+  checkers, and a `match` on a `T2` lost D30 exhaustiveness (E0218 on
+  `string`). The numeric key spellings are kept as they are and written into
+  D30 and D31.
+
+  Fixed in 0.1.152. A `where` whose base resolves to a string-literal union,
+  a single literal included, is E0300 at the declaration: written inline,
+  through a local alias or an alias chain, imported by name, through a
+  namespace, and through a second name a sibling module declares. The help
+  says to write the members as their own union, which D30 already lets
+  stand wherever the full union is declared. Refinements of `string`, `int`,
+  `number`, `bool` and `bigint` are unchanged. Breaking: the smallest program
+  (`type T2 = Tier where value != "c"`) exits 0 under `check --no-tsc` and
+  full `check` on the published 0.1.149 and 1 on this build. No tracked
+  `.glyph` file and none of the 32 apps changed exit code. The canonical-key
+  table is pinned by one test. *Verified on the 0.1.152 branch build by
+  `tests/negative/where_over_literal_union.glyph` and the G377 tests in
+  `glyph-emit` and `glyph-cli`, which go red with the refusal disabled.*
 
 - **G378. `==` on two deeply nested values overflows the stack.** `==` on
   two non-primitive values emits `__glyph_eq`, which recurses once per level
@@ -13408,6 +13437,41 @@ and is the owner's to confirm.
   gate run without `tsc`. Same family as G381.
 
   *Reproduced against 0.1.149 (the release build): `--no-tsc` reports an unused-import warning only; full `check` reports `[TS2532] Error: tsc: Object is possibly 'undefined'`.*
+
+- **G393. Glyph's checker reads an optional field as its type.** With
+  `type Opts = { timeout_ms?: number, }` and `fn twice(o: Opts) -> number {
+  return o.timeout_ms * 2 }`, `check --no-tsc` passes and full `check`
+  reports `[TS18048] 'o.timeout_ms' is possibly 'undefined'`. Spreading a
+  `Nullable` field into a required `number` field is the same shape: clean
+  under `--no-tsc`, TS2322 under `tsc`. The editor, MCP and the applyEdit
+  gate run without `tsc`, so they accept both. Same family as G381 and G392.
+  Not breaking under full `check`. Found by record 119 (probes `b/n4` and
+  `b/n1`).
+
+  *Reproduced against 0.1.149 (the published package) by record 119's probe
+  `b/n4`: `--no-tsc` clean, full `check` TS18048.*
+
+- **G394. A widened container alias admits writes the original's type
+  refuses.** An `Array<Tier>` bound as `let wide: Array<string> = xs`, then
+  `mut wide.push("zzz")`, leaves `["a","zzz"]` in the `Array<Tier>`; Glyph
+  and `tsc` both accept it. A `Record`'s value type is the same. Value
+  covariance is TypeScript's rule and G373 keeps it on purpose, so this
+  needs its own decision, taken together with G380 (a mutating method call
+  needs no `mut`). Found by record 119 (probe `c/t`).
+
+  *Reproduced against 0.1.149 (the published package) by record 119's probe
+  `c/t`: `xs` prints `["a","zzz"]`, no diagnostics.*
+
+- **G395. `int` is erased to `number` in the checker.** The lowerer maps
+  `int` to `Primitive::Number`, so `Record<number, int>` passes where
+  `Record<int, int>` is declared, and after `mut half[1.5] = 7` the
+  `Record<int, int>` holds `{"1.5":7}`, which `json.parse<Record<int, int>>`
+  refuses. Diagnostics print `Record<int, int>` as `Record<number, number>`.
+  Fixing it needs `int` to keep its identity in `Ty` (the G75 pattern), and
+  is G373b. Found by record 119 (probe `c/u`).
+
+  *Reproduced against 0.1.149 (the published package) by record 119's probe
+  `c/u`: no diagnostics, `{"1.5":7}` printed, the re-parse `Err`.*
 
 - **G397. An `Option` pattern against a scrutinee that is not an `Option`
   passes Glyph's checker.** `match i.code { Some("missing") => "m", Some(c)

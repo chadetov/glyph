@@ -1,0 +1,6 @@
+code = "E0211"
+pillar = "verifiability"
+title = "An async callback nothing waits for"
+kind = "refused"
+ts_output = "done\nsaved a"
+fullconfig = "lint:no-misused-promises"

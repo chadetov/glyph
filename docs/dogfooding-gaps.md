@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-420 entries, 312 are fixed, 10 are partly fixed, 11 are decided or resolved, and
-87 are open. G144, the D28 boundary cast that never reached the returns a
+421 entries, 315 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+86 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13554,7 +13554,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.155 (the release build): ``[E0002] Error: parse: expected `}`, found As``, with only the generic E0002 help.*
 
-- **G384. [HALF FIXED] An `async` call whose result is dropped is silent.** `save(1)` as a statement inside an `async fn`, where `save` is `async`, and
+- **G384. [FIXED] An `async` call whose result is dropped is silent.** `save(1)` as a statement inside an `async fn`, where `save` is `async`, and
   `ids.forEach(async fn(id: string) -> void { await save(id) })` both report no
   diagnostics. The first returns before the save finishes and loses its error;
   the second runs every save concurrently and nothing waits for any of them.
@@ -13602,15 +13602,19 @@ and is the owner's to confirm.
   passes a sync callback that calls `task.detach`. `timers.after` and
   `every` were already typed; the `std/net` and `std/websocket` handlers
   (`listen`'s connection handler and every `on_...`) are modeled for it.
-  The method form `ids.forEach(...)` is judged once the built-in array
-  methods' callback parameters have types, which 0.1.158 adds (record 142);
-  this entry and the catch close with that, and not before.
+  The method form `ids.forEach(...)` reads the callback slot 0.1.158 models
+  for contextual typing (D55, record 142), so `ids.forEach(async fn ...)` is
+  the same E0211 with the same slot the E0238 help reads, and an async
+  callback to `users.map` or `ids.filter` is refused with the loop or
+  `task.all` prose. The catch case is `async-callback-nothing-awaits` now,
+  a refused case.
 
-  *Re-run against the 0.1.159 branch build, before 0.1.158 is under it:
-  `timers.every(200, async fn() { await save(3) })` and a user-declared
-  `fn(number) -> void` slot given `save` exit 1 with E0211; the catch
-  `gap-g384-dropped-async-call` still exits 0, because its `forEach` slot is
-  `Unknown`.*
+  Fixed in 0.1.159 (D40 amended).
+
+  *Re-run against the 0.1.159 branch build rebased onto 0.1.158 (`glyph
+  0.1.158` before the version bump): the catch's `ids.forEach(async fn(id:
+  string) -> void { await save(id) })` exits 1 with E0211 under `check
+  --no-tsc`; the published 0.1.158 exits 0.*
 
   *Re-run against the 0.1.154 branch build (`glyph 0.1.153`, before the
   version bump): record 129's `p384/a.glyph` exits 1 with seven E0238 (it

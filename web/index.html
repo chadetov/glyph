@@ -521,7 +521,7 @@
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>21</span> of 37</p>
-          <p>Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For 21 of the 37 cases, nothing in that setup catches it. A compiler flag that is off by default catches 5, and a lint rule catches 11. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting. There are 50 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 8 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps).</p>
+          <p>Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For 21 of the 37 cases, nothing in that setup catches it. A compiler flag that is off by default catches 5, and a lint rule catches 11. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting. There are 49 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 7 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps).</p>
         </div>
       </div>
     </section>
@@ -581,7 +581,7 @@ WILL_FAIL  value.glyph:83    value::text_of</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph does not catch everything yet. 8 known holes
+          Glyph does not catch everything yet. 7 known holes
           have a reproduction and a gap number, and logic errors pass in Glyph as
           they do in TypeScript.
           <a href="/catches/#not-yet">What it does not catch yet &rarr;</a>

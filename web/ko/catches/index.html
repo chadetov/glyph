@@ -423,7 +423,7 @@
       <header class="page-hero">
         <p class="eyebrow">TypeScript가 통과시키는 사례</p>
         <h1>배포되기 전에 잡아냅니다</h1>
-        <p class="lede">확인된 사례는 모두 50건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 8건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건).</p>
+        <p class="lede">확인된 사례는 모두 49건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 7건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건).</p>
         <p class="lede">목록에 있는 TypeScript 예제는 모두 <code>tsc --strict</code>를 오류 없이 통과합니다. 각 예제는 최대한 엄격하게 설정한 프로젝트에서도 다시 검사합니다. <code>--strict</code>보다 엄격한 컴파일러 플래그를 모두 켜고, typescript-eslint <code>strictTypeChecked</code>까지 적용한 설정입니다. 37개의 사례 중 21개는 이 설정의 어떤 것도 잡아내지 못합니다. 기본값이 꺼져 있는 컴파일러 플래그가 5개를, lint 규칙이 11개를 잡아냅니다. 이 플래그와 규칙은 프로젝트에서 하나하나 켜야 하고, 에이전트가 다시 끌 수도 있습니다. Glyph에서는 이 중 어느 것도 설정 옵션이 아닙니다.</p>
         <p class="lede">
           각 항목은 <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>에 있는 두 프로그램이고, 각 프로그램 아래의 출력은 도구가 실제로 출력한 내용입니다. 빌드 게이트인 <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>가 모든 사례를 다시 실행하고, 어느 한쪽이라도 페이지에 적힌 대로 동작하지 않으면 실패합니다. 검사에 쓰는 전체 TypeScript 설정은 이 스크립트에 있습니다.
@@ -1484,11 +1484,10 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       <section class="c-section" id="not-yet">
         <h2 class="group-head">Glyph가 아직 잡아내지 못하는 것</h2>
         <p class="group-sub">
-          Glyph가 아직 막지 못한 구멍 8건입니다. 이 코드는 모두 현재 Glyph에서 컴파일되고, TypeScript에서와 똑같이 잘못 동작합니다. 각각 <code>catches/</code>에 재현 코드와 열린 gap 번호가 있고, 수정이 들어오면 게이트가 실패하므로 구멍이 막힌 뒤에도 항목이 남아 있을 수는 없습니다.
+          Glyph가 아직 막지 못한 구멍 7건입니다. 이 코드는 모두 현재 Glyph에서 컴파일되고, TypeScript에서와 똑같이 잘못 동작합니다. 각각 <code>catches/</code>에 재현 코드와 열린 gap 번호가 있고, 수정이 들어오면 게이트가 실패하므로 구멍이 막힌 뒤에도 항목이 남아 있을 수는 없습니다.
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code>은 실제 값인 <code>0</code>을 <code>3</code>으로 바꿉니다. <span>G386</span></li>
-        <li><code>forEach(async ...)</code>는 모든 promise를 버리므로, 작업이 그 결과에 의존하는 코드보다 늦게 끝나는데도 아무 경고가 없습니다. <span>G384</span></li>
         <li>헬퍼 안의 <code>xs.sort(...)</code>는 호출한 쪽의 배열 순서를 바꾸는데, 이를 표시하는 <code>mut</code>가 없습니다. <span>G380</span></li>
         <li>숫자에 대한 <code>.sort()</code>는 숫자를 텍스트로 정렬합니다: <code>100,25,9</code>. <span>G388</span></li>
         <li><code>c[0]</code>에 대해 <code>await</code>를 사이에 둔 갱신 손실. 필드에 대한 같은 쓰기는 거부됩니다. <span>G390</span></li>

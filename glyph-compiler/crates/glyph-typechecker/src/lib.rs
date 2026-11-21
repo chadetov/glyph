@@ -1522,6 +1522,29 @@ impl TypeError {
         if let TypeError::SqlFromRuntimeValue { help, .. } = self {
             return Some(Cow::Owned(help.clone()));
         }
+        // A plain value where `std/taint`'s branded wrapper is declared (G387,
+        // record 132). "Change the parameter's type" is wrong advice for a
+        // stdlib parameter, and the wrapper is only ever made by `std/taint`'s
+        // own functions, so the help names them.
+        if let TypeError::TypeMismatch { expected, found, .. }
+        | TypeError::ArgumentTypeMismatch { expected, found, .. } = self
+        {
+            if expected.starts_with("taint.Trusted<") && found.starts_with("taint.Tainted<") {
+                return Some(Cow::Borrowed(
+                    "Pass it through `taint.sanitize(…)` first; a `Tainted` value reaches a `Trusted` slot only through it.",
+                ));
+            }
+            if expected.starts_with("taint.Trusted<") {
+                return Some(Cow::Borrowed(
+                    "Pass a constant query directly; text built at run time goes through `taint.sanitize(…)`, or `taint.trust_unchecked(…)` for text you wrote.",
+                ));
+            }
+            if expected.starts_with("taint.Tainted<") {
+                return Some(Cow::Borrowed(
+                    "Wrap a value that comes from outside the program with `taint.taint(…)`; a `Tainted` value reaches a `Trusted` slot only through `taint.sanitize(…)`.",
+                ));
+            }
+        }
         if let TypeError::RecordRemoveFiniteKey { key, partial, .. } = self {
             let partial = match partial {
                 Some(p) => format!("declare a record with optional fields (`{p}`)"),

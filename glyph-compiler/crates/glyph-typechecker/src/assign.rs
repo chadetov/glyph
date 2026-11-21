@@ -9072,6 +9072,8 @@ pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
             | ("storage", "StorageError")
             | ("sqlite", "Db")
             | ("sqlite", "Sql")
+            | ("taint", "Trusted")
+            | ("taint", "Tainted")
     )
     .then(|| stdlib_named(module, name))
 }

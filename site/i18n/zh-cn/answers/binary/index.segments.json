@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/binary/index.html",
   "locale": "zh-cn",
-  "source_hash": "597ac2fe9fcb5f04",
+  "source_hash": "9c69ac3fe3f46a35",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,70 @@
       "tr": "<code>std/bytes</code> 为你提供不可变的八位字节序列，<code>std/fs</code> 和 <code>std/crypto</code> 都支持它。在 0.1.78 之前并非如此：标准库的每个边界都是字符串进、字符串出，所以无法读取 PNG，也无法给 HMAC 一个真正的密钥。"
     },
     {
+      "id": "h-e573d962",
+      "kind": "html",
+      "en": "One-time password, start to finish",
+      "tr": "一次性密码，从头到尾"
+    },
+    {
+      "id": "h-c66fcbe4",
+      "kind": "html",
+      "en": "<span>See it: an RFC 6238 authenticator, which needs bytes on both sides of the HMAC. The secret arrives base32-encoded, the message is an eight-byte counter that is mostly zero, and the digest is indexed by its own last byte.</span>",
+      "tr": "<span>看看实际效果：一个 RFC 6238 身份验证器，HMAC 的两侧都需要字节。密钥以 base32 编码传入，消息是一个大部分为零的八字节计数器，摘要则用它自己的最后一个字节做索引。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-aa986976",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why strings break bytes</a>",
+      "tr": "<a href=\"#why-it-matters\">为什么字符串会破坏字节</a>"
+    },
+    {
+      "id": "h-2623bb65",
+      "kind": "html",
+      "en": "<a href=\"#what-a-bytes-value-is\">What a Bytes value is</a>",
+      "tr": "<a href=\"#what-a-bytes-value-is\">Bytes 值是什么</a>"
+    },
+    {
+      "id": "h-e3da7ed6",
+      "kind": "html",
+      "en": "<a href=\"#every-decode-can-refuse-and-says-where\">Decodes that refuse</a>",
+      "tr": "<a href=\"#every-decode-can-refuse-and-says-where\">会拒绝的解码</a>"
+    },
+    {
+      "id": "h-f3fc565f",
+      "kind": "html",
+      "en": "<a href=\"#which-hmac-you-pick-changes-the-answer\">Picking an HMAC</a>",
+      "tr": "<a href=\"#which-hmac-you-pick-changes-the-answer\">选择 HMAC</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "为什么这很重要"
     },
     {
-      "id": "h-fb444517",
-      "kind": "html",
-      "en": "A PNG's first byte is <code>0x89</code>, which is not valid UTF-8 on its own. Read that file as text and every byte the decoder cannot make sense of becomes U+FFFD, so the file is corrupt before your program sees it and nothing reports an error. The same thing happens to a key: an HMAC secret is arbitrary octets, and routing one through a string changes it, so you compute a different MAC than the specification says and every test you wrote against your own code passes.",
-      "tr": "PNG 的第一个字节是 <code>0x89</code>，它单独出现时不是合法的 UTF-8。把这个文件当文本读取，解码器无法理解的每个字节都会变成 U+FFFD，所以文件在你的程序看到之前就已经损坏了，而且没有任何报错。密钥也是一样：HMAC 的密钥是任意的八位字节，经过字符串中转就会改变，于是你算出的 MAC 和规范要求的不同，而你针对自己代码写的每个测试都能通过。"
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
     },
     {
       "id": "h-2923da28",
@@ -77,28 +131,34 @@
       "tr": "两个独立编写的应用，一个是 PNG 读取器，一个是身份验证器，在同一周卡在了同一个问题上。两者都无法在语言内部绕过。"
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-f1a8dd29",
       "kind": "html",
-      "en": "See it",
-      "tr": "看看实际效果"
+      "en": "<b>A file read as text</b>A PNG's first byte is <code>0x89</code>, which is not valid UTF-8 on its own. Read that file as text and every byte the decoder cannot make sense of becomes U+FFFD, so the file is corrupt before your program sees it and nothing reports an error.",
+      "tr": "<b>当作文本读取的文件</b>PNG 的第一个字节是 <code>0x89</code>，它单独出现时不是合法的 UTF-8。把这个文件当文本读取，解码器无法理解的每个字节都会变成 U+FFFD，所以文件在你的程序看到之前就已经损坏了，而且没有任何报错。"
     },
     {
-      "id": "h-1575f58f",
+      "id": "h-9e4fd1c0",
       "kind": "html",
-      "en": "An RFC 6238 authenticator, which needs bytes on both sides of the HMAC. The secret arrives base32-encoded, the message is an eight-byte counter that is mostly zero, and the digest is indexed by its own last byte:",
-      "tr": "一个 RFC 6238 身份验证器，HMAC 的两侧都需要字节。密钥以 base32 编码传入，消息是一个大部分为零的八字节计数器，摘要则用它自己的最后一个字节做索引："
+      "en": "<b>A key routed through a string</b>The same thing happens to a key: an HMAC secret is arbitrary octets, and routing one through a string changes it, so you compute a different MAC than the specification says and every test you wrote against your own code passes.",
+      "tr": "<b>经过字符串中转的密钥</b>密钥也是一样：HMAC 的密钥是任意的八位字节，经过字符串中转就会改变，于是你算出的 MAC 和规范要求的不同，而你针对自己代码写的每个测试都能通过。"
     },
     {
-      "id": "h-e573d962",
+      "id": "h-72d28a78",
       "kind": "html",
-      "en": "One-time password, start to finish",
-      "tr": "一次性密码，从头到尾"
+      "en": "What a <code>Bytes</code> value is",
+      "tr": "<code>Bytes</code> 值是什么"
     },
     {
-      "id": "h-1280c9e1",
+      "id": "h-08a2a804",
       "kind": "html",
-      "en": "<code>Bytes</code> is a <code>Uint8Array</code> at run time, so it hands to any host API that takes one without unwrapping. The sequence operations are named after their peers in <code>std/array</code> and <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Nothing mutates its argument.",
-      "tr": "<code>Bytes</code> 在运行时是一个 <code>Uint8Array</code>，所以可以不经拆包直接交给任何接受它的宿主 API。序列操作的命名与 <code>std/array</code> 和 <code>std/string</code> 中的对应函数一致：<code>len</code>、<code>get</code>、<code>slice</code>、<code>concat</code>、<code>index_of</code>、<code>starts_with</code>。没有任何操作会修改它的参数。"
+      "en": "<code>Bytes</code> is a <code>Uint8Array</code> at run time, so it hands to any host API that takes one without unwrapping.",
+      "tr": "<code>Bytes</code> 在运行时是一个 <code>Uint8Array</code>，所以可以不经拆包直接交给任何接受它的宿主 API。"
+    },
+    {
+      "id": "h-d3d5abcf",
+      "kind": "html",
+      "en": "The sequence operations are named after their peers in <code>std/array</code> and <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Nothing mutates its argument.",
+      "tr": "序列操作的命名与 <code>std/array</code> 和 <code>std/string</code> 中的对应函数一致：<code>len</code>、<code>get</code>、<code>slice</code>、<code>concat</code>、<code>index_of</code>、<code>starts_with</code>。没有任何操作会修改它的参数。"
     },
     {
       "id": "h-53d05d13",
@@ -125,6 +185,12 @@
       "tr": "Glyph 怎么做"
     },
     {
+      "id": "h-9f979608",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what each codec refuses</span>",
+      "tr": "详情 <span class=\"hint\">每个编解码器拒绝什么</span>"
+    },
+    {
       "id": "h-ce7398d8",
       "kind": "html",
       "en": "Every codec is written out rather than delegated to <code>Buffer</code>, so hex, base64, base64url and base32 all refuse a character outside their alphabet, a trailing group too short to encode a whole byte, and a final character carrying bits past the end of the data. <code>to_text</code> scans to find the first byte that cannot be part of a valid UTF-8 sequence, so you get a position rather than a verdict. <code>from_array</code> rejects anything outside 0..255 for the same reason: a silent <code>&amp; 0xff</code> turns 256 into 0 and a typo into data.",
@@ -143,10 +209,28 @@
       "tr": "选哪种 HMAC 会改变结果"
     },
     {
-      "id": "h-45fc3393",
+      "id": "h-92efadf8",
       "kind": "html",
-      "en": "<code>std/crypto</code> now has both forms of every algorithm. The plain name takes a string and returns hex, which is what hashing a password wants. The <code>_bytes</code> form takes and returns <code>Bytes</code>, which is what a wire protocol wants. If the key came from <code>bytes.from_base64</code> or <code>crypto.random_bytes</code>, it has bytes a string cannot hold, and the text form will quietly compute something else.",
-      "tr": "<code>std/crypto</code> 现在为每个算法提供两种形式。普通名字的版本接受字符串、返回 hex，适合哈希密码。<code>_bytes</code> 形式接受并返回 <code>Bytes</code>，适合线路协议。如果密钥来自 <code>bytes.from_base64</code> 或 <code>crypto.random_bytes</code>，它包含字符串无法容纳的字节，文本形式会悄悄算出另一个结果。"
+      "en": "<code>std/crypto</code> now has both forms of every algorithm.",
+      "tr": "<code>std/crypto</code> 现在为每个算法提供两种形式。"
+    },
+    {
+      "id": "h-8625c91c",
+      "kind": "html",
+      "en": "<b>The plain name</b>The plain name takes a string and returns hex, which is what hashing a password wants.",
+      "tr": "<b>普通名字</b>普通名字的版本接受字符串、返回 hex，适合哈希密码。"
+    },
+    {
+      "id": "h-7de4c4b1",
+      "kind": "html",
+      "en": "<b>The <code>_bytes</code> form</b>The <code>_bytes</code> form takes and returns <code>Bytes</code>, which is what a wire protocol wants.",
+      "tr": "<b><code>_bytes</code> 形式</b><code>_bytes</code> 形式接受并返回 <code>Bytes</code>，适合线路协议。"
+    },
+    {
+      "id": "h-c6a4127f",
+      "kind": "html",
+      "en": "If the key came from <code>bytes.from_base64</code> or <code>crypto.random_bytes</code>, it has bytes a string cannot hold, and the text form will quietly compute something else.",
+      "tr": "如果密钥来自 <code>bytes.from_base64</code> 或 <code>crypto.random_bytes</code>，它包含字符串无法容纳的字节，文本形式会悄悄算出另一个结果。"
     },
     {
       "id": "h-168ab7fa",
@@ -167,10 +251,28 @@
       "tr": "现已提供"
     },
     {
-      "id": "h-f6e99ace",
+      "id": "h-0b91f055",
       "kind": "html",
-      "en": "<code>std/bytes</code> with 21 functions: the sequence operations, the UTF-8 bridge, and hex, base64, base64url and base32 codecs that return a <code>Result</code> naming the offending position. <code>fs.read_bytes</code>, <code>write_bytes</code> and <code>append_bytes</code> read and write a file undecoded. <code>std/crypto</code> has a <code>_bytes</code> form of every digest and HMAC, plus SHA-1 for the protocols that specify it, <code>random_bytes</code>, and <code>timing_safe_equal</code>. The codecs are pinned against the RFC 4648 vectors and the HMAC against RFC 6238, in the compiler's own test suite.",
-      "tr": "包含 21 个函数的 <code>std/bytes</code>：序列操作、UTF-8 转换，以及 hex、base64、base64url 和 base32 编解码器，它们返回一个指出出错位置的 <code>Result</code>。<code>fs.read_bytes</code>、<code>write_bytes</code> 和 <code>append_bytes</code> 不经解码地读写文件。<code>std/crypto</code> 为每个摘要和 HMAC 提供 <code>_bytes</code> 形式，还有供规定使用它的协议使用的 SHA-1、<code>random_bytes</code> 和 <code>timing_safe_equal</code>。编解码器用 RFC 4648 的测试向量、HMAC 用 RFC 6238 的测试向量固定在编译器自己的测试套件中。"
+      "en": "<code>std/bytes</code> with 21 functions: the sequence operations, the UTF-8 bridge, and hex, base64, base64url and base32 codecs that return a <code>Result</code> naming the offending position.",
+      "tr": "包含 21 个函数的 <code>std/bytes</code>：序列操作、UTF-8 转换，以及 hex、base64、base64url 和 base32 编解码器，它们返回一个指出出错位置的 <code>Result</code>。"
+    },
+    {
+      "id": "h-4d27820e",
+      "kind": "html",
+      "en": "<code>fs.read_bytes</code>, <code>write_bytes</code> and <code>append_bytes</code> read and write a file undecoded.",
+      "tr": "<code>fs.read_bytes</code>、<code>write_bytes</code> 和 <code>append_bytes</code> 不经解码地读写文件。"
+    },
+    {
+      "id": "h-c94fd832",
+      "kind": "html",
+      "en": "<code>std/crypto</code> has a <code>_bytes</code> form of every digest and HMAC, plus SHA-1 for the protocols that specify it, <code>random_bytes</code>, and <code>timing_safe_equal</code>.",
+      "tr": "<code>std/crypto</code> 为每个摘要和 HMAC 提供 <code>_bytes</code> 形式，还有供规定使用它的协议使用的 SHA-1、<code>random_bytes</code> 和 <code>timing_safe_equal</code>。"
+    },
+    {
+      "id": "h-dcf8ed3b",
+      "kind": "html",
+      "en": "The codecs are pinned against the RFC 4648 vectors and the HMAC against RFC 6238, in the compiler's own test suite.",
+      "tr": "编解码器用 RFC 4648 的测试向量、HMAC 用 RFC 6238 的测试向量固定在编译器自己的测试套件中。"
     },
     {
       "id": "h-5db269e9",
@@ -179,10 +281,40 @@
       "tr": "正在改进"
     },
     {
-      "id": "h-cbb9e44a",
+      "id": "h-b6f9d185",
       "kind": "html",
-      "en": "There is no integer codec yet, so reading a big-endian <code>u32</code> out of a header is arithmetic you write: past 32 bits a shift is the wrong tool anyway, so it divides. Hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read. <code>std/websocket</code> still decodes a binary frame as UTF-8 text; the type it needed now exists, and the frames are next. And <code>std/encoding</code>'s six older string-to-string functions are still silent on malformed input, so use the <code>std/bytes</code> codecs for anything that has to be right. The codecs are written in TypeScript rather than delegating to node's <code>Buffer</code>, which is what lets them run in a Web Worker, and they are between 1x and 35x slower than the platform's on a megabyte. Encoding a key or a token costs nothing you can measure either way; the performance guide has the table if you are moving tens of megabytes.",
-      "tr": "目前还没有整数编解码器，所以从头部读取大端 <code>u32</code> 需要你自己写算术：超过 32 位时移位本来就不是合适的工具，所以用的是除法。十六进制字面量仍然无法解析，这让用十进制写的 256 项 CRC32 表很难读。<code>std/websocket</code> 仍然把二进制帧解码为 UTF-8 文本；它需要的类型现在已经有了，接下来就处理帧。<code>std/encoding</code> 中较早的六个字符串到字符串的函数遇到格式错误的输入仍然不报错，所以凡是必须正确的地方，都请使用 <code>std/bytes</code> 的编解码器。这些编解码器用 TypeScript 编写，而不是委托给 Node 的 <code>Buffer</code>，正因如此它们才能在 Web Worker 中运行；处理 1 MB 数据时，它们比平台实现慢 1 到 35 倍。编码一个密钥或令牌，两者的开销都小到无法测量；如果你要处理几十 MB 的数据，性能指南里有对比表。"
+      "en": "There is no integer codec yet, so reading a big-endian <code>u32</code> out of a header is arithmetic you write: past 32 bits a shift is the wrong tool anyway, so it divides.",
+      "tr": "目前还没有整数编解码器，所以从头部读取大端 <code>u32</code> 需要你自己写算术：超过 32 位时移位本来就不是合适的工具，所以用的是除法。"
+    },
+    {
+      "id": "h-d01f811d",
+      "kind": "html",
+      "en": "Hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read.",
+      "tr": "十六进制字面量仍然无法解析，这让用十进制写的 256 项 CRC32 表很难读。"
+    },
+    {
+      "id": "h-7f5d1a5d",
+      "kind": "html",
+      "en": "<code>std/websocket</code> still decodes a binary frame as UTF-8 text; the type it needed now exists, and the frames are next.",
+      "tr": "<code>std/websocket</code> 仍然把二进制帧解码为 UTF-8 文本；它需要的类型现在已经有了，接下来就处理帧。"
+    },
+    {
+      "id": "h-76759413",
+      "kind": "html",
+      "en": "And <code>std/encoding</code>'s six older string-to-string functions are still silent on malformed input, so use the <code>std/bytes</code> codecs for anything that has to be right.",
+      "tr": "<code>std/encoding</code> 中较早的六个字符串到字符串的函数遇到格式错误的输入仍然不报错，所以凡是必须正确的地方，都请使用 <code>std/bytes</code> 的编解码器。"
+    },
+    {
+      "id": "h-6b5c5d79",
+      "kind": "html",
+      "en": "The codecs are written in TypeScript rather than delegating to node's <code>Buffer</code>, which is what lets them run in a Web Worker, and they are between 1x and 35x slower than the platform's on a megabyte.",
+      "tr": "这些编解码器用 TypeScript 编写，而不是委托给 Node 的 <code>Buffer</code>，正因如此它们才能在 Web Worker 中运行；处理 1 MB 数据时，它们比平台实现慢 1 到 35 倍。"
+    },
+    {
+      "id": "h-64fe601c",
+      "kind": "html",
+      "en": "Encoding a key or a token costs nothing you can measure either way; the performance guide has the table if you are moving tens of megabytes.",
+      "tr": "编码一个密钥或令牌，两者的开销都小到无法测量；如果你要处理几十 MB 的数据，性能指南里有对比表。"
     }
   ]
 }

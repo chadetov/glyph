@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/interactive-cli/index.html",
   "locale": "zh-cn",
-  "source_hash": "a2332eec4a663662",
+  "source_hash": "e06954a40c0a760a",
   "segments": [
     {
       "id": "title",
@@ -59,30 +59,6 @@
       "tr": "能。<code>io.read_line</code> <strong>在完整的一行到达时就返回</strong>，不会等 stdin 关闭，所以 REPL、游戏循环或聊天客户端会先回应每一行，再读取下一行。在 0.1.62 之前它确实会等，这一点值得明说，因为它让所有交互式程序都无法实现。"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "为什么这很重要"
-    },
-    {
-      "id": "h-4473016d",
-      "kind": "html",
-      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name. Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
-      "tr": "只在输入结束时才返回的行读取器，其实是顶着行读取器名字的文件读取器。用管道传入一个文件时它工作得很好，所以一直没人发现：仓库里每个读取 stdin 的应用读的都是管道。后来有人写了一个聊天客户端，它在用户输入时毫无反应，直到按下 Ctrl-D 才一次性打印所有回复。"
-    },
-    {
-      "id": "h-02cdf3c6",
-      "kind": "html",
-      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
-      "tr": "那个应用最终是以回放录制好的 JSON 文件的会话回放器形式发布的，源码里有一条注释说明原因。另外三个应用也围绕同一个问题调整了形态，只是没人点明：扫雷无法在两步之间重绘，文字冒险游戏无法回应 <code>look</code>，REPL 在你挂断之前什么都不求值。"
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "看看实际效果"
-    },
-    {
       "id": "h-b3adfa1a",
       "kind": "html",
       "en": "The whole live-session loop of the chat app. Read, apply, print, repeat:",
@@ -101,10 +77,58 @@
       "tr": "glyph run examples/apps/chat/main.glyph --stdin"
     },
     {
-      "id": "h-c4443d66",
+      "id": "h-2109b4f0",
       "kind": "html",
-      "en": "One to two milliseconds from typed line to answer. Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
-      "tr": "从输入一行到得到回应只需一到两毫秒。修复之前，直到 6460ms 才有输出，也就是 stdin 关闭的时刻。完整运行时第一个回应大约出现在 1.6 秒处，那是 <code>tsx</code> 启动的时间，而不是读取延迟。"
+      "en": "<span>One to two milliseconds from typed line to answer.</span>",
+      "tr": "<span>从输入一行到得到回应只需一到两毫秒。</span>"
+    },
+    {
+      "id": "h-31a4afbb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">before the fix, and where the first 1.6 seconds go</span>",
+      "tr": "详情 <span class=\"hint\">修复之前的情况，以及最初的 1.6 秒花在哪里</span>"
+    },
+    {
+      "id": "h-5e15f281",
+      "kind": "html",
+      "en": "Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
+      "tr": "修复之前，直到 6460ms 才有输出，也就是 stdin 关闭的时刻。完整运行时第一个回应大约出现在 1.6 秒处，那是 <code>tsx</code> 启动的时间，而不是读取延迟。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么这很重要"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-b79b0674",
+      "kind": "html",
+      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name.",
+      "tr": "只在输入结束时才返回的行读取器，其实是顶着行读取器名字的文件读取器。"
+    },
+    {
+      "id": "h-880c0447",
+      "kind": "html",
+      "en": "Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
+      "tr": "用管道传入一个文件时它工作得很好，所以一直没人发现：仓库里每个读取 stdin 的应用读的都是管道。后来有人写了一个聊天客户端，它在用户输入时毫无反应，直到按下 Ctrl-D 才一次性打印所有回复。"
+    },
+    {
+      "id": "h-665ff28b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the apps shaped around it</span>",
+      "tr": "历史 <span class=\"hint\">围绕它塑造的应用</span>"
+    },
+    {
+      "id": "h-02cdf3c6",
+      "kind": "html",
+      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
+      "tr": "那个应用最终是以回放录制好的 JSON 文件的会话回放器形式发布的，源码里有一条注释说明原因。另外三个应用也围绕同一个问题调整了形态，只是没人点明：扫雷无法在两步之间重绘，文字冒险游戏无法回应 <code>look</code>，REPL 在你挂断之前什么都不求值。"
     },
     {
       "id": "h-a2b1ea84",
@@ -113,22 +137,46 @@
       "tr": "实际使用中容易踩坑的地方"
     },
     {
-      "id": "h-92f12884",
+      "id": "h-b12d0301",
       "kind": "html",
-      "en": "A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input. Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped. Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
-      "tr": "末尾的 <code>\\r</code> 会被去掉，所以 CRLF 文件和 LF 文件得到相同的行，你不用在 Windows 输入上调试一个看不见的字符。没有以换行结尾的输入，仍会在返回 <code>None</code> 之前把最后一行交还一次，所以没有结尾换行的文件的最后一行不会被悄悄丢掉。跨读取边界被拆开的多字节 UTF-8 会被暂存并补全，而不是变成替换字符。"
+      "en": "<b>CRLF</b>A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input.",
+      "tr": "<b>CRLF</b>末尾的 <code>\\r</code> 会被去掉，所以 CRLF 文件和 LF 文件得到相同的行，你不用在 Windows 输入上调试一个看不见的字符。"
     },
     {
-      "id": "h-734ae2bb",
+      "id": "h-61bc0f0f",
       "kind": "html",
-      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin. 200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
-      "tr": "<code>read_to_string</code> 读取的是同一个缓冲区，所以两者可以组合：先用 <code>read_line</code> 读标题行，再用 <code>read_to_string</code> 读正文，得到的是剩下的内容，而不是第二份副本，也不是空字符串。如果先调用它，它仍然返回整个 stdin。通过管道传入 200,000 行，计数大约需要 20ms，所以逐行读取不需要牺牲吞吐量。"
+      "en": "<b>No final newline</b>Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped.",
+      "tr": "<b>没有结尾换行</b>没有以换行结尾的输入，仍会在返回 <code>None</code> 之前把最后一行交还一次，所以没有结尾换行的文件的最后一行不会被悄悄丢掉。"
+    },
+    {
+      "id": "h-19f6ad49",
+      "kind": "html",
+      "en": "<b>Split UTF-8</b>Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
+      "tr": "<b>被拆开的 UTF-8</b>跨读取边界被拆开的多字节 UTF-8 会被暂存并补全，而不是变成替换字符。"
+    },
+    {
+      "id": "h-223ab389",
+      "kind": "html",
+      "en": "<code>read_line</code>, then <code>read_to_string</code>",
+      "tr": "先 <code>read_line</code>，再 <code>read_to_string</code>"
+    },
+    {
+      "id": "h-e058bf0b",
+      "kind": "html",
+      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin.",
+      "tr": "<code>read_to_string</code> 读取的是同一个缓冲区，所以两者可以组合：先用 <code>read_line</code> 读标题行，再用 <code>read_to_string</code> 读正文，得到的是剩下的内容，而不是第二份副本，也不是空字符串。如果先调用它，它仍然返回整个 stdin。"
     },
     {
       "id": "h-dbb27136",
       "kind": "html",
       "en": "A header line, then the body",
       "tr": "先读一行标题，再读正文"
+    },
+    {
+      "id": "h-e4472dc4",
+      "kind": "html",
+      "en": "200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
+      "tr": "通过管道传入 200,000 行，计数大约需要 20ms，所以逐行读取不需要牺牲吞吐量。"
     },
     {
       "id": "h-b55f380c",
@@ -143,16 +191,64 @@
       "tr": "现已提供"
     },
     {
-      "id": "h-d2b638c8",
+      "id": "h-a2c1f233",
       "kind": "html",
-      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike. CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer. A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too. <code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
-      "tr": "<code>io.read_line</code> 在一行到达时返回，而不是在流关闭时返回，所以“提示/读取/回应”循环在终端上和通过管道时都能工作。CRLF 会被规范化，没有终止符的最后一行会交付一次，多字节字符能跨越分块边界保持完整，<code>read_to_string</code> 读取同一缓冲区中剩下的内容。有一个回归测试会保持 stdin 打开并要求得到回显，因为用管道传入文件的测试在有问题的实现上也能通过。<code>io.print</code> 和 <code>io.eprint</code> 输出时不带换行，所以 REPL 的 <code>&gt; </code> 提示符和用户输入的答案在同一行；<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> 告诉程序它面对的是人还是管道，所以像聊天应用的 <code>--stdin</code> 这样的 flag 不再是唯一的判断方式。"
+      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike.",
+      "tr": "<code>io.read_line</code> 在一行到达时返回，而不是在流关闭时返回，所以“提示/读取/回应”循环在终端上和通过管道时都能工作。"
+    },
+    {
+      "id": "h-94947ad8",
+      "kind": "html",
+      "en": "CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer.",
+      "tr": "CRLF 会被规范化，没有终止符的最后一行会交付一次，多字节字符能跨越分块边界保持完整，<code>read_to_string</code> 读取同一缓冲区中剩下的内容。"
+    },
+    {
+      "id": "h-8618bd0c",
+      "kind": "html",
+      "en": "A regression test holds stdin open and requires the echo back",
+      "tr": "有一个回归测试会保持 stdin 打开并要求得到回显"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
+    },
+    {
+      "id": "h-9436a961",
+      "kind": "html",
+      "en": "A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too.",
+      "tr": "有一个回归测试会保持 stdin 打开并要求得到回显，因为用管道传入文件的测试在有问题的实现上也能通过。"
+    },
+    {
+      "id": "h-18b0c175",
+      "kind": "html",
+      "en": "<code>io.print</code> and <code>io.eprint</code> write without a newline",
+      "tr": "<code>io.print</code> 和 <code>io.eprint</code> 输出时不带换行"
+    },
+    {
+      "id": "h-800433b7",
+      "kind": "html",
+      "en": "<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe",
+      "tr": "<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> 告诉程序它面对的是人还是管道"
+    },
+    {
+      "id": "h-3842dbc3",
+      "kind": "html",
+      "en": "<code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
+      "tr": "<code>io.print</code> 和 <code>io.eprint</code> 输出时不带换行，所以 REPL 的 <code>&gt; </code> 提示符和用户输入的答案在同一行；<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> 告诉程序它面对的是人还是管道，所以像聊天应用的 <code>--stdin</code> 这样的 flag 不再是唯一的判断方式。"
     },
     {
       "id": "h-43278834",
       "kind": "html",
       "en": "Still rough",
       "tr": "仍不完善"
+    },
+    {
+      "id": "h-88dfc50f",
+      "kind": "html",
+      "en": "A program that wants to redraw a screen has no cursor control",
+      "tr": "想要重绘屏幕的程序还没有光标控制"
     },
     {
       "id": "h-ec1da8e1",

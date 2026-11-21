@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/abstraction/index.html",
   "locale": "zh-cn",
-  "source_hash": "01e075d4f0eca884",
+  "source_hash": "20ee19449bc530dd",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "用一个<strong>小而正交的核心</strong>表达你的本意：用模式匹配代替一长串 switch，用 <code>Result</code> 代替抛出异常，用具名记录代替元组。每个概念一种好的写法，而不是 TypeScript 那样层层堆积的特性。"
     },
     {
-      "id": "h-394d34b1",
-      "kind": "html",
-      "en": "Too many ways to say the same thing",
-      "tr": "同一件事有太多种写法"
-    },
-    {
-      "id": "h-350fc73d",
-      "kind": "html",
-      "en": "TypeScript grew by accretion, and it kept every layer. You can model a fixed set of cases as an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can describe a shape with an <code>interface</code>, a <code>type</code>, or a <code>class</code>. There are <code>namespace</code>s and modules, decorators and higher-order functions, five idioms for nearly everything, each with its own edge cases.",
-      "tr": "TypeScript 是一层层堆积起来的，而且每一层都保留了下来。一组固定的情况，你可以用 <code>enum</code>、字符串字面量联合或 <code>const</code> 对象来建模。一个结构，你可以用 <code>interface</code>、<code>type</code> 或 <code>class</code> 来描述。有 <code>namespace</code> 和模块，有装饰器和高阶函数，几乎每件事都有五种惯用写法，每种都有自己的边界情况。"
-    },
-    {
-      "id": "h-ea5d3974",
-      "kind": "html",
-      "en": "For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to express a thing means more ways to pick the one with the footgun, and more idioms to keep straight while doing it. Glyph's abstraction pillar is a deliberate subtraction: one sharp tool per job, chosen so the obvious way is also the safe way.",
-      "tr": "对人来说这是灵活性。对<strong>智能体</strong>来说这是雷区：表达一件事的方式越多，选中那个有坑的方式的可能就越大，同时要分清的惯用法也越多。Glyph 的抽象支柱是一次有意的做减法：每项工作一把趁手的工具，选择的标准是让最直观的写法同时也是安全的写法。"
-    },
-    {
-      "id": "h-c576eb56",
-      "kind": "html",
-      "en": "<span class=\"ex-label\">01</span> <code>match</code> is the only conditional",
-      "tr": "<span class=\"ex-label\">01</span> <code>match</code> 是唯一的条件结构"
-    },
-    {
-      "id": "h-1a910d0c",
-      "kind": "html",
-      "en": "There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>, everywhere, and <code>match</code> is an expression: it produces a value. One construct covers a boolean test, a union dispatch, and a value table, so there's no decision to make about <em>which</em> branching form to reach for.",
-      "tr": "没有 <code>if</code>/<code>else</code> 语句。分支一律用 <code>match</code>，而 <code>match</code> 是表达式：它会产生一个值。一种结构就涵盖了布尔判断、联合类型分派和值查找表，所以不需要纠结该用<em>哪种</em>分支形式。"
-    },
-    {
       "id": "h-fd1d8f8e",
       "kind": "html",
       "en": "TypeScript: statement, not a value",
@@ -101,16 +71,148 @@
       "tr": "Glyph：一个表达式"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-3642b9c1",
+      "kind": "html",
+      "en": "<a href=\"#too-many-ways-to-say-the-same-thing\">Too many ways</a>",
+      "tr": "<a href=\"#too-many-ways-to-say-the-same-thing\">写法太多</a>"
+    },
+    {
+      "id": "h-18243566",
+      "kind": "html",
+      "en": "<a href=\"#match-is-the-only-conditional\"><code>match</code> as the conditional</a>",
+      "tr": "<a href=\"#match-is-the-only-conditional\">用 <code>match</code> 做条件判断</a>"
+    },
+    {
+      "id": "h-9116d8af",
+      "kind": "html",
+      "en": "<a href=\"#tagged-unions-and-pattern-matching\">Tagged unions</a>",
+      "tr": "<a href=\"#tagged-unions-and-pattern-matching\">标签联合</a>"
+    },
+    {
+      "id": "h-98fab184",
+      "kind": "html",
+      "en": "<a href=\"#result-over-exceptions\"><code>Result</code> over exceptions</a>",
+      "tr": "<a href=\"#result-over-exceptions\">用 <code>Result</code> 代替异常</a>"
+    },
+    {
+      "id": "h-0fc507c7",
+      "kind": "html",
+      "en": "<a href=\"#named-records-over-positional-tuples\">Named records</a>",
+      "tr": "<a href=\"#named-records-over-positional-tuples\">具名记录</a>"
+    },
+    {
+      "id": "h-b9e79706",
+      "kind": "html",
+      "en": "<a href=\"#one-primitive-per-job\">One primitive per job</a>",
+      "tr": "<a href=\"#one-primitive-per-job\">每项工作一个构件</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">基准测试</a>"
+    },
+    {
+      "id": "h-394d34b1",
+      "kind": "html",
+      "en": "Too many ways to say the same thing",
+      "tr": "同一件事有太多种写法"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-d1c69ff4",
+      "kind": "html",
+      "en": "TypeScript grew by accretion, and it kept every layer.",
+      "tr": "TypeScript 是一层层堆积起来的，而且每一层都保留了下来。"
+    },
+    {
+      "id": "h-b846c38e",
+      "kind": "html",
+      "en": "<b>Fixed cases</b>You can model a fixed set of cases as an <code>enum</code>, a union of string literals, or a <code>const</code> object.",
+      "tr": "<b>固定的情况</b>一组固定的情况，你可以用 <code>enum</code>、字符串字面量联合或 <code>const</code> 对象来建模。"
+    },
+    {
+      "id": "h-70a900fd",
+      "kind": "html",
+      "en": "<b>Shapes</b>You can describe a shape with an <code>interface</code>, a <code>type</code>, or a <code>class</code>.",
+      "tr": "<b>结构</b>一个结构，你可以用 <code>interface</code>、<code>type</code> 或 <code>class</code> 来描述。"
+    },
+    {
+      "id": "h-379dc356",
+      "kind": "html",
+      "en": "<b>Everything else</b>There are <code>namespace</code>s and modules, decorators and higher-order functions, five idioms for nearly everything, each with its own edge cases.",
+      "tr": "<b>其他一切</b>有 <code>namespace</code> 和模块，有装饰器和高阶函数，几乎每件事都有五种惯用写法，每种都有自己的边界情况。"
+    },
+    {
+      "id": "h-ea803f83",
+      "kind": "html",
+      "en": "For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to express a thing means more ways to pick the one with the footgun, and more idioms to keep straight while doing it.",
+      "tr": "对人来说这是灵活性。对<strong>智能体</strong>来说这是雷区：表达一件事的方式越多，选中那个有坑的方式的可能就越大，同时要分清的惯用法也越多。"
+    },
+    {
+      "id": "h-ac4cdf34",
+      "kind": "html",
+      "en": "Glyph's abstraction pillar is a deliberate subtraction: one sharp tool per job, chosen so the obvious way is also the safe way.",
+      "tr": "Glyph 的抽象支柱是一次有意的做减法：每项工作一把趁手的工具，选择的标准是让最直观的写法同时也是安全的写法。"
+    },
+    {
+      "id": "h-c576eb56",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> <code>match</code> is the only conditional",
+      "tr": "<span class=\"ex-label\">01</span> <code>match</code> 是唯一的条件结构"
+    },
+    {
+      "id": "h-b108c57c",
+      "kind": "html",
+      "en": "There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>, everywhere, and <code>match</code> is an expression: it produces a value.",
+      "tr": "没有 <code>if</code>/<code>else</code> 语句。分支一律用 <code>match</code>，而 <code>match</code> 是表达式：它会产生一个值。"
+    },
+    {
+      "id": "h-f880b2fd",
+      "kind": "html",
+      "en": "One construct covers a boolean test, a union dispatch, and a value table, so there's no decision to make about <em>which</em> branching form to reach for.",
+      "tr": "一种结构就涵盖了布尔判断、联合类型分派和值查找表，所以不需要纠结该用<em>哪种</em>分支形式。"
+    },
+    {
       "id": "h-9a3a4109",
       "kind": "html",
       "en": "<span class=\"ex-label\">02</span> Tagged unions and pattern matching",
       "tr": "<span class=\"ex-label\">02</span> 标签联合与模式匹配"
     },
     {
-      "id": "h-ad530d74",
+      "id": "h-3bd9017e",
       "kind": "html",
-      "en": "The way to model \"one of these shapes\" is a tagged union, and the way to take it apart is <code>match</code>, which destructures the payload in the same step it selects the case. No discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast inside each branch to recover the shape.",
-      "tr": "表达“这几种结构之一”的方式是标签联合，拆开它的方式是 <code>match</code>，它在选择情况的同一步就解构了负载。不需要手动维护判别字段，不需要对字符串标签写一长串 <code>switch</code>，也不需要在每个分支里做类型断言来恢复结构。"
+      "en": "The way to model \"one of these shapes\" is a tagged union, and the way to take it apart is <code>match</code>, which destructures the payload in the same step it selects the case.",
+      "tr": "表达“这几种结构之一”的方式是标签联合，拆开它的方式是 <code>match</code>，它在选择情况的同一步就解构了负载。"
+    },
+    {
+      "id": "h-ffa3ae4b",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what you no longer write by hand</span>",
+      "tr": "详情 <span class=\"hint\">你不再需要手写的东西</span>"
+    },
+    {
+      "id": "h-be7c04c9",
+      "kind": "html",
+      "en": "No discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast inside each branch to recover the shape.",
+      "tr": "不需要手动维护判别字段，不需要对字符串标签写一长串 <code>switch</code>，也不需要在每个分支里做类型断言来恢复结构。"
     },
     {
       "id": "h-da9f8a38",
@@ -119,10 +221,16 @@
       "tr": "<span class=\"ex-label\">03</span> 用 <code>Result</code> 代替异常"
     },
     {
-      "id": "h-b227a6fe",
+      "id": "h-a6a5d5b4",
       "kind": "html",
-      "en": "Failure is a value, not a hidden control-flow jump. A function that can fail says so in its return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code> and hoping the right thing throws the right class. The error path is as visible as the happy path.",
-      "tr": "失败是一个值，而不是隐藏的控制流跳转。可能失败的函数会在返回类型中写明（<code>Result&lt;T, E&gt;</code>），你用 <code>?</code> 运算符组合各种失败，而不是把调用处包进 <code>try</code>/<code>catch</code>，然后指望正确的地方抛出正确的类。出错路径和正常路径一样清晰可见。"
+      "en": "Failure is a value, not a hidden control-flow jump. A function that can fail says so in its return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code> and hoping the right thing throws the right class.",
+      "tr": "失败是一个值，而不是隐藏的控制流跳转。可能失败的函数会在返回类型中写明（<code>Result&lt;T, E&gt;</code>），你用 <code>?</code> 运算符组合各种失败，而不是把调用处包进 <code>try</code>/<code>catch</code>，然后指望正确的地方抛出正确的类。"
+    },
+    {
+      "id": "h-f4c006e2",
+      "kind": "html",
+      "en": "The error path is as visible as the happy path.",
+      "tr": "出错路径和正常路径一样清晰可见。"
     },
     {
       "id": "h-cbb161e6",
@@ -131,10 +239,10 @@
       "tr": "<span class=\"ex-label\">04</span> 用具名记录代替按位置的元组"
     },
     {
-      "id": "h-c219a9fc",
+      "id": "h-c3a9cf90",
       "kind": "html",
-      "en": "Data is described with named fields, always. There's no object-literal shorthand and no reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to remember. The shape reads the same at the definition, the construction, and the use.",
-      "tr": "数据总是用具名字段来描述。没有对象字面量简写，也不会去用一个匿名元组，让你记住它的 <code>[0]</code> 和 <code>[1]</code> 分别是什么。结构在定义处、构造处和使用处读起来都一样。"
+      "en": "Data is described with named fields, always. The shape reads the same at the definition, the construction, and the use.",
+      "tr": "数据总是用具名字段来描述。结构在定义处、构造处和使用处读起来都一样。"
     },
     {
       "id": "h-acbd509b",
@@ -149,16 +257,52 @@
       "tr": "Glyph：名字跟着值走"
     },
     {
+      "id": "h-e7f194c4",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">no shorthand, no anonymous tuples</span>",
+      "tr": "详情 <span class=\"hint\">没有简写，没有匿名元组</span>"
+    },
+    {
+      "id": "h-f3c15f17",
+      "kind": "html",
+      "en": "There's no object-literal shorthand and no reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to remember.",
+      "tr": "没有对象字面量简写，也不会去用一个匿名元组，让你记住它的 <code>[0]</code> 和 <code>[1]</code> 分别是什么。"
+    },
+    {
       "id": "h-403ba4b0",
       "kind": "html",
       "en": "<span class=\"ex-label\">05</span> One primitive per job",
       "tr": "<span class=\"ex-label\">05</span> 每项工作一个基础构件"
     },
     {
-      "id": "h-bc427179",
+      "id": "h-d51cd5ce",
       "kind": "html",
-      "en": "When a concept needs its own tool, Glyph gives it exactly one. Shared mutable state lives in a <code>std/store</code>. A file or socket handle that must be closed once is an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single, named, purpose-built primitive, not a pattern you re-derive from a grab-bag of general parts and get subtly wrong.",
-      "tr": "当一个概念需要专门的工具时，Glyph 只给它一个。共享的可变状态放在 <code>std/store</code> 中。必须且只能关闭一次的文件或 socket 句柄是 <code>owned</code> 资源。迭代用 <code>for x in xs</code>。每一个都是单一、具名、专门设计的基础构件，而不是一种要从一堆通用零件里重新拼凑、又容易出细微错误的模式。"
+      "en": "When a concept needs its own tool, Glyph gives it exactly one.",
+      "tr": "当一个概念需要专门的工具时，Glyph 只给它一个。"
+    },
+    {
+      "id": "h-ea24c346",
+      "kind": "html",
+      "en": "<b>Shared state</b>Shared mutable state lives in a <code>std/store</code>.",
+      "tr": "<b>共享状态</b>共享的可变状态放在 <code>std/store</code> 中。"
+    },
+    {
+      "id": "h-17bdc29b",
+      "kind": "html",
+      "en": "<b>Handles</b>A file or socket handle that must be closed once is an <code>owned</code> resource.",
+      "tr": "<b>句柄</b>必须且只能关闭一次的文件或 socket 句柄是 <code>owned</code> 资源。"
+    },
+    {
+      "id": "h-200dc901",
+      "kind": "html",
+      "en": "<b>Iteration</b>Iteration is <code>for x in xs</code>.",
+      "tr": "<b>迭代</b>迭代用 <code>for x in xs</code>。"
+    },
+    {
+      "id": "h-7cc956aa",
+      "kind": "html",
+      "en": "Each is a single, named, purpose-built primitive, not a pattern you re-derive from a grab-bag of general parts and get subtly wrong.",
+      "tr": "每一个都是单一、具名、专门设计的基础构件，而不是一种要从一堆通用零件里重新拼凑、又容易出细微错误的模式。"
     },
     {
       "id": "h-73dda756",
@@ -173,10 +317,16 @@
       "tr": "基准测试：即将进行"
     },
     {
-      "id": "h-b0f9e141",
+      "id": "h-629c87c9",
       "kind": "html",
-      "en": "The way to measure this is surface area: how many distinct concepts a reader has to hold to understand a program, and how much code it takes to express a common task cleanly. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's a body of real programs to compare.",
-      "tr": "衡量这一点的方法是看接口的大小：读者要掌握多少个不同的概念才能理解一个程序，以及干净地表达一个常见任务需要多少代码。Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有足够多的真实程序可供比较，就会填入真实的测量结果。"
+      "en": "The way to measure this is surface area: how many distinct concepts a reader has to hold to understand a program, and how much code it takes to express a common task cleanly.",
+      "tr": "衡量这一点的方法是看接口的大小：读者要掌握多少个不同的概念才能理解一个程序，以及干净地表达一个常见任务需要多少代码。"
+    },
+    {
+      "id": "h-5421b526",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's a body of real programs to compare.",
+      "tr": "Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有足够多的真实程序可供比较，就会填入真实的测量结果。"
     },
     {
       "id": "h-a10f7a79",

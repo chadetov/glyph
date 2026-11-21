@@ -1,7 +1,7 @@
 ---
 title: 新的 Glyph 版本会破坏我的构建吗？ · Glyph
 description: Glyph 项目会精确固定编译器版本，所以新版本不会意外进入你的构建。glyph doctor 告诉你有新版本，glyph upgrade 负责升级。
-source_hash: b4d1d08012358fef
+source_hash: d07b464c988f9441
 prev: /answers/ai-authoring/ | &larr; 上一篇 | AI 能可靠地写一门它几乎没见过的语言吗？
 next: /answers/imports/ | 下一篇 &rarr; | 我能使用现有的 TypeScript、JavaScript 和 npm 库吗？
 ---
@@ -12,16 +12,7 @@ next: /answers/imports/ | 下一篇 &rarr; | 我能使用现有的 TypeScript、
         除非你主动要求，否则不会。Glyph 项目把编译器固定到一个<strong>精确版本</strong>，所以今天早上发布的版本不会在下午进入你的构建。在 1.0 之前，一个版本可以新增诊断，拒绝昨天还能编译的代码，而这通常正是这个版本的意义所在，所以要不要升级由你决定，而且只需要一条命令。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">为什么这很重要</h2>
-        <p>
-          大多数工具你会用 ^ 来固定，因为补丁版本是 bug 修复。1.0 之前的编译器不是这样。Glyph 的工作就是拒绝程序，而做得更好意味着新的错误：对导入更严格的检查、以前会漏过去的穷尽性漏洞、检查器之前没有建模的参数数量。这些是好的版本。但它们也正是你不希望在为了添加一个日期库而运行 <code>npm install</code> 时混进来的版本。
-        </p>
-        <p>
-          所以 <code>glyph init</code> 不写 <code>^</code>。对 <code>0.x</code> 版本来说，^ 仍然会让补丁版本浮动，这正是陷阱所在：<code>^0.1.9</code> 会悄悄接受之后的每个 0.1.x。
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="code">
         <span class="cap">package.json，脚手架生成的样子</span>
 <pre>"devDependencies": {
@@ -31,19 +22,46 @@ next: /answers/imports/ | 下一篇 &rarr; | 我能使用现有的 TypeScript、
   "tsx": "^4.19.0"
 }</pre>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#why-it-matters">为什么要精确固定</a></li>
+          <li><a href="#the-other-half">得知有新版本</a></li>
+          <li><a href="#taking-the-upgrade">执行升级</a></li>
+          <li><a href="#moving-the-tool-not-the-project">升级编译器本身</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">为什么这很重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        大多数工具你会用 ^ 来固定，因为补丁版本是 bug 修复。1.0 之前的编译器不是这样。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">为什么带来新错误的版本才是好版本</span></summary><div class="body">
         <p>
-          把旁边的 <code>package-lock.json</code> 也提交，新克隆的仓库就会用你测试过的工具链构建，而不是用之后发布的随便哪个版本。
+          Glyph 的工作就是拒绝程序，而做得更好意味着新的错误：对导入更严格的检查、以前会漏过去的穷尽性漏洞、检查器之前没有建模的参数数量。这些是好的版本。但它们也正是你不希望在为了添加一个日期库而运行 <code>npm install</code> 时混进来的版本。
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        所以 <code>glyph init</code> 不写 <code>^</code>。对 <code>0.x</code> 版本来说，^ 仍然会让补丁版本浮动，这正是陷阱所在：<code>^0.1.9</code> 会悄悄接受之后的每个 0.1.x。
+      </p></div>
+      <p>
+        把旁边的 <code>package-lock.json</code> 也提交，新克隆的仓库就会用你测试过的工具链构建，而不是用之后发布的随便哪个版本。
+      </p>
 
-        <h2 class="block-label">另一半</h2>
+      <h2 class="ak-h" id="the-other-half">另一半<a class="ak-anchor" href="#the-other-half" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        固定版本有一个明显的失效方式：你在一个旧编译器上待了一年却毫不知情。所以，当你向编译器询问关于你的环境配置的任何问题时，它会告诉你：
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">为什么由编译器来通知</span></summary><div class="body">
         <p>
-          固定版本有一个明显的失效方式：你在一个旧编译器上待了一年却毫不知情。你机器上的任何东西都不会告诉你，而一个需要你记得去访问的网站也算不上通知渠道。所以，当你向编译器询问关于你的环境配置的任何问题时，它会告诉你：
+          你机器上的任何东西都不会告诉你，而一个需要你记得去访问的网站也算不上通知渠道。
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph doctor</span>
 <pre>glyph &mdash; 0.1.72
   [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
@@ -56,18 +74,24 @@ glyph doctor &mdash; JavaScript toolchain
 All good. `glyph run` and `glyph build --check` are ready.</pre>
       </div>
 
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        发现新版本<em>永远</em>不会改变退出码，所以在 CI 中运行它是安全的。
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">CI、离线，以及什么永远不会访问网络</span></summary><div class="body">
         <p>
-          发现新版本<em>永远</em>不会改变退出码，所以在 CI 中运行它是安全的。一个已发布的版本并不意味着工具链坏了，绿色的流水线不应该因为有人十分钟前发了版本就变红。如果机器离线，检查会说明这一点然后继续；<code>--offline</code> 会完全跳过它，不发出任何网络请求。
+          一个已发布的版本并不意味着工具链坏了，绿色的流水线不应该因为有人十分钟前发了版本就变红。如果机器离线，检查会说明这一点然后继续；<code>--offline</code> 会完全跳过它，不发出任何网络请求。
         </p>
         <p>
           其他命令都不会访问 registry。<code>build</code>、<code>run</code> 和 <code>check</code> 从不这样做。每次构建都要联网报告的编译器是另一种产品。
         </p>
+      </div></details>
 
-        <h2 class="block-label">进行升级</h2>
-      </div>
+      <h2 class="ak-h" id="taking-the-upgrade">进行升级<a class="ak-anchor" href="#taking-the-upgrade" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        它改写一行并运行 <code>npm install</code>。它不碰你的源码，也不假装升级已经完成：之后的构建才是关键，因为你刚升级的版本可能对你的代码有它还没遇到过的意见。
+      </p>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">只改一行，时机由你决定</span>
 <pre>$ glyph upgrade --dry-run
 glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
@@ -79,20 +103,26 @@ glyph upgrade: build before you commit; a new release may report diagnostics
                this project did not have.</pre>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">指定版本，跳过安装</span></summary><div class="body">
         <p>
-          它改写一行并运行 <code>npm install</code>。它不碰你的源码，也不假装升级已经完成：之后的构建才是关键，因为你刚升级的版本可能对你的代码有它还没遇到过的意见。<code>--to &lt;version&gt;</code> 指定一个具体版本，想回退时也可以指定更旧的版本；<code>--no-install</code> 则把安装留给你自己。
+          <code>--to &lt;version&gt;</code> 指定一个具体版本，想回退时也可以指定更旧的版本；<code>--no-install</code> 则把安装留给你自己。
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">升级工具，而不是项目</h2>
+      <h2 class="ak-h" id="moving-the-tool-not-the-project">升级工具，而不是项目<a class="ak-anchor" href="#moving-the-tool-not-the-project" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>upgrade</code> 修改的是 <code>package.json</code> 中固定的版本。<code>glyph --update</code> 是另一半。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        这种划分现在是一条规则而不是巧合：flag 作用于工具本身，就像 <code>--version</code>、<code>--help</code> 和 <code>--explain</code> 那样；子命令作用于你的代码。
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">doctor 以前打印的内容</span></summary><div class="body">
         <p>
-          <code>upgrade</code> 修改的是 <code>package.json</code> 中固定的版本。如果落后的是你 <code>PATH</code> 上的编译器，用它就不对了，而有一段时间 <code>doctor</code> 照样会打印它，让全局安装去修改一个可能并不存在的清单文件。<code>glyph --update</code> 是另一半。这种划分现在是一条规则而不是巧合：flag 作用于工具本身，就像 <code>--version</code>、<code>--help</code> 和 <code>--explain</code> 那样；子命令作用于你的代码。<code>--update-dry-run</code> 在打印它将要运行的 <code>npm</code> 命令后停止。
+          如果落后的是你 <code>PATH</code> 上的编译器，这个命令就不对了，而有一段时间 <code>doctor</code> 照样会打印它，让全局安装去修改一个可能并不存在的清单文件。
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph --update</span>
 <pre>$ glyph --update
 glyph 0.1.72 is installed; 0.1.73 is published.
@@ -106,20 +136,33 @@ npm finished. Confirm with:
     glyph --version</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          它只会更新它能识别的安装。通过 <code>npx</code> 调用的编译器、从 Glyph 源码树构建的编译器，或者位于它不认识的路径上的编译器，只会打印出命令而不覆盖任何东西，因为凭猜测替换一个 Homebrew 二进制文件或某人的 <code>cargo build</code> 产物，会让 <code>PATH</code> 指向一个没有人选择过的东西。它也不会声称更新已经成功：npm 可能在跳过一个无法获取的 <code>optionalDependency</code> 后仍以 0 退出，Glyph 曾经就因此发布过一个没有平台二进制文件的版本，所以最后一行给出的是用 <code>glyph --version</code> 检查，而不是断言成功。
-        </p>
-      </div>
+      <p>
+        <code>--update-dry-run</code> 在打印它将要运行的 <code>npm</code> 命令后停止。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>只更新能识别的安装</b>它只会更新它能识别的安装。通过 <code>npx</code> 调用的编译器、从 Glyph 源码树构建的编译器，或者位于它不认识的路径上的编译器，只会打印出命令而不覆盖任何东西，因为凭猜测替换一个 Homebrew 二进制文件或某人的 <code>cargo build</code> 产物，会让 <code>PATH</code> 指向一个没有人选择过的东西。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b>不声称更新成功</b>它也不会声称更新已经成功：npm 可能在跳过一个无法获取的 <code>optionalDependency</code> 后仍以 0 退出，Glyph 曾经就因此发布过一个没有平台二进制文件的版本，所以最后一行给出的是用 <code>glyph --version</code> 检查，而不是断言成功。</li>
+      </ul>
 
-      <h2 class="block-label">当前状态</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p>脚手架生成的项目会精确固定版本，所以没有版本会意外进入构建。<code>glyph doctor</code> 对照 registry 报告你的编译器版本并链接到版本说明，它永远不会影响自己的退出码，也不会被 <code>build</code>/<code>run</code>/<code>check</code> 触发。<code>glyph upgrade</code> 修改固定的版本并安装，还能读取旧项目中的 ^ 写法，所以已有的项目也能改成精确固定。<code>glyph --update</code> 升级编译器本身，适用于全局 npm 安装；对于其他所有安装方式，它只报告而不猜测。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">正在改进</h3>
-          <p>版本说明是整条版本线共用的一个页面，所以 <code>glyph upgrade</code> 链接的是这个页面，而不是你要升级到的那个版本的条目。目前还没有什么能告诉你，新版本的哪些诊断会被你的代码触发：要知道就得构建，所以命令会提示你这样做。一次跨越多个版本的升级，和升级一个版本是同样的一步，不会汇总中间累积的变化。<code>glyph --update</code> 调用 npm 并读取它的退出码，所以它能告诉你 npm 执行完了，却不能告诉你 <code>PATH</code> 上的二进制文件就是你要的版本；这就是为什么它指向 <code>glyph --version</code>，而不是说更新成功了。</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">脚手架生成的项目会精确固定版本，所以没有版本会意外进入构建。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph doctor</code> 对照 registry 报告你的编译器版本并链接到版本说明，它永远不会影响自己的退出码，也不会被 <code>build</code>/<code>run</code>/<code>check</code> 触发。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph upgrade</code> 修改固定的版本并安装，还能读取旧项目中的 ^ 写法，所以已有的项目也能改成精确固定。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --update</code> 升级编译器本身，适用于全局 npm 安装；对于其他所有安装方式，它只报告而不猜测。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在改进</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">版本说明是整条版本线共用的一个页面，所以 <code>glyph upgrade</code> 链接的是这个页面，而不是你要升级到的那个版本的条目。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">目前还没有什么能告诉你，新版本的哪些诊断会被你的代码触发：要知道就得构建，所以命令会提示你这样做。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">一次跨越多个版本的升级，和升级一个版本是同样的一步，不会汇总中间累积的变化。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph --update</code> 调用 npm 并读取它的退出码，所以它能告诉你 npm 执行完了，却不能告诉你 <code>PATH</code> 上的二进制文件就是你要的版本；这就是为什么它指向 <code>glyph --version</code>，而不是说更新成功了。</span></span></li>
+          </ul>
+        </section>
       </div>

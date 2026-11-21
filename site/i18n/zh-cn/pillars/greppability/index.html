@@ -1,7 +1,7 @@
 ---
 title: 可检索性 · 一个名字，一个位置 · Glyph
 description: Glyph 的第二个支柱：每个符号在声明处只有一种形式。没有重载、装饰器、命名空间合并或 barrel 重新导出，所以 grep 就能找到它。
-source_hash: 7d5d7e45736ff422
+source_hash: 9c3cf289350d83ef
 prev: /pillars/verifiability/ | &larr; 上一个支柱 | 可验证性：在运行时也成立
 next: /pillars/abstraction/ | 下一个支柱 &rarr; | 稳定的 diff：改一行就是一行 diff
 ---
@@ -12,21 +12,7 @@ next: /pillars/abstraction/ | 下一个支柱 &rarr; | 稳定的 diff：改一�
         <strong>一个名字，一个位置。</strong>每个符号在声明处都只有一种语法形式，所以普通的 <code>grep</code> 总能找到定义，不需要索引，不需要语言服务器，也不需要运气。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">为什么“这是在哪里定义的？”很难回答</h2>
-        <p class="lede">
-          在一个成熟的 TypeScript 代码库中，最简单的问题，<em>这个名字是从哪里来的？</em>，往往最难回答。语言提供了五六种把一个符号分散到多处的方式：重载把一个函数拆成好几个签名，装饰器把它包进别的东西里，<code>namespace</code> 和 <code>interface</code> 合并把一个类型分散到多个文件，<code>declare module</code> 扩充你并不拥有的代码，barrel <code>index.ts</code> 文件重新导出一切，所以你导入的路径并不是任何东西真正所在的地方。
-        </p>
-        <p class="lede">
-          人可以靠 LSP 和肌肉记忆应付。<strong>智能体</strong>则用 grep：它把仓库当文本来读，而上面每一种结构都是文本在代码位置上撒谎的地方。Glyph 去掉了它们。结果是一门搜索可以作为可靠基础操作、而不是靠猜测的语言。
-        </p>
-
-        <h2 class="block-label"><span class="ex-label">01</span> 一个声明，一种形式</h2>
-        <p>
-          函数、类型或组件只声明一次，用一种语法。没有拆分签名的重载，也无法重新声明一个名字：两个同名的顶层定义是硬错误（<code>E0100</code>）。所以查找定义只有唯一的答案。
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript：四个匹配，其中一个是函数体</span>
@@ -44,56 +30,88 @@ next: /pillars/abstraction/ | 下一个支柱 &rarr; | 稳定的 diff：改一�
 ) -&gt; Result&lt;User, string&gt; {</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#why-where-is-this-defined-is-hard">为什么这很难</a></li>
+          <li><a href="#one-declaration-one-form">一个声明，一种形式</a></li>
+          <li><a href="#no-barrel-files-the-import-path-is-the-location">没有 barrel 文件</a></li>
+          <li><a href="#no-hidden-ways-to-attach-behavior">没有隐藏的行为</a></li>
+          <li><a href="#even-mutation-is-greppable">可检索的修改</a></li>
+          <li><a href="#the-benchmark-coming">基准测试</a></li>
+          <li><a href="#a-lint-rule-can-ban-overloads-and-decorators">“lint 规则也能做到”</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-where-is-this-defined-is-hard">为什么“这是在哪里定义的？”很难回答<a class="ak-anchor" href="#why-where-is-this-defined-is-hard" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          在一个成熟的 TypeScript 代码库中，最简单的问题，<em>这个名字是从哪里来的？</em>，往往最难回答。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">重载、装饰器、合并、扩充、barrel 文件</span></summary><div class="body">
+        <p>
+          语言提供了五六种把一个符号分散到多处的方式：重载把一个函数拆成好几个签名，装饰器把它包进别的东西里，<code>namespace</code> 和 <code>interface</code> 合并把一个类型分散到多个文件，<code>declare module</code> 扩充你并不拥有的代码，barrel <code>index.ts</code> 文件重新导出一切，所以你导入的路径并不是任何东西真正所在的地方。
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          人可以靠 LSP 和肌肉记忆应付。<strong>智能体</strong>则用 grep：它把仓库当文本来读，而上面每一种结构都是文本在代码位置上撒谎的地方。
+      </p></div>
+      <p class="ak-lede">
+          Glyph 去掉了它们。结果是一门搜索可以作为可靠基础操作、而不是靠猜测的语言。
+      </p>
+
+      <h2 class="ak-h" id="one-declaration-one-form"><span class="ex-label">01</span> 一个声明，一种形式<a class="ak-anchor" href="#one-declaration-one-form" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          函数、类型或组件只声明一次，用一种语法。没有拆分签名的重载，也无法重新声明一个名字：两个同名的顶层定义是硬错误（<code>E0100</code>）。
+      </p>
+      <div class="ak-chips"><span class="chip code">E0100</span></div>
         <p class="pull-quote">
           声明关键字是你搜索的名字的一部分。<code>grep "fn parseUser"</code> 不会匹配到调用、导入或重新导出，只会匹配它被<strong>定义</strong>的那一处。
         </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>所以查找定义只有唯一的答案。</p></div>
 
-        <h2 class="block-label"><span class="ex-label">02</span> 没有 barrel 文件：导入路径就是位置</h2>
-        <p>
-          Glyph 的导入从不重新导出，只包含导入的模块会被拒绝（<code>E0102</code>）。没有 <code>index.ts</code> 那样的中转层。所以导入写的就是符号真正所在的模块：路径<em>就是</em>地址。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> 没有 barrel 文件：导入路径就是位置<a class="ak-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Glyph 的导入从不重新导出，只包含导入的模块会被拒绝（<code>E0102</code>）。没有 <code>index.ts</code> 那样的中转层。
+      </p>
       <div class="code">
         <span class="cap">导入准确告诉你该去哪里找</span>
 <pre>import myapp/users { parseUser }
 <span class="cm">//     ^^^^^^^^^^^ the file is src/myapp/users.glyph.</span>
 <span class="cm">//     not a re-export of a re-export of a barrel.</span></pre>
       </div>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>所以导入写的就是符号真正所在的模块：路径<em>就是</em>地址。</p></div>
 
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">03</span> 没有隐藏的方式附加行为</h2>
-        <p>
-          没有把函数包进看不见的一层的装饰器，没有从整个目录树汇集成员的 <code>namespace</code> 合并，没有在一个你绝不会想到去打开的文件里扩充第三方类型的 <code>declare module</code>，也没有改变方法所指对象的隐式 <code>this</code>。一个名字只解析到一个声明，塑造它的一切都在那个声明处可见。
-        </p>
+      <h2 class="ak-h" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> 没有隐藏的方式附加行为<a class="ak-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          没有把函数包进看不见的一层的装饰器，没有从整个目录树汇集成员的 <code>namespace</code> 合并，没有在一个你绝不会想到去打开的文件里扩充第三方类型的 <code>declare module</code>，也没有改变方法所指对象的隐式 <code>this</code>。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>一个名字只解析到一个声明，塑造它的一切都在那个声明处可见。</p></div>
 
-        <h2 class="block-label"><span class="ex-label">04</span> 连修改都能 grep 到</h2>
-        <p>
-          可检索性不只是找到定义，还包括找到<em>副作用</em>。共享状态放在 <code>std/store</code> 中，对它的每次修改都是字面上的 <code>.set(</code> 或 <code>.update(</code> 调用。所以一次搜索就能列出一份状态的全部写入点，而不用去找散落在文件各处的赋值。
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="even-mutation-is-greppable"><span class="ex-label">04</span> 连修改都能 grep 到<a class="ak-anchor" href="#even-mutation-is-greppable" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          可检索性不只是找到定义，还包括找到<em>副作用</em>。共享状态放在 <code>std/store</code> 中，对它的每次修改都是字面上的 <code>.set(</code> 或 <code>.update(</code> 调用。
+      </p>
+      <div class="code term">
         <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
 <pre><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(fn(cur) { ... })
 <span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
 <span class="cm"># every place the task list can change, enumerated.</span>
 <span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>所以一次搜索就能列出一份状态的全部写入点，而不用去找散落在文件各处的赋值。</p></div>
 
-      <div class="detail">
         <p class="pull-quote">
           当一个代码库的<strong>文本如实反映它的结构</strong>时，它就是可检索的。这里的每项限制（每个名字一种形式、不重新导出、不合并）都是为了让搜索返回答案，而不只是线索。
         </p>
 
-        <h2 class="block-label">基准测试：即将进行</h2>
-        <p>
-          这个说法可测量的版本是精确度：对某个符号，普通 grep 的匹配中有多大比例正是你要找的东西，智能体需要多少步才能找到定义？Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有真实的代码库可以测量，就会填入真实数字。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">基准测试：即将进行<a class="ak-anchor" href="#the-benchmark-coming" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          这个说法可测量的版本是精确度：对某个符号，普通 grep 的匹配中有多大比例正是你要找的东西，智能体需要多少步才能找到定义？
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有真实的代码库可以测量，就会填入真实数字。</p></div>
       <div class="chart">
         <span class="label">查找定义时的 grep 精确度 &middot; 越高越好</span>
         <h3>TypeScript 对比 Glyph</h3>
@@ -109,22 +127,17 @@ next: /pillars/abstraction/ | 下一个支柱 &rarr; | 稳定的 diff：改一�
           <span class="h">尚未测量</span> 一旦有了真实的 Glyph 代码库，我们就会报告 grep 精确度和找到定义所需的步数，并在这里公布，无论结果如何。
         </div>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           规模越大、自主程度越高，收益越明显。人会慢慢摸清一个代码库的隐藏角落；从零开始的智能体则不会。可检索性让工具（或新同事）可以通过阅读来导航，看到的就是仓库真实的样子。
-        </p>
-      </div>
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label">“一条 lint 规则就能禁止重载和装饰器”</h2>
-        <p>
-          在你自己的仓库里，可以。ESLint 能禁止命名空间，团队也可以约定不用重载。但语言仍然允许这一切，所以这个保证只在配置存在时有效，而且只覆盖配置作用到的代码。对依赖、生成的文件或别人的仓库做 <code>grep</code> 时，不能指望它。在 Glyph 中这些结构根本不存在，所以 <code>grep</code> 在每个 Glyph 文件上都一样有效，包括你们团队没人配置过的文件。
-        </p>
-      </div>
+      <h2 class="ak-h" id="a-lint-rule-can-ban-overloads-and-decorators">“一条 lint 规则就能禁止重载和装饰器”<a class="ak-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          在你自己的仓库里，可以。ESLint 能禁止命名空间，团队也可以约定不用重载。
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>但语言仍然允许这一切，所以这个保证只在配置存在时有效，而且只覆盖配置作用到的代码。对依赖、生成的文件或别人的仓库做 <code>grep</code> 时，不能指望它。</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>在 Glyph 中这些结构根本不存在，所以 <code>grep</code> 在每个 Glyph 文件上都一样有效，包括你们团队没人配置过的文件。</p></div>
 
-      <div class="detail">
-        <p>
+      <p class="ak-lede">
           从智能体的角度看会是什么样，用一次搜索找到定义或找到对某个值的每次写入，在<a href="/answers/greppability/">智能体（或者我）能找到任何东西的定义位置吗？</a>中有解答。
-        </p>
-      </div>
+      </p>

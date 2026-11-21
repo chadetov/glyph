@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/vs-tooled-ts/index.html",
   "locale": "zh-cn",
-  "source_hash": "d0694478c32b0491",
+  "source_hash": "47270533d1ace9c6",
   "segments": [
     {
       "id": "title",
@@ -59,12 +59,6 @@
       "tr": "因为这些保证每一项都是<strong>可选的</strong>，智能体用一行代码就能绕过其中任何一项。Glyph 的严格性不是一个智能体能修改的配置文件，而是语言本身。执行点从“我们有没有记得对这个文件跑 lint”变成了“它能不能编译通过”。"
     },
     {
-      "id": "h-6fe61e8e",
-      "kind": "html",
-      "en": "What tooled TypeScript already covers",
-      "tr": "配齐工具的 TypeScript 已经覆盖了什么"
-    },
-    {
       "id": "h-81a5cd3d",
       "kind": "html",
       "en": "A well-configured TypeScript setup gets you a long way, and if your team runs all of it in CI you've already closed most of the gaps Glyph targets. It's the alternative worth taking seriously, so here's the mapping:",
@@ -77,10 +71,58 @@
       "tr": "配齐工具的 TypeScript 已经提供的东西"
     },
     {
-      "id": "h-97277570",
+      "id": "h-82ea38d1",
       "kind": "html",
-      "en": "If you have all that wired up and enforced, you're most of the way there. TypeScript has these ideas. What a language adds by making them non-optional comes down to three things.",
-      "tr": "如果这些你都接好了并且强制执行，你已经完成了大半。TypeScript 有这些思路。一门语言把它们变成不可选的，额外带来的东西归结为三点。"
+      "en": "<span>What tooled TypeScript already covers. If you have all that wired up and enforced, you're most of the way there. TypeScript has these ideas. What a language adds by making them non-optional comes down to three things.</span>",
+      "tr": "<span>配齐工具的 TypeScript 已经覆盖了什么。如果这些你都接好了并且强制执行，你已经完成了大半。TypeScript 有这些思路。一门语言把它们变成不可选的，额外带来的东西归结为三点。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-a61c5a32",
+      "kind": "html",
+      "en": "<a href=\"#non-optional-beats-opt-in\">Non-optional beats opt-in</a>",
+      "tr": "<a href=\"#non-optional-beats-opt-in\">不可选胜过可选</a>"
+    },
+    {
+      "id": "h-56fdd1d5",
+      "kind": "html",
+      "en": "<a href=\"#the-type-is-the-validator-no-second-artifact\">The type is the validator</a>",
+      "tr": "<a href=\"#the-type-is-the-validator-no-second-artifact\">类型就是校验器</a>"
+    },
+    {
+      "id": "h-78207e88",
+      "kind": "html",
+      "en": "<a href=\"#greppable-mutation\">Greppable mutation</a>",
+      "tr": "<a href=\"#greppable-mutation\">可检索的修改</a>"
+    },
+    {
+      "id": "h-183c1a0f",
+      "kind": "html",
+      "en": "<a href=\"#the-failure-mode-diff\">The failure-mode diff</a>",
+      "tr": "<a href=\"#the-failure-mode-diff\">失效方式的差别</a>"
+    },
+    {
+      "id": "h-667150a9",
+      "kind": "html",
+      "en": "<a href=\"#where-tooled-typescript-is-still-ahead\">Where TypeScript is ahead</a>",
+      "tr": "<a href=\"#where-tooled-typescript-is-still-ahead\">TypeScript 领先的地方</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
     },
     {
       "id": "h-f41467bd",
@@ -89,10 +131,16 @@
       "tr": "<span class=\"ex-label\">01</span> 不可选胜过可选"
     },
     {
-      "id": "h-4b85313e",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-6e8d3377",
       "kind": "html",
-      "en": "Your eslint config only protects code the agent routes <em>through</em> it, and the agent can write <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, or simply forget the <code>.exhaustive()</code>, and it still compiles and merges. Every one of those escape hatches is a config the agent can edit. Glyph has no such hatch to reach for: there is no <code>as</code>, no ignore pragma, no way to get a typed value out of <code>unknown</code> without a check the compiler can see.",
-      "tr": "你的 eslint 配置只保护智能体<em>经过</em>它的代码，而智能体可以写 <code>as unknown as User</code>、<code>@ts-ignore</code>、<code>// eslint-disable-next-line</code>，或者干脆忘了 <code>.exhaustive()</code>，代码照样能编译、照样能合并。这些逃生口每一个都是智能体可以修改的配置。Glyph 没有这样的逃生口可用：没有 <code>as</code>，没有忽略检查的指令，不经过编译器能看到的检查，就没有办法从 <code>unknown</code> 中得到一个有类型的值。"
+      "en": "Every one of those escape hatches is a config the agent can edit. Glyph has no such hatch to reach for: there is no <code>as</code>, no ignore pragma, no way to get a typed value out of <code>unknown</code> without a check the compiler can see.",
+      "tr": "这些逃生口每一个都是智能体可以修改的配置。Glyph 没有这样的逃生口可用：没有 <code>as</code>，没有忽略检查的指令，不经过编译器能看到的检查，就没有办法从 <code>unknown</code> 中得到一个有类型的值。"
     },
     {
       "id": "h-c68c151a",
@@ -107,10 +155,22 @@
       "tr": "Glyph：没有可以关掉的东西"
     },
     {
-      "id": "h-dab47249",
+      "id": "h-58790978",
       "kind": "html",
-      "en": "Strictness the agent <strong>cannot config-disable</strong> sits at a different enforcement point than strictness it can. Glyph is built on that difference.",
-      "tr": "智能体<strong>无法通过配置关掉</strong>的严格性，与它能关掉的严格性，处在不同的执行点上。Glyph 就建立在这个区别之上。"
+      "en": "Strictness the agent cannot config-disable sits at a different enforcement point than strictness it can. Glyph is built on that difference.",
+      "tr": "智能体无法通过配置关掉的严格性，与它能关掉的严格性，处在不同的执行点上。Glyph 就建立在这个区别之上。"
+    },
+    {
+      "id": "h-23d23b4a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what an agent can write past eslint</span>",
+      "tr": "详情 <span class=\"hint\">智能体能绕过 eslint 写出什么</span>"
+    },
+    {
+      "id": "h-c40024ce",
+      "kind": "html",
+      "en": "Your eslint config only protects code the agent routes <em>through</em> it, and the agent can write <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, or simply forget the <code>.exhaustive()</code>, and it still compiles and merges.",
+      "tr": "你的 eslint 配置只保护智能体<em>经过</em>它的代码，而智能体可以写 <code>as unknown as User</code>、<code>@ts-ignore</code>、<code>// eslint-disable-next-line</code>，或者干脆忘了 <code>.exhaustive()</code>，代码照样能编译、照样能合并。"
     },
     {
       "id": "h-351a8ad8",
@@ -119,10 +179,22 @@
       "tr": "<span class=\"ex-label\">02</span> 类型就是校验器：没有第二份产物"
     },
     {
-      "id": "h-4895997c",
+      "id": "h-b4be93d8",
       "kind": "html",
-      "en": "zod inverts your source of truth: you write the <em>schema</em>, derive the type from it, and then keep the type, the schema, and any serializer in sync by hand. Keeping those aligned is exactly where an agent introduces drift: it renames a field in the type and not the schema, and both still compile. In Glyph the type <em>is</em> the validator: declaring <code>type User = {...}</code> generates <code>User.parse</code> alongside it. One artifact, nothing to keep in sync, nothing to forget.",
-      "tr": "zod 颠倒了你的唯一事实来源：你写的是 <em>schema</em>，从中推导出类型，然后手动让类型、schema 以及任何序列化器保持同步。保持它们一致，恰恰是智能体引入偏差的地方：它在类型里改了字段名，却没改 schema，两者仍然都能编译。在 Glyph 中，类型<em>就是</em>校验器：声明 <code>type User = {...}</code> 时会同时生成 <code>User.parse</code>。只有一份产物，没有需要同步的东西，也没有可以忘掉的东西。"
+      "en": "In Glyph the type <em>is</em> the validator: declaring <code>type User = {...}</code> generates <code>User.parse</code> alongside it. One artifact, nothing to keep in sync, nothing to forget.",
+      "tr": "在 Glyph 中，类型<em>就是</em>校验器：声明 <code>type User = {...}</code> 时会同时生成 <code>User.parse</code>。只有一份产物，没有需要同步的东西，也没有可以忘掉的东西。"
+    },
+    {
+      "id": "h-573fdca2",
+      "kind": "html",
+      "en": "<b>zod: schema first</b>zod inverts your source of truth: you write the <em>schema</em>, derive the type from it, and then keep the type, the schema, and any serializer in sync by hand.",
+      "tr": "<b>zod：schema 优先</b>zod 颠倒了你的唯一事实来源：你写的是 <em>schema</em>，从中推导出类型，然后手动让类型、schema 以及任何序列化器保持同步。"
+    },
+    {
+      "id": "h-c2556156",
+      "kind": "html",
+      "en": "<b>Where drift comes in</b>Keeping those aligned is exactly where an agent introduces drift: it renames a field in the type and not the schema, and both still compile.",
+      "tr": "<b>偏差从哪里来</b>保持它们一致，恰恰是智能体引入偏差的地方：它在类型里改了字段名，却没改 schema，两者仍然都能编译。"
     },
     {
       "id": "h-e7c43b4b",
@@ -131,10 +203,22 @@
       "tr": "<span class=\"ex-label\">03</span> 可检索的修改"
     },
     {
-      "id": "h-84ccbe2f",
+      "id": "h-6bcb048e",
       "kind": "html",
-      "en": "In TypeScript a state change can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to search for, and no lint rule fully fixes it. In Glyph shared state lives in a store and every change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> finds every local mutation. Stock TypeScript has no equivalent.",
-      "tr": "在 TypeScript 中，状态变化可以藏在 <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter 或展开语法后面。没有一个可以搜索的单一记号，也没有哪条 lint 规则能彻底解决。在 Glyph 中，共享状态放在 store 里，每次修改都是字面上的 <code>.set(</code>/<code>.update(</code>；<code>grep 'mut '</code> 能找到每一处局部修改。原生 TypeScript 没有对应的东西。"
+      "en": "In Glyph shared state lives in a store and every change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> finds every local mutation. Stock TypeScript has no equivalent.",
+      "tr": "在 Glyph 中，共享状态放在 store 里，每次修改都是字面上的 <code>.set(</code>/<code>.update(</code>；<code>grep 'mut '</code> 能找到每一处局部修改。原生 TypeScript 没有对应的东西。"
+    },
+    {
+      "id": "h-185a9af8",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where a TypeScript write can hide</span>",
+      "tr": "详情 <span class=\"hint\">TypeScript 中的写入可以藏在哪里</span>"
+    },
+    {
+      "id": "h-1a86e571",
+      "kind": "html",
+      "en": "In TypeScript a state change can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to search for, and no lint rule fully fixes it.",
+      "tr": "在 TypeScript 中，状态变化可以藏在 <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter 或展开语法后面。没有一个可以搜索的单一记号，也没有哪条 lint 规则能彻底解决。"
     },
     {
       "id": "h-c48915e0",
@@ -173,34 +257,40 @@
       "tr": "目前它在四个方面领先 Glyph："
     },
     {
-      "id": "h-18d16c34",
+      "id": "h-03c8dc23",
       "kind": "html",
-      "en": "<strong>Richer validation.</strong> Glyph descriptors are strict by default (they reject undeclared keys), and a <code>where</code> refinement puts a predicate on a primitive (<code>type Email = string where value.includes(\"@\")</code>), which the descriptor runs at every boundary the type reaches. zod is still ahead in two ways: it ships ready-made checks such as <code>.email()</code> and <code>.url()</code> that you write yourself in Glyph, and it refines whole objects, while a <code>where</code> on a record (<code>lo &lt;= hi</code> across two fields) is <code>E0300</code> today.",
-      "tr": "<strong>更丰富的校验。</strong>Glyph 的描述符默认是严格的（会拒绝未声明的键），<code>where</code> 精化可以给基本类型加上谓词（<code>type Email = string where value.includes(\"@\")</code>），描述符会在这个类型到达的每个边界上运行它。zod 仍在两方面领先：它自带现成的检查，例如 <code>.email()</code> 和 <code>.url()</code>，而在 Glyph 中你要自己写；它还能对整个对象做精化，而记录上的 <code>where</code>（跨两个字段的 <code>lo &lt;= hi</code>）目前是 <code>E0300</code>。"
+      "en": "<b>Richer validation.</b>Glyph descriptors are strict by default (they reject undeclared keys), and a <code>where</code> refinement puts a predicate on a primitive (<code>type Email = string where value.includes(\"@\")</code>), which the descriptor runs at every boundary the type reaches. zod is still ahead in two ways: it ships ready-made checks such as <code>.email()</code> and <code>.url()</code> that you write yourself in Glyph, and it refines whole objects, while a <code>where</code> on a record (<code>lo &lt;= hi</code> across two fields) is <code>E0300</code> today.",
+      "tr": "<b>更丰富的校验。</b>Glyph 的描述符默认是严格的（会拒绝未声明的键），<code>where</code> 精化可以给基本类型加上谓词（<code>type Email = string where value.includes(\"@\")</code>），描述符会在这个类型到达的每个边界上运行它。zod 仍在两方面领先：它自带现成的检查，例如 <code>.email()</code> 和 <code>.url()</code>，而在 Glyph 中你要自己写；它还能对整个对象做精化，而记录上的 <code>where</code>（跨两个字段的 <code>lo &lt;= hi</code>）目前是 <code>E0300</code>。"
     },
     {
-      "id": "h-39dcdf91",
+      "id": "h-b4ae2d52",
       "kind": "html",
-      "en": "<strong>Deeper matching.</strong> ts-pattern's guards and deep structural patterns go beyond what Glyph's <code>match</code> expresses.",
-      "tr": "<strong>更深入的匹配。</strong>ts-pattern 的守卫和深层结构模式，超出了 Glyph 的 <code>match</code> 能表达的范围。"
+      "en": "<b>Deeper matching.</b>ts-pattern's guards and deep structural patterns go beyond what Glyph's <code>match</code> expresses.",
+      "tr": "<b>更深入的匹配。</b>ts-pattern 的守卫和深层结构模式，超出了 Glyph 的 <code>match</code> 能表达的范围。"
     },
     {
-      "id": "h-5f78ed48",
+      "id": "h-8880bb8d",
       "kind": "html",
-      "en": "<strong>\"Provable absence\" stops at the <code>.ts</code> boundary.</strong> Glyph's guarantees hold for code Glyph authored; a thrown exception from an npm dependency still bypasses <code>Result</code>, and an imported <code>.d.ts</code> type carries no runtime descriptor.",
-      "tr": "<strong>“可证明不存在”止于 <code>.ts</code> 边界。</strong>Glyph 的保证只对 Glyph 写出的代码成立；npm 依赖抛出的异常仍然会绕过 <code>Result</code>，导入的 <code>.d.ts</code> 类型也不带运行时描述符。"
+      "en": "<b>\"Provable absence\" stops at the <code>.ts</code> boundary.</b>Glyph's guarantees hold for code Glyph authored; a thrown exception from an npm dependency still bypasses <code>Result</code>, and an imported <code>.d.ts</code> type carries no runtime descriptor.",
+      "tr": "<b>“可证明不存在”止于 <code>.ts</code> 边界。</b>Glyph 的保证只对 Glyph 写出的代码成立；npm 依赖抛出的异常仍然会绕过 <code>Result</code>，导入的 <code>.d.ts</code> 类型也不带运行时描述符。"
     },
     {
-      "id": "h-e663b903",
+      "id": "h-bc73c7f8",
       "kind": "html",
-      "en": "<strong>Ecosystem and hiring.</strong> The TypeScript tooling, community, and hiring pool are far larger, with years of production use behind them. Glyph is an early preview.",
-      "tr": "<strong>生态与招聘。</strong>TypeScript 的工具、社区和招聘人才池要大得多，背后还有多年的生产使用经验。Glyph 还是早期预览版。"
+      "en": "<b>Ecosystem and hiring.</b>The TypeScript tooling, community, and hiring pool are far larger, with years of production use behind them. Glyph is an early preview.",
+      "tr": "<b>生态与招聘。</b>TypeScript 的工具、社区和招聘人才池要大得多，背后还有多年的生产使用经验。Glyph 还是早期预览版。"
     },
     {
       "id": "h-fe2104b6",
       "kind": "html",
       "en": "If you've fully wired tooled TypeScript and your agents stay inside it, you've got most of this. Glyph's argument is that \"stay inside it\" is the load-bearing phrase, and it's the phrase an agent breaks. Non-optionality, one-artifact validation, and greppable mutation are the parts you cannot get by adding more opt-in tools.",
       "tr": "如果你已经把配齐工具的 TypeScript 完全接好，而且你的智能体一直待在它的范围之内，你已经拥有了其中的大部分。Glyph 的论点是，“一直待在范围之内”才是关键所在，而这恰恰是智能体会打破的。不可选、单一产物的校验和可检索的修改，是你靠添加更多可选工具得不到的部分。"
+    },
+    {
+      "id": "h-4eb3fb1a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">ReScript, Gleam or Elm</span>",
+      "tr": "详情 <span class=\"hint\">ReScript、Gleam 或 Elm</span>"
     },
     {
       "id": "h-39372df5",
@@ -219,6 +309,48 @@
       "kind": "html",
       "en": "Shipping today",
       "tr": "现已提供"
+    },
+    {
+      "id": "h-0a6a9374",
+      "kind": "html",
+      "en": "No <code>any</code>/<code>as</code>.",
+      "tr": "没有 <code>any</code>/<code>as</code>。"
+    },
+    {
+      "id": "h-49eec597",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code>.",
+      "tr": "穷尽的 <code>match</code>。"
+    },
+    {
+      "id": "h-35ca1001",
+      "kind": "html",
+      "en": "Discarded-<code>Result</code> warning.",
+      "tr": "丢弃 <code>Result</code> 时的警告。"
+    },
+    {
+      "id": "h-33f4234f",
+      "kind": "html",
+      "en": "Type-generated validators.",
+      "tr": "由类型生成的校验器。"
+    },
+    {
+      "id": "h-cbc7347a",
+      "kind": "html",
+      "en": "Greppable mutation.",
+      "tr": "可检索的修改。"
+    },
+    {
+      "id": "h-ac94eb5f",
+      "kind": "html",
+      "en": "All non-optional, none an eslint rule you can disable.",
+      "tr": "全都不可选，没有一项是可以关掉的 eslint 规则。"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
     },
     {
       "id": "h-a2418e07",

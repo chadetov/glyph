@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/greppability/index.html",
   "locale": "ja",
-  "source_hash": "15511937ba2844d1",
+  "source_hash": "09c27df708c026c8",
   "segments": [
     {
       "id": "title",
@@ -65,10 +65,10 @@
       "tr": "grep -rn \"mut \" src/（コードベース内のすべての変更）"
     },
     {
-      "id": "h-d26f2e3b",
+      "id": "h-56787c52",
       "kind": "html",
-      "en": "<span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search.</span>",
-      "tr": "<span>Glyph は変更を 2 つの形（<code>mut x = &hellip;</code> と <code>mut x.method(&hellip;)</code>）に限定しているので、状態が変わる<em>すべての</em>場所が 1 回の検索で見つかります。3 つの変更、それで全部です。1 回の検索で済みます。</span>"
+      "en": "<span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search. The compiler refuses an array write that skips the <code>mut</code>.</span>",
+      "tr": "<span>Glyph は変更を 2 つの形（<code>mut x = &hellip;</code> と <code>mut x.method(&hellip;)</code>）に限定しているので、状態が変わる<em>すべての</em>場所が 1 回の検索で見つかります。3 つの変更、それで全部です。1 回の検索で済みます。 <code>mut</code> を付けずに配列へ書き込むと、コンパイラが拒否します。</span>"
     },
     {
       "id": "h-b8bda68d",
@@ -105,6 +105,30 @@
       "kind": "html",
       "en": "In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer.",
       "tr": "TypeScript では、変更は <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter、スプレッドの陰に隠れられます。grep すべき単一のトークンがないので、「これを変更しているものはあるか」に確実な答えが出ません。"
+    },
+    {
+      "id": "h-303dd63e",
+      "kind": "html",
+      "en": "The compiler keeps the search complete",
+      "tr": "コンパイラが検索の完全さを保つ"
+    },
+    {
+      "id": "h-e2cd1d2f",
+      "kind": "html",
+      "en": "A method that changes its array (<code>push</code>, <code>pop</code>, <code>sort</code>, <code>splice</code> and five more) only stands as the whole call of a <code>mut</code> statement. Anywhere else it is <code>E0240</code>, including inside an expression, where a helper could sort its caller's array while reading one element:",
+      "tr": "配列を変更するメソッド（<code>push</code>、<code>pop</code>、<code>sort</code>、<code>splice</code> など 9 つ）は、<code>mut</code> 文の呼び出し全体としてしか書けません。それ以外の場所では <code>E0240</code> になります。式の中も同じで、ヘルパーが要素を 1 つ読みながら呼び出し元の配列を並べ替えてしまう、といったケースです:"
+    },
+    {
+      "id": "h-060ae7a5",
+      "kind": "html",
+      "en": "glyph check",
+      "tr": "glyph check"
+    },
+    {
+      "id": "h-70a6d486",
+      "kind": "html",
+      "en": "<code>xs.push(4)</code> on a line of its own gets the same code, and <code>glyph fix</code> writes the <code>mut</code> for you. The other direction is <code>E0241</code>: <code>mut xs.concat(ys)</code> changes nothing and drops the new array, so the audit never lists a line that writes nothing.",
+      "tr": "単独の行に書いた <code>xs.push(4)</code> も同じコードになり、<code>glyph fix</code> が <code>mut</code> を書き足します。逆向きは <code>E0241</code> です。<code>mut xs.concat(ys)</code> は何も変更せず新しい配列を捨てるので、何も書き込まない行が監査に載ることはありません。"
     },
     {
       "id": "h-b5acb878",
@@ -155,10 +179,10 @@
       "tr": "構文ごとに 1 つの正規形。"
     },
     {
-      "id": "h-69c725a8",
+      "id": "h-7801641c",
       "kind": "html",
-      "en": "Mutation restricted to two greppable shapes (<code>mut</code>).",
-      "tr": "変更は grep できる 2 つの形（<code>mut</code>）に限定。"
+      "en": "Mutation restricted to two greppable shapes (<code>mut</code>), and an array write without one refused (<code>E0240</code>).",
+      "tr": "変更は grep できる 2 つの形（<code>mut</code>）に限定し、それを付けない配列への書き込みは拒否（<code>E0240</code>）。"
     },
     {
       "id": "h-2e001a35",
@@ -171,6 +195,24 @@
       "kind": "html",
       "en": "Layered on top",
       "tr": "その上に重ねるもの"
+    },
+    {
+      "id": "h-97d71b45",
+      "kind": "html",
+      "en": "Writes through the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> are not checked for <code>mut</code> yet",
+      "tr": "標準ライブラリの <code>Set</code>、<code>Store</code>、<code>Deque</code> を通した書き込みは、まだ <code>mut</code> の検査対象外"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
+    },
+    {
+      "id": "h-84597a40",
+      "kind": "html",
+      "en": "Glyph's checker does not type those receivers yet, so <code>seen.add(x)</code> and <code>mut seen.add(x)</code> are both accepted, and the corpus uses both spellings. Typing them and marking their writing methods is the next planned step. A value from an npm package is not judged either way: <code>mut</code> before one of its calls is allowed and not required.",
+      "tr": "Glyph のチェッカーはまだこれらのレシーバーに型を付けないので、<code>seen.add(x)</code> と <code>mut seen.add(x)</code> はどちらも受け入れられ、コーパスにも両方の書き方があります。型を付けて書き込みメソッドに印を付けるのが次に予定している作業です。npm パッケージの値はどちらの方向でも判定しません。その呼び出しの前の <code>mut</code> は書いてもよく、必須でもありません。"
     },
     {
       "id": "h-87fdbb44",

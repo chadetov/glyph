@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/greppability/index.html",
   "locale": "es",
-  "source_hash": "15511937ba2844d1",
+  "source_hash": "09c27df708c026c8",
   "segments": [
     {
       "id": "title",
@@ -65,10 +65,10 @@
       "tr": "grep -rn \"mut \" src/ (cada mutación del código)"
     },
     {
-      "id": "h-d26f2e3b",
+      "id": "h-56787c52",
       "kind": "html",
-      "en": "<span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search.</span>",
-      "tr": "<span>Glyph restringe la mutación a dos formas (<code>mut x = &hellip;</code> y <code>mut x.method(&hellip;)</code>), así que <em>cada</em> sitio donde cambia el estado aparece con una sola búsqueda. Tres mutaciones, todas, en una sola búsqueda.</span>"
+      "en": "<span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search. The compiler refuses an array write that skips the <code>mut</code>.</span>",
+      "tr": "<span>Glyph restringe la mutación a dos formas (<code>mut x = &hellip;</code> y <code>mut x.method(&hellip;)</code>), así que <em>cada</em> sitio donde cambia el estado aparece con una sola búsqueda. Tres mutaciones, todas, en una sola búsqueda. El compilador rechaza una escritura en un array que se salta el <code>mut</code>.</span>"
     },
     {
       "id": "h-b8bda68d",
@@ -105,6 +105,30 @@
       "kind": "html",
       "en": "In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer.",
       "tr": "En TypeScript una mutación se puede esconder detrás de <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, un setter o un spread. No hay un único token que buscar con grep, así que &ldquo;¿algo cambia esto?&rdquo; no tiene una respuesta fiable."
+    },
+    {
+      "id": "h-303dd63e",
+      "kind": "html",
+      "en": "The compiler keeps the search complete",
+      "tr": "El compilador mantiene la búsqueda completa"
+    },
+    {
+      "id": "h-e2cd1d2f",
+      "kind": "html",
+      "en": "A method that changes its array (<code>push</code>, <code>pop</code>, <code>sort</code>, <code>splice</code> and five more) only stands as the whole call of a <code>mut</code> statement. Anywhere else it is <code>E0240</code>, including inside an expression, where a helper could sort its caller's array while reading one element:",
+      "tr": "Un método que cambia su array (<code>push</code>, <code>pop</code>, <code>sort</code>, <code>splice</code> y cinco más) solo puede ser la llamada entera de una sentencia <code>mut</code>. En cualquier otro sitio es <code>E0240</code>, también dentro de una expresión, donde una función auxiliar podría ordenar el array de quien la llama mientras lee un elemento:"
+    },
+    {
+      "id": "h-060ae7a5",
+      "kind": "html",
+      "en": "glyph check",
+      "tr": "glyph check"
+    },
+    {
+      "id": "h-70a6d486",
+      "kind": "html",
+      "en": "<code>xs.push(4)</code> on a line of its own gets the same code, and <code>glyph fix</code> writes the <code>mut</code> for you. The other direction is <code>E0241</code>: <code>mut xs.concat(ys)</code> changes nothing and drops the new array, so the audit never lists a line that writes nothing.",
+      "tr": "<code>xs.push(4)</code> en una línea propia recibe el mismo código, y <code>glyph fix</code> escribe el <code>mut</code> por ti. La dirección contraria es <code>E0241</code>: <code>mut xs.concat(ys)</code> no cambia nada y descarta el array nuevo, así que la auditoría nunca lista una línea que no escribe nada."
     },
     {
       "id": "h-b5acb878",
@@ -155,10 +179,10 @@
       "tr": "Una forma canónica por construcción."
     },
     {
-      "id": "h-69c725a8",
+      "id": "h-7801641c",
       "kind": "html",
-      "en": "Mutation restricted to two greppable shapes (<code>mut</code>).",
-      "tr": "La mutación restringida a dos formas que se pueden buscar con grep (<code>mut</code>)."
+      "en": "Mutation restricted to two greppable shapes (<code>mut</code>), and an array write without one refused (<code>E0240</code>).",
+      "tr": "Mutación restringida a dos formas que se pueden buscar con grep (<code>mut</code>), y una escritura en un array sin él, rechazada (<code>E0240</code>)."
     },
     {
       "id": "h-2e001a35",
@@ -171,6 +195,24 @@
       "kind": "html",
       "en": "Layered on top",
       "tr": "Por encima"
+    },
+    {
+      "id": "h-97d71b45",
+      "kind": "html",
+      "en": "Writes through the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> are not checked for <code>mut</code> yet",
+      "tr": "Las escrituras a través de <code>Set</code>, <code>Store</code> y <code>Deque</code> de la biblioteca estándar aún no se comprueban con <code>mut</code>"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Detalles"
+    },
+    {
+      "id": "h-84597a40",
+      "kind": "html",
+      "en": "Glyph's checker does not type those receivers yet, so <code>seen.add(x)</code> and <code>mut seen.add(x)</code> are both accepted, and the corpus uses both spellings. Typing them and marking their writing methods is the next planned step. A value from an npm package is not judged either way: <code>mut</code> before one of its calls is allowed and not required.",
+      "tr": "El comprobador de Glyph todavía no tipa esos receptores, así que se aceptan tanto <code>seen.add(x)</code> como <code>mut seen.add(x)</code>, y el corpus usa las dos formas. Tiparlos y marcar sus métodos que escriben es el siguiente paso previsto. Un valor de un paquete npm no se juzga en ninguna dirección: <code>mut</code> delante de una de sus llamadas está permitido y no es obligatorio."
     },
     {
       "id": "h-87fdbb44",

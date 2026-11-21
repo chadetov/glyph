@@ -428,7 +428,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">Die Fixtures<a class="h-anchor" href="#the-fixtures" aria-label="Link zu diesem Abschnitt">#</a></h2>
         <p>
-          Jedes Verzeichnis unter <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> enthält <code>ts.ts</code>, <code>glyph.glyph</code> und eine <code>case.toml</code>, die sagt, was jedes davon tut. <code>scripts/check_catches.py</code> läuft in CI. Es verlangt, dass jede <code>ts.ts</code> <code>tsc --strict</code> besteht, denn ein TypeScript-Programm, das nicht kompiliert, beweist nichts, und prüft die Glyph-Hälfte je nach Art des Falls. Insgesamt gibt es 49 geprüfte Fälle: 37 TypeScript-Fälle, 5 JavaScript-Fallen, die es in Glyph nicht gibt, und 7 Lücken, die Glyph noch nicht schließt. Glyph lehnt 28 davon beim Build ab (23 TypeScript-Fälle und 5 Fallen). Nach der Art, die das Gate prüft:
+          Jedes Verzeichnis unter <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> enthält <code>ts.ts</code>, <code>glyph.glyph</code> und eine <code>case.toml</code>, die sagt, was jedes davon tut. <code>scripts/check_catches.py</code> läuft in CI. Es verlangt, dass jede <code>ts.ts</code> <code>tsc --strict</code> besteht, denn ein TypeScript-Programm, das nicht kompiliert, beweist nichts, und prüft die Glyph-Hälfte je nach Art des Falls. Insgesamt gibt es 48 geprüfte Fälle: 37 TypeScript-Fälle, 5 JavaScript-Fallen, die es in Glyph nicht gibt, und 6 Lücken, die Glyph noch nicht schließt. Glyph lehnt 28 davon beim Build ab (23 TypeScript-Fälle und 5 Fallen). Nach der Art, die das Gate prüft:
         </p>
       </div>
 
@@ -442,7 +442,7 @@
             <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">Der Build läuft durch und meldet diesen Code als Warnung</td></tr>
             <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">Das Programm läuft, und die Prüfung an der Systemgrenze macht aus den fehlerhaften Daten ein <code>Err</code></td></tr>
             <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">Das Programm baut und stoppt dann zur Laufzeit mit der angegebenen Ausgabe</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">7</td><td data-label="What the gate requires of the Glyph">Glyph akzeptiert das Programm, und es tut das Falsche. Wenn die Lücke geschlossen wird, schlägt das Gate fehl und sagt, dass der Fall verschoben werden muss</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">6</td><td data-label="What the gate requires of the Glyph">Glyph akzeptiert das Programm, und es tut das Falsche. Wenn die Lücke geschlossen wird, schlägt das Gate fehl und sagt, dass der Fall verschoben werden muss</td></tr>
           </tbody>
         </table>
       </div>
@@ -536,7 +536,7 @@ glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
 
         <h2 class="block-label" id="what-it-does-not-catch-yet">Was es noch nicht findet<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="Link zu diesem Abschnitt">#</a></h2>
         <p>
-          Die 7 <code>gap</code>-Fälle stehen auf <a href="/de/catches/#not-yet">der Seite mit den Fällen</a>, jeder mit seiner Gap-Nummer. Jede Lücke, die beim Bauen von Apps in Glyph gefunden wurde, steht in der Liste <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>, in der eine Markierung in eckigen Klammern der einzige aktuelle Status ist (<code>[FIXED]</code>, <code>[HALF FIXED]</code> oder keine für offen), und <code>scripts/check_gaps.py</code> lässt CI fehlschlagen, wenn ein offener Eintrag zuletzt vor mehr als fünf Releases reproduziert wurde.
+          Die 6 <code>gap</code>-Fälle stehen auf <a href="/de/catches/#not-yet">der Seite mit den Fällen</a>, jeder mit seiner Gap-Nummer. Jede Lücke, die beim Bauen von Apps in Glyph gefunden wurde, steht in der Liste <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>, in der eine Markierung in eckigen Klammern der einzige aktuelle Status ist (<code>[FIXED]</code>, <code>[HALF FIXED]</code> oder keine für offen), und <code>scripts/check_gaps.py</code> lässt CI fehlschlagen, wenn ein offener Eintrag zuletzt vor mehr als fünf Releases reproduziert wurde.
         </p>
 
         <h2 class="block-label" id="how-a-release-is-marked-breaking">Wie ein Release als Breaking markiert wird<a class="h-anchor" href="#how-a-release-is-marked-breaking" aria-label="Link zu diesem Abschnitt">#</a></h2>

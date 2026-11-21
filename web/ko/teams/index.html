@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="what-it-guarantees">보장하는 것<a class="h-anchor" href="#what-it-guarantees" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
         <p>
-          Glyph가 잡아낸다는 모든 주장은 저장소의 <code>catches/</code> 디렉터리에 있는 사례입니다. 같은 프로그램을 TypeScript와 Glyph로 작성했고, 둘 다 CI 게이트가 실행합니다. 확인된 사례는 모두 49건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 7건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건). 거부하지 않는 실수 중 3건은 경고를 내고, 9건은 런타임 경계 검사에서 멈추는 잘못된 데이터이며, 2건은 실행 중에 멈춥니다. 에이전트가 작성한 코드를 리뷰하는 사람이 가장 많이 기대는 것들은 다음과 같습니다.
+          Glyph가 잡아낸다는 모든 주장은 저장소의 <code>catches/</code> 디렉터리에 있는 사례입니다. 같은 프로그램을 TypeScript와 Glyph로 작성했고, 둘 다 CI 게이트가 실행합니다. 확인된 사례는 모두 48건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 6건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건). 거부하지 않는 실수 중 3건은 경고를 내고, 9건은 런타임 경계 검사에서 멈추는 잘못된 데이터이며, 2건은 실행 중에 멈춥니다. 에이전트가 작성한 코드를 리뷰하는 사람이 가장 많이 기대는 것들은 다음과 같습니다.
         </p>
       </div>
 
@@ -456,7 +456,7 @@
 
         <h2 class="block-label" id="where-it-stops">한계<a class="h-anchor" href="#where-it-stops" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
         <p>
-          보장은 Glyph로 작성한 코드에 적용됩니다. npm 의존성 안에서 던진 예외는 여전히 <code>Result</code>를 우회하고, 패키지의 <code>.d.ts</code>에서 가져온 타입에는 런타임 검사가 없습니다. Glyph 안에서 아직 열려 있는 구멍 7건은 gap 번호와 함께 <a href="/ko/catches/#not-yet">아직 잡아내지 못하는 것</a>에 나와 있고, 전체 목록은 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>에 있습니다. strict TypeScript에 zod, eslint, ts-pattern을 더한 구성과의 비교, 그리고 그 구성이 여전히 앞서는 부분은 <a href="/ko/answers/vs-tooled-ts/">왜 도구를 갖춘 TypeScript가 아닌가</a>를 보세요.
+          보장은 Glyph로 작성한 코드에 적용됩니다. npm 의존성 안에서 던진 예외는 여전히 <code>Result</code>를 우회하고, 패키지의 <code>.d.ts</code>에서 가져온 타입에는 런타임 검사가 없습니다. Glyph 안에서 아직 열려 있는 구멍 6건은 gap 번호와 함께 <a href="/ko/catches/#not-yet">아직 잡아내지 못하는 것</a>에 나와 있고, 전체 목록은 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>에 있습니다. strict TypeScript에 zod, eslint, ts-pattern을 더한 구성과의 비교, 그리고 그 구성이 여전히 앞서는 부분은 <a href="/ko/answers/vs-tooled-ts/">왜 도구를 갖춘 TypeScript가 아닌가</a>를 보세요.
         </p>
 
         <h2 class="block-label" id="adopting-it-inside-an-existing-app">기존 앱 안에서 도입하기<a class="h-anchor" href="#adopting-it-inside-an-existing-app" aria-label="이 섹션으로 연결되는 링크">#</a></h2>

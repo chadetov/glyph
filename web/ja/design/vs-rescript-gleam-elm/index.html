@@ -450,7 +450,7 @@
           </thead>
           <tbody>
             <tr><td data-label="Area">成熟度</td><td data-label="ReScript, Gleam, Elm">何年もの本番運用の実績。ReScript のホームページには企業ロゴが並び、Elm のホームページは 30 万行以上のコードを持ちながら本番で不可解な実行時例外が出ていない NoRedInk を挙げている</td><td data-label="Glyph">アーリープレビューで 1.0 前。主に 1 人でメンテナンスしており、多くのリリースが Breaking</td></tr>
-            <tr><td data-label="Area">保証</td><td data-label="ReScript, Gleam, Elm">Elm は実行時例外なし、Gleam は null 値も例外もなし、ReScript は <code>any</code> も予期しない <code>undefined</code> もなしと主張している</td><td data-label="Glyph"><code>any</code> もキャストもないが、既知の穴 7 件を<a href="/ja/catches/#not-yet">公開しており</a>、npm パッケージの中で throw された例外は今も <code>Result</code> をすり抜ける</td></tr>
+            <tr><td data-label="Area">保証</td><td data-label="ReScript, Gleam, Elm">Elm は実行時例外なし、Gleam は null 値も例外もなし、ReScript は <code>any</code> も予期しない <code>undefined</code> もなしと主張している</td><td data-label="Glyph"><code>any</code> もキャストもないが、既知の穴 6 件を<a href="/ja/catches/#not-yet">公開しており</a>、npm パッケージの中で throw された例外は今も <code>Result</code> をすり抜ける</td></tr>
             <tr><td data-label="Area">エラーメッセージ</td><td data-label="ReScript, Gleam, Elm">Elm のホームページは "friendly error messages" を掲げ、Gleam は "clear error messages" を約束している。どちらも長年の利用者に支えられている</td><td data-label="Glyph">すべてのエラーに固定のコードとヘルプ行があるが、使われてきた量ははるかに少ない</td></tr>
             <tr><td data-label="Area">ツールとエコシステム</td><td data-label="ReScript, Gleam, Elm">Gleam は "compiler, build tool, formatter, editor integrations, and package manager all built in" で提供され、Elm はパッケージにセマンティックバージョニングを強制する</td><td data-label="Glyph">パッケージは npm。VS Code 拡張機能はソースからビルドする</td></tr>
             <tr><td data-label="Area">出力先</td><td data-label="ReScript, Gleam, Elm">Gleam は Erlang VM 上でも動く</td><td data-label="Glyph">TypeScript のみ。Node とブラウザ向け</td></tr>

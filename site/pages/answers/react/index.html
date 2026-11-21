@@ -2,10 +2,13 @@
 title: Does it work with React, hooks and Context? · Glyph
 description: React is built in: a component compiles to a function component, JSX lowers to createElement, and a reducer's actions are matched exhaustively.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/codegen/ | &larr; Previous | Can I generate a typed client and server from my API spec?
 next: /answers/state/ | Next &rarr; | How do I share mutable state between functions?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">13 &middot; Frontend</p>
       <h1 class="q-title">Does it work with React: components, hooks, and Context?</h1>
@@ -19,22 +22,9 @@ next: /answers/state/ | Next &rarr; | How do I share mutable state between funct
         own checker does not type what a hook returns, so <code>tsc</code> checks those values.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          A lot of the code agents write is React. Glyph treats it as a first-class target, not a
-          bolt-on: <code>component</code> is its own keyword (so <code>grep "^component "</code>
-          audits your whole UI). React's hooks are imported from <code>react</code> and called
-          with their real names and types, checked by <code>tsc</code> against React's own
-          declarations.
-        </p>
-
-        <h2 class="block-label">See it</h2>
-        <p>React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">counter.glyph, against react@18 and its types</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">counter.glyph, against react@18 and its types</span>
 <pre>import react { useReducer }
 
 type Action = Inc | Dec | Reset
@@ -52,42 +42,75 @@ pub component Counter() {
   let [count, dispatch] = useReducer(reducer, 0)
   return &lt;button on_click={fn() { dispatch(Inc) }}&gt;{count}&lt;/button&gt;
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#reducers-and-hooks">Reducers and hooks</a></li>
+          <li><a href="#context-and-libraries">Context and libraries</a></li>
+          <li><a href="#are-props-checked-before-tsc">Props before tsc</a></li>
+          <li><a href="#is-a-match-in-jsx-checked-like-a-match">&lt;match&gt; in JSX</a></li>
+          <li><a href="#how-does-a-page-start-it">Starting a page</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A lot of the code agents write is React. Glyph treats it as a first-class target, not a
+        bolt-on: <code>component</code> is its own keyword (so <code>grep "^component "</code>
+        audits your whole UI).
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>React's hooks are imported from <code>react</code> and called
+        with their real names and types, checked by <code>tsc</code> against React's own
+        declarations.</p></div>
+
+      <h2 class="ak-h" id="reducers-and-hooks">Reducers and hooks<a class="ak-anchor" href="#reducers-and-hooks" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Add a <code>Double</code> action and the reducer stops compiling with
+        <code>E0200</code> naming it, which a plain TypeScript <code>switch</code> would let ship.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200</span></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph's own checker
+        does not type values that come from React, so a wrong argument to <code>dispatch</code> or a state setter is
+        reported by <code>tsc</code> in the build, not by the editor or <code>--no-tsc</code>.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">how the hook's pair is destructured</span></summary><div class="body">
         <p>
-          Add a <code>Double</code> action and the reducer stops compiling with
-          <code>E0200</code> naming it, which a plain TypeScript <code>switch</code> would let ship.
           The pair is destructured with <code>let [count, dispatch]</code>, and the emitted
           TypeScript adds <code>satisfies readonly [unknown, unknown]</code>, so <code>tsc</code>
-          proves the hook returned a pair and still infers each element's type. Glyph's own checker
-          does not type values that come from React, so a wrong argument to <code>dispatch</code> or a state setter is
-          reported by <code>tsc</code> in the build, not by the editor or <code>--no-tsc</code>. React
-          <strong>Context</strong> works today through <code>createContext</code> /
-          <code>useContext</code>, and member-expression element names
-          (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.
+          proves the hook returned a pair and still infers each element's type.
         </p>
-        <p>
-          JSX prop spreading works too: <code>&lt;input {...register("email")} /&gt;</code> lowers
-          to an object spread in the props, so the react-hook-form idiom needs no adapter. Zod's
+      </div></details>
+
+      <h2 class="ak-h" id="context-and-libraries">Context and libraries<a class="ak-anchor" href="#context-and-libraries" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        React <strong>Context</strong> works today through <code>createContext</code> /
+        <code>useContext</code>, and member-expression element names
+        (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3.5L2.5 8l3 4.5M10.5 3.5l3 4.5-3 4.5"/></svg></span><b>Prop spread</b>JSX prop spreading works too: <code>&lt;input {...register("email")} /&gt;</code> lowers
+          to an object spread in the props, so the react-hook-form idiom needs no adapter.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Zod types</b>Zod's
           value-derived types are first-class: <code>type FormData = z.infer&lt;typeof schema&gt;</code>
-          works directly, no escape hatch. The one thing that differs: a component takes a
+          works directly, no escape hatch.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The one thing that differs: a component takes a
           single props record, not multiple positional params. See
           <a href="/answers/imports/">using your libraries</a> and the
-          <a href="/hardening/">hardening page</a> for exactly where that boundary is.
-        </p>
-      </div>
+          <a href="/hardening/">hardening page</a> for exactly where that boundary is.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">Are props checked before tsc?</h2>
-        <p>
-          Yes. Glyph compares each element with its component's props record itself, so a wrong
-          value, a misspelled prop and a missing required one are Glyph errors that name the prop.
-          You see them in the editor and over MCP, not only in a full build. It works the same
-          whether the component was imported by name or through its module:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="are-props-checked-before-tsc">Are props checked before tsc?<a class="ak-anchor" href="#are-props-checked-before-tsc" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Yes. Glyph compares each element with its component's props record itself, so a wrong
+        value, a misspelled prop and a missing required one are Glyph errors that name the prop.
+        It works the same
+        whether the component was imported by name or through its module:
+      </p>
       <div class="code">
         <span class="cap">main.glyph, with <code>Card</code> declared in <code>ui.glyph</code></span>
 <pre>import ui
@@ -103,8 +126,8 @@ pub component App() {
 // E0210 type `CardProps` has no field `cout`; did you mean `count`?
 // E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>You see them in the editor and over MCP, not only in a full build.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">missing_fields in --json, and one props record (E0229)</span></summary><div class="body">
         <p>
           <code>--json</code> carries the missing names as a <code>missing_fields</code> list, so
           an agent can add the props without parsing the message. A component also has to take
@@ -113,20 +136,21 @@ pub component App() {
           type-check. If you call it as a function rather than render it, declare it with
           <code>fn</code>.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Is a &lt;match&gt; in JSX checked like a match?</h2>
-        <p>
-          It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code>
-          arm takes, and the compiler runs it through the code it uses for the arm. The names a
+      <h2 class="ak-h" id="is-a-match-in-jsx-checked-like-a-match">Is a &lt;match&gt; in JSX checked like a match?<a class="ak-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code>
+        arm takes, and the compiler runs it through the code it uses for the arm.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Payload types</b>The names a
           case binds have the payload's types, a field the payload record
-          doesn't have is E0210, and a missing variant is E0200. A case that tests a value only
+          doesn't have is E0210, and a missing variant is E0200.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13"/></svg></span><b>Partial cases</b>A case that tests a value only
           covers part of its variant, so it needs a sibling case or an <code>&lt;case else&gt;</code>
-          to take the rest:
-        </p>
-      </div>
-
+          to take the rest.</li>
+      </ul>
       <div class="code">
         <span class="cap">results.glyph</span>
 <pre>type Page =
@@ -145,18 +169,16 @@ component Results(props: { page: Page }) {
 <span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">How does a page start it?</h2>
-        <p>
-          Glyph has no top-level statements, so the page calls an exported <code>main</code>
-          itself. The app is two modules: one holding the components, and one that mounts them
-          on <code>#root</code> through <code>std/dom</code> and react-dom's
-          <code>createRoot</code>. Event attributes are snake case (<code>on_change</code>
-          emits React's <code>onChange</code>), a handler is a lambda, and an input's text is
-          <code>e.currentTarget.value</code>.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="how-does-a-page-start-it">How does a page start it?<a class="ak-anchor" href="#how-does-a-page-start-it" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph has no top-level statements, so the page calls an exported <code>main</code>
+        itself. The app is two modules: one holding the components, and one that mounts them
+        on <code>#root</code> through <code>std/dom</code> and react-dom's
+        <code>createRoot</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Event attributes are snake case (<code>on_change</code>
+        emits React's <code>onChange</code>), a handler is a lambda, and an input's text is
+        <code>e.currentTarget.value</code>.</p></div>
       <div class="code">
         <span class="cap">app.glyph</span>
 <pre data-check="needs-react">module app
@@ -198,8 +220,8 @@ pub fn main() -&gt; void {
   main();
 &lt;/script&gt;</pre>
       </div>
-
-      <div class="detail">
+      <ol class="ak-path" aria-label="From modules to a bundle"><li><span><code>npx glyph build . --out dist/gen</code></span></li><li><span><code>tsc --strict</code></span></li><li><span><code>npx vite build --outDir dist/web</code></span></li></ol>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the build, why this main takes nothing, the walkthrough</span></summary><div class="body">
         <p>
           <code>npx glyph build . --out dist/gen</code> checks the modules, runs
           <code>tsc --strict</code> against React's declarations and writes TypeScript to
@@ -214,16 +236,36 @@ pub fn main() -&gt; void {
           <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a>
           the same way and renders it in headless Chromium.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> with exhaustive tagged-union actions, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns, Context via <code>createContext</code>/<code>useContext</code>, and the page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>. JSX text is read as TSX reads it, so <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> is plain text; <code>}</code>, <code>&gt;</code>, <code>//</code> and an HTML entity such as <code>&amp;amp;</code> are refused in text (E0012), with the spelling to use instead. A member read on an array is checked, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> is E0210. <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> is a whole app on React 18 that bundles with Vite and renders in a browser.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">On the way</h3>
-          <p>Glyph's checker does not type a hook's result, so <code>set_count("x")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor. <code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners. An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">the deployment guide</a>.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Member-expression element names (<code>&lt;Ctx.Provider&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX prop spread (<code>{...register()}</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Props checked against the component before <code>tsc</code> under every import spelling</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>useReducer</code> with exhaustive tagged-union actions</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Context via <code>createContext</code>/<code>useContext</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">The page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX text is read as TSX reads it, so <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> is plain text; <code>}</code>, <code>&gt;</code>, <code>//</code> and an HTML entity such as <code>&amp;amp;</code> are refused in text (E0012), with the spelling to use instead.</span><span class="chip code">E0012</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A member read on an array is checked, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> is E0210.</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> is a whole app on React 18 that bundles with Vite and renders in a browser.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> On the way</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph's checker does not type a hook's result, so <code>set_count("x")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A props type written inline still shows as <code>record</code> in these messages; a named one shows its name.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">the deployment guide</a>.</span></span></li>
+          </ul>
+        </section>
       </div>

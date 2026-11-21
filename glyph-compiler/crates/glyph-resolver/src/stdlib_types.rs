@@ -51,7 +51,7 @@ const STDLIB_TYPE_ONLY: &[(&str, &[&str])] = &[
     ("std/random", &["Rng"]),
     ("std/result", &["Result"]),
     ("std/set", &["Set"]),
-    ("std/sqlite", &["Db", "Row"]),
+    ("std/sqlite", &["Db", "Row", "Sql"]),
     ("std/storage", &["StorageError"]),
     ("std/store", &["Store"]),
     ("std/stream", &["Stream"]),

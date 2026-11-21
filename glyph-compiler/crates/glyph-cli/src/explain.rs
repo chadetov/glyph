@@ -1095,6 +1095,51 @@ pub fn explain(code: &str) -> Option<&'static str> {
             callback handed to `forEach` or a timer is not this error either; \
             that rule needs the callback slots modeled and is planned \
             separately.",
+
+        "E0239" => "E0239: a SQL query built from a run-time value\n\n\
+            The first argument of `std/sqlite`'s `exec`, `run`, `query` and \
+            `query_one` is run as SQL. Its type is `sqlite.Sql`, and its text \
+            has to be fixed when the program is written (D52). A value that \
+            varies goes in the parameter array, where SQLite binds it as data \
+            and never reads it as SQL.\n\n\
+            fn find(db: sqlite.Db, name: string) -> number {\n  \
+            let rows = db.query(\"SELECT * FROM users WHERE name = '${name}'\", [])  // E0239\n  \
+            return rows.length\n\
+            }\n\n\
+            fn find(db: sqlite.Db, name: string) -> number {\n  \
+            let rows = db.query(\"SELECT * FROM users WHERE name = ?\", [name])     // fine\n  \
+            return rows.length\n\
+            }\n\n\
+            With `name` set to `x' OR '1'='1`, the first version returns every \
+            row. The help computes the second version from the first: each \
+            `'${x}'` or `${x}` becomes `?` and `x` joins the array, in \
+            placeholder order, beside any values already there.\n\n\
+            Constant means a string literal with no `${}`, a literal whose \
+            every `${}` holds a constant, a `+` of constants, a module `const`, \
+            or a `let` that no `mut` reassigns, whose initializer is constant. \
+            The checker follows a name to its initializer, so hoisting the \
+            query into `let q = \"...${name}...\"` and passing `q` is the same \
+            error, and the help rewrites the `let`. A parameter, a call result, \
+            a field and a `let` some `mut` reassigns (anywhere in the module, \
+            before or after the query) are not constant. A constant from \
+            another module counts only when its module declares it \
+            `pub const Q: sqlite.Sql = \"...\"`.\n\n\
+            A function that takes a query from its caller declares the \
+            parameter `sql: sqlite.Sql`, and every caller's argument is then \
+            checked here, as is a `let`, a `const` or a `return` declared \
+            `sqlite.Sql`. `exec` takes no values, so a statement that needs \
+            one moves to `run(sql, [values])`.\n\n\
+            When the structure of a query has to vary (an `IN (?, ?, ?)` list \
+            sized at run time, a column picked from a fixed list), build the \
+            text, pass it through `taint.sanitize` or `taint.trust_unchecked`, \
+            and hand the result to `sqlite.from_trusted`, which takes a \
+            `taint.Trusted<string>` and returns a `sqlite.Sql`. A plain \
+            `string` there is E0211. Every query that is not a constant is \
+            then one grep away.\n\n\
+            The type is `string` in the emitted TypeScript, so `tsc` accepts \
+            all of these programs: the rule is Glyph's checker alone. It \
+            covers `std/sqlite` only; an npm driver takes a plain `string`.",
+
         "E0300" => "E0300: construct the emitter does not handle, or a refined non-primitive base\n\n\
             E0300 covers two things. One is a construct the v1 TypeScript \
             emitter does not handle yet; rewrite it using a supported form \
@@ -2204,6 +2249,12 @@ pub static CODES: &[CodeEntry] = &[
         meaning: "A pending value nothing waits for (G384, D51): a call to a function the checker knows is async (an `async fn`, an async lambda, an `async fn(...)` value, a stdlib function modeled async) used anywhere but the operand of `await`, the return or tail value of an async function, a named `let` that is read, or an argument to a function with no Glyph signature. A statement (the last one in a block included), `let _ =`, a never-read `let`, a typed `let`, a `match` scrutinee, an operand, a `${}`, a field, an element, a member read, a Glyph-typed argument and a `return` or tail value of a sync function or lambda (with or without a written return type) are refused. A pending `Result` is E0238, not E0217. A call whose callee the checker types `Unknown` is not judged. `tsc` accepts most of these",
         fix: "Write `await` before the call. In a function that cannot wait, make it `async fn`, or start the work on purpose with `task.detach(async fn() -> void { await f() })` from `std/task`",
     },
+    CodeEntry {
+        code: "E0239",
+        phase: "typechecker",
+        meaning: "A SQL query built from a run-time value (G387, D52): the `sql` argument of `std/sqlite`'s `exec`, `run`, `query` or `query_one`, or any parameter, `let`, `const` or `return` declared `sqlite.Sql`, holds text that is not a constant string expression. Constant is a literal with no `${}`, a literal whose every `${}` is constant, a `+` of constants, a module `const` or a `let` no `mut` reassigns whose initializer is constant, or a `sqlite.Sql` value; a name is followed to its initializer, so `let q = \"...${name}...\"` then `db.query(q, [])` is refused. A constant from another module counts only when declared `sqlite.Sql`. `tsc` accepts all of these: the emitted type is `string`",
+        fix: "Put the value in the parameter array: `db.query(\"SELECT * FROM users WHERE name = ?\", [name])` (the help computes this rewrite); `exec` takes no values, so use `db.run(sql, [values])`. A structure that must vary goes through `taint.sanitize` or `taint.trust_unchecked` and `sqlite.from_trusted`",
+    },
     // ----- emitter (E03xx) -----
     CodeEntry {
         code: "E0300",
@@ -2557,6 +2608,21 @@ mod tests {
         assert_eq!(example.diagnostic.map(|d| d.code), Some("E0236".to_string()));
         let help = answer.help.expect("the E0236 counter-example carries a help");
         assert!(help.starts_with("Propagate first, then read"), "{help}");
+    }
+
+    /// E0239's counter-example is the `sql-by-interpolation` catch case, and
+    /// its help is the rewrite to a placeholder and the parameter array.
+    #[test]
+    fn e0239_has_a_counter_example_with_its_rewrite() {
+        let answer = explain_json("E0239").expect("E0239 is documented");
+        assert!(answer.explanation.contains("D52"), "{}", answer.explanation);
+        let example = answer.counter_example.expect("a negative case for E0239");
+        assert_eq!(example.diagnostic.map(|d| d.code), Some("E0239".to_string()));
+        let help = answer.help.expect("the E0239 counter-example carries a help");
+        assert_eq!(
+            help,
+            "Pass the value as a parameter: `db.query(\"SELECT * FROM users WHERE name = ?\", [name])`."
+        );
     }
 
     /// Record 88, 4c: `--explain E0234` names `.bind` and `.call` as refused

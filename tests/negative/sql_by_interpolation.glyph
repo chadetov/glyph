@@ -1,0 +1,11 @@
+module neg
+
+import std/sqlite
+
+// E0239. A query's text is fixed when the program is written (D52). With
+// `name` set to `x' OR '1'='1` this returns every row. The value belongs in
+// the parameter array: `db.query("SELECT * FROM users WHERE name = ?", [name])`.
+pub fn find(db: sqlite.Db, name: string) -> number {
+  let rows = db.query("SELECT * FROM users WHERE name = '${name}'", [])
+  return rows.length
+}

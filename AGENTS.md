@@ -1513,8 +1513,10 @@ listener is pending (see the execution model below), so `main` returns normally.
 ```
 type Row = Record<string, unknown>            // a queried row: the untrusted boundary
 type Db                                        // an open database handle
+type Sql                                       // a query's text: a constant (D52); string in TS
 
 open(path) -> Db                               // ":memory:" or a file path (persists)
+from_trusted(t: taint.Trusted<string>) -> Sql  // text built at run time; greppable
 db.exec(sql) -> void                           // DDL / statements with no params or result
 db.run(sql, params) -> number                  // INSERT/UPDATE/DELETE; returns rows affected
 db.last_insert_id() -> number                  // last AUTOINCREMENT rowid on this connection
@@ -1528,6 +1530,15 @@ boundary like a request body: reach for `RowType.parse(row)` before trusting it,
 never a cast. SQLite has no boolean type (a flag column is an integer `0`/`1`),
 so model the storage shape and the domain shape as separate types and map
 between them. A full example is `examples/apps/tasks/main.glyph`.
+
+Every `sql` is a `sqlite.Sql`: its text must be a constant (a literal, a module
+`const`, a `let` no `mut` reassigns, `${}` or `+` of those). A value goes in
+the `params` array: `db.query("SELECT * FROM users WHERE name = ?", [name])`.
+`"...'${name}'"`, `"..." + name` and a `let` built from `name` are E0239, whose
+help writes the placeholder rewrite; `exec` takes no values, so use
+`db.run(sql, [values])`. A function taking a query declares `sql: sqlite.Sql`.
+A structure that must vary (an `IN (?, ?)` list) goes through
+`sqlite.from_trusted(taint.trust_unchecked(text))`.
 
 ### std/decimal (exact money math, no floats)
 
@@ -2063,6 +2074,7 @@ written. The full catalogue:
 | E0235 | A member read through a `Nullable` that does not handle the null (D45). `n.f` on a `Nullable<R>` (the value may be null), or the value of an optional chain over one (`n?.f`, `n?.a.b`) used anywhere but the left of `??` or an operand of `==`/`!=` (a binding, an argument, a `return`, a field value, an interpolation, a JSX child or attribute, a `match` scrutinee): that value is `F` or `undefined`, and Glyph has no type for `undefined`. TypeScript's TS18047; the escaping forms `tsc` accepts (a JSX child among them) and Glyph does not | Give the absent case a value with `??` (`n?.name ?? "none"`), or convert the whole value with `nullable.to_option(n)` and `match` on it |
 | E0236 | `?.` on a receiver that resolves to an `Option` or a `Result` (G311, D18), through any alias. Neither is ever null, so `?.` never short-circuits: it reads the member off the tag object. On a `Result` it is also not `?` followed by `.`, and propagates no `Err` (csvql's `bind_agg(...)?.label`). A method called through `?.` (`r?.map(f)`) is refused too. Reported once, where the chain starts. `tsc` accepts `o?.tag`, `r?.tag`, `r?.value`, `r?.map(..)` and `r?.map_err(..)` | On an `Option`, `match` on it; on a `Result`, propagate first (`let n = f()?`, then `n.name`), or drop the `?` before a method (`r.map(f)`). A JSON `null` from the wire is a `Nullable<T>` |
 | E0238 | A pending value nothing waits for (G384, D51): a call to a function the checker knows is async (an `async fn`, an async lambda, an `async fn(...)` value, a stdlib function modeled async) used anywhere but the operand of `await`, the return or tail value of an async function, a named `let` that is read, or an argument to a function with no Glyph signature. A statement (the last one in a block included), `let _ =`, a never-read `let`, a typed `let`, a `match` scrutinee, an operand, a `${}`, a field, an element, a member read, a Glyph-typed argument and a `return` or tail value of a sync function or lambda (with or without a written return type) are refused. A pending `Result` is E0238, not E0217. A call whose callee the checker types `Unknown` is not judged. `tsc` accepts most of these | Write `await` before the call. In a function that cannot wait, make it `async fn`, or start the work on purpose with `task.detach(async fn() -> void { await f() })` from `std/task` |
+| E0239 | A SQL query built from a run-time value (G387, D52): the `sql` argument of `std/sqlite`'s `exec`, `run`, `query` or `query_one`, or any parameter, `let`, `const` or `return` declared `sqlite.Sql`, holds text that is not a constant string expression. Constant is a literal with no `${}`, a literal whose every `${}` is constant, a `+` of constants, a module `const` or a `let` no `mut` reassigns whose initializer is constant, or a `sqlite.Sql` value; a name is followed to its initializer, so `let q = "...${name}..."` then `db.query(q, [])` is refused. A constant from another module counts only when declared `sqlite.Sql`. `tsc` accepts all of these: the emitted type is `string` | Put the value in the parameter array: `db.query("SELECT * FROM users WHERE name = ?", [name])` (the help computes this rewrite); `exec` takes no values, so use `db.run(sql, [values])`. A structure that must vary goes through `taint.sanitize` or `taint.trust_unchecked` and `sqlite.from_trusted` |
 | E0300 | Either a construct the v1 TypeScript emitter does not handle yet, or a `where` refinement (D39) whose base resolves, by any spelling, to a string-literal union, a single string literal, a record or a tagged union: a `where` refines only `string`, `int`, `number`, `bool` and `bigint`. The refusal names the declaration, its base as written, the members a literal base resolves to and the predicate | Use a supported form. For a refined literal union, declare the members you mean as a union of their own; for a record, put the `where` on the field it constrains |
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
 | E0302 | `?` in an arm of a `match` nested inside a larger expression (bind the match first) | Bind the match first (`let x = match ...`), then use `?` |

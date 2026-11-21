@@ -830,6 +830,19 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// G387, D52: a `sqlite.Sql` slot (the `sql` argument of a `Db` method,
+    /// or any parameter, binding or return declared `sqlite.Sql`) holding text
+    /// that is not fixed when the program is written. The message names where
+    /// the text is run and the name or expression it is built from, and the
+    /// help is computed: a rewrite to `?` placeholders with the parameter
+    /// array where the query is a literal at a `Db` call, prose otherwise.
+    #[error("{message}")]
+    SqlFromRuntimeValue {
+        message: String,
+        help: String,
+        span: Span,
+    },
+
     /// G311, record 87 (D18): `?.` on a receiver that resolves to the
     /// prelude `Option<T>` or `Result<T, E>`, through any alias. Neither is
     /// ever null at run time, so the chain never short-circuits: it reads
@@ -1420,6 +1433,7 @@ impl TypeError {
             TypeError::NullableNested { span, .. } => *span,
             TypeError::NullableRead { span, .. } => *span,
             TypeError::OptionalChainOnTagged { span, .. } => *span,
+            TypeError::SqlFromRuntimeValue { span, .. } => *span,
             TypeError::TypeNameAsValue { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
             TypeError::UnknownAnnotation { span, .. } => *span,
@@ -1468,6 +1482,7 @@ impl TypeError {
             TypeError::NullableNested { .. } => "E0227",
             TypeError::NullableRead { .. } => "E0235",
             TypeError::OptionalChainOnTagged { .. } => "E0236",
+            TypeError::SqlFromRuntimeValue { .. } => "E0239",
             TypeError::TypeNameAsValue { .. } => "E0228",
             TypeError::RedactUnknownField { .. } => "E0219",
             TypeError::UnknownAnnotation { .. } => "E0221",
@@ -1503,6 +1518,9 @@ impl TypeError {
             if let Some(h) = k.help() {
                 return Some(Cow::Owned(h));
             }
+        }
+        if let TypeError::SqlFromRuntimeValue { help, .. } = self {
+            return Some(Cow::Owned(help.clone()));
         }
         if let TypeError::RecordRemoveFiniteKey { key, partial, .. } = self {
             let partial = match partial {
@@ -1757,6 +1775,7 @@ impl TypeError {
             TypeError::UncalledBuiltinMethod { .. } => unreachable!("answered above with the method it names"),
             TypeError::OptionalChainOnTagged { .. } => unreachable!("answered above with the receiver it names"),
             TypeError::RecordRemoveFiniteKey { .. } => unreachable!("answered above with the key it names"),
+            TypeError::SqlFromRuntimeValue { .. } => unreachable!("answered above with its computed help"),
         }))
     }
 
@@ -1799,6 +1818,9 @@ impl TypeError {
             ),
             TypeError::OptionalChainOnTagged { .. } => Some(
                 "`Option` and `Result` are tagged values at run time and never null, so `?.` never short-circuits on one: it reads the member off the tag object. `match` is the one place either is opened, and `?` is the one way a `Result` propagates.",
+            ),
+            TypeError::SqlFromRuntimeValue { .. } => Some(
+                "A query's text is fixed when the program is written (D52). Values go in the parameter array, where SQLite binds them as data and never reads them as SQL; `sqlite.from_trusted` is the one way to run text built at run time, and it takes a `taint.Trusted<string>`.",
             ),
             TypeError::NullableRead { .. } => Some(
                 "`Nullable<T>` is `T | null` (D45), and `?.` over a null value gives JavaScript's `undefined`, which Glyph has no type for. The chain may stand only where the absence is handled on the spot: the left of `??`, or an operand of `==` or `!=`.",

@@ -243,7 +243,7 @@ impl StdlibStubs {
         // Ordered collections beyond Array/Record: a double-ended queue.
         s.add("std/collections", &["Deque", "deque"]);
         // A persisted SQL database over node's built-in synchronous SQLite.
-        s.add("std/sqlite", &["Db", "Row", "open"]);
+        s.add("std/sqlite", &["Db", "Row", "Sql", "from_trusted", "open"]);
         // Exact base-10 fixed-point arithmetic (money) over BigInt, no floats.
         s.add("std/decimal", &["Decimal", "decimal", "from_int", "zero"]);
         // Locale-aware plurals, numbers, money, dates, lists and collation.

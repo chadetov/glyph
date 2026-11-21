@@ -304,6 +304,9 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     if let Some(sig) = task_fn_ty(module_key, field) {
         return Some(sig);
     }
+    if let Some(sig) = sqlite_fn_ty(module_key, field) {
+        return Some(sig);
+    }
     if let Some(sig) = host_fn_ty(prelude, module_key, field) {
         return Some(sig);
     }
@@ -829,6 +832,41 @@ pub(crate) fn host_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Op
         ),
         ("std/storage", "remove") => (vec![required(string())], void()),
         ("std/console", "log" | "warn" | "error") => (vec![required(string())], void()),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params,
+        return_ty: Arc::new(ret),
+        is_async: false,
+        type_params: None,
+    })
+}
+
+/// The signature of a `std/sqlite` export (G387, D52).
+///
+/// `open` hands back the modeled `sqlite.Db`, so every call made through the
+/// handle has a signature and its `sql` argument is held to a constant. Left
+/// `Unknown`, `let db = sqlite.open(path)` would have checked nothing that
+/// followed it. `from_trusted` is the one way to run text built at run time:
+/// it takes a `taint.Trusted<string>`, which only `taint.sanitize` and
+/// `taint.trust_unchecked` produce, so every such query is one grep away. A
+/// plain `string` there is E0211, which is what `tsc` says about it too.
+pub(crate) fn sqlite_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/sqlite" {
+        return None;
+    }
+    let (params, ret): (Vec<FnParam>, Ty) = match field {
+        "open" => (
+            vec![required(Ty::Prim(Primitive::String))],
+            stdlib_named("sqlite", "Db"),
+        ),
+        "from_trusted" => (
+            vec![required(Ty::App {
+                base: Arc::new(stdlib_named("taint", "Trusted")),
+                args: vec![Ty::Prim(Primitive::String)],
+            })],
+            stdlib_named("sqlite", "Sql"),
+        ),
         _ => return None,
     };
     Some(Ty::Fn {

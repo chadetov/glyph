@@ -7,20 +7,33 @@
 
 import { DatabaseSync } from "node:sqlite";
 import { None, type Option, Some } from "./option";
+import { expose, type Trusted } from "./taint";
 
 export type Row = Record<string, unknown>;
 
+// The text of a query (D52). In TypeScript it is a `string`; Glyph's checker
+// holds every `Sql` to a constant string expression (E0239), so a run-time
+// value reaches a query only through the parameter array or `from_trusted`.
+export type Sql = string;
+
+// Text built at run time, run as SQL. The argument is a `Trusted<string>`,
+// which only `taint.sanitize` and `taint.trust_unchecked` produce, so every
+// query that is not a constant is one grep away.
+export function from_trusted(t: Trusted<string>): Sql {
+  return expose(t);
+}
+
 export type Db = {
   // Execute one or more statements with no parameters and no result (DDL).
-  exec: (sql: string) => void;
+  exec: (sql: Sql) => void;
   // Run a parameterized statement (INSERT/UPDATE/DELETE); returns rows affected.
-  run: (sql: string, params: ReadonlyArray<unknown>) => number;
+  run: (sql: Sql, params: ReadonlyArray<unknown>) => number;
   // The last auto-increment rowid produced on this connection.
   last_insert_id: () => number;
   // Query rows.
-  query: (sql: string, params: ReadonlyArray<unknown>) => Array<Row>;
+  query: (sql: Sql, params: ReadonlyArray<unknown>) => Array<Row>;
   // Query the first row, or `None` if the result is empty.
-  query_one: (sql: string, params: ReadonlyArray<unknown>) => Option<Row>;
+  query_one: (sql: Sql, params: ReadonlyArray<unknown>) => Option<Row>;
   close: () => void;
 };
 

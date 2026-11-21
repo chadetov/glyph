@@ -1160,14 +1160,36 @@ type's `.parse` before trusting it.
 ```
 type Row                                          // Record<string, unknown>
 type Db
+type Sql                                          // a query's text; `string` in TypeScript (D52)
 open(path: string) -> Db
-db.exec(sql: string) -> void                       // method: DDL, no params/result
-db.run(sql: string, params: Array<unknown>) -> number     // method: INSERT/UPDATE/DELETE, rows affected
+from_trusted(t: taint.Trusted<string>) -> Sql      // run text built at run time; greppable
+db.exec(sql: Sql) -> void                          // method: DDL, no params/result
+db.run(sql: Sql, params: Array<unknown>) -> number        // method: INSERT/UPDATE/DELETE, rows affected
 db.last_insert_id() -> number                      // method: last auto-increment rowid
-db.query(sql: string, params: Array<unknown>) -> Array<Row>       // method
-db.query_one(sql: string, params: Array<unknown>) -> Option<Row>  // method: first row or None
+db.query(sql: Sql, params: Array<unknown>) -> Array<Row>          // method
+db.query_one(sql: Sql, params: Array<unknown>) -> Option<Row>     // method: first row or None
 db.close() -> void                                 // method
 ```
+
+`Sql` is the text of a query, and its text is fixed when the program is
+written (D52). A value passes where a `Sql` is declared when it is a string
+literal with no `${}`, a literal whose every `${}` holds a constant, a `+` of
+constants, a module `const` or a `let` that no `mut` reassigns whose
+initializer is one of these, or a value already typed `Sql`. Anything else,
+a parameter, a call result or a reassigned `let`, is E0239, whose help
+rewrites a literal query to `?` placeholders and the parameter array. Values
+belong in the array, where SQLite binds them as data. A function that takes a
+query from its caller declares the parameter `sql: Sql`, and its callers are
+then held to the same rule.
+
+When the structure of a query has to vary (an `IN (?, ?, ?)` list sized at
+run time, a column picked from a fixed list), build the text, pass it through
+`taint.sanitize` or `taint.trust_unchecked`, and hand the result to
+`from_trusted`. Both `taint` names and `from_trusted` are greppable, so every
+query that is not a constant can be found. A constant imported from another
+module is a `Sql` only when its module declares it one
+(`pub const BY_ID: sqlite.Sql = "..."`); a plain `string` constant from
+another module is E0239, because this module cannot see its initializer.
 
 ## std/decimal
 

@@ -37,6 +37,64 @@ It shows the one modelling point SQLite forces: it has no boolean type, so a
 domain shape as separate types and map between them, rather than casting an
 integer to a `bool`.
 
+### The query text is a constant
+
+The first argument of `exec`, `run`, `query` and `query_one` is a
+`sqlite.Sql`, and its text has to be fixed when the program is written (D52).
+A value goes in the parameter array, where SQLite binds it as data, never into
+the text:
+
+```glyph
+import std/sqlite
+
+fn find(db: sqlite.Db, name: string) -> number {
+  let rows = db.query("SELECT * FROM users WHERE name = ?", [name])
+  return rows.length
+}
+```
+
+Building the text from `name` instead, with `${name}` or `+`, is E0239, and
+so is hoisting it into a `let` first, because the checker follows the name to
+what it was built from. The error's help writes the placeholder version for
+you:
+
+```
+[E0239] `db.query` runs its first argument as SQL, and this one is built from
+`name` at run time, so a value with a quote in it can change the query
+Help: Pass the value as a parameter: `db.query("SELECT * FROM users WHERE name = ?", [name])`.
+```
+
+Constants are fine however they are put together: a literal, a module
+`const`, a `let` no `mut` reassigns, `"SELECT * FROM ${TABLE}"` with `TABLE`
+a `const`, or a `+` of those. A function that takes a query from its caller
+declares the parameter `sql: sqlite.Sql`, and its callers' arguments are then
+checked the same way. `exec` takes no parameters, so a statement that needs a
+value goes through `run(sql, [values])`.
+
+When the structure itself has to vary, say an `IN (?, ?, ?)` list sized at run
+time, build the text, mark it with `taint.trust_unchecked` (or
+`taint.sanitize` with a cleaning function), and pass it through
+`sqlite.from_trusted`:
+
+```glyph
+import std/sqlite
+import std/taint
+import std/array
+import std/string
+
+fn by_ids(db: sqlite.Db, ids: Array<int>) -> number {
+  let marks = string.join(array.map(ids, fn(i: int) -> string { return "?" }), ", ")
+  let text = "SELECT * FROM tasks WHERE id IN (" + marks + ")"
+  let sql = sqlite.from_trusted(taint.trust_unchecked(text))
+  return db.query(sql, ids).length
+}
+```
+
+`from_trusted` takes a `taint.Trusted<string>`, so a plain `string` there is
+refused, and both names are greppable: every query that is not a constant is
+one search away. This holds for `std/sqlite` only. The npm drivers below take
+a `string`, and the compiler does not check what goes into it.
+
 ## PostgreSQL (`pg`)
 
 `pg` is class-based (`new Pool`) and ships its types in `@types/pg`, so install

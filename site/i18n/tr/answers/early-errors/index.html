@@ -1,7 +1,7 @@
 ---
 title: Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor? · Glyph
 description: Glyph, async bir fn dışındaki await'i, değer üretmeyen bir match arm'ını ve eksik bir mut'u tsc'den önce, kuralı ve düzeltmesiyle birlikte kendi kaynak kodunuza göre bildirir.
-source_hash: c5e5837369abce5e
+source_hash: 711a41075e3cd266
 prev: /answers/tooling/ | &larr; Önceki | Editör, debug ve hata deneyimi nasıl?
 next: /answers/parse-errors/ | Sonraki &rarr; | Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum?
 ---
@@ -270,9 +270,9 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <h3 class="ak-h3" id="member-typo">Bir dizi ya da string üzerinde yanlış yazılmış bir üye<a class="ak-anchor" href="#member-typo" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <p class="ak-lede">
-        Bir dizi ya da string üzerindeki yanlış yazılmış bir üye, eskiden <code>tsc</code>'yi bekleyen diğer durumdu. <code>xs.lenght</code>, "did you mean <code>length</code>" ile birlikte <code>E0210</code>'dur; bir record'ın alan okuması nasıl alanlarına karşı kontrol ediliyorsa, bu da TypeScript kütüphanesinin diziler ve string'ler için bildirdiği üyelere karşı kontrol edilir.
+        Bir dizi ya da string üzerindeki yanlış yazılmış bir üye, eskiden <code>tsc</code>'yi bekleyen diğer durumdu. <code>xs.lenght</code>, "did you mean <code>length</code>" ile birlikte <code>E0210</code>'dur; bir record'ın alan okuması nasıl alanlarına karşı kontrol ediliyorsa, bu da TypeScript kütüphanesinin diziler ve string'ler için bildirdiği üyelere karşı kontrol edilir. Aynısı, parametresinin yazılı bir tipi olmayan bir callback'in içinde de geçerli: parametre, konumunun beklediği tipi alır, yani <code>users.map(fn(u) -&gt; string { return u.nmae })</code> içinde <code>u</code> bir <code>User</code>'dır ve yazım hatası <code>E0210</code> olur.
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> ikisini de reddederdi, yani onu çalıştıran bir build zaten kırmızıydı; değişen, checker'ın ve onun üzerine kurulu her şeyin bunları önce görmesi.</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> üçünü de reddederdi, yani onu çalıştıran bir build zaten kırmızıydı; değişen, checker'ın ve onun üzerine kurulu her şeyin bunları önce görmesi.</p></div>
 
       <h2 class="ak-h" id="and-three-more-since-0-1-133">Ve 0.1.133'ten beri üç tane daha<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
@@ -522,12 +522,12 @@ string.repeeat(s, 2)
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> bir çağrıyı yalnızca Glyph'in checker'ı imzasını bildiğinde async olarak görür</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
-                <p><code>E0238</code> bir çağrının async olduğunu yalnızca Glyph'in checker'ı imzasını bildiğinde anlar; bu yüzden bir npm paketinden ya da node yerleşiğinden gelen bir promise hâlâ sessizce düşürülebilir. <code>forEach</code>'e ya da bir zamanlayıcıya verilen <code>async</code> bir callback de henüz reddedilmiyor: bu kural callback yerlerinin modellenmesini gerektiriyor ve planlandı.</p>
+                <p><code>E0238</code> bir çağrının async olduğunu yalnızca Glyph'in checker'ı imzasını bildiğinde anlar, bu yüzden bir npm paketinden ya da bir node builtin'inden gelen bir promise hâlâ sessizce düşebilir. <code>forEach</code>'e, bir timer'a, bir socket handler'ına ya da herhangi bir <code>fn(...) -&gt; void</code> parametresine verilen bir <code>async</code> callback, onu hiçbir şey beklemediği için <code>E0211</code> ile reddedilir.</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> ve <code>zip</code> hâlâ şikâyet etmeden <code>async</code> bir callback alıyor</span></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bir çağrının dışında <code>fn</code> ile <code>async fn</code>'i karıştırmak genel bir mesajla reddedilir</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
-                <p><code>array.map</code>, <code>flat_map</code> ve <code>zip</code> hâlâ şikâyet etmeden <code>async</code> bir callback alıyor ve <code>[object Promise]</code> olarak yazdırılan, bekleyen değerlerden oluşan bir dizi döndürüyor; predicate alan beş dizi fonksiyonu ise bunu callback'te <code>E0211</code> ile durduruyor. Diğer üçünü aynı şekilde modellemek, Glyph'in işleri eşzamanlı çalıştırma yolu olan <code>par.all(array.map(items, async fn ...))</code>'yi de reddeder, çünkü bekleyen değerlerden oluşan bir dizinin dilde bir yazımı yok. Bu eksik bir girdi değil bir tip sistemi kararı, bu yüzden açık.</p>
+                <p>Bir çağrıda, yanlış türden fonksiyon yapıştırabileceğiniz bir yardım alır: <code>task.detach</code>'e verilen senkron bir <code>tick</code>'e <code>async fn() -&gt; void { tick() }</code> vermesi ya da <code>async fn tick()</code> olarak tanımlaması söylenir. Bir <code>let</code>'te <code>fn(...) -&gt; void</code>'e bağlanan, döndürülen ya da bir alanda saklanan bir <code>async fn</code> de reddedilir, ama mesaj yalnızca <code>expected `function`, found `async function`</code> der ve düzeltmeyi size bırakır.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Üst düzey bir <code>await</code>'e izin veriliyor</span></span>

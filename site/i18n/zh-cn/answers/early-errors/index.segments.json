@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "zh-cn",
-  "source_hash": "c5e5837369abce5e",
+  "source_hash": "711a41075e3cd266",
   "segments": [
     {
       "id": "title",
@@ -599,16 +599,16 @@
       "tr": "数组或字符串上拼错的成员名"
     },
     {
-      "id": "h-6a0adcec",
+      "id": "h-4bd37848",
       "kind": "html",
-      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields.",
-      "tr": "数组或字符串上拼错的成员名，是另一种以前要等 <code>tsc</code> 才发现的情况。<code>xs.lenght</code> 是 <code>E0210</code>，并提示 \"did you mean <code>length</code>\"，检查依据是 TypeScript 库为数组和字符串声明的成员，就像读取记录字段时依据它的字段来检查一样。"
+      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields. The same holds inside a callback whose parameter has no written type: the parameter takes the type its position expects, so in <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> is a <code>User</code> and the typo is <code>E0210</code>.",
+      "tr": "数组或字符串上拼错的成员名，是另一种以前要等 <code>tsc</code> 才发现的情况。<code>xs.lenght</code> 是 <code>E0210</code>，并提示 \"did you mean <code>length</code>\"，检查依据是 TypeScript 库为数组和字符串声明的成员，就像读取记录字段时依据它的字段来检查一样。参数没有写类型的回调里也是如此：参数取它所在位置期望的类型，所以在 <code>users.map(fn(u) -&gt; string { return u.nmae })</code> 中 <code>u</code> 是 <code>User</code>，拼写错误是 <code>E0210</code>。"
     },
     {
-      "id": "h-f84d5e4f",
+      "id": "h-76465a74",
       "kind": "html",
-      "en": "<code>tsc</code> would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
-      "tr": "<code>tsc</code> 本来也会拒绝这两种情况，所以运行它的构建本来就已经失败；变化在于检查器以及构建在它之上的一切会先看到它们。"
+      "en": "<code>tsc</code> would have refused all three, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
+      "tr": "<code>tsc</code> 本来也会拒绝这三种情况，所以运行它的构建本来就已经失败；变化在于检查器以及构建在它之上的一切会先看到它们。"
     },
     {
       "id": "h-3d087635",
@@ -1169,22 +1169,22 @@
       "tr": "详情"
     },
     {
-      "id": "h-58e46187",
+      "id": "h-464f4cba",
       "kind": "html",
-      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.",
-      "tr": "只有当 Glyph 的检查器知道调用的签名时，<code>E0238</code> 才知道它是异步的，所以来自 npm 包或 node 内置模块的 promise 仍可能被悄悄丢掉。传给 <code>forEach</code> 或定时器的 <code>async</code> 回调目前也还不会被拒绝：这条规则需要先对回调位置建模，已在计划中。"
+      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code>, a timer, a socket handler or any <code>fn(...) -&gt; void</code> parameter is refused with <code>E0211</code>, since nothing waits for it.",
+      "tr": "<code>E0238</code> 只有在 Glyph 的检查器拿到调用的签名时才知道它是 async 的，所以来自 npm 包或 node 内置模块的 promise 仍可能被悄悄丢弃。传给 <code>forEach</code>、定时器、socket 处理函数或任何 <code>fn(...) -&gt; void</code> 参数的 <code>async</code> 回调会被 <code>E0211</code> 拒绝，因为没有任何东西等待它。"
     },
     {
-      "id": "h-c6868905",
+      "id": "h-170e1714",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
-      "tr": "<code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 仍然会毫无异议地接受 <code>async</code> 回调"
+      "en": "Mixing up <code>fn</code> and <code>async fn</code> outside a call is refused with a generic message",
+      "tr": "在调用之外混用 <code>fn</code> 和 <code>async fn</code> 会被拒绝，但只给出通用的消息"
     },
     {
-      "id": "h-ef5ceb2e",
+      "id": "h-a80f8a50",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open.",
-      "tr": "<code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 仍然会毫无异议地接受 <code>async</code> 回调，并返回一个由待定值组成的数组，打印出来是 <code>[object Promise]</code>；五个接受谓词的数组函数确实会阻止这种情况，在回调处报告 <code>E0211</code>。用同样方式为另外三个建模，也会拒绝 <code>par.all(array.map(items, async fn ...))</code>，而这正是 Glyph 并发执行任务的方式，因为由待定值组成的数组在语言中没有写法。这是一个类型系统层面的决定，而不是少了一个条目，所以它仍是开放问题。"
+      "en": "At a call, the wrong kind of function gets a help you can paste: a sync <code>tick</code> given to <code>task.detach</code> is told to pass <code>async fn() -&gt; void { tick() }</code> or declare <code>async fn tick()</code>. An <code>async fn</code> bound to a <code>fn(...) -&gt; void</code> in a <code>let</code>, returned, or stored in a field is refused too, but the message only says <code>expected `function`, found `async function`</code> and leaves the fix to you.",
+      "tr": "在调用处，类型不对的函数会得到一条可以直接粘贴的帮助：传给 <code>task.detach</code> 的同步 <code>tick</code> 会被告知传入 <code>async fn() -&gt; void { tick() }</code> 或声明为 <code>async fn tick()</code>。在 <code>let</code> 中绑定到 <code>fn(...) -&gt; void</code>、被返回或存进字段的 <code>async fn</code> 也会被拒绝，但消息只说 <code>expected `function`, found `async function`</code>，修复留给你自己。"
     },
     {
       "id": "h-3873e42e",

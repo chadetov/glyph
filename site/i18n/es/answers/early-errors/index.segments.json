@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "es",
-  "source_hash": "c5e5837369abce5e",
+  "source_hash": "711a41075e3cd266",
   "segments": [
     {
       "id": "title",
@@ -599,16 +599,16 @@
       "tr": "Un miembro mal escrito en un array o un string"
     },
     {
-      "id": "h-6a0adcec",
+      "id": "h-4bd37848",
       "kind": "html",
-      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields.",
-      "tr": "Un miembro mal escrito en un array o un string es el otro caso que antes esperaba a <code>tsc</code>. <code>xs.lenght</code> es <code>E0210</code> con \"did you mean <code>length</code>\", comprobado contra los miembros que la librería de TypeScript declara para arrays y strings, igual que la lectura de un campo de un record se comprueba contra sus campos."
+      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields. The same holds inside a callback whose parameter has no written type: the parameter takes the type its position expects, so in <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> is a <code>User</code> and the typo is <code>E0210</code>.",
+      "tr": "Un miembro mal escrito en un array o un string es el otro caso que antes esperaba a <code>tsc</code>. <code>xs.lenght</code> es <code>E0210</code> con \"did you mean <code>length</code>\", comprobado contra los miembros que la librería de TypeScript declara para arrays y strings, igual que la lectura de un campo de un record se comprueba contra sus campos. Lo mismo vale dentro de un callback cuyo parámetro no tiene tipo escrito: el parámetro toma el tipo que espera su posición, así que en <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> es un <code>User</code> y la errata es <code>E0210</code>."
     },
     {
-      "id": "h-f84d5e4f",
+      "id": "h-76465a74",
       "kind": "html",
-      "en": "<code>tsc</code> would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
-      "tr": "<code>tsc</code> habría rechazado los dos, así que un build que lo ejecutara ya estaba en rojo; lo que cambia es que el checker, y todo lo que se construye sobre él, los ve primero."
+      "en": "<code>tsc</code> would have refused all three, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
+      "tr": "<code>tsc</code> habría rechazado los tres, así que un build que lo ejecutara ya estaba en rojo; lo que cambia es que el checker, y todo lo que se construye sobre él, los ve primero."
     },
     {
       "id": "h-3d087635",
@@ -1169,22 +1169,22 @@
       "tr": "Detalles"
     },
     {
-      "id": "h-58e46187",
+      "id": "h-464f4cba",
       "kind": "html",
-      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.",
-      "tr": "<code>E0238</code> solo sabe que una llamada es asíncrona cuando el checker de Glyph tiene su firma, así que una promise de un paquete npm o de un builtin de node todavía puede descartarse en silencio. Un callback <code>async</code> pasado a <code>forEach</code> o a un timer tampoco se rechaza aún: esa regla necesita modelar los slots de callback, y está prevista."
+      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code>, a timer, a socket handler or any <code>fn(...) -&gt; void</code> parameter is refused with <code>E0211</code>, since nothing waits for it.",
+      "tr": "<code>E0238</code> solo sabe que una llamada es async cuando el checker de Glyph tiene su firma, así que una promesa de un paquete npm o de un builtin de node todavía puede descartarse en silencio. Un callback <code>async</code> pasado a <code>forEach</code>, a un timer, a un handler de socket o a cualquier parámetro <code>fn(...) -&gt; void</code> se rechaza con <code>E0211</code>, porque nada lo espera."
     },
     {
-      "id": "h-c6868905",
+      "id": "h-170e1714",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
-      "tr": "<code>array.map</code>, <code>flat_map</code> y <code>zip</code> todavía aceptan un callback <code>async</code> sin quejarse"
+      "en": "Mixing up <code>fn</code> and <code>async fn</code> outside a call is refused with a generic message",
+      "tr": "Confundir <code>fn</code> y <code>async fn</code> fuera de una llamada se rechaza con un mensaje genérico"
     },
     {
-      "id": "h-ef5ceb2e",
+      "id": "h-a80f8a50",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open.",
-      "tr": "<code>array.map</code>, <code>flat_map</code> y <code>zip</code> todavía aceptan un callback <code>async</code> sin quejarse y devuelven un array de valores pendientes, que se imprime como <code>[object Promise]</code>; las cinco funciones de array que reciben un predicado sí lo impiden, con <code>E0211</code> en el callback. Modelar las otras tres de la misma forma también rechazaría <code>par.all(array.map(items, async fn ...))</code>, que es como Glyph ejecuta trabajo en concurrencia, porque un array de valores pendientes no tiene forma de escribirse en el lenguaje. Es una decisión del sistema de tipos y no una entrada que falte, así que sigue abierta."
+      "en": "At a call, the wrong kind of function gets a help you can paste: a sync <code>tick</code> given to <code>task.detach</code> is told to pass <code>async fn() -&gt; void { tick() }</code> or declare <code>async fn tick()</code>. An <code>async fn</code> bound to a <code>fn(...) -&gt; void</code> in a <code>let</code>, returned, or stored in a field is refused too, but the message only says <code>expected `function`, found `async function`</code> and leaves the fix to you.",
+      "tr": "En una llamada, el tipo equivocado de función recibe una ayuda que puedes pegar: a un <code>tick</code> síncrono pasado a <code>task.detach</code> se le indica pasar <code>async fn() -&gt; void { tick() }</code> o declarar <code>async fn tick()</code>. Una <code>async fn</code> asignada a un <code>fn(...) -&gt; void</code> en un <code>let</code>, devuelta o guardada en un campo también se rechaza, pero el mensaje solo dice <code>expected `function`, found `async function`</code> y te deja la corrección a ti."
     },
     {
       "id": "h-3873e42e",

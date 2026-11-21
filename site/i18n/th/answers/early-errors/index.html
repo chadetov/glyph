@@ -1,7 +1,7 @@
 ---
 title: ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า? · Glyph
 description: Glyph รายงาน await นอก async fn, arm ของ match ที่ไม่ให้ค่า และ mut ที่ขาดไป เทียบกับซอร์สของคุณ พร้อมกฎและวิธีแก้ ก่อน tsc
-source_hash: c5e5837369abce5e
+source_hash: 711a41075e3cd266
 prev: /answers/tooling/ | &larr; ก่อนหน้า | ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?
 next: /answers/parse-errors/ | ถัดไป &rarr; | เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?
 ---
@@ -270,9 +270,9 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <h3 class="ak-h3" id="member-typo">member ที่สะกดผิดบน array หรือ string<a class="ak-anchor" href="#member-typo" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <p class="ak-lede">
-        member ที่สะกดผิดบน array หรือ string คืออีกกรณีที่เคยต้องรอ <code>tsc</code> <code>xs.lenght</code> เป็น <code>E0210</code> พร้อม "did you mean <code>length</code>" ตรวจเทียบกับ member ที่ไลบรารีของ TypeScript ประกาศไว้สำหรับ array และ string แบบเดียวกับที่การอ่าน field ของ record ถูกตรวจเทียบกับ field ของมัน
+        member ที่สะกดผิดบน array หรือ string คืออีกกรณีที่เคยต้องรอ <code>tsc</code> <code>xs.lenght</code> เป็น <code>E0210</code> พร้อม "did you mean <code>length</code>" ตรวจเทียบกับ member ที่ไลบรารีของ TypeScript ประกาศไว้สำหรับ array และ string แบบเดียวกับที่การอ่าน field ของ record ถูกตรวจเทียบกับ field ของมัน เช่นเดียวกันภายใน callback ที่พารามิเตอร์ไม่ได้เขียนชนิดไว้ พารามิเตอร์จะได้ชนิดที่ตำแหน่งของมันคาดหวัง ดังนั้นใน <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> เป็น <code>User</code> และการพิมพ์ผิดเป็น <code>E0210</code>
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> ก็จะปฏิเสธทั้งคู่ build ที่รันมันจึงแดงอยู่แล้ว สิ่งที่เปลี่ยนคือตัวตรวจและทุกอย่างที่สร้างบนมันเห็นก่อน</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> ก็จะปฏิเสธทั้งสามกรณี build ที่รันมันจึงแดงอยู่แล้ว สิ่งที่เปลี่ยนคือตัวตรวจและทุกอย่างที่สร้างบนมันเห็นก่อน</p></div>
 
       <h2 class="ak-h" id="and-three-more-since-0-1-133">และอีกสามอย่าง ตั้งแต่ 0.1.133<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
@@ -522,12 +522,12 @@ string.repeeat(s, 2)
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> รู้ว่าการเรียกเป็น async ก็ต่อเมื่อตัวตรวจของ Glyph มี signature ของมัน</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
-                <p><code>E0238</code> รู้ว่าการเรียกเป็น async ก็ต่อเมื่อตัวตรวจของ Glyph มี signature ของมัน ดังนั้น promise จากแพ็กเกจ npm หรือ builtin ของ node ยังอาจถูกทิ้งไปเงียบๆ ได้ callback แบบ <code>async</code> ที่ส่งให้ <code>forEach</code> หรือ timer ก็ยังไม่ถูกปฏิเสธเช่นกัน: กฎนี้ต้องจำลองตำแหน่งของ callback ก่อน และอยู่ในแผนแล้ว</p>
+                <p><code>E0238</code> จะรู้ว่าการเรียกเป็น async ก็ต่อเมื่อตัวตรวจของ Glyph มี signature ของมัน ดังนั้น promise จากแพ็กเกจ npm หรือ builtin ของ node ยังอาจถูกทิ้งไปอย่างเงียบ ๆ callback แบบ <code>async</code> ที่ส่งให้ <code>forEach</code>, timer, handler ของ socket หรือพารามิเตอร์ <code>fn(...) -&gt; void</code> ใด ๆ จะถูกปฏิเสธด้วย <code>E0211</code> เพราะไม่มีอะไรรอมัน</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น</span></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การสลับ <code>fn</code> กับ <code>async fn</code> นอกการเรียกจะถูกปฏิเสธด้วยข้อความทั่วไป</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
-                <p><code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น และคืน array ของค่าที่ยังค้างอยู่ ซึ่งพิมพ์ออกมาเป็น <code>[object Promise]</code> ฟังก์ชัน array ห้าตัวที่รับ predicate หยุดมันได้ ด้วย <code>E0211</code> ที่ callback การ model อีกสามตัวแบบเดียวกันจะปฏิเสธ <code>par.all(array.map(items, async fn ...))</code> ด้วย ซึ่งเป็นวิธีที่ Glyph รันงานพร้อมกัน เพราะ array ของค่าที่ยังค้างไม่มีวิธีเขียนในภาษา นั่นเป็นการตัดสินใจเรื่อง type system ไม่ใช่รายการที่ขาด จึงยังเปิดอยู่</p>
+                <p>ในการเรียก ฟังก์ชันผิดชนิดจะได้คำแนะนำที่วางใช้ได้ทันที: <code>tick</code> แบบ sync ที่ส่งให้ <code>task.detach</code> จะถูกบอกให้ส่ง <code>async fn() -&gt; void { tick() }</code> หรือประกาศเป็น <code>async fn tick()</code> ส่วน <code>async fn</code> ที่ผูกกับ <code>fn(...) -&gt; void</code> ใน <code>let</code> ที่ถูก return หรือเก็บไว้ในฟิลด์ก็ถูกปฏิเสธเช่นกัน แต่ข้อความบอกเพียง <code>expected `function`, found `async function`</code> และปล่อยให้คุณแก้เอง</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>await</code> ระดับบนสุดได้รับอนุญาต</span></span>

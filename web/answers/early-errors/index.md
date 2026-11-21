@@ -489,7 +489,7 @@ Every code
 
   **Details**
 
-  `E0238` only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An `async` callback passed to a timer, a socket handler or any `fn(...) -> void` parameter is refused with `E0211`, since nothing waits for it; an array's own `forEach` joins them once the built-in array methods' callbacks have types.
+  `E0238` only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An `async` callback passed to `forEach`, a timer, a socket handler or any `fn(...) -> void` parameter is refused with `E0211`, since nothing waits for it.
 
 - Mixing up `fn` and `async fn` outside a call is refused with a generic message
 

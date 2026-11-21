@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "ru",
-  "source_hash": "c5e5837369abce5e",
+  "source_hash": "711a41075e3cd266",
   "segments": [
     {
       "id": "title",
@@ -599,16 +599,16 @@
       "tr": "Опечатка в имени члена массива или строки"
     },
     {
-      "id": "h-6a0adcec",
+      "id": "h-4bd37848",
       "kind": "html",
-      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields.",
-      "tr": "Опечатка в имени члена массива или строки это другой случай, который раньше ждал <code>tsc</code>. <code>xs.lenght</code> даёт <code>E0210</code> с «did you mean <code>length</code>», и проверяется по членам, которые библиотека TypeScript объявляет для массивов и строк, так же как чтение поля записи проверяется по её полям."
+      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields. The same holds inside a callback whose parameter has no written type: the parameter takes the type its position expects, so in <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> is a <code>User</code> and the typo is <code>E0210</code>.",
+      "tr": "Опечатка в имени члена массива или строки это другой случай, который раньше ждал <code>tsc</code>. <code>xs.lenght</code> даёт <code>E0210</code> с «did you mean <code>length</code>», и проверяется по членам, которые библиотека TypeScript объявляет для массивов и строк, так же как чтение поля записи проверяется по её полям. То же верно внутри колбэка, у параметра которого не написан тип: параметр получает тип, которого ждёт его позиция, поэтому в <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> имеет тип <code>User</code>, а опечатка даёт <code>E0210</code>."
     },
     {
-      "id": "h-f84d5e4f",
+      "id": "h-76465a74",
       "kind": "html",
-      "en": "<code>tsc</code> would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
-      "tr": "<code>tsc</code> отклонил бы оба случая, так что сборка, которая его запускала, и так была красной; изменилось то, что проверка Glyph и всё, что на ней построено, видят их первыми."
+      "en": "<code>tsc</code> would have refused all three, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
+      "tr": "<code>tsc</code> отклонил бы все три случая, так что сборка, которая его запускала, и так была красной; изменилось то, что проверка Glyph и всё, что на ней построено, видят их первыми."
     },
     {
       "id": "h-3d087635",
@@ -1169,22 +1169,22 @@
       "tr": "Подробнее"
     },
     {
-      "id": "h-58e46187",
+      "id": "h-464f4cba",
       "kind": "html",
-      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.",
-      "tr": "<code>E0238</code> знает, что вызов async, только если у проверки Glyph есть его сигнатура, поэтому promise из npm-пакета или встроенного модуля node всё ещё может быть молча отброшен. Колбэк <code>async</code>, переданный в <code>forEach</code> или таймер, тоже пока не отклоняется: для этого правила нужно смоделировать позиции колбэков, и оно запланировано."
+      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code>, a timer, a socket handler or any <code>fn(...) -&gt; void</code> parameter is refused with <code>E0211</code>, since nothing waits for it.",
+      "tr": "<code>E0238</code> знает, что вызов асинхронный, только когда у проверки Glyph есть его сигнатура, поэтому promise из npm-пакета или встроенного модуля node всё ещё может быть молча потерян. <code>async</code>-колбэк, переданный в <code>forEach</code>, таймер, обработчик сокета или любой параметр <code>fn(...) -&gt; void</code>, отклоняется с <code>E0211</code>, потому что его никто не ждёт."
     },
     {
-      "id": "h-c6868905",
+      "id": "h-170e1714",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
-      "tr": "<code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк"
+      "en": "Mixing up <code>fn</code> and <code>async fn</code> outside a call is refused with a generic message",
+      "tr": "Путаница <code>fn</code> и <code>async fn</code> вне вызова отклоняется с общим сообщением"
     },
     {
-      "id": "h-ef5ceb2e",
+      "id": "h-a80f8a50",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open.",
-      "tr": "<code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк и возвращают массив ожидающих значений, который печатается как <code>[object Promise]</code>; пять функций для массивов, принимающих предикат, это останавливают, выдавая <code>E0211</code> на колбэке. Если смоделировать так же остальные три, будет отклонён и <code>par.all(array.map(items, async fn ...))</code>, а именно так Glyph выполняет работу конкурентно, потому что у массива ожидающих значений нет записи в языке. Это решение о системе типов, а не пропущенная запись, поэтому вопрос открыт."
+      "en": "At a call, the wrong kind of function gets a help you can paste: a sync <code>tick</code> given to <code>task.detach</code> is told to pass <code>async fn() -&gt; void { tick() }</code> or declare <code>async fn tick()</code>. An <code>async fn</code> bound to a <code>fn(...) -&gt; void</code> in a <code>let</code>, returned, or stored in a field is refused too, but the message only says <code>expected `function`, found `async function`</code> and leaves the fix to you.",
+      "tr": "В вызове функция не того вида получает подсказку, которую можно вставить: синхронному <code>tick</code>, переданному в <code>task.detach</code>, предлагают передать <code>async fn() -&gt; void { tick() }</code> или объявить <code>async fn tick()</code>. <code>async fn</code>, привязанная к <code>fn(...) -&gt; void</code> в <code>let</code>, возвращённая или сохранённая в поле, тоже отклоняется, но сообщение говорит лишь <code>expected `function`, found `async function`</code> и оставляет исправление вам."
     },
     {
       "id": "h-3873e42e",

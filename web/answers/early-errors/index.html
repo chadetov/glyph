@@ -1286,7 +1286,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> sees a call as async only when Glyph's checker has its signature</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
-                <p><code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to a timer, a socket handler or any <code>fn(...) -&gt; void</code> parameter is refused with <code>E0211</code>, since nothing waits for it; an array's own <code>forEach</code> joins them once the built-in array methods' callbacks have types.</p>
+                <p><code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code>, a timer, a socket handler or any <code>fn(...) -&gt; void</code> parameter is refused with <code>E0211</code>, since nothing waits for it.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Mixing up <code>fn</code> and <code>async fn</code> outside a call is refused with a generic message</span></span>

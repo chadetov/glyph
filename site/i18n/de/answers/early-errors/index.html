@@ -1,7 +1,7 @@
 ---
 title: Warum findet Glyph, was tsc findet, nur früher? · Glyph
 description: Glyph meldet await außerhalb einer async fn, einen match-Arm, der keinen Wert erzeugt, und ein fehlendes mut an deinem Quellcode, mit der Regel und dem Fix, vor tsc.
-source_hash: c5e5837369abce5e
+source_hash: 711a41075e3cd266
 prev: /answers/tooling/ | &larr; Zurück | Wie sieht es mit Editor, Debugging und Fehlermeldungen aus?
 next: /answers/parse-errors/ | Weiter &rarr; | Wenn das Parsen fehlschlägt, erfahre ich warum?
 ---
@@ -270,9 +270,9 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <h3 class="ak-h3" id="member-typo">Ein falsch geschriebener Member auf einem Array oder einem String<a class="ak-anchor" href="#member-typo" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <p class="ak-lede">
-        Ein falsch geschriebener Member auf einem Array oder einem String ist der andere Fall, der früher auf <code>tsc</code> wartete. <code>xs.lenght</code> ist <code>E0210</code> mit "did you mean <code>length</code>", geprüft gegen die Member, die die TypeScript-Bibliothek für Arrays und Strings deklariert, so wie ein Feldzugriff auf einen Record gegen seine Felder geprüft wird.
+        Ein falsch geschriebener Member auf einem Array oder einem String ist der andere Fall, der früher auf <code>tsc</code> wartete. <code>xs.lenght</code> ist <code>E0210</code> mit "did you mean <code>length</code>", geprüft gegen die Member, die die TypeScript-Bibliothek für Arrays und Strings deklariert, so wie ein Feldzugriff auf einen Record gegen seine Felder geprüft wird. Dasselbe gilt in einem Callback, dessen Parameter keinen geschriebenen Typ hat: Der Parameter bekommt den Typ, den seine Position erwartet, also ist in <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> ein <code>User</code> und der Tippfehler <code>E0210</code>.
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> hätte beides abgelehnt, also war ein Build, der es ausführte, schon rot; die Änderung ist, dass der Checker und alles, was darauf aufbaut, sie zuerst sieht.</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> hätte alle drei abgelehnt, also war ein Build, der es ausführte, schon rot; die Änderung ist, dass der Checker und alles, was darauf aufbaut, sie zuerst sieht.</p></div>
 
       <h2 class="ak-h" id="and-three-more-since-0-1-133">Und drei weitere seit 0.1.133<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
@@ -522,12 +522,12 @@ string.repeeat(s, 2)
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> erkennt einen Aufruf nur dann als async, wenn Glyphs Checker seine Signatur kennt</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
-                <p><code>E0238</code> weiß nur dann, dass ein Aufruf async ist, wenn Glyphs Checker seine Signatur kennt, daher kann ein Promise aus einem npm-Paket oder einem node-Builtin weiterhin still verworfen werden. Ein <code>async</code>-Callback, der an <code>forEach</code> oder einen Timer übergeben wird, wird ebenfalls noch nicht abgelehnt: Diese Regel braucht modellierte Callback-Stellen und ist geplant.</p>
+                <p><code>E0238</code> weiß nur dann, dass ein Aufruf async ist, wenn Glyphs Checker seine Signatur kennt, daher kann ein Promise aus einem npm-Paket oder einem node-Builtin weiterhin still verworfen werden. Ein <code>async</code>-Callback, der an <code>forEach</code>, einen Timer, einen Socket-Handler oder irgendeinen <code>fn(...) -&gt; void</code>-Parameter übergeben wird, wird mit <code>E0211</code> abgelehnt, weil nichts auf ihn wartet.</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> und <code>zip</code> nehmen weiterhin ohne Beschwerde einen <code>async</code>-Callback</span></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Wer außerhalb eines Aufrufs <code>fn</code> und <code>async fn</code> verwechselt, wird mit einer allgemeinen Meldung abgelehnt</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
-                <p><code>array.map</code>, <code>flat_map</code> und <code>zip</code> nehmen weiterhin ohne Beschwerde einen <code>async</code>-Callback und liefern ein Array ausstehender Werte zurück, das als <code>[object Promise]</code> ausgegeben wird; die fünf Array-Funktionen, die ein Prädikat nehmen, stoppen es, mit <code>E0211</code> am Callback. Die anderen drei genauso zu modellieren, würde auch <code>par.all(array.map(items, async fn ...))</code> ablehnen, und so führt Glyph Arbeit nebenläufig aus, weil ein Array ausstehender Werte in der Sprache keine Schreibweise hat. Das ist eine Entscheidung des Typsystems und kein fehlender Eintrag, also ist es offen.</p>
+                <p>Bei einem Aufruf bekommt die falsche Art von Funktion eine Hilfe, die man einfügen kann: Einem synchronen <code>tick</code>, das an <code>task.detach</code> übergeben wird, wird gesagt, <code>async fn() -&gt; void { tick() }</code> zu übergeben oder <code>async fn tick()</code> zu deklarieren. Eine <code>async fn</code>, die in einem <code>let</code> an ein <code>fn(...) -&gt; void</code> gebunden, zurückgegeben oder in einem Feld gespeichert wird, wird ebenfalls abgelehnt, aber die Meldung sagt nur <code>expected `function`, found `async function`</code> und überlässt die Korrektur dir.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein <code>await</code> auf oberster Ebene ist erlaubt</span></span>

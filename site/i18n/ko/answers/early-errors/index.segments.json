@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "ko",
-  "source_hash": "c5e5837369abce5e",
+  "source_hash": "711a41075e3cd266",
   "segments": [
     {
       "id": "title",
@@ -599,16 +599,16 @@
       "tr": "배열이나 문자열의 철자가 틀린 멤버"
     },
     {
-      "id": "h-6a0adcec",
+      "id": "h-4bd37848",
       "kind": "html",
-      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields.",
-      "tr": "배열이나 문자열의 철자가 틀린 멤버도 예전에는 <code>tsc</code>를 기다리던 경우입니다. <code>xs.lenght</code>는 이제 \"did you mean <code>length</code>\"와 함께 <code>E0210</code>이며, 레코드의 필드 읽기를 필드에 대해 검사하듯 TypeScript 라이브러리가 배열과 문자열에 선언한 멤버에 대해 검사합니다."
+      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields. The same holds inside a callback whose parameter has no written type: the parameter takes the type its position expects, so in <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> is a <code>User</code> and the typo is <code>E0210</code>.",
+      "tr": "배열이나 문자열의 철자가 틀린 멤버도 예전에는 <code>tsc</code>를 기다리던 경우입니다. <code>xs.lenght</code>는 이제 \"did you mean <code>length</code>\"와 함께 <code>E0210</code>이며, 레코드의 필드 읽기를 필드에 대해 검사하듯 TypeScript 라이브러리가 배열과 문자열에 선언한 멤버에 대해 검사합니다. 매개변수에 타입을 적지 않은 콜백 안에서도 마찬가지입니다. 매개변수는 그 위치가 기대하는 타입을 받으므로 <code>users.map(fn(u) -&gt; string { return u.nmae })</code>에서 <code>u</code>는 <code>User</code>이고 오타는 <code>E0210</code>입니다."
     },
     {
-      "id": "h-f84d5e4f",
+      "id": "h-76465a74",
       "kind": "html",
-      "en": "<code>tsc</code> would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
-      "tr": "<code>tsc</code>도 둘 다 거부했을 것이므로 그것을 실행한 빌드는 이미 실패했습니다. 바뀐 것은 검사기와 그 위에 만든 모든 것이 먼저 이를 본다는 점입니다."
+      "en": "<code>tsc</code> would have refused all three, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
+      "tr": "<code>tsc</code>도 셋 다 거부했을 것이므로 그것을 실행한 빌드는 이미 실패했습니다. 바뀐 것은 검사기와 그 위에 만든 모든 것이 먼저 이를 본다는 점입니다."
     },
     {
       "id": "h-3d087635",
@@ -1169,22 +1169,22 @@
       "tr": "자세히"
     },
     {
-      "id": "h-58e46187",
+      "id": "h-464f4cba",
       "kind": "html",
-      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.",
-      "tr": "<code>E0238</code>은 Glyph 검사기가 호출의 시그니처를 알 때만 그것이 async임을 알기 때문에, npm 패키지나 node 내장 모듈이 돌려주는 promise는 여전히 조용히 버려질 수 있습니다. <code>forEach</code>나 타이머에 넘긴 <code>async</code> 콜백도 아직 거부되지 않습니다. 이 규칙은 콜백 자리를 모델링해야 하며, 계획되어 있습니다."
+      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code>, a timer, a socket handler or any <code>fn(...) -&gt; void</code> parameter is refused with <code>E0211</code>, since nothing waits for it.",
+      "tr": "<code>E0238</code>는 Glyph 검사기가 시그니처를 가지고 있을 때만 호출이 async라는 것을 알기 때문에, npm 패키지나 node 내장 모듈에서 온 promise는 여전히 조용히 버려질 수 있습니다. <code>forEach</code>, 타이머, 소켓 핸들러 또는 어떤 <code>fn(...) -&gt; void</code> 매개변수에 넘긴 <code>async</code> 콜백은 아무것도 기다려 주지 않으므로 <code>E0211</code>로 거부됩니다."
     },
     {
-      "id": "h-c6868905",
+      "id": "h-170e1714",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
-      "tr": "<code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받습니다"
+      "en": "Mixing up <code>fn</code> and <code>async fn</code> outside a call is refused with a generic message",
+      "tr": "호출 바깥에서 <code>fn</code>과 <code>async fn</code>을 혼동하면 일반적인 메시지로 거부됩니다"
     },
     {
-      "id": "h-ef5ceb2e",
+      "id": "h-a80f8a50",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open.",
-      "tr": "<code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받아 pending 값의 배열을 돌려주며, 이는 <code>[object Promise]</code>로 출력됩니다. 조건 함수를 받는 배열 함수 다섯 개는 콜백 위치에서 <code>E0211</code>로 이를 막습니다. 나머지 세 개를 같은 방식으로 모델링하면 Glyph가 작업을 동시에 실행하는 방법인 <code>par.all(array.map(items, async fn ...))</code>도 거부하게 됩니다. pending 값의 배열을 언어에서 표현할 방법이 없기 때문입니다. 이는 빠진 항목이 아니라 타입 시스템 차원의 결정이므로 열려 있습니다."
+      "en": "At a call, the wrong kind of function gets a help you can paste: a sync <code>tick</code> given to <code>task.detach</code> is told to pass <code>async fn() -&gt; void { tick() }</code> or declare <code>async fn tick()</code>. An <code>async fn</code> bound to a <code>fn(...) -&gt; void</code> in a <code>let</code>, returned, or stored in a field is refused too, but the message only says <code>expected `function`, found `async function`</code> and leaves the fix to you.",
+      "tr": "호출에서는 종류가 다른 함수에 붙여 넣을 수 있는 도움말이 붙습니다. <code>task.detach</code>에 넘긴 동기 <code>tick</code>에는 <code>async fn() -&gt; void { tick() }</code>를 넘기거나 <code>async fn tick()</code>으로 선언하라고 안내합니다. <code>let</code>에서 <code>fn(...) -&gt; void</code>에 바인딩하거나, 반환하거나, 필드에 저장한 <code>async fn</code>도 거부되지만, 메시지는 <code>expected `function`, found `async function`</code>이라고만 하고 수정은 여러분에게 맡깁니다."
     },
     {
       "id": "h-3873e42e",

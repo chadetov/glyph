@@ -380,3 +380,107 @@ fn e0238_in_for_each_offers_the_detach_form() {
     let help = errs[0]["help"].as_str().unwrap();
     assert!(help.contains("task.detach(async fn() -> void { await save(n) })"), "{help}");
 }
+
+/// The help for an argument that is the wrong kind of function, read off
+/// `src`'s one E0211 (record 144). The message stays the general one.
+fn the_kind_help(src: &str) -> (String, usize, usize) {
+    let v = check(&project("kind", src), true);
+    assert_eq!(codes(&v), vec!["E0211".to_string()], "one E0211 expected:\n{src}\n{v:#}");
+    let d = &errors(&v)[0];
+    let help = d["help"].as_str().unwrap().to_string();
+    assert!(!help.starts_with("Pass a value of the expected type"), "the general help: {help}");
+    (
+        help,
+        d["range"]["start"]["offset"].as_u64().unwrap() as usize,
+        d["range"]["end"]["offset"].as_u64().unwrap() as usize,
+    )
+}
+
+const KINDS_HEAD: &str = "module main\nimport std/task\nimport std/timers\n\
+    fn tick() {\n  print(\"t\")\n}\n\
+    fn ext() {\n  return extern_ts(\"1\")\n}\n\
+    fn one() -> number {\n  return 1\n}\n\
+    async fn run_num(f: async fn() -> number) -> number {\n  return await f()\n}\n";
+
+/// A sync named function where an async one is declared: the help names the
+/// callee and the function, and both of its spellings compile, the wrapper
+/// with the parameter's own return type and the function declared `async`.
+#[test]
+fn a_sync_function_in_an_async_slot_gets_a_help_that_compiles() {
+    for (call, help_want, decl, decl_async) in [
+        (
+            "task.detach(tick)",
+            "`task.detach` takes an async function, and `tick` is not async. Pass `async fn() -> void { tick() }`, or declare it `async fn tick()`.",
+            "fn tick() {",
+            "async fn tick() {",
+        ),
+        (
+            "let n = await run_num(ext)\n  print(\"${n}\")",
+            "`run_num` takes an async function, and `ext` is not async. Declare it `async fn ext() -> number`.",
+            "fn ext() {",
+            "async fn ext() -> number {",
+        ),
+        (
+            "let n = await run_num(one)\n  print(\"${n}\")",
+            "`run_num` takes an async function, and `one` is not async. Pass `async fn() -> number { return one() }`, or declare it `async fn one() -> number`.",
+            "fn one() -> number {",
+            "async fn one() -> number {",
+        ),
+    ] {
+        let src = format!("{KINDS_HEAD}async fn main(argv: Array<string>) -> number {{\n  {call}\n  return 0\n}}\n");
+        let (help, start, end) = the_kind_help(&src);
+        assert_eq!(help, help_want);
+        if help.contains("Pass `") {
+            let wrapper = snippet_after(&help, "Pass ");
+            assert_applied_compiles("kind_wrapper", &src, start, end, wrapper, &help);
+        }
+        let declared = src.replacen(decl, decl_async, 1);
+        let v = check(&project("kind_declared", &declared), false);
+        assert!(v["ok"] == true && v["tsc"] == "passed", "declared async:\n{declared}\n{v:#}");
+    }
+}
+
+/// A sync lambda where an async one is declared: the help is the same lambda
+/// written `async`, its parameter list and return type kept.
+#[test]
+fn a_sync_lambda_in_an_async_slot_is_told_to_be_async() {
+    for (call, want) in [
+        ("task.detach(fn() { print(\"y\") })", "Write it `async fn() { ... }`, keeping its body."),
+        (
+            "let n = await run_num(fn() -> number { return 1 })\n  print(\"${n}\")",
+            "Write it `async fn() -> number { ... }`, keeping its body.",
+        ),
+    ] {
+        let src = format!("{KINDS_HEAD}async fn main(argv: Array<string>) -> number {{\n  {call}\n  return 0\n}}\n");
+        let (help, start, end) = the_kind_help(&src);
+        assert!(help.ends_with(want), "{help}");
+        let lambda = &src[start..end];
+        let fixed = format!("async {lambda}");
+        assert_applied_compiles("kind_lambda", &src, start, end, &fixed, &help);
+    }
+}
+
+/// An async callback where `array.map` wants a value (G407): record 135's
+/// help 4, prose naming the callee, with no `async fn(` to paste back into
+/// the same slot. The loop it describes compiles.
+#[test]
+fn an_async_callback_to_array_map_gets_the_loop_help() {
+    let src = format!(
+        "module main\nimport std/timers\nimport std/array\n{SAVE}\
+         async fn go(xs: Array<number>) -> number {{\n  let ys = array.map(xs, async fn(x: number) {{ await save(x) }})\n  return array.len(ys)\n}}\n"
+    );
+    let (help, _, _) = the_kind_help(&src);
+    assert_eq!(
+        help,
+        "`array.map` does not wait for its callback. Await each call in a loop, `for x in xs { ... await save(x) ... }`, or run them together with `task.all`."
+    );
+    assert!(!help.contains("async fn("), "{help}");
+    let looped = snippet_after(&help, "in a loop, ").replace("... ", "");
+    let fixed = src.replacen(
+        "let ys = array.map(xs, async fn(x: number) { await save(x) })\n  return array.len(ys)",
+        &format!("{looped}\n  return array.len(xs)"),
+        1,
+    );
+    let v = check(&project("map_loop", &fixed), false);
+    assert!(v["ok"] == true && v["tsc"] == "passed", "{fixed}\n{v:#}");
+}

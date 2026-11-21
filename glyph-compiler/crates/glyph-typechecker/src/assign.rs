@@ -3105,6 +3105,7 @@ impl Assigner<'_> {
                             self.errors.push(e);
                             continue;
                         }
+                        let kind_help = self.fn_kind_help(callee, args, a, &found, &expected);
                         if let Some(mut r) = self.value_refusal(a, &found, &expected) {
                             let written = self.callee_param_written(callee, i);
                             self.spell_declared(&mut r, written);
@@ -3121,6 +3122,7 @@ impl Assigner<'_> {
                                 children_between_tags: false,
                                 sql_escape,
                                 record_key: r.record_key,
+                                kind_help,
                                 span: r.span,
                             });
                         }
@@ -3748,6 +3750,7 @@ impl Assigner<'_> {
                     children_between_tags: false,
                     sql_escape: false,
                     record_key: r.record_key,
+                    kind_help: None,
                     span: r.span,
                 });
             }
@@ -3798,6 +3801,7 @@ impl Assigner<'_> {
             children_between_tags,
             sql_escape: false,
             record_key: None,
+            kind_help: None,
             span: j.name_span,
         });
     }
@@ -7381,6 +7385,87 @@ impl Assigner<'_> {
             task: crate::pending::task_namespace(self.module),
             span: arg.span(),
         })
+    }
+
+    /// The help for an argument that is the wrong kind of function, when the
+    /// relation refuses it for that reason alone (record 144): a sync
+    /// function where an async one is declared (G408), or an async callback
+    /// where a sync one that keeps a value is (G407, G99). `None` for every
+    /// other argument, which keeps the general help. The async callback in a
+    /// sync `void` slot never reaches here (`async_callback_refusal`).
+    fn fn_kind_help(
+        &self,
+        callee: &Expr,
+        args: &[Expr],
+        arg: &Expr,
+        found: &Ty,
+        expected: &Ty,
+    ) -> Option<String> {
+        use crate::async_slot::{async_into_value_help, quotable_body, sync_into_async_help, KindValue};
+        let (Ty::Fn { is_async: fa, params: fparams, .. }, Ty::Fn { is_async: ea, return_ty: er, .. }) =
+            (found, expected)
+        else {
+            return None;
+        };
+        if fa == ea || fn_kinds_incompatible(*fa, er, *ea) != Some(true) {
+            return None;
+        }
+        if let Expr::Lambda { span, .. } = arg {
+            if self.refused_lambdas.contains(span) {
+                return None;
+            }
+        }
+        let callee_name = crate::pending::expr_source(callee);
+        let named_params = || {
+            fparams
+                .iter()
+                .map(|p| {
+                    let name = p.name.as_ref()?.to_string();
+                    ty_is_decidable(&p.ty).then(|| (name, ty_display(&self.named_params(&p.ty))))
+                })
+                .collect::<Option<Vec<_>>>()
+        };
+        let value = match arg {
+            Expr::Lambda {
+                params, return_ty, body, ..
+            } => KindValue::Lambda {
+                params: params
+                    .iter()
+                    .map(|p| (p.name.to_string(), type_expr_source(&p.ty)))
+                    .collect(),
+                return_ty: return_ty.as_ref().map(type_expr_source),
+                body: quotable_body(body),
+            },
+            Expr::Ident { .. } | Expr::Member { .. } => KindValue::Named {
+                name: crate::pending::expr_source(arg),
+                params: named_params(),
+            },
+            _ => KindValue::Other,
+        };
+        if *ea {
+            // The wrapper's return is the parameter's own, as written where
+            // the checker can spell it; `void` takes a statement body.
+            let ret = match er.as_ref() {
+                Ty::Prim(Primitive::Void) => Some(None),
+                t if ty_is_decidable(t) => Some(Some(ty_display(&self.named_params(t)))),
+                _ => None,
+            };
+            let found_ret = match found {
+                Ty::Fn { return_ty, .. } if ty_is_decidable(return_ty) => {
+                    Some(ty_display(&self.named_params(return_ty)))
+                }
+                _ => None,
+            };
+            Some(sync_into_async_help(&callee_name, &value, ret, found_ret))
+        } else {
+            let iterable = match args.first() {
+                Some(a @ (Expr::Ident { .. } | Expr::Member { .. })) if !std::ptr::eq(a, arg) => {
+                    crate::pending::expr_source(a)
+                }
+                _ => "xs".to_string(),
+            };
+            Some(async_into_value_help(&callee_name, &value, &iterable))
+        }
     }
 
     /// The facts of a refusal made by the `Record` key rule (G373): both

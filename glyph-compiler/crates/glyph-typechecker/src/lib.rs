@@ -676,6 +676,12 @@ pub enum TypeError {
         sql_escape: bool,
         /// Same rule as `TypeMismatch::record_key`.
         record_key: Option<Box<RecordKeyMismatch>>,
+        /// The help for a call argument refused because it is the wrong kind
+        /// of function (D40 as amended for 0.1.159): a sync function where an
+        /// async one is declared, or an async callback where a sync one that
+        /// keeps a value is. Computed from the program by `async_slot`, so it
+        /// names the callee and the value. `None` everywhere else.
+        kind_help: Option<String>,
         span: Span,
     },
 
@@ -1633,6 +1639,9 @@ impl TypeError {
                 context,
                 task.as_deref(),
             )));
+        }
+        if let TypeError::ArgumentTypeMismatch { kind_help: Some(h), .. } = self {
+            return Some(Cow::Owned(h.clone()));
         }
         if let TypeError::AsyncCallbackIntoSyncVoid {
             callback,

@@ -1115,8 +1115,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `'${x}'` or `${x}` becomes `?` and `x` joins the array, in \
             placeholder order, beside any values already there.\n\n\
             Constant means a string literal with no `${}`, a literal whose \
-            every `${}` holds a constant, a `+` of constants, a module `const`, \
-            or a `let` that no `mut` reassigns, whose initializer is constant. \
+            every `${}` holds a constant, a `+` of constants, a `match` whose \
+            every arm is a constant, a module `const`, or a `let` that no \
+            `mut` reassigns, whose initializer is constant. \
             The checker follows a name to its initializer, so hoisting the \
             query into `let q = \"...${name}...\"` and passing `q` is the same \
             error, and the help rewrites the `let`. A parameter, a call result, \
@@ -1129,13 +1130,28 @@ pub fn explain(code: &str) -> Option<&'static str> {
             checked here, as is a `let`, a `const` or a `return` declared \
             `sqlite.Sql`. `exec` takes no values, so a statement that needs \
             one moves to `run(sql, [values])`.\n\n\
-            When the structure of a query has to vary (an `IN (?, ?, ?)` list \
-            sized at run time, a column picked from a fixed list), build the \
-            text, pass it through `taint.sanitize` or `taint.trust_unchecked`, \
-            and hand the result to `sqlite.from_trusted`, which takes a \
-            `taint.Trusted<string>` and returns a `sqlite.Sql`. A plain \
-            `string` there is E0211. Every query that is not a constant is \
-            then one grep away.\n\n\
+            A parameter fills a value and nothing else, so the help rewrites \
+            only a value: a quoted `'${x}'`, or `${x}` right after a \
+            comparison, `LIKE`, `GLOB`, `LIMIT` or `OFFSET`, or as an item of \
+            a `VALUES (...)` or `IN (...)` list. Where the text varies a name, \
+            such as `FROM ${table}` or `ORDER BY ${col}`, `?` would be a \
+            syntax error or would sort by a constant, so the help says to \
+            pick the name with a `match` whose arms are constant strings:\n\n\
+            let col = match key {\n  \
+            \"name\" => \"name\",\n  \
+            else => \"id\",\n\
+            }\n\
+            let rows = db.query(\"SELECT * FROM users ORDER BY ${col}\", [])   // fine\n\n\
+            A `match` with one arm that is not constant is not constant. \
+            An `exec` holding several statements is not rewritten to one \
+            `run`, which prepares only the first.\n\n\
+            When the text has to be built at run time and no `match` can list \
+            it (an `IN (?, ?, ?)` list sized at run time), pass it through \
+            `taint.sanitize` or `taint.trust_unchecked` and hand the result to \
+            `sqlite.from_trusted`, which takes a `taint.Trusted<string>` and \
+            returns a `sqlite.Sql`. A plain `string` there is E0211, at any \
+            position a `taint` type is declared. Every such query is then one \
+            grep away.\n\n\
             The type is `string` in the emitted TypeScript, so `tsc` accepts \
             all of these programs: the rule is Glyph's checker alone. It \
             covers `std/sqlite` only; an npm driver takes a plain `string`.",
@@ -2252,8 +2268,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0239",
         phase: "typechecker",
-        meaning: "A SQL query built from a run-time value (G387, D52): the `sql` argument of `std/sqlite`'s `exec`, `run`, `query` or `query_one`, or any parameter, `let`, `const` or `return` declared `sqlite.Sql`, holds text that is not a constant string expression. Constant is a literal with no `${}`, a literal whose every `${}` is constant, a `+` of constants, a module `const` or a `let` no `mut` reassigns whose initializer is constant, or a `sqlite.Sql` value; a name is followed to its initializer, so `let q = \"...${name}...\"` then `db.query(q, [])` is refused. A constant from another module counts only when declared `sqlite.Sql`. `tsc` accepts all of these: the emitted type is `string`",
-        fix: "Put the value in the parameter array: `db.query(\"SELECT * FROM users WHERE name = ?\", [name])` (the help computes this rewrite); `exec` takes no values, so use `db.run(sql, [values])`. A structure that must vary goes through `taint.sanitize` or `taint.trust_unchecked` and `sqlite.from_trusted`",
+        meaning: "A SQL query built from a run-time value (G387, D52): the `sql` argument of `std/sqlite`'s `exec`, `run`, `query` or `query_one`, or any parameter, `let`, `const` or `return` declared `sqlite.Sql`, holds text that is not a constant string expression. Constant is a literal with no `${}`, a literal whose every `${}` is constant, a `+` of constants, a `match` whose every arm is constant, a module `const` or a `let` no `mut` reassigns whose initializer is constant, or a `sqlite.Sql` value; a name is followed to its initializer, so `let q = \"...${name}...\"` then `db.query(q, [])` is refused. A constant from another module counts only when declared `sqlite.Sql`. `tsc` accepts all of these: the emitted type is `string`",
+        fix: "Put the value in the parameter array: `db.query(\"SELECT * FROM users WHERE name = ?\", [name])` (the help computes this rewrite); `exec` takes no values, so use `db.run(sql, [values])`. A column or table picked at run time is a `match` whose arms are constant strings; text that no `match` can list goes through `taint.sanitize` or `taint.trust_unchecked` and `sqlite.from_trusted`",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

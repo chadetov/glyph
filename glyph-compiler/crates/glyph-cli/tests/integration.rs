@@ -10173,20 +10173,24 @@ fn check_missing_target_exits_two() {
     assert!(stderr.contains("does not exist"), "{stderr}");
 }
 
-/// A Glyph-clean program that `tsc` rejects: `std/taint` brands a `Tainted<T>`
-/// so it cannot reach a `Trusted<T>` sink, and Glyph's own checker is permissive
-/// about opaque imported types. The tsc stage is where this bites, which makes
-/// it the fixture for "the Glyph stage was green and the build is still red."
+/// A Glyph-clean program that `tsc` rejects: a value typed through `extern_ts`,
+/// which Glyph leaves opaque by design (D29), passed where a `string` is
+/// declared. The tsc stage is where this bites (TS2345), which makes it the
+/// fixture for "the Glyph stage was green and the build is still red."
+///
+/// It used to pass a `taint.Tainted<string>` where a `Trusted<string>` is
+/// declared. Since G387 (record 132) the taint wrappers are modeled, and Glyph's
+/// own checker refuses that pairing with E0211 before `tsc` runs.
 const TSC_RED_GLYPH_CLEAN: &str = "module main\n\
-     import std/taint { Tainted, Trusted, taint, expose }\n\
      import std/io { println }\n\
-     fn run_query(sql: Trusted<string>) -> void {\n\
-     \x20 println(expose(sql))\n\
+     fn run_query(sql: string) -> void {\n\
+     \x20 println(sql)\n\
      }\n\
      fn main() -> void {\n\
-     \x20 let user_input: Tainted<string> = taint(\"DROP TABLE users\")\n\
+     \x20 let user_input: Raw = extern_ts(\"42\")\n\
      \x20 run_query(user_input)\n\
-     }\n";
+     }\n\
+     type Raw = extern_ts(\"number\")\n";
 
 #[test]
 fn build_prints_no_green_summary_above_its_own_tsc_errors() {
@@ -20409,4 +20413,209 @@ fn g387_applying_every_e0239_rewrite_compiles_and_returns_no_rows() {
         "the payload matches nothing once it is a parameter:\n{fixed}\n{stdout}\n{stderr}"
     );
     assert!(stdout.contains("rows 2"), "only `f`, after the `UPDATE`:\n{fixed}\n{stdout}");
+}
+
+/// Record 132, B2: a constant from another module gets one diagnosis whatever
+/// the import spelling. `BASE` imported by name and `lib.BASE` through the
+/// namespace draw the same E0239, with the same message and help.
+#[test]
+fn g387_an_imported_constant_reads_the_same_by_name_and_through_the_namespace() {
+    let root = unique_tmp("g387_b2");
+    write_file(
+        &root,
+        "src/lib.glyph",
+        "module lib\n\npub const BASE: string = \"SELECT * FROM users\"\n",
+    );
+    write_file(
+        &root,
+        "src/main.glyph",
+        "module main\n\nimport lib\nimport lib { BASE }\nimport std/sqlite\n\nfn main(argv: Array<string>) -> number {\n  let db = sqlite.open(\":memory:\")\n  let a = db.query(BASE, [])\n  let b = db.query(lib.BASE, [])\n  return a.length + b.length\n}\n",
+    );
+    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
+    assert_eq!(code, 1, "{stdout}\n{stderr}");
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
+    let got: Vec<(String, String)> = v["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["code"] == "E0239")
+        .map(|d| {
+            (
+                d["message"].as_str().unwrap_or_default().to_string(),
+                d["help"].as_str().unwrap_or_default().to_string(),
+            )
+        })
+        .collect();
+    assert_eq!(got.len(), 2, "{stdout}");
+    assert_eq!(got[0], got[1], "the import spelling does not change the diagnosis");
+    assert!(got[0].0.contains("`BASE` comes from another module"), "{got:?}");
+    assert!(got[0].1.contains("pub const BASE: sqlite.Sql"), "{got:?}");
+}
+
+/// The end of the call that starts at byte `start` of `line` (the index just
+/// past its closing parenthesis), skipping parentheses inside string
+/// literals.
+fn call_end(line: &str, start: usize) -> usize {
+    let mut depth = 0;
+    let mut in_str = false;
+    let bytes = line.as_bytes();
+    let mut i = start;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'\\' if in_str => i += 1,
+            b'"' => in_str = !in_str,
+            b'(' if !in_str => depth += 1,
+            b')' if !in_str => {
+                depth -= 1;
+                if depth == 0 {
+                    return i + 1;
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    panic!("no end to the call in {line}");
+}
+
+/// Record 132, B1: every rewrite the help offers in a value position is run
+/// against node:sqlite. Each must return 0 rows for its injection payload and
+/// the same count as the constant query written out for a benign input. The
+/// `LIMIT` value is an `int`, which cannot carry an injection, so only its
+/// benign count is compared.
+#[test]
+fn g387_every_offered_rewrite_runs_on_node_sqlite() {
+    if !js_toolchain_available() {
+        eprintln!("skipping G387 node:sqlite rewrites: node/tsx not available");
+        return;
+    }
+    let cases = r#"fn q1(db: sqlite.Db, x: string) -> number {
+  return db.query("SELECT * FROM users WHERE name = '${x}'", []).length
+}
+
+fn q2(db: sqlite.Db, id: string) -> number {
+  return db.query("SELECT * FROM users WHERE id = ${id}", []).length
+}
+
+fn q3(db: sqlite.Db, n: int) -> number {
+  return db.query("SELECT * FROM users LIMIT ${n}", []).length
+}
+
+fn q4(db: sqlite.Db, a: string, b: string) -> number {
+  return db.run("INSERT INTO users (name, id) VALUES ('${a}', ${b})", [])
+}
+
+fn q5(db: sqlite.Db, id: string) -> number {
+  return db.query("SELECT * FROM users WHERE id IN (0, ${id})", []).length
+}
+"#;
+    let main = r#"
+fn main(argv: Array<string>) -> number {
+  let db = sqlite.open(":memory:")
+  db.exec("CREATE TABLE users (id INTEGER, name TEXT)")
+  db.exec("INSERT INTO users VALUES (1, 'ada'), (2, 'linus')")
+  let ada = "ada"
+  let one = "1"
+  let quote = "x' OR '1'='1"
+  let or_all = "1 OR 1=1"
+  let close = "1) OR (1=1"
+  let b1 = q1(db, ada)
+  let k1 = db.query("SELECT * FROM users WHERE name = 'ada'", []).length
+  let p1 = q1(db, quote)
+  io.println("q1 benign=${b1} const=${k1} payload=${p1}")
+  let b2 = q2(db, one)
+  let k2 = db.query("SELECT * FROM users WHERE id = 1", []).length
+  let p2 = q2(db, or_all)
+  io.println("q2 benign=${b2} const=${k2} payload=${p2}")
+  let b3 = q3(db, 1)
+  let k3 = db.query("SELECT * FROM users LIMIT 1", []).length
+  io.println("q3 benign=${b3} const=${k3} payload=0")
+  let bob = "bob"
+  let three = "3"
+  let b4 = q4(db, bob, three)
+  let k4 = db.run("INSERT INTO users (name, id) VALUES ('bob', 3)", [])
+  let evil = "x', 9), ('evil', 10) --"
+  let five = "5"
+  let _ = q4(db, evil, five)
+  let p4 = db.query("SELECT * FROM users WHERE name = 'evil'", []).length
+  io.println("q4 benign=${b4} const=${k4} payload=${p4}")
+  let b5 = q5(db, one)
+  let k5 = db.query("SELECT * FROM users WHERE id IN (0, 1)", []).length
+  let p5 = q5(db, close)
+  io.println("q5 benign=${b5} const=${k5} payload=${p5}")
+  return 0
+}
+"#;
+    let head = "module main\n\nimport std/sqlite\nimport std/io\n\n";
+    let probe = format!("{head}{cases}{main}");
+    let root = unique_tmp("g387_node");
+    write_file(&root, "src/main.glyph", &probe);
+    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
+    assert_eq!(code, 1, "the built queries are refused:\n{stdout}\n{stderr}");
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
+    let diags: Vec<&serde_json::Value> = v["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["code"] == "E0239")
+        .collect();
+    assert_eq!(diags.len(), 5, "one E0239 per case:\n{stdout}");
+
+    // Record 132's three probes where a parameter cannot stand: the help
+    // offers no `?` rewrite for any of them, since run on node:sqlite the old
+    // rewrites threw (`FROM ?`), sorted by a constant (`ORDER BY ?`) or
+    // dropped the second statement (`run` of two).
+    let names = format!(
+        "{head}pub fn n(db: sqlite.Db, table: string, col: string, first: string) -> number {{\n  let a = db.query(\"SELECT * FROM ${{table}} WHERE id = ?\", [1])\n  let b = db.query(\"SELECT * FROM users ORDER BY ${{col}}\", [])\n  db.exec(\"DELETE FROM a WHERE x = '${{first}}'; DELETE FROM b\")\n  return a.length + b.length\n}}\n"
+    );
+    let nroot = unique_tmp("g387_node_names");
+    write_file(&nroot, "src/main.glyph", &names);
+    let (_, nout, _) = glyph_in(&nroot, &["check", "--no-tsc", "--json", "{src}"]);
+    let nv: serde_json::Value = serde_json::from_str(&nout).expect("check --json prints JSON");
+    let nhelps: Vec<String> = nv["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["code"] == "E0239")
+        .map(|d| d["help"].as_str().unwrap_or_default().to_string())
+        .collect();
+    assert_eq!(nhelps.len(), 3, "{nout}");
+    for h in &nhelps {
+        assert!(
+            !backticked(h).iter().any(|s| s.starts_with("db.") && s.contains('?')),
+            "no placeholder rewrite where SQL needs a name or one statement: {h}"
+        );
+    }
+
+    let mut lines: Vec<String> = probe.lines().map(str::to_string).collect();
+    for d in &diags {
+        let line = d["range"]["start"]["line"].as_u64().expect("line") as usize - 1;
+        let help = d["help"].as_str().expect("help");
+        let rewrite = backticked(help)
+            .into_iter()
+            .find(|s| s.starts_with("db.") && s.contains('[') && !s.contains("[values]"))
+            .unwrap_or_else(|| panic!("a value position gets a rewrite: {help}"));
+        let l = lines[line].clone();
+        let start = l.find("db.").expect("the call");
+        let end = call_end(&l, start);
+        lines[line] = format!("{}{rewrite}{}", &l[..start], &l[end..]);
+    }
+    let fixed = lines.join("\n") + "\n";
+    write_file(&root, "src/main.glyph", &fixed);
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 0, "{fixed}\n{stdout}\n{stderr}");
+    for case in ["q1", "q2", "q3", "q4", "q5"] {
+        let row = stdout
+            .lines()
+            .find(|l| l.starts_with(&format!("{case} ")))
+            .unwrap_or_else(|| panic!("{case} ran:\n{stdout}"));
+        let field = |k: &str| -> String {
+            row.split(' ')
+                .find_map(|kv| kv.strip_prefix(&format!("{k}=")))
+                .unwrap_or_default()
+                .to_string()
+        };
+        assert_eq!(field("benign"), field("const"), "{case}: same rows as the constant query:\n{fixed}\n{stdout}");
+        assert_eq!(field("payload"), "0", "{case}: the payload matches nothing:\n{fixed}\n{stdout}");
+    }
 }

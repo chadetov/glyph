@@ -17,8 +17,8 @@
 use std::collections::{HashMap, HashSet};
 
 use glyph_ast::{
-    ArrayElem, BinOp, Block, Decl, Expr, JsxAttr, JsxChild, JsxElement, MatchArmBody,
-    Module, ObjectField, Stmt, TemplatePart,
+    ArrayElem, BinOp, Block, Decl, Expr, JsxAttr, JsxChild, JsxElement, MatchArmBody, Module,
+    ObjectField, Stmt, TemplatePart,
 };
 use glyph_resolver::{ResolvedModule, ResolvedRef, SymbolKind};
 
@@ -148,7 +148,9 @@ impl<'a> SqlFacts<'a> {
                     self.expr(value, resolved);
                 }
             }
-            Expr::Match { scrutinee, arms, .. } => {
+            Expr::Match {
+                scrutinee, arms, ..
+            } => {
                 self.expr(scrutinee, resolved);
                 for arm in arms {
                     match &arm.body {
@@ -184,7 +186,10 @@ pub(super) enum SqlSink {
     /// The `sql` argument of a `Db` method: `db.query`, as spelled.
     DbMethod { receiver: String, method: String },
     /// An argument of any other function whose parameter is a `sqlite.Sql`.
-    Param { callee: String, param: Option<String> },
+    Param {
+        callee: String,
+        param: Option<String>,
+    },
     /// The initializer of a `let` or `const` declared `sqlite.Sql`.
     Binding { name: String },
     /// A `return` from a function declared to return a `sqlite.Sql`.
@@ -205,6 +210,11 @@ enum NonConst {
     /// A `let` or `const` whose initializer is not constant, for the reason
     /// carried.
     Built { name: String, from: Box<NonConst> },
+    /// A `match` with an arm whose value is not constant, for the reason
+    /// carried.
+    Arm(Box<NonConst>),
+    /// A `match` arm written as a block, whose value is not read here.
+    Block,
 }
 
 impl NonConst {
@@ -223,7 +233,8 @@ impl NonConst {
 enum Piece {
     Text(String),
     Const(String),
-    Value(String),
+    /// A run-time value, as written, and whether it was written as `${...}`.
+    Value(String, bool),
 }
 
 impl Assigner<'_> {
@@ -277,7 +288,12 @@ impl Assigner<'_> {
                 }
                 Ok(())
             }
-            Expr::Binary { op: BinOp::Add, left, right, .. } => {
+            Expr::Binary {
+                op: BinOp::Add,
+                left,
+                right,
+                ..
+            } => {
                 self.sql_constness(left, depth + 1)?;
                 self.sql_constness(right, depth + 1)
             }
@@ -318,7 +334,50 @@ impl Assigner<'_> {
                     _ => Err(NonConst::Value(name.to_string())),
                 }
             }
+            // A `match` whose every arm is a constant is one of a finite set of
+            // texts, all written in the program: the fixed-list column case
+            // (record 132). One arm that is not makes the whole `match` not.
+            Expr::Match { arms, .. } => {
+                for arm in arms {
+                    match &arm.body {
+                        MatchArmBody::Expr(v) => self
+                            .sql_constness(v, depth + 1)
+                            .map_err(|why| NonConst::Arm(Box::new(why)))?,
+                        MatchArmBody::Block(_) => {
+                            return Err(NonConst::Arm(Box::new(NonConst::Block)))
+                        }
+                    }
+                }
+                Ok(())
+            }
+            // A constant read through a namespace import of another module
+            // (`lib.BASE`) is judged as the named import `BASE` is: its
+            // initializer is in the other module, and only its type crosses
+            // the boundary (record 132, B2).
+            Expr::Member { object, field, .. } if self.is_project_namespace(object) => {
+                Err(NonConst::Imported(field.to_string()))
+            }
             _ => Err(NonConst::Value(expr_text(e))),
+        }
+    }
+
+    /// Whether `e` is a name bound by `import a` or `import a as b` of a
+    /// module of this project (not `std/...`).
+    fn is_project_namespace(&self, e: &Expr) -> bool {
+        let Expr::Ident { span, .. } = e else {
+            return false;
+        };
+        let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(*span) else {
+            return false;
+        };
+        let Some(sym) = self.resolved.symbols.table.get(id) else {
+            return false;
+        };
+        match &sym.kind {
+            SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => {
+                path.segments.first().map(|s| s.as_ref()) != Some("std")
+            }
+            _ => false,
         }
     }
 
@@ -331,18 +390,25 @@ impl Assigner<'_> {
             Expr::TemplateString { parts, .. } => {
                 for p in parts {
                     match p {
-                        TemplatePart::Text { content, .. } => out.push(Piece::Text(content.clone())),
+                        TemplatePart::Text { content, .. } => {
+                            out.push(Piece::Text(content.clone()))
+                        }
                         TemplatePart::Expr { value, .. } => {
                             let text = render(value)?;
                             match self.sql_constness(value, 0) {
                                 Ok(()) => out.push(Piece::Const(text)),
-                                Err(_) => out.push(Piece::Value(text)),
+                                Err(_) => out.push(Piece::Value(text, true)),
                             }
                         }
                     }
                 }
             }
-            Expr::Binary { op: BinOp::Add, left, right, .. } => {
+            Expr::Binary {
+                op: BinOp::Add,
+                left,
+                right,
+                ..
+            } => {
                 self.sql_pieces(left, out)?;
                 self.sql_pieces(right, out)?;
             }
@@ -350,7 +416,7 @@ impl Assigner<'_> {
                 let text = render(other)?;
                 match self.sql_constness(other, 0) {
                     Ok(()) => out.push(Piece::Const(text)),
-                    Err(_) => out.push(Piece::Value(text)),
+                    Err(_) => out.push(Piece::Value(text, false)),
                 }
             }
         }
@@ -389,7 +455,9 @@ impl Assigner<'_> {
         // the argument names when that `let` is the reason.
         let (literal_expr, let_name) = match (value, why) {
             (Expr::Ident { .. }, NonConst::Built { name, .. }) => {
-                let Expr::Ident { span, .. } = value else { unreachable!() };
+                let Expr::Ident { span, .. } = value else {
+                    unreachable!()
+                };
                 let Some(ResolvedRef::Local(id)) = self.resolved.resolutions.get(*span) else {
                     return prose();
                 };
@@ -405,9 +473,24 @@ impl Assigner<'_> {
         if self.sql_pieces(literal_expr, &mut pieces).is_none() {
             return prose();
         }
+        // A parameter fills only a value. Where the text varies a name (a
+        // table, a column, a keyword), `?` would be a syntax error or would
+        // silently change the query, so no rewrite is offered (record 132).
+        if let Some(name) = name_position(&pieces) {
+            return format!(
+                "{name} stands where SQL needs a name (a table or a column), which a parameter cannot fill; pick the name with a `match` whose arms are constant strings."
+            );
+        }
         let Some((text, params)) = placeholders(&pieces, &existing) else {
             return prose();
         };
+        // `run` prepares one statement and drops the rest without a word, so
+        // a several-statement `exec` is not rewritten to one `run`.
+        if exec && several_statements(&pieces) {
+            return format!(
+                "`{receiver}.exec` takes no values, and `{receiver}.run(sql, [values])` runs one statement: split this into one `run` per statement, each with its values in the array."
+            );
+        }
         let params = params.join(", ");
         match let_name {
             Some(q) if exec => format!(
@@ -454,10 +537,16 @@ fn sql_message(sink: Option<&SqlSink>, value: &Expr, why: &NonConst) -> String {
         Some(SqlSink::DbMethod { receiver, method }) => {
             format!("`{receiver}.{method}` runs its first argument as SQL")
         }
-        Some(SqlSink::Param { callee, param: Some(p) }) => {
+        Some(SqlSink::Param {
+            callee,
+            param: Some(p),
+        }) => {
             format!("`{callee}` takes `{p}` as a `sqlite.Sql`, which is run as SQL")
         }
-        Some(SqlSink::Param { callee, param: None }) => {
+        Some(SqlSink::Param {
+            callee,
+            param: None,
+        }) => {
             format!("`{callee}` takes this argument as a `sqlite.Sql`, which is run as SQL")
         }
         Some(SqlSink::Binding { name }) => {
@@ -473,7 +562,7 @@ fn sql_message(sink: Option<&SqlSink>, value: &Expr, why: &NonConst) -> String {
         (Expr::Ident { .. }, NonConst::Mutated(n)) => {
             format!("`{n}` is reassigned with `mut`, which makes its text a run-time value")
         }
-        (Expr::Ident { .. }, NonConst::Imported(n)) => format!(
+        (Expr::Ident { .. } | Expr::Member { .. }, NonConst::Imported(n)) => format!(
             "`{n}` comes from another module, where the checker cannot see that its text is fixed"
         ),
         (Expr::TemplateString { .. } | Expr::Binary { op: BinOp::Add, .. }, why) => {
@@ -499,6 +588,11 @@ fn leaf_phrase(leaf: &NonConst) -> String {
         NonConst::Imported(n) => format!(
             "from `{n}`, which comes from another module where the checker cannot see that its text is fixed"
         ),
+        NonConst::Arm(inner) => match inner.leaf() {
+            NonConst::Block => "from a `match` whose arm is a block".to_string(),
+            leaf => format!("from a `match` whose arm is built {}", leaf_phrase(leaf)),
+        },
+        NonConst::Block => "from a block".to_string(),
         NonConst::Built { .. } => unreachable!("leaf() never answers a Built"),
     }
 }
@@ -545,11 +639,12 @@ fn placeholders(pieces: &[Piece], existing: &[String]) -> Option<(String, Vec<St
                 text.push_str(c);
                 text.push('}');
             }
-            Piece::Value(v) => {
+            Piece::Value(v, _) => {
                 if in_quote {
                     // Only a value that is the whole of a quoted string can
                     // become a placeholder.
-                    let closed = matches!(pieces.get(i + 1), Some(Piece::Text(n)) if n.starts_with('\''));
+                    let closed =
+                        matches!(pieces.get(i + 1), Some(Piece::Text(n)) if n.starts_with('\''));
                     if !text.ends_with('\'') || !closed {
                         return None;
                     }
@@ -577,6 +672,112 @@ fn placeholders(pieces: &[Piece], existing: &[String]) -> Option<(String, Vec<St
     Some((lit, params))
 }
 
+/// The first run-time value that stands outside a value position, as the
+/// help names it (`${table}`, or `table` for a `+` operand), or `None` when
+/// every one is a value a parameter can fill. A value position is a quoted
+/// literal that is exactly `'${x}'`, or an unquoted value directly after a
+/// comparison (`=`, `==`, `!=`, `<>`, `<`, `>`, `<=`, `>=`), after `LIKE`,
+/// `GLOB`, `LIMIT` or `OFFSET`, or an item of a `VALUES (...)` or `IN (...)`
+/// list. A value inside a quoted literal beside other text is not judged
+/// here; `placeholders` declines it.
+fn name_position(pieces: &[Piece]) -> Option<String> {
+    let mut text = String::new();
+    let mut in_quote = false;
+    // The keyword before each open parenthesis, innermost last, and the one
+    // most recently closed (for the second tuple of `VALUES (..), (..)`).
+    let mut parens: Vec<String> = Vec::new();
+    let mut closed = String::new();
+    for piece in pieces {
+        match piece {
+            Piece::Text(t) => {
+                for ch in t.chars() {
+                    match ch {
+                        '\'' => in_quote = !in_quote,
+                        '(' if !in_quote => {
+                            let before = text.trim_end();
+                            let label = match before.ends_with(',') {
+                                true => closed.clone(),
+                                false => last_word(before),
+                            };
+                            parens.push(label);
+                        }
+                        ')' if !in_quote => closed = parens.pop().unwrap_or_default(),
+                        _ => {}
+                    }
+                    text.push(ch);
+                }
+            }
+            Piece::Const(c) => {
+                text.push_str("${");
+                text.push_str(c);
+                text.push('}');
+            }
+            Piece::Value(v, interp) => {
+                if !in_quote {
+                    let before = text.trim_end();
+                    let after_operator = before.ends_with(['=', '<', '>']);
+                    let after_keyword = matches!(
+                        last_word(before).as_str(),
+                        "LIKE" | "GLOB" | "LIMIT" | "OFFSET"
+                    );
+                    let in_list = before.ends_with(['(', ','])
+                        && matches!(parens.last().map(String::as_str), Some("VALUES" | "IN"));
+                    if !(after_operator || after_keyword || in_list) {
+                        return Some(match interp {
+                            true => format!("`${{{v}}}`"),
+                            false => format!("`{v}`"),
+                        });
+                    }
+                }
+                text.push('?');
+            }
+        }
+    }
+    None
+}
+
+/// The last run of letters in `s`, upper-cased, when `s` ends with it.
+fn last_word(s: &str) -> String {
+    let word: String = s
+        .chars()
+        .rev()
+        .take_while(|c| c.is_ascii_alphabetic())
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect();
+    word.to_ascii_uppercase()
+}
+
+/// Whether the query's literal text holds more than one statement: a `;`
+/// outside a quoted string with anything but whitespace after it.
+fn several_statements(pieces: &[Piece]) -> bool {
+    let mut in_quote = false;
+    let mut seen_semicolon = false;
+    for piece in pieces {
+        let text: &str = match piece {
+            Piece::Text(t) => t,
+            Piece::Const(_) | Piece::Value(..) => {
+                if seen_semicolon {
+                    return true;
+                }
+                continue;
+            }
+        };
+        for ch in text.chars() {
+            if seen_semicolon && !ch.is_whitespace() {
+                return true;
+            }
+            match ch {
+                '\'' => in_quote = !in_quote,
+                ';' if !in_quote => seen_semicolon = true,
+                _ => {}
+            }
+        }
+    }
+    false
+}
+
 /// An expression as the help can write it back, or `None` for a form this
 /// does not render (a lambda, a `match`, a literal holding interpolation).
 fn render(e: &Expr) -> Option<String> {
@@ -597,16 +798,28 @@ fn render(e: &Expr) -> Option<String> {
             s.push('"');
             s
         }
-        Expr::Member { object, field, optional, .. } => {
+        Expr::Member {
+            object,
+            field,
+            optional,
+            ..
+        } => {
             let dot = if *optional { "?." } else { "." };
             format!("{}{dot}{field}", render(object)?)
         }
         Expr::Index { object, index, .. } => format!("{}[{}]", render(object)?, render(index)?),
-        Expr::Call { callee, args, type_args, .. } if type_args.is_empty() => {
+        Expr::Call {
+            callee,
+            args,
+            type_args,
+            ..
+        } if type_args.is_empty() => {
             let args: Option<Vec<String>> = args.iter().map(render).collect();
             format!("{}({})", render(callee)?, args?.join(", "))
         }
-        Expr::Binary { op, left, right, .. } => {
+        Expr::Binary {
+            op, left, right, ..
+        } => {
             let op = match op {
                 BinOp::Add => "+",
                 BinOp::Sub => "-",
@@ -630,7 +843,6 @@ fn expr_text(e: &Expr) -> String {
     }
     match e {
         Expr::Call { callee, .. } => format!("{}(...)", receiver_source(callee)),
-        Expr::Match { .. } => "a `match`".to_string(),
         _ => "a value".to_string(),
     }
 }
@@ -671,9 +883,7 @@ impl Assigner<'_> {
             return;
         };
         let sink = match callee {
-            Expr::Member { object, field, .. }
-                if is_db(self.tm.get(object.span())) =>
-            {
+            Expr::Member { object, field, .. } if is_db(self.tm.get(object.span())) => {
                 let method = field.to_string();
                 *self.sql_call.borrow_mut() = Some((arg.span(), written_params(&method, args)));
                 SqlSink::DbMethod {
@@ -725,11 +935,17 @@ mod tests {
         errors_of(src)
             .iter()
             .filter(|e| e.code() == "E0239")
-            .map(|e| (e.to_string(), e.help().map(|h| h.into_owned()).unwrap_or_default()))
+            .map(|e| {
+                (
+                    e.to_string(),
+                    e.help().map(|h| h.into_owned()).unwrap_or_default(),
+                )
+            })
             .collect()
     }
 
-    const HEAD: &str = "module main\n\nimport std/sqlite\nimport std/taint\n\nconst TABLE: string = \"users\"\n\n";
+    const HEAD: &str =
+        "module main\n\nimport std/sqlite\nimport std/taint\n\nconst TABLE: string = \"users\"\n\n";
 
     /// One function whose body is `body`, over a `db` and a run-time `name`.
     fn program(body: &str) -> String {
@@ -769,7 +985,10 @@ mod tests {
             };
             assert_eq!(
                 e0239s(&src),
-                vec![(format!("{}this one is built from `name` at run time{TAIL}", sink(m)), help)],
+                vec![(
+                    format!("{}this one is built from `name` at run time{TAIL}", sink(m)),
+                    help
+                )],
                 "{m}"
             );
         }
@@ -794,7 +1013,10 @@ mod tests {
             };
             assert_eq!(
                 e0239s(&src),
-                vec![(format!("{}`q` is built from `name` at run time{TAIL}", sink(m)), help)],
+                vec![(
+                    format!("{}`q` is built from `name` at run time{TAIL}", sink(m)),
+                    help
+                )],
                 "{m}"
             );
         }
@@ -815,7 +1037,10 @@ mod tests {
             };
             assert_eq!(
                 e0239s(&src),
-                vec![(format!("{}this one is built from `name` at run time{TAIL}", sink(m)), help)],
+                vec![(
+                    format!("{}this one is built from `name` at run time{TAIL}", sink(m)),
+                    help
+                )],
                 "{m}"
             );
         }
@@ -899,7 +1124,10 @@ mod tests {
         let errs = errors_of(&src);
         let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
         assert_eq!(codes, vec!["E0211", "E0211"], "{errs:?}");
-        assert!(errs[1].to_string().contains("`taint.Trusted<string>`"), "{errs:?}");
+        assert!(
+            errs[1].to_string().contains("`taint.Trusted<string>`"),
+            "{errs:?}"
+        );
     }
 
     /// A handle from `sqlite.open` is a `sqlite.Db`, so a query on it is
@@ -920,7 +1148,10 @@ mod tests {
         let src = program("  db.query(\"SELECT * FROM t WHERE a LIKE '%${name}%'\", [])\n");
         let got = e0239s(&src);
         assert_eq!(got.len(), 1);
-        assert!(got[0].1.starts_with("Build the query from constants"), "{got:?}");
+        assert!(
+            got[0].1.starts_with("Build the query from constants"),
+            "{got:?}"
+        );
     }
 
     /// Placeholders already in the text keep the values already written, in
@@ -935,5 +1166,151 @@ mod tests {
             got[0].1,
             "Pass the value as a parameter: `db.query(\"SELECT * FROM t WHERE a = ? AND b = ? AND c = ?\", [1, name, \"x\"])`."
         );
+    }
+
+    // ----- record 132: B1, the rewrite only where a parameter can stand -----
+
+    const NAME_PROSE: &str = "stands where SQL needs a name (a table or a column), which a parameter cannot fill; pick the name with a `match` whose arms are constant strings.";
+
+    fn only_help(src: &str) -> String {
+        let got = e0239s(src);
+        assert_eq!(got.len(), 1, "{got:?}");
+        got[0].1.clone()
+    }
+
+    /// `FROM ${table}` and `ORDER BY ${col}` vary a name, which `?` cannot
+    /// fill: the help is prose with no rewrite.
+    #[test]
+    fn a_name_position_gets_prose_and_no_placeholder() {
+        let from = program("  db.query(\"SELECT * FROM ${name} WHERE id = ?\", [1])\n");
+        assert_eq!(only_help(&from), format!("`${{name}}` {NAME_PROSE}"));
+        let order = program("  db.query(\"SELECT * FROM users ORDER BY \" + name, [])\n");
+        assert_eq!(only_help(&order), format!("`name` {NAME_PROSE}"));
+    }
+
+    /// `run` prepares one statement, so a two-statement `exec` is not
+    /// rewritten to one `run`.
+    #[test]
+    fn a_two_statement_exec_gets_prose() {
+        let src = program("  db.exec(\"DELETE FROM a WHERE x = '${name}'; DELETE FROM b\")\n");
+        let help = only_help(&src);
+        assert_eq!(
+            help,
+            "`db.exec` takes no values, and `db.run(sql, [values])` runs one statement: split this into one `run` per statement, each with its values in the array."
+        );
+        // A trailing `;` is still one statement.
+        let one = program("  db.exec(\"DELETE FROM a WHERE x = '${name}';\")\n");
+        assert!(only_help(&one).contains("`db.run(\"DELETE FROM a WHERE x = ?;\", [name])`"));
+    }
+
+    /// The value positions keep their rewrite: after a comparison, after
+    /// `LIMIT`, a quoted `'${x}'`, and the items of a `VALUES` list.
+    #[test]
+    fn value_positions_keep_the_rewrite() {
+        let cases = [
+            (
+                "db.query(\"SELECT * FROM users LIMIT ${name}\", [])",
+                "Pass the value as a parameter: `db.query(\"SELECT * FROM users LIMIT ?\", [name])`.",
+            ),
+            (
+                "db.query(\"SELECT * FROM users WHERE id = ${name}\", [])",
+                "Pass the value as a parameter: `db.query(\"SELECT * FROM users WHERE id = ?\", [name])`.",
+            ),
+            (
+                "db.query(\"SELECT * FROM users WHERE name = '${name}'\", [])",
+                "Pass the value as a parameter: `db.query(\"SELECT * FROM users WHERE name = ?\", [name])`.",
+            ),
+            (
+                "db.run(\"INSERT INTO users (name, id) VALUES ('${name}', ${name})\", [])",
+                "Pass the value as a parameter: `db.run(\"INSERT INTO users (name, id) VALUES (?, ?)\", [name, name])`.",
+            ),
+            (
+                "db.query(\"SELECT * FROM users WHERE id IN (1, ${name})\", [])",
+                "Pass the value as a parameter: `db.query(\"SELECT * FROM users WHERE id IN (1, ?)\", [name])`.",
+            ),
+        ];
+        for (call, help) in cases {
+            assert_eq!(only_help(&program(&format!("  {call}\n"))), help, "{call}");
+        }
+    }
+
+    /// A `match` whose every arm is a constant string is one of a fixed set
+    /// of texts, so the column it picks is constant.
+    #[test]
+    fn a_match_of_constant_arms_is_constant() {
+        let src = program(
+            "  let col = match name {\n    \"name\" => \"name\",\n    else => \"id\",\n  }\n  db.query(\"SELECT * FROM users ORDER BY ${col}\", [])\n",
+        );
+        let errs = errors_of(&src);
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// One arm that interpolates a run-time value makes the `match` not
+    /// constant, and the message names the arm's source with no backticks
+    /// inside backticks.
+    #[test]
+    fn a_match_with_an_interpolating_arm_is_e0239() {
+        let src = program(
+            "  let col = match name {\n    \"a\" => \"name\",\n    else => \"x${name}\",\n  }\n  db.query(\"SELECT * FROM users ORDER BY ${col}\", [])\n",
+        );
+        let got = e0239s(&src);
+        assert_eq!(
+            got.iter().map(|(m, _)| m.clone()).collect::<Vec<_>>(),
+            vec![format!(
+                "`db.query` runs its first argument as SQL, and this one is built from a `match` whose arm is built from `name` at run time{TAIL}"
+            )]
+        );
+        assert!(!got[0].0.contains("`a `"), "{got:?}");
+    }
+
+    // ----- record 132: B3, a primitive where a taint wrapper is declared -----
+
+    const TRUSTED_HELP: &str = "Pass a constant query directly; text built at run time goes through `taint.sanitize(…)`, or `taint.trust_unchecked(…)` for text you wrote.";
+
+    fn coded(src: &str, code: &str) -> Vec<(String, String)> {
+        errors_of(src)
+            .iter()
+            .filter(|e| e.code() == code)
+            .map(|e| {
+                (
+                    e.to_string(),
+                    e.help().map(|h| h.into_owned()).unwrap_or_default(),
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_string_bound_to_a_trusted_let_is_e0204() {
+        let src = format!("{HEAD}fn f(s: string) -> void {{\n  let t: taint.Trusted<string> = s\n  sqlite.from_trusted(t)\n}}\n");
+        assert_eq!(
+            coded(&src, "E0204"),
+            vec![(
+                "type mismatch: expected `taint.Trusted<string>`, found `string`".to_string(),
+                TRUSTED_HELP.to_string()
+            )]
+        );
+    }
+
+    #[test]
+    fn a_string_returned_as_trusted_is_e0204() {
+        let src = format!("{HEAD}fn f(s: string) -> taint.Trusted<string> {{\n  return s\n}}\n");
+        assert_eq!(coded(&src, "E0204").len(), 1, "{:?}", errors_of(&src));
+    }
+
+    #[test]
+    fn a_string_in_a_tainted_field_is_e0204() {
+        let src = format!("{HEAD}type In = {{ body: taint.Tainted<string> }}\n\nfn f(s: string) -> In {{\n  let i: In = {{ body: s }}\n  return i\n}}\n");
+        let got = coded(&src, "E0204");
+        assert_eq!(got.len(), 1, "{:?}", errors_of(&src));
+        assert!(got[0].0.contains("`taint.Tainted<string>`"), "{got:?}");
+    }
+
+    #[test]
+    fn from_trusted_of_a_literal_is_e0211_with_the_taint_help() {
+        let src = program("  db.exec(sqlite.from_trusted(\"SELECT 1\"))\n");
+        let got = coded(&src, "E0211");
+        assert_eq!(got.len(), 1, "{got:?}");
+        assert_eq!(got[0].1, TRUSTED_HELP);
     }
 }

@@ -1864,7 +1864,7 @@ impl Assigner<'_> {
     /// than erasing what is known about it. A prelude container (`is
     /// Record<K, V>`, `is Array<X>`) does not narrow in this release: doing
     /// so exposes E0224 on index reads `tsc` accepts, in tracked programs
-    /// (`examples/01_validator.glyph`), and G408 decides E0224 first.
+    /// (`examples/01_validator.glyph`), and G415 decides E0224 first.
     fn narrow_is_arm(&mut self, scrutinee: &Expr, arm: &MatchArm) -> Option<Narrowed> {
         let Pattern::IsType { ty, .. } = &arm.pattern else { return None };
         let Expr::Ident { span, .. } = scrutinee else { return None };
@@ -1877,11 +1877,7 @@ impl Assigner<'_> {
         {
             return None;
         }
-        let (module, resolved) = (self.module, self.resolved);
-        let never_reassigned = self
-            .reassigned
-            .get_or_init(|| crate::reassign::Reassigned::of(module, resolved))
-            .never_reassigned(r, resolved);
+        let never_reassigned = self.reassigned().never_reassigned(r, self.resolved);
         if !never_reassigned {
             return None;
         }
@@ -1896,6 +1892,14 @@ impl Assigner<'_> {
             }
             ResolvedRef::Prelude(_) => None,
         }
+    }
+
+    /// Which bindings a `mut` reassigns anywhere in the module, computed once.
+    /// The one predicate behind `is`-arm narrowing (D53) and a `sqlite.Sql`
+    /// constant `let` (D52).
+    pub(super) fn reassigned(&self) -> &crate::reassign::Reassigned {
+        self.reassigned
+            .get_or_init(|| crate::reassign::Reassigned::of(self.module, self.resolved))
     }
 
     /// Undo one `narrow_is_arm`, putting back the type the name had before.
@@ -10526,13 +10530,13 @@ mod tests {
         assert!(errs.is_empty(), "{errs:?}");
     }
 
-    /// G408: a prelude container arm (`is Record<K, V>`, `is Array<X>`) does
+    /// G415: a prelude container arm (`is Record<K, V>`, `is Array<X>`) does
     /// not narrow in this release. Narrowing one exposes E0224 on an index
-    /// read `tsc` accepts, in `examples/01_validator.glyph`; G408 first stops
+    /// read `tsc` accepts, in `examples/01_validator.glyph`; G415 first stops
     /// E0224 firing when `V` is `unknown`, then containers narrow and this
     /// test flips (record 134, fork 1).
     #[test]
-    fn g408_a_prelude_container_is_arm_does_not_narrow() {
+    fn g415_a_prelude_container_is_arm_does_not_narrow() {
         let errs = errors_of(
             "module m\nfn a(v: unknown, k: string) -> unknown {\n  return match v { is Record<string, unknown> => v[k], else => v, }\n}\n",
         );
